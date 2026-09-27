@@ -42,7 +42,8 @@ function New-SecureHexToken([int]$bytes = 32) {
     }
 }
 
-function New-SecurePassword([int]$length = 24) {
+# The first administrator password: 20 characters, the longest the password policy accepts.
+function New-SecurePassword([int]$length = 20) {
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*-_=+'
     $buffer = New-Object byte[] $length
     $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -65,7 +66,7 @@ if (-not (Test-Path -LiteralPath $targetSecretsDir)) {
 $dbPassword = New-SecureHexToken 32
 $backupDbPassword = New-SecureHexToken 32
 $typesenseApiKey = New-SecureHexToken 32
-$resolvedAdminPassword = if ([string]::IsNullOrWhiteSpace($AdminPassword)) { New-SecurePassword 24 } else { $AdminPassword }
+$resolvedAdminPassword = if ([string]::IsNullOrWhiteSpace($AdminPassword)) { New-SecurePassword 20 } else { $AdminPassword }
 
 # Write secret files
 $dbPasswordFile = Join-Path $targetSecretsDir 'database-password'

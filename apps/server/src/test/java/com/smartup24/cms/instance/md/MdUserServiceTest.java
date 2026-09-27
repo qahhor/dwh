@@ -81,13 +81,13 @@ class MdUserServiceTest {
     }
 
     @Test
-    @DisplayName("Создание пользователя с паролем короче 10 символов должно отклоняться (FR-USR-2)")
-    void shouldRejectWeakPasswordLengthLessThan10() {
+    @DisplayName("Создание пользователя с паролем короче 8 символов должно отклоняться (FR-USR-2)")
+    void shouldRejectPasswordShorterThanEight() {
         assertThatThrownBy(() -> userService.createUser(
                 "Test User", "testuser", "test@company.com", null, "Short1!",
                 null, "ru", "UTC", null, Map.of(), false, null, 1L
         )).isInstanceOf(ApiException.class)
-          .hasMessageContaining("Пароль должен содержать минимум 10 символов");
+          .hasMessageContaining("Пароль должен содержать от 8 до 20 символов");
     }
 
     @Test
@@ -104,7 +104,7 @@ class MdUserServiceTest {
     @DisplayName("Создание пользователя с паролем, содержащим логин, должно отклоняться (FR-USR-2)")
     void shouldRejectPasswordContainingLogin() {
         assertThatThrownBy(() -> userService.createUser(
-                "Test User", "testuser", "test@company.com", null, "MySecret_testuser_2026",
+                "Test User", "testuser", "test@company.com", null, "My_testuser_26",
                 null, "ru", "UTC", null, Map.of(), false, null, 1L
         )).isInstanceOf(ApiException.class)
           .hasMessageContaining("не должен содержать логин");
@@ -134,7 +134,7 @@ class MdUserServiceTest {
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
         when(passwordHasher.verifyPassword("WrongOldPassword!", "$argon2id$hashed")).thenReturn(false);
 
-        assertThatThrownBy(() -> userService.changePassword(2L, 0, "WrongOldPassword!", "NewValidPassword2026!"))
+        assertThatThrownBy(() -> userService.changePassword(2L, 0, "WrongOldPassword!", "NewValidPass2026!"))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("Неверный текущий пароль");
 

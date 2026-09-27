@@ -20,7 +20,6 @@ public class MdSettingService {
             "system.default_language", "ru",
             "system.default_timezone", "Asia/Tashkent",
             "system.date_format", "dd.MM.yyyy HH:mm",
-            "security.min_password_length", "10",
             "security.require_2fa", "false",
             "security.session_lifetime_hours", "720",
             "security.idle_lock_minutes", "30",

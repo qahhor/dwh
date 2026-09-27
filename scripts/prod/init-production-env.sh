@@ -34,11 +34,12 @@ generate_hex_token() {
     fi
 }
 
+# The first administrator password: 20 characters, the longest the password policy accepts.
 generate_secure_password() {
     if command -v openssl >/dev/null 2>&1; then
-        openssl rand -base64 24 | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 24
+        openssl rand -base64 24 | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 20
     else
-        head -c 64 /dev/urandom | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 24
+        head -c 64 /dev/urandom | tr -dc 'A-Za-z0-9!@#$%^&*-_=+' | head -c 20
     fi
 }
 

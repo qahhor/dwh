@@ -202,7 +202,7 @@ async function createRole(page: Page): Promise<Role> {
 async function createUser(page: Page, roleId: number, suffix: string): Promise<{ user: User; password: string }> {
   const token = randomBytes(4).toString('hex');
   const login = `oe2e-${Date.now().toString(36)}-${suffix}-${token}`.toLowerCase();
-  const password = `Qa!7${randomBytes(22).toString('hex')}`;
+  const password = `Qa!7${randomBytes(8).toString('hex')}`; // 20 characters, the policy maximum
   const user = await api<User>(page.context(), 'POST', '/iam/users', 201, {
     name: `${runPrefix} ${suffix}`,
     login,

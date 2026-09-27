@@ -198,7 +198,7 @@ class KauthPasswordResetIntegrationTest {
         String used = token(mail.sent.getFirst().textBody());
         resetService.confirmReset(used, NEW_PASSWORD, "10.1.0.3", "ua");
 
-        assertRejected(() -> resetService.confirmReset(used, "ResetProbe-Again-2026", "10.1.0.3", "ua"));
+        assertRejected(() -> resetService.confirmReset(used, "ResetProbe-Again26", "10.1.0.3", "ua"));
 
         mail.sent.clear();
         resetService.requestReset("reset_once@test.local", "10.1.0.3", "ua");
@@ -206,7 +206,7 @@ class KauthPasswordResetIntegrationTest {
         jdbc.sql("update kauth_password_reset_codes set expires_at = now() - interval '1 minute' where user_id = :id")
                 .param("id", userId).update();
 
-        assertRejected(() -> resetService.confirmReset(expired, "ResetProbe-Again-2026", "10.1.0.3", "ua"));
+        assertRejected(() -> resetService.confirmReset(expired, "ResetProbe-Again26", "10.1.0.3", "ua"));
     }
 
     @Test

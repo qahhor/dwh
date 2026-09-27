@@ -167,10 +167,10 @@ describe('SettingsComponent UI contracts', () => {
     fixture.componentInstance.activeTab = 'security';
     redraw(fixture);
 
-    const passwordLength = inScreen(fixture.nativeElement).querySelector('#settings-password-length') as HTMLInputElement;
-    expect(inScreen(fixture.nativeElement).querySelector(`label[for="${passwordLength.id}"]`)).not.toBeNull();
-    expect(passwordLength.min).toBe('8');
-    expect(passwordLength.getAttribute('aria-describedby')).toBe('settings-password-length-hint');
+    // The length is the password policy (8..20): shown, not edited.
+    const passwordLength = inScreen(fixture.nativeElement).querySelector('#settings-password-length') as HTMLElement;
+    expect(passwordLength.tagName).toBe('SPAN');
+    expect(inScreen(fixture.nativeElement).querySelector('input[name="settingsPasswordLength"]')).toBeNull();
     const requireTwoFactor = inScreen(fixture.nativeElement).querySelector('#settings-require-2fa') as HTMLElement;
     expect(requireTwoFactor.getAttribute('role')).toBe('switch');
     expect(requireTwoFactor.getAttribute('aria-labelledby')).toBe('settings-require-2fa-label');
@@ -294,14 +294,7 @@ describe('SettingsComponent UI contracts', () => {
     };
     const fixture = await createFixture(api, () => true, undefined, undefined, toast);
 
-    // Min password too short (< 8)
-    fixture.componentInstance.systemSettings.set({ 'security.min_password_length': '5' });
-    fixture.componentInstance.saveSystemSettings();
-    expect(toast.error).toHaveBeenCalled();
-    expect(api.patch).not.toHaveBeenCalled();
-
     // Session lifetime invalid (> 8760)
-    toast.error.mockClear();
     fixture.componentInstance.systemSettings.set({ 'security.session_lifetime_hours': '10000' });
     fixture.componentInstance.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
@@ -360,23 +353,19 @@ describe('SettingsComponent UI contracts', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     const fixture = await createFixture(api, () => true, undefined, undefined, toast);
 
-    fixture.componentInstance.systemSettings.set({ 'security.min_password_length': '   ' });
+    fixture.componentInstance.systemSettings.set({ 'security.session_lifetime_hours': '   ' });
+    fixture.componentInstance.saveSystemSettings();
+    expect(toast.error).toHaveBeenCalled();
+    expect(api.patch).not.toHaveBeenCalled();
+
+    toast.error.mockClear();
+    fixture.componentInstance.systemSettings.set({ 'security.session_lifetime_hours': 'letters' });
     fixture.componentInstance.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
 
     toast.error.mockClear();
     fixture.componentInstance.systemSettings.set({
-      'security.min_password_length': '10',
-      'security.session_lifetime_hours': 'letters'
-    });
-    fixture.componentInstance.saveSystemSettings();
-    expect(toast.error).toHaveBeenCalled();
-    expect(api.patch).not.toHaveBeenCalled();
-
-    toast.error.mockClear();
-    fixture.componentInstance.systemSettings.set({
-      'security.min_password_length': '10',
       'security.session_lifetime_hours': '720',
       'storage.default_user_quota_mb': 'not-a-number'
     });

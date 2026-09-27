@@ -2,6 +2,7 @@ import { User } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { I18nService } from '../../../core/services/i18n.service';
+import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH } from '../../../core/security/password-policy';
 
 export interface UserCreateForm {
   name: string;
@@ -143,7 +144,7 @@ export async function copyPasswordToClipboard(
 }
 
 export function hasMinLength(password?: string): boolean {
-  return (password || '').length >= 10;
+  return fitsPasswordPolicy(password);
 }
 
 export function hasUpperAndLower(password?: string): boolean {
@@ -171,7 +172,7 @@ export function calculatePasswordStrength(
   const pwd = password || '';
   const normalizedLogin = login || '';
   let score = 0;
-  if (pwd.length >= 10) score++;
+  if (pwd.length >= PASSWORD_MIN_LENGTH) score++;
   if (/[a-z\u0430-\u044F\u0451]/.test(pwd) && /[A-Z\u0410-\u042F\u0401]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd) && /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score++;
   else if (/[0-9]/.test(pwd) || /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score += 0.5;

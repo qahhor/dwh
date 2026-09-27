@@ -8,6 +8,7 @@ import { TranslatePipe, I18nService } from '../../../core/services/i18n.service'
 import { Observable, finalize, tap } from 'rxjs';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../shared/ui/problem-text';
+import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH, PASSWORD_POLICY } from '../../../core/security/password-policy';
 
 import {
   User,
@@ -236,7 +237,7 @@ export class ProfileComponent implements OnInit {
     const pwd = this.passwordForm.newPassword;
     if (!pwd) return { score: 0, label: '', percent: 0, colorClass: '' };
     let score = 0;
-    if (pwd.length >= 10) score++;
+    if (pwd.length >= PASSWORD_MIN_LENGTH) score++;
     if (/[a-z\u0430-\u044f]/.test(pwd) && /[A-Z\u0410-\u042f]/.test(pwd)) score++;
     if (/\d/.test(pwd)) score++;
     if (/[^a-zA-Z\u0400-\u04FF0-9]/.test(pwd)) score++;
@@ -263,7 +264,7 @@ export class ProfileComponent implements OnInit {
   }
 
   hasMinLength(): boolean {
-    return (this.passwordForm.newPassword?.length || 0) >= 10;
+    return fitsPasswordPolicy(this.passwordForm.newPassword);
   }
 
   hasLettersAndNumbers(): boolean {
@@ -403,8 +404,8 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    if (this.passwordForm.newPassword.length < 10) {
-      this.toast.warning(this.uiI18n.translate('iam.novyy_parol_dolzhen_soderzhat_minimum_10_simvolo'));
+    if (!fitsPasswordPolicy(this.passwordForm.newPassword)) {
+      this.toast.warning(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
       return;
     }
 

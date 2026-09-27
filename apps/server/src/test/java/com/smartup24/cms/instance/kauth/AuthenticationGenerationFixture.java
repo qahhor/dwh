@@ -32,9 +32,9 @@ import static org.mockito.Mockito.mock;
 
 /** Real JDBC and Spring transactions; hooks surround real operations, only delivery/indexing are faked. */
 final class AuthenticationGenerationFixture implements AutoCloseable {
-    static final String OLD_PASSWORD = "Initial-Synthetic-2026!"; // gitleaks:allow -- isolated fixture
-    static final String NEW_PASSWORD = "Replacement-Synthetic-2026!"; // gitleaks:allow -- isolated fixture
-    static final String OTHER_PASSWORD = "Concurrent-Synthetic-2026!"; // gitleaks:allow -- isolated fixture
+    static final String OLD_PASSWORD = "Initial-Synth-2026!"; // gitleaks:allow -- isolated fixture
+    static final String NEW_PASSWORD = "Replace-Synth-2026!"; // gitleaks:allow -- isolated fixture
+    static final String OTHER_PASSWORD = "Concur-Synth-2026!"; // gitleaks:allow -- isolated fixture
     final JdbcClient jdbc;
     final ObjectMapper mapper = new ObjectMapper();
     final HookedUsers users;

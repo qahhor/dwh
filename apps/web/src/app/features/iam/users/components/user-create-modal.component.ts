@@ -16,6 +16,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../../shar
 import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
 import { Role } from '../../../../core/models/rbac.models';
 import { CustomField } from '../../../../core/models/custom-field.models';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/password-policy';
 
 /** The time zones offered; their names are not translated. */
 const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
@@ -104,7 +105,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               [emptyLabel]="'iam.bez_rukovoditelya' | t" />
           </smt-control>
 
-          <smt-control class="form-group span-2" [smtLabel]="'iam.vremennyy_parol' | t" [smtHint]="createForm.password ? '' : ('iam.ne_menee_10_simvolov_bez_sovpadeniy_s_loginom' | t)" [smtError]="isCreateSubmitted && createForm.password.length < 10 ? ('iam.parol_dolzhen_soderzhat_ne_menee_10_simvolov' | t) : ''">
+          <smt-control class="form-group span-2" [smtLabel]="'iam.vremennyy_parol' | t" [smtHint]="createForm.password ? '' : ('password.policy.hint' | t: passwordPolicy)" [smtError]="isCreateSubmitted && !fitsPolicy(createForm.password) ? ('password.policy.length_error' | t: passwordPolicy) : ''">
             <div class="pwd-wrapper">
               <!-- The field shows and hides the password itself; generating and copying sit beside it. -->
               <smt-input
@@ -113,10 +114,11 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 type="password"
                 class="pwd-field font-mono"
                 required
-                [minLength]="10"
+                [minLength]="passwordPolicy.min"
+                [maxLength]="passwordPolicy.max"
                 autocomplete="new-password"
                 [(ngModel)]="createForm.password"
-                [placeholder]="'iam.minimum_10_simvolov' | t" />
+                [placeholder]="'password.policy.range' | t: passwordPolicy" />
               <div class="pwd-actions">
                 <button
                   type="button"
@@ -153,7 +155,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               <div class="pwd-checklist">
                 <div class="check-item" [class.valid]="hasMinLength">
                   <span class="material-symbols-outlined check-ico" aria-hidden="true">{{ hasMinLength ? 'check' : 'close' }}</span>
-                  <span>{{ 'iam.ne_menee_10_simvolov' | t }}</span>
+                  <span>{{ 'password.policy.range' | t: passwordPolicy }}</span>
                   <span class="sr-only">{{ (hasMinLength ? 'common.requirement_met' : 'common.requirement_not_met') | t }}</span>
                 </div>
                 <div class="check-item" [class.valid]="hasUpperAndLower">
@@ -353,6 +355,8 @@ export class UserCreateModalComponent {
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
   readonly timezoneOptions = TIMEZONE_OPTIONS;
+  readonly passwordPolicy = PASSWORD_POLICY;
+  readonly fitsPolicy = fitsPasswordPolicy;
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
   private roleOptionsCache: { roles: Role[]; lang: string; options: SMTTagOption<number>[] } | null = null;
   @Input() isOpen = false;

@@ -7,10 +7,9 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { LoginHeaderComponent } from '../login/components/login-header.component';
 import { LoginTopBarComponent } from '../login/components/login-top-bar.component';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../core/security/password-policy';
 
 type ResetState = 'form' | 'done' | 'invalid';
-
-const MIN_PASSWORD_LENGTH = 10;
 
 /**
  * Sets a new password by the one-time link sent to the user's confirmed email or Telegram.
@@ -35,7 +34,7 @@ const MIN_PASSWORD_LENGTH = 10;
               <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
               <div>
                 <strong>{{ 'auth.reset.title' | t }}</strong>
-                <p id="reset-password-hint">{{ 'auth.reset.hint' | t }}</p>
+                <p id="reset-password-hint">{{ 'auth.reset.hint' | t: passwordPolicy }}</p>
               </div>
             </div>
 
@@ -48,7 +47,8 @@ const MIN_PASSWORD_LENGTH = 10;
                 (ngModelChange)="formError.set('')"
                 name="newPassword"
                 required
-                [minLength]="minLength"
+                [minLength]="passwordPolicy.min"
+                [maxLength]="passwordPolicy.max"
                 autocomplete="new-password"
                 [spellcheck]="false"
                 [smtInvalid]="!!formError()"
@@ -65,7 +65,8 @@ const MIN_PASSWORD_LENGTH = 10;
                 (ngModelChange)="formError.set('')"
                 name="confirmPassword"
                 required
-                [minLength]="minLength"
+                [minLength]="passwordPolicy.min"
+                [maxLength]="passwordPolicy.max"
                 autocomplete="new-password"
                 [spellcheck]="false"
                 [smtInvalid]="!!formError()"
@@ -104,7 +105,7 @@ export class ResetPasswordComponent {
   readonly isLoading = signal(false);
   readonly formError = signal('');
 
-  readonly minLength = MIN_PASSWORD_LENGTH;
+  readonly passwordPolicy = PASSWORD_POLICY;
   newPassword = '';
   confirmPassword = '';
   private readonly token = readToken();
@@ -115,8 +116,8 @@ export class ResetPasswordComponent {
 
   submit(): void {
     if (this.isLoading()) return;
-    if (this.newPassword.length < MIN_PASSWORD_LENGTH) {
-      this.formError.set(this.i18n.translate('auth.dlina_novogo_parolya_dolzhna_byt_ne_menee_10_sim'));
+    if (!fitsPasswordPolicy(this.newPassword)) {
+      this.formError.set(this.i18n.translate('password.policy.length_error', PASSWORD_POLICY));
       return;
     }
     if (this.newPassword !== this.confirmPassword) {
