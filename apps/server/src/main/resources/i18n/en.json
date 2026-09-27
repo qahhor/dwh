@@ -1594,6 +1594,7 @@
   "error.i18n_language_not_found": "Language not found",
   "error.i18n_language_exists": "A language with this code already exists",
   "error.i18n_revision_conflict": "The language pack has already been changed by another administrator. Refresh the data and save again",
+  "error.delivery_channel_not_configured": "This channel is not configured on the server: messages do not reach it. Contact your administrator.",
   "nav.upl_packages": "Uploads",
   "nav.upl_sources": "Sources and formats",
   "nav.upl_overview": "Data overview",

@@ -1594,6 +1594,7 @@
   "error.i18n_language_not_found": "Til topilmadi",
   "error.i18n_language_exists": "Bu kodga ega til allaqachon mavjud",
   "error.i18n_revision_conflict": "Til paketi allaqachon boshqa administrator tomonidan o'zgartirilgan. Ma'lumotlarni yangilang va yana saqlang",
+  "error.delivery_channel_not_configured": "Bu kanal serverda sozlanmagan: xabarlar unga yetib bormaydi. Administratorga murojaat qiling.",
   "nav.upl_packages": "Yuklamalar",
   "nav.upl_sources": "Manbalar va formatlar",
   "nav.upl_overview": "Maʼlumotlar sharhi",

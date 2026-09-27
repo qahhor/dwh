@@ -81,6 +81,7 @@ public class KauthChannelService {
             throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Адрес канала не может быть пустым");
         }
 
+        otpSender.requireDeliverable(normalized);
         var record = channelRepository.bindOrUpdate(userId, normalized, address.trim(), false);
 
         String verifyToken = randomToken();

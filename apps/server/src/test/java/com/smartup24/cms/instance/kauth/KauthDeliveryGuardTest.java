@@ -2,7 +2,9 @@ package com.smartup24.cms.instance.kauth;
 
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.service.KauthDeliveryGuard;
+import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
@@ -76,7 +78,32 @@ class KauthDeliveryGuardTest {
         when(storage.getProviderCode()).thenReturn("local");
         var registry = new ProviderRegistry(List.of(storage), List.of(mailProvider), List.of(sms),
                 List.of(messengerProvider), "local", mail, "console_sms", messenger);
-        return new KauthDeliveryGuard(registry, jdbc, enforced);
+        return new KauthDeliveryGuard(new KauthOtpSender(registry), jdbc, enforced);
+    }
+
+    private KauthOtpSender sender(String mail, String messenger, boolean enforced) {
+        MailProvider mailProvider = mock(MailProvider.class);
+        when(mailProvider.getProviderCode()).thenReturn(mail);
+        MessengerProvider messengerProvider = mock(MessengerProvider.class);
+        when(messengerProvider.getProviderCode()).thenReturn(messenger);
+        SmsProvider sms = mock(SmsProvider.class);
+        when(sms.getProviderCode()).thenReturn("console_sms");
+        StorageProvider storage = mock(StorageProvider.class);
+        when(storage.getProviderCode()).thenReturn("local");
+        return new KauthOtpSender(new ProviderRegistry(List.of(storage), List.of(mailProvider), List.of(sms),
+                List.of(messengerProvider), "local", mail, "console_sms", messenger), enforced);
+    }
+
+    @Test
+    @DisplayName("At run time a stubbed channel cannot be bound while delivery is enforced")
+    void stubbedChannelCannotBeBound() {
+        assertThatThrownBy(() -> sender("console_mail", "telegram", true).requireDeliverable("email"))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("не настроен");
+        assertThatCode(() -> sender("console_mail", "telegram", true).requireDeliverable("telegram"))
+                .doesNotThrowAnyException();
+        assertThatCode(() -> sender("console_mail", "telegram", false).requireDeliverable("email"))
+                .doesNotThrowAnyException();
     }
 
     private Long twoFactorUser(String login, String channel, boolean verified) {

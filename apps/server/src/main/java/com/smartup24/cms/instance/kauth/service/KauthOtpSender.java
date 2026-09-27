@@ -10,6 +10,8 @@ import com.smartup24.cms.spi.messenger.MessengerMessage;
 import com.smartup24.cms.spi.sms.SmsMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,10 +34,48 @@ public class KauthOtpSender {
 
     private static final Logger log = LoggerFactory.getLogger(KauthOtpSender.class);
 
-    private final ProviderRegistry providerRegistry;
+    private static final String STUB_PREFIX = "console_";
 
-    public KauthOtpSender(ProviderRegistry providerRegistry) {
+    private final ProviderRegistry providerRegistry;
+    private final boolean deliveryEnforced;
+
+    @Autowired
+    public KauthOtpSender(ProviderRegistry providerRegistry,
+                          @Value("${smc.delivery.enforce:true}") boolean deliveryEnforced) {
         this.providerRegistry = providerRegistry;
+        this.deliveryEnforced = deliveryEnforced;
+    }
+
+    /** Without enforcement: tests and tools that deliver to stubs on purpose. */
+    public KauthOtpSender(ProviderRegistry providerRegistry) {
+        this(providerRegistry, false);
+    }
+
+    /** Code of the provider behind a channel; {@code console_*} is a stub that only writes to the log. */
+    public String providerCode(String channel) {
+        return switch (channel) {
+            case KauthPref.CHANNEL_TELEGRAM -> providerRegistry.getActiveMessengerProvider().getProviderCode();
+            case KauthPref.CHANNEL_SMS -> providerRegistry.getActiveSmsProvider().getProviderCode();
+            case KauthPref.CHANNEL_EMAIL -> providerRegistry.getActiveMailProvider().getProviderCode();
+            default -> STUB_PREFIX + channel;
+        };
+    }
+
+    public static boolean isStub(String providerCode) {
+        return providerCode.startsWith(STUB_PREFIX);
+    }
+
+    /**
+     * Refuses a channel served by a stub while delivery is enforced (plan 10/10, item 0.8). Binding it would let a
+     * user confirm it from the log and turn on two-factor sign-in on a channel that delivers nothing; the next
+     * restart would then stop at {@link KauthDeliveryGuard}.
+     */
+    public void requireDeliverable(String channel) {
+        if (deliveryEnforced && isStub(providerCode(channel))) {
+            throw ApiException.conflict(ErrorCode.DELIVERY_CHANNEL_NOT_CONFIGURED,
+                    "Канал " + channel + " не настроен на сервере: сообщения туда не доставляются. "
+                            + "Обратитесь к администратору");
+        }
     }
 
     /**

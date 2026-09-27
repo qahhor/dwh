@@ -53,6 +53,7 @@ public enum ErrorCode {
     // 409 Conflict
     CONFLICT("conflict", 409),
     OTP_CHANNEL_MISSING("otp_channel_missing", 409),
+    DELIVERY_CHANNEL_NOT_CONFIGURED("delivery_channel_not_configured", 409),
     STATUS_TRANSITION_FORBIDDEN("status_transition_forbidden", 409),
     TASK_PARENT_CYCLE("task_parent_cycle", 409),
     SINGLE_RESPONSIBLE_VIOLATION("single_responsible_violation", 409),

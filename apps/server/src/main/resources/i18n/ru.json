@@ -1594,6 +1594,7 @@
   "error.i18n_language_not_found": "Язык не найден",
   "error.i18n_language_exists": "Язык с таким кодом уже существует",
   "error.i18n_revision_conflict": "Языковой пакет уже изменён другим администратором. Обновите данные и повторите сохранение",
+  "error.delivery_channel_not_configured": "Канал не настроен на сервере: сообщения туда не доставляются. Обратитесь к администратору.",
   "nav.upl_packages": "Загрузки",
   "nav.upl_sources": "Источники и форматы",
   "nav.upl_overview": "Обзор данных",
