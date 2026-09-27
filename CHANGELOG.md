@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- New migrations are linted and every build upgrades a previous release
+  (plan 10/10, item 1.7). ADR-0020 fixes the database naming and types;
+  `MigrationLintTest` checks them from V128 (identity keys, `text`,
+  `timestamptz`, `modified_at`, `<table>_…_idx` and `_uq` indexes,
+  `<table>_(uk|fk|ck|ex)_…` constraints, concurrent indexes on large tables
+  in a file of their own). `MigrationFileRulesTest` now sees destructive
+  statements inside `DO` blocks. `ReleaseUpgradeIntegrationTest` upgrades a
+  release-V123 database with data to the current schema on the embedded
+  PostgreSQL, so it never skips for want of Docker.
 - Module boundaries are checked on every build (plan 10/10, item 1.3).
   `ModuleBoundariesTest` forbids `common` to depend on business modules, a
   controller to see a repository package (nested records included), modules

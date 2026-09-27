@@ -13,6 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +34,16 @@ class MigrationFileRulesTest {
     private static final Pattern DDL = Pattern.compile("(?i)^\\s*(CREATE|ALTER|DROP)\\b", Pattern.MULTILINE);
     private static final Pattern SEED = Pattern.compile("(?i)^\\s*(INSERT|COPY)\\b", Pattern.MULTILINE);
     private static final Pattern DOLLAR_BODY = Pattern.compile("\\$\\$.*?\\$\\$", Pattern.DOTALL);
+    /**
+     * A DO block runs at once, unlike a function body: a drop or a delete inside it (often through execute format)
+     * is destructive all the same (plan 10/10, item 1.7).
+     */
+    private static final Pattern DO_BODY = Pattern.compile("(?is)\\bdo\\s+\\$\\$(.*?)\\$\\$");
+    private static final Pattern DESTRUCTIVE_IN_BODY = Pattern.compile(
+            "(?i)\\b(DROP\\s+(TABLE|COLUMN|SCHEMA|INDEX|CONSTRAINT|FUNCTION|TRIGGER|TYPE|VIEW)|TRUNCATE|DELETE\\s+FROM"
+            + "|UPDATE\\s+\\S+\\s+SET)\\b");
+    /** An index built concurrently may run longer than a minute: its file may lift the statement timeout. */
+    private static final Pattern CONCURRENTLY = Pattern.compile("(?i)\\bconcurrently\\b");
 
     record Violation(String file, String rule) {
     }
@@ -45,6 +56,7 @@ class MigrationFileRulesTest {
         // Каталог pg-dwh целиком наш: там нумерация начинается с V001 и правила действуют для всех файлов
         violations.addAll(check("classpath*:" + FndPref.DWH_MIGRATIONS + "/V*.sql", true));
         violations.addAll(check("classpath*:migration-fixtures/good/V*.sql"));
+        violations.addAll(check("classpath*:migration-fixtures/lint-good/V*.sql"));
         assertThat(violations).isEmpty();
     }
 
@@ -59,7 +71,9 @@ class MigrationFileRulesTest {
     @ParameterizedTest
     @ValueSource(strings = {"drop table t;", "drop function f();", "drop trigger t on x;", "drop type t;", "drop view v;",
             "drop index i;", "drop schema s;", "delete from t where id = 1;", "update t set a = 1;", "truncate t;",
-            "alter table t drop column c;"})
+            "alter table t drop column c;",
+            "do $$ begin execute format('drop table %I', 'audit_log_2027_01'); end $$;",
+            "do $$ begin delete from t where id = 1; end $$;"})
     @DisplayName("AC-2/M-6: каждое деструктивное слово — красный")
     void destructiveWordsAreRed(String sql) {
         assertThat(destructive("set lock_timeout = '2s';\nset statement_timeout = '60s';\n" + sql)).isTrue();
@@ -98,8 +112,9 @@ class MigrationFileRulesTest {
                     out.add(new Violation(name, "file_name"));
                 }
                 List<String> head = Arrays.stream(text.split("\\R")).filter(l -> !l.isBlank()).limit(2).toList();
-                if (head.size() < 2 || !head.get(0).trim().equals("set lock_timeout = '2s';")
-                        || !head.get(1).trim().equals("set statement_timeout = '60s';")) {
+                boolean timeoutOk = head.size() >= 2 && (head.get(1).trim().equals("set statement_timeout = '60s';")
+                        || CONCURRENTLY.matcher(text).find() && head.get(1).trim().equals("set statement_timeout = '0';"));
+                if (head.size() < 2 || !head.get(0).trim().equals("set lock_timeout = '2s';") || !timeoutOk) {
                     out.add(new Violation(name, "header_timeouts"));
                 }
                 // Тела функций ($$ … $$) — часть DDL: INSERT внутри триггера сидом не считается
@@ -118,7 +133,16 @@ class MigrationFileRulesTest {
     /** Деструктивна ли миграция: смотрим только верхний уровень — тела функций ($$…$$) вырезаны (M-6). */
     static boolean destructive(String text) {
         String topLevel = DOLLAR_BODY.matcher(text).replaceAll("\\$\\$body\\$\\$");
-        return DESTRUCTIVE_DDL.matcher(topLevel).find() || DESTRUCTIVE_DML.matcher(topLevel).find();
+        if (DESTRUCTIVE_DDL.matcher(topLevel).find() || DESTRUCTIVE_DML.matcher(topLevel).find()) {
+            return true;
+        }
+        Matcher doBlock = DO_BODY.matcher(text);
+        while (doBlock.find()) {
+            if (DESTRUCTIVE_IN_BODY.matcher(doBlock.group(1)).find()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean approved(String text) {
