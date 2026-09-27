@@ -5,7 +5,7 @@
 # кода приложения — пересборка после правки кода не тянет заново ~100 МБ библиотек.
 
 # ---------------------------------------------------------------- build
-FROM maven:3.9-eclipse-temurin-25@sha256:d67198007bb4441b07d45587320f83154de80ece3608f80408ef14c6ea847753 AS build
+FROM maven:3-eclipse-temurin-24@sha256:a137a467ec89b5713d0be817b55bdba6b4d6ef16e3d05565a79bc08d8e775a1c AS build
 WORKDIR /build
 
 COPY pom.xml .

@@ -13,7 +13,7 @@ COPY . .
 RUN npm run build
 
 # ---------------------------------------------------------------- runtime
-FROM nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236 AS runtime
+FROM nginx:1.29-alpine@sha256:5616878291a2eed594aee8db4dade5878cf7edcb475e59193904b198d9b830de AS runtime
 
 # nginx под non-root: стандартный образ пишет pid и кэш в каталоги root
 RUN apk del nginx-module-acme nginx-module-geoip nginx-module-image-filter nginx-module-njs nginx-module-xslt \
