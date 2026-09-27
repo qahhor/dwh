@@ -21,7 +21,7 @@
         <spring-boot.version>4.1.1</spring-boot.version>
         <!-- Boot 4.1.1 manages 11.0.24; 11.0.25 fixes the August 2026
              security-constraint and authentication vulnerabilities. -->
-        <tomcat.version>11.0.25</tomcat.version>
+        <tomcat.version>11.0.26</tomcat.version>
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.0</archunit.version>
         <testcontainers.version>1.21.3</testcontainers.version>
