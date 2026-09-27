@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,7 +35,7 @@ class SearchResultBudgetTest {
     }
 
     private static CollectionSearch group(String entityType, String... ids) {
-        List<SearchHit> hits = java.util.Arrays.stream(ids)
+        List<SearchHit> hits = Arrays.stream(ids)
                 .map(id -> new SearchHit(entityType, id, entityType + " " + id, "", "/" + id))
                 .toList();
         return new CollectionSearch(entityType, hits, hits.size(), 1);

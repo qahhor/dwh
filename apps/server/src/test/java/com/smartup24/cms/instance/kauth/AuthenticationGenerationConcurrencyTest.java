@@ -2,31 +2,34 @@ package com.smartup24.cms.instance.kauth;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
+import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
+import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
+import java.time.Instant;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.UUID;
-import java.util.stream.Stream;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import javax.sql.DataSource;
 
 import static com.smartup24.cms.instance.kauth.AuthenticationGenerationFixture.*;
 import static org.assertj.core.api.Assertions.*;
@@ -304,7 +307,7 @@ class AuthenticationGenerationConcurrencyTest {
             var oldCookie=f.principal(id,false);var oldBearer=f.principal(id,true);
             var otherCookie=f.principal(other,false);var otherBearer=f.principal(other,true);
             String oldOtpHash=UUID.randomUUID().toString();
-            f.otps.create(id,0,"telegram","synthetic",oldOtpHash,"login",java.time.Instant.now().plusSeconds(300));
+            f.otps.create(id,0,"telegram","synthetic",oldOtpHash,"login",Instant.now().plusSeconds(300));
             var operation=prepare(f,id,OLD_PASSWORD,issuance);
             var captured=new CountDownLatch(1);var release=new CountDownLatch(1);
             var executor=Executors.newFixedThreadPool(2,r -> new Thread(r,"identity-racer"));
@@ -409,7 +412,7 @@ class AuthenticationGenerationConcurrencyTest {
             Long id=f.user(false,false);
             f.jdbc.sql("update md_users set auth_version=9223372036854775807 where id=:id").param("id",id).update();
             var cookie=f.principal(id,false);var bearer=f.principal(id,true);
-            assertThatThrownBy(() -> f.userService.incrementAuthenticationVersion(id)).isInstanceOf(org.springframework.dao.DataAccessException.class);
+            assertThatThrownBy(() -> f.userService.incrementAuthenticationVersion(id)).isInstanceOf(DataAccessException.class);
             assertThat(f.users.findById(id).orElseThrow().authenticationVersion()).isEqualTo(Long.MAX_VALUE);
             assertThat(f.sessions.findActiveById(cookie.sessionId()).isPresent()).isTrue();
             assertThat(f.tokens.findActiveById(bearer.apiTokenId()).isPresent()).isTrue();
@@ -421,7 +424,7 @@ class AuthenticationGenerationConcurrencyTest {
             Long id=f.user(false,true);
             var cookie=f.principal(id,false);var bearer=f.principal(id,true);var otherBearer=f.principal(id,true);
             var otp=f.login(id,OLD_PASSWORD);
-            f.context.getBean(com.smartup24.cms.instance.kauth.service.KauthSessionService.class).closeAllUserSessions(id);
+            f.context.getBean(KauthSessionService.class).closeAllUserSessions(id);
             assertThat(f.sessions.findActiveById(cookie.sessionId()).isEmpty()).isTrue();
             assertThat(f.tokens.findActiveById(bearer.apiTokenId()).isPresent()).isTrue();
             f.api.revokeToken(bearer.apiTokenId(),id);

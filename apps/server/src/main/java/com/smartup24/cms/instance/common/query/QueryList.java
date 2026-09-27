@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.query;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -62,7 +63,7 @@ public record QueryList(String code, String form, String action, String select, 
     /** The same list with more fields after its own, e.g. the custom fields read at request time. */
     public QueryList withExtraFields(List<QueryField> extra) {
         if (extra.isEmpty()) return this;
-        List<QueryField> all = new java.util.ArrayList<>(fields);
+        List<QueryField> all = new ArrayList<>(fields);
         all.addAll(extra);
         return new QueryList(code, form, action, select, from, idSql, all, defaultSort, defaultDescending,
                 defaultLimit, maxLimit, customEntity, attributesSql);

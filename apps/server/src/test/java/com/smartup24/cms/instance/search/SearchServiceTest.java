@@ -4,13 +4,16 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
-import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
-import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackGroup;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackHit;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
+import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
+import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
+import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
@@ -23,10 +26,14 @@ import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -48,15 +55,15 @@ class SearchServiceTest {
     private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
     private final SearchService service = new SearchService(typesenseClient, fallbackRepository,
             new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(),
-            new com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader(indexState));
+            new SearchExecutionSnapshotReader(indexState));
 
     @BeforeEach
     void authenticateWithLegacyWildcard() {
         SecurityContext.setPrincipal(principalWithPermissions(Set.of("*.*")));
-        when(indexState.executionSnapshot()).thenReturn(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SearchExecutionSnapshot(
-                new IndexSnapshot(java.util.UUID.randomUUID(), 1,
+        when(indexState.executionSnapshot()).thenReturn(new SearchManagementDtos.SearchExecutionSnapshot(
+                new IndexSnapshot(UUID.randomUUID(), 1,
                 Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"), "MIXED", true, false),
-                new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults())));
+                new SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults())));
     }
 
     @AfterEach
@@ -67,7 +74,7 @@ class SearchServiceTest {
     @Test
     void indexStateReadFailureStillUsesStructuredPostgresFallback() {
         when(typesenseClient.isEnabled()).thenReturn(true);
-        when(indexState.executionSnapshot()).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("state unavailable"));
+        when(indexState.executionSnapshot()).thenThrow(new DataAccessResourceFailureException("state unavailable"));
         when(fallbackRepository.search("Kafka", "ALL", 10)).thenReturn(fallback());
         assertThat(service.search("Kafka", "ALL", 10).degraded()).isTrue();
     }
@@ -112,14 +119,14 @@ class SearchServiceTest {
                 2, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
         SearchQueryPolicy oneResult = new SearchQueryPolicy(
                 1, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
-        var reads = new java.util.concurrent.atomic.AtomicInteger();
+        var reads = new AtomicInteger();
         var index = indexState.executionSnapshot().index();
-        when(indexState.executionSnapshot()).thenAnswer(invocation -> new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SearchExecutionSnapshot(
-                index, new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot(1,
+        when(indexState.executionSnapshot()).thenAnswer(invocation -> new SearchManagementDtos.SearchExecutionSnapshot(
+                index, new SearchManagementDtos.SettingsSnapshot(1,
                 reads.getAndIncrement() == 0 ? twoResults : oneResult)));
         var dynamic = new SearchService(typesenseClient, fallbackRepository,
                 new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(),
-                new com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader(indexState));
+                new SearchExecutionSnapshotReader(indexState));
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(typesenseClient.multiSearch(eq("first"), eq("TASK"), eq(2), anyMap(), eq(twoResults)))
                 .thenReturn(List.of(group("TASK", 0)));
@@ -288,12 +295,12 @@ class SearchServiceTest {
     }
 
     private static CollectionSearch group(String type, long found, String... ids) {
-        return new CollectionSearch(type, java.util.Arrays.stream(ids)
+        return new CollectionSearch(type, Arrays.stream(ids)
                 .map(id -> new SearchHit(type, id, type + " " + id, "", "/" + id)).toList(), found, 1);
     }
 
     private static FallbackGroup fallbackGroup(String type, boolean hasMore, String... ids) {
-        return new FallbackGroup(type, java.util.Arrays.stream(ids)
+        return new FallbackGroup(type, Arrays.stream(ids)
                 .map(id -> new FallbackHit(type, id, type + " " + id, "", "/" + id)).toList(), hasMore);
     }
 
@@ -311,8 +318,8 @@ class SearchServiceTest {
         var provider = new SearchPolicyProvider(new SearchOwnerRateLimits() {
             @Override public int userPerMinute() { return 600; }
             @Override public int tokenPerMinute() { return 300; }
-        }, mock(com.smartup24.cms.instance.search.repository.SearchSettingsRepository.class));
-        provider.publishCommitted(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults()));
+        }, mock(SearchSettingsRepository.class));
+        provider.publishCommitted(new SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults()));
         return provider;
     }
 
@@ -321,7 +328,7 @@ class SearchServiceTest {
                                        SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                                        SearchQueryPolicy queryPolicy, Map<String, String> collections) {
             super(typesenseClient, fallbackRepository, accessPolicy, resultBudget, queryPolicy,
-                    () -> new IndexSnapshot(java.util.UUID.randomUUID(), 1, collections, "MIXED", !collections.isEmpty(), false));
+                    () -> new IndexSnapshot(UUID.randomUUID(), 1, collections, "MIXED", !collections.isEmpty(), false));
         }
     }
 }

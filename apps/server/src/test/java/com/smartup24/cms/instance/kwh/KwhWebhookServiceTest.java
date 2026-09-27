@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.kwh;
 
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
 import com.smartup24.cms.instance.kwh.repository.KwhSubscriptionRepository;
@@ -23,7 +24,7 @@ class KwhWebhookServiceTest {
     private final KwhSubscriptionRepository subscriptionRepository = Mockito.mock(KwhSubscriptionRepository.class);
     private final KwhOutboxRepository outboxRepository = Mockito.mock(KwhOutboxRepository.class);
     private final KwhWebhookService service = new KwhWebhookService(subscriptionRepository, outboxRepository,
-            Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class),
+            Mockito.mock(AuditLogService.class),
             policy(true, Set.of("hooks.example"), false));
 
     @Test
@@ -51,7 +52,7 @@ class KwhWebhookServiceTest {
     @DisplayName("Вебхуки должны быть fail-closed до явного включения оператором")
     void shouldRejectSubscriptionsWhenWebhooksAreDisabled() {
         var disabledService = new KwhWebhookService(subscriptionRepository, outboxRepository,
-                Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class),
+                Mockito.mock(AuditLogService.class),
                 policy(false, Set.of("hooks.example"), false));
 
         assertThatThrownBy(() -> disabledService.createSubscription(
@@ -65,7 +66,7 @@ class KwhWebhookServiceTest {
     @DisplayName("Изменение адреса подписки должно повторно проходить outbound policy")
     void shouldRevalidateTargetUrlOnUpdate() {
         var privateTargetService = new KwhWebhookService(subscriptionRepository, outboxRepository,
-                Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class),
+                Mockito.mock(AuditLogService.class),
                 policy(true, Set.of("127.0.0.1"), false));
 
         assertThatThrownBy(() -> privateTargetService.updateSubscription(
@@ -86,7 +87,7 @@ class KwhWebhookServiceTest {
                 .thenReturn(record);
         Mockito.when(subscriptionRepository.listSubscriptions()).thenReturn(List.of(record));
         var safeService = new KwhWebhookService(subscriptionRepository, outboxRepository,
-                Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class),
+                Mockito.mock(AuditLogService.class),
                 policy(true, Set.of("93.184.216.34"), false));
         var mapper = new ObjectMapper();
 

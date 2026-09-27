@@ -4,7 +4,10 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.service.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping(value="/api/v1/search", produces="application/json")
@@ -41,7 +44,7 @@ public class SearchManagementController {
     public SearchStatusService.Status status() { return status.current(); }
 
     @PostMapping(value="/jobs", consumes="application/json")
-    @ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     @RequiresPermission(form="platform.settings", action="update")
     public JobReceipt start(@RequestBody String json) {
         access.requireSettingsUpdate();
@@ -54,17 +57,17 @@ public class SearchManagementController {
 
     @GetMapping("/jobs/{id}")
     @RequiresPermission(form="platform.search",action="view")
-    public JobStatus job(@PathVariable java.util.UUID id) { return jobs.current(id); }
+    public JobStatus job(@PathVariable UUID id) { return jobs.current(id); }
 
     @PostMapping("/jobs/{id}/cancel")
-    @ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     @RequiresPermission(form="platform.settings",action="update")
-    public JobReceipt cancel(@PathVariable java.util.UUID id) { return jobs.cancel(id); }
+    public JobReceipt cancel(@PathVariable UUID id) { return jobs.cancel(id); }
 
     @PostMapping(value="/jobs/{id}/retry",consumes="application/json")
-    @ResponseStatus(org.springframework.http.HttpStatus.ACCEPTED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     @RequiresPermission(form="platform.settings",action="update")
-    public JobReceipt retry(@PathVariable java.util.UUID id,@RequestBody String json) {
+    public JobReceipt retry(@PathVariable UUID id,@RequestBody String json) {
         access.requireSettingsUpdate();
         return jobs.retry(id,SearchManagementDtos.decodeRetry(json));
     }

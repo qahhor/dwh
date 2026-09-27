@@ -1,25 +1,32 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.node.ObjectNode;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
     @Test void statusIncludesBoundedRecentJobsAndOnlyVerifiableRetainedRollbackTargets() throws Exception {
         authenticate(Set.of("*.*"),false);
-        var target=java.util.UUID.randomUUID();
+        var target=UUID.randomUUID();
         jdbc.sql("insert into search_generations(id,state,task_collection,project_collection,user_collection,schema_version,schema_profile,settings_version,discovery_entity,verified_at) values(:id,'RETAINED','ret_tasks','ret_projects','ret_users',1,'MIXED',1,'DONE',clock_timestamp())")
                 .param("id",target).update();
-        for (String type:java.util.List.of("tasks","projects","users")) {
-            var schema=(tools.jackson.databind.node.ObjectNode)mapper.readTree(responses.get("/collections/fixture_"+type));
+        for (String type:List.of("tasks","projects","users")) {
+            var schema=(ObjectNode)mapper.readTree(responses.get("/collections/fixture_"+type));
             schema.put("name","ret_"+type);responses.put("/collections/ret_"+type,mapper.writeValueAsString(schema));
         }
         jdbc.sql("insert into search_generations(id,state,task_collection,project_collection,user_collection,schema_version,schema_profile,settings_version) values(:id,'RETAINED','legacy_tasks','legacy_projects','legacy_users',0,'MIXED',1)")
-                .param("id",java.util.UUID.randomUUID()).update();
+                .param("id",UUID.randomUUID()).update();
         for (int i=0;i<22;i++) jdbc.sql("insert into search_jobs(id,request_id,action,generation_id,state) values(:id,:request,'CHECK',:target,'SUCCEEDED')")
-                .param("id",java.util.UUID.randomUUID()).param("request",java.util.UUID.randomUUID()).param("target",target).update();
+                .param("id",UUID.randomUUID()).param("request",UUID.randomUUID()).param("target",target).update();
         mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.jobs.length()").value(20)).andExpect(jsonPath("$.rollbackTargets.length()").value(1))
                 .andExpect(jsonPath("$.rollbackTargets[0].id").value(target.toString()));
@@ -53,9 +60,9 @@ class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
     }
 
     private static void distinctEntityCounts() {
-        for (var entry:java.util.Map.of("fixture_tasks",0,"fixture_projects",13,"fixture_users",7).entrySet()) {
+        for (var entry:Map.of("fixture_tasks",0,"fixture_projects",13,"fixture_users",7).entrySet()) {
             String path="/collections/"+entry.getKey();
-            var schema=(tools.jackson.databind.node.ObjectNode)mapper.readTree(responses.get(path));
+            var schema=(ObjectNode)mapper.readTree(responses.get(path));
             schema.put("num_documents",entry.getValue());
             responses.put(path,mapper.writeValueAsString(schema));
         }
@@ -86,7 +93,7 @@ class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
         assertThat(json).doesNotContain("private-downstream-marker", "fixture-key", "http://", "fixture_tasks");
         var counts=mapper.readTree(json).path("generations").get(0).path("entityDocumentCounts");
         assertThat(counts.propertyNames()).containsExactlyInAnyOrder("TASK","PROJECT","USER");
-        for (String entity:java.util.List.of("TASK","PROJECT","USER")) assertThat(counts.path(entity).isNull()).isTrue();
+        for (String entity:List.of("TASK","PROJECT","USER")) assertThat(counts.path(entity).isNull()).isTrue();
     }
 
     @Test void missingActiveCollectionRequiresRebuildWithoutPretendingItHasZeroDocuments() throws Exception {
@@ -103,8 +110,8 @@ class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
     @Test void profileChangeKeepsActiveSchemaAndRequiresRebuildWhilePreviewUsesTheActiveProfile() throws Exception {
         authenticate(Set.of("*.*"),false);
         long version=readSettings().path("version").asLong();
-        var policy=new com.smartup24.cms.instance.search.service.SearchQueryPolicy(3,120,20,"RU",
-                com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults().fields());
+        var policy=new SearchQueryPolicy(3,120,20,"RU",
+                SearchQueryPolicy.defaults().fields());
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version,policy))).andExpect(status().isOk());
         assertThat(paths).isEmpty();
         mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk())
@@ -119,9 +126,9 @@ class SearchStatusTest extends SearchSettingsIntegrationTestSupport {
 
     @Test void normalizedMixedDefaultsMatchButTokenizerDriftRequiresRebuild() throws Exception {
         authenticate(Set.of("*.*"),false);
-        var normalized=(tools.jackson.databind.node.ObjectNode) mapper.readTree(responses.get("/collections/fixture_tasks"));
+        var normalized=(ObjectNode) mapper.readTree(responses.get("/collections/fixture_tasks"));
         for (var node:normalized.path("fields")) {
-            var field=(tools.jackson.databind.node.ObjectNode)node;
+            var field=(ObjectNode)node;
             if (!field.has("optional")) field.put("optional",false);
             if (!field.has("facet")) field.put("facet",false);
             if (!field.has("index")) field.put("index",true);

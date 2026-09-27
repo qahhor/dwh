@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -23,7 +24,7 @@ import static org.mockito.Mockito.*;
 class AuditLogServiceTest {
 
     private final AuditLogRepository repository = Mockito.mock(AuditLogRepository.class);
-    private final com.smartup24.cms.instance.common.metrics.PlatformMetrics metrics = Mockito.mock(com.smartup24.cms.instance.common.metrics.PlatformMetrics.class);
+    private final PlatformMetrics metrics = Mockito.mock(PlatformMetrics.class);
     private final AuditLogService service = new AuditLogService(repository, metrics, new AuditDataRedactor());
 
 

@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -176,7 +176,7 @@ class RbacSystemRolesIntegrationTest {
                         """).query(Long.class).single();
         Long roleId = jdbc.sql("select id from md_roles where pcode = 'user'").query(Long.class).single();
 
-        var repo = new com.smartup24.cms.instance.md.repository.MdPermissionRepository(jdbc);
+        var repo = new MdPermissionRepository(jdbc);
         jdbc.sql("insert into md_user_roles (user_id, role_id) values (:u, :r)")
                 .param("u", userId).param("r", roleId).update();
         repo.recalculateEffectivePermissions(userId);

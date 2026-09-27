@@ -1,17 +1,18 @@
 package com.smartup24.cms.instance.mf;
 
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.mf.service.MfFileService;
+import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.FileContentInspector;
 import com.smartup24.cms.instance.mf.service.MfFileMetadataService;
 import com.smartup24.cms.instance.mf.service.MfFileObjectLock;
-import com.smartup24.cms.spi.storage.StorageProvider;
-import com.smartup24.cms.spi.storage.StoredFileMetadata;
+import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
+import com.smartup24.cms.spi.storage.StorageProvider;
+import com.smartup24.cms.spi.storage.StoredFileMetadata;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -20,8 +21,8 @@ import org.springframework.dao.DuplicateKeyException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,8 +34,8 @@ class MfFileServiceTest {
 
     private final MfFileRepository fileRepository = Mockito.mock(MfFileRepository.class);
     private final StorageProvider storageProvider = Mockito.mock(StorageProvider.class);
-    private final com.smartup24.cms.instance.audit.service.AuditLogService auditLogService =
-            Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class);
+    private final AuditLogService auditLogService =
+            Mockito.mock(AuditLogService.class);
     private final MfFileMetadataService metadataService =
             new MfFileMetadataService(fileRepository, auditLogService);
     private final MdScopeService scopeService = Mockito.mock(MdScopeService.class);

@@ -1,10 +1,17 @@
 package com.smartup24.cms.instance.ms.note.service;
 
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.QueryCompiler;
+import com.smartup24.cms.instance.common.query.QueryListRegistry;
+import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository.NoteRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,14 +25,14 @@ public class MsNoteService {
 
     private final MsNoteRepository noteRepository;
     private final AuditLogService auditLogService;
-    private final com.smartup24.cms.instance.md.service.MdCustomFieldService customFieldService;
-    private final com.smartup24.cms.instance.md.service.ModuleRegistryService moduleRegistryService;
+    private final MdCustomFieldService customFieldService;
+    private final ModuleRegistryService moduleRegistryService;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MsNoteService(MsNoteRepository noteRepository,
                          AuditLogService auditLogService,
-                         com.smartup24.cms.instance.md.service.MdCustomFieldService customFieldService,
-                         @org.springframework.beans.factory.annotation.Autowired(required = false) com.smartup24.cms.instance.md.service.ModuleRegistryService moduleRegistryService) {
+                         MdCustomFieldService customFieldService,
+                         @Autowired(required = false) ModuleRegistryService moduleRegistryService) {
         this.noteRepository = noteRepository;
         this.auditLogService = auditLogService;
         this.customFieldService = customFieldService;
@@ -33,12 +40,12 @@ public class MsNoteService {
     }
 
     /** The registry adds the note custom fields to the list (ADR-0019, 2.3); without it, the declared fields only. */
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public void setQueryListRegistry(com.smartup24.cms.instance.common.query.QueryListRegistry registry) {
+    @Autowired(required = false)
+    public void setQueryListRegistry(QueryListRegistry registry) {
         this.registry = registry;
     }
 
-    private com.smartup24.cms.instance.common.query.QueryListRegistry registry;
+    private QueryListRegistry registry;
 
     public MsNoteService(MsNoteRepository noteRepository, AuditLogService auditLogService) {
         this(noteRepository, auditLogService, null, null);
@@ -46,7 +53,7 @@ public class MsNoteService {
 
     private void checkModuleActive() {
         if (moduleRegistryService != null && !moduleRegistryService.isModuleActive("notes")) {
-            throw ApiException.badRequest(com.smartup24.cms.core.error.ErrorCode.BAD_REQUEST, "Модуль 'notes' отключен администратором");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Модуль 'notes' отключен администратором");
         }
     }
 
@@ -71,13 +78,13 @@ public class MsNoteService {
 
     /** A page of the owner's notes through the registry ({@code ms.notes}): filter, sort and search {@code q}. */
     @Transactional(readOnly = true)
-    public com.smartup24.cms.core.pagination.KeysetPage<NoteView> getNotes(Long userId, Integer limit, String cursor,
+    public KeysetPage<NoteView> getNotes(Long userId, Integer limit, String cursor,
                                                                           String filter, String sort, String search) {
         checkModuleActive();
-        var plan = com.smartup24.cms.instance.common.query.QueryCompiler.compile(
+        var plan = QueryCompiler.compile(
                 registry == null ? MsNoteQuery.LIST : registry.resolve(MsNoteQuery.LIST), filter, sort, limit, cursor, search);
         var page = noteRepository.pageByOwner(plan, userId);
-        return new com.smartup24.cms.core.pagination.KeysetPage<>(page.items().stream().map(NoteView::from).toList(),
+        return new KeysetPage<>(page.items().stream().map(NoteView::from).toList(),
                 page.nextCursor(), page.hasMore(), page.totalEstimated());
     }
 
@@ -85,9 +92,9 @@ public class MsNoteService {
     public NoteView getNote(Long id, Long userId) {
         checkModuleActive();
         var note = noteRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!note.createdBy().equals(userId)) {
-            throw ApiException.forbidden(com.smartup24.cms.core.error.ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
         }
         return NoteView.from(note);
     }
@@ -117,9 +124,9 @@ public class MsNoteService {
                                Map<String, Object> attributes, Long userId) {
         checkModuleActive();
         var existing = noteRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(com.smartup24.cms.core.error.ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
         }
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
 
@@ -151,9 +158,9 @@ public class MsNoteService {
     public NoteView togglePinned(Long id, Long userId) {
         checkModuleActive();
         var existing = noteRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(com.smartup24.cms.core.error.ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
         }
 
         return updateNote(id, null, null, null, !existing.isPinned(), null, userId);
@@ -163,9 +170,9 @@ public class MsNoteService {
     public void deleteNote(Long id, Long userId) {
         checkModuleActive();
         var existing = noteRepository.findById(id)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(com.smartup24.cms.core.error.ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
         }
 
         noteRepository.delete(id);

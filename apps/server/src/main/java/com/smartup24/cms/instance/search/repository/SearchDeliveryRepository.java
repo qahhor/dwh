@@ -3,9 +3,11 @@ package com.smartup24.cms.instance.search.repository;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Repository
@@ -67,7 +69,7 @@ public class SearchDeliveryRepository {
 
     @Transactional
     public void failed(Claim claim,Instant retryAt,String code) {
-        String safeCode=java.util.Set.of("DOCUMENT_TOO_LARGE","IMPORT_REJECTED").contains(code) ? code : "DELIVERY_FAILED";
+        String safeCode=Set.of("DOCUMENT_TOO_LARGE","IMPORT_REJECTED").contains(code) ? code : "DELIVERY_FAILED";
         updateClaim("""
                 update search_generation_delivery set attempts=attempts+1,next_attempt_at=:retry,
                     owner_token=null,error_code=:error

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.upl;
 
+import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
@@ -12,7 +13,6 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadValidator;
-import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -142,7 +143,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
             assertThat(texts.stream().filter(t -> !t.isBlank()).count()).isGreaterThanOrEqualTo(4);
             assertThat(texts).noneMatch(t -> t.startsWith("upl.err."));
         }
-        sendGet(admin, BASE + "/" + java.util.UUID.randomUUID() + "/errors/file", 404);
+        sendGet(admin, BASE + "/" + UUID.randomUUID() + "/errors/file", 404);
         List<Map<String, Object>> items = read(errors, "$.items");
         assertThat(items).hasSize(3).allSatisfy(item -> {
             assertThat(item).containsEntry("code", UplXlsxParser.UPL_CELL_KEY_MASK);
@@ -409,7 +410,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((List<Integer>) read(after, "$.freshness[*].sourceId")).contains((int) sourceId);
         String waiting = ((List<String>) read(after, "$.attention[?(@.kind == 'waiting')].packageId")).getFirst();
         assertThat((String) read(sendGet(admin, BASE + "/" + waiting, 200), "$.id")).isEqualTo(waiting);
-        sendGet(admin, BASE + "/" + java.util.UUID.randomUUID(), 404);
+        sendGet(admin, BASE + "/" + UUID.randomUUID(), 404);
         sendGet(admin, "/api/v1/upl/overview?days=5", 422);
         sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
     }
@@ -500,7 +501,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     }
 
     private static String json(Object value) {
-        return new tools.jackson.databind.ObjectMapper().writeValueAsString(value);
+        return new ObjectMapper().writeValueAsString(value);
     }
 
     private static String rnd() {

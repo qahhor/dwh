@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.kauth.controller;
 
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import jakarta.validation.Valid;
@@ -45,7 +46,7 @@ public class KauthPasswordController {
     @PostMapping("/password")
     public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {
         var principal = SecurityContext.getPrincipal();
-        if (principal == null) throw com.smartup24.cms.instance.common.error.ApiException.invalidCredentials();
+        if (principal == null) throw ApiException.invalidCredentials();
         userService.changePassword(principal.userId(), principal.authenticationVersion(), body.oldPassword(), body.newPassword());
         return ResponseEntity.noContent().build();
     }

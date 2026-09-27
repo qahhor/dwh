@@ -1,11 +1,13 @@
 package com.smartup24.cms.instance.md;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.dto.MdOrgUnitDtos;
+import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import org.junit.jupiter.api.AfterEach;
@@ -15,14 +17,17 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,17 +35,17 @@ class MdOrgUnitControllerTest {
 
     @Test
     void nameOnlyPatchPreservesExistingParent() throws Exception {
-        var repository = mock(com.smartup24.cms.instance.md.repository.MdOrgUnitRepository.class);
+        var repository = mock(MdOrgUnitRepository.class);
         var scope = mock(MdScopeService.class);
-        var audit = mock(com.smartup24.cms.instance.audit.service.AuditLogService.class);
-        when(repository.findById(3L)).thenReturn(java.util.Optional.of(
-                new com.smartup24.cms.instance.md.repository.MdOrgUnitRepository.OrgUnitRecord(
+        var audit = mock(AuditLogService.class);
+        when(repository.findById(3L)).thenReturn(Optional.of(
+                new MdOrgUnitRepository.OrgUnitRecord(
                         3L, 2L, "CHILD", "Child", "department", "A", -10,
-                        java.time.Instant.EPOCH, java.time.Instant.EPOCH)));
-        when(repository.findById(2L)).thenReturn(java.util.Optional.of(
-                new com.smartup24.cms.instance.md.repository.MdOrgUnitRepository.OrgUnitRecord(
+                        Instant.EPOCH, Instant.EPOCH)));
+        when(repository.findById(2L)).thenReturn(Optional.of(
+                new MdOrgUnitRepository.OrgUnitRecord(
                         2L, null, "ROOT", "Root", "company", "A", 0,
-                        java.time.Instant.EPOCH, java.time.Instant.EPOCH)));
+                        Instant.EPOCH, Instant.EPOCH)));
         var mvc = MockMvcBuilders.standaloneSetup(new MdOrgUnitController(
                         new MdOrgUnitService(repository, scope, audit), scope))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
@@ -62,7 +67,7 @@ class MdOrgUnitControllerTest {
         MdScopeService scopeService = mock(MdScopeService.class);
         SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
         when(scopeService.getUserAssignments(42L)).thenReturn(
-                new MdOrgUnitDtos.UserAssignments(42L, java.util.List.of(7L), 9L));
+                new MdOrgUnitDtos.UserAssignments(42L, List.of(7L), 9L));
 
         mvc(scopeService)
                 .perform(get("/api/v1/iam/org-units/users/42"))
@@ -77,7 +82,7 @@ class MdOrgUnitControllerTest {
         MdScopeService scopeService = mock(MdScopeService.class);
         SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
         when(scopeService.getUserAssignments(42L)).thenReturn(
-                new MdOrgUnitDtos.UserAssignments(42L, java.util.List.of(), null));
+                new MdOrgUnitDtos.UserAssignments(42L, List.of(), null));
 
         mvc(scopeService)
                 .perform(get("/api/v1/iam/org-units/users/42"))
@@ -93,7 +98,7 @@ class MdOrgUnitControllerTest {
                 .build();
 
         String json = mapper.writeValueAsString(
-                new MdOrgUnitDtos.UserAssignments(42L, java.util.List.of(), null));
+                new MdOrgUnitDtos.UserAssignments(42L, List.of(), null));
 
         assertThat(json).contains("\"legacyOrgUnitId\":null");
     }
@@ -114,7 +119,7 @@ class MdOrgUnitControllerTest {
 
     @Test
     void newReadEndpointsRejectAnonymousRequests() throws Exception {
-        for (String path : java.util.List.of(
+        for (String path : List.of(
                 "/api/v1/iam/org-units/users/42",
                 "/api/v1/iam/org-units/roles/42/rule")) {
             mvc(mock(MdScopeService.class)).perform(get(path))
@@ -127,7 +132,7 @@ class MdOrgUnitControllerTest {
     void newReadEndpointsRejectPrincipalsWithoutViewPermission() throws Exception {
         SecurityContext.setPrincipal(principal(Set.of()));
 
-        for (String path : java.util.List.of(
+        for (String path : List.of(
                 "/api/v1/iam/org-units/users/42",
                 "/api/v1/iam/org-units/roles/42/rule")) {
             mvc(mock(MdScopeService.class)).perform(get(path))
@@ -141,7 +146,7 @@ class MdOrgUnitControllerTest {
         SecurityContext.setPrincipal(principal(Set.of("iam.org_units.assign")));
         MockMvc mvc = mvc(mock(MdScopeService.class));
 
-        for (String body : java.util.List.of("{}", "{\"orgUnitIds\":null}")) {
+        for (String body : List.of("{}", "{\"orgUnitIds\":null}")) {
             mvc.perform(put("/api/v1/iam/org-units/users/42")
                             .contentType("application/json")
                             .characterEncoding(StandardCharsets.UTF_8)

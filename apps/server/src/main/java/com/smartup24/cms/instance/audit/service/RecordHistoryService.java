@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -20,6 +21,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The change history of one record for its card (ADR-0017): the audit rows of
@@ -41,7 +43,7 @@ public class RecordHistoryService {
     /** The modules' own sources and those the declared entities get from their declaration (roadmap item 56). */
     public RecordHistoryService(AuditLogService auditLogService, List<RecordHistorySource> sources, EntityRegistry entities) {
         this.auditLogService = auditLogService;
-        this.sources = java.util.stream.Stream.concat(sources.stream(), entities.historySources().stream())
+        this.sources = Stream.concat(sources.stream(), entities.historySources().stream())
                 .collect(Collectors.toUnmodifiableMap(RecordHistorySource::key, Function.identity()));
     }
 
@@ -92,7 +94,7 @@ public class RecordHistoryService {
 
     private static Map<String, Object> camelKeys(Map<String, Object> row) {
         if (row == null || row.isEmpty()) return Map.of();
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         row.forEach((key, value) -> result.putIfAbsent(camel(key), value));
         return result;
     }

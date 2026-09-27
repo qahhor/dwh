@@ -1,13 +1,40 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.config.security.ProblemDetailAuthHandlers;
+import com.smartup24.cms.instance.config.security.RateLimitFilter;
+import com.smartup24.cms.instance.config.security.RateLimitProperties;
+import com.smartup24.cms.instance.config.security.RateLimitService;
+import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
+import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
+import com.smartup24.cms.instance.search.controller.SearchController;
+import com.smartup24.cms.instance.search.controller.SearchManagementController;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.search.service.SearchService;
+import com.smartup24.cms.instance.search.service.SearchSettingsService;
+import com.smartup24.cms.instance.search.service.SearchStatusService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.assertj.core.api.Assertions.assertThat;
 
 class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSupport {
-    @org.springframework.beans.factory.annotation.Autowired org.springframework.context.ApplicationContext context;
+    @Autowired ApplicationContext context;
     @Test void anonymousCannotObserveOrPreviewSettings() throws Exception {
         mvc.perform(get("/api/v1/search/status")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/v1/search/preview").contentType("application/json").content("{\"q\":\"query\"}"))
@@ -15,7 +42,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
         assertThat(requests).isEmpty();
     }
     @Test void permissionsNeverDelegateUnrestrictedIndexAccessToNonAdmins() throws Exception {
-        for (var grants : java.util.List.of(Set.of("platform.search.view"), Set.of("platform.settings.view"),
+        for (var grants : List.of(Set.of("platform.search.view"), Set.of("platform.settings.view"),
                 Set.of("platform.search.view", "platform.settings.view", "platform.settings.update"))) {
             authenticate(grants, false);
             mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isForbidden());
@@ -41,13 +68,13 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
         mvc.perform(auth(get("/api/v1/search/settings"))).andExpect(status().isForbidden());
         mvc.perform(auth(put("/api/v1/search/settings")).content("{}"))
                 .andExpect(status().isForbidden());
-        mvc.perform(auth(post("/api/v1/search/preview")).content(mapper.writeValueAsString(java.util.Map.of(
-                "q","query","policy",com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults()))))
+        mvc.perform(auth(post("/api/v1/search/preview")).content(mapper.writeValueAsString(Map.of(
+                "q","query","policy",SearchQueryPolicy.defaults()))))
                 .andExpect(status().isForbidden());
     }
     @Test void malformedDraftsRejectBeforeAnyEngineWork() throws Exception {
         authenticate(Set.of("*.*"), false);
-        for (String body : java.util.List.of("{}", "{\"q\":null}", "{\"q\":12}", "{\"q\":\"query\",\"q\":\"other\"}",
+        for (String body : List.of("{}", "{\"q\":null}", "{\"q\":12}", "{\"q\":\"query\",\"q\":\"other\"}",
                 "{\"q\":\"query\",\"collection\":\"secret\"}", "{\"q\":\"query\",\"policy\":{}}", "{\"q\":\"query\",\"policy\":null}"))
             mvc.perform(auth(post("/api/v1/search/preview")).content(body)).andExpect(status().isBadRequest());
         assertThat(requests).isEmpty();
@@ -55,20 +82,20 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test void firstSettingsReadFailureProducesSafe503BeforeEngineAndPreservesManagementReads() throws Exception {
         authenticate(Set.of("*.*"),false);
-        var repository=org.mockito.Mockito.mock(com.smartup24.cms.instance.search.repository.SearchSettingsRepository.class);
-        org.mockito.Mockito.when(repository.current()).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("fixture database unavailable"));
-        var owner=context.getBean(com.smartup24.cms.instance.config.security.RateLimitProperties.class);
-        var unavailable=new com.smartup24.cms.instance.search.service.SearchPolicyProvider(owner,repository);
+        var repository=org.mockito.Mockito.mock(SearchSettingsRepository.class);
+        org.mockito.Mockito.when(repository.current()).thenThrow(new DataAccessResourceFailureException("fixture database unavailable"));
+        var owner=context.getBean(RateLimitProperties.class);
+        var unavailable=new SearchPolicyProvider(owner,repository);
         unavailable.refresh();
-        var filter=new com.smartup24.cms.instance.config.security.RateLimitFilter(owner,
-                context.getBean(com.smartup24.cms.instance.config.security.RateLimitService.class),unavailable,
-                context.getBean(com.smartup24.cms.instance.audit.service.AuditLogService.class),
-                context.getBean(com.smartup24.cms.instance.config.security.ProblemDetailAuthHandlers.class));
-        var isolated=org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup(
-                context.getBean(com.smartup24.cms.instance.search.controller.SearchController.class),
-                context.getBean(com.smartup24.cms.instance.search.controller.SearchManagementController.class))
-                .addFilters(context.getBean(com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter.class),filter)
-                .addInterceptors(new com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor()).build();
+        var filter=new RateLimitFilter(owner,
+                context.getBean(RateLimitService.class),unavailable,
+                context.getBean(AuditLogService.class),
+                context.getBean(ProblemDetailAuthHandlers.class));
+        var isolated=MockMvcBuilders.standaloneSetup(
+                context.getBean(SearchController.class),
+                context.getBean(SearchManagementController.class))
+                .addFilters(context.getBean(KauthAuthenticationFilter.class),filter)
+                .addInterceptors(new RequiresPermissionInterceptor()).build();
         org.assertj.core.api.Assertions.assertThatCode(() -> isolated.perform(auth(get("/api/v1/search")).param("q","query"))
                 .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.code").value("service_unavailable")))
                 .doesNotThrowAnyException();
@@ -79,9 +106,9 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
     @Test void settingsReadPermissionAllowsDraftsButDoesNotGrantSave() throws Exception {
         authenticate(Set.of("platform.search.view","platform.settings.view"),true);
         long version=readSettings().path("version").asLong();
-        var policy=new com.smartup24.cms.instance.search.service.SearchQueryPolicy(3,120,20,"RU",
-                com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults().fields());
-        mvc.perform(auth(post("/api/v1/search/preview")).content(mapper.writeValueAsString(java.util.Map.of("q","delivery","entity","TASK","policy",policy))))
+        var policy=new SearchQueryPolicy(3,120,20,"RU",
+                SearchQueryPolicy.defaults().fields());
+        mvc.perform(auth(post("/api/v1/search/preview")).content(mapper.writeValueAsString(Map.of("q","delivery","entity","TASK","policy",policy))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.result.totalHits").value(3))
                 .andExpect(jsonPath("$.activeProfile").value("MIXED"));
         assertThat(readSettings().path("version").asLong()).isEqualTo(version);
@@ -110,20 +137,20 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
     }
 
     @Test void internalServiceEntryPointsAlsoRejectDelegatedSettingsWriters() {
-        var principal=new com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal(actorId,"fixture","fixture@example.invalid",actorId,false,
+        var principal=new SecurityContext.KauthPrincipal(actorId,"fixture","fixture@example.invalid",actorId,false,
                 Set.of("platform.search.view","platform.settings.view","platform.settings.update"),1,false,0,null);
-        com.smartup24.cms.instance.common.security.SecurityContext.setPrincipal(principal);
+        SecurityContext.setPrincipal(principal);
         try {
-            var settings=context.getBean(com.smartup24.cms.instance.search.service.SearchSettingsService.class);
-            var status=context.getBean(com.smartup24.cms.instance.search.service.SearchStatusService.class);
-            var search=context.getBean(com.smartup24.cms.instance.search.service.SearchService.class);
-            for (org.assertj.core.api.ThrowableAssert.ThrowingCallable call:java.util.List.<org.assertj.core.api.ThrowableAssert.ThrowingCallable>of(
+            var settings=context.getBean(SearchSettingsService.class);
+            var status=context.getBean(SearchStatusService.class);
+            var search=context.getBean(SearchService.class);
+            for (org.assertj.core.api.ThrowableAssert.ThrowingCallable call:List.<org.assertj.core.api.ThrowableAssert.ThrowingCallable>of(
                     settings::current,status::current,
-                    () -> settings.save(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SaveSettingsRequest(1,com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults())),
-                    () -> search.preview(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.PreviewRequest("query","TASK",null))))
-                org.assertj.core.api.Assertions.assertThatThrownBy(call).isInstanceOfSatisfying(com.smartup24.cms.instance.common.error.ApiException.class,
-                        failure -> assertThat(failure.getErrorCode()).isEqualTo(com.smartup24.cms.core.error.ErrorCode.FORBIDDEN));
+                    () -> settings.save(new SearchManagementDtos.SaveSettingsRequest(1,SearchQueryPolicy.defaults())),
+                    () -> search.preview(new SearchManagementDtos.PreviewRequest("query","TASK",null))))
+                org.assertj.core.api.Assertions.assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class,
+                        failure -> assertThat(failure.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
             assertThat(paths).isEmpty();
-        } finally { com.smartup24.cms.instance.common.security.SecurityContext.clear(); }
+        } finally { SecurityContext.clear(); }
     }
 }

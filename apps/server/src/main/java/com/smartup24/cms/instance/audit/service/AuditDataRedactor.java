@@ -4,6 +4,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -51,13 +52,13 @@ public class AuditDataRedactor {
             return redact(stringKeyed);
         }
         if (value instanceof Iterable<?> iterable) {
-            java.util.ArrayList<Object> result = new java.util.ArrayList<>();
+            ArrayList<Object> result = new ArrayList<>();
             iterable.forEach(item -> result.add(redactValue(item)));
             return Collections.unmodifiableList(result);
         }
         if (value != null && value.getClass().isArray()) {
             int length = Array.getLength(value);
-            java.util.ArrayList<Object> result = new java.util.ArrayList<>(length);
+            ArrayList<Object> result = new ArrayList<>(length);
             for (int index = 0; index < length; index++) {
                 result.add(redactValue(Array.get(value, index)));
             }

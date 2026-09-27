@@ -2,17 +2,22 @@ package com.smartup24.cms.instance.ms.task.repository;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.ms.task.MsTaskPatch;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public class MsTaskRepository {
@@ -105,7 +110,7 @@ public class MsTaskRepository {
         }
 
         private String role() {
-            String role = memberRole == null ? "" : memberRole.strip().toUpperCase(java.util.Locale.ROOT);
+            String role = memberRole == null ? "" : memberRole.strip().toUpperCase(Locale.ROOT);
             return switch (role) {
                 case "R", "E", "O" -> role;
                 default -> "RE";
@@ -117,10 +122,10 @@ public class MsTaskRepository {
      * The data scope (ADR-0013) and the flat filters as one predicate for the registry page. They go into the
      * same SQL, so a page and its total only ever see visible tasks.
      */
-    public static com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment listPredicate(
+    public static QueryPlan.SqlFragment listPredicate(
             ScopeFilter scope, LegacyTaskFilters filters) {
         StringBuilder sql = new StringBuilder(scope.sql());
-        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        Map<String, Object> params = new LinkedHashMap<>();
         if (scope.bindsUserId()) params.put("scopeUserId", scope.userId());
         if (filters.projectId() != null) {
             sql.append(" and t.project_id = :projectId");
@@ -155,7 +160,7 @@ public class MsTaskRepository {
             sql.append(" and t.end_time is not null and t.end_time < now()"
                     + " and t.status_id not in (select id from ms_task_statuses where is_terminal = true)");
         }
-        return new com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment(sql.toString(), params);
+        return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 
 
@@ -433,7 +438,7 @@ public class MsTaskRepository {
         }
     }
 
-    public void attachFile(Long taskId, java.util.UUID fileId) {
+    public void attachFile(Long taskId, UUID fileId) {
         jdbcClient.sql("""
                 insert into ms_task_files (task_id, file_id, created_at)
                 values (:taskId, :fileId, now())
@@ -444,7 +449,7 @@ public class MsTaskRepository {
                 .update();
     }
 
-    public void detachFile(Long taskId, java.util.UUID fileId) {
+    public void detachFile(Long taskId, UUID fileId) {
         jdbcClient.sql("""
                 delete from ms_task_files
                 where task_id = :taskId and file_id = :fileId
@@ -464,7 +469,7 @@ public class MsTaskRepository {
                 """)
                 .param("taskId", taskId)
                 .query((rs, rowNum) -> new TaskFileRecord(
-                        java.util.UUID.fromString(rs.getString("file_id")),
+                        UUID.fromString(rs.getString("file_id")),
                         rs.getString("original_name"),
                         rs.getLong("size_bytes"),
                         rs.getString("mime_type"),
@@ -474,7 +479,7 @@ public class MsTaskRepository {
     }
 
     public record TaskFileRecord(
-            java.util.UUID fileId,
+            UUID fileId,
             String fileName,
             long sizeBytes,
             String mimeType,
@@ -539,7 +544,7 @@ public class MsTaskRepository {
 
     public record TaskDeadlineCandidate(long taskId, String title, long userId) {}
 
-    public List<TaskDeadlineCandidate> findUpcomingDeadlines(java.time.Duration window) {
+    public List<TaskDeadlineCandidate> findUpcomingDeadlines(Duration window) {
         return jdbcClient.sql("""
                 select distinct t.id as task_id, t.title, tm.user_id
                 from ms_tasks t

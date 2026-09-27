@@ -7,29 +7,33 @@ import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.repository.*;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
-import com.smartup24.cms.instance.search.typesense.*;
+import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
+import com.smartup24.cms.instance.search.typesense.*;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
-import org.springframework.transaction.interceptor.TransactionInterceptor;
-import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.transaction.IllegalTransactionStateException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.AbstractDataSource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -79,7 +83,7 @@ class SearchRevisionIntegrationTest {
     @Test void taskAndRevisionBecomeVisibleTogetherOnlyAfterCommit() throws Exception {
         var inserted = new CountDownLatch(1);
         var finish = new CountDownLatch(1);
-        var id = new java.util.concurrent.atomic.AtomicLong();
+        var id = new AtomicLong();
         try (var executor = Executors.newSingleThreadExecutor()) {
             var held = executor.submit(() -> tx.executeWithoutResult(status -> {
                 id.set(create("committed task"));
@@ -162,8 +166,8 @@ class SearchRevisionIntegrationTest {
         long id = create("Snapshot one");
         var selected = new CountDownLatch(1);
         var resume = new CountDownLatch(1);
-        var observed = new org.springframework.jdbc.datasource.AbstractDataSource() {
-            final java.util.concurrent.atomic.AtomicBoolean once = new java.util.concurrent.atomic.AtomicBoolean();
+        var observed = new AbstractDataSource() {
+            final AtomicBoolean once = new AtomicBoolean();
             @Override public java.sql.Connection getConnection() throws java.sql.SQLException { return wrap(database.getConnection()); }
             @Override public java.sql.Connection getConnection(String name, String password) throws java.sql.SQLException {
                 return wrap(database.getConnection(name,password));
@@ -218,7 +222,7 @@ class SearchRevisionIntegrationTest {
 
     private void statusMembershipRace(boolean create, boolean renameFirst) throws Exception {
         long status = jdbc.sql("select id from ms_task_statuses where pcode='new'").query(Long.class).single();
-        var id = new java.util.concurrent.atomic.AtomicLong(create ? 0 : create("moving task"));
+        var id = new AtomicLong(create ? 0 : create("moving task"));
         if (!create) {
             long other = tasks.createStatus(null, "Other", "#000000", 99, false).id();
             tasks.changeStatus(id.get(), other, reporter);
@@ -249,7 +253,7 @@ class SearchRevisionIntegrationTest {
         var firstDone = new CountDownLatch(1);
         var release = new CountDownLatch(1);
         var secondStarted = new CountDownLatch(1);
-        var pid = new java.util.concurrent.atomic.AtomicInteger();
+        var pid = new AtomicInteger();
         try (var executor = Executors.newFixedThreadPool(2)) {
             var held = executor.submit(() -> tx.executeWithoutResult(status -> {
                 first.run(); firstDone.countDown(); await(release);

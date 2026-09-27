@@ -9,6 +9,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,7 +42,7 @@ class ExportWorkbookWriterCustomFieldsTest {
         var file = java.nio.file.Files.createTempFile("export", ".xlsx");
         try {
             java.nio.file.Files.write(file, xlsx);
-            try (var zip = new java.util.zip.ZipFile(file.toFile())) {
+            try (var zip = new ZipFile(file.toFile())) {
                 StringBuilder text = new StringBuilder();
                 for (var entries = zip.entries(); entries.hasMoreElements(); ) {
                     var entry = entries.nextElement();

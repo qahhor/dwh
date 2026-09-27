@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.query;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +56,7 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
             if (condition.group() < 0) {
                 sql.append(" and ").append(test);
             } else {
-                groups.computeIfAbsent(condition.group(), g -> new java.util.ArrayList<>()).add(test);
+                groups.computeIfAbsent(condition.group(), g -> new ArrayList<>()).add(test);
             }
         }
         for (List<String> tests : groups.values()) {

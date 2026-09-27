@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.query;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
@@ -19,7 +20,7 @@ public class QueryListRegistry {
     private final Map<String, QueryList> lists = new TreeMap<>();
     private final List<QueryListExtender> extenders;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public QueryListRegistry(List<QueryList> declared, List<QueryListExtender> extenders) {
         for (QueryList list : declared) {
             if (lists.put(list.code(), list) != null) {

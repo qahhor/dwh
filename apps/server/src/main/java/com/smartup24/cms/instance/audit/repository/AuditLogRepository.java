@@ -1,11 +1,13 @@
 package com.smartup24.cms.instance.audit.repository;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -161,9 +163,9 @@ public class AuditLogRepository {
     }
 
     /** The flat audit filters as the registry page's extra predicate. */
-    public static com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment logPredicate(AuditLogFilters filters) {
+    public static QueryPlan.SqlFragment logPredicate(AuditLogFilters filters) {
         StringBuilder sql = new StringBuilder();
-        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        Map<String, Object> params = new LinkedHashMap<>();
         if (filters.tableName() != null && !filters.tableName().isBlank()) {
             sql.append(" and a.table_name = :tableName");
             params.put("tableName", filters.tableName());
@@ -188,14 +190,14 @@ public class AuditLogRepository {
             sql.append(" and a.changed_at <= :to");
             params.put("to", java.sql.Timestamp.from(filters.to()));
         }
-        return new com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment(sql.toString(), params);
+        return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 
     /** The flat security-event filters as the registry page's extra predicate. */
-    public static com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment securityPredicate(
+    public static QueryPlan.SqlFragment securityPredicate(
             SecurityEventFilters filters) {
         StringBuilder sql = new StringBuilder();
-        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        Map<String, Object> params = new LinkedHashMap<>();
         if (filters.eventType() != null && !filters.eventType().isBlank()) {
             sql.append(" and s.event_type = :eventType");
             params.put("eventType", filters.eventType());
@@ -216,7 +218,7 @@ public class AuditLogRepository {
             sql.append(" and s.created_at <= :to");
             params.put("to", java.sql.Timestamp.from(filters.to()));
         }
-        return new com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment(sql.toString(), params);
+        return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 
     /** Reads a row of {@link #SECURITY_COLUMNS}. */

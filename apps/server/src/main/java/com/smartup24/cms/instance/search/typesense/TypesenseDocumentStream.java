@@ -3,9 +3,11 @@ package com.smartup24.cms.instance.search.typesense;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import org.springframework.http.client.ClientHttpResponse;
 import tools.jackson.databind.ObjectMapper;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /** A bounded cursor owned by the single coordinator; no transaction or complete export stays in memory. */
 public final class TypesenseDocumentStream implements AutoCloseable {
@@ -28,7 +30,7 @@ public final class TypesenseDocumentStream implements AutoCloseable {
         if (exhausted) return List.of();
         if (closed) throw TypesenseException.unavailable();
         var page = new ArrayList<DocumentMetadata>();
-        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(1);
+        long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(1);
         try {
             for (int consumed = 0; consumed < maxBytes && page.size() < maxRows; consumed++) {
                 if (Thread.currentThread().isInterrupted()) throw TypesenseException.unavailable();

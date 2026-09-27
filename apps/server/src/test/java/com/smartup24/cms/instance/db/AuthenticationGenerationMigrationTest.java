@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.db.SchemaVersionGate;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -58,7 +59,7 @@ class AuthenticationGenerationMigrationTest {
         for (String table : List.of("md_users", "kauth_sessions", "kauth_api_tokens", "kauth_otp_codes")) {
             assertThat(jdbc.sql("select count(*) from " + table + " where auth_version <> 0").query(Long.class).single()).isZero();
             assertThatThrownBy(() -> jdbc.sql("update " + table + " set auth_version=-1").update())
-                    .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+                    .isInstanceOf(DataIntegrityViolationException.class);
         }
         assertThat(tables.stream().map(t -> snapshot(jdbc,t)).toList()).isEqualTo(before);
         assertThat(flyway.migrate().migrationsExecuted).isZero();

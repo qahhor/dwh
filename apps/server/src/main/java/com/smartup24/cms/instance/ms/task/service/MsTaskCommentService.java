@@ -2,13 +2,14 @@ package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -52,9 +53,9 @@ public class MsTaskCommentService {
         // Текст комментария в журнал не кладём: это содержимое переписки,
         // а аудит читают шире, чем задачу. В журнале — факт и автор.
         auditLogService.logChange("ms_task_comments", String.valueOf(comment.id()), "I",
-                java.util.List.of("task_id", "created_by"),
+                List.of("task_id", "created_by"),
                 null,
-                java.util.Map.of("task_id", taskId, "created_by", userId,
+                Map.of("task_id", taskId, "created_by", userId,
                         "files_attached", fileIds != null ? fileIds.size() : 0));
 
         return comment;

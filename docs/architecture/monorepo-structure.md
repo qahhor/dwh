@@ -1,8 +1,8 @@
 # Структура монорепозитория SmartupCMS
 
-**Версия:** 2.0
+**Версия:** 2.1
 
-**Обновлено:** 2026-09-03
+**Обновлено:** 2026-09-27
 
 **Основание:** [каноническое ТЗ](../technical-specification.md),
 [ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md) и фактический корневой
@@ -26,16 +26,13 @@ deploy/nginx/             production reverse proxy
 e2e/                      Playwright and configuration/security tests
 scripts/                  architecture, docs, dev, prod, release, security gates
 docs/                     requirements, ADRs, engineering and operations docs
-audit/                    dated evidence, never normative requirements
-graphify-out/              current generated navigation outputs only
 ```
 
 Корневой Maven reactor собирает `libs/core-types`, `libs/platform-common`,
 `libs/provider-spi` и `apps/server`. Angular-приложение собирается из
-`apps/web`. Каталог `audit/` хранит датированные наблюдения и доказательства;
-он не изменяет требования ТЗ или текущие архитектурные решения. Содержимое
-`graphify-out/` служит только сгенерированной навигацией по текущему состоянию
-репозитория.
+`apps/web`. Граф знаний `graphify-out/` строится локально (`graphify update .`)
+и в репозиторий не коммитится; датированные аудиты и планы агентов из дерева
+удалены, история — в git.
 
 ## Границы и направление зависимостей
 

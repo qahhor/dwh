@@ -1,14 +1,19 @@
 package com.smartup24.cms.instance.search;
 
-import com.smartup24.cms.instance.search.service.*;
-import com.smartup24.cms.instance.search.repository.*;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
-import com.smartup24.cms.instance.search.typesense.*;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.*;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import com.smartup24.cms.instance.search.repository.*;
+import com.smartup24.cms.instance.search.service.*;
+import com.smartup24.cms.instance.search.typesense.*;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.*;
+import org.springframework.dao.DataAccessResourceFailureException;
+
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -31,8 +36,8 @@ class SearchMetricsTest {
         when(client.multiSearch(anyString(),anyString(),anyInt(),anyMap(),any())).thenThrow(TypesenseException.unavailable());
         when(fallback.search(anyString(),anyString(),anyInt())).thenReturn(new SearchFallbackRepository.FallbackSearch(List.of()));
         assertThat(service.search("private-query-marker","TASK",10).degraded()).isTrue();
-        when(fallback.search(anyString(),anyString(),anyInt())).thenThrow(new org.springframework.dao.DataAccessResourceFailureException("safe fixture"));
-        assertThatThrownBy(() -> service.search("private-query-marker","TASK",10)).isInstanceOf(com.smartup24.cms.instance.common.error.ApiException.class);
+        when(fallback.search(anyString(),anyString(),anyInt())).thenThrow(new DataAccessResourceFailureException("safe fixture"));
+        assertThatThrownBy(() -> service.search("private-query-marker","TASK",10)).isInstanceOf(ApiException.class);
         assertThat(registry.find("dwh.search.query.duration").timers()).hasSize(3);
         assertThat(registry.find("dwh.search.engine.duration").timer()).isNotNull();
         assertThat(registry.find("dwh.search.engine.duration").timer().totalTime(TimeUnit.MILLISECONDS)).isEqualTo(7);
@@ -45,7 +50,7 @@ class SearchMetricsTest {
     }
     @Test void metricLabelInputsCannotCreateUserQueryJobOrCollectionCardinality() {
         metrics.query(UUID.randomUUID().toString(),"private-query-marker",true,true,1);
-        metrics.job("private-action","private-state",java.time.Duration.ZERO);
+        metrics.job("private-action","private-state",Duration.ZERO);
         metrics.engine("collection_123",1);metrics.switched(UUID.randomUUID().toString());
         assertThat(registry.getMeters()).allSatisfy(meter -> assertThat(meter.getId().getTags()).allSatisfy(tag ->
                 assertThat(tag.getValue()).isIn("UNKNOWN","ERROR")));

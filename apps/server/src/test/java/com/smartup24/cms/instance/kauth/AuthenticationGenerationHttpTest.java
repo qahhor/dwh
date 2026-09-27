@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.config.security.*;
 import com.smartup24.cms.instance.kauth.controller.*;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.security.*;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import jakarta.servlet.http.Cookie;
 import org.flywaydb.core.Flyway;
@@ -18,8 +19,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -30,10 +31,11 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import javax.sql.DataSource;
 
 import static com.smartup24.cms.instance.kauth.AuthenticationGenerationFixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -248,7 +250,7 @@ class AuthenticationGenerationHttpTest {
         grantTokenPermission(id);
         var cookies = login(id, OLD_PASSWORD);
         String apiToken = createApiToken(cookies);
-        var verifications = new java.util.concurrent.atomic.AtomicInteger();
+        var verifications = new AtomicInteger();
         f.hasher.afterVerified = verifications::incrementAndGet;
         var request = post("/api/v1/auth/password")
                 .header("Authorization", bearerKind.equals("empty") ? "Bearer " : "Bearer invalid-token")
@@ -433,7 +435,7 @@ class AuthenticationGenerationHttpTest {
     @Import({SecurityConfig.class,WebMvcConfig.class,ProblemDetailAuthHandlers.class,
             KauthAuthenticationFilter.class,RequiresPermissionInterceptor.class,RateLimitFilter.class,RateLimitService.class,
             SearchPolicyProvider.class,
-            com.smartup24.cms.instance.search.repository.SearchSettingsRepository.class,
+            SearchSettingsRepository.class,
             IdempotencyFilter.class,IdempotencyService.class,IdempotencyRepository.class,GlobalExceptionHandler.class,
             KauthAuthController.class,KauthPasswordController.class,KauthApiTokenController.class,KauthChannelController.class})
     static class HttpConfiguration {}

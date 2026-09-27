@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.search.typesense;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -59,7 +60,7 @@ public final class SearchCollectionSchema {
             };
             fields.replaceAll(field -> {
                 if (!naturalLanguage.contains(field.get("name"))) return field;
-                var localized = new java.util.LinkedHashMap<String,Object>(field);
+                var localized = new LinkedHashMap<String,Object>(field);
                 localized.put("locale", "ru");
                 localized.put("stem", true);
                 return Map.copyOf(localized);

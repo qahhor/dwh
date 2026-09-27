@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 public class MdPermissionRepository {
@@ -61,7 +62,7 @@ public class MdPermissionRepository {
 
         Set<String> liveForms = livePairs.stream()
                 .map(pair -> pair.substring(0, pair.lastIndexOf('.')))
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
 
         int actions = jdbcClient.sql("""
                 update md_form_actions

@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.mf;
 
+import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,8 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -114,7 +116,7 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
 
     private Session login(String login) throws Exception {
         var response = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
-                        .content(new tools.jackson.databind.ObjectMapper().writeValueAsString(
+                        .content(new ObjectMapper().writeValueAsString(
                                 Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
                 .andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
@@ -128,7 +130,7 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
     }
 
     private MockHttpServletResponse fetch(Session s, String url) throws Exception {
-        var response = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(URI.create(url))
+        var response = mvc.perform(MockMvcRequestBuilders.get(URI.create(url))
                 .cookie(s.session(), s.csrf())).andReturn().getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         return response;

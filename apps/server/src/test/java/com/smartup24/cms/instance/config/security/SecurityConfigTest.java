@@ -1,15 +1,28 @@
 package com.smartup24.cms.instance.config.security;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyService;
+import com.smartup24.cms.instance.kauth.controller.KauthPasswordController;
+import com.smartup24.cms.instance.kauth.controller.OAuth2AuthController;
+import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
+import com.smartup24.cms.instance.kauth.service.OAuth2AuthService;
+import com.smartup24.cms.instance.md.controller.MdI18nAdminController;
+import com.smartup24.cms.instance.md.controller.MdI18nController;
+import com.smartup24.cms.instance.md.i18n.I18nModels;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
+import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,6 +30,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -25,24 +40,25 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -52,17 +68,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * «мутирующий запрос без CSRF-токена -> 403».
  */
 @WebMvcTest(controllers = {SecurityTestController.class,
-        com.smartup24.cms.instance.kauth.controller.KauthPasswordController.class,
-        com.smartup24.cms.instance.kauth.controller.OAuth2AuthController.class,
-        com.smartup24.cms.instance.md.controller.MdI18nController.class,
-        com.smartup24.cms.instance.md.controller.MdI18nAdminController.class})
-@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(
-        print = org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
+        KauthPasswordController.class,
+        OAuth2AuthController.class,
+        MdI18nController.class,
+        MdI18nAdminController.class})
+@AutoConfigureMockMvc(
+        print = MockMvcPrint.NONE)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class, SearchPolicyProvider.class,
-        com.smartup24.cms.instance.config.idempotency.IdempotencyFilter.class,
+        IdempotencyFilter.class,
         SecurityTestController.class,
-        com.smartup24.cms.instance.kauth.controller.KauthPasswordController.class})
+        KauthPasswordController.class})
 class SecurityConfigTest {
 
     private static final String SESSION_COOKIE = "DWH_SESSION";
@@ -70,11 +86,11 @@ class SecurityConfigTest {
     @Autowired
     MockMvc mvc;
 
-    @MockitoBean com.smartup24.cms.instance.search.repository.SearchSettingsRepository searchSettings;
+    @MockitoBean SearchSettingsRepository searchSettings;
     @Autowired SearchPolicyProvider searchPolicyProvider;
     @org.junit.jupiter.api.BeforeEach void initializeSearchPolicy() {
-        searchPolicyProvider.publishCommitted(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot(
-                1, com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults()));
+        searchPolicyProvider.publishCommitted(new SearchManagementDtos.SettingsSnapshot(
+                1, SearchQueryPolicy.defaults()));
     }
 
     @MockitoBean
@@ -88,11 +104,11 @@ class SecurityConfigTest {
     @MockitoBean
     AuditLogService auditLogService;
     @MockitoBean
-    com.smartup24.cms.instance.config.idempotency.IdempotencyService idempotencyService;
+    IdempotencyService idempotencyService;
     @MockitoBean
-    com.smartup24.cms.instance.kauth.service.OAuth2AuthService oauth2AuthService;
+    OAuth2AuthService oauth2AuthService;
     @MockitoBean
-    com.smartup24.cms.instance.md.service.MdI18nService i18nService;
+    MdI18nService i18nService;
     @Test
     @DisplayName("FR-SEC-1: мутирующий запрос с cookie-сессией без CSRF-токена -> 403 csrf_token_invalid")
     void mutatingWithSessionCookieWithoutCsrf_returns403() throws Exception {
@@ -200,7 +216,7 @@ class SecurityConfigTest {
     void validatedBearerTakesPrecedenceOverCookieWithoutCsrf() throws Exception {
         // No usable cookie fixture: success must come from the accepted API token.
         when(apiTokenService.validateToken("valid-api-token")).thenReturn(Optional.of(
-                new com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository.ApiTokenRecord(
+                new KauthApiTokenRepository.ApiTokenRecord(
                         19L, 7L, "test", "prefix", "hash", null, Instant.now(), null, null, 0)));
         when(userService.getUserById(7L)).thenReturn(activeUser());
         when(permissionService.getEffectivePermissions(7L)).thenReturn(Set.of());
@@ -256,7 +272,7 @@ class SecurityConfigTest {
     void rejectedApiPrincipalFallsBackToCookieAndStillRequiresCsrf(String rejection, boolean matchingCsrf) throws Exception {
         stubAuthenticatedUser(Set.of());
         when(apiTokenService.validateToken("rejected-api-token")).thenReturn(Optional.of(
-                new com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository.ApiTokenRecord(
+                new KauthApiTokenRepository.ApiTokenRecord(
                         19L, 8L, "test", "prefix", "hash", null, Instant.now(), null, null, 0)));
         when(userService.getUserById(8L)).thenReturn(new MdUserRepository.UserRecord(
                 8L, "API User", "api-user", "api@example.test", null, "hash",
@@ -334,8 +350,8 @@ class SecurityConfigTest {
     @Test
     @DisplayName("Список языков и словарь доступны странице входа без сессии")
     void localizationReadsArePublic() throws Exception {
-        when(i18nService.listLanguages(true)).thenReturn(java.util.List.of(
-                new com.smartup24.cms.instance.md.i18n.I18nModels.LanguageSummary(
+        when(i18nService.listLanguages(true)).thenReturn(List.of(
+                new I18nModels.LanguageSummary(
                         "ru", "Русский", true, true, 1, 70, 70, 100)));
         when(i18nService.effectiveDictionary("ru")).thenReturn(Map.of("auth.login", "Вход в систему"));
 

@@ -1,29 +1,41 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrap;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
-import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
-import com.smartup24.cms.instance.search.service.SearchWorkerCoordinator;
-import com.smartup24.cms.instance.search.service.SearchService;
-import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
-import com.smartup24.cms.instance.search.service.SearchResultBudget;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
-import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
+import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
+import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
+import com.smartup24.cms.instance.search.service.SearchJobWorker;
+import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
+import com.smartup24.cms.instance.search.service.SearchResultBudget;
+import com.smartup24.cms.instance.search.service.SearchService;
+import com.smartup24.cms.instance.search.service.SearchWorkerCoordinator;
+import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.*;
 import org.springframework.core.annotation.Order;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.*;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -31,7 +43,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
     @Test void activationWaitsForThePublishingTransactionAndRejectsItsUndeliveredRevision() throws Exception {
         long id = user("Before activation");
         collections.addAll(List.of("tasks","projects","users"));
-        var generation = java.util.UUID.randomUUID();
+        var generation = UUID.randomUUID();
         jdbc.sql("""
                 insert into search_generations(id,state,task_collection,project_collection,user_collection,
                     schema_version,schema_profile,settings_version,discovery_entity)
@@ -41,7 +53,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         var projection = reader.read("USER",id).orElseThrow();
         client.upsertDocument("users",projection.document());
         delivery.acknowledge(claim,projection.fingerprint());
-        var receipt=jobRepository.insert(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.StartJobRequest(java.util.UUID.randomUUID(),"REBUILD",null),generation,null);
+        var receipt=jobRepository.insert(new SearchManagementDtos.StartJobRequest(UUID.randomUUID(),"REBUILD",null),generation,null);
         jobRepository.claim(owner);
         jobRepository.checkpoint(receipt.id(),owner,"ACTIVATING",1,0,null);
         var frozen=generationRepository.find(generation).orElseThrow();
@@ -84,16 +96,16 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
 
     @Test void queriesFallBackUntilActivationAndResolveCollectionsFreshForEveryQuery() {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(99L,"admin","admin@example.invalid",1L,
-                false,java.util.Set.of("*.*"),1L,false,0,null));
+                false,Set.of("*.*"),1L,false,0,null));
         try {
             var service = new SearchService(client, new SearchFallbackRepository(jdbc),
                     new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),new SearchResultBudget(),
-                    new com.smartup24.cms.instance.search.service.SearchPolicyProvider(
-                            new com.smartup24.cms.instance.search.SearchOwnerRateLimits() {
+                    new SearchPolicyProvider(
+                            new SearchOwnerRateLimits() {
                                 @Override public int userPerMinute() { return 600; }
                                 @Override public int tokenPerMinute() { return 300; }
-                            }, new com.smartup24.cms.instance.search.repository.SearchSettingsRepository(jdbc)),
-                    new com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader(state));
+                            }, new SearchSettingsRepository(jdbc)),
+                    new SearchExecutionSnapshotReader(state));
             var fallback = service.search("nothing", "ALL", 10);
             assertThat(fallback.source()).isEqualTo("POSTGRES");
             assertThat(fallback.degraded()).isTrue();
@@ -113,7 +125,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
     @Test void startupOutageRecoversAndMissingCollectionsUseOneGeneratedInitialGeneration() {
         long id = user("Recovery");
         failures.set(1);
-        try { runCycle(); } catch (com.smartup24.cms.instance.search.typesense.TypesenseException expected) { /* startup retries next cycle */ }
+        try { runCycle(); } catch (TypesenseException expected) { /* startup retries next cycle */ }
         assertThat(state.snapshot().initialized()).isFalse();
         for (int i = 0; i < 40 && !state.snapshot().initialized(); i++) runCycle();
         assertThat(state.snapshot().initialized()).isTrue();
@@ -156,7 +168,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(jdbc.sql("select count(*) from search_projection_versions where entity_type='USER'").query(Long.class).single()).isEqualTo(100);
         assertThat(jdbc.sql("select revision from search_projection_versions where entity_type='USER' and entity_id=:id")
                 .param("id", first).query(Long.class).single()).isEqualTo(2);
-        var generation = jdbc.sql("select id from search_generations").query(java.util.UUID.class).single();
+        var generation = jdbc.sql("select id from search_generations").query(UUID.class).single();
         long cursor = jdbc.sql("select discovery_after_id from search_generations").query(Long.class).single();
         assertThat(cursor).isGreaterThan(first);
         recreateWorker();
@@ -198,7 +210,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         app.setRegisterShutdownHook(false);
         try (var executor = Executors.newSingleThreadExecutor()) {
             var startup = executor.submit(() -> app.run());
-            org.springframework.context.ConfigurableApplicationContext context = null;
+            ConfigurableApplicationContext context = null;
             try {
                 context = startup.get(10, TimeUnit.SECONDS);
                 assertThat(httpEntered.await(10, TimeUnit.SECONDS)).isTrue();
@@ -221,15 +233,15 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         }
     }
 
-    @org.springframework.boot.test.context.TestConfiguration(proxyBeanMethods = false)
+    @TestConfiguration(proxyBeanMethods = false)
     @EnableTransactionManagement
     @Import(SearchWorkerCoordinator.class)
     static class BootstrapConfiguration {
         @Bean DataSourceTransactionManager transactionManager() { return manager; }
         @Bean SearchDeliveryWorker searchWorker() { return lifecycleWorker; }
-        @Bean com.smartup24.cms.instance.search.service.SearchJobWorker searchJobWorker() {
+        @Bean SearchJobWorker searchJobWorker() {
             var f=lifecycleFixture;
-            return new com.smartup24.cms.instance.search.service.SearchJobWorker(f.client,lifecycleWorker,f.state,f.jobRepository,
+            return new SearchJobWorker(f.client,lifecycleWorker,f.state,f.jobRepository,
                     f.generationRepository,f.generationService,f.jobService,f.reconciliation,f.storage);
         }
         @Bean InstanceBootstrap instanceBootstrap() {

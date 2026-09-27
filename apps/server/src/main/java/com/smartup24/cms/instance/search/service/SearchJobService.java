@@ -5,8 +5,16 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -16,18 +24,18 @@ public class SearchJobService {
     private final SearchIndexStateRepository state;
     private final SearchGenerationService generations;
     private final SearchStoragePreflight storage;
-    private final org.springframework.transaction.support.TransactionTemplate transaction;
+    private final TransactionTemplate transaction;
     private SearchMetrics metrics=SearchMetrics.unmetered();
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public SearchJobService(SearchAccessPolicy access,SearchJobRepository jobs,SearchIndexStateRepository state,
-            SearchGenerationService generations,SearchStoragePreflight storage,org.springframework.transaction.PlatformTransactionManager manager,
+            SearchGenerationService generations,SearchStoragePreflight storage,PlatformTransactionManager manager,
             Optional<SearchMetrics> metrics) {
         this(access,jobs,state,generations,storage,manager);this.metrics=metrics.orElseGet(SearchMetrics::unmetered);
     }
     public SearchJobService(SearchAccessPolicy access, SearchJobRepository jobs, SearchIndexStateRepository state,
-            SearchGenerationService generations, SearchStoragePreflight storage, org.springframework.transaction.PlatformTransactionManager manager) {
+            SearchGenerationService generations, SearchStoragePreflight storage, PlatformTransactionManager manager) {
         this.access=access; this.jobs=jobs; this.state=state;this.generations=generations;this.storage=storage;
-        this.transaction=new org.springframework.transaction.support.TransactionTemplate(manager);
+        this.transaction=new TransactionTemplate(manager);
         this.transaction.setTimeout(2);
     }
     public JobReceipt start(StartJobRequest request) {
@@ -77,14 +85,14 @@ public class SearchJobService {
     public JobPage history(int limit,String cursor) {
         access.requireSearchAccess();
         if (limit<1 || limit>100) throw new ApiException(ErrorCode.BAD_REQUEST,"Invalid job page size");
-        java.time.Instant time = null;
+        Instant time = null;
         UUID id = null;
         if (cursor!=null) {
             try {
                 if (cursor.length()>128) throw new IllegalArgumentException();
                 String[] parts = new String(Base64.getUrlDecoder().decode(cursor),java.nio.charset.StandardCharsets.UTF_8).split("\\|",-1);
                 if (parts.length!=2) throw new IllegalArgumentException();
-                time=java.time.Instant.parse(parts[0]); id=UUID.fromString(parts[1]);
+                time=Instant.parse(parts[0]); id=UUID.fromString(parts[1]);
             } catch (RuntimeException invalid) { throw new ApiException(ErrorCode.BAD_REQUEST,"Invalid job cursor"); }
         }
         var rows=jobs.page(limit+1,time,id);
@@ -103,7 +111,7 @@ public class SearchJobService {
         if (!jobs.cancel(id)) throw new ApiException(ErrorCode.CONFLICT,"JOB_CANNOT_BE_CANCELLED");
         if (job.action().equals("REBUILD")) generations.failed(job.generationId());
         jobs.auditCancellation(id,SecurityContext.getCurrentUserId());
-        metricAfterCommit(job.action(),"CANCELLED",java.time.Duration.between(job.createdAt(),java.time.Instant.now()));
+        metricAfterCommit(job.action(),"CANCELLED",Duration.between(job.createdAt(),Instant.now()));
         return new JobReceipt(id,"CANCELLED");
     }
 
@@ -153,9 +161,9 @@ public class SearchJobService {
         });
     }
 
-    private void metricAfterCommit(String action,String state,java.time.Duration duration) {
-        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                new org.springframework.transaction.support.TransactionSynchronization() {
+    private void metricAfterCommit(String action,String state,Duration duration) {
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
                     @Override public void afterCommit() { metrics.job(action,state,duration); }
                 });
     }

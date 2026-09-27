@@ -1,10 +1,12 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,8 +25,8 @@ public class MdUserService {
     private final PasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
     private final UserSessionInvalidator sessionInvalidator;
-    private final com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher;
-    private final com.smartup24.cms.instance.audit.service.AuditLogService auditLogService;
+    private final SearchChangePublisher searchChangePublisher;
+    private final AuditLogService auditLogService;
     private final MdScopeService scopeService;
 
     public MdUserService(
@@ -34,8 +36,8 @@ public class MdUserService {
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
             UserSessionInvalidator sessionInvalidator,
-            com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher,
-            com.smartup24.cms.instance.audit.service.AuditLogService auditLogService,
+            SearchChangePublisher searchChangePublisher,
+            AuditLogService auditLogService,
             MdScopeService scopeService) {
         this.sessionInvalidator = sessionInvalidator;
         this.scopeService = scopeService;

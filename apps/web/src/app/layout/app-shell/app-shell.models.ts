@@ -70,7 +70,9 @@ function entityNavItems(options: BuildNavSectionsOptions, section: string): NavI
 }
 
 export function buildNavSections(options: BuildNavSectionsOptions): NavSection[] {
-  const customItems: NavItem[] = options.activeCustomModules.map(mod => ({
+  // A module whose entity declares its own menu item is shown there, not again under Modules.
+  const declaredModules = new Set(options.entityItems.map(item => item.module).filter(Boolean));
+  const customItems: NavItem[] = options.activeCustomModules.filter(mod => !declaredModules.has(mod.code)).map(mod => ({
     id: `module-${mod.code}`,
     route: mod.route!,
     label: mod.name,

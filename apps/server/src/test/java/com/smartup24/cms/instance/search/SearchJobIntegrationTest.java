@@ -1,8 +1,16 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import org.junit.jupiter.api.Test;
-import java.util.UUID;
+
+import java.util.List;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -32,8 +40,8 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
         authenticate(Set.of("*.*"),false);
         ampleStorage();
         UUID active=jdbc.sql("select active_generation_id from search_index_state where id=1").query(UUID.class).single();
-        var policy = new com.smartup24.cms.instance.search.service.SearchQueryPolicy(10,120,20,"RU",
-                com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults().fields());
+        var policy = new SearchQueryPolicy(10,120,20,"RU",
+                SearchQueryPolicy.defaults().fields());
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(readSettings().path("version").asLong(),policy))).andExpect(status().isOk());
         long settingsVersion=readSettings().path("version").asLong();
         UUID job=start(UUID.randomUUID(),"REBUILD",null);
@@ -43,7 +51,7 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
         assertThat(jdbc.sql("select task_collection from search_generations where id=:id").param("id",candidate).query(String.class).single())
                 .isEqualTo("cms_"+candidate.toString().replace("-","")+"_tasks");
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(readSettings().path("version").asLong(),
-                com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults()))).andExpect(status().isOk());
+                SearchQueryPolicy.defaults()))).andExpect(status().isOk());
         assertThat(jdbc.sql("select schema_profile from search_generations where id=:id").param("id",candidate).query(String.class).single()).isEqualTo("RU");
         assertThat(jdbc.sql("select settings_version from search_generations where id=:id").param("id",candidate).query(Long.class).single()).isEqualTo(settingsVersion);
         assertThat(paths).noneMatch(path -> path.startsWith("DELETE ") || path.startsWith("POST /collections"));
@@ -84,17 +92,17 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
 
     @Test void concurrentBuildStartsSerializeToOneAcceptedAndOneConflict() throws Exception {
         authenticate(Set.of("*.*"),false); ampleStorage();
-        try (var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
-            var ready=new java.util.concurrent.CountDownLatch(2);
-            var go=new java.util.concurrent.CountDownLatch(1);
-            java.util.concurrent.Callable<Integer> action=() -> {
+        try (var executor=Executors.newFixedThreadPool(2)) {
+            var ready=new CountDownLatch(2);
+            var go=new CountDownLatch(1);
+            Callable<Integer> action=() -> {
                 ready.countDown(); go.await();
                 return mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(UUID.randomUUID(),"REBUILD",null)))
                         .andReturn().getResponse().getStatus();
             };
             var first=executor.submit(action); var second=executor.submit(action);
-            assertThat(ready.await(5,java.util.concurrent.TimeUnit.SECONDS)).isTrue(); go.countDown();
-            assertThat(java.util.List.of(first.get(10,java.util.concurrent.TimeUnit.SECONDS),second.get(10,java.util.concurrent.TimeUnit.SECONDS)))
+            assertThat(ready.await(5,TimeUnit.SECONDS)).isTrue(); go.countDown();
+            assertThat(List.of(first.get(10,TimeUnit.SECONDS),second.get(10,TimeUnit.SECONDS)))
                     .containsExactlyInAnyOrder(202,409);
         }
         assertThat(jdbc.sql("select count(*) from search_generations").query(Long.class).single()).isEqualTo(2);

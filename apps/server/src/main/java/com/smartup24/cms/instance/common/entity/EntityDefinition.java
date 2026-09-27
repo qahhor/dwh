@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -123,7 +124,7 @@ public record EntityDefinition(String code, String form, String listCode, String
     }
 
     public Map<String, FormField> fieldsByKey() {
-        Map<String, FormField> byKey = new java.util.LinkedHashMap<>();
+        Map<String, FormField> byKey = new LinkedHashMap<>();
         fields.forEach(field -> byKey.put(field.key(), field));
         return byKey;
     }

@@ -13,12 +13,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -172,16 +181,16 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     // ---------- AC-7: очередь под нагрузкой, путь failed, выключатель ----------
 
     @Autowired
-    private tools.jackson.databind.ObjectMapper json;
+    private ObjectMapper json;
     @Autowired
-    private org.springframework.transaction.PlatformTransactionManager transactions;
+    private PlatformTransactionManager transactions;
 
     /** Воркер с тестовыми обработчиками: бины расписания не нужны — очередь принимает любой код обработчика. */
     private FndJobRunner testRunner(FndJobHandler... handlers) {
         return new FndJobRunner(jdbc, json, transactions, List.of(handlers));
     }
 
-    private static FndJobHandler handler(String code, java.util.function.Consumer<Map<String, Object>> body) {
+    private static FndJobHandler handler(String code, Consumer<Map<String, Object>> body) {
         return new FndJobHandler() {
             @Override
             public String code() {
@@ -203,12 +212,12 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("AC-7: два воркера берут разные задания (for update skip locked), третий вызов пуст и не ждёт дольше 1 с")
     void twoWorkersTakeDifferentJobs() throws Exception {
-        java.util.concurrent.CountDownLatch started = new java.util.concurrent.CountDownLatch(2);
-        java.util.concurrent.CountDownLatch gate = new java.util.concurrent.CountDownLatch(1);
+        CountDownLatch started = new CountDownLatch(2);
+        CountDownLatch gate = new CountDownLatch(1);
         FndJobRunner runner = testRunner(handler("test.block", args -> {
             started.countDown();
             try {
-                assertThat(gate.await(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(gate.await(30, TimeUnit.SECONDS)).isTrue();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException(e);
@@ -216,18 +225,18 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
         }));
         long first = enqueueRaw("test.block", "{}");
         long second = enqueueRaw("test.block", "{}");
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             var c1 = pool.submit(runner::runNext);
             var c2 = pool.submit(runner::runNext);
-            assertThat(started.await(30, java.util.concurrent.TimeUnit.SECONDS))
+            assertThat(started.await(30, TimeUnit.SECONDS))
                     .as("оба воркера держат по заданию, не дожидаясь чужого коммита").isTrue();
             long begun = System.nanoTime();
             assertThat(runner.runNext()).as("третий вызов при двух занятых заданиях").isEmpty();
-            assertThat(java.time.Duration.ofNanos(System.nanoTime() - begun)).isLessThan(java.time.Duration.ofSeconds(1));
+            assertThat(Duration.ofNanos(System.nanoTime() - begun)).isLessThan(Duration.ofSeconds(1));
             gate.countDown();
-            assertThat(c1.get(30, java.util.concurrent.TimeUnit.SECONDS)).contains(true);
-            assertThat(c2.get(30, java.util.concurrent.TimeUnit.SECONDS)).contains(true);
+            assertThat(c1.get(30, TimeUnit.SECONDS)).contains(true);
+            assertThat(c2.get(30, TimeUnit.SECONDS)).contains(true);
         } finally {
             gate.countDown();
             pool.shutdownNow();
@@ -281,7 +290,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     }
 
     private static List<FndRawRow> rows(int count) {
-        return java.util.stream.IntStream.rangeClosed(1, count)
+        return IntStream.rangeClosed(1, count)
                 .mapToObj(number -> new FndRawRow(number, null, number, Map.of("n", number)))
                 .toList();
     }

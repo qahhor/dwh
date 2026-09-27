@@ -1,8 +1,9 @@
 package com.smartup24.cms.instance.kauth.security;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,7 +42,7 @@ public class RequiresPermissionInterceptor implements HandlerInterceptor {
         }
 
         if (SecurityContext.getPrincipal() != null && SecurityContext.getPrincipal().forcePasswordChange()) {
-            throw ApiException.forbidden(com.smartup24.cms.core.error.ErrorCode.MUST_CHANGE_PASSWORD, "Требуется обязательная смена временного пароля перед началом работы");
+            throw ApiException.forbidden(ErrorCode.MUST_CHANGE_PASSWORD, "Требуется обязательная смена временного пароля перед началом работы");
         }
 
         if (!SecurityContext.hasPermission(annotation.form(), annotation.action())) {

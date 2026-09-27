@@ -1,9 +1,11 @@
 package com.smartup24.cms.instance.ms.task.controller;
 
-import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
+import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -19,10 +21,10 @@ import java.util.Map;
 public class MsProjectController {
 
     private final MsProjectService projectService;
-    private final com.smartup24.cms.instance.ms.task.service.MsProjectListService projectListService;
+    private final MsProjectListService projectListService;
 
     public MsProjectController(MsProjectService projectService,
-                               com.smartup24.cms.instance.ms.task.service.MsProjectListService projectListService) {
+                               MsProjectListService projectListService) {
         this.projectService = projectService;
         this.projectListService = projectListService;
     }
@@ -40,7 +42,7 @@ public class MsProjectController {
      */
     @GetMapping("/page")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<com.smartup24.cms.core.pagination.KeysetPage<com.smartup24.cms.instance.ms.task.service.MsProjectListService.ProjectListItem>> pageProjects(
+    public ResponseEntity<KeysetPage<MsProjectListService.ProjectListItem>> pageProjects(
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "filter", required = false) String filter,

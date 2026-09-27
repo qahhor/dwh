@@ -19,6 +19,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.LinkedHashMap;
 
 @Service
 public class MdCustomFieldService {
@@ -133,7 +134,7 @@ public class MdCustomFieldService {
     }
 
     private static Map<String, Object> auditState(MdCustomFieldRepository.CustomFieldRecord field) {
-        Map<String, Object> state = new java.util.LinkedHashMap<>();
+        Map<String, Object> state = new LinkedHashMap<>();
         state.put("name", field.name());
         state.put("is_required", field.isRequired());
         state.put("default_value", field.defaultValue());

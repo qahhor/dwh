@@ -1,12 +1,12 @@
 package com.smartup24.cms.instance.kauth;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
-import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
@@ -14,10 +14,23 @@ import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
+import com.smartup24.cms.instance.kauth.service.KauthCredentialGuard;
 import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
+import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
+import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
+import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
+import com.smartup24.cms.instance.md.repository.MdRoleRepository;
+import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
+import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.MdPermissionService;
+import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
+import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.messenger.MessengerMessage;
@@ -34,6 +47,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -86,22 +101,22 @@ class KauthOtpLoginIntegrationTest {
                 "local", "console_mail", "console_sms", "telegram");
         var sender = new KauthOtpSender(registry);
         channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService,
-                new com.smartup24.cms.instance.kauth.service.KauthCredentialGuard(new KauthSessionRepository(jdbc),
-                        new com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository(jdbc)));
+                new KauthCredentialGuard(new KauthSessionRepository(jdbc),
+                        new KauthApiTokenRepository(jdbc)));
 
-        var scopes = new com.smartup24.cms.instance.md.service.MdScopeService(
-                new com.smartup24.cms.instance.md.repository.MdScopeRepository(jdbc),
-                new com.smartup24.cms.instance.md.repository.MdOrgUnitRepository(jdbc),
-                new com.smartup24.cms.instance.md.service.MdPermissionService(new com.smartup24.cms.instance.md.repository.MdPermissionRepository(jdbc)),
+        var scopes = new MdScopeService(
+                new MdScopeRepository(jdbc),
+                new MdOrgUnitRepository(jdbc),
+                new MdPermissionService(new MdPermissionRepository(jdbc)),
                 auditLogService);
-        var userService = new com.smartup24.cms.instance.md.service.MdUserService(
+        var userService = new MdUserService(
                 userRepository,
-                new com.smartup24.cms.instance.md.repository.MdRoleRepository(jdbc),
-                new com.smartup24.cms.instance.md.service.MdCustomFieldService(new com.smartup24.cms.instance.md.repository.MdCustomFieldRepository(jdbc, mapper), auditLogService),
+                new MdRoleRepository(jdbc),
+                new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
-                Mockito.mock(com.smartup24.cms.instance.md.service.UserSessionInvalidator.class),
-                Mockito.mock(com.smartup24.cms.instance.search.SearchChangePublisher.class),
+                Mockito.mock(UserSessionInvalidator.class),
+                Mockito.mock(SearchChangePublisher.class),
                 auditLogService,
                 scopes);
 
@@ -226,9 +241,9 @@ class KauthOtpLoginIntegrationTest {
         assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified()).isFalse();
     }
 
-    private static com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal principal(Long userId) {
-        var session = new KauthSessionRepository(jdbc).create(userId, 0, java.util.UUID.randomUUID().toString(), "127.0.0.1", "test", "test");
-        return new com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal(userId, "test", "test", session.id(), false, java.util.Set.of(), 1, false, 0, null);
+    private static SecurityContext.KauthPrincipal principal(Long userId) {
+        var session = new KauthSessionRepository(jdbc).create(userId, 0, UUID.randomUUID().toString(), "127.0.0.1", "test", "test");
+        return new SecurityContext.KauthPrincipal(userId, "test", "test", session.id(), false, Set.of(), 1, false, 0, null);
     }
 
     // ------------------------------------------------------------- вспомогательное

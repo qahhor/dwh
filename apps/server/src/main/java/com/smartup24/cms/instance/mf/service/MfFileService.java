@@ -1,19 +1,24 @@
 package com.smartup24.cms.instance.mf.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository;
+import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Semaphore;
 
 @Service
 public class MfFileService {
@@ -28,17 +33,17 @@ public class MfFileService {
     private final List<FileScanner> fileScanners;
     private final MfFileObjectLock objectLock;
     private final MdScopeService scopeService;
-    private final java.util.concurrent.Semaphore uploadLimiter;
+    private final Semaphore uploadLimiter;
 
     public static final int DEFAULT_MAX_CONCURRENT_UPLOADS = 10;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MfFileService(MfFileMetadataService metadataService, StorageProvider storageProvider,
                          FileContentInspector contentInspector,
                          List<FileScanner> fileScanners,
                          MfFileObjectLock objectLock,
                          MdScopeService scopeService,
-                         @org.springframework.beans.factory.annotation.Value("${dwh.files.max-concurrent-uploads:10}") int maxConcurrentUploads) {
+                         @Value("${dwh.files.max-concurrent-uploads:10}") int maxConcurrentUploads) {
         this.metadataService = metadataService;
         this.storageProvider = storageProvider;
         this.contentInspector = contentInspector;
@@ -46,7 +51,7 @@ public class MfFileService {
         this.objectLock = objectLock;
         this.scopeService = scopeService;
         int permits = maxConcurrentUploads > 0 ? maxConcurrentUploads : DEFAULT_MAX_CONCURRENT_UPLOADS;
-        this.uploadLimiter = new java.util.concurrent.Semaphore(permits);
+        this.uploadLimiter = new Semaphore(permits);
     }
 
     public MfFileService(MfFileMetadataService metadataService, StorageProvider storageProvider,
@@ -161,9 +166,9 @@ public class MfFileService {
     }
 
     /** The file list through the registry ({@code mf.files}): filter, sort, search {@code q} and the viewer's data scope. */
-    public com.smartup24.cms.core.pagination.KeysetPage<MfFileRepository.FileDetailRecord> listFiles(
+    public KeysetPage<MfFileRepository.FileDetailRecord> listFiles(
             Long userId, boolean onlyMine, Integer limit, String cursor, String filter, String sort, String query) {
-        var plan = com.smartup24.cms.instance.common.query.QueryCompiler.compile(
+        var plan = QueryCompiler.compile(
                 MfFileQuery.LIST, filter, sort, limit, cursor, query);
         return metadataService.pageFiles(plan, scopeService.filterForFiles(userId), onlyMine ? userId : null);
     }

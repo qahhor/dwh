@@ -2,7 +2,9 @@ package com.smartup24.cms.instance.search;
 
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
+import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
@@ -22,9 +24,9 @@ class SearchServiceWiringTest {
             context.registerBean(TypesenseClient.class, () -> mock(TypesenseClient.class));
             context.registerBean(SearchFallbackRepository.class, () -> mock(SearchFallbackRepository.class));
             context.registerBean(SearchIndexStateRepository.class, () -> mock(SearchIndexStateRepository.class));
-            context.registerBean(com.smartup24.cms.instance.search.repository.SearchSettingsRepository.class,
-                    () -> mock(com.smartup24.cms.instance.search.repository.SearchSettingsRepository.class));
-            context.registerBean(com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader.class);
+            context.registerBean(SearchSettingsRepository.class,
+                    () -> mock(SearchSettingsRepository.class));
+            context.registerBean(SearchExecutionSnapshotReader.class);
             context.registerBean(SearchAccessPolicy.class, () -> mock(SearchAccessPolicy.class));
             context.registerBean(SearchResultBudget.class, SearchResultBudget::new);
             context.registerBean(SearchOwnerRateLimits.class, () -> new SearchOwnerRateLimits() {

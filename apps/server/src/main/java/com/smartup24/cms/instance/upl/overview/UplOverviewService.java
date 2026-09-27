@@ -17,7 +17,9 @@ import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -95,7 +97,7 @@ public class UplOverviewService {
 
     /** One row per day of the period, so a chart shows quiet days as quiet rather than skipping them. */
     private List<UplOverviewRepository.DayRow> daily(Instant since, LocalDate today, int days) {
-        java.util.Map<LocalDate, UplOverviewRepository.DayRow> found = new java.util.HashMap<>();
+        Map<LocalDate, UplOverviewRepository.DayRow> found = new HashMap<>();
         repo.daily(since).forEach(row -> found.put(row.day(), row));
         List<UplOverviewRepository.DayRow> rows = new ArrayList<>();
         for (LocalDate day = today.minusDays(days - 1L); !day.isAfter(today); day = day.plusDays(1)) {

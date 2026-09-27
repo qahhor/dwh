@@ -1,5 +1,21 @@
 # SmartupCMS documentation
 
+## Start here: building on the platform
+
+SmartupCMS is a low-code CMS for developers: an entity is declared once on the
+server and the platform builds its list, form, card, history, export, bulk
+actions, menu item and permission names.
+
+1. [README](../README.md) — what the platform is and what a module consists of.
+2. [Module development guide](guidelines/module-development-guide.md) — the
+   checklist for a declared entity and a screen example.
+3. [Extension points](architecture/extension-points.md) — every interface and
+   component a module plugs into, and the known gaps.
+4. [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
+   and [ADR-0016 — field registry and filter DSL](adr/ADR-0016-field-registry-query-dsl.md).
+5. [Developer onboarding](onboarding.md) — the code map and the verification
+   commands.
+
 This index defines the authority and navigation order for active project
 documentation. Public operations documentation remains in English. The
 canonical requirements document is the Russian technical specification.
@@ -57,6 +73,7 @@ Historical, fully superseded decisions are retained for traceability only:
 ## Authority tier 3 — engineering guidance
 
 - [Developer onboarding](onboarding.md)
+- [Extension points](architecture/extension-points.md)
 - [Biruni and Smartup architecture conventions](architecture/biruni-smartup-conventions.md)
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)

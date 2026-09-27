@@ -1,20 +1,21 @@
 package com.smartup24.cms.instance.search;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
+import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
+import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
+import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
-import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
-import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
-import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.repository.*;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.*;
-import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import com.smartup24.cms.instance.search.service.*;
+import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import com.smartup24.cms.instance.search.typesense.*;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -140,7 +141,7 @@ abstract class SearchDeliveryTestSupport {
         storage=new SearchStoragePreflight(client,reader);
         reconciliation=new SearchReconciliationService(database,reader,client);
         jobService=SearchRevisionIntegrationTest.proxied(new SearchJobService(
-                new SearchAccessPolicy(mock(com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer.class)),
+                new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
                 jobRepository,state,generationService,storage,manager,Optional.of(metrics)),manager);
         jobWorker=new SearchJobWorker(client,worker,state,jobRepository,generationRepository,generationService,jobService,reconciliation,storage,Optional.of(metrics));
         jobWorker.startLifecycle(owner);

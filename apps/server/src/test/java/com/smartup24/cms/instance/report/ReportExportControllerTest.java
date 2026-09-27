@@ -1,12 +1,12 @@
 package com.smartup24.cms.instance.report;
 
+import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.report.export.ReportExportService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.dhatim.fastexcel.reader.Row;
@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayInputStream;
 import java.util.LinkedHashMap;
@@ -226,6 +227,6 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
     }
 
     private static String json(Object value) {
-        return new tools.jackson.databind.ObjectMapper().writeValueAsString(value);
+        return new ObjectMapper().writeValueAsString(value);
     }
 }

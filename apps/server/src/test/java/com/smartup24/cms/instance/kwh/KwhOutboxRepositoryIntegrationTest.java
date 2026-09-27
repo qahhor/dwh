@@ -15,6 +15,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -85,7 +86,7 @@ class KwhOutboxRepositoryIntegrationTest {
         firstWorkerRepository.enqueue(subscriptionId, "release.ready", Map.of("id", 42));
         var claim = firstWorkerRepository.fetchPending(1).getFirst();
 
-        assertThat(firstWorkerRepository.markSuccess(claim.id(), java.util.UUID.randomUUID(), 200)).isFalse();
+        assertThat(firstWorkerRepository.markSuccess(claim.id(), UUID.randomUUID(), 200)).isFalse();
         assertThat(firstWorkerRepository.markSuccess(claim.id(), claim.claimToken(), 200)).isTrue();
     }
 

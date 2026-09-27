@@ -27,6 +27,7 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -117,7 +118,7 @@ class TaskConcurrencyIntegrationTest {
                 scopes,
                 mock(MfFileService.class),
                 mock(ApplicationEventPublisher.class),
-                mock(com.smartup24.cms.instance.search.SearchChangePublisher.class),
+                mock(SearchChangePublisher.class),
                 audit);
         MsTaskService taskService = transactional(taskServiceTarget, transactions, MsTaskService.class);
 

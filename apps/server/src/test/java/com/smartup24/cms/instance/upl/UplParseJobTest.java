@@ -24,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -57,7 +58,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
     @Autowired
-    private tools.jackson.databind.ObjectMapper json;
+    private ObjectMapper json;
     @Autowired
     private PlatformTransactionManager transactions;
 

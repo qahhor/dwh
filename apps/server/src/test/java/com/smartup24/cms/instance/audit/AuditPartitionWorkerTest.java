@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.time.YearMonth;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,7 +74,7 @@ class AuditPartitionWorkerTest {
     @DisplayName("Партиции старше срока хранения отцепляются, свежие остаются")
     void shouldDetachPartitionsOlderThanRetention() {
         when(repository.attachedPartitionsBefore(YearMonth.of(2026, 1)))
-                .thenReturn(java.util.List.of(YearMonth.of(2025, 8), YearMonth.of(2025, 11)));
+                .thenReturn(List.of(YearMonth.of(2025, 8), YearMonth.of(2025, 11)));
 
         worker.applyRetentionFrom(YearMonth.of(2027, 1));
 
@@ -86,7 +87,7 @@ class AuditPartitionWorkerTest {
     @DisplayName("Отказ на одной партиции не мешает отцепить остальные")
     void shouldContinueRetentionAfterFailure() {
         when(repository.attachedPartitionsBefore(any()))
-                .thenReturn(java.util.List.of(YearMonth.of(2025, 8), YearMonth.of(2025, 9)));
+                .thenReturn(List.of(YearMonth.of(2025, 8), YearMonth.of(2025, 9)));
         Mockito.doThrow(new RuntimeException("партиция занята"))
                 .when(repository).detachAndArchive(YearMonth.of(2025, 8));
 

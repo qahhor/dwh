@@ -1,17 +1,19 @@
 package com.smartup24.cms.instance.search.typesense;
 
-import tools.jackson.databind.ObjectMapper;
-
-import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.service.FieldPolicy;
+import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -19,6 +21,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -36,11 +42,11 @@ public class TypesenseClient {
     private final RestClient restClient;
     private final TypesenseSearchMapper searchMapper;
     private final ObjectMapper objectMapper;
-    private com.smartup24.cms.instance.search.service.SearchMetrics metrics=com.smartup24.cms.instance.search.service.SearchMetrics.unmetered();
+    private SearchMetrics metrics=SearchMetrics.unmetered();
 
-    @org.springframework.beans.factory.annotation.Autowired
-    public TypesenseClient(TypesenseProperties properties,ObjectMapper mapper,java.util.Optional<com.smartup24.cms.instance.search.service.SearchMetrics> metrics) {
-        this(properties,mapper);this.metrics=metrics.orElseGet(com.smartup24.cms.instance.search.service.SearchMetrics::unmetered);
+    @Autowired
+    public TypesenseClient(TypesenseProperties properties,ObjectMapper mapper,Optional<SearchMetrics> metrics) {
+        this(properties,mapper);this.metrics=metrics.orElseGet(SearchMetrics::unmetered);
     }
 
     public TypesenseClient(TypesenseProperties properties, ObjectMapper objectMapper) {
@@ -131,7 +137,7 @@ public class TypesenseClient {
         } catch (Exception failure) { throw TypesenseException.unavailable(); }
     }
     public void forEachDocumentMetadata(String collection,
-            java.util.function.Consumer<TypesenseDocumentStream.DocumentMetadata> consumer) {
+            Consumer<TypesenseDocumentStream.DocumentMetadata> consumer) {
         try (var stream = openDocumentMetadata(collection)) {
             while (!stream.exhausted()) stream.readPage(100, 1_048_576).forEach(consumer);
         }
@@ -139,9 +145,9 @@ public class TypesenseClient {
 
     public List<ImportAck> importDocuments(String collection, List<Map<String,Object>> documents) {
         if (!isEnabled()) throw TypesenseException.uninitialized();
-        var result = new java.util.ArrayList<ImportAck>();
+        var result = new ArrayList<ImportAck>();
         var batch = new java.io.ByteArrayOutputStream();
-        var ids = new java.util.ArrayList<String>();
+        var ids = new ArrayList<String>();
         for (var document : documents) {
             if (Thread.currentThread().isInterrupted()) throw TypesenseException.unavailable();
             Object rawId = document.get("id");
@@ -175,8 +181,8 @@ public class TypesenseClient {
                     .exchange((request, response) -> {
                         if (!response.getStatusCode().is2xxSuccessful()) throw TypesenseException.unavailable();
                         var input = new java.io.BufferedInputStream(response.getBody());
-                        var acknowledgements = new java.util.ArrayList<ImportAck>();
-                        long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(READ_TIMEOUT_MS);
+                        var acknowledgements = new ArrayList<ImportAck>();
+                        long deadline=System.nanoTime()+TimeUnit.MILLISECONDS.toNanos(READ_TIMEOUT_MS);
                         for (String id : ids) {
                             String line = boundedLine(input,deadline);
                             if (line == null) throw TypesenseException.invalidResponse();
@@ -223,14 +229,14 @@ public class TypesenseClient {
         }
     }
 
-    private tools.jackson.databind.JsonNode metadata(String uri, Object... variables) {
+    private JsonNode metadata(String uri, Object... variables) {
         String body = restClient.get().uri(uri, variables).retrieve().body(String.class);
         var value = objectMapper.readTree(body);
         if (value == null || !value.isObject()) throw TypesenseException.invalidResponse();
         return value;
     }
 
-    private boolean matchesSchema(tools.jackson.databind.JsonNode actual, String collection, String entityType, String profile) {
+    private boolean matchesSchema(JsonNode actual, String collection, String entityType, String profile) {
         for (String property : List.of("token_separators", "symbols_to_index")) {
             if (actual.has(property) && (!actual.get(property).isArray() || !actual.get(property).isEmpty())) return false;
         }
@@ -238,7 +244,7 @@ public class TypesenseClient {
                 || !actual.get("default_sorting_field").asString().isEmpty())) return false;
         var expected = objectMapper.valueToTree(SearchCollectionSchema.forProfile(collection, entityType, profile)).path("fields");
         if (!actual.path("fields").isArray()) return false;
-        Map<String, tools.jackson.databind.JsonNode> fields = new LinkedHashMap<>();
+        Map<String, JsonNode> fields = new LinkedHashMap<>();
         for (var field : actual.path("fields")) {
             if (!field.path("name").isString() || fields.put(field.path("name").asString(), field) != null) return false;
         }
@@ -262,7 +268,7 @@ public class TypesenseClient {
         return true;
     }
 
-    private static Long nonnegativeInteger(tools.jackson.databind.JsonNode value, boolean decimalStringAllowed) {
+    private static Long nonnegativeInteger(JsonNode value, boolean decimalStringAllowed) {
         try {
             if (value.isIntegralNumber() && value.canConvertToLong() && value.asLong() >= 0) return value.asLong();
             if (decimalStringAllowed && value.isString() && value.asString().matches("[0-9]+(?:\\.0+)?")) {
@@ -402,7 +408,7 @@ public class TypesenseClient {
         return request;
     }
 
-    private static String join(List<FieldPolicy> fields, java.util.function.Function<FieldPolicy, String> mapper) {
+    private static String join(List<FieldPolicy> fields, Function<FieldPolicy, String> mapper) {
         return fields.stream().map(mapper).collect(Collectors.joining(","));
     }
 

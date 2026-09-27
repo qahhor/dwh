@@ -12,6 +12,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -183,7 +184,7 @@ class IdempotencyFilterTest {
 
         var existing = new IdempotencyRepository.IdempotencyRecord(
                 key, null, "hash123", 201, "{\"id\":10}",
-                IdempotencyRepository.State.COMPLETED, java.time.Instant.now()
+                IdempotencyRepository.State.COMPLETED, Instant.now()
         );
 
         when(idempotencyService.computeRequestHash(anyString(), anyString(), any(), any()))

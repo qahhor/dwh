@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md;
 
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
@@ -18,7 +19,7 @@ import static org.mockito.Mockito.when;
 class MdCustomFieldServiceTest {
 
     private final MdCustomFieldRepository customFieldRepository = Mockito.mock(MdCustomFieldRepository.class);
-    private final MdCustomFieldService service = new MdCustomFieldService(customFieldRepository, Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class));
+    private final MdCustomFieldService service = new MdCustomFieldService(customFieldRepository, Mockito.mock(AuditLogService.class));
 
     @Test
     @DisplayName("Валидация динамических полей должна отклонять отсутствующие обязательные поля")

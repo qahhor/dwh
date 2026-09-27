@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -38,7 +39,7 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
     public TelegramBotMessengerProvider(@Value("${dwh.telegram.bot-token}") String botToken,
                                         @Value("${dwh.telegram.api-url:https://api.telegram.org}") String apiUrl) {
         this.apiBase = apiUrl + "/bot" + botToken;
-        var factory = new org.springframework.http.client.JdkClientHttpRequestFactory();
+        var factory = new JdkClientHttpRequestFactory();
         factory.setReadTimeout(TIMEOUT);
         this.restClient = RestClient.builder().requestFactory(factory).build();
     }

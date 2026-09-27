@@ -1,19 +1,25 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream;
+import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import tools.jackson.databind.ObjectMapper;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import com.smartup24.cms.instance.search.typesense.TypesenseException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -23,7 +29,7 @@ class SearchImportHttpTest {
     @org.junit.jupiter.api.AfterEach void closeRegistry() { registry.close(); }
     @Test void slowTrickleYieldsTheBoundedExportUnitWithoutPretendingEof() throws Exception {
         HttpServer server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
-        var executor=java.util.concurrent.Executors.newSingleThreadExecutor();server.setExecutor(executor);
+        var executor=Executors.newSingleThreadExecutor();server.setExecutor(executor);
         server.createContext("/",exchange -> {
             try {
                 exchange.sendResponseHeaders(200,0);
@@ -36,14 +42,14 @@ class SearchImportHttpTest {
         var client=new TypesenseClient(new TypesenseProperties("http://127.0.0.1:"+server.getAddress().getPort(),"fixture-key",true,false),new ObjectMapper());
         try (var stream=client.openDocumentMetadata("candidate_users")) {
             long started=System.nanoTime();var page=stream.readPage(100,1_048_576);
-            assertThat(java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started)).isLessThan(1800);
+            assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-started)).isLessThan(1800);
             assertThat(page).isEmpty();assertThat(stream.exhausted()).isFalse();
         } finally { server.stop(0);executor.shutdownNow(); }
     }
     @Test
     void streamedMetadataRehashesTheBodyInsteadOfTrustingStoredFingerprint() throws Exception {
         withServer("{\"id\":\"7\",\"title\":\"changed\",\"_projection_revision\":2,\"_projection_fingerprint\":\"old\"}\n", (client, captured) -> {
-            var metadata = new java.util.ArrayList<com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream.DocumentMetadata>();
+            var metadata = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
             client.forEachDocumentMetadata("candidate_tasks", metadata::add);
             assertThat(metadata).singleElement().satisfies(value -> {
                 assertThat(value.id()).isEqualTo("7");
@@ -59,9 +65,9 @@ class SearchImportHttpTest {
     void metadataCursorYieldsAtRowBoundAndReportsEofSeparately() throws Exception {
         withServer("{\"id\":\"7\",\"title\":\"first\"}\n{\"id\":\"8\",\"title\":\"second\"}\n", (client, captured) -> {
             try (var stream = client.openDocumentMetadata("candidate_tasks")) {
-                assertThat(stream.readPage(1, 1_048_576)).extracting(com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream.DocumentMetadata::id).containsExactly("7");
+                assertThat(stream.readPage(1, 1_048_576)).extracting(TypesenseDocumentStream.DocumentMetadata::id).containsExactly("7");
                 assertThat(stream.exhausted()).isFalse();
-                assertThat(stream.readPage(1, 1_048_576)).extracting(com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream.DocumentMetadata::id).containsExactly("8");
+                assertThat(stream.readPage(1, 1_048_576)).extracting(TypesenseDocumentStream.DocumentMetadata::id).containsExactly("8");
                 assertThat(stream.readPage(1, 1_048_576)).isEmpty();
                 assertThat(stream.exhausted()).isTrue();
             }
@@ -129,7 +135,7 @@ class SearchImportHttpTest {
         server.start();
         try {
             exercise.run(new TypesenseClient(new TypesenseProperties("http://127.0.0.1:" + server.getAddress().getPort(),
-                    "fixture-key", true, false), new ObjectMapper(),java.util.Optional.of(new com.smartup24.cms.instance.search.service.SearchMetrics(registry))), captured);
+                    "fixture-key", true, false), new ObjectMapper(),Optional.of(new SearchMetrics(registry))), captured);
         } finally { server.stop(0); }
     }
 

@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.kwh.worker;
 
-import tools.jackson.databind.ObjectMapper;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookProperties;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
@@ -12,6 +12,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 import java.net.http.HttpClient;
 import java.time.Instant;
@@ -85,7 +86,7 @@ public class KwhOutboxWorker {
                 } else {
                     lastError = "Non-2xx response: " + httpStatus;
                 }
-            } catch (com.smartup24.cms.instance.common.error.ApiException exception) {
+            } catch (ApiException exception) {
                 lastError = "webhook_target_rejected";
             } catch (Exception exception) {
                 lastError = "webhook_delivery_failed";

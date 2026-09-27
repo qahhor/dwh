@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.upl.worker;
+package com.smartup24.cms.instance.config.jobs;
 
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import org.slf4j.Logger;
@@ -8,19 +8,20 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Запускатель очереди заданий основы: раз в несколько секунд ставит в очередь задания расписания, чей срок подошёл,
- * и выполняет очередь. Без него загруженный файл навсегда остаётся «получен». В тестах выключен
+ * Запускатель общей очереди заданий: раз в несколько секунд ставит в очередь задания расписания, чей срок подошёл,
+ * и выполняет очередь — задания всех модулей (разбор загрузок, экспорт, очистка). Живёт в обвязке приложения:
+ * ядро {@code fnd} не планирует само (AC-7). В тестах выключен
  * ({@code dwh.fnd.jobs.ticker-enabled=false}) — тесты вызывают {@code runQueued()} сами.
  */
 @Component
 @ConditionalOnProperty(name = "dwh.fnd.jobs.ticker-enabled", matchIfMissing = true)
-public class UplJobQueueWorker {
+public class JobQueueWorker {
 
-    private static final Logger log = LoggerFactory.getLogger(UplJobQueueWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(JobQueueWorker.class);
 
     private final FndJobRunner runner;
 
-    public UplJobQueueWorker(FndJobRunner runner) {
+    public JobQueueWorker(FndJobRunner runner) {
         this.runner = runner;
     }
 

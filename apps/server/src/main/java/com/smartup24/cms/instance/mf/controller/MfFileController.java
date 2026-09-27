@@ -1,9 +1,10 @@
 package com.smartup24.cms.instance.mf.controller;
 
-import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.mf.pref.MfPref;
+import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
@@ -53,7 +54,7 @@ public class MfFileController {
 
     @GetMapping
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
-    public ResponseEntity<com.smartup24.cms.core.pagination.KeysetPage<MfFileRepository.FileDetailRecord>> listFiles(
+    public ResponseEntity<KeysetPage<MfFileRepository.FileDetailRecord>> listFiles(
             @RequestParam(name = "scope", defaultValue = "all") String scope,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "limit", required = false) Integer limit,

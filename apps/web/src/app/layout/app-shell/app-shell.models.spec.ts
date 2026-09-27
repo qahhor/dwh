@@ -56,6 +56,20 @@ describe('buildNavSections — items of declared entities (roadmap item 57)', ()
     expect(administration.at(-1)).toBe('admin');
   });
 
+  it('does not list a module again under Modules when its entity brings the menu item', () => {
+    const opts = {
+      ...options(['notes.view'], items, ['notes']),
+      activeCustomModules: [
+        { code: 'notes', name: 'Notes', version: '1', route: '/notes', isSystem: false, status: 'ACTIVE' as const },
+        { code: 'crm', name: 'CRM', version: '1', route: '/crm', isSystem: false, status: 'ACTIVE' as const },
+      ],
+    };
+
+    const modules = buildNavSections(opts).find(section => section.id === 'custom-modules')!.items.map(one => one.id);
+
+    expect(modules).toEqual(['module-crm']);
+  });
+
   it('shows an item with its entity\'s view right', () => {
     const workspace = buildNavSections(options(['notes.view'], items, ['notes'])).find(section => section.id === 'workspace')!.items;
 

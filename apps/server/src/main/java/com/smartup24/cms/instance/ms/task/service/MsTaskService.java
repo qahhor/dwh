@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
@@ -13,6 +14,8 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -38,11 +42,11 @@ public class MsTaskService {
     private final MdScopeService scopeService;
     private final MfFileService fileService;
     private final ApplicationEventPublisher eventPublisher;
-    private final com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher;
-    private final com.smartup24.cms.instance.audit.service.AuditLogService auditLogService;
+    private final SearchChangePublisher searchChangePublisher;
+    private final AuditLogService auditLogService;
     private final MsTaskStatusService statusService;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MsTaskService(
             MsTaskRepository taskRepository,
             MsTaskStatusRepository statusRepository,
@@ -53,8 +57,8 @@ public class MsTaskService {
             MdScopeService scopeService,
             MfFileService fileService,
             ApplicationEventPublisher eventPublisher,
-            com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher,
-            com.smartup24.cms.instance.audit.service.AuditLogService auditLogService,
+            SearchChangePublisher searchChangePublisher,
+            AuditLogService auditLogService,
             MsTaskStatusService statusService) {
         this.taskRepository = taskRepository;
         this.statusRepository = statusRepository;
@@ -80,8 +84,8 @@ public class MsTaskService {
             MdScopeService scopeService,
             MfFileService fileService,
             ApplicationEventPublisher eventPublisher,
-            com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher,
-            com.smartup24.cms.instance.audit.service.AuditLogService auditLogService) {
+            SearchChangePublisher searchChangePublisher,
+            AuditLogService auditLogService) {
         this(taskRepository, statusRepository, typeRepository, memberRepository, projectRepository,
              customFieldService, scopeService, fileService, eventPublisher, searchChangePublisher,
              auditLogService, new MsTaskStatusService(statusRepository, typeRepository, searchChangePublisher, auditLogService));
@@ -160,14 +164,14 @@ public class MsTaskService {
                     task.id(), task.title(), List.of(responsibleUserId), MsTaskPref.INVOLVE_RESPONSIBLE, reporterId));
         }
         if (executorUserIds != null && !executorUserIds.isEmpty()) {
-            List<Long> execs = executorUserIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+            List<Long> execs = executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
             if (!execs.isEmpty()) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                         task.id(), task.title(), execs, MsTaskPref.INVOLVE_EXECUTOR, reporterId));
             }
         }
         if (observerUserIds != null && !observerUserIds.isEmpty()) {
-            List<Long> obs = observerUserIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+            List<Long> obs = observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
             if (!obs.isEmpty()) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                         task.id(), task.title(), obs, MsTaskPref.INVOLVE_OBSERVER, reporterId));
@@ -186,14 +190,14 @@ public class MsTaskService {
 
 
     @Transactional
-    public void attachFile(Long taskId, java.util.UUID fileId, Long currentUserId) {
+    public void attachFile(Long taskId, UUID fileId, Long currentUserId) {
         getTaskById(taskId, currentUserId);
         fileService.getFileMetadata(fileId, currentUserId);
         taskRepository.attachFile(taskId, fileId);
     }
 
     @Transactional
-    public void detachFile(Long taskId, java.util.UUID fileId, Long currentUserId) {
+    public void detachFile(Long taskId, UUID fileId, Long currentUserId) {
         getTaskById(taskId, currentUserId);
         taskRepository.detachFile(taskId, fileId);
     }
@@ -673,7 +677,7 @@ public class MsTaskService {
 
     private void replaceMembers(Long taskId, String involveKind, List<Long> userIds) {
         memberRepository.removeMembersByKind(taskId, involveKind);
-        userIds.stream().filter(java.util.Objects::nonNull).distinct().forEach(userId ->
+        userIds.stream().filter(Objects::nonNull).distinct().forEach(userId ->
                 memberRepository.addOrUpdateMember(taskId, userId, involveKind, false));
     }
 
@@ -766,7 +770,7 @@ public class MsTaskService {
     }
 
     private static List<Long> normalizedIds(List<Long> userIds) {
-        return userIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        return userIds.stream().filter(Objects::nonNull).distinct().toList();
     }
 
     private static String auditTime(Instant time) {

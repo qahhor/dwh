@@ -1,7 +1,5 @@
 package com.smartup24.cms.instance.audit;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
@@ -16,6 +14,7 @@ import com.smartup24.cms.instance.audit.service.AuditQuery;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +22,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -145,7 +145,7 @@ class AuditListIntegrationTest {
     }
 
     private static List<String> properties(Class<? extends Record> type) {
-        return java.util.Arrays.stream(type.getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).toList();
+        return Arrays.stream(type.getRecordComponents()).map(java.lang.reflect.RecordComponent::getName).toList();
     }
 
     private static long insertAudit(String table, String rowPk, String event, Instant at, String newRow) {

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 
 import java.sql.PreparedStatement;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Единственное место, где строки удаляются из {@code raw} (AC-31): убирает данные загрузок,
@@ -34,7 +35,7 @@ public class FndLoadCleanupJob implements FndJobHandler {
     }
 
     @Override
-    public void run(java.util.Map<String, Object> args) {
+    public void run(Map<String, Object> args) {
         List<Long> failed = oltp.sql("select id from fnd_loads where status = 'failed'")
                 .query(Long.class).list();
         if (failed.isEmpty()) {

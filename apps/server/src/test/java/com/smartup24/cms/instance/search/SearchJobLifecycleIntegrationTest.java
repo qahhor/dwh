@@ -1,9 +1,13 @@
 package com.smartup24.cms.instance.search;
 
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.StartJobRequest;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos.StartJobRequest;
 import org.junit.jupiter.api.*;
+
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
@@ -40,7 +44,7 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
                 .param("id",rejected).query(String.class).single()).isEqualTo("IMPORT_REJECTED");
         assertThat(metricRegistry.find("dwh.search.import.rows").tag("outcome","SUCCESS").counter().count()).isOne();
         assertThat(metricRegistry.find("dwh.search.import.rows").tag("outcome","FAILURE").counter().count()).isOne();
-        rejectedImportIds.clear();clock.advance(java.time.Duration.ofSeconds(2));worker.runOnce();
+        rejectedImportIds.clear();clock.advance(Duration.ofSeconds(2));worker.runOnce();
         assertThat(delivered("USER",rejected)).isOne();
         assertThat(metricRegistry.find("dwh.search.delivery.retries").counter().count()).isOne();
     }
@@ -84,7 +88,7 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
     }
     @Test void mismatchCheckStoresSummaryWithoutAdvancingSuccessfulReconciliationOrMutatingTheIndex() {
         UUID active=activeGeneration();long id=user("Before");worker.runOnce();
-        var verified=java.time.Instant.parse("2026-09-01T00:00:00Z");
+        var verified=Instant.parse("2026-09-01T00:00:00Z");
         jdbc.sql("update search_generations set verified_at=:verified where id=:id").param("verified",java.sql.Timestamp.from(verified)).param("id",active).update();
         documents.remove("users/"+id);
         var priorWrites=List.copyOf(writes);

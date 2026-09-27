@@ -7,18 +7,21 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -107,7 +110,7 @@ public class GlobalExceptionHandler {
                 "Размер файла превышает допустимые 50 МБ",
                 request.getRequestURI());
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .contentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(problem);
     }
 
@@ -133,9 +136,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
     }
 
-    @ExceptionHandler(org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ProblemDetailRecord> handleTypeMismatch(
-            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException ex,
+            MethodArgumentTypeMismatchException ex,
             HttpServletRequest request) {
         log.warn("Некорректный тип аргумента в запросе {}: параметр '{}' имеет значение '{}'",
                 request.getRequestURI(), ex.getName(), ex.getValue());
@@ -147,9 +150,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(problem);
     }
 
-    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ProblemDetailRecord> handleMissingParam(
-            org.springframework.web.bind.MissingServletRequestParameterException ex,
+            MissingServletRequestParameterException ex,
             HttpServletRequest request) {
         log.warn("Отсутствует обязательный параметр запроса {}: '{}'", request.getRequestURI(), ex.getParameterName());
         var problem = ProblemDetailRecord.of(

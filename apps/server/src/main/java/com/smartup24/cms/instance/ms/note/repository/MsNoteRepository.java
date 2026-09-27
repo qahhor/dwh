@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.ms.note.repository;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.query.QueryListRepository;
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -68,10 +71,10 @@ public class MsNoteRepository {
      * A page of the owner's notes by the registry plan ({@code ms.notes}). Notes are personal (SELF scope): the
      * owner predicate goes into the same SQL, so a page and its total only ever see the owner's notes.
      */
-    public com.smartup24.cms.core.pagination.KeysetPage<NoteRecord> pageByOwner(
-            com.smartup24.cms.instance.common.query.QueryPlan plan, Long ownerId) {
-        return new com.smartup24.cms.instance.common.query.QueryListRepository(jdbcClient).page(plan, this::mapNote,
-                new com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment(
+    public KeysetPage<NoteRecord> pageByOwner(
+            QueryPlan plan, Long ownerId) {
+        return new QueryListRepository(jdbcClient).page(plan, this::mapNote,
+                new QueryPlan.SqlFragment(
                         " and n.created_by = :ownerId", Map.of("ownerId", ownerId)));
     }
 

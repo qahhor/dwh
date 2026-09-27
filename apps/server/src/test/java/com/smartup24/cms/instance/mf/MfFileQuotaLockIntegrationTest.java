@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.mf;
 
+import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -30,9 +31,9 @@ class MfFileQuotaLockIntegrationTest {
         var dataSource = new DriverManagerDataSource(
                 postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         var firstRepository = new MfFileRepository(JdbcClient.create(dataSource),
-                new com.smartup24.cms.instance.common.query.QueryListRepository(JdbcClient.create(dataSource)));
+                new QueryListRepository(JdbcClient.create(dataSource)));
         var secondRepository = new MfFileRepository(JdbcClient.create(dataSource),
-                new com.smartup24.cms.instance.common.query.QueryListRepository(JdbcClient.create(dataSource)));
+                new QueryListRepository(JdbcClient.create(dataSource)));
         var firstTransaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         var secondTransaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
         CountDownLatch firstHasLock = new CountDownLatch(1);

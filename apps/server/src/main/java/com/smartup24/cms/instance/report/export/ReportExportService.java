@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Asynchronous exports of registry lists to xlsx and their journal (ADR-0018).
@@ -94,7 +95,7 @@ public class ReportExportService {
         this.repo = repo;
         this.registry = registry;
         // The modules' own exporters and those the declared entities get from their declaration (roadmap item 56).
-        this.exporters = java.util.stream.Stream.concat(exporters.stream(), entities.exporters().stream())
+        this.exporters = Stream.concat(exporters.stream(), entities.exporters().stream())
                 .collect(Collectors.toUnmodifiableMap(QueryListExporter::code, Function.identity()));
         this.principals = principals;
         this.i18n = i18n;

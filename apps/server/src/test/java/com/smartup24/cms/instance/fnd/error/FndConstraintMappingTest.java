@@ -3,8 +3,8 @@ package com.smartup24.cms.instance.fnd.error;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.fnd.units.FndConversion.FndCoefficientRef;
+import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -80,7 +81,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                         """).query(String.class).list());
         Set<String> enumerated = Arrays.stream(ConstraintErrorCode.values())
                 .map(ConstraintErrorCode::constraintName)
-                .flatMap(java.util.Optional::stream)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
 
         assertThat(database).as("ограничения в базе").isNotEmpty();

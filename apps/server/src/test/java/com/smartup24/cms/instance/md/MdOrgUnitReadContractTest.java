@@ -23,6 +23,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -162,7 +163,7 @@ class MdOrgUnitReadContractTest {
         when(scopeRepository.userExists(42L)).thenReturn(true);
 
         for (List<Long> invalid : List.of(
-                java.util.Arrays.asList(7L, null),
+                Arrays.asList(7L, null),
                 List.of(0L),
                 List.of(-1L))) {
             assertValidation(() -> service.assignUserOrgUnits(42L, invalid));
