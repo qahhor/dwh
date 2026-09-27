@@ -70,6 +70,41 @@ Logs are kept in two places (decision of 2026-09-27):
 - every container's console log rotates at 100 MB, five compressed files
   (Docker's json-file driver rotates by size only).
 
+### Audit log archive
+
+The audit log is kept in daily partitions and archived by the server every
+night at 03:45 UTC (decision of 2026-09-27; `SMC_AUDIT_ARCHIVE_*` in the
+environment file):
+
+- closed days that no archive holds yet go into one file
+  `audit-log_<from>_<to>_<stamp>.jsonl.gz` once a week, or earlier when they
+  reach 100 MB; one line is one row of `audit_log`;
+- the target is a directory on the server (`SMC_AUDIT_ARCHIVE_TARGET=local`,
+  `/var/lib/smartupcms/audit-archive` on the data volume) or a bucket of its
+  own (`s3`, with `SMC_AUDIT_ARCHIVE_S3_*`);
+- the file is read back and matched by SHA-256 and row count before it
+  counts; an archive that does not match is removed and retried the next night;
+- files older than 90 days are removed (`SMC_AUDIT_ARCHIVE_RETENTION`);
+- with `SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE=true` the archived days leave
+  the database; the database itself refuses a day that no verified, unexpired
+  archive holds. Off by default: the archive is then a copy.
+
+Every archive, removal and expiry is a security event (`AUDIT_ARCHIVED`,
+`AUDIT_PARTITIONS_DROPPED`, `AUDIT_ARCHIVES_EXPIRED`). The files hold
+personal data of the audit log: keep the directory or bucket as private as the
+database backups.
+
+To read an archive back into a working table (through an operator-controlled
+PostgreSQL session):
+
+```sql
+create table audit_restore (like audit_log);
+create temporary table audit_restore_lines (line text);
+-- psql: \copy audit_restore_lines (line) from program 'gzip -dc audit-log_....jsonl.gz' with (format csv, quote e'\x01', delimiter e'\x02')
+insert into audit_restore
+select (jsonb_populate_record(null::audit_restore, line::jsonb)).* from audit_restore_lines;
+```
+
 Restart only the failed stateless service when the cause is understood:
 
 ```bash

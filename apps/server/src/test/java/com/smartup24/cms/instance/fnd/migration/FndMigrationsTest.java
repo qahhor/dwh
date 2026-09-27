@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,6 +26,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 class FndMigrationsTest {
 
     static final String SNAPSHOT = "cms-schema-snapshot.json";
+    /**
+     * Partitions of audit_log are maintenance, not schema (FR-AUD-2): the workers create, detach and, after a
+     * verified archive, drop them at run time, and V127 replaced the empty future months with daily partitions.
+     * The columns of audit_log itself are still compared.
+     */
+    private static final Pattern AUDIT_PARTITION = Pattern.compile("^audit_log_(archived_)?\\d{4}_\\d{2}(_\\d{2})?$");
     private static final String COLUMNS_SQL = """
             select table_name, column_name, data_type, is_nullable
               from information_schema.columns
@@ -85,6 +92,9 @@ class FndMigrationsTest {
         List<Map<String, Object>> current = oltp.sql(COLUMNS_SQL).query().listOfRows();
         List<String> missingOrChanged = new ArrayList<>();
         for (Map<String, Object> row : snapshot) {
+            if (AUDIT_PARTITION.matcher(String.valueOf(row.get("table_name"))).matches()) {
+                continue;
+            }
             boolean present = current.stream().anyMatch(c -> sameColumn(c, row));
             if (!present) {
                 missingOrChanged.add(row.get("table_name") + "." + row.get("column_name")

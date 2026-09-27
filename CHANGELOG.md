@@ -608,6 +608,18 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The audit log is archived weekly or at 100 MB (decision of 2026-09-27).
+  V127 makes its partitions daily (the empty future months V011 created are
+  replaced; current and past months stay monthly and are archived whole).
+  Every night the server exports the closed partitions that no archive holds
+  into one gzip file of JSON lines, once a week or as soon as they reach
+  100 MB, stores it in a local directory or an S3 bucket of its own
+  (`SMC_AUDIT_ARCHIVE_TARGET`), reads it back and matches SHA-256 and row
+  count. Files are kept 90 days. With `SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE`
+  (off by default) archived days leave the database, through a function that
+  refuses any day without a verified, unexpired archive. Archives, removals
+  and expiries are security events; the runbook shows how to read an archive
+  back. Canonical specification: FR-ADMIN-05.
 - Logs are archived weekly or at 100 MB (decision of 2026-09-27). The server
   writes `/var/lib/smartupcms/logs/server.log` on its data volume in
   production (`SMC_LOG_FILE`) and rolls it to

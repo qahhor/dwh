@@ -109,6 +109,29 @@ smc:
     # Refuse to start while users with two-factor sign-in depend on a stub channel (console_*): their login codes
     # would go nowhere. Off in development, where the log is the intended channel.
     enforce: ${SMC_DELIVERY_ENFORCE:true}
+  audit:
+    # Archive of the audit log (decision of 2026-09-27): closed daily partitions go into one gzip file of JSON
+    # lines every week or as soon as they reach 100 MB; the file is read back and verified. Files are kept 90 days.
+    # A partition leaves the database only with delete-after-archive on, and only once a verified archive holds it.
+    archive:
+      enabled: ${SMC_AUDIT_ARCHIVE_ENABLED:true}
+      # local: a directory on the server; s3: a bucket of its own (the settings below)
+      target: ${SMC_AUDIT_ARCHIVE_TARGET:local}
+      # The directory of a local target, and the staging area of both
+      local-path: ${SMC_AUDIT_ARCHIVE_LOCAL_PATH:/var/lib/smartupcms/audit-archive}
+      interval: ${SMC_AUDIT_ARCHIVE_INTERVAL:7d}
+      size-threshold: ${SMC_AUDIT_ARCHIVE_SIZE_THRESHOLD:100MB}
+      retention: ${SMC_AUDIT_ARCHIVE_RETENTION:90d}
+      delete-after-archive: ${SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE:false}
+      cron: ${SMC_AUDIT_ARCHIVE_CRON:0 45 3 * * *}
+      s3:
+        endpoint: ${SMC_AUDIT_ARCHIVE_S3_ENDPOINT:}
+        region: ${SMC_AUDIT_ARCHIVE_S3_REGION:auto}
+        access-key: ${SMC_AUDIT_ARCHIVE_S3_ACCESS_KEY:}
+        secret-key: ${SMC_AUDIT_ARCHIVE_S3_SECRET_KEY:}
+        bucket: ${SMC_AUDIT_ARCHIVE_S3_BUCKET:}
+        prefix: ${SMC_AUDIT_ARCHIVE_S3_PREFIX:audit/}
+        path-style-access: ${SMC_AUDIT_ARCHIVE_S3_PATH_STYLE:true}
 
 dwh:
   providers:
@@ -126,11 +149,10 @@ dwh:
     bot-token: ${TELEGRAM_BOT_TOKEN:}
     api-url: ${TELEGRAM_API_URL:https://api.telegram.org}
   audit:
-    # Запас месячных партиций audit_log вперёд (FR-AUD-2). Партиция, не
-    # созданная вовремя, — тупик: аудит уходит в default, откуда retention
-    # его не отцепит, а создать нужную партицию задним числом PostgreSQL
-    # уже не даст.
-    partition-runway-months: ${DWH_AUDIT_PARTITION_RUNWAY:6}
+    # Запас дневных партиций audit_log вперёд, в днях (FR-AUD-2, V127). Партиция, не
+    # созданная вовремя, — тупик: аудит уходит в default, откуда retention и архив
+    # его не заберут, а создать нужную партицию задним числом PostgreSQL уже не даст.
+    partition-runway-days: ${DWH_AUDIT_PARTITION_RUNWAY_DAYS:31}
     partition-cron: ${DWH_AUDIT_PARTITION_CRON:0 30 3 * * *}
     # Срок хранения оперативного журнала (FR-AUD-2). Партиции старше окна
     # отцепляются и переименовываются в audit_log_archived_YYYY_MM — данные

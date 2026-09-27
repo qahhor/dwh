@@ -12,3 +12,5 @@ src/main/java/com/smartup24/cms/instance/upl/format/UplTemplateBuilder.java:1.0 
 src/main/resources/db/migration/V119__report_export_cleanup_job.sql:3600 # период задания report.export_cleanup, секунды
 src/main/resources/db/migration/V125__audit_partition_privileges.sql:2020 # нижняя граница года в проверке аргумента, как в V033, не норматив
 src/main/resources/db/migration/V125__audit_partition_privileges.sql:2100 # верхняя граница года в проверке аргумента, как в V033, не норматив
+src/main/resources/db/migration/V127__audit_log_daily_partitions.sql:2020 # нижняя граница года в проверке аргумента, как в V033, не норматив
+src/main/resources/db/migration/V127__audit_log_daily_partitions.sql:2100 # верхняя граница года в проверке аргумента, как в V033, не норматив

@@ -63,6 +63,12 @@ Assert-Matches $composeSource 'SMC_DELIVERY_ENFORCE:\s*\$\{SMC_DELIVERY_ENFORCE:
 Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
 Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'
 Assert-Matches $composeSource 'SMC_LOG_FILE:\s*\$\{SMC_LOG_FILE:-/var/lib/smartupcms/logs/server\.log\}' 'The server must write its weekly archived log file on the data volume.'
+foreach ($variable in @('SMC_AUDIT_ARCHIVE_TARGET', 'SMC_AUDIT_ARCHIVE_LOCAL_PATH', 'SMC_AUDIT_ARCHIVE_RETENTION',
+        'SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE', 'SMC_AUDIT_ARCHIVE_S3_BUCKET', 'SMC_AUDIT_ARCHIVE_S3_SECRET_KEY')) {
+    Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')
+        "Production Compose must pass $variable to the server (audit log archive)."
+}
+Assert-Matches $composeSource 'SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE:\s*\$\{SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE:-false\}' 'Deleting archived audit partitions must be an explicit opt-in.'
 Assert-Matches $webNginx 'server:8080' 'The single web origin must proxy API traffic to server:8080.'
 Assert-DoesNotMatch $webNginx 'control-plane|web-cp|app:8080' 'The web origin still references a retired runtime.'
 
