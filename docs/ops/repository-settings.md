@@ -42,3 +42,27 @@ Auto-merge включается, только если main требует ст�
 
 **Проверка.** Вкладка Insights → Dependency graph → Dependabot показывает
 последний запуск каждого из пяти разделов конфигурации без ошибок.
+
+## 2. Статический анализ и Scorecard (пункт 1.6)
+
+Файлы: [`.github/workflows/codeql.yml`](../../.github/workflows/codeql.yml),
+[`.github/workflows/scorecard.yml`](../../.github/workflows/scorecard.yml).
+
+| Настройка | Где | Зачем |
+|---|---|---|
+| Code scanning: default setup выключен | Settings → Code security → Code scanning | Анализ задаёт `codeql.yml` (advanced setup); оба сразу GitHub не принимает. |
+| Code scanning protection rule | ruleset main (раздел 3) | PR с новым предупреждением уровня high или critical не вливается. |
+
+CodeQL читает Java, TypeScript и сами workflow без сборки (`build-mode: none`)
+набором запросов `security-extended`: на каждом PR, на main и раз в неделю.
+Scorecard запускается на main, раз в неделю и при изменении правил защиты
+веток; результаты — в Security → Code scanning и на публичной странице
+OpenSSF Scorecard.
+
+**Триаж.** Каждое предупреждение CodeQL либо исправляется, либо закрывается в
+интерфейсе Code scanning с причиной (false positive, used in tests, won't fix)
+— причина видна в истории предупреждения. Цель Scorecard: не ниже 7,5 к концу
+фазы 1 и не ниже 8 к концу плана.
+
+**Проверка.** Security → Code scanning показывает инструменты CodeQL и
+Scorecard с последним анализом main.

@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Static analysis and supply-chain scoring (plan 10/10, item 1.6). CodeQL
+  analyses the Java server, the TypeScript of the web application and E2E
+  suite, and the workflows (`security-extended`, no build needed) on every
+  pull request, on main and weekly; OpenSSF Scorecard runs on main, weekly
+  and when branch protection changes. Both report to Code scanning.
 - Dependencies are updated by Dependabot (plan 10/10, item 1.5): Maven, npm
   (web and E2E), GitHub Actions and Docker base images, weekly and grouped;
   patch updates merge by themselves once the checks that main requires pass,
