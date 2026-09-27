@@ -78,7 +78,7 @@ describe('SMTModalService', () => {
       DummyComponent,
       expect.objectContaining({
         disableClose: true,
-      })
+      }),
     );
   });
 
@@ -92,7 +92,7 @@ describe('SMTModalService', () => {
         cancelLabel: 'Abort',
         timer: 5,
         onConfirm,
-      })
+      }),
     );
 
     expect(dialog.open).toHaveBeenCalledWith(
@@ -102,7 +102,7 @@ describe('SMTModalService', () => {
           cancelLabel: 'Abort',
           timer: 5,
         }),
-      })
+      }),
     );
 
     dialogRef.closed.next({ action: 'confirm' });
@@ -123,7 +123,7 @@ describe('SMTModalService', () => {
         cancelLabel: 'Cancel import',
         onCancel,
         onDecline,
-      })
+      }),
     );
 
     dialogRef.closed.next(undefined);
@@ -142,7 +142,7 @@ describe('SMTModalService', () => {
       service.confirm({
         message: 'Leave without saving?',
         onDecline,
-      })
+      }),
     );
 
     dialogRef.closed.next(undefined);
@@ -164,7 +164,7 @@ describe('SMTModalService', () => {
         maxWidth: '600px',
         panelClass: 'smt-modal-panel',
         backdropClass: 'smt-modal-backdrop',
-      })
+      }),
     );
   });
 
@@ -191,7 +191,7 @@ describe('SMTModalService', () => {
     service.confirm({ message: 'First?' });
     service.confirm({ message: 'Second?' });
 
-    const ids = dialog.open.mock.calls.map(call => {
+    const ids = dialog.open.mock.calls.map((call) => {
       const data = (call as unknown as [unknown, { data: { titleId: string } }])[1].data;
       return data.titleId;
     });
@@ -201,7 +201,7 @@ describe('SMTModalService', () => {
 
 describe('SMTModalService with CDK Dialog', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -214,7 +214,7 @@ describe('SMTModalService with CDK Dialog', () => {
 
   async function settle() {
     tickInZone();
-    await new Promise(resolve => setTimeout(resolve));
+    await new Promise((resolve) => setTimeout(resolve));
     tickInZone();
   }
 
@@ -259,7 +259,9 @@ describe('SMTModalService with CDK Dialog', () => {
     await settle();
     Array.from(document.querySelectorAll<HTMLButtonElement>('.smt-modal-confirm button')).at(-1)!.click();
     await settle();
-    document.querySelector('.smt-modal-confirm')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    document
+      .querySelector('.smt-modal-confirm')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     await settle();
     expect(document.querySelector('.smt-modal-confirm')).not.toBeNull();
 

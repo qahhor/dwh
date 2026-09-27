@@ -1,4 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, linkedSignal, model, output, TemplateRef, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  linkedSignal,
+  model,
+  output,
+  TemplateRef,
+  untracked,
+} from '@angular/core';
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTTableComponent } from '../ui-kit/components/table/table.component';
 import { TableColumnResizeEvent, TableConfig, OrderBy } from '../ui-kit/components/table/table.types';
@@ -50,13 +62,27 @@ import { UiPaginationComponent } from './ui-pagination.component';
   selector: 'ui-server-table',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTableComponent, UiPaginationComponent, SMTButtonComponent, TranslatePipe, SMTColumnSettingsComponent, UiListViewsComponent, UiFilterBarComponent, UiExportButtonComponent],
+  imports: [
+    SMTTableComponent,
+    UiPaginationComponent,
+    SMTButtonComponent,
+    TranslatePipe,
+    SMTColumnSettingsComponent,
+    UiListViewsComponent,
+    UiFilterBarComponent,
+    UiExportButtonComponent,
+  ],
   template: `
     @if (columnsId() || views()) {
       <div class="server-table-tools">
         @if (views() && filterMeta(); as meta) {
-          <ui-filter-bar [meta]="meta" [conditions]="views()!.filter()" [match]="views()!.match()"
-            (conditionsChange)="views()!.setFilter($event)" (filterChange)="views()!.setFilter($event.conditions, $event.match)" />
+          <ui-filter-bar
+            [meta]="meta"
+            [conditions]="views()!.filter()"
+            [match]="views()!.match()"
+            (conditionsChange)="views()!.setFilter($event)"
+            (filterChange)="views()!.setFilter($event.conditions, $event.match)"
+          />
         }
         @if (views(); as views) {
           <ui-list-views [state]="views" />
@@ -64,7 +90,11 @@ import { UiPaginationComponent } from './ui-pagination.component';
             <ui-export-button [meta]="meta" [views]="views" [search]="exportSearch()" [options]="exportOptions()" />
           }
         }
-        <smt-column-settings [smtColumns]="columnOptions()" [smtState]="columnState()" (smtStateChange)="saveColumns($event)" />
+        <smt-column-settings
+          [smtColumns]="columnOptions()"
+          [smtState]="columnState()"
+          (smtStateChange)="saveColumns($event)"
+        />
       </div>
     }
     @if (selectable() && selected().length > 0) {
@@ -72,14 +102,30 @@ import { UiPaginationComponent } from './ui-pagination.component';
         <span class="bulk-count" role="status">{{ 'ui.bulk.selected' | t: { count: selected().length } }}</span>
         <ng-content select="[bulkActions]" />
         <span class="bulk-spacer"></span>
-        <button smt-button type="button" smtVariant="ghost" smtSize="sm" data-testid="bulk-clear" (click)="selected.set([])">{{ 'ui.bulk.clear' | t }}</button>
+        <button
+          smt-button
+          type="button"
+          smtVariant="ghost"
+          smtSize="sm"
+          data-testid="bulk-clear"
+          (click)="selected.set([])"
+        >
+          {{ 'ui.bulk.clear' | t }}
+        </button>
       </div>
     }
     @if (pager().failed()) {
       <div class="inline-feedback" role="alert" [attr.id]="errorId() || null">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ errorLabel() }}</span>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="pager().retry()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="refresh"
+          (click)="pager().retry()"
+        >
           {{ 'ui.table.povtorit' | t }}
         </button>
       </div>
@@ -98,7 +144,8 @@ import { UiPaginationComponent } from './ui-pagination.component';
         [smtColumnResizeEnabled]="!!columnsId() || !!views()"
         (smtColumnResize)="onColumnResize($event)"
         (smtSortChange)="sortChange.emit($event)"
-        (smtRowClick)="rowClick.emit($event)" />
+        (smtRowClick)="rowClick.emit($event)"
+      />
       <ui-pagination
         [totalItems]="countsPage() ? pager().items().length : pager().total()"
         [cursorItemsArePageLength]="countsPage()"
@@ -109,25 +156,54 @@ import { UiPaginationComponent } from './ui-pagination.component';
         [hasNextPage]="pager().canGoForward()"
         [disabled]="pager().loading() || pager().failed()"
         (pageChange)="pager().goTo($event)"
-        (pageSizeChange)="pager().setPageSize($event)" />
+        (pageSizeChange)="pager().setPageSize($event)"
+      />
     }
   `,
-  styles: [`
-    :host { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-    .bulk-bar {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px;
-      border: 1px solid var(--primary-border); border-radius: var(--radius-md);
-      background: var(--primary-subtle); color: var(--text-main);
-    }
-    .bulk-count { font-weight: 600; }
-    .bulk-spacer { flex: 1; }
-    .server-table-tools { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
-    .inline-feedback {
-      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-      padding: 10px 14px; border-radius: var(--radius-md, 8px);
-      background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border);
-    }
-  `],
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 0;
+      }
+      .bulk-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        border: 1px solid var(--primary-border);
+        border-radius: var(--radius-md);
+        background: var(--primary-subtle);
+        color: var(--text-main);
+      }
+      .bulk-count {
+        font-weight: 600;
+      }
+      .bulk-spacer {
+        flex: 1;
+      }
+      .server-table-tools {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .inline-feedback {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 10px 14px;
+        border-radius: var(--radius-md, 8px);
+        background: var(--danger-bg);
+        color: var(--danger-text);
+        border: 1px solid var(--danger-border);
+      }
+    `,
+  ],
 })
 export class UiServerTableComponent<T> {
   private readonly columnStore = inject(TableColumnStateStore);
@@ -181,14 +257,16 @@ export class UiServerTableComponent<T> {
   protected readonly columnState = computed(() => this.views()?.columns() ?? this.storedColumns());
 
   protected readonly shownConfig = computed(() => {
-    const config = this.customizable() ? applyColumnState(this.config(), this.columnState(), this.lockedColumns()) : this.config();
+    const config = this.customizable()
+      ? applyColumnState(this.config(), this.columnState(), this.lockedColumns())
+      : this.config();
     return this.selectable() ? { ...config, hasMultipleSelection: true } : config;
   });
 
   /** Labels for the settings panel, from each column's plain header; otherwise its key. */
   protected readonly columnOptions = computed<SMTColumnOption[]>(() => {
     const config = this.config();
-    return config.columnsOrder.map(key => {
+    return config.columnsOrder.map((key) => {
       const header = config.columns[key]?.header;
       const label = header && header.type === 'primitive' && header.value != null ? String(header.value) : key;
       return { key, label, locked: this.lockedColumns().includes(key) };
@@ -200,7 +278,8 @@ export class UiServerTableComponent<T> {
 
   /** The current size is always offered; otherwise the size picker shows blank. */
   protected readonly pageSizeOptions = computed(() =>
-    [...new Set([10, 25, 50, 100, this.pager().pageSize()])].sort((a, b) => a - b));
+    [...new Set([10, 25, 50, 100, this.pager().pageSize()])].sort((a, b) => a - b),
+  );
 
   private readonly customizable = computed(() => Boolean(this.columnsId() || this.views()));
 

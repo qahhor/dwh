@@ -22,7 +22,9 @@ describe('SMTTooltipDirective', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    document.querySelectorAll('.cdk-overlay-container, .cdk-describedby-message-container').forEach(node => node.remove());
+    document
+      .querySelectorAll('.cdk-overlay-container, .cdk-describedby-message-container')
+      .forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -40,7 +42,7 @@ describe('SMTTooltipDirective', () => {
     return (element.getAttribute('aria-describedby') ?? '')
       .split(' ')
       .filter(Boolean)
-      .map(id => document.getElementById(id)?.textContent ?? '')
+      .map((id) => document.getElementById(id)?.textContent ?? '')
       .join(' ');
   }
 

@@ -55,7 +55,8 @@ const MENU_POSITIONS: ConnectedPosition[] = [
       [cdkMenuTriggerFor]="menu"
       [cdkMenuPosition]="positions"
       [disabled]="disabled()"
-      [attr.aria-label]="ariaLabel() || null">
+      [attr.aria-label]="ariaLabel() || null"
+    >
       @if (icon()) {
         <span class="material-symbols-outlined" aria-hidden="true">{{ icon() }}</span>
       }
@@ -76,7 +77,8 @@ const MENU_POSITIONS: ConnectedPosition[] = [
             [class.smt-dropdown-button__item--danger]="item.danger"
             cdkMenuItem
             [cdkMenuItemDisabled]="!!item.disabled"
-            (cdkMenuItemTriggered)="itemSelect.emit(item.id)">
+            (cdkMenuItemTriggered)="itemSelect.emit(item.id)"
+          >
             @if (item.icon) {
               <span class="material-symbols-outlined" aria-hidden="true">{{ item.icon }}</span>
             }

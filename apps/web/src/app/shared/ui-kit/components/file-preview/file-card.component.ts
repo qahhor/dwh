@@ -11,7 +11,16 @@
  * remove the file when the caller allows. Every button is named after the
  * file. The card only reports what was asked; the caller downloads, opens
  * the preview (SMTFilePreviewService) and confirms a removal. */
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, output, ViewEncapsulation } from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  ViewEncapsulation,
+} from '@angular/core';
 import { SMTI18nService } from '../../i18n';
 import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind';
 
@@ -31,7 +40,8 @@ import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind'
       class="smt-file-card__name"
       [attr.aria-label]="i18n.messages().file.download(name())"
       [title]="name()"
-      (click)="download.emit()">
+      (click)="download.emit()"
+    >
       <span class="smt-file-card__title">{{ name() }}</span>
       @if (size() !== null) {
         <span class="smt-file-card__size">{{ sizeText() }}</span>
@@ -39,11 +49,21 @@ import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind'
     </button>
     <span class="smt-file-card__actions">
       @if (previewable()) {
-        <button type="button" class="smt-file-card__action" [attr.aria-label]="i18n.messages().file.preview(name())" (click)="preview.emit()">
+        <button
+          type="button"
+          class="smt-file-card__action"
+          [attr.aria-label]="i18n.messages().file.preview(name())"
+          (click)="preview.emit()"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
         </button>
       }
-      <button type="button" class="smt-file-card__action" [attr.aria-label]="i18n.messages().file.download(name())" (click)="download.emit()">
+      <button
+        type="button"
+        class="smt-file-card__action"
+        [attr.aria-label]="i18n.messages().file.download(name())"
+        (click)="download.emit()"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">download</span>
       </button>
       @if (removable()) {
@@ -52,7 +72,8 @@ import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind'
           class="smt-file-card__action smt-file-card__action--danger"
           [disabled]="removing()"
           [attr.aria-label]="i18n.messages().file.remove(name())"
-          (click)="remove.emit()">
+          (click)="remove.emit()"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">delete</span>
         </button>
       }

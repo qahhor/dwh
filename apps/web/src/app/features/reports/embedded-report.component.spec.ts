@@ -21,23 +21,23 @@ describe('EmbeddedReportComponent', () => {
     sortOrder: 10,
     state: 'A',
     createdAt: '2026-09-09T10:00:00Z',
-    modifiedAt: '2026-09-09T10:00:00Z'
+    modifiedAt: '2026-09-09T10:00:00Z',
   };
 
   function setup(codeParam: string = 'superset-sales', itemResult = of(sampleReport)) {
     const navService = {
-      getItemByCode: vi.fn().mockReturnValue(itemResult)
+      getItemByCode: vi.fn().mockReturnValue(itemResult),
     };
 
     const route = {
       paramMap: of(convertToParamMap({ code: codeParam })),
       snapshot: {
-        paramMap: convertToParamMap({ code: codeParam })
-      }
+        paramMap: convertToParamMap({ code: codeParam }),
+      },
     };
 
     const i18nService = {
-      translate: translateTest
+      translate: translateTest,
     };
 
     TestBed.configureTestingModule({
@@ -45,8 +45,8 @@ describe('EmbeddedReportComponent', () => {
       providers: [
         { provide: NavigationService, useValue: navService },
         { provide: ActivatedRoute, useValue: route },
-        { provide: I18nService, useValue: i18nService }
-      ]
+        { provide: I18nService, useValue: i18nService },
+      ],
     });
 
     const fixture = TestBed.createComponent(EmbeddedReportComponent);
@@ -69,7 +69,9 @@ describe('EmbeddedReportComponent', () => {
 
     const iframe: HTMLIFrameElement = fixture.nativeElement.querySelector('iframe.report-iframe');
     expect(iframe).not.toBeNull();
-    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin allow-forms allow-popups allow-downloads');
+    expect(iframe.getAttribute('sandbox')).toBe(
+      'allow-scripts allow-same-origin allow-forms allow-popups allow-downloads',
+    );
     expect(iframe.getAttribute('referrerpolicy')).toBe('no-referrer-when-downgrade');
   });
 
@@ -87,7 +89,10 @@ describe('EmbeddedReportComponent', () => {
   });
 
   it('handles error when report cannot be loaded', () => {
-    const { fixture, navService } = setup('not-found', throwError(() => new Error('Not found')));
+    const { fixture, navService } = setup(
+      'not-found',
+      throwError(() => new Error('Not found')),
+    );
     fixture.detectChanges();
 
     expect(fixture.componentInstance.errorMessage()).not.toBeNull();

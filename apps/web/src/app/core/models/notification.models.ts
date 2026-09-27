@@ -24,4 +24,3 @@ export interface NotificationPrefItem {
   channel: string;
   isEnabled: boolean;
 }
-

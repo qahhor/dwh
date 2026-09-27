@@ -34,7 +34,7 @@ describe('smt-control messages', () => {
         minlength: { requiredLength: 3, actualLength: 1 },
         max: { max: 5, actual: 9 },
         custom: 'Custom text',
-      })
+      }),
     ).toEqual([
       { kind: 'required' },
       { kind: 'minLength', minLength: 3 },
@@ -55,7 +55,7 @@ describe('smt-control messages', () => {
 })
 class SignalFormHost {
   readonly model = signal({ name: '' });
-  readonly profile = form(this.model, path => {
+  readonly profile = form(this.model, (path) => {
     required(path.name);
     minLength(path.name, 3);
   });
@@ -145,7 +145,10 @@ describe('SMTControlComponent', () => {
       await settle();
       expect(element.querySelector('.smt-control__error')).toBeNull();
       expect(input.hasAttribute('aria-invalid')).toBe(false);
-      expect(input.getAttribute('aria-describedby')!.split(' ')).toEqual(['external-note', element.querySelector('.smt-control__hint')!.id]);
+      expect(input.getAttribute('aria-describedby')!.split(' ')).toEqual([
+        'external-note',
+        element.querySelector('.smt-control__hint')!.id,
+      ]);
     });
 
     it('shows an error from outside the field at once', async () => {

@@ -40,8 +40,8 @@ describe('SMTTabBarComponent', () => {
     const { fixture, tabs } = setup();
     const list = fixture.nativeElement.querySelector('[role="tablist"]') as HTMLElement;
     expect(list.getAttribute('aria-label')).toBe('Sections');
-    expect(tabs().map(tab => tab.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false']);
-    expect(tabs().map(tab => tab.tabIndex)).toEqual([0, -1, -1, -1]);
+    expect(tabs().map((tab) => tab.getAttribute('aria-selected'))).toEqual(['true', 'false', 'false', 'false']);
+    expect(tabs().map((tab) => tab.tabIndex)).toEqual([0, -1, -1, -1]);
     expect(tabs()[0].getAttribute('aria-controls')).toBe('general-panel');
     expect(tabs()[1].disabled).toBe(true);
   });
@@ -85,8 +85,8 @@ describe('SMTTabBarComponent', () => {
   it('makes the first available tab the tab stop while nothing is chosen', () => {
     const { fixture, host, tabs } = setup();
     host.section = null;
-    host.tabs.update(items => [{ ...items[0], disabled: true }, ...items.slice(1)]);
+    host.tabs.update((items) => [{ ...items[0], disabled: true }, ...items.slice(1)]);
     fixture.detectChanges();
-    expect(tabs().map(tab => tab.tabIndex)).toEqual([-1, -1, 0, -1]);
+    expect(tabs().map((tab) => tab.tabIndex)).toEqual([-1, -1, 0, -1]);
   });
 });

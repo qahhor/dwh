@@ -170,7 +170,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
   readonly selectedOption = computed<SMTSelectOption<T> | null>(() => {
     const value = this.value();
     if (value === null || value === undefined) return null;
-    const listed = this.options().find(option => sameId(option.id, value));
+    const listed = this.options().find((option) => sameId(option.id, value));
     if (listed) return listed;
     const remembered = this.rememberedOption();
     return remembered && sameId(remembered.id, value) ? remembered : null;
@@ -181,7 +181,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     const query = this.query().trim().toLowerCase();
     if (this.remoteSearch() || !query) return options;
     return options.filter(
-      option => option.label.toLowerCase().includes(query) || !!option.subLabel?.toLowerCase().includes(query)
+      (option) => option.label.toLowerCase().includes(query) || !!option.subLabel?.toLowerCase().includes(query),
     );
   });
 
@@ -190,7 +190,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
   readonly showCreate = computed(() => {
     const query = this.query().trim().toLowerCase();
     if (!this.allowCreate() || !query || this.loading()) return false;
-    return !this.visibleOptions().some(option => option.label.trim().toLowerCase() === query);
+    return !this.visibleOptions().some((option) => option.label.trim().toLowerCase() === query);
   });
 
   /** The create row sits right after the options, so arrows and Enter reach it like any option. */
@@ -210,7 +210,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
   });
 
   readonly showEmpty = computed(
-    () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError() && !this.showCreate()
+    () => this.visibleOptions().length === 0 && !this.loading() && !this.loadError() && !this.showCreate(),
   );
 
   readonly id = nextSelectId++;
@@ -241,9 +241,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
   optionName(option: SMTSelectOption<T>): string | null {
     const headers = this.columnHeaders();
     if (!headers.length || !option.columns?.length) return null;
-    const cells = option.columns
-      .map((cell, index) => (cell ? `${headers[index] ?? ''}: ${cell}` : ''))
-      .filter(Boolean);
+    const cells = option.columns.map((cell, index) => (cell ? `${headers[index] ?? ''}: ${cell}` : '')).filter(Boolean);
     return [option.label, ...cells].join(', ');
   }
 
@@ -267,7 +265,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     if (this.isDisabled() || this.readonly() || this.open()) return;
     this.query.set(initialQuery);
     if (this.remoteSearch()) this.searchChange.emit(initialQuery);
-    const selectedIndex = this.visibleOptions().findIndex(option => this.isSelected(option));
+    const selectedIndex = this.visibleOptions().findIndex((option) => this.isSelected(option));
     this.activeIndex.set(selectedIndex >= 0 ? selectedIndex : this.firstIndex());
     this.open.set(true);
   }
@@ -286,7 +284,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
           box.setSelectionRange(box.value.length, box.value.length);
         },
       },
-      { injector: this.injector }
+      { injector: this.injector },
     );
   }
 
@@ -425,7 +423,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     this.ownedBy = null;
     if (!modal) return;
     const popupId = `${this.listboxId}-popup`;
-    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter(token => token && token !== popupId);
+    const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter((token) => token && token !== popupId);
     if (owned.length) modal.setAttribute('aria-owns', owned.join(' '));
     else modal.removeAttribute('aria-owns');
   }

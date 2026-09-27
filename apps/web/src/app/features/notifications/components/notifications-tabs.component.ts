@@ -17,19 +17,24 @@ import { I18nService } from '../../../core/services/i18n.service';
       [tabs]="tabs()"
       [value]="filterTab()"
       [smtAriaLabel]="'notifications.spisok_uvedomleniy' | t"
-      (valueChange)="$event && tabChange.emit($event)" />
+      (valueChange)="$event && tabChange.emit($event)"
+    />
   `,
-  styles: [`
-    :host { display: block; }
-    .notif-tabs {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 10px 16px;
-      border-bottom: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .notif-tabs {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-color);
+        background-color: var(--bg-surface);
+      }
+    `,
+  ],
 })
 export class NotificationsTabsComponent {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -45,9 +50,18 @@ export class NotificationsTabsComponent {
 
   /** All and unread, with their counts; the unread count stands out while there are any. */
   tabs(): SMTTabItem<NotificationFilterTab>[] {
-    return this.tabsMemo([this.tabText.currentLang(), this.totalCount(), this.unreadCount()], () => [
-      { value: 'all', label: this.tabText.translate('notifications.vse'), count: this.totalCount() },
-      { value: 'unread', label: this.tabText.translate('notifications.neprochitannye'), count: this.unreadCount() || undefined, countTone: 'attention' },
-    ] as SMTTabItem<NotificationFilterTab>[]);
+    return this.tabsMemo(
+      [this.tabText.currentLang(), this.totalCount(), this.unreadCount()],
+      () =>
+        [
+          { value: 'all', label: this.tabText.translate('notifications.vse'), count: this.totalCount() },
+          {
+            value: 'unread',
+            label: this.tabText.translate('notifications.neprochitannye'),
+            count: this.unreadCount() || undefined,
+            countTone: 'attention',
+          },
+        ] as SMTTabItem<NotificationFilterTab>[],
+    );
   }
 }

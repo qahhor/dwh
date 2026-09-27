@@ -19,16 +19,22 @@ export function inScreen(root: HTMLElement): Screen {
   const overlays = () => Array.from(document.querySelectorAll('.cdk-overlay-container')) as HTMLElement[];
   return {
     querySelector(selector: string): Element | null {
-      return root.querySelector(selector) ?? overlays().map(overlay => overlay.querySelector(selector)).find(Boolean) ?? null;
+      return (
+        root.querySelector(selector) ??
+        overlays()
+          .map((overlay) => overlay.querySelector(selector))
+          .find(Boolean) ??
+        null
+      );
     },
     querySelectorAll(selector: string): Element[] {
-      return [root, ...overlays()].flatMap(node => Array.from(node.querySelectorAll(selector)));
+      return [root, ...overlays()].flatMap((node) => Array.from(node.querySelectorAll(selector)));
     },
     get textContent(): string {
-      return [root, ...overlays()].map(node => node.textContent ?? '').join('');
+      return [root, ...overlays()].map((node) => node.textContent ?? '').join('');
     },
     contains(node: Node | null): boolean {
-      return root.contains(node) || overlays().some(overlay => overlay.contains(node));
+      return root.contains(node) || overlays().some((overlay) => overlay.contains(node));
     },
   };
 }

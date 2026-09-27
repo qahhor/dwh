@@ -11,22 +11,37 @@ import { AppShellComponent } from './app-shell.component';
 describe('Announcement banner API integration', () => {
   let fixture: ComponentFixture<AppShellComponent>;
   let http: HttpTestingController;
-  const first = { id: 9, title: 'Maintenance tonight', body: 'Save your work before 22:00.', bannerType: 'WARNING', publishedAt: '2026-09-07T00:00:00Z' };
-  const second = { id: 8, title: 'Office notice', body: 'The second unread announcement.', bannerType: 'INFO', publishedAt: '2026-09-06T00:00:00Z' };
+  const first = {
+    id: 9,
+    title: 'Maintenance tonight',
+    body: 'Save your work before 22:00.',
+    bannerType: 'WARNING',
+    publishedAt: '2026-09-07T00:00:00Z',
+  };
+  const second = {
+    id: 8,
+    title: 'Office notice',
+    body: 'The second unread announcement.',
+    bannerType: 'INFO',
+    publishedAt: '2026-09-06T00:00:00Z',
+  };
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [AppShellComponent], providers: [
-      provideHttpClient(), provideHttpClientTesting(), provideRouter([])
-    ] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [AppShellComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(PermissionService).setPermissions(['platform.announcements.view']);
     fixture = TestBed.createComponent(AppShellComponent);
   });
 
-  afterEach(() => { fixture.destroy(); });
+  afterEach(() => {
+    fixture.destroy();
+  });
 
   function activeRequest() {
-    return http.expectOne(request => request.url === '/api/v1/announcements/active');
+    return http.expectOne((request) => request.url === '/api/v1/announcements/active');
   }
 
   function render() {
@@ -79,11 +94,17 @@ describe('Announcement banner API integration', () => {
     render();
     const close = fixture.nativeElement.querySelector('.banner-close') as HTMLButtonElement;
     close.click();
-    http.expectOne('/api/v1/announcements/9/read').flush({ detail: 'Synthetic failure' }, { status: 503, statusText: 'Unavailable' });
+    http
+      .expectOne('/api/v1/announcements/9/read')
+      .flush({ detail: 'Synthetic failure' }, { status: 503, statusText: 'Unavailable' });
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.announcement-banner').textContent).toContain('Maintenance tonight');
     expect(close.disabled).toBe(false);
-    expect(TestBed.inject(ToastService).toasts().filter(toast => toast.type === 'error')).toHaveLength(1);
+    expect(
+      TestBed.inject(ToastService)
+        .toasts()
+        .filter((toast) => toast.type === 'error'),
+    ).toHaveLength(1);
     http.verify();
   });
 });

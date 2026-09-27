@@ -96,8 +96,8 @@ describe('UiToastContainerComponent', () => {
       toasts.show('info', `Сообщение ${index}`, undefined, 0);
     }
 
-    expect(toasts.toasts().map(toast => toast.message)).toEqual(
-      Array.from({ length: MAX_VISIBLE_TOASTS }, (_, i) => `Сообщение ${i + 3}`)
+    expect(toasts.toasts().map((toast) => toast.message)).toEqual(
+      Array.from({ length: MAX_VISIBLE_TOASTS }, (_, i) => `Сообщение ${i + 3}`),
     );
   });
 });

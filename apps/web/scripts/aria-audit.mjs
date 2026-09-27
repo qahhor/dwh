@@ -22,8 +22,9 @@ async function templates(directory) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) found.push(...await templates(absolute));
-    else if ((entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')) || entry.name.endsWith('.html')) found.push(absolute);
+    if (entry.isDirectory()) found.push(...(await templates(absolute)));
+    else if ((entry.name.endsWith('.ts') && !entry.name.endsWith('.spec.ts')) || entry.name.endsWith('.html'))
+      found.push(absolute);
   }
   return found;
 }
@@ -31,7 +32,8 @@ async function templates(directory) {
 // An icon font glyph is its ligature text ("account_tree"): unless hidden, a
 // screen reader reads that word as part of the control's name. A decorative
 // icon is aria-hidden; one that carries meaning is role="img" with a label.
-const ICON = /<(span|i)\b((?:[^<>"']|"[^"]*"|'[^']*')*?class="[^"]*material-symbols[^"]*"(?:[^<>"']|"[^"]*"|'[^']*')*)>/g;
+const ICON =
+  /<(span|i)\b((?:[^<>"']|"[^"]*"|'[^']*')*?class="[^"]*material-symbols[^"]*"(?:[^<>"']|"[^"]*"|'[^']*')*)>/g;
 const ICON_OK = /aria-hidden|(?:^|\s)(?:role|\[attr\.role\])\s*=|aria-label/;
 
 const problems = [];
@@ -40,18 +42,26 @@ for (const file of await templates(appRoot)) {
   for (const match of source.matchAll(ICON)) {
     if (ICON_OK.test(match[2])) continue;
     const line = source.slice(0, match.index).split('\n').length;
-    problems.push(`${path.relative(process.cwd(), file)}:${line} icon glyph is read aloud; add aria-hidden="true", or role="img" with a label`);
+    problems.push(
+      `${path.relative(process.cwd(), file)}:${line} icon glyph is read aloud; add aria-hidden="true", or role="img" with a label`,
+    );
   }
   for (const match of source.matchAll(GENERIC)) {
     const [, tag, attributes] = match;
     if (IMPLICIT_ROLE.has(tag) || !NAMED.test(attributes) || ROLE.test(attributes)) continue;
     const line = source.slice(0, match.index).split('\n').length;
-    problems.push(`${path.relative(process.cwd(), file)}:${line} <${tag}> is named but has no role, so the name is dropped`);
+    problems.push(
+      `${path.relative(process.cwd(), file)}:${line} <${tag}> is named but has no role, so the name is dropped`,
+    );
   }
 }
 
 if (problems.length) {
-  process.stderr.write(`${problems.join('\n')}\n\nGive the element a role that takes a name, or make the name visible or sr-only text.\n`);
+  process.stderr.write(
+    `${problems.join('\n')}\n\nGive the element a role that takes a name, or make the name visible or sr-only text.\n`,
+  );
   process.exit(1);
 }
-process.stdout.write('ARIA name audit passed: every named element in the templates has a role that takes a name, and no icon glyph is read aloud.\n');
+process.stdout.write(
+  'ARIA name audit passed: every named element in the templates has a role that takes a name, and no icon glyph is read aloud.\n',
+);

@@ -8,7 +8,7 @@ import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../shared/ui/problem-text';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TaskDictionariesService {
   private readonly api = inject(ApiService);
@@ -24,15 +24,15 @@ export class TaskDictionariesService {
 
   loadStatuses(): void {
     this.api.get<TaskStatus[]>('/tasks/statuses').subscribe({
-      next: res => this.statuses.set(res || []),
-      error: () => {}
+      next: (res) => this.statuses.set(res || []),
+      error: () => {},
     });
   }
 
   loadTypes(): void {
     this.api.get<TaskType[]>('/tasks/types').subscribe({
-      next: res => this.taskTypes.set(res || []),
-      error: () => {}
+      next: (res) => this.taskTypes.set(res || []),
+      error: () => {},
     });
   }
 
@@ -41,34 +41,39 @@ export class TaskDictionariesService {
   }
 
   handleCreateType(event: { code: string; name: string; icon: string; color: string }): void {
-    this.api.post('/tasks/types', {
-      code: event.code,
-      name: event.name,
-      icon: event.icon,
-      color: event.color,
-      orderNo: (this.taskTypes().length + 1) * 10
-    }).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_dobavlen'));
-        this.loadTypes();
-      },
-      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_tipa'))
-    });
+    this.api
+      .post('/tasks/types', {
+        code: event.code,
+        name: event.name,
+        icon: event.icon,
+        color: event.color,
+        orderNo: (this.taskTypes().length + 1) * 10,
+      })
+      .subscribe({
+        next: () => {
+          this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_dobavlen'));
+          this.loadTypes();
+        },
+        error: (err) => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_tipa')),
+      });
   }
 
   handleCreateStatus(event: { name: string; color: string; isTerminal: boolean }): void {
-    this.api.post('/tasks/statuses', {
-      name: event.name,
-      color: event.color,
-      orderNo: (this.statuses().length + 1) * 10,
-      isTerminal: event.isTerminal
-    }).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('tasks.status_zadachi_dobavlen'));
-        this.loadStatuses();
-      },
-      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_statusa'))
-    });
+    this.api
+      .post('/tasks/statuses', {
+        name: event.name,
+        color: event.color,
+        orderNo: (this.statuses().length + 1) * 10,
+        isTerminal: event.isTerminal,
+      })
+      .subscribe({
+        next: () => {
+          this.toast.success(this.uiI18n.translate('tasks.status_zadachi_dobavlen'));
+          this.loadStatuses();
+        },
+        error: (err) =>
+          this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_statusa')),
+      });
   }
 
   /**
@@ -79,26 +84,30 @@ export class TaskDictionariesService {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
     const isType = target.kind === 'type';
     const endpoint = isType ? `/tasks/types/${target.id}` : `/tasks/statuses/${target.id}`;
-    this.modal.confirm({
-      title: t('tasks.udalenie_elementa_spravochnika'),
-      message: `${t('tasks.delete_dictionary_confirm', { kind: t(isType ? 'tasks.task_type_accusative' : 'tasks.status_accusative'), name: target.name })}\n${t('tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol')}`,
-      yesLabel: t('common.delete'),
-      noLabel: t('common.cancel'),
-      destructive: true,
-      action: () => this.api.delete(endpoint, { notifyError: false }).pipe(
-        tap(() => {
-          if (isType) {
-            this.toast.success(t('tasks.tip_zadachi_udalen'));
-            this.loadTypes();
-          } else {
-            this.toast.success(t('tasks.status_udalen'));
-            this.loadStatuses();
-          }
-        })
-      ),
-      actionError: error => problemText(error)
-        || t(isType ? 'tasks.oshibka_udaleniya_tipa' : 'tasks.nelzya_udalit_status_privyazannyy_k_zadacham')
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: t('tasks.udalenie_elementa_spravochnika'),
+        message: `${t('tasks.delete_dictionary_confirm', { kind: t(isType ? 'tasks.task_type_accusative' : 'tasks.status_accusative'), name: target.name })}\n${t('tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol')}`,
+        yesLabel: t('common.delete'),
+        noLabel: t('common.cancel'),
+        destructive: true,
+        action: () =>
+          this.api.delete(endpoint, { notifyError: false }).pipe(
+            tap(() => {
+              if (isType) {
+                this.toast.success(t('tasks.tip_zadachi_udalen'));
+                this.loadTypes();
+              } else {
+                this.toast.success(t('tasks.status_udalen'));
+                this.loadStatuses();
+              }
+            }),
+          ),
+        actionError: (error) =>
+          problemText(error) ||
+          t(isType ? 'tasks.oshibka_udaleniya_tipa' : 'tasks.nelzya_udalit_status_privyazannyy_k_zadacham'),
+      })
+      .subscribe();
   }
 
   handleReorderTypes(list: TaskType[]): void {
@@ -111,20 +120,21 @@ export class TaskDictionariesService {
     this.persistStatusOrder(list);
   }
 
-
   private persistStatusOrder(list: TaskStatus[]): void {
-    const orderedIds = list.map(status => status.id);
+    const orderedIds = list.map((status) => status.id);
     this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
       next: () => this.toast.success(this.uiI18n.translate('tasks.poryadok_statusov_sohranen')),
-      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka'))
+      error: (err) =>
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka')),
     });
   }
 
   private persistTypeOrder(list: TaskType[]): void {
-    const orderedIds = list.map(t => t.id);
+    const orderedIds = list.map((t) => t.id);
     this.api.post('/tasks/types/reorder', orderedIds).subscribe({
       next: () => this.toast.success(this.uiI18n.translate('tasks.poryadok_tipov_zadach_sohranen')),
-      error: err => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka'))
+      error: (err) =>
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka')),
     });
   }
 }

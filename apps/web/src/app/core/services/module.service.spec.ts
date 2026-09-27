@@ -8,14 +8,11 @@ describe('ModuleService', () => {
   function setup() {
     const api = {
       get: vi.fn(),
-      post: vi.fn()
+      post: vi.fn(),
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        ModuleService,
-        { provide: ApiService, useValue: api }
-      ]
+      providers: [ModuleService, { provide: ApiService, useValue: api }],
     });
 
     const service = TestBed.inject(ModuleService);
@@ -49,7 +46,7 @@ describe('ModuleService', () => {
         icon: 'description',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
+        isActive: true,
       },
       {
         code: 'crm',
@@ -59,8 +56,8 @@ describe('ModuleService', () => {
         icon: 'handshake',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
-      }
+        isActive: true,
+      },
     ];
 
     api.get.mockReturnValue(of(mockModules));
@@ -88,7 +85,7 @@ describe('ModuleService', () => {
         icon: 'description',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
+        isActive: true,
       },
       {
         code: 'crm',
@@ -98,7 +95,7 @@ describe('ModuleService', () => {
         icon: 'handshake',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
+        isActive: true,
       },
       {
         code: 'tasks',
@@ -107,8 +104,8 @@ describe('ModuleService', () => {
         route: '/tasks',
         isSystem: true,
         status: 'ACTIVE',
-        isActive: true
-      }
+        isActive: true,
+      },
     ];
 
     api.get.mockReturnValue(of(mockModules));
@@ -131,7 +128,7 @@ describe('ModuleService', () => {
         icon: 'description',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
+        isActive: true,
       },
       {
         code: 'upl',
@@ -141,7 +138,7 @@ describe('ModuleService', () => {
         icon: 'upload_file',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
+        isActive: true,
       },
       {
         code: 'crm',
@@ -151,35 +148,37 @@ describe('ModuleService', () => {
         icon: 'handshake',
         isSystem: false,
         status: 'ACTIVE',
-        isActive: true
-      }
+        isActive: true,
+      },
     ];
 
     api.get.mockReturnValue(of(mockModules));
     await firstValueFrom(service.loadActiveModules());
 
-    expect(service.getActiveCustomModules().map(m => m.code)).toEqual(['crm']);
+    expect(service.getActiveCustomModules().map((m) => m.code)).toEqual(['crm']);
   });
 
   it('toggles module status and reactively updates activeModuleCodes', async () => {
     const { service, api } = setup();
 
     // Initial load: notes is ACTIVE
-    api.get.mockReturnValue(of([
-      { code: 'notes', name: 'Notes', version: '1.0', isSystem: false, status: 'ACTIVE', isActive: true }
-    ]));
+    api.get.mockReturnValue(
+      of([{ code: 'notes', name: 'Notes', version: '1.0', isSystem: false, status: 'ACTIVE', isActive: true }]),
+    );
     await firstValueFrom(service.loadActiveModules());
     expect(service.isModuleActive('notes')).toBe(true);
 
     // Toggle notes to DISABLED
-    api.post.mockReturnValue(of({
-      code: 'notes',
-      name: 'Notes',
-      version: '1.0',
-      isSystem: false,
-      status: 'DISABLED',
-      isActive: false
-    }));
+    api.post.mockReturnValue(
+      of({
+        code: 'notes',
+        name: 'Notes',
+        version: '1.0',
+        isSystem: false,
+        status: 'DISABLED',
+        isActive: false,
+      }),
+    );
 
     await firstValueFrom(service.toggleModule('notes', false));
 
@@ -187,14 +186,16 @@ describe('ModuleService', () => {
     expect(service.isModuleActive('notes')).toBe(false);
 
     // Toggle notes back to ACTIVE
-    api.post.mockReturnValue(of({
-      code: 'notes',
-      name: 'Notes',
-      version: '1.0',
-      isSystem: false,
-      status: 'ACTIVE',
-      isActive: true
-    }));
+    api.post.mockReturnValue(
+      of({
+        code: 'notes',
+        name: 'Notes',
+        version: '1.0',
+        isSystem: false,
+        status: 'ACTIVE',
+        isActive: true,
+      }),
+    );
 
     await firstValueFrom(service.toggleModule('notes', true));
 

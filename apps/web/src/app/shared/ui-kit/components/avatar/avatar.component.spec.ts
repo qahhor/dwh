@@ -48,7 +48,7 @@ describe('SMTAvatarComponent', () => {
     return { fixture, decorative, labelled };
   }
 
-  it('is decorative beside a written name, keeps the caller\'s class and shows initials on a tone', async () => {
+  it("is decorative beside a written name, keeps the caller's class and shows initials on a tone", async () => {
     const { decorative } = await render();
     expect(decorative.getAttribute('aria-hidden')).toBe('true');
     expect(decorative.hasAttribute('role')).toBe(false);

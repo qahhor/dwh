@@ -5,14 +5,24 @@ import { ExportItem, ExportsService } from '../../core/services/exports.service'
 import { ExportsComponent } from './exports.component';
 
 const item = (patch: Partial<ExportItem>): ExportItem => ({
-  id: 'e1', list: 'upl.packages', state: 'done', rowsCount: 12, truncated: false, fileName: 'upl_packages.xlsx',
-  sizeBytes: 2048, createdAt: '2026-09-25T09:00:00Z', expiresAt: '2026-10-02T09:00:00Z', ...patch
+  id: 'e1',
+  list: 'upl.packages',
+  state: 'done',
+  rowsCount: 12,
+  truncated: false,
+  fileName: 'upl_packages.xlsx',
+  sizeBytes: 2048,
+  createdAt: '2026-09-25T09:00:00Z',
+  expiresAt: '2026-10-02T09:00:00Z',
+  ...patch,
 });
 
 async function render(journal: ReturnType<typeof vi.fn>) {
   await TestBed.configureTestingModule({
     imports: [ExportsComponent],
-    providers: [{ provide: ExportsService, useValue: { journal, fileUrl: (id: string) => `/api/v1/exports/${id}/file` } }]
+    providers: [
+      { provide: ExportsService, useValue: { journal, fileUrl: (id: string) => `/api/v1/exports/${id}/file` } },
+    ],
   }).compileComponents();
   const fixture = TestBed.createComponent(ExportsComponent);
   fixture.detectChanges();
@@ -25,11 +35,22 @@ describe('ExportsComponent', () => {
   afterEach(() => vi.useRealTimers());
 
   it('lists exports with their list, state and rows, and offers the file of a finished one', async () => {
-    const { host } = await render(vi.fn(() => of([
-      item({}),
-      item({ id: 'e2', list: 'mf.files', state: 'failed', rowsCount: null, fileName: null, errorCode: 'EXPORT_FORBIDDEN' }),
-      item({ id: 'e3', list: 'upl.sources', truncated: true, rowsCount: 50000 })
-    ])));
+    const { host } = await render(
+      vi.fn(() =>
+        of([
+          item({}),
+          item({
+            id: 'e2',
+            list: 'mf.files',
+            state: 'failed',
+            rowsCount: null,
+            fileName: null,
+            errorCode: 'EXPORT_FORBIDDEN',
+          }),
+          item({ id: 'e3', list: 'upl.sources', truncated: true, rowsCount: 50000 }),
+        ]),
+      ),
+    );
 
     const list = rows(host);
     expect(list).toHaveLength(3);
@@ -46,7 +67,8 @@ describe('ExportsComponent', () => {
 
   it('looks again while an export is unfinished and stops when all are done', async () => {
     vi.useFakeTimers();
-    const journal = vi.fn()
+    const journal = vi
+      .fn()
       .mockReturnValueOnce(of([item({ state: 'running', rowsCount: null })]))
       .mockReturnValueOnce(of([item({})]));
     const { fixture, host } = await render(journal);
@@ -67,7 +89,10 @@ describe('ExportsComponent', () => {
 
     TestBed.resetTestingModule();
     const pending = new Subject<ExportItem[]>();
-    const journal = vi.fn().mockReturnValueOnce(throwError(() => ({ status: 500 }))).mockReturnValueOnce(pending);
+    const journal = vi
+      .fn()
+      .mockReturnValueOnce(throwError(() => ({ status: 500 })))
+      .mockReturnValueOnce(pending);
     const failed = await render(journal);
     expect(failed.host.querySelector('[data-testid="exports-error"]')?.getAttribute('role')).toBe('alert');
   });

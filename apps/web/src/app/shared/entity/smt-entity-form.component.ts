@@ -1,9 +1,23 @@
 import {
-  booleanAttribute, ChangeDetectionStrategy, Component, computed, contentChildren, Directive, inject, input, model,
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  contentChildren,
+  Directive,
+  inject,
+  input,
+  model,
   TemplateRef,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import type { FormFieldMeta, FormMeta, FormProblems, FormSectionMeta, FormValues } from '../../core/models/form-meta.models';
+import type {
+  FormFieldMeta,
+  FormMeta,
+  FormProblems,
+  FormSectionMeta,
+  FormValues,
+} from '../../core/models/form-meta.models';
 import { ApiService } from '../../core/services/api.service';
 import { fieldLabel, optionLabel } from '../../core/services/form-meta.service';
 import { I18nService } from '../../core/services/i18n.service';
@@ -11,7 +25,11 @@ import { LookupSources } from '../lookups/lookup-sources';
 import { refLookup } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';
 import { SMTControlComponent } from '../ui-kit/components/forms/control/control.component';
-import { SMTDynamicFieldComponent, type SMTDynamicFieldDef, type SMTDynamicFieldType } from '../ui-kit/components/forms/dynamic-field';
+import {
+  SMTDynamicFieldComponent,
+  type SMTDynamicFieldDef,
+  type SMTDynamicFieldType,
+} from '../ui-kit/components/forms/dynamic-field';
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
 
 /** The context a replaced field's template gets: the field, its value and a way to change it. */
@@ -68,16 +86,25 @@ interface DrawnSection {
         }
         <div class="entity-section-grid">
           @for (field of drawn.fields; track field.meta.key) {
-            <div class="entity-field" [class.entity-field--wide]="isWide(field.meta)" [attr.data-field]="field.meta.key">
+            <div
+              class="entity-field"
+              [class.entity-field--wide]="isWide(field.meta)"
+              [attr.data-field]="field.meta.key"
+            >
               @if (replacement(field.meta.key); as custom) {
                 <ng-container *ngTemplateOutlet="custom; context: contextOf(field.meta)" />
               } @else if (field.meta.type === 'markdown') {
-                <smt-control [smtLabel]="field.label" [required]="field.meta.required" [smtError]="problemOf(field.meta.key)">
+                <smt-control
+                  [smtLabel]="field.label"
+                  [required]="field.meta.required"
+                  [smtError]="problemOf(field.meta.key)"
+                >
                   <ui-markdown-editor
                     [value]="textOf(field.meta.key)"
                     [ariaLabel]="field.label"
                     [rows]="6"
-                    (valueChange)="set(field.meta.key, $event)" />
+                    (valueChange)="set(field.meta.key, $event)"
+                  />
                 </smt-control>
               } @else {
                 <smt-dynamic-field
@@ -86,7 +113,8 @@ interface DrawnSection {
                   [disabled]="disabled()"
                   [error]="problemOf(field.meta.key)"
                   [value]="value()[field.meta.key] ?? null"
-                  (valueChange)="set(field.meta.key, $event)" />
+                  (valueChange)="set(field.meta.key, $event)"
+                />
               }
             </div>
           }
@@ -94,14 +122,38 @@ interface DrawnSection {
       </fieldset>
     }
   `,
-  styles: [`
-    :host { display: flex; flex-direction: column; gap: 16px; }
-    .entity-section { border: 0; margin: 0; padding: 0; min-width: 0; }
-    .entity-section-title { font-weight: 600; font-size: 0.875rem; margin-bottom: 8px; padding: 0; }
-    .entity-section-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-    .entity-field { min-width: 0; }
-    .entity-field--wide { grid-column: 1 / -1; }
-  `],
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .entity-section {
+        border: 0;
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+      }
+      .entity-section-title {
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 8px;
+        padding: 0;
+      }
+      .entity-section-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+      }
+      .entity-field {
+        min-width: 0;
+      }
+      .entity-field--wide {
+        grid-column: 1 / -1;
+      }
+    `,
+  ],
 })
 export class SMTEntityFormComponent {
   private readonly i18n = inject(I18nService);
@@ -130,23 +182,23 @@ export class SMTEntityFormComponent {
     this.i18n.currentLang();
     const meta = this.meta();
     const only = this.sections();
-    const byKey = new Map(meta.fields.map(field => [field.key, field]));
+    const byKey = new Map(meta.fields.map((field) => [field.key, field]));
     const translate = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
     return meta.layout
-      .filter(section => only.length === 0 || only.includes(section.key))
-      .map(section => ({
+      .filter((section) => only.length === 0 || only.includes(section.key))
+      .map((section) => ({
         section,
         title: translate(section.labelKey),
         fields: section.fields
-          .map(key => byKey.get(key))
+          .map((key) => byKey.get(key))
           .filter((field): field is FormFieldMeta => !!field)
-          .map(field => this.draw(field, translate)),
+          .map((field) => this.draw(field, translate)),
       }))
-      .filter(section => section.fields.length > 0);
+      .filter((section) => section.fields.length > 0);
   });
 
   set(key: string, value: unknown): void {
-    this.value.update(values => ({ ...values, [key]: value }));
+    this.value.update((values) => ({ ...values, [key]: value }));
   }
 
   problemOf(key: string): string {
@@ -163,11 +215,16 @@ export class SMTEntityFormComponent {
   }
 
   replacement(key: string): TemplateRef<SMTEntityFieldContext> | null {
-    return this.replacements().find(directive => directive.key() === key)?.template ?? null;
+    return this.replacements().find((directive) => directive.key() === key)?.template ?? null;
   }
 
   contextOf(field: FormFieldMeta): SMTEntityFieldContext {
-    return { $implicit: field, value: this.value()[field.key] ?? null, problem: this.problemOf(field.key), set: value => this.set(field.key, value) };
+    return {
+      $implicit: field,
+      value: this.value()[field.key] ?? null,
+      problem: this.problemOf(field.key),
+      set: (value) => this.set(field.key, value),
+    };
   }
 
   private draw(field: FormFieldMeta, translate: (key: string) => string): DrawnField {
@@ -178,9 +235,10 @@ export class SMTEntityFormComponent {
       type: TYPES[field.type],
       required: field.required,
       maxLength: field.maxLength ?? null,
-      options: field.type === 'select'
-        ? (field.options ?? []).map(option => ({ id: option, label: optionLabel(field, option, translate) }))
-        : undefined,
+      options:
+        field.type === 'select'
+          ? (field.options ?? []).map((option) => ({ id: option, label: optionLabel(field, option, translate) }))
+          : undefined,
     };
     let source: SMTLookupSource<unknown, SMTLookupKey> | null = null;
     if (field.ref) {

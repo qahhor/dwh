@@ -16,15 +16,15 @@ describe('CommandPaletteComponent', () => {
       isOpen,
       open: vi.fn(() => isOpen.set(true)),
       close: vi.fn(() => isOpen.set(false)),
-      toggle: vi.fn(() => isOpen.update(value => !value)),
-      search: vi.fn((_query: string) => of<SearchResult>({ ...metadata, query: '', totalHits: 0, hits: [] }))
+      toggle: vi.fn(() => isOpen.update((value) => !value)),
+      search: vi.fn((_query: string) => of<SearchResult>({ ...metadata, query: '', totalHits: 0, hits: [] })),
     };
     await TestBed.configureTestingModule({
       imports: [CommandPaletteComponent],
       providers: [
         { provide: CommandPaletteService, useValue: service },
-        { provide: Router, useValue: { navigate: vi.fn() } }
-      ]
+        { provide: Router, useValue: { navigate: vi.fn() } },
+      ],
     }).compileComponents();
     return { fixture: TestBed.createComponent(CommandPaletteComponent), service };
   }
@@ -32,13 +32,15 @@ describe('CommandPaletteComponent', () => {
   it('exposes a named modal combobox and listbox options', async () => {
     const { fixture } = await createFixture();
     fixture.detectChanges();
-    fixture.componentInstance.results.set([{
-      entityType: 'TASK',
-      id: '42',
-      title: 'Проверить отчёт',
-      description: 'Финальная проверка',
-      targetUrl: '/tasks/42'
-    }]);
+    fixture.componentInstance.results.set([
+      {
+        entityType: 'TASK',
+        id: '42',
+        title: 'Проверить отчёт',
+        description: 'Финальная проверка',
+        targetUrl: '/tasks/42',
+      },
+    ]);
     fixture.detectChanges();
 
     const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
@@ -84,18 +86,22 @@ describe('CommandPaletteComponent', () => {
       const { fixture, service } = await createFixture();
       service.search
         .mockReturnValueOnce(throwError(() => ({ detail: 'Поиск временно недоступен' })))
-        .mockReturnValueOnce(of({
-          ...metadata,
-          query: 'Тест',
-          totalHits: 1,
-          hits: [{
-            entityType: 'TASK',
-            id: '42',
-            title: 'Тестовая задача',
-            description: 'Результат повторного запроса',
-            targetUrl: '/tasks/items/42'
-          }]
-        }));
+        .mockReturnValueOnce(
+          of({
+            ...metadata,
+            query: 'Тест',
+            totalHits: 1,
+            hits: [
+              {
+                entityType: 'TASK',
+                id: '42',
+                title: 'Тестовая задача',
+                description: 'Результат повторного запроса',
+                targetUrl: '/tasks/items/42',
+              },
+            ],
+          }),
+        );
       fixture.detectChanges();
 
       fixture.componentInstance.searchQuery = 'Тест';
@@ -123,9 +129,22 @@ describe('CommandPaletteComponent', () => {
     vi.useFakeTimers();
     try {
       const { fixture, service } = await createFixture();
-      service.search.mockReturnValue(of({ ...metadata, query: 'old', totalHits: 1, hits: [{
-        entityType: 'USER', id: '7', title: 'Old result', description: '', targetUrl: '/iam/users/7'
-      }] }));
+      service.search.mockReturnValue(
+        of({
+          ...metadata,
+          query: 'old',
+          totalHits: 1,
+          hits: [
+            {
+              entityType: 'USER',
+              id: '7',
+              title: 'Old result',
+              description: '',
+              targetUrl: '/iam/users/7',
+            },
+          ],
+        }),
+      );
       fixture.detectChanges();
       fixture.componentInstance.searchQuery = 'old';
       fixture.componentInstance.onSearchChange('old');
@@ -180,9 +199,20 @@ describe('CommandPaletteComponent', () => {
       expect(pending.observed).toBe(false);
       service.open();
       fixture.detectChanges();
-      pending.next({ ...metadata, query: 'old', totalHits: 1, hits: [{
-        entityType: 'USER', id: '7', title: 'Late result', description: '', targetUrl: '/iam/users/7'
-      }] });
+      pending.next({
+        ...metadata,
+        query: 'old',
+        totalHits: 1,
+        hits: [
+          {
+            entityType: 'USER',
+            id: '7',
+            title: 'Late result',
+            description: '',
+            targetUrl: '/iam/users/7',
+          },
+        ],
+      });
       fixture.detectChanges();
 
       expect(fixture.componentInstance.searchQuery).toBe('');
@@ -253,7 +283,7 @@ describe('CommandPaletteComponent', () => {
     fixture.detectChanges();
     fixture.componentInstance.results.set([
       { entityType: 'TASK', id: '1', title: 'Task', description: '', targetUrl: '/tasks/1' },
-      { entityType: 'USER', id: '7', title: 'Person', description: '', targetUrl: '/iam/users/7' }
+      { entityType: 'USER', id: '7', title: 'Person', description: '', targetUrl: '/iam/users/7' },
     ]);
     fixture.detectChanges();
     const option = fixture.nativeElement.querySelectorAll('[role="option"]')[1] as HTMLButtonElement;
@@ -273,7 +303,13 @@ describe('CommandPaletteComponent', () => {
     fixture.detectChanges();
     expect(service.isOpen()).toBe(true);
 
-    const repeatedShortcut = new KeyboardEvent('keydown', { key: 'л', code: 'KeyK', ctrlKey: true, repeat: true, cancelable: true });
+    const repeatedShortcut = new KeyboardEvent('keydown', {
+      key: 'л',
+      code: 'KeyK',
+      ctrlKey: true,
+      repeat: true,
+      cancelable: true,
+    });
     document.dispatchEvent(repeatedShortcut);
     fixture.detectChanges();
     expect(service.isOpen()).toBe(true);

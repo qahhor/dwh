@@ -11,51 +11,59 @@ import { CommonModule } from '@angular/common';
       <ng-content></ng-content>
     </span>
   `,
-  styles: [`
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 500;
-      line-height: 1.4;
-      white-space: nowrap;
-    }
+  styles: [
+    `
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-size: 11px;
+        font-weight: 500;
+        line-height: 1.4;
+        white-space: nowrap;
+      }
 
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: currentColor;
-    }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: currentColor;
+      }
 
-    .badge-active, .badge-success {
-      background-color: var(--success-bg);
-      color: var(--success-text);
-    }
+      .badge-active,
+      .badge-success {
+        background-color: var(--success-bg);
+        color: var(--success-text);
+      }
 
-    .badge-passive, .badge-danger {
-      background-color: var(--danger-bg);
-      color: var(--danger-text);
-    }
+      .badge-passive,
+      .badge-danger {
+        background-color: var(--danger-bg);
+        color: var(--danger-text);
+      }
 
-    .badge-warning, .badge-high, .badge-urgent {
-      background-color: var(--warning-bg);
-      color: var(--warning-text);
-    }
+      .badge-warning,
+      .badge-high,
+      .badge-urgent {
+        background-color: var(--warning-bg);
+        color: var(--warning-text);
+      }
 
-    .badge-info, .badge-normal {
-      background-color: var(--info-bg);
-      color: var(--info-text);
-    }
+      .badge-info,
+      .badge-normal {
+        background-color: var(--info-bg);
+        color: var(--info-text);
+      }
 
-    .badge-neutral, .badge-low {
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-    }
-  `]
+      .badge-neutral,
+      .badge-low {
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+      }
+    `,
+  ],
 })
 export class UiBadgeComponent {
   @Input() variant: string = 'neutral';

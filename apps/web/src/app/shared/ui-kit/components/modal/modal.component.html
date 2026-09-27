@@ -6,11 +6,7 @@
       <h2 class="smt-modal__title" [id]="titleId">{{ displayTitle() }}</h2>
     }
     @if (displayShowCloseButton()) {
-      <button
-        type="button"
-        class="smt-modal__close"
-        (click)="close()"
-        [attr.aria-label]="i18n.messages().common.close">
+      <button type="button" class="smt-modal__close" (click)="close()" [attr.aria-label]="i18n.messages().common.close">
         <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     }

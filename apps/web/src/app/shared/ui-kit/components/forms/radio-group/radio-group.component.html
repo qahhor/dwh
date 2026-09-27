@@ -9,7 +9,8 @@
   [attr.aria-invalid]="hasError() ? 'true' : null"
   [attr.aria-disabled]="isDisabled() ? 'true' : null"
   [attr.aria-readonly]="readonly() ? 'true' : null"
-  (focusout)="onFocusOut($event)">
+  (focusout)="onFocusOut($event)"
+>
   @for (option of options(); track $index; let index = $index) {
     <div
       #item
@@ -26,7 +27,8 @@
       [attr.aria-describedby]="option.hint ? itemId(index) + '-hint' : null"
       [tabindex]="tabStop() === index ? 0 : -1"
       (click)="choose(index)"
-      (keydown)="onKeydown($event, index)">
+      (keydown)="onKeydown($event, index)"
+    >
       @if (showDot()) {
         <span class="smt-radio-group__dot" aria-hidden="true"></span>
       }
@@ -36,7 +38,12 @@
         <span class="smt-radio-group__swatch" aria-hidden="true"></span>
       }
       <span class="smt-radio-group__text">
-        <span class="smt-radio-group__label" [id]="itemId(index) + '-label'">{{ option.label }}@if (option.count !== undefined) {<span class="smt-radio-group__count"> {{ option.count }}</span>}</span>
+        <span class="smt-radio-group__label" [id]="itemId(index) + '-label'"
+          >{{ option.label }}
+          @if (option.count !== undefined) {
+            <span class="smt-radio-group__count"> {{ option.count }}</span>
+          }
+        </span>
         @if (option.hint) {
           <span class="smt-radio-group__hint" [id]="itemId(index) + '-hint'">{{ option.hint }}</span>
         }

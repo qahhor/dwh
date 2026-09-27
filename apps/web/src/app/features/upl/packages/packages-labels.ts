@@ -5,7 +5,7 @@ export const UPL_PACKAGE_STATUS_KEY: Record<UplPackageStatus, string> = {
   received: 'upl.pkg.status.received',
   verified: 'upl.pkg.status.verified',
   rejected: 'upl.pkg.status.rejected',
-  applied: 'upl.pkg.status.applied'
+  applied: 'upl.pkg.status.applied',
 };
 
 /** Статус загрузки → вариант `ui-badge`. */
@@ -13,7 +13,7 @@ export const UPL_PACKAGE_STATUS_VARIANT: Record<UplPackageStatus, string> = {
   received: 'neutral',
   verified: 'success',
   rejected: 'danger',
-  applied: 'info'
+  applied: 'info',
 };
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;

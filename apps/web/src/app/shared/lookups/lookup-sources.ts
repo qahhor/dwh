@@ -31,25 +31,43 @@ export type TaskRef = Pick<Task, 'id' | 'title'>;
  * stay inside the field — it shows "could not load" with a retry — so no
  * toast is raised for them.
  */
-export function restLookup<Row, K extends SMTLookupKey = number>(api: ApiService, lookup: RestLookup<Row, K>): SMTLookupSource<Row, K> {
+export function restLookup<Row, K extends SMTLookupKey = number>(
+  api: ApiService,
+  lookup: RestLookup<Row, K>,
+): SMTLookupSource<Row, K> {
   const quiet = { notifyError: false };
   const source: SMTLookupSource<Row, K> = {
-    page: (search, cursor, limit) => api.get<KeysetPage<Row>>(lookup.path, {
-      ...lookup.params,
-      limit,
-      cursor: cursor ?? undefined,
-      search: search || undefined,
-    }, quiet),
-    key: row => lookup.key(row),
-    option: row => lookup.option(row),
+    page: (search, cursor, limit) =>
+      api.get<KeysetPage<Row>>(
+        lookup.path,
+        {
+          ...lookup.params,
+          limit,
+          cursor: cursor ?? undefined,
+          search: search || undefined,
+        },
+        quiet,
+      ),
+    key: (row) => lookup.key(row),
+    option: (row) => lookup.option(row),
   };
   if (lookup.resolveById !== false) {
-    source.resolve = (keys): Observable<readonly Row[]> => forkJoin(keys.map(key =>
-      api.get<unknown>(`${lookup.path}/${encodeURIComponent(String(key))}`, undefined, quiet).pipe(
-        map(body => (lookup.readOne ? lookup.readOne(body) : body as Row) ?? null),
-        catchError(() => of(null))
-      )
-    )).pipe(map(rows => rows.filter((row, index): row is NonNullable<typeof row> => row != null && lookup.key(row as Row) === keys[index]) as Row[]));
+    source.resolve = (keys): Observable<readonly Row[]> =>
+      forkJoin(
+        keys.map((key) =>
+          api.get<unknown>(`${lookup.path}/${encodeURIComponent(String(key))}`, undefined, quiet).pipe(
+            map((body) => (lookup.readOne ? lookup.readOne(body) : (body as Row)) ?? null),
+            catchError(() => of(null)),
+          ),
+        ),
+      ).pipe(
+        map(
+          (rows) =>
+            rows.filter(
+              (row, index): row is NonNullable<typeof row> => row != null && lookup.key(row as Row) === keys[index],
+            ) as Row[],
+        ),
+      );
   }
   return source;
 }
@@ -63,15 +81,15 @@ export class LookupSources {
   readonly activeUsers = restLookup<UserRef>(this.api, {
     path: '/iam/users',
     params: { state: 'A' },
-    key: user => user.id,
-    option: user => ({ label: user.name, subLabel: `@${user.login}` }),
+    key: (user) => user.id,
+    option: (user) => ({ label: user.name, subLabel: `@${user.login}` }),
   });
 
   /** Tasks by number or title, shown as "#12 Title"; a chosen one is read from its card. */
   readonly tasks = restLookup<TaskRef>(this.api, {
     path: '/tasks',
-    key: task => task.id,
-    option: task => ({ label: `#${task.id} ${task.title}`, icon: 'task_alt' }),
-    readOne: body => (body as { task?: TaskRef } | null)?.task,
+    key: (task) => task.id,
+    option: (task) => ({ label: `#${task.id} ${task.title}`, icon: 'task_alt' }),
+    readOne: (body) => (body as { task?: TaskRef } | null)?.task,
   });
 }

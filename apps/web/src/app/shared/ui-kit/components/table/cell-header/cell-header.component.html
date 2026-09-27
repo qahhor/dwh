@@ -7,7 +7,8 @@
     [smtAriaLabel]="i18n.messages().dataTable.selectAll"
     [smtIsHalfChecked]="selectedType() === 'partial-selected'"
     [checked]="selectedType() === 'all-selected'"
-    (smtCheckedChange)="checkboxClick.emit($event)"></label>
+    (smtCheckedChange)="checkboxClick.emit($event)"
+  ></label>
 }
 
 @if (!selectionOnly()) {
@@ -17,7 +18,8 @@
       class="min-w-0 truncate text-md font-medium text-gray-900"
       [smtTooltip]="tooltipText()"
       [smtTooltipDisabled]="!tooltipText() || !isHeaderOverflowing()"
-      (mouseenter)="updateTooltipOverflow()">
+      (mouseenter)="updateTooltipOverflow()"
+    >
       @if (data(); as data) {
         @if (data.type === 'primitive' && data; as data) {
           <span class="block truncate">{{ data.value }}</span>

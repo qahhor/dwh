@@ -26,7 +26,7 @@ export { resolveNotificationIcon };
     NotificationsHeaderComponent,
     NotificationsTabsComponent,
     NotificationsListComponent,
-    NotificationPreferencesModalComponent
+    NotificationPreferencesModalComponent,
   ],
   template: `
     <div class="notifications-container">
@@ -78,21 +78,25 @@ export { resolveNotificationIcon };
       />
     </div>
   `,
-  styles: [`
-    :host { display: block; }
-    .notifications-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      max-width: 900px;
-    }
-    .card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .notifications-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 900px;
+      }
+      .card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+      }
+    `,
+  ],
 })
 export class NotificationsComponent implements OnInit {
   readonly notifService = inject(NotificationService);
@@ -112,13 +116,13 @@ export class NotificationsComponent implements OnInit {
   readonly preferences = signal<NotificationPrefItem[]>([]);
 
   readonly unreadItemsCount = computed(() => {
-    return this.items().filter(item => !item.isRead).length;
+    return this.items().filter((item) => !item.isRead).length;
   });
 
   readonly filteredItems = computed(() => {
     const tab = this.filterTab();
     if (tab === 'unread') {
-      return this.items().filter(item => !item.isRead);
+      return this.items().filter((item) => !item.isRead);
     }
     return this.items();
   });
@@ -143,20 +147,23 @@ export class NotificationsComponent implements OnInit {
     this.isLoading.set(true);
     this.loadError.set(null);
     this.listRequest?.unsubscribe();
-    this.listRequest = this.notifService.fetchNotifications(50).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => this.isLoading.set(false))
-    ).subscribe({
-      next: res => {
-        this.items.set(Array.isArray(res) ? res : res?.items || []);
-        const total = this.filteredItems().length;
-        const maxPage = Math.max(1, Math.ceil(total / this.pageSize));
-        this.currentPage = Math.min(this.currentPage, maxPage);
-      },
-      error: () => {
-        this.loadError.set(this.uiI18n.translate('notifications.oshibka_zagruzki'));
-      }
-    });
+    this.listRequest = this.notifService
+      .fetchNotifications(50)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isLoading.set(false)),
+      )
+      .subscribe({
+        next: (res) => {
+          this.items.set(Array.isArray(res) ? res : res?.items || []);
+          const total = this.filteredItems().length;
+          const maxPage = Math.max(1, Math.ceil(total / this.pageSize));
+          this.currentPage = Math.min(this.currentPage, maxPage);
+        },
+        error: () => {
+          this.loadError.set(this.uiI18n.translate('notifications.oshibka_zagruzki'));
+        },
+      });
   }
 
   setFilter(tab: NotificationFilterTab): void {
@@ -191,33 +198,39 @@ export class NotificationsComponent implements OnInit {
 
   markAsRead(item: NotificationItem): void {
     if (item.isRead || this.isMarkingAll() || this.pendingReads().has(item.id)) return;
-    this.pendingReads.update(ids => new Set([...ids, item.id]));
-    this.notifService.markAsRead(item.id).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => this.pendingReads.update(ids => new Set([...ids].filter(id => id !== item.id))))
-    ).subscribe({
-      next: () => {
-        this.items.update(list => list.map(i => i.id === item.id ? { ...i, isRead: true } : i));
-        this.refreshUnreadCount();
-      },
-      error: () => {}
-    });
+    this.pendingReads.update((ids) => new Set([...ids, item.id]));
+    this.notifService
+      .markAsRead(item.id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.pendingReads.update((ids) => new Set([...ids].filter((id) => id !== item.id)))),
+      )
+      .subscribe({
+        next: () => {
+          this.items.update((list) => list.map((i) => (i.id === item.id ? { ...i, isRead: true } : i)));
+          this.refreshUnreadCount();
+        },
+        error: () => {},
+      });
   }
 
   markAllAsRead(): void {
     if (this.isMarkingAll() || this.pendingReads().size > 0 || this.notifService.unreadCount() === 0) return;
     this.isMarkingAll.set(true);
-    this.notifService.markAllAsRead().pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => this.isMarkingAll.set(false))
-    ).subscribe({
-      next: () => {
-        this.toast.success(this.uiI18n.translate('notifications.vse_uvedomleniya_prochitany'));
-        this.loadNotifications();
-        this.refreshUnreadCount();
-      },
-      error: () => {}
-    });
+    this.notifService
+      .markAllAsRead()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isMarkingAll.set(false)),
+      )
+      .subscribe({
+        next: () => {
+          this.toast.success(this.uiI18n.translate('notifications.vse_uvedomleniya_prochitany'));
+          this.loadNotifications();
+          this.refreshUnreadCount();
+        },
+        error: () => {},
+      });
   }
 
   getNotificationIcon(item: NotificationItem): string {
@@ -225,40 +238,45 @@ export class NotificationsComponent implements OnInit {
   }
 
   openPreferencesModal(): void {
-    this.notifService.fetchPreferences().pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe({
-      next: prefs => {
-        this.preferences.set(prefs);
-        this.isPreferencesOpen.set(true);
-      },
-      error: () => {
-        this.preferences.set([]);
-        this.isPreferencesOpen.set(true);
-      }
-    });
+    this.notifService
+      .fetchPreferences()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (prefs) => {
+          this.preferences.set(prefs);
+          this.isPreferencesOpen.set(true);
+        },
+        error: () => {
+          this.preferences.set([]);
+          this.isPreferencesOpen.set(true);
+        },
+      });
   }
 
   savePreferences(prefs: NotificationPrefItem[]): void {
     this.isSavingPreferences.set(true);
-    this.notifService.updatePreferences(prefs).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => this.isSavingPreferences.set(false))
-    ).subscribe({
-      next: () => {
-        this.isPreferencesOpen.set(false);
-        this.toast.success(this.uiI18n.translate('notifications.preferences_saved'));
-      },
-      error: () => {
-        this.toast.error(this.uiI18n.translate('notifications.preferences_error'));
-      }
-    });
+    this.notifService
+      .updatePreferences(prefs)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSavingPreferences.set(false)),
+      )
+      .subscribe({
+        next: () => {
+          this.isPreferencesOpen.set(false);
+          this.toast.success(this.uiI18n.translate('notifications.preferences_saved'));
+        },
+        error: () => {
+          this.toast.error(this.uiI18n.translate('notifications.preferences_error'));
+        },
+      });
   }
 
   private refreshUnreadCount(): void {
     this.countRequest?.unsubscribe();
-    this.countRequest = this.notifService.fetchUnreadCount().pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe({ error: () => {} });
+    this.countRequest = this.notifService
+      .fetchUnreadCount()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({ error: () => {} });
   }
 }

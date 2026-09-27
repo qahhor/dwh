@@ -1,5 +1,14 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, input, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  effect,
+  inject,
+  input,
+  signal,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
 import { KeysetPage } from '../../core/models/common.models';
@@ -30,7 +39,7 @@ const PAGE_SIZE = 20;
 const EVENT_KEYS: Record<HistoryEntry['event'], string> = {
   I: 'ui.history.event.created',
   U: 'ui.history.event.changed',
-  D: 'ui.history.event.deleted'
+  D: 'ui.history.event.deleted',
 };
 
 let nextHistoryId = 0;
@@ -56,7 +65,8 @@ let nextHistoryId = 0;
           data-testid="record-history-toggle"
           [attr.aria-expanded]="open()"
           [attr.aria-controls]="panelId"
-          (click)="toggle()">
+          (click)="toggle()"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">{{ open() ? 'expand_less' : 'history' }}</span>
           {{ 'ui.history.title' | t }}
         </button>
@@ -116,37 +126,115 @@ let nextHistoryId = 0;
       </div>
     </section>
   `,
-  styles: [`
-    :host { display: block; }
-    .record-history__heading { margin: 0; font-size: inherit; }
-    .record-history__toggle {
-      display: inline-flex; align-items: center; gap: 6px;
-      border: 0; background: transparent; padding: 4px 0; cursor: pointer;
-      color: var(--text-main); font: inherit; font-size: 13px; font-weight: 600;
-    }
-    .record-history__toggle:focus-visible, .record-history__link:focus-visible {
-      outline: 2px solid var(--focus-ring, var(--primary)); outline-offset: 2px; border-radius: var(--radius-xs, 4px);
-    }
-    .record-history__toggle .material-symbols-outlined { font-size: 18px; color: var(--text-muted); }
-    .record-history__panel { margin-top: 8px; }
-    .record-history__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-    .record-history__entry { border-left: 2px solid var(--border-color); padding: 2px 0 2px 12px; }
-    .record-history__meta { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--text-muted); }
-    .record-history__event { font-weight: 600; color: var(--text-main); }
-    .record-history__api { font-family: var(--font-mono, monospace); }
-    .record-history__changes { margin: 6px 0 0; display: grid; gap: 2px; font-size: 13px; }
-    .record-history__change { display: flex; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
-    .record-history__change dt { color: var(--text-muted); }
-    .record-history__change dt::after { content: ':'; }
-    .record-history__change dd { margin: 0; color: var(--text-main); overflow-wrap: anywhere; }
-    .record-history__old { text-decoration: line-through; color: var(--text-muted); }
-    .record-history__note { margin: 6px 0 0; font-size: 12px; color: var(--text-muted); }
-    .record-history__note--error { color: var(--danger-text); }
-    .record-history__link {
-      border: 0; background: transparent; padding: 0; margin-top: 8px; cursor: pointer;
-      color: var(--primary-text, var(--primary)); font: inherit; font-size: 12px; text-decoration: underline;
-    }
-  `]
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .record-history__heading {
+        margin: 0;
+        font-size: inherit;
+      }
+      .record-history__toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 0;
+        background: transparent;
+        padding: 4px 0;
+        cursor: pointer;
+        color: var(--text-main);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .record-history__toggle:focus-visible,
+      .record-history__link:focus-visible {
+        outline: 2px solid var(--focus-ring, var(--primary));
+        outline-offset: 2px;
+        border-radius: var(--radius-xs, 4px);
+      }
+      .record-history__toggle .material-symbols-outlined {
+        font-size: 18px;
+        color: var(--text-muted);
+      }
+      .record-history__panel {
+        margin-top: 8px;
+      }
+      .record-history__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+      .record-history__entry {
+        border-left: 2px solid var(--border-color);
+        padding: 2px 0 2px 12px;
+      }
+      .record-history__meta {
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .record-history__event {
+        font-weight: 600;
+        color: var(--text-main);
+      }
+      .record-history__api {
+        font-family: var(--font-mono, monospace);
+      }
+      .record-history__changes {
+        margin: 6px 0 0;
+        display: grid;
+        gap: 2px;
+        font-size: 13px;
+      }
+      .record-history__change {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 8px;
+        min-width: 0;
+      }
+      .record-history__change dt {
+        color: var(--text-muted);
+      }
+      .record-history__change dt::after {
+        content: ':';
+      }
+      .record-history__change dd {
+        margin: 0;
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+      }
+      .record-history__old {
+        text-decoration: line-through;
+        color: var(--text-muted);
+      }
+      .record-history__note {
+        margin: 6px 0 0;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .record-history__note--error {
+        color: var(--danger-text);
+      }
+      .record-history__link {
+        border: 0;
+        background: transparent;
+        padding: 0;
+        margin-top: 8px;
+        cursor: pointer;
+        color: var(--primary-text, var(--primary));
+        font: inherit;
+        font-size: 12px;
+        text-decoration: underline;
+      }
+    `,
+  ],
 })
 export class UiRecordHistoryComponent {
   private readonly api = inject(ApiService);
@@ -186,7 +274,7 @@ export class UiRecordHistoryComponent {
   }
 
   toggle(): void {
-    this.open.update(open => !open);
+    this.open.update((open) => !open);
     if (this.open() && !this.loaded() && !this.loading()) this.load();
   }
 
@@ -196,22 +284,25 @@ export class UiRecordHistoryComponent {
     this.loading.set(true);
     this.failed.set(false);
     this.request?.unsubscribe();
-    this.request = this.api.get<KeysetPage<HistoryEntry>>(
-      `/history/${encodeURIComponent(this.kind())}/${encodeURIComponent(String(this.recordId()))}`,
-      { limit: PAGE_SIZE, ...(cursor ? { cursor } : {}) },
-      { notifyError: false }
-    ).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: page => {
-        this.entries.update(list => [...list, ...(page.items ?? [])]);
-        this.nextCursor.set(page.hasMore ? page.nextCursor ?? null : null);
-        this.loaded.set(true);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.failed.set(true);
-      }
-    });
+    this.request = this.api
+      .get<KeysetPage<HistoryEntry>>(
+        `/history/${encodeURIComponent(this.kind())}/${encodeURIComponent(String(this.recordId()))}`,
+        { limit: PAGE_SIZE, ...(cursor ? { cursor } : {}) },
+        { notifyError: false },
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (page) => {
+          this.entries.update((list) => [...list, ...(page.items ?? [])]);
+          this.nextCursor.set(page.hasMore ? (page.nextCursor ?? null) : null);
+          this.loaded.set(true);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.failed.set(true);
+        },
+      });
   }
 
   eventLabel(entry: HistoryEntry): string {

@@ -8,7 +8,7 @@ describe('UiMarkdownViewComponent security', () => {
     const fixture = TestBed.createComponent(UiMarkdownViewComponent);
     fixture.componentRef.setInput(
       'content',
-      '[safe](https://example.com/docs) [js](javascript:alert(1)) [data](data:text/html,boom) [mixed](JaVaScRiPt:alert(1))'
+      '[safe](https://example.com/docs) [js](javascript:alert(1)) [data](data:text/html,boom) [mixed](JaVaScRiPt:alert(1))',
     );
     fixture.detectChanges();
 

@@ -15,14 +15,14 @@ const monthly: SavedListView = {
   state: { columns: { order: [], hidden: [], widths: {} }, sort: '-name', filter: [] },
   isDefault: true,
   lockVersion: 0,
-  modifiedAt: '2026-09-25T00:00:00Z'
+  modifiedAt: '2026-09-25T00:00:00Z',
 };
 
 const api = {
   list: vi.fn(() => of([monthly])),
   create: vi.fn(),
   update: vi.fn(),
-  remove: vi.fn(() => of(undefined))
+  remove: vi.fn(() => of(undefined)),
 };
 
 @Component({
@@ -41,7 +41,7 @@ class HostComponent {
 describe('ui-list-views', () => {
   afterEach(() => {
     vi.clearAllMocks();
-    document.body.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.body.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
   });
 
   async function render() {
@@ -49,9 +49,7 @@ describe('ui-list-views', () => {
     const confirm = vi.fn(() => of(true));
     await TestBed.configureTestingModule({
       imports: [HostComponent],
-      providers: [
-        { provide: ToastService, useValue: toast }
-      ]
+      providers: [{ provide: ToastService, useValue: toast }],
     }).compileComponents();
     // The real service opens the save dialog; only the question is answered here.
     vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockImplementation(confirm);
@@ -59,7 +57,10 @@ describe('ui-list-views', () => {
     fixture.componentInstance.state.load().subscribe();
     fixture.detectChanges();
     const trigger = inScreen(fixture.nativeElement).querySelector('[data-testid="views-trigger"]') as HTMLButtonElement;
-    const openMenu = () => { trigger.click(); fixture.detectChanges(); };
+    const openMenu = () => {
+      trigger.click();
+      fixture.detectChanges();
+    };
     const item = (id: string) => document.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement | null;
     return { fixture, trigger, openMenu, item, toast, confirm };
   }
@@ -74,7 +75,7 @@ describe('ui-list-views', () => {
     const menu = document.querySelector('[role="menu"]')!;
     expect(menu.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['ui.views.menu']);
     const radios = [...menu.querySelectorAll('[role="menuitemradio"]')];
-    expect(radios.map(radio => radio.getAttribute('aria-checked'))).toEqual(['false', 'true']);
+    expect(radios.map((radio) => radio.getAttribute('aria-checked'))).toEqual(['false', 'true']);
     expect(menu.textContent).toContain(PACKAGED_RUSSIAN['ui.views.default_badge']);
   });
 
@@ -106,20 +107,27 @@ describe('ui-list-views', () => {
       fixture.detectChanges();
     };
     submit();
-    expect(document.querySelector('[data-testid="views-name-error"]')?.textContent).toContain(PACKAGED_RUSSIAN['ui.views.name_required']);
+    expect(document.querySelector('[data-testid="views-name-error"]')?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.views.name_required'],
+    );
 
     const input = document.querySelector('[data-testid="views-name"]') as HTMLInputElement;
     input.value = 'Месячные';
     input.dispatchEvent(new Event('input'));
     submit();
-    expect(document.querySelector('[data-testid="views-name-error"]')?.textContent).toContain(PACKAGED_RUSSIAN['ui.views.name_taken']);
+    expect(document.querySelector('[data-testid="views-name-error"]')?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.views.name_taken'],
+    );
     expect(input.getAttribute('aria-invalid')).toBe('true');
 
     api.create.mockReturnValueOnce(of({ ...monthly, id: 2, name: 'Годовые', isDefault: false }));
     input.value = 'Годовые';
     input.dispatchEvent(new Event('input'));
     submit();
-    expect(api.create).toHaveBeenLastCalledWith('upl.sources', expect.objectContaining({ name: 'Годовые', isDefault: false }));
+    expect(api.create).toHaveBeenLastCalledWith(
+      'upl.sources',
+      expect.objectContaining({ name: 'Годовые', isDefault: false }),
+    );
     expect(toast.success).toHaveBeenCalledWith(PACKAGED_RUSSIAN['ui.views.saved']);
     expect(document.querySelector('[data-testid="views-name"]')).toBeNull();
     expect(fixture.componentInstance.state.active()?.name).toBe('Годовые');
@@ -131,7 +139,9 @@ describe('ui-list-views', () => {
     item('views-delete')!.click();
     fixture.detectChanges();
 
-    expect(confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true, message: expect.stringContaining('Месячные') }));
+    expect(confirm).toHaveBeenCalledWith(
+      expect.objectContaining({ destructive: true, message: expect.stringContaining('Месячные') }),
+    );
     expect(api.remove).toHaveBeenCalledWith('upl.sources', 1);
     expect(fixture.componentInstance.state.views()).toEqual([]);
   });

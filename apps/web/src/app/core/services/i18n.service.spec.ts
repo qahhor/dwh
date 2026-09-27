@@ -6,7 +6,7 @@ import { I18nService } from './i18n.service';
 describe('I18nService', () => {
   const languages = [
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 },
-    { code: 'de', name: 'Deutsch', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 }
+    { code: 'de', name: 'Deutsch', builtin: true, active: true, revision: 1, translated: 2, total: 2, coverage: 100 },
   ];
   const ru = { 'common.save': 'Сохранить', 'welcome.user': 'Здравствуйте, {name}!' };
   const de = { 'common.save': 'Speichern', 'welcome.user': 'Hallo, {name}!' };
@@ -21,10 +21,8 @@ describe('I18nService', () => {
         if (url.endsWith('/de')) return options.omitGerman ? throwError(() => new Error('offline')) : of(de);
         return throwError(() => new Error(`unexpected GET ${url}`));
       }),
-      patch: vi.fn(() => options.failPatch
-        ? throwError(() => new Error('save failed'))
-        : of(undefined)),
-      post: vi.fn(() => of({}))
+      patch: vi.fn(() => (options.failPatch ? throwError(() => new Error('save failed')) : of(undefined))),
+      post: vi.fn(() => of({})),
     } as unknown as HttpClient;
     return { service: new I18nService(http), http };
   }
@@ -61,7 +59,7 @@ describe('I18nService', () => {
     await firstValueFrom(service.setLanguage('de', false));
 
     expect(service.currentLang()).toBe('de');
-    expect((http.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0].endsWith('/de'))).toHaveLength(1);
+    expect((http.get as ReturnType<typeof vi.fn>).mock.calls.filter((call) => call[0].endsWith('/de'))).toHaveLength(1);
   });
 
   it('rolls the visible language back when server preference persistence fails', async () => {
@@ -112,7 +110,7 @@ describe('I18nService', () => {
 
     expect(service.currentLang()).toBe('de');
     expect(service.translate('fallback.only')).toBe('Обновлённый русский текст');
-    expect((http.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0].endsWith('/de'))).toHaveLength(2);
+    expect((http.get as ReturnType<typeof vi.fn>).mock.calls.filter((call) => call[0].endsWith('/de'))).toHaveLength(2);
   });
 
   it('rejects an invalid custom language code before sending it to the server', async () => {

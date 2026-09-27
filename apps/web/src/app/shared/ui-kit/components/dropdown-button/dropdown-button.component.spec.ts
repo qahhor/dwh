@@ -28,7 +28,7 @@ class Host {
 
 describe('SMTDropdownButtonComponent', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -41,7 +41,9 @@ describe('SMTDropdownButtonComponent', () => {
       fixture.detectChanges();
     };
     await settle();
-    const [trigger, iconTrigger] = Array.from(fixture.nativeElement.querySelectorAll('.smt-dropdown-button__trigger')) as HTMLButtonElement[];
+    const [trigger, iconTrigger] = Array.from(
+      fixture.nativeElement.querySelectorAll('.smt-dropdown-button__trigger'),
+    ) as HTMLButtonElement[];
     const items = () => Array.from(document.querySelectorAll('[role="menuitem"]')) as HTMLElement[];
     const key = async (target: HTMLElement, name: string) => {
       // The CDK menu reads keyCode.
@@ -61,7 +63,7 @@ describe('SMTDropdownButtonComponent', () => {
     await settle();
     expect(trigger.getAttribute('aria-expanded')).toBe('true');
     expect(document.querySelector('[role="menu"]')).not.toBeNull();
-    expect(items().map(item => item.textContent!.trim())).toEqual(['editEdit', 'Copy', 'Archive', 'Delete']);
+    expect(items().map((item) => item.textContent!.trim())).toEqual(['editEdit', 'Copy', 'Archive', 'Delete']);
     expect(items()[1].getAttribute('aria-disabled')).toBe('true');
     expect(items()[3].classList).toContain('smt-dropdown-button__item--danger');
     expect(document.querySelector('[role="separator"]')).not.toBeNull();

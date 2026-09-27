@@ -8,12 +8,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 @Component({
   selector: 'app-settings-storage-panel',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
-    CommonModule,
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent
-  ],
+  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -31,7 +26,10 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
         <div class="form-group">
           <label class="form-label" for="settings-user-quota">
             {{ 'settings.default_user_quota' | t }}
-            <span class="unit-badge" *ngIf="formatQuotaMb(systemSettings['storage.default_user_quota_mb']) as quotaBadge">
+            <span
+              class="unit-badge"
+              *ngIf="formatQuotaMb(systemSettings['storage.default_user_quota_mb']) as quotaBadge"
+            >
               {{ quotaBadge }}
             </span>
           </label>
@@ -43,8 +41,11 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             [smtMax]="102400"
             [disabled]="!canUpdateSystemSettings || isSaving"
             smtDescribedBy="settings-user-quota-hint"
-            [(ngModel)]="systemSettings['storage.default_user_quota_mb']" />
-          <span id="settings-user-quota-hint" class="hint-text">{{ 'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t }}</span>
+            [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
+          />
+          <span id="settings-user-quota-hint" class="hint-text">{{
+            'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t
+          }}</span>
         </div>
       </div>
 
@@ -55,110 +56,112 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
       </div>
     </div>
   `,
-  styles: [`
-    .settings-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .card-header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 16px;
-    }
-    .card-title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .card-icon {
-      font-size: 28px;
-      color: var(--primary-text);
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-light);
-      margin: 2px 0 0 0;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 768px) {
-      .form-grid {
-        grid-template-columns: 1fr;
+  styles: [
+    `
+      .settings-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .form-input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .form-input:focus {
-      border-color: var(--primary);
-    }
-    .hint-text {
-      font-size: 11px;
-      color: var(--text-light);
-    }
-    .card-footer-actions {
-      display: flex;
-      justify-content: flex-end;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-subtle);
-    }
-    .badge-neutral {
-      background-color: var(--bg-active);
-      color: var(--text-muted);
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: var(--radius-xs);
-    }
-    .unit-badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 2px 7px;
-      margin-left: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--primary-text);
-      background: var(--primary-subtle);
-      border-radius: var(--radius-sm);
-    }
-  `]
+      .card-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 16px;
+      }
+      .card-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .card-icon {
+        font-size: 28px;
+        color: var(--primary-text);
+      }
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 0;
+      }
+      .card-desc {
+        font-size: 13px;
+        color: var(--text-light);
+        margin: 2px 0 0 0;
+      }
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
+      }
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .form-input {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-main);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+      .form-input:focus {
+        border-color: var(--primary);
+      }
+      .hint-text {
+        font-size: 11px;
+        color: var(--text-light);
+      }
+      .card-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .badge-neutral {
+        background-color: var(--bg-active);
+        color: var(--text-muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: var(--radius-xs);
+      }
+      .unit-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        margin-left: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--primary-text);
+        background: var(--primary-subtle);
+        border-radius: var(--radius-sm);
+      }
+    `,
+  ],
 })
 export class SettingsStoragePanelComponent {
   private readonly i18n = inject(I18nService);

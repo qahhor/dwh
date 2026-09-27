@@ -23,21 +23,23 @@ try {
 }
 
 const below = [];
-const rows = Object.keys(FLOOR).map(metric => {
+const rows = Object.keys(FLOOR).map((metric) => {
   const { pct, covered, total: all } = total[metric];
   const ok = pct >= FLOOR[metric];
   if (!ok) below.push(`${LABEL[metric]} ${pct}% < ${FLOOR[metric]}%`);
   return `| ${LABEL[metric]} | ${pct}% | ${covered}/${all} | ${FLOOR[metric]}% | ${ok ? 'ok' : 'below'} |`;
 });
 
-process.stdout.write([
-  '## Web unit test coverage',
-  '',
-  '| Metric | Coverage | Covered/Total | Floor | |',
-  '| --- | ---: | ---: | ---: | --- |',
-  ...rows,
-  ''
-].join('\n') + '\n');
+process.stdout.write(
+  [
+    '## Web unit test coverage',
+    '',
+    '| Metric | Coverage | Covered/Total | Floor | |',
+    '| --- | ---: | ---: | ---: | --- |',
+    ...rows,
+    '',
+  ].join('\n') + '\n',
+);
 
 if (below.length) {
   process.stderr.write(`Coverage fell below the floor: ${below.join(', ')}.\n`);

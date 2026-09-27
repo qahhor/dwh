@@ -8,25 +8,35 @@ import { TableConfig } from '../ui-kit/components/table/table.types';
 import { UiServerTableComponent } from './ui-server-table.component';
 import { SMTSelectComponent } from '../ui-kit/components/forms/select';
 
-interface Row { id: number }
+interface Row {
+  id: number;
+}
 
 let respond: (cursor: string | null) => Observable<KeysetResponse<Row>> = () => of({ items: [], nextCursor: null });
 
 @Component({
   standalone: true,
   imports: [UiServerTableComponent],
-  template: `
-    <ui-server-table [pager]="pager" [config]="config" loadingLabel="Loading rows" errorLabel="Rows failed" errorId="rows-error"
-      [emptyTemplate]="empty" [countsPage]="countsPage" />
+  template: ` <ui-server-table
+      [pager]="pager"
+      [config]="config"
+      loadingLabel="Loading rows"
+      errorLabel="Rows failed"
+      errorId="rows-error"
+      [emptyTemplate]="empty"
+      [countsPage]="countsPage"
+    />
     <ng-template #empty><p class="custom-empty">No rows for these filters</p></ng-template>`,
 })
 class HostComponent {
-  readonly pager = new KeysetPager<Row>(cursor => respond(cursor), { pageSize: 2 });
+  readonly pager = new KeysetPager<Row>((cursor) => respond(cursor), { pageSize: 2 });
   countsPage = false;
   readonly config: TableConfig<Row> = {
     trackBy: (_index, row) => row.id,
     ariaLabel: 'Rows',
-    columns: { id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: row => `#${row.id}` } } },
+    columns: {
+      id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: (row) => `#${row.id}` } },
+    },
     columnsOrder: ['id'],
   };
 }
@@ -39,7 +49,7 @@ async function render(): Promise<ComponentFixture<HostComponent>> {
 }
 const el = (fixture: ComponentFixture<HostComponent>) => fixture.nativeElement as HTMLElement;
 const rowText = (fixture: ComponentFixture<HostComponent>) =>
-  [...el(fixture).querySelectorAll('[role="rowgroup"] > [role="row"]')].map(row => row.textContent?.trim());
+  [...el(fixture).querySelectorAll('[role="rowgroup"] > [role="row"]')].map((row) => row.textContent?.trim());
 
 describe('ui-server-table', () => {
   it('announces loading, then shows the rows', async () => {
@@ -59,8 +69,14 @@ describe('ui-server-table', () => {
 
   it('keeps the rows on a failure and retries exactly the failed request', async () => {
     let fail = false;
-    respond = cursor => fail ? throwError(() => new Error('x'))
-      : of(cursor ? { items: [{ id: 3 }], nextCursor: null, totalEstimated: 3 } : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true, totalEstimated: 3 });
+    respond = (cursor) =>
+      fail
+        ? throwError(() => new Error('x'))
+        : of(
+            cursor
+              ? { items: [{ id: 3 }], nextCursor: null, totalEstimated: 3 }
+              : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true, totalEstimated: 3 },
+          );
     const fixture = await render();
     fixture.componentInstance.pager.first();
     fixture.detectChanges();
@@ -73,7 +89,9 @@ describe('ui-server-table', () => {
     expect(rowText(fixture)).toEqual(['#1', '#2']);
     // Until the retry, no paging control may continue from a cursor of the failed attempt.
     for (const name of ['Следующая страница', 'Предыдущая страница']) {
-      expect((el(fixture).querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement | null)?.disabled ?? true).toBe(true);
+      expect(
+        (el(fixture).querySelector(`button[aria-label="${name}"]`) as HTMLButtonElement | null)?.disabled ?? true,
+      ).toBe(true);
     }
 
     fail = false;
@@ -85,7 +103,7 @@ describe('ui-server-table', () => {
 
   it('does not claim an empty result when the first page failed', async () => {
     let fail = true;
-    respond = () => fail ? throwError(() => new Error('403')) : of({ items: [{ id: 1 }], nextCursor: null });
+    respond = () => (fail ? throwError(() => new Error('403')) : of({ items: [{ id: 1 }], nextCursor: null }));
     const fixture = await render();
     fixture.componentInstance.pager.first();
     fixture.detectChanges();
@@ -116,17 +134,19 @@ describe('ui-server-table', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const select = fixture.debugElement.query(By.css('ui-pagination smt-select')).componentInstance as SMTSelectComponent<number>;
-    expect(select.options().map(option => option.label)).toEqual(['2', '10', '25', '50', '100']);
+    const select = fixture.debugElement.query(By.css('ui-pagination smt-select'))
+      .componentInstance as SMTSelectComponent<number>;
+    expect(select.options().map((option) => option.label)).toEqual(['2', '10', '25', '50', '100']);
     expect(select.selectedOption()?.label).toBe('2');
     expect(el(fixture).querySelector('ui-pagination button[role="combobox"]')?.textContent).toContain('2');
   });
 
   it('shows the range on screen without a false total when the server counts only the page', async () => {
     // As the user list answers: totalEstimated is the length of the page returned.
-    respond = cursor => cursor === null
-      ? of({ items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true, totalEstimated: 2 })
-      : of({ items: [{ id: 3 }], nextCursor: null, hasMore: false, totalEstimated: 1 });
+    respond = (cursor) =>
+      cursor === null
+        ? of({ items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true, totalEstimated: 2 })
+        : of({ items: [{ id: 3 }], nextCursor: null, hasMore: false, totalEstimated: 1 });
     await TestBed.configureTestingModule({ imports: [HostComponent] }).compileComponents();
     const fixture = TestBed.createComponent(HostComponent);
     fixture.componentInstance.countsPage = true;
@@ -145,9 +165,14 @@ describe('ui-server-table', () => {
 @Component({
   standalone: true,
   imports: [UiServerTableComponent],
-  template: `
-    <ui-server-table [pager]="pager" [config]="config" loadingLabel="Loading" errorLabel="Failed"
-      columnsId="test.columns" [lockedColumns]="['id']" />`,
+  template: ` <ui-server-table
+    [pager]="pager"
+    [config]="config"
+    loadingLabel="Loading"
+    errorLabel="Failed"
+    columnsId="test.columns"
+    [lockedColumns]="['id']"
+  />`,
 })
 class ColumnsHostComponent {
   readonly pager = new KeysetPager<Row>(() => of({ items: [{ id: 1 }], nextCursor: null }), { pageSize: 2 });
@@ -155,8 +180,11 @@ class ColumnsHostComponent {
     trackBy: (_index, row) => row.id,
     ariaLabel: 'Rows',
     columns: {
-      id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: row => `#${row.id}` } },
-      name: { header: { type: 'primitive', value: 'Name' }, content: { type: 'primitive', value: row => `n${row.id}` } },
+      id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: (row) => `#${row.id}` } },
+      name: {
+        header: { type: 'primitive', value: 'Name' },
+        content: { type: 'primitive', value: (row) => `n${row.id}` },
+      },
       note: { header: { type: 'primitive', value: 'Note' }, content: { type: 'primitive', value: () => 'x' } },
     },
     columnsOrder: ['id', 'name', 'note'],
@@ -174,7 +202,9 @@ describe('ui-server-table column settings', () => {
     return fixture;
   }
   const headers = (fixture: ComponentFixture<ColumnsHostComponent>) =>
-    [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="columnheader"]')].map(cell => cell.textContent?.trim());
+    [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="columnheader"]')].map((cell) =>
+      cell.textContent?.trim(),
+    );
 
   it('hides a column, remembers the choice for the table id and restores it', async () => {
     localStorage.clear();
@@ -200,10 +230,12 @@ describe('ui-server-table column settings', () => {
   it('keeps a dragged width and forgets a choice reset to the defaults', async () => {
     localStorage.clear();
     const fixture = await renderColumns();
-    const table = fixture.debugElement.query(debug => debug.name === 'ui-server-table').componentInstance as UiServerTableComponent<Row>;
+    const table = fixture.debugElement.query((debug) => debug.name === 'ui-server-table')
+      .componentInstance as UiServerTableComponent<Row>;
 
-    (table as unknown as { onColumnResize(event: { key: string; widthPx: number; widthPercent: string }): void })
-      .onColumnResize({ key: 'name', widthPx: 240, widthPercent: '30%' });
+    (
+      table as unknown as { onColumnResize(event: { key: string; widthPx: number; widthPercent: string }): void }
+    ).onColumnResize({ key: 'name', widthPx: 240, widthPercent: '30%' });
     expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.test.columns')!).widths).toEqual({ name: '240px' });
 
     (fixture.nativeElement.querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
@@ -217,21 +249,34 @@ describe('ui-server-table column settings', () => {
 @Component({
   standalone: true,
   imports: [UiServerTableComponent],
-  template: `
-    <ui-server-table [pager]="pager" [config]="config" loadingLabel="Loading" errorLabel="Failed"
-      [selectable]="true" [(selected)]="chosen">
-      <button bulkActions type="button" class="host-action">Archive</button>
-    </ui-server-table>`,
+  template: ` <ui-server-table
+    [pager]="pager"
+    [config]="config"
+    loadingLabel="Loading"
+    errorLabel="Failed"
+    [selectable]="true"
+    [(selected)]="chosen"
+  >
+    <button bulkActions type="button" class="host-action">Archive</button>
+  </ui-server-table>`,
 })
 class SelectHostComponent {
   readonly pager = new KeysetPager<Row>(
-    cursor => of(cursor ? { items: [{ id: 3 }], nextCursor: null } : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true }),
-    { pageSize: 2 });
+    (cursor) =>
+      of(
+        cursor
+          ? { items: [{ id: 3 }], nextCursor: null }
+          : { items: [{ id: 1 }, { id: 2 }], nextCursor: 'c2', hasMore: true },
+      ),
+    { pageSize: 2 },
+  );
   chosen: Row[] = [];
   readonly config: TableConfig<Row> = {
     trackBy: (_index, row) => row.id,
     ariaLabel: 'Rows',
-    columns: { id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: row => `#${row.id}` } } },
+    columns: {
+      id: { header: { type: 'primitive', value: 'ID' }, content: { type: 'primitive', value: (row) => `#${row.id}` } },
+    },
     columnsOrder: ['id'],
   };
 }
@@ -247,7 +292,9 @@ describe('ui-server-table selection', () => {
     return fixture;
   }
   const rowChecks = (fixture: ComponentFixture<SelectHostComponent>) =>
-    [...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="rowgroup"] input[type="checkbox"]')] as HTMLInputElement[];
+    [
+      ...(fixture.nativeElement as HTMLElement).querySelectorAll('[role="rowgroup"] input[type="checkbox"]'),
+    ] as HTMLInputElement[];
   const bar = (fixture: ComponentFixture<SelectHostComponent>) =>
     (fixture.nativeElement as HTMLElement).querySelector('[data-testid="bulk-bar"]') as HTMLElement | null;
 
@@ -261,7 +308,7 @@ describe('ui-server-table selection', () => {
     rowChecks(fixture)[1].click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.chosen.map(row => row.id)).toEqual([1, 2]);
+    expect(fixture.componentInstance.chosen.map((row) => row.id)).toEqual([1, 2]);
     expect(bar(fixture)!.getAttribute('role')).toBe('region');
     expect(bar(fixture)!.querySelector('[role="status"]')?.textContent).toContain('Выбрано: 2');
     expect(bar(fixture)!.querySelector('.host-action')).not.toBeNull();

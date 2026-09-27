@@ -27,7 +27,13 @@ class Body implements OnDestroy {
   imports: [SMTDialogComponent, SMTDialogContentDirective, Body],
   template: `
     <button type="button" class="opener" (click)="open.set(true)">Open</button>
-    <smt-dialog [open]="open()" smtTitle="Edit the note" smtSize="lg" [dismissible]="dismissible()" (closed)="asks = asks + 1">
+    <smt-dialog
+      [open]="open()"
+      smtTitle="Edit the note"
+      smtSize="lg"
+      [dismissible]="dismissible()"
+      (closed)="asks = asks + 1"
+    >
       <ng-template smtDialogContent>
         <test-body />
         <input class="name" aria-label="Name" [value]="name()" />
@@ -46,7 +52,7 @@ class Host {
 describe('SMTDialogComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
   });
 
   async function render() {
@@ -112,7 +118,9 @@ describe('SMTDialogComponent', () => {
     fixture.componentInstance.open.set(true);
     await settle();
     expect(document.querySelector('.smt-modal__close')).toBeNull();
-    (document.querySelector('[role="dialog"]') as HTMLElement).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    (document.querySelector('[role="dialog"]') as HTMLElement).dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+    );
     await settle();
     expect(fixture.componentInstance.asks).toBe(0);
   });

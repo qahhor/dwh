@@ -7,7 +7,7 @@ import {
   UplTranslate,
   hasUplFormErrors,
   mapUplUploadProblem,
-  uplPackageCodeText
+  uplPackageCodeText,
 } from './packages-errors';
 
 /** Настоящий словарь плюс подстановка параметров — как в `I18nService.translate`. */
@@ -16,7 +16,7 @@ const translate: UplTranslate = (key: string, params?: UplPackageParams) => {
   if (template === undefined) return key;
   if (!params) return template;
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (placeholder: string, name: string) =>
-    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : placeholder
+    Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : placeholder,
   );
 };
 
@@ -34,7 +34,7 @@ function field(name: string, code: string, message = 'TEST message'): FieldError
 
 describe('upl package error codes', () => {
   it('has a Russian text for every code of the contract', () => {
-    expect(UPL_PACKAGE_CODES.filter(code => !(`upl.err.${code}` in PACKAGED_RUSSIAN))).toEqual([]);
+    expect(UPL_PACKAGE_CODES.filter((code) => !(`upl.err.${code}` in PACKAGED_RUSSIAN))).toEqual([]);
   });
 
   it('lists exactly the twenty six codes of the contract', () => {
@@ -43,10 +43,12 @@ describe('upl package error codes', () => {
   });
 
   it('puts the parameters of the code into its text', () => {
-    expect(uplPackageCodeText('UPL_PKG_STRUCTURE', { count: 2 }, translate)).toBe(text('UPL_PKG_STRUCTURE').replace('{count}', '2'));
+    expect(uplPackageCodeText('UPL_PKG_STRUCTURE', { count: 2 }, translate)).toBe(
+      text('UPL_PKG_STRUCTURE').replace('{count}', '2'),
+    );
     expect(uplPackageCodeText('UPL_PKG_STRUCTURE', { count: 2 }, translate)).toContain('2');
     expect(uplPackageCodeText('UPL_PKG_RECONCILIATION', { fileRows: 10, rawRows: 9 }, translate)).toBe(
-      'Сверка не сошлась: в файле 10 строк, в базе 9. Загрузите файл заново'
+      'Сверка не сошлась: в файле 10 строк, в базе 9. Загрузите файл заново',
     );
   });
 
@@ -77,9 +79,9 @@ describe('mapUplUploadProblem', () => {
       problem(422, 'validation_failed', 'UPL_PACKAGE_INVALID', [
         field('sourceId', 'UPL_PKG_SOURCE_REQUIRED'),
         field('periodFrom', 'UPL_PKG_PERIOD_ORDER'),
-        field('file', 'UPL_PKG_FILE_NOT_XLSX')
+        field('file', 'UPL_PKG_FILE_NOT_XLSX'),
       ]),
-      translate
+      translate,
     );
     expect(errors.source).toEqual([text('UPL_PKG_SOURCE_REQUIRED')]);
     expect(errors.period).toEqual([text('UPL_PKG_PERIOD_ORDER')]);
@@ -91,9 +93,9 @@ describe('mapUplUploadProblem', () => {
     const errors = mapUplUploadProblem(
       problem(422, 'validation_failed', 'UPL_PACKAGE_INVALID', [
         field('periodFrom', 'UPL_PKG_PERIOD_REQUIRED'),
-        field('periodTo', 'UPL_PKG_PERIOD_REQUIRED')
+        field('periodTo', 'UPL_PKG_PERIOD_REQUIRED'),
       ]),
-      translate
+      translate,
     );
     expect(errors.period).toEqual([text('UPL_PKG_PERIOD_REQUIRED')]);
   });
@@ -101,7 +103,7 @@ describe('mapUplUploadProblem', () => {
   it('shows a message and a code of a field error the dictionary does not know', () => {
     const errors = mapUplUploadProblem(
       problem(422, 'validation_failed', 'UPL_PACKAGE_INVALID', [field('sourceId', 'X_CODE', 'TEST text')]),
-      translate
+      translate,
     );
     expect(errors.source).toEqual(['TEST text (X_CODE)']);
   });
@@ -109,7 +111,7 @@ describe('mapUplUploadProblem', () => {
   it('puts an unknown field of a validation refusal over the form', () => {
     const errors = mapUplUploadProblem(
       problem(422, 'validation_failed', 'UPL_PACKAGE_INVALID', [field('other', 'UPL_PKG_INTERNAL')]),
-      translate
+      translate,
     );
     expect(errors.form).toEqual([text('UPL_PKG_INTERNAL')]);
   });

@@ -19,7 +19,7 @@ describe('ModulesComponent', () => {
       status: 'ACTIVE',
       isActive: true,
       createdAt: '2026-09-08T00:00:00Z',
-      modifiedAt: '2026-09-08T00:00:00Z'
+      modifiedAt: '2026-09-08T00:00:00Z',
     },
     {
       code: 'notes',
@@ -31,14 +31,14 @@ describe('ModulesComponent', () => {
       status: 'ACTIVE',
       isActive: true,
       createdAt: '2026-09-08T00:00:00Z',
-      modifiedAt: '2026-09-08T00:00:00Z'
-    }
+      modifiedAt: '2026-09-08T00:00:00Z',
+    },
   ];
 
   async function createFixture(canManage = true) {
     const apiMock = {
       get: vi.fn(() => of(mockModules)),
-      post: vi.fn((_url: string, _body: any) => of({ ...mockModules[1], status: 'DISABLED', isActive: false }))
+      post: vi.fn((_url: string, _body: any) => of({ ...mockModules[1], status: 'DISABLED', isActive: false })),
     };
 
     await TestBed.configureTestingModule({
@@ -47,21 +47,21 @@ describe('ModulesComponent', () => {
         provideRouter([]),
         {
           provide: ApiService,
-          useValue: apiMock
+          useValue: apiMock,
         },
         {
           provide: PermissionService,
           useValue: {
             canManage: () => canManage,
             canView: () => true,
-            hasPermission: () => true
-          }
+            hasPermission: () => true,
+          },
         },
         {
           provide: ToastService,
-          useValue: { success: vi.fn(), error: vi.fn() }
-        }
-      ]
+          useValue: { success: vi.fn(), error: vi.fn() },
+        },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(ModulesComponent);

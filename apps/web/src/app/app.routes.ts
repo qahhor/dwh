@@ -10,146 +10,155 @@ import { moduleActiveGuard } from './core/guards/module-active.guard';
 export const routes: Routes = [
   {
     path: 'login',
-    loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent)
+    loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
   {
     path: 'reset-password',
-    loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent)
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password.component').then((m) => m.ResetPasswordComponent),
   },
   {
     path: '',
-    loadComponent: () => import('./layout/app-shell/app-shell.component').then(m => m.AppShellComponent),
+    loadComponent: () => import('./layout/app-shell/app-shell.component').then((m) => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
       {
         path: '',
         redirectTo: 'tasks',
-        pathMatch: 'full'
+        pathMatch: 'full',
       },
       {
         matcher: projectRecordMatcher,
         canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/tasks/projects/projects.component').then(m => m.ProjectsComponent)
+        loadComponent: () => import('./features/tasks/projects/projects.component').then((m) => m.ProjectsComponent),
       },
       {
         matcher: taskRecordMatcher,
         canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/tasks/tasks.component').then(m => m.TasksComponent)
+        loadComponent: () => import('./features/tasks/tasks.component').then((m) => m.TasksComponent),
       },
       {
         matcher: userRecordMatcher,
         canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/iam/users/users.component').then(m => m.UsersComponent)
+        loadComponent: () => import('./features/iam/users/users.component').then((m) => m.UsersComponent),
       },
       {
         path: 'iam/roles',
         canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/iam/roles/roles.component').then(m => m.RolesComponent)
+        loadComponent: () => import('./features/iam/roles/roles.component').then((m) => m.RolesComponent),
       },
       {
         path: 'iam/org-units',
         canActivate: [permissionGuard('iam.org_units', 'view')],
         canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/iam/org-units/org-units.component').then(m => m.OrgUnitsComponent)
+        loadComponent: () => import('./features/iam/org-units/org-units.component').then((m) => m.OrgUnitsComponent),
       },
       {
         path: 'iam/custom-fields',
-        loadComponent: () => import('./features/iam/custom-fields/custom-fields.component').then(m => m.CustomFieldsComponent)
+        loadComponent: () =>
+          import('./features/iam/custom-fields/custom-fields.component').then((m) => m.CustomFieldsComponent),
       },
       {
         path: 'iam/profile',
-        loadComponent: () => import('./features/iam/profile/profile.component').then(m => m.ProfileComponent)
+        loadComponent: () => import('./features/iam/profile/profile.component').then((m) => m.ProfileComponent),
       },
       {
         path: 'notifications',
-        loadComponent: () => import('./features/notifications/notifications.component').then(m => m.NotificationsComponent)
+        loadComponent: () =>
+          import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
       },
       {
         path: 'exports',
-        loadComponent: () => import('./features/exports/exports.component').then(m => m.ExportsComponent)
+        loadComponent: () => import('./features/exports/exports.component').then((m) => m.ExportsComponent),
       },
       {
         path: 'files',
-        loadComponent: () => import('./features/files/files.component').then(m => m.FilesComponent)
+        loadComponent: () => import('./features/files/files.component').then((m) => m.FilesComponent),
       },
       {
         path: 'audit',
         canActivate: [permissionGuard('audit.log', 'view')],
-        loadComponent: () => import('./features/audit/audit.component').then(m => m.AuditComponent)
+        loadComponent: () => import('./features/audit/audit.component').then((m) => m.AuditComponent),
       },
       {
         path: 'analytics',
-        loadComponent: () => import('./features/analytics/analytics.component').then(m => m.AnalyticsComponent)
+        loadComponent: () => import('./features/analytics/analytics.component').then((m) => m.AnalyticsComponent),
       },
       {
         path: 'settings',
-        loadComponent: () => import('./features/settings/settings.component').then(m => m.SettingsComponent)
+        loadComponent: () => import('./features/settings/settings.component').then((m) => m.SettingsComponent),
       },
       {
         path: 'system',
         canActivate: [permissionGuard('platform.settings', 'view')],
-        loadComponent: () => import('./features/system/system.component').then(m => m.SystemComponent)
+        loadComponent: () => import('./features/system/system.component').then((m) => m.SystemComponent),
       },
       {
         path: 'announcements',
         canActivate: [permissionGuard('platform.announcements', 'update')],
-        loadComponent: () => import('./features/announcements/announcements.component').then(m => m.AnnouncementsComponent)
+        loadComponent: () =>
+          import('./features/announcements/announcements.component').then((m) => m.AnnouncementsComponent),
       },
       {
         path: 'upl/sources',
         pathMatch: 'full',
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.sources', 'view')],
-        loadComponent: () => import('./features/upl/sources/sources-list.component').then(m => m.SourcesListComponent)
+        loadComponent: () =>
+          import('./features/upl/sources/sources-list.component').then((m) => m.SourcesListComponent),
       },
       {
         path: 'upl/overview',
         pathMatch: 'full',
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.packages', 'view')],
-        loadComponent: () => import('./features/upl/overview/upl-overview.component').then(m => m.UplOverviewComponent)
+        loadComponent: () =>
+          import('./features/upl/overview/upl-overview.component').then((m) => m.UplOverviewComponent),
       },
       {
         path: 'upl/packages',
         pathMatch: 'full',
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.packages', 'view')],
-        loadComponent: () => import('./features/upl/packages/packages.component').then(m => m.PackagesComponent)
+        loadComponent: () => import('./features/upl/packages/packages.component').then((m) => m.PackagesComponent),
       },
       {
         matcher: uplFormatMatcher,
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.sources', 'view')],
         canDeactivate: [recordNavigationGuard],
-        loadComponent: () => import('./features/upl/formats/format-editor.component').then(m => m.FormatEditorComponent)
+        loadComponent: () =>
+          import('./features/upl/formats/format-editor.component').then((m) => m.FormatEditorComponent),
       },
       {
         matcher: uplSourceMatcher,
         canActivate: [moduleActiveGuard('upl'), permissionGuard('upl.sources', 'view')],
-        loadComponent: () => import('./features/upl/sources/source-card.component').then(m => m.SourceCardComponent)
+        loadComponent: () => import('./features/upl/sources/source-card.component').then((m) => m.SourceCardComponent),
       },
       {
         path: 'notes',
         canActivate: [moduleActiveGuard('notes'), permissionGuard('notes', 'view')],
-        loadComponent: () => import('./features/notes/notes.component').then(m => m.NotesComponent)
+        loadComponent: () => import('./features/notes/notes.component').then((m) => m.NotesComponent),
       },
       {
         path: 'settings/modules',
         canActivate: [permissionGuard('platform.modules', 'view')],
-        loadComponent: () => import('./features/settings/modules/modules.component').then(m => m.ModulesComponent)
+        loadComponent: () => import('./features/settings/modules/modules.component').then((m) => m.ModulesComponent),
       },
       {
         path: 'settings/navigation',
         canActivate: [permissionGuard('platform.navigation', 'view')],
-        loadComponent: () => import('./features/settings/navigation/navigation-settings.component').then(m => m.NavigationSettingsComponent)
+        loadComponent: () =>
+          import('./features/settings/navigation/navigation-settings.component').then(
+            (m) => m.NavigationSettingsComponent,
+          ),
       },
       {
         path: 'embed/:code',
-        loadComponent: () => import('./features/reports/embedded-report.component').then(m => m.EmbeddedReportComponent)
-      }
-    ]
+        loadComponent: () =>
+          import('./features/reports/embedded-report.component').then((m) => m.EmbeddedReportComponent),
+      },
+    ],
   },
-
-
 
   {
     path: '**',
-    redirectTo: 'tasks'
-  }
+    redirectTo: 'tasks',
+  },
 ];

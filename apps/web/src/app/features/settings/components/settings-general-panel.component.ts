@@ -4,7 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 const TIMEZONES: readonly SMTSelectOption<string>[] = [
@@ -31,18 +35,27 @@ const DATE_FORMATS: readonly SMTSelectOption<string>[] = [
 ];
 
 /** The known choices, plus the stored value as its own choice when it is none of them. */
-function withCurrent(known: readonly SMTSelectOption<string>[], current: string | undefined): readonly SMTSelectOption<string>[] {
-  return current && !known.some(option => option.id === current) ? [...known, { id: current, label: current }] : known;
+function withCurrent(
+  known: readonly SMTSelectOption<string>[],
+  current: string | undefined,
+): readonly SMTSelectOption<string>[] {
+  return current && !known.some((option) => option.id === current)
+    ? [...known, { id: current, label: current }]
+    : known;
 }
 
 @Component({
   selector: 'app-settings-general-panel',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
-    SMTButtonComponent
+    SMTButtonComponent,
   ],
   template: `
     <div class="settings-card">
@@ -65,25 +78,44 @@ function withCurrent(known: readonly SMTSelectOption<string>[], current: string 
             name="settingsCompanyName"
             [disabled]="!canUpdateSystemSettings || isSaving"
             [(ngModel)]="systemSettings['system.company_name']"
-            placeholder="SmartupCMS" />
+            placeholder="SmartupCMS"
+          />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-default-language">{{ 'settings.default_language' | t }}</label>
-          <smt-select smtTriggerId="settings-default-language" name="settingsDefaultLanguage" [options]="languageOptions()" [allowClear]="false"
-            [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.default_language']" />
+          <smt-select
+            smtTriggerId="settings-default-language"
+            name="settingsDefaultLanguage"
+            [options]="languageOptions()"
+            [allowClear]="false"
+            [disabled]="!canUpdateSystemSettings || isSaving"
+            [(ngModel)]="systemSettings['system.default_language']"
+          />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-default-timezone">{{ 'settings.default_timezone' | t }}</label>
-          <smt-select smtTriggerId="settings-default-timezone" name="settingsDefaultTimezone" [options]="timezoneOptions()" [allowClear]="false"
-            [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.default_timezone']" />
+          <smt-select
+            smtTriggerId="settings-default-timezone"
+            name="settingsDefaultTimezone"
+            [options]="timezoneOptions()"
+            [allowClear]="false"
+            [disabled]="!canUpdateSystemSettings || isSaving"
+            [(ngModel)]="systemSettings['system.default_timezone']"
+          />
         </div>
 
         <div class="form-group">
           <label class="form-label" for="settings-date-format">{{ 'settings.date_format' | t }}</label>
-          <smt-select smtTriggerId="settings-date-format" name="settingsDateFormat" [options]="dateFormatOptions()" [allowClear]="false"
-            [disabled]="!canUpdateSystemSettings || isSaving" [(ngModel)]="systemSettings['system.date_format']" />
+          <smt-select
+            smtTriggerId="settings-date-format"
+            name="settingsDateFormat"
+            [options]="dateFormatOptions()"
+            [allowClear]="false"
+            [disabled]="!canUpdateSystemSettings || isSaving"
+            [(ngModel)]="systemSettings['system.date_format']"
+          />
         </div>
       </div>
 
@@ -94,103 +126,105 @@ function withCurrent(known: readonly SMTSelectOption<string>[], current: string 
       </div>
     </div>
   `,
-  styles: [`
-    .settings-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .card-header-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 16px;
-    }
-    .card-title-group {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .card-icon {
-      font-size: 28px;
-      color: var(--primary-text);
-    }
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-main);
-      margin: 0;
-    }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-light);
-      margin: 2px 0 0 0;
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 18px;
-    }
-    @media (max-width: 768px) {
+  styles: [
+    `
+      .settings-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .card-header-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border-subtle);
+        padding-bottom: 16px;
+      }
+      .card-title-group {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .card-icon {
+        font-size: 28px;
+        color: var(--primary-text);
+      }
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-main);
+        margin: 0;
+      }
+      .card-desc {
+        font-size: 13px;
+        color: var(--text-light);
+        margin: 2px 0 0 0;
+      }
       .form-grid {
-        grid-template-columns: 1fr;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 18px;
       }
-    }
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-group.full-width {
-      grid-column: span 2;
-    }
-    @media (max-width: 768px) {
+      @media (max-width: 768px) {
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
       .form-group.full-width {
-        grid-column: span 1;
+        grid-column: span 2;
       }
-    }
-    .form-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
-    .form-input {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 9px 12px;
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s ease;
-    }
-    .form-input:focus {
-      border-color: var(--primary);
-    }
-    .card-footer-actions {
-      display: flex;
-      justify-content: flex-end;
-      padding-top: 12px;
-      border-top: 1px solid var(--border-subtle);
-    }
-    .badge-neutral {
-      background-color: var(--bg-active);
-      color: var(--text-muted);
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 3px 8px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: var(--radius-xs);
-    }
-  `]
+      @media (max-width: 768px) {
+        .form-group.full-width {
+          grid-column: span 1;
+        }
+      }
+      .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .form-input {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 9px 12px;
+        color: var(--text-main);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+      .form-input:focus {
+        border-color: var(--primary);
+      }
+      .card-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-subtle);
+      }
+      .badge-neutral {
+        background-color: var(--bg-active);
+        color: var(--text-muted);
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        border-radius: var(--radius-xs);
+      }
+    `,
+  ],
 })
 export class SettingsGeneralPanelComponent {
   @Input() systemSettings: Record<string, string> = {};
@@ -207,7 +241,7 @@ export class SettingsGeneralPanelComponent {
 
   languageOptions(): SMTSelectOption<string>[] {
     return this.languageMemo([this.languages], () =>
-      this.languages.map(lang => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` }))
+      this.languages.map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` })),
     );
   }
 

@@ -6,13 +6,17 @@ describe('i18n: upl', () => {
   it('uses only translated keys and none of its keys is dead', () => {
     // upl.err.<code> is built from the codes the server answers with; the list columns,
     // the xlsx template and the error file are labelled by the server itself.
-    expect(featureI18nProblems({
-      dir: 'src/app/features/upl', owns: ['upl.'], english: false,
-      dynamic: [
-        ...UPL_PACKAGE_CODES.map(code => `upl.err.${code}`),
-        ...serverCodeKeys('upl.err.'),
-        ...serverLiteralKeys('upl.'),
-      ],
-    })).toEqual([]);
+    expect(
+      featureI18nProblems({
+        dir: 'src/app/features/upl',
+        owns: ['upl.'],
+        english: false,
+        dynamic: [
+          ...UPL_PACKAGE_CODES.map((code) => `upl.err.${code}`),
+          ...serverCodeKeys('upl.err.'),
+          ...serverLiteralKeys('upl.'),
+        ],
+      }),
+    ).toEqual([]);
   });
 });

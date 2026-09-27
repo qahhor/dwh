@@ -23,16 +23,16 @@ function create(setup: Setup = {}) {
   let call = 0;
   const api = {
     get: vi.fn(() => of({} as unknown)),
-    post: vi.fn(() => of({} as unknown))
+    post: vi.fn(() => of({} as unknown)),
   };
   const upl = {
-    listSources: vi.fn(() => of(pages[Math.min(call++, pages.length - 1)]))
+    listSources: vi.fn(() => of(pages[Math.min(call++, pages.length - 1)])),
   };
   TestBed.configureTestingModule({
     providers: [
       { provide: ApiService, useValue: api },
-      { provide: UplApiService, useValue: upl }
-    ]
+      { provide: UplApiService, useValue: upl },
+    ],
   });
   return { service: TestBed.inject(UplPackagesApiService), api, upl };
 }
@@ -80,7 +80,7 @@ describe('UplPackagesApiService', () => {
     const item = { id: 'p-1', status: 'applied' } as UplPackageItem;
     api.post.mockReturnValue(of(item) as Observable<unknown>);
     let seen: UplPackageItem | undefined;
-    service.apply('p-1').subscribe(value => (seen = value));
+    service.apply('p-1').subscribe((value) => (seen = value));
     expect(api.post).toHaveBeenCalledWith('/upl/packages/p-1/apply', null, { notifyError: false });
     expect(seen).toBe(item);
   });
@@ -88,8 +88,8 @@ describe('UplPackagesApiService', () => {
   it('searches the sources by code or name, one page at a time', () => {
     const { service, upl } = create({ sourcePages: [sourcePage([source(1)], true, 'c-2')] });
     let result: UplSourceItem[] = [];
-    service.searchSources('cement', 'c-1', 20).subscribe(page => (result = page.items));
-    expect(result.map(item => item.id)).toEqual([1]);
+    service.searchSources('cement', 'c-1', 20).subscribe((page) => (result = page.items));
+    expect(result.map((item) => item.id)).toEqual([1]);
     expect(upl.listSources).toHaveBeenCalledWith(20, 'c-1', { search: 'cement' });
   });
 
@@ -100,9 +100,10 @@ describe('UplPackagesApiService', () => {
     api.get.mockReturnValue(of(errors) as Observable<unknown>);
     api.post.mockReturnValue(of(item) as Observable<unknown>);
     const seen: unknown[] = [];
-    service.upload({ sourceId: 1, periodFrom: '2026-01-01', periodTo: '2026-01-31', file: xlsx() })
-      .subscribe(value => seen.push(value));
-    service.errors('p-1').subscribe(value => seen.push(value));
+    service
+      .upload({ sourceId: 1, periodFrom: '2026-01-01', periodTo: '2026-01-31', file: xlsx() })
+      .subscribe((value) => seen.push(value));
+    service.errors('p-1').subscribe((value) => seen.push(value));
     expect(seen).toEqual([item, errors]);
   });
 });

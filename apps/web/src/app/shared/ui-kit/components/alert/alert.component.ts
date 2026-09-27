@@ -10,7 +10,16 @@
  * "Close". Its live role follows the tone: a danger message is an alert read
  * at once, the others a polite status; `smtLive="off"` for a message that is
  * part of the page rather than news (a result shown as it loads). */
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, output, ViewEncapsulation } from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  ViewEncapsulation,
+} from '@angular/core';
 import { SMTI18nService } from '../../i18n';
 
 export type SMTAlertTone = 'danger' | 'warning' | 'success' | 'info';
@@ -45,7 +54,12 @@ const ICONS: Readonly<Record<SMTAlertTone, string>> = {
       <div class="smt-alert__content"><ng-content /></div>
     </div>
     @if (dismissible()) {
-      <button type="button" class="smt-alert__close" [attr.aria-label]="i18n.messages().common.close" (click)="dismiss.emit()">
+      <button
+        type="button"
+        class="smt-alert__close"
+        [attr.aria-label]="i18n.messages().common.close"
+        (click)="dismiss.emit()"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     }

@@ -41,7 +41,7 @@ export function createDefaultUserCreateForm(defaultRoleIds: number[] = []): User
     timezone: 'Asia/Tashkent',
     is2faEnabled: false,
     roleIds: [...defaultRoleIds],
-    attributes: {}
+    attributes: {},
   };
 }
 
@@ -54,7 +54,7 @@ export function createDefaultUserEditForm(user: User): UserEditForm {
     timezone: user.timezone || 'Asia/Tashkent',
     is2faEnabled: !!user.is2faEnabled,
     roleIds: user.roleIds ? [...user.roleIds] : [],
-    attributes: { ...(user.attributes || {}) }
+    attributes: { ...(user.attributes || {}) },
   };
 }
 
@@ -66,9 +66,7 @@ export function getManagerName(user: User, nameOf: (id: number) => string | null
 
 export function getUserRoleNames(user: User, allRoles: Role[]): string[] {
   if (!user.roleIds || user.roleIds.length === 0) return [];
-  return user.roleIds
-    .map(id => allRoles.find(r => r.id === id)?.name)
-    .filter((name): name is string => !!name);
+  return user.roleIds.map((id) => allRoles.find((r) => r.id === id)?.name).filter((name): name is string => !!name);
 }
 
 export function generateSecurePassword(login?: string): string {
@@ -99,7 +97,7 @@ export function generateSecurePassword(login?: string): string {
       getRandom(digits),
       getRandom(digits),
       getRandom(symbols),
-      getRandom(symbols)
+      getRandom(symbols),
     ];
 
     while (pwdChars.length < 14) {
@@ -107,9 +105,14 @@ export function generateSecurePassword(login?: string): string {
     }
 
     for (let i = pwdChars.length - 1; i > 0; i--) {
-      const j = typeof crypto !== 'undefined' && crypto.getRandomValues
-        ? (() => { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % (i + 1); })()
-        : Math.floor(Math.random() * (i + 1));
+      const j =
+        typeof crypto !== 'undefined' && crypto.getRandomValues
+          ? (() => {
+              const a = new Uint32Array(1);
+              crypto.getRandomValues(a);
+              return a[0] % (i + 1);
+            })()
+          : Math.floor(Math.random() * (i + 1));
       [pwdChars[i], pwdChars[j]] = [pwdChars[j], pwdChars[i]];
     }
 
@@ -130,7 +133,7 @@ export function generateSecurePassword(login?: string): string {
 export async function copyPasswordToClipboard(
   password: string,
   toast: ToastService,
-  uiI18n: I18nService
+  uiI18n: I18nService,
 ): Promise<void> {
   if (!password) return;
   try {
@@ -167,7 +170,7 @@ export function doesNotContainLogin(password?: string, login?: string): boolean 
 export function calculatePasswordStrength(
   password: string | undefined,
   login: string | undefined,
-  uiI18n: I18nService
+  uiI18n: I18nService,
 ): { score: number; label: string; color: string } {
   const pwd = password || '';
   const normalizedLogin = login || '';
@@ -176,7 +179,8 @@ export function calculatePasswordStrength(
   if (/[a-z\u0430-\u044F\u0451]/.test(pwd) && /[A-Z\u0410-\u042F\u0401]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd) && /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score++;
   else if (/[0-9]/.test(pwd) || /[^a-zA-Z0-9\u0430-\u044F\u0410-\u042F\u0451\u0401]/.test(pwd)) score += 0.5;
-  if (normalizedLogin && normalizedLogin.length >= 3 && !pwd.toLowerCase().includes(normalizedLogin.toLowerCase())) score += 0.5;
+  if (normalizedLogin && normalizedLogin.length >= 3 && !pwd.toLowerCase().includes(normalizedLogin.toLowerCase()))
+    score += 0.5;
 
   if (score < 1.5) return { score: 1, label: uiI18n.translate('iam.parol_slabyy'), color: 'var(--danger)' };
   if (score < 2.5) return { score: 2, label: uiI18n.translate('iam.parol_sredniy'), color: 'var(--warning)' };
@@ -202,4 +206,3 @@ export interface EffectivePermissionsResponse {
 export interface PersonalPermissionsResponse {
   grants: PersonalGrant[];
 }
-

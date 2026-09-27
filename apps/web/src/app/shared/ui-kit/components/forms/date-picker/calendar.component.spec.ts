@@ -21,7 +21,7 @@ describe('SMTCalendarComponent', () => {
     for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
     document.body.appendChild(fixture.nativeElement);
     const picked: CalendarDate[] = [];
-    fixture.componentInstance.picked.subscribe(date => picked.push(date));
+    fixture.componentInstance.picked.subscribe((date) => picked.push(date));
     fixture.componentInstance.focusDay();
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
@@ -40,7 +40,7 @@ describe('SMTCalendarComponent', () => {
     const title = element.querySelector('.smt-calendar__title')!;
     expect(grid.getAttribute('aria-labelledby')).toBe(title.id);
     expect(title.textContent?.trim()).toBe('September 2026');
-    expect(Array.from(grid.querySelectorAll('th')).map(th => th.getAttribute('abbr'))[0]).toBe('Monday');
+    expect(Array.from(grid.querySelectorAll('th')).map((th) => th.getAttribute('abbr'))[0]).toBe('Monday');
     const today = grid.querySelector('[data-date="2026-09-24"]')!;
     expect(today.getAttribute('aria-label')).toBe('Thursday, 24 September 2026');
     expect(today.getAttribute('aria-current')).toBe('date');

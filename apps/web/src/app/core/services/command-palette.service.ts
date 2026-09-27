@@ -4,7 +4,7 @@ import { ApiService } from './api.service';
 import { SearchResult } from '../models/search.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CommandPaletteService {
   readonly isOpen = signal<boolean>(false);
@@ -20,7 +20,7 @@ export class CommandPaletteService {
   }
 
   toggle() {
-    this.isOpen.update(v => !v);
+    this.isOpen.update((v) => !v);
   }
 
   search(query: string, entityType: string = 'ALL', limit?: number): Observable<SearchResult> {

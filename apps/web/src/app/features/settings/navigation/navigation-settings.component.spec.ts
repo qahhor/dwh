@@ -24,7 +24,7 @@ describe('NavigationSettingsComponent', () => {
       sortOrder: 10,
       state: 'A',
       createdAt: '2026-09-09T10:00:00Z',
-      modifiedAt: '2026-09-09T10:00:00Z'
+      modifiedAt: '2026-09-09T10:00:00Z',
     },
     {
       id: 2,
@@ -38,8 +38,8 @@ describe('NavigationSettingsComponent', () => {
       sortOrder: 20,
       state: 'P',
       createdAt: '2026-09-09T10:00:00Z',
-      modifiedAt: '2026-09-09T10:00:00Z'
-    }
+      modifiedAt: '2026-09-09T10:00:00Z',
+    },
   ];
 
   function setup(items = sampleItems) {
@@ -49,20 +49,22 @@ describe('NavigationSettingsComponent', () => {
       updateItem: vi.fn().mockReturnValue(of({ ...items[0], title: 'Updated' })),
       toggleItem: vi.fn().mockReturnValue(of({ ...items[0], state: 'P' })),
       deleteItem: vi.fn().mockReturnValue(of(undefined)),
-      loadPermissionChoices: vi.fn().mockReturnValue(of([
-        { permission: 'platform.navigation.manage', formName: 'Navigation', actionName: 'Manage' },
-        { permission: 'tasks.items.view', formName: 'Tasks', actionName: 'View' }
-      ]))
+      loadPermissionChoices: vi.fn().mockReturnValue(
+        of([
+          { permission: 'platform.navigation.manage', formName: 'Navigation', actionName: 'Manage' },
+          { permission: 'tasks.items.view', formName: 'Tasks', actionName: 'View' },
+        ]),
+      ),
     };
 
     const toast = {
       success: vi.fn(),
       error: vi.fn(),
-      info: vi.fn()
+      info: vi.fn(),
     };
 
     const i18n = {
-      translate: translateTest
+      translate: translateTest,
     };
 
     TestBed.configureTestingModule({
@@ -70,8 +72,8 @@ describe('NavigationSettingsComponent', () => {
       providers: [
         { provide: NavigationService, useValue: navService },
         { provide: ToastService, useValue: toast },
-        { provide: I18nService, useValue: i18n }
-      ]
+        { provide: I18nService, useValue: i18n },
+      ],
     });
 
     const fixture = TestBed.createComponent(NavigationSettingsComponent);
@@ -133,8 +135,8 @@ describe('NavigationSettingsComponent', () => {
       expect.objectContaining({
         code: 'finance-bi',
         title: 'Финансовый дашборд',
-        url: 'https://bi.corp.com/dash'
-      })
+        url: 'https://bi.corp.com/dash',
+      }),
     );
     expect(toast.success).toHaveBeenCalled();
     expect(fixture.componentInstance.isModalOpen()).toBe(false);
@@ -152,8 +154,8 @@ describe('NavigationSettingsComponent', () => {
     expect(navService.updateItem).toHaveBeenCalledWith(
       1,
       expect.objectContaining({
-        title: 'Обновленный отчет'
-      })
+        title: 'Обновленный отчет',
+      }),
     );
     expect(toast.success).toHaveBeenCalled();
   });
@@ -166,10 +168,13 @@ describe('NavigationSettingsComponent', () => {
     expect(fixture.componentInstance.formRequiredPermission).toBe('platform.navigation.manage');
     fixture.componentInstance.saveItem();
 
-    expect(navService.updateItem).toHaveBeenCalledWith(1, expect.objectContaining({
-      requiredPermission: 'platform.navigation.manage',
-      parentId: 7
-    }));
+    expect(navService.updateItem).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        requiredPermission: 'platform.navigation.manage',
+        parentId: 7,
+      }),
+    );
   });
 
   it('limits a new item to the chosen right and offers the catalog by name', () => {
@@ -185,7 +190,9 @@ describe('NavigationSettingsComponent', () => {
     fixture.componentInstance.formRequiredPermission = 'tasks.items.view';
     fixture.componentInstance.saveItem();
 
-    expect(navService.createItem).toHaveBeenCalledWith(expect.objectContaining({ requiredPermission: 'tasks.items.view' }));
+    expect(navService.createItem).toHaveBeenCalledWith(
+      expect.objectContaining({ requiredPermission: 'tasks.items.view' }),
+    );
   });
 
   it('toggles item state and refreshes list', () => {

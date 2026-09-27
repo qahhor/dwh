@@ -289,7 +289,7 @@ describe('SMTTableComponent primitive cells and column window', () => {
       rowDndEnabled?: boolean;
       hasMultipleSelection?: boolean;
       contentType?: 'primitive' | 'html';
-    } = {}
+    } = {},
   ) {
     const { TestBed } = await import('@angular/core/testing');
     const { provideZonelessChangeDetection, signal } = await import('@angular/core');
@@ -338,12 +338,12 @@ describe('SMTTableComponent primitive cells and column window', () => {
     const component = await createWideTable({ columnCount: 80, rowCount: 50 });
     const view = component['columnsView']();
     expect(view).toHaveLength(80);
-    expect(view.every(col => !col.usesCellComponent && col.content.type === 'primitive')).toBe(true);
+    expect(view.every((col) => !col.usesCellComponent && col.content.type === 'primitive')).toBe(true);
   });
 
   it('marks html columns as inline (no smt-cell-content host)', async () => {
     const component = await createWideTable({ columnCount: 8, contentType: 'html' });
-    expect(component['columnsView']().every(col => !col.usesCellComponent)).toBe(true);
+    expect(component['columnsView']().every((col) => !col.usesCellComponent)).toBe(true);
   });
 
   it('windows wide biruni grids so only visible columns plus overscan are in the view', async () => {

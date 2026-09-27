@@ -8,16 +8,32 @@ type Row = { id: number; name: string; attributes: Record<string, unknown> };
 
 /** A list with custom fields as the server adds them (ADR-0019 2.3, roadmap item 52). */
 const META: QueryListMeta = {
-  code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  code: 'iam.users',
+  defaultSort: 'name',
+  defaultLimit: 20,
+  maxLimit: 200,
+  maxConditions: 20,
+  maxInValues: 100,
   fields: [
     metaField('name', 'iam.users.col.name', 'text', { sortable: true }),
     metaField('cfRegion', '', 'text', { nullable: true, label: 'Регион', attribute: 'region' }),
     metaField('cfRemote', '', 'boolean', { nullable: true, label: 'Удалённо', attribute: 'remote' }),
-    metaField('cfShift', '', 'enum', { nullable: true, label: 'Смена', attribute: 'shift', enumValues: ['day', 'night'] })
-  ]
+    metaField('cfShift', '', 'enum', {
+      nullable: true,
+      label: 'Смена',
+      attribute: 'shift',
+      enumValues: ['day', 'night'],
+    }),
+  ],
 } as QueryListMeta;
 
-const translate = (key: string) => ({ 'iam.users.col.name': 'Имя', 'common.yes': 'Да', 'common.no': 'Нет', 'ui.filter.op.eq': 'равно' } as Record<string, string>)[key] ?? key;
+const translate = (key: string) =>
+  (
+    ({ 'iam.users.col.name': 'Имя', 'common.yes': 'Да', 'common.no': 'Нет', 'ui.filter.op.eq': 'равно' }) as Record<
+      string,
+      string
+    >
+  )[key] ?? key;
 
 function cell(config: ReturnType<typeof registryTableConfig<Row>>, key: string, row: Row): unknown {
   const content = config.columns[key].content;
@@ -25,7 +41,12 @@ function cell(config: ReturnType<typeof registryTableConfig<Row>>, key: string, 
 }
 
 describe('registryTableConfig with custom fields', () => {
-  const config = registryTableConfig<Row>(META, { translate, trackBy: (_i, row) => row.id, ariaLabel: 'Users', sort: null });
+  const config = registryTableConfig<Row>(META, {
+    translate,
+    trackBy: (_i, row) => row.id,
+    ariaLabel: 'Users',
+    sort: null,
+  });
   const row: Row = { id: 1, name: 'Анна', attributes: { region: 'Tashkent', remote: 'false', shift: 'night' } };
 
   it('heads a custom field with its own name and a declared field with its translated key', () => {
@@ -43,6 +64,8 @@ describe('registryTableConfig with custom fields', () => {
   });
 
   it('names a custom field by its own name in a filter chip', () => {
-    expect(describeCondition({ field: 'cfRegion', op: 'eq', value: 'Tashkent' }, META, translate)).toBe('Регион: равно Tashkent');
+    expect(describeCondition({ field: 'cfRegion', op: 'eq', value: 'Tashkent' }, META, translate)).toBe(
+      'Регион: равно Tashkent',
+    );
   });
 });

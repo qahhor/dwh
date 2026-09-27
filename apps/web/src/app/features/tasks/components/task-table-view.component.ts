@@ -1,4 +1,16 @@
-import { Component, computed, EventEmitter, inject, input, Input, Output, Signal, signal, TemplateRef, viewChild } from '@angular/core';
+import {
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  input,
+  Input,
+  Output,
+  Signal,
+  signal,
+  TemplateRef,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -38,53 +50,100 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     SMTButtonComponent,
     UiServerTableComponent,
     UiBulkResultComponent,
-    SMTSelectComponent
+    SMTSelectComponent,
   ],
   template: `
-    <div class="table-card" role="region" [attr.aria-label]="'tasks.tablica_zadach' | t" [attr.aria-busy]="pager.loading()">
+    <div
+      class="table-card"
+      role="region"
+      [attr.aria-label]="'tasks.tablica_zadach' | t"
+      [attr.aria-busy]="pager.loading()"
+    >
       @if (tableConfig(); as config) {
-      <ui-server-table
-        [pager]="pager"
-        [config]="config"
-        [views]="views()"
-        [filterMeta]="meta()"
-        [exportable]="true"
-        [exportSearch]="exportSearch()"
-        [exportOptions]="exportOptions()"
-        [lockedColumns]="['id', 'title', 'actions']"
-        (sortChange)="sortChange.emit($event)"
-        [loadingLabel]="'tasks.list_loading' | t"
-        [errorLabel]="(pager.items().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t"
-        errorId="tasks-load-error"
-        [emptyTemplate]="emptyState()"
-        [selectable]="canUpdateTask"
-        [(selected)]="selectedTasks"
-        (rowClick)="openTaskDetails.emit($event)">
-        <div bulkActions class="bulk-actions">
-          <div class="bulk-field">
-            <label class="bulk-label" for="task-bulk-status">{{ 'tasks.bulk.status' | t }}</label>
-            <smt-select class="bulk-select" data-testid="bulk-status" smtTriggerId="task-bulk-status" [disabled]="bulkBusy()"
-              [options]="statusOptions()" [value]="bulkStatusId()" (valueChange)="bulkStatusId.set($event)"
-              [placeholder]="'tasks.bulk.choose' | t" [emptyLabel]="'tasks.bulk.choose' | t"></smt-select>
+        <ui-server-table
+          [pager]="pager"
+          [config]="config"
+          [views]="views()"
+          [filterMeta]="meta()"
+          [exportable]="true"
+          [exportSearch]="exportSearch()"
+          [exportOptions]="exportOptions()"
+          [lockedColumns]="['id', 'title', 'actions']"
+          (sortChange)="sortChange.emit($event)"
+          [loadingLabel]="'tasks.list_loading' | t"
+          [errorLabel]="(pager.items().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t"
+          errorId="tasks-load-error"
+          [emptyTemplate]="emptyState()"
+          [selectable]="canUpdateTask"
+          [(selected)]="selectedTasks"
+          (rowClick)="openTaskDetails.emit($event)"
+        >
+          <div bulkActions class="bulk-actions">
+            <div class="bulk-field">
+              <label class="bulk-label" for="task-bulk-status">{{ 'tasks.bulk.status' | t }}</label>
+              <smt-select
+                class="bulk-select"
+                data-testid="bulk-status"
+                smtTriggerId="task-bulk-status"
+                [disabled]="bulkBusy()"
+                [options]="statusOptions()"
+                [value]="bulkStatusId()"
+                (valueChange)="bulkStatusId.set($event)"
+                [placeholder]="'tasks.bulk.choose' | t"
+                [emptyLabel]="'tasks.bulk.choose' | t"
+              ></smt-select>
+            </div>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              data-testid="bulk-status-apply"
+              [disabled]="!bulkStatusId() || bulkBusy()"
+              [smtLoading]="bulkBusy() && bulkAction() === 'status'"
+              (click)="applyBulk('status')"
+            >
+              {{ 'tasks.bulk.apply' | t }}
+            </button>
+            <div class="bulk-field">
+              <label class="bulk-label" for="task-bulk-priority">{{ 'common.priority' | t }}</label>
+              <smt-select
+                class="bulk-select"
+                data-testid="bulk-priority"
+                smtTriggerId="task-bulk-priority"
+                [disabled]="bulkBusy()"
+                [options]="priorityOptions()"
+                [value]="bulkPriority()"
+                (valueChange)="bulkPriority.set($event)"
+                [placeholder]="'tasks.bulk.choose' | t"
+                [emptyLabel]="'tasks.bulk.choose' | t"
+              ></smt-select>
+            </div>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              smtSize="sm"
+              data-testid="bulk-priority-apply"
+              [disabled]="!bulkPriority() || bulkBusy()"
+              [smtLoading]="bulkBusy() && bulkAction() === 'priority'"
+              (click)="applyBulk('priority')"
+            >
+              {{ 'tasks.bulk.apply' | t }}
+            </button>
           </div>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" data-testid="bulk-status-apply" [disabled]="!bulkStatusId() || bulkBusy()"
-            [smtLoading]="bulkBusy() && bulkAction() === 'status'" (click)="applyBulk('status')">{{ 'tasks.bulk.apply' | t }}</button>
-          <div class="bulk-field">
-            <label class="bulk-label" for="task-bulk-priority">{{ 'common.priority' | t }}</label>
-            <smt-select class="bulk-select" data-testid="bulk-priority" smtTriggerId="task-bulk-priority" [disabled]="bulkBusy()"
-              [options]="priorityOptions()" [value]="bulkPriority()" (valueChange)="bulkPriority.set($event)"
-              [placeholder]="'tasks.bulk.choose' | t" [emptyLabel]="'tasks.bulk.choose' | t"></smt-select>
-          </div>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" data-testid="bulk-priority-apply" [disabled]="!bulkPriority() || bulkBusy()"
-            [smtLoading]="bulkBusy() && bulkAction() === 'priority'" (click)="applyBulk('priority')">{{ 'tasks.bulk.apply' | t }}</button>
-        </div>
-      </ui-server-table>
+        </ui-server-table>
       }
       <ui-bulk-result [result]="bulkResult()" [itemLabel]="bulkItemLabel" (closed)="bulkResult.set(null)" />
     </div>
 
     <ng-template #idCell let-t>
-      <span class="tabular-nums font-mono" [class.text-danger]="isOverdue(t.endTime, t.statusId)" [class.text-muted]="!isOverdue(t.endTime, t.statusId)">#{{ t.id }}</span>
+      <span
+        class="tabular-nums font-mono"
+        [class.text-danger]="isOverdue(t.endTime, t.statusId)"
+        [class.text-muted]="!isOverdue(t.endTime, t.statusId)"
+        >#{{ t.id }}</span
+      >
     </ng-template>
     <ng-template #typeCell let-t>
       <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
@@ -98,12 +157,18 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
           type="button"
           class="task-title task-title-open"
           [class.title-overdue]="isOverdue(t.endTime, t.statusId)"
-          [attr.aria-label]="'tasks.open_task_named' | t:{id: t.id, title: t.title}"
+          [attr.aria-label]="'tasks.open_task_named' | t: { id: t.id, title: t.title }"
           (click)="openTaskDetails.emit(t)"
-        >{{ t.title }}</button>
-        @if (isOverdue(t.endTime, t.statusId)) { <span class="overdue-tag">{{ 'tasks.prosrocheno' | t }}</span> }
+        >
+          {{ t.title }}
+        </button>
+        @if (isOverdue(t.endTime, t.statusId)) {
+          <span class="overdue-tag">{{ 'tasks.prosrocheno' | t }}</span>
+        }
         @if (t.parentTaskId) {
-          <span class="parent-chip font-mono" [title]="'task.parent' | t">{{ 'tasks.subtask_number' | t:{id: t.parentTaskId} }}</span>
+          <span class="parent-chip font-mono" [title]="'task.parent' | t">{{
+            'tasks.subtask_number' | t: { id: t.parentTaskId }
+          }}</span>
         }
       </div>
     </ng-template>
@@ -141,7 +206,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
           (valueChange)="onStatusChange(t.id, $event)"
           [allowClear]="false"
           [disabled]="!canUpdateTask"
-          [ariaLabel]="'tasks.task_status_aria' | t:{id: t.id}"
+          [ariaLabel]="'tasks.task_status_aria' | t: { id: t.id }"
           [title]="'tasks.nazhmite_dlya_smeny_statusa' | t"
         ></smt-select>
       </div>
@@ -154,9 +219,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
           [class.overdue]="dl.state === 'overdue'"
           [class.deadline-today]="dl.state === 'today'"
           [class.deadline-tomorrow]="dl.state === 'tomorrow'"
-          [title]="'tasks.deadline_value' | t:{date: (t.endTime | date:'dd.MM.yyyy HH:mm') || ''}"
+          [title]="'tasks.deadline_value' | t: { date: (t.endTime | date: 'dd.MM.yyyy HH:mm') || '' }"
         >
-          <span class="material-symbols-outlined ico" aria-hidden="true">{{ dl.state === 'overdue' ? 'warning' : (dl.state === 'today' ? 'alarm' : 'event') }}</span>
+          <span class="material-symbols-outlined ico" aria-hidden="true">{{
+            dl.state === 'overdue' ? 'warning' : dl.state === 'today' ? 'alarm' : 'event'
+          }}</span>
           {{ dl.label }}
         </span>
       } @else {
@@ -169,7 +236,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
           <button
             type="button"
             class="icon-ghost-btn"
-            [attr.aria-label]="'tasks.edit_task_number' | t:{id: t.id}"
+            [attr.aria-label]="'tasks.edit_task_number' | t: { id: t.id }"
             [title]="'tasks.redaktirovat_zadachu' | t"
             (click)="openEditModal.emit(t)"
           >
@@ -179,7 +246,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         <button
           type="button"
           class="icon-ghost-btn"
-          [attr.aria-label]="'tasks.view_task_number' | t:{id: t.id}"
+          [attr.aria-label]="'tasks.view_task_number' | t: { id: t.id }"
           [title]="'tasks.prosmotret_detali' | t"
           (click)="openTaskDetails.emit(t)"
         >
@@ -192,150 +259,222 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
         <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
         @if (hasActiveFilters) {
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">{{ 'tasks.sbrosit_vse_filtry' | t }}</button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
+            {{ 'tasks.sbrosit_vse_filtry' | t }}
+          </button>
         } @else if (canCreateTask) {
-          <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">{{ 'task.new' | t }}</button>
+          <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">
+            {{ 'task.new' | t }}
+          </button>
         }
       </div>
     </ng-template>
   `,
-  styles: [`
-    :host { display: block; min-width: 0; }
-    .bulk-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .bulk-field { display: inline-flex; align-items: center; gap: 6px; }
-    .bulk-label { color: var(--text-muted); font-size: 12px; }
-    .bulk-select { width: 180px; }
-    .table-card { min-width: 0; }
-    /* The row belongs to the kit table's template, so it is reached from here.
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 0;
+      }
+      .bulk-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .bulk-field {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .bulk-label {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .bulk-select {
+        width: 180px;
+      }
+      .table-card {
+        min-width: 0;
+      }
+      /* The row belongs to the kit table's template, so it is reached from here.
        An inset shadow marks it without widening the row's grid. */
-    :host ::ng-deep .smt-data-row.task-row-overdue { background-color: rgba(239, 68, 68, 0.04); box-shadow: inset 3px 0 0 var(--danger); }
-    :host ::ng-deep .smt-data-row.task-row-overdue:hover { background-color: rgba(239, 68, 68, 0.08); }
-    .overdue-tag {
-      font-size: 9px;
-      font-weight: 600;
-      color: var(--danger-text);
-      background-color: var(--danger-bg);
-      padding: 1px 5px;
-      border-radius: 3px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
+      :host ::ng-deep .smt-data-row.task-row-overdue {
+        background-color: rgba(239, 68, 68, 0.04);
+        box-shadow: inset 3px 0 0 var(--danger);
+      }
+      :host ::ng-deep .smt-data-row.task-row-overdue:hover {
+        background-color: rgba(239, 68, 68, 0.08);
+      }
+      .overdue-tag {
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--danger-text);
+        background-color: var(--danger-bg);
+        padding: 1px 5px;
+        border-radius: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
 
-    .task-type-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 11px;
-      font-weight: 500;
-      padding: 1px 6px;
-      border-radius: 4px;
-    }
-    .task-type-badge .type-icon { font-size: 13px; }
+      .task-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .task-type-badge .type-icon {
+        font-size: 13px;
+      }
 
-    .task-title-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .task-title { font-weight: 500; }
-    .task-title-open {
-      border: 0;
-      padding: 0;
-      background: transparent;
-      color: var(--text-main);
-      font: inherit;
-      text-align: left;
-      cursor: pointer;
-    }
-    .task-title-open:hover { color: var(--primary); text-decoration: underline; }
-    .parent-chip {
-      font-size: 10px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      padding: 1px 5px;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-    }
+      .task-title-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .task-title {
+        font-weight: 500;
+      }
+      .task-title-open {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: var(--text-main);
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .task-title-open:hover {
+        color: var(--primary);
+        text-decoration: underline;
+      }
+      .parent-chip {
+        font-size: 10px;
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        padding: 1px 5px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+      }
 
-    .project-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .folder-ico { font-size: 14px; color: var(--warning); }
+      .project-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .folder-ico {
+        font-size: 14px;
+        color: var(--warning);
+      }
 
-    /* Inline Status Select */
-    .inline-status-wrapper { display: flex; align-items: center; gap: 5px; min-width: 0; }
-    .inline-status-select { flex: 1; min-width: 0; }
+      /* Inline Status Select */
+      .inline-status-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+      }
+      .inline-status-select {
+        flex: 1;
+        min-width: 0;
+      }
 
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-    }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
 
-    .deadline-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 3px;
-      font-size: 11px;
-      color: var(--text-muted);
-      background-color: var(--bg-hover);
-      padding: 1px 6px;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-      white-space: nowrap;
-    }
-    .deadline-pill .ico { font-size: 13px; }
-    .deadline-pill.overdue {
-      color: var(--danger-text);
-      background-color: var(--danger-bg);
-      border-color: rgba(239,68,68,0.3);
-      font-weight: 600;
-    }
-    .deadline-pill.deadline-today {
-      background-color: rgba(245, 158, 11, 0.15);
-      border-color: rgba(245, 158, 11, 0.35);
-      color: var(--warning-text);
-      font-weight: 600;
-    }
-    .deadline-pill.deadline-tomorrow {
-      background-color: rgba(59, 130, 246, 0.12);
-      border-color: rgba(59, 130, 246, 0.3);
-      color: var(--info-text);
-    }
+      .deadline-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 11px;
+        color: var(--text-muted);
+        background-color: var(--bg-hover);
+        padding: 1px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        white-space: nowrap;
+      }
+      .deadline-pill .ico {
+        font-size: 13px;
+      }
+      .deadline-pill.overdue {
+        color: var(--danger-text);
+        background-color: var(--danger-bg);
+        border-color: rgba(239, 68, 68, 0.3);
+        font-weight: 600;
+      }
+      .deadline-pill.deadline-today {
+        background-color: rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.35);
+        color: var(--warning-text);
+        font-weight: 600;
+      }
+      .deadline-pill.deadline-tomorrow {
+        background-color: rgba(59, 130, 246, 0.12);
+        border-color: rgba(59, 130, 246, 0.3);
+        color: var(--info-text);
+      }
 
-    .row-action-btns { display: inline-flex; gap: 4px; }
-    .icon-ghost-btn {
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .icon-ghost-btn:hover { color: var(--text-main); background-color: var(--bg-hover); }
-    .icon-ghost-btn .material-symbols-outlined { font-size: 17px; }
+      .row-action-btns {
+        display: inline-flex;
+        gap: 4px;
+      }
+      .icon-ghost-btn {
+        border: none;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .icon-ghost-btn:hover {
+        color: var(--text-main);
+        background-color: var(--bg-hover);
+      }
+      .icon-ghost-btn .material-symbols-outlined {
+        font-size: 17px;
+      }
 
-    .empty-state-cell {
-      padding: 40px;
-      text-align: center;
-      color: var(--text-muted);
-    }
-    .empty-state-cell .icon { font-size: 36px; color: var(--text-light); margin-bottom: 6px; }
-    .font-mono { font-family: ui-monospace, monospace; }
-    .tabular-nums { font-variant-numeric: tabular-nums; }
-    .text-danger { color: var(--danger); }
-    .text-muted { color: var(--text-muted); }
-    .text-right { text-align: right; }
-  `]
+      .empty-state-cell {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+      }
+      .empty-state-cell .icon {
+        font-size: 36px;
+        color: var(--text-light);
+        margin-bottom: 6px;
+      }
+      .font-mono {
+        font-family: ui-monospace, monospace;
+      }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+      .text-danger {
+        color: var(--danger);
+      }
+      .text-muted {
+        color: var(--text-muted);
+      }
+      .text-right {
+        text-align: right;
+      }
+    `,
+  ],
 })
 export class TaskTableViewComponent {
   private readonly i18n = inject(I18nService);
@@ -376,7 +515,7 @@ export class TaskTableViewComponent {
     // Every row is its own grid, so tracks are fixed or shares of the width, never content-sized.
     const rest = '(100% - 750px)';
     const base = registryTableConfig<Task>(meta, {
-      translate: key => this.i18n.translate(key),
+      translate: (key) => this.i18n.translate(key),
       trackBy: (_index, task) => task.id,
       ariaLabel: this.i18n.translate('tasks.spisok_zadach'),
       sort: this.views()?.sort() ?? null,
@@ -386,26 +525,41 @@ export class TaskTableViewComponent {
         projectId: cell(this.projectCell),
         priority: cell(this.priorityCell),
         statusId: cell(this.statusCell),
-        endTime: cell(this.deadlineCell)
+        endTime: cell(this.deadlineCell),
       },
       widths: {
-        id: '70px', title: `max(220px, calc(${rest} * 0.6))`, projectId: `max(140px, calc(${rest} * 0.4))`,
-        priority: '130px', statusId: '150px', endTime: '180px'
+        id: '70px',
+        title: `max(220px, calc(${rest} * 0.6))`,
+        projectId: `max(140px, calc(${rest} * 0.4))`,
+        priority: '130px',
+        statusId: '150px',
+        endTime: '180px',
       },
-      align: { id: 'left' }
+      align: { id: 'left' },
     });
     const order = [...base.columnsOrder];
     order.splice(order.includes('id') ? order.indexOf('id') + 1 : 0, 0, 'type');
     return {
       ...base,
       layout: 'fit',
-      rowClass: task => this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null,
+      rowClass: (task) => (this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null),
       columns: {
         ...base.columns,
-        type: { key: 'type', header: header(this.i18n.translate('settings.tip')), content: cell(this.typeCell), width: '120px' },
-        actions: { key: 'actions', header: header(this.i18n.translate('common.actions')), content: cell(this.actionsCell), width: '100px', align: 'right' }
+        type: {
+          key: 'type',
+          header: header(this.i18n.translate('settings.tip')),
+          content: cell(this.typeCell),
+          width: '120px',
+        },
+        actions: {
+          key: 'actions',
+          header: header(this.i18n.translate('common.actions')),
+          content: cell(this.actionsCell),
+          width: '100px',
+          align: 'right',
+        },
       },
-      columnsOrder: [...order, 'actions']
+      columnsOrder: [...order, 'actions'],
     };
   });
 
@@ -445,7 +599,9 @@ export class TaskTableViewComponent {
 
   /** Statuses as smt-select options; the same array while the statuses stay the same. */
   statusOptions(): SMTSelectOption<number>[] {
-    return this.statusMemo([this.statuses], () => this.statuses.map(status => ({ id: status.id, label: status.name })));
+    return this.statusMemo([this.statuses], () =>
+      this.statuses.map((status) => ({ id: status.id, label: status.name })),
+    );
   }
 
   /** Priorities, lowest first, each with its colour mark; translated again when the language changes. */
@@ -471,12 +627,13 @@ export class TaskTableViewComponent {
     const tasks = this.selectedTasks();
     if (tasks.length === 0 || this.bulkBusy()) return;
     const params = action === 'status' ? { statusId: this.bulkStatusId() } : { priority: this.bulkPriority() };
-    this.bulkTitles = new Map(tasks.map(task => [task.id, task.title]));
+    this.bulkTitles = new Map(tasks.map((task) => [task.id, task.title]));
     this.bulkBusy.set(true);
     this.bulkAction.set(action);
-    this.api.post<BulkResult>('/tasks/bulk', { action, ids: tasks.map(task => task.id), params }, { notifyError: false })
+    this.api
+      .post<BulkResult>('/tasks/bulk', { action, ids: tasks.map((task) => task.id), params }, { notifyError: false })
       .subscribe({
-        next: result => {
+        next: (result) => {
           this.bulkBusy.set(false);
           this.bulkAction.set(null);
           this.bulkStatusId.set(null);
@@ -491,7 +648,7 @@ export class TaskTableViewComponent {
           this.bulkBusy.set(false);
           this.bulkAction.set(null);
           this.toast.error(this.i18n.translate('tasks.bulk.error'));
-        }
+        },
       });
   }
 }

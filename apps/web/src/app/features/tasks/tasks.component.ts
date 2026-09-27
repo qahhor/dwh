@@ -49,7 +49,7 @@ import {
   getInvolveKindLabel,
   getInitials,
   hasAttributes,
-  formatAttributes
+  formatAttributes,
 } from './tasks.models';
 import { TaskDictionariesService } from './services/task-dictionaries.service';
 import { TaskLookupsService } from './services/task-lookups.service';
@@ -65,12 +65,23 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   selector: 'app-tasks',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, TranslatePipe, CommonModule, FormsModule, SMTButtonComponent, UiPaginationComponent, SMTAlertComponent,
-    TaskDictionariesModalComponent, TaskKanbanViewComponent, TaskTableViewComponent,
-    TaskFilterBarComponent, TaskDetailModalComponent, TaskCreateModalComponent, TaskEditModalComponent
+    SMTRadioGroupComponent,
+    TranslatePipe,
+    CommonModule,
+    FormsModule,
+    SMTButtonComponent,
+    UiPaginationComponent,
+    SMTAlertComponent,
+    TaskDictionariesModalComponent,
+    TaskKanbanViewComponent,
+    TaskTableViewComponent,
+    TaskFilterBarComponent,
+    TaskDetailModalComponent,
+    TaskCreateModalComponent,
+    TaskEditModalComponent,
   ],
   templateUrl: './tasks.component.html',
-  styleUrl: './tasks.component.css'
+  styleUrl: './tasks.component.css',
 })
 export class TasksComponent implements OnInit, OnDestroy {
   public readonly dictService = inject(TaskDictionariesService);
@@ -100,9 +111,9 @@ export class TasksComponent implements OnInit, OnDestroy {
     const attributes = this.selectedTask()?.attributes;
     if (!attributes) return;
     const ids = this.taskCustomFields()
-      .filter(field => field.fieldType === 'user_ref')
-      .map(field => Number(attributes[field.code]))
-      .filter(id => Number.isSafeInteger(id) && id > 0);
+      .filter((field) => field.fieldType === 'user_ref')
+      .map((field) => Number(attributes[field.code]))
+      .filter((id) => Number.isSafeInteger(id) && id > 0);
     untracked(() => this.lookupsService.resolveUserNames(ids));
   });
 
@@ -119,19 +130,25 @@ export class TasksComponent implements OnInit, OnDestroy {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.taskPager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
 
   /* Page-by-page over the keyset API. The pager cancels a superseded request,
      moves the page only when it arrives and retries exactly the failed one;
      the quick filters, the search, the sort and the filter are read when each request is made. */
   readonly taskPager = new KeysetPager<Task>(
-    (cursor, limit) => this.api.get<KeysetPage<Task>>('/tasks', {
-      ...this.filterService.buildListParams(cursor, limit),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.filterService.searchQuery })
-    }),
+    (cursor, limit) =>
+      this.api.get<KeysetPage<Task>>('/tasks', {
+        ...this.filterService.buildListParams(cursor, limit),
+        ...toQueryParams({
+          sort: this.views.sort(),
+          conditions: this.views.filter(),
+          match: this.views.match(),
+          search: this.filterService.searchQuery,
+        }),
+      }),
     // One page size: the pager's, which is also the limit each request sends.
-    { pageSize: this.filterService.pageSize, destroyRef: this.destroyRef }
+    { pageSize: this.filterService.pageSize, destroyRef: this.destroyRef },
   );
   /** Writable: kanban and inline edits update rows in place. */
   readonly tasks = this.taskPager.items;
@@ -186,7 +203,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     public permService: PermissionService,
     private api: ApiService,
     private toast: ToastService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
   ) {}
 
   detailRecordId(): string | null {
@@ -194,41 +211,101 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   // Filter delegates
-  get activePreset() { return this.filterService.activePreset; }
-  set activePreset(v) { this.filterService.activePreset = v; }
-  get viewMode() { return this.filterService.viewMode; }
-  set viewMode(v) { this.filterService.viewMode = v; }
-  get searchQuery() { return this.filterService.searchQuery; }
-  set searchQuery(v) { this.filterService.searchQuery = v; }
-  get selectedPriority() { return this.filterService.selectedPriority; }
-  set selectedPriority(v) { this.filterService.selectedPriority = v; }
-  get selectedProjectId() { return this.filterService.selectedProjectId; }
-  set selectedProjectId(v) { this.filterService.selectedProjectId = v; }
-  get statusFilterMode() { return this.filterService.statusFilterMode; }
-  set statusFilterMode(v) { this.filterService.statusFilterMode = v; }
-  get currentPage() { return this.taskPager.page(); }
-  get pageSize() { return this.taskPager.pageSize(); }
-  get showExportMenu() { return this.filterService.showExportMenu; }
-  set showExportMenu(v) { this.filterService.showExportMenu = v; }
-  get commentDraft() { return this.detailsService.commentDraft; }
-  set commentDraft(v: string) { this.detailsService.commentDraft = v; }
-  get isCreateSubmitted() { return this.formsService.isCreateSubmitted; }
-  set isCreateSubmitted(v: boolean) { this.formsService.isCreateSubmitted = v; }
-  get createForm() { return this.formsService.createForm; }
-  set createForm(f: TaskCreateFormValue) { this.formsService.createForm = f; }
-  get isEditSubmitted() { return this.formsService.isEditSubmitted; }
-  set isEditSubmitted(v: boolean) { this.formsService.isEditSubmitted = v; }
-  get editingTask() { return this.formsService.editingTask; }
-  set editingTask(t: Task | null) { this.formsService.editingTask = t; }
-  get editForm() { return this.formsService.editForm; }
-  set editForm(f: TaskEditFormValue) { this.formsService.editForm = f; }
+  get activePreset() {
+    return this.filterService.activePreset;
+  }
+  set activePreset(v) {
+    this.filterService.activePreset = v;
+  }
+  get viewMode() {
+    return this.filterService.viewMode;
+  }
+  set viewMode(v) {
+    this.filterService.viewMode = v;
+  }
+  get searchQuery() {
+    return this.filterService.searchQuery;
+  }
+  set searchQuery(v) {
+    this.filterService.searchQuery = v;
+  }
+  get selectedPriority() {
+    return this.filterService.selectedPriority;
+  }
+  set selectedPriority(v) {
+    this.filterService.selectedPriority = v;
+  }
+  get selectedProjectId() {
+    return this.filterService.selectedProjectId;
+  }
+  set selectedProjectId(v) {
+    this.filterService.selectedProjectId = v;
+  }
+  get statusFilterMode() {
+    return this.filterService.statusFilterMode;
+  }
+  set statusFilterMode(v) {
+    this.filterService.statusFilterMode = v;
+  }
+  get currentPage() {
+    return this.taskPager.page();
+  }
+  get pageSize() {
+    return this.taskPager.pageSize();
+  }
+  get showExportMenu() {
+    return this.filterService.showExportMenu;
+  }
+  set showExportMenu(v) {
+    this.filterService.showExportMenu = v;
+  }
+  get commentDraft() {
+    return this.detailsService.commentDraft;
+  }
+  set commentDraft(v: string) {
+    this.detailsService.commentDraft = v;
+  }
+  get isCreateSubmitted() {
+    return this.formsService.isCreateSubmitted;
+  }
+  set isCreateSubmitted(v: boolean) {
+    this.formsService.isCreateSubmitted = v;
+  }
+  get createForm() {
+    return this.formsService.createForm;
+  }
+  set createForm(f: TaskCreateFormValue) {
+    this.formsService.createForm = f;
+  }
+  get isEditSubmitted() {
+    return this.formsService.isEditSubmitted;
+  }
+  set isEditSubmitted(v: boolean) {
+    this.formsService.isEditSubmitted = v;
+  }
+  get editingTask() {
+    return this.formsService.editingTask;
+  }
+  set editingTask(t: Task | null) {
+    this.formsService.editingTask = t;
+  }
+  get editForm() {
+    return this.formsService.editForm;
+  }
+  set editForm(f: TaskEditFormValue) {
+    this.formsService.editForm = f;
+  }
 
   // Delegated getters from Kanban Service
-  get draggedTask() { return this.kanbanService.draggedTask; }
-  set draggedTask(t: Task | null) { this.kanbanService.draggedTask = t; }
+  get draggedTask() {
+    return this.kanbanService.draggedTask;
+  }
+  set draggedTask(t: Task | null) {
+    this.kanbanService.draggedTask = t;
+  }
 
   ngOnInit() {
-    this.routeSubscription = this.route.queryParams.subscribe(params => {
+    this.routeSubscription = this.route.queryParams.subscribe((params) => {
       if (params['project_id']) this.selectedProjectId = Number(params['project_id']);
     });
     this.dictService.loadStatuses();
@@ -237,7 +314,7 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.loadTaskCustomFields();
     this.loadTasks(true);
 
-    this.recordRouteSubscription = this.route.paramMap?.subscribe(params => {
+    this.recordRouteSubscription = this.route.paramMap?.subscribe((params) => {
       this.detailsService.clearTaskDetails();
       const id = params.get('id');
       this.routeRecordId.set(id);
@@ -260,16 +337,37 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.formsService.cleanup();
   }
 
-  canCreateTask() { return this.permService.canCreate('tasks.items') || this.permService.canCreate('tasks') || this.permService.canCreate('ms_tasks'); }
-  canUpdateTask() { return this.permService.canUpdate('tasks.items') || this.permService.canUpdate('tasks') || this.permService.canUpdate('ms_tasks'); }
-  canCommentTask() { return this.permService.canCreate('tasks.comments') && (this.routeRecordId() === null || safeNumericRecordId(this.selectedTask()?.id)); }
+  canCreateTask() {
+    return (
+      this.permService.canCreate('tasks.items') ||
+      this.permService.canCreate('tasks') ||
+      this.permService.canCreate('ms_tasks')
+    );
+  }
+  canUpdateTask() {
+    return (
+      this.permService.canUpdate('tasks.items') ||
+      this.permService.canUpdate('tasks') ||
+      this.permService.canUpdate('ms_tasks')
+    );
+  }
+  canCommentTask() {
+    return (
+      this.permService.canCreate('tasks.comments') &&
+      (this.routeRecordId() === null || safeNumericRecordId(this.selectedTask()?.id))
+    );
+  }
 
   loadProjects() {
-    this.api.get<Project[]>('/tasks/projects').subscribe({ next: res => this.projects.set(res || []), error: () => {} });
+    this.api
+      .get<Project[]>('/tasks/projects')
+      .subscribe({ next: (res) => this.projects.set(res || []), error: () => {} });
   }
 
   loadTaskCustomFields() {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'TASK' }).subscribe({ next: res => this.taskCustomFields.set(res || []), error: () => {} });
+    this.api
+      .get<CustomField[]>('/custom-fields', { entity_type: 'TASK' })
+      .subscribe({ next: (res) => this.taskCustomFields.set(res || []), error: () => {} });
   }
 
   /** The first page for the current filters; without `reset`, the page on screen again. The metadata comes first, once. */
@@ -277,13 +375,16 @@ export class TasksComponent implements OnInit, OnDestroy {
     clearTimeout(this.filterService.taskSearchTimer);
     if (!this.meta()) {
       this.metaError.set(false);
-      this.queryMeta.get('ms.tasks').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: meta => {
-          this.meta.set(meta);
-          this.views.load().subscribe(() => this.taskPager.first());
-        },
-        error: () => this.metaError.set(true)
-      });
+      this.queryMeta
+        .get('ms.tasks')
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (meta) => {
+            this.meta.set(meta);
+            this.views.load().subscribe(() => this.taskPager.first());
+          },
+          error: () => this.metaError.set(true),
+        });
       return;
     }
     if (reset) this.taskPager.first();
@@ -304,8 +405,9 @@ export class TasksComponent implements OnInit, OnDestroy {
     for (const [key, value] of Object.entries(filters)) {
       if (value !== undefined && value !== null && value !== '') next[key] = String(value);
     }
-    const same = Object.keys(next).length === Object.keys(this.exportFilters).length
-      && Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
+    const same =
+      Object.keys(next).length === Object.keys(this.exportFilters).length &&
+      Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
     if (!same) this.exportFilters = next;
     return this.exportFilters;
   }
@@ -332,19 +434,35 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.taskPager.goTo(page);
   }
 
-  hasActiveFilters(): boolean { return this.filterService.hasActiveFilters(); }
-  clearSearch() { this.cancelListRequestForFilterChange(); this.filterService.clearSearch(() => this.loadTasks(true)); }
-  setPreset(preset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue') { this.filterService.setPreset(preset, () => this.loadTasks(true)); }
-  setStatusFilterMode(mode: 'active' | 'all' | number) { this.filterService.setStatusFilterMode(mode, () => this.loadTasks(true)); }
-  onProjectFilterChange(projectId: number | null) { this.filterService.onProjectFilterChange(projectId, () => this.loadTasks(true)); }
-  onPriorityFilterChange(priority: string) { this.filterService.onPriorityFilterChange(priority, () => this.loadTasks(true)); }
-  resetFilters() { this.cancelListRequestForFilterChange(); this.filterService.resetFilters(() => this.loadTasks(true)); }
+  hasActiveFilters(): boolean {
+    return this.filterService.hasActiveFilters();
+  }
+  clearSearch() {
+    this.cancelListRequestForFilterChange();
+    this.filterService.clearSearch(() => this.loadTasks(true));
+  }
+  setPreset(preset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue') {
+    this.filterService.setPreset(preset, () => this.loadTasks(true));
+  }
+  setStatusFilterMode(mode: 'active' | 'all' | number) {
+    this.filterService.setStatusFilterMode(mode, () => this.loadTasks(true));
+  }
+  onProjectFilterChange(projectId: number | null) {
+    this.filterService.onProjectFilterChange(projectId, () => this.loadTasks(true));
+  }
+  onPriorityFilterChange(priority: string) {
+    this.filterService.onPriorityFilterChange(priority, () => this.loadTasks(true));
+  }
+  resetFilters() {
+    this.cancelListRequestForFilterChange();
+    this.filterService.resetFilters(() => this.loadTasks(true));
+  }
 
   updatePriority(taskId: number, newPriority: string) {
     this.kanbanService.updatePriority(taskId, newPriority, () => {
-      this.tasks.update(list => list.map(t => t.id === taskId ? { ...t, priority: newPriority } : t));
+      this.tasks.update((list) => list.map((t) => (t.id === taskId ? { ...t, priority: newPriority } : t)));
       if (this.selectedTask()?.id === taskId) {
-        this.selectedTask.update(t => t ? { ...t, priority: newPriority } : null);
+        this.selectedTask.update((t) => (t ? { ...t, priority: newPriority } : null));
       }
     });
   }
@@ -356,9 +474,9 @@ export class TasksComponent implements OnInit, OnDestroy {
       () => this.applyStatusToVisibleTasks(taskId, newStatusId),
       () => {
         if (this.selectedTask()?.id === taskId) {
-          this.selectedTask.update(t => t ? { ...t, statusId: newStatusId } : null);
+          this.selectedTask.update((t) => (t ? { ...t, statusId: newStatusId } : null));
         }
-      }
+      },
     );
   }
 
@@ -370,10 +488,10 @@ export class TasksComponent implements OnInit, OnDestroy {
       () => this.applyStatusToVisibleTasks(task.id, targetStatusId),
       () => {
         if (this.selectedTask()?.id === task.id) {
-          this.selectedTask.update(t => t ? { ...t, statusId: targetStatusId } : null);
+          this.selectedTask.update((t) => (t ? { ...t, statusId: targetStatusId } : null));
         }
       },
-      () => this.loadTasks(true)
+      () => this.loadTasks(true),
     );
   }
 
@@ -386,20 +504,50 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   // Details methods
   openTaskDetails(task: Task) {
-    this.detailsService.openTaskDetails(task, () => this.isEditModalOpen(), () => this.routeRecordId(), (id) => this.recordRouter?.navigate(['/tasks/items', id], { queryParamsHandling: 'preserve' }));
+    this.detailsService.openTaskDetails(
+      task,
+      () => this.isEditModalOpen(),
+      () => this.routeRecordId(),
+      (id) => this.recordRouter?.navigate(['/tasks/items', id], { queryParamsHandling: 'preserve' }),
+    );
   }
   onTaskContainerClick(event: MouseEvent, task: Task) {
-    this.detailsService.onTaskContainerClick(event, task, () => this.isEditModalOpen(), () => this.routeRecordId(), (id) => this.recordRouter?.navigate(['/tasks/items', id], { queryParamsHandling: 'preserve' }));
+    this.detailsService.onTaskContainerClick(
+      event,
+      task,
+      () => this.isEditModalOpen(),
+      () => this.routeRecordId(),
+      (id) => this.recordRouter?.navigate(['/tasks/items', id], { queryParamsHandling: 'preserve' }),
+    );
   }
-  retryTaskDetails() { this.detailsService.retryTaskDetails(() => this.routeRecordId()); }
+  retryTaskDetails() {
+    this.detailsService.retryTaskDetails(() => this.routeRecordId());
+  }
   closeTaskDetails(returnToList = true) {
-    this.detailsService.closeTaskDetails(returnToList, () => this.routeRecordId(), () => this.recordRouter?.navigate(['/tasks/items'], { queryParamsHandling: 'preserve' }));
+    this.detailsService.closeTaskDetails(
+      returnToList,
+      () => this.routeRecordId(),
+      () => this.recordRouter?.navigate(['/tasks/items'], { queryParamsHandling: 'preserve' }),
+    );
   }
-  onTaskFileAttached(file: TaskFile) { this.detailsService.onTaskFileAttached(file); }
-  onTaskFileRemoved(file: TaskFile) { this.detailsService.onTaskFileRemoved(file); }
-  loadComments(taskId: number | string) { this.detailsService.loadComments(taskId, () => this.routeRecordId()); }
-  retryComments() { this.detailsService.retryComments(() => this.routeRecordId()); }
-  submitComment() { this.detailsService.submitComment(() => this.canCommentTask(), () => this.routeRecordId()); }
+  onTaskFileAttached(file: TaskFile) {
+    this.detailsService.onTaskFileAttached(file);
+  }
+  onTaskFileRemoved(file: TaskFile) {
+    this.detailsService.onTaskFileRemoved(file);
+  }
+  loadComments(taskId: number | string) {
+    this.detailsService.loadComments(taskId, () => this.routeRecordId());
+  }
+  retryComments() {
+    this.detailsService.retryComments(() => this.routeRecordId());
+  }
+  submitComment() {
+    this.detailsService.submitComment(
+      () => this.canCommentTask(),
+      () => this.routeRecordId(),
+    );
+  }
 
   // Forms methods
   openCreateTaskModal() {
@@ -408,9 +556,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
   openAddSubtaskModal(parentTask: Task) {
     const defaultType = this.taskTypes().length > 0 ? this.taskTypes()[0].code : 'task';
-    this.formsService.openAddSubtaskModal(parentTask, defaultType, (id, title) => this.lookupsService.retainParentOption(id, title));
+    this.formsService.openAddSubtaskModal(parentTask, defaultType, (id, title) =>
+      this.lookupsService.retainParentOption(id, title),
+    );
   }
-  requestCloseCreate() { this.formsService.requestCloseCreate(); }
+  requestCloseCreate() {
+    this.formsService.requestCloseCreate();
+  }
   submitCreateTask() {
     this.formsService.submitCreateTask((parentId) => {
       this.loadTasks(true);
@@ -428,20 +580,30 @@ export class TasksComponent implements OnInit, OnDestroy {
         return ret;
       },
       (m) => this.lookupsService.retainTaskMember(m),
-      (id, title) => this.lookupsService.retainParentOption(id, title)
+      (id, title) => this.lookupsService.retainParentOption(id, title),
     );
   }
   retryEditLoad() {
     this.formsService.retryEditLoad(
       (m) => this.lookupsService.retainTaskMember(m),
-      (id, title) => this.lookupsService.retainParentOption(id, title)
+      (id, title) => this.lookupsService.retainParentOption(id, title),
     );
   }
-  requestCloseEdit() { this.formsService.requestCloseEdit((t) => this.openTaskDetails(t)); }
-  confirmDiscardEdit() { this.formsService.confirmDiscardEdit((t) => this.openTaskDetails(t)); }
-  cancelDiscardEdit() { this.formsService.cancelDiscardEdit(); }
+  requestCloseEdit() {
+    this.formsService.requestCloseEdit((t) => this.openTaskDetails(t));
+  }
+  confirmDiscardEdit() {
+    this.formsService.confirmDiscardEdit((t) => this.openTaskDetails(t));
+  }
+  cancelDiscardEdit() {
+    this.formsService.cancelDiscardEdit();
+  }
   canLeaveRecordPage() {
-    return this.formsService.canLeaveRecordPage(() => this.isCommentSubmitting(), () => this.commentDraft, (t) => this.openTaskDetails(t));
+    return this.formsService.canLeaveRecordPage(
+      () => this.isCommentSubmitting(),
+      () => this.commentDraft,
+      (t) => this.openTaskDetails(t),
+    );
   }
   submitEditTask() {
     this.formsService.submitEditTask((returnTask, editedTaskId) => {
@@ -451,49 +613,121 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   // Kanban / Drag & Drop
-  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) { this.kanbanService.onTaskDrop(event, targetStatusId, this.canUpdateTask(), (task, sId) => this.executeStatusChange(task, sId)); }
-  onHtml5DragStart(event: DragEvent, task: Task) { this.kanbanService.onHtml5DragStart(event, task, this.canUpdateTask()); }
-  onHtml5DragOver(event: DragEvent) { this.kanbanService.onHtml5DragOver(event, this.canUpdateTask()); }
-  onHtml5DragLeave(event: DragEvent) { this.kanbanService.onHtml5DragLeave(event, this.canUpdateTask()); }
-  onHtml5Drop(event: DragEvent, targetStatusId: number) {
-    this.kanbanService.onHtml5Drop(event, targetStatusId, this.canUpdateTask(), (task, sId) => this.executeStatusChange(task, sId));
+  onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
+    this.kanbanService.onTaskDrop(event, targetStatusId, this.canUpdateTask(), (task, sId) =>
+      this.executeStatusChange(task, sId),
+    );
   }
-  getTasksByStatus(statusId: number) { return this.kanbanService.getTasksByStatus(statusId, this.tasks()); }
-  isFirstStatus(statusId: number) { return this.kanbanService.isFirstStatus(statusId, this.statuses()); }
-  isLastStatus(statusId: number) { return this.kanbanService.isLastStatus(statusId, this.statuses()); }
+  onHtml5DragStart(event: DragEvent, task: Task) {
+    this.kanbanService.onHtml5DragStart(event, task, this.canUpdateTask());
+  }
+  onHtml5DragOver(event: DragEvent) {
+    this.kanbanService.onHtml5DragOver(event, this.canUpdateTask());
+  }
+  onHtml5DragLeave(event: DragEvent) {
+    this.kanbanService.onHtml5DragLeave(event, this.canUpdateTask());
+  }
+  onHtml5Drop(event: DragEvent, targetStatusId: number) {
+    this.kanbanService.onHtml5Drop(event, targetStatusId, this.canUpdateTask(), (task, sId) =>
+      this.executeStatusChange(task, sId),
+    );
+  }
+  getTasksByStatus(statusId: number) {
+    return this.kanbanService.getTasksByStatus(statusId, this.tasks());
+  }
+  isFirstStatus(statusId: number) {
+    return this.kanbanService.isFirstStatus(statusId, this.statuses());
+  }
+  isLastStatus(statusId: number) {
+    return this.kanbanService.isLastStatus(statusId, this.statuses());
+  }
   moveTaskStatus(task: Task, direction: -1 | 1) {
-    this.kanbanService.moveTaskStatus(task, direction, this.statuses(), this.canUpdateTask(), (id, sId) => this.updateStatus(id, sId));
+    this.kanbanService.moveTaskStatus(task, direction, this.statuses(), this.canUpdateTask(), (id, sId) =>
+      this.updateStatus(id, sId),
+    );
   }
 
   // Dictionaries methods
-  openSettingsModal() { this.dictService.openSettingsModal(); }
-  handleCreateType(e: any) { this.dictService.handleCreateType(e); }
-  handleCreateStatus(e: any) { this.dictService.handleCreateStatus(e); }
-  handleDeleteDictionaryItem(t: any) { this.dictService.handleDeleteDictionaryItem(t); }
-  handleReorderTypes(l: any) { this.dictService.handleReorderTypes(l); }
-  handleReorderStatuses(l: any) { this.dictService.handleReorderStatuses(l); }
+  openSettingsModal() {
+    this.dictService.openSettingsModal();
+  }
+  handleCreateType(e: any) {
+    this.dictService.handleCreateType(e);
+  }
+  handleCreateStatus(e: any) {
+    this.dictService.handleCreateStatus(e);
+  }
+  handleDeleteDictionaryItem(t: any) {
+    this.dictService.handleDeleteDictionaryItem(t);
+  }
+  handleReorderTypes(l: any) {
+    this.dictService.handleReorderTypes(l);
+  }
+  handleReorderStatuses(l: any) {
+    this.dictService.handleReorderStatuses(l);
+  }
 
   // Helpers
-  getTypeObj(task: Task) { return getTypeObj(task, this.taskTypes()); }
-  getTypeLabel(task: Task) { return getTypeLabel(task, this.taskTypes(), this.uiI18n); }
-  getTypeIcon(task: Task) { return getTypeIcon(task, this.taskTypes()); }
-  getTypeColor(task: Task) { return getTypeColor(task, this.taskTypes()); }
-  getTypeBg(task: Task) { return getTypeBg(task, this.taskTypes()); }
-  getProjectName(projectId: number | null | undefined) { return getProjectName(projectId, this.projects()); }
-  getStatusName(statusId: number | null | undefined) { return getStatusName(statusId, this.statuses(), this.uiI18n); }
-  getStatusColor(statusId: number | null | undefined) { return getStatusColor(statusId, this.statuses()); }
-  getPriorityLabel(priority: string) { return getPriorityLabel(priority, this.uiI18n); }
-  isOverdue(endTime: string | null | undefined, statusId: number) { return isOverdue(endTime, statusId, this.statuses()); }
-  getDeadlineInfo(endTime: string | null | undefined, statusId: number) { return getDeadlineInfo(endTime, statusId, this.statuses(), this.uiI18n); }
-  getInvolveKindLabel(kind: string | undefined) { return getInvolveKindLabel(kind, this.uiI18n); }
-  getInitials(name: string | undefined) { return getInitials(name); }
-  hasAttributes(attrs: any) { return hasAttributes(attrs); }
-  formatAttributes(attrs: any) { return formatAttributes(attrs, this.taskCustomFields(), id => this.lookupsService.nameOf(id), this.uiI18n); }
+  getTypeObj(task: Task) {
+    return getTypeObj(task, this.taskTypes());
+  }
+  getTypeLabel(task: Task) {
+    return getTypeLabel(task, this.taskTypes(), this.uiI18n);
+  }
+  getTypeIcon(task: Task) {
+    return getTypeIcon(task, this.taskTypes());
+  }
+  getTypeColor(task: Task) {
+    return getTypeColor(task, this.taskTypes());
+  }
+  getTypeBg(task: Task) {
+    return getTypeBg(task, this.taskTypes());
+  }
+  getProjectName(projectId: number | null | undefined) {
+    return getProjectName(projectId, this.projects());
+  }
+  getStatusName(statusId: number | null | undefined) {
+    return getStatusName(statusId, this.statuses(), this.uiI18n);
+  }
+  getStatusColor(statusId: number | null | undefined) {
+    return getStatusColor(statusId, this.statuses());
+  }
+  getPriorityLabel(priority: string) {
+    return getPriorityLabel(priority, this.uiI18n);
+  }
+  isOverdue(endTime: string | null | undefined, statusId: number) {
+    return isOverdue(endTime, statusId, this.statuses());
+  }
+  getDeadlineInfo(endTime: string | null | undefined, statusId: number) {
+    return getDeadlineInfo(endTime, statusId, this.statuses(), this.uiI18n);
+  }
+  getInvolveKindLabel(kind: string | undefined) {
+    return getInvolveKindLabel(kind, this.uiI18n);
+  }
+  getInitials(name: string | undefined) {
+    return getInitials(name);
+  }
+  hasAttributes(attrs: any) {
+    return hasAttributes(attrs);
+  }
+  formatAttributes(attrs: any) {
+    return formatAttributes(attrs, this.taskCustomFields(), (id) => this.lookupsService.nameOf(id), this.uiI18n);
+  }
 
   viewOptions(): SMTRadioOption<'table' | 'kanban'>[] {
     return this.viewMemo([this.optionText.currentLang()], () => [
-      { value: 'table', label: this.optionText.translate('projects.spisok'), icon: 'table_rows', title: this.optionText.translate('tasks.tablichnyy_vid') },
-      { value: 'kanban', label: this.optionText.translate('tasks.kanban'), icon: 'view_kanban', title: this.optionText.translate('tasks.kanban_doska') },
+      {
+        value: 'table',
+        label: this.optionText.translate('projects.spisok'),
+        icon: 'table_rows',
+        title: this.optionText.translate('tasks.tablichnyy_vid'),
+      },
+      {
+        value: 'kanban',
+        label: this.optionText.translate('tasks.kanban'),
+        icon: 'view_kanban',
+        title: this.optionText.translate('tasks.kanban_doska'),
+      },
     ]);
   }
 

@@ -27,7 +27,8 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
   selector: 'app-settings',
   standalone: true,
   imports: [
-    SMTTabBarComponent, CommonModule,
+    SMTTabBarComponent,
+    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -38,10 +39,10 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
     SettingsStoragePanelComponent,
     SettingsPreferencesPanelComponent,
     SettingsLanguagesPanelComponent,
-    WebhooksSettingsComponent
+    WebhooksSettingsComponent,
   ],
   templateUrl: './settings.component.html',
-  styleUrl: './settings.component.css'
+  styleUrl: './settings.component.css',
 })
 export class SettingsComponent implements OnInit {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -77,12 +78,12 @@ export class SettingsComponent implements OnInit {
     private api: ApiService,
     private toast: ToastService,
     public i18n: I18nService,
-    private permService: PermissionService
+    private permService: PermissionService,
   ) {}
 
   ngOnInit() {
     if (this.route) {
-      this.route.queryParams.subscribe(params => {
+      this.route.queryParams.subscribe((params) => {
         const tabParam = params['tab'];
         if (tabParam && this.isTabAvailable(tabParam)) {
           this.activeTab = tabParam as any;
@@ -98,15 +99,19 @@ export class SettingsComponent implements OnInit {
   }
 
   canManageSystemSettings(): boolean {
-    return this.permService.hasPermission('platform.settings', 'view') ||
-           this.permService.hasPermission('platform.settings', 'update') ||
-           this.permService.hasPermission('settings', 'view') ||
-           this.permService.hasPermission('settings', 'update');
+    return (
+      this.permService.hasPermission('platform.settings', 'view') ||
+      this.permService.hasPermission('platform.settings', 'update') ||
+      this.permService.hasPermission('settings', 'view') ||
+      this.permService.hasPermission('settings', 'update')
+    );
   }
 
   canUpdateSystemSettings(): boolean {
-    return this.permService.hasPermission('platform.settings', 'update') ||
-           this.permService.hasPermission('settings', 'update');
+    return (
+      this.permService.hasPermission('platform.settings', 'update') ||
+      this.permService.hasPermission('settings', 'update')
+    );
   }
 
   canViewSearchSettings(): boolean {
@@ -118,8 +123,10 @@ export class SettingsComponent implements OnInit {
   }
 
   canViewWebhookSettings(): boolean {
-    return this.permService.hasPermission('platform.webhooks', 'view') ||
-           this.permService.hasPermission('platform.webhooks', 'manage');
+    return (
+      this.permService.hasPermission('platform.webhooks', 'view') ||
+      this.permService.hasPermission('platform.webhooks', 'manage')
+    );
   }
 
   userThemePreference(): string {
@@ -127,7 +134,7 @@ export class SettingsComponent implements OnInit {
   }
 
   onThemeChange(newTheme: string): void {
-    this.userSettings.update(settings => ({ ...settings, 'user.theme': newTheme }));
+    this.userSettings.update((settings) => ({ ...settings, 'user.theme': newTheme }));
     if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'system') {
       this.themeService.setTheme(newTheme);
     }
@@ -146,7 +153,7 @@ export class SettingsComponent implements OnInit {
 
     if (this.canManageSystemSettings()) {
       this.api.get<Record<string, string>>('/settings/system').subscribe({
-        next: res => {
+        next: (res) => {
           this.systemSettings.set({ ...res });
           sysLoaded = true;
           checkDone();
@@ -155,12 +162,12 @@ export class SettingsComponent implements OnInit {
           this.loadError.set(this.uiI18n.translate('settings.oshibka_zagruzki_nastroek'));
           sysLoaded = true;
           checkDone();
-        }
+        },
       });
     }
 
     this.api.get<Record<string, string>>('/settings/user').subscribe({
-      next: res => {
+      next: (res) => {
         this.userSettings.set({ ...res });
         const theme = res['user.theme'];
         if (theme === 'light' || theme === 'dark' || theme === 'system') {
@@ -173,7 +180,7 @@ export class SettingsComponent implements OnInit {
         this.loadError.set(this.uiI18n.translate('settings.oshibka_zagruzki_nastroek'));
         userLoaded = true;
         checkDone();
-      }
+      },
     });
   }
 
@@ -206,7 +213,7 @@ export class SettingsComponent implements OnInit {
         this.isSaving.set(false);
         this.toast.success(this.i18n.translate('common.saved'));
       },
-      error: () => this.isSaving.set(false)
+      error: () => this.isSaving.set(false),
     });
   }
 
@@ -221,27 +228,27 @@ export class SettingsComponent implements OnInit {
         }
         this.toast.success(this.i18n.translate('common.saved'));
       },
-      error: () => this.isSaving.set(false)
+      error: () => this.isSaving.set(false),
     });
   }
 
   changePersonalLang(lang: string) {
     this.i18n.setLanguage(lang).subscribe({
-      next: () => this.userSettings.update(settings => ({ ...settings, 'user.language': lang }))
+      next: () => this.userSettings.update((settings) => ({ ...settings, 'user.language': lang })),
     });
   }
 
   toggleRequire2fa(enabled: boolean) {
-    this.systemSettings.update(settings => ({
+    this.systemSettings.update((settings) => ({
       ...settings,
-      'security.require_2fa': enabled ? 'true' : 'false'
+      'security.require_2fa': enabled ? 'true' : 'false',
     }));
   }
 
   toggleSound(enabled: boolean) {
-    this.userSettings.update(settings => ({
+    this.userSettings.update((settings) => ({
       ...settings,
-      'user.notifications_sound': enabled ? 'true' : 'false'
+      'user.notifications_sound': enabled ? 'true' : 'false',
     }));
   }
 
@@ -265,11 +272,13 @@ export class SettingsComponent implements OnInit {
     const legacyLanguages = readLegacyLanguages();
     const entries = Object.entries(legacyLanguages);
     if (entries.length === 0 || !this.canUpdateSystemSettings()) return;
-    this.modal.confirm({
-      message: this.uiI18n.translate('settings.confirm_legacy_migration', { count: entries.length }),
-    }).subscribe(confirmed => {
-      if (confirmed) this.runLegacyLanguageMigration(entries);
-    });
+    this.modal
+      .confirm({
+        message: this.uiI18n.translate('settings.confirm_legacy_migration', { count: entries.length }),
+      })
+      .subscribe((confirmed) => {
+        if (confirmed) this.runLegacyLanguageMigration(entries);
+      });
   }
 
   isTabAvailable(tab: string): boolean {
@@ -300,7 +309,7 @@ export class SettingsComponent implements OnInit {
         relativeTo: this.route,
         queryParams: { tab },
         queryParamsHandling: 'merge',
-        replaceUrl: true
+        replaceUrl: true,
       });
     }
   }
@@ -368,17 +377,18 @@ export class SettingsComponent implements OnInit {
     }
 
     this.isAddingLang.set(true);
-    this.i18n.registerLanguage(rawCode, rawName, dict).pipe(
-      finalize(() => this.isAddingLang.set(false))
-    ).subscribe({
-      next: () => {
-        this.isAddLangModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('settings.language_added', { name: rawName }));
-      },
-      error: () => {
-        this.toast.error(this.uiI18n.translate('common.error'));
-      }
-    });
+    this.i18n
+      .registerLanguage(rawCode, rawName, dict)
+      .pipe(finalize(() => this.isAddingLang.set(false)))
+      .subscribe({
+        next: () => {
+          this.isAddLangModalOpen.set(false);
+          this.toast.success(this.uiI18n.translate('settings.language_added', { name: rawName }));
+        },
+        error: () => {
+          this.toast.error(this.uiI18n.translate('common.error'));
+        },
+      });
   }
 
   switchLanguage(lang: string) {
@@ -386,7 +396,7 @@ export class SettingsComponent implements OnInit {
   }
 
   exportLangJson(langCode: string) {
-    this.api.get<Record<string, string>>(`/i18n/${langCode}`).subscribe(dictionary => {
+    this.api.get<Record<string, string>>(`/i18n/${langCode}`).subscribe((dictionary) => {
       const blob = new Blob([JSON.stringify(dictionary, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -394,9 +404,11 @@ export class SettingsComponent implements OnInit {
       a.download = `smartupcms-translations-${langCode}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      this.toast.info(this.uiI18n.translate('settings.dictionary_exported', {
-        code: langCode.toUpperCase()
-      }));
+      this.toast.info(
+        this.uiI18n.translate('settings.dictionary_exported', {
+          code: langCode.toUpperCase(),
+        }),
+      );
     });
   }
 
@@ -413,52 +425,52 @@ export class SettingsComponent implements OnInit {
       ['webhooks', 'webhook', 'settings.webhooks.tab'],
     ];
     const available = all.filter(([tab]) => this.isTabAvailable(tab));
-    return this.tabsMemo([this.tabText.currentLang(), available.map(([tab]) => tab).join()], () => available.map(([tab, icon, key]) => ({
-      value: tab,
-      label: this.tabText.translate(key),
-      icon,
-      id: `settings-${tab}-tab`,
-      panelId: `settings-${tab}-panel`,
-    })));
+    return this.tabsMemo([this.tabText.currentLang(), available.map(([tab]) => tab).join()], () =>
+      available.map(([tab, icon, key]) => ({
+        value: tab,
+        label: this.tabText.translate(key),
+        icon,
+        id: `settings-${tab}-tab`,
+        panelId: `settings-${tab}-panel`,
+      })),
+    );
   }
 
   private runLegacyLanguageMigration(entries: [string, LegacyLanguage][]): void {
     this.isMigratingLegacyLanguages.set(true);
-    this.api.get<TranslationEditor>('/i18n/admin/languages/ru/translations').pipe(
-      switchMap(russianEditor => {
-        const knownKeys = new Set(russianEditor.entries.map(entry => entry.key));
-        return from(entries).pipe(
-          concatMap(([code, legacy]) => this.migrateLegacyLanguage(code, legacy, knownKeys)),
-          toArray()
-        );
-      }),
-      switchMap(() => this.i18n.refreshLanguages()),
-      finalize(() => this.isMigratingLegacyLanguages.set(false))
-    ).subscribe({
-      next: () => {
-        localStorage.removeItem('dwh_custom_languages');
-        this.legacyLanguageCount.set(0);
-        this.toast.success(this.uiI18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
-      },
-      error: () => this.toast.error(
-        this.uiI18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')
+    this.api
+      .get<TranslationEditor>('/i18n/admin/languages/ru/translations')
+      .pipe(
+        switchMap((russianEditor) => {
+          const knownKeys = new Set(russianEditor.entries.map((entry) => entry.key));
+          return from(entries).pipe(
+            concatMap(([code, legacy]) => this.migrateLegacyLanguage(code, legacy, knownKeys)),
+            toArray(),
+          );
+        }),
+        switchMap(() => this.i18n.refreshLanguages()),
+        finalize(() => this.isMigratingLegacyLanguages.set(false)),
       )
-    });
+      .subscribe({
+        next: () => {
+          localStorage.removeItem('dwh_custom_languages');
+          this.legacyLanguageCount.set(0);
+          this.toast.success(this.uiI18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
+        },
+        error: () =>
+          this.toast.error(this.uiI18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')),
+      });
   }
 
-  private migrateLegacyLanguage(
-    code: string,
-    legacy: LegacyLanguage,
-    knownKeys: Set<string>
-  ): Observable<unknown> {
+  private migrateLegacyLanguage(code: string, legacy: LegacyLanguage, knownKeys: Set<string>): Observable<unknown> {
     const translations = filterKnownTranslations(legacy.dict, knownKeys);
-    const existing = this.i18n.languages().some(language => language.code === code);
+    const existing = this.i18n.languages().some((language) => language.code === code);
     if (!existing) {
       return this.i18n.registerLanguage(code, legacy.name, translations);
     }
 
     return this.api.get<TranslationEditor>(`/i18n/admin/languages/${code}/translations`).pipe(
-      switchMap(editor => {
+      switchMap((editor) => {
         const merged: TranslationDictionary = {};
         for (const entry of editor.entries) {
           if (entry.overrideValue) merged[entry.key] = entry.overrideValue;
@@ -466,9 +478,9 @@ export class SettingsComponent implements OnInit {
         Object.assign(merged, translations);
         return this.api.put(`/i18n/admin/languages/${code}/translations`, {
           expectedRevision: editor.language.revision,
-          translations: merged
+          translations: merged,
         });
-      })
+      }),
     );
   }
 }

@@ -6,11 +6,11 @@ import {
   EntityMenuItem,
   NavigationPermissionChoice,
   CreateNavigationItemPayload,
-  UpdateNavigationItemPayload
+  UpdateNavigationItemPayload,
 } from '../models/navigation.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NavigationService {
   private readonly api = inject(ApiService);
@@ -24,21 +24,21 @@ export class NavigationService {
     this.isLoading.set(true);
     return this.api.get<CustomNavigationItem[]>('/navigation/items/active').pipe(
       tap({
-        next: items => {
+        next: (items) => {
           this.activeItems.set(items || []);
           this.isLoading.set(false);
         },
         error: () => {
           this.isLoading.set(false);
-        }
-      })
+        },
+      }),
     );
   }
 
   loadEntityItems(): Observable<EntityMenuItem[]> {
-    return this.api.get<EntityMenuItem[]>('/entities/menu', undefined, { notifyError: false }).pipe(
-      tap(items => this.entityItems.set(items || []))
-    );
+    return this.api
+      .get<EntityMenuItem[]>('/entities/menu', undefined, { notifyError: false })
+      .pipe(tap((items) => this.entityItems.set(items || [])));
   }
 
   loadAllItems(): Observable<CustomNavigationItem[]> {
@@ -59,26 +59,26 @@ export class NavigationService {
   }
 
   createItem(payload: CreateNavigationItemPayload): Observable<CustomNavigationItem> {
-    return this.api.post<CustomNavigationItem>('/navigation/items', payload).pipe(
-      tap(() => this.loadActiveItems().subscribe({ error: () => {} }))
-    );
+    return this.api
+      .post<CustomNavigationItem>('/navigation/items', payload)
+      .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
   updateItem(id: number, payload: UpdateNavigationItemPayload): Observable<CustomNavigationItem> {
-    return this.api.put<CustomNavigationItem>(`/navigation/items/${id}`, payload).pipe(
-      tap(() => this.loadActiveItems().subscribe({ error: () => {} }))
-    );
+    return this.api
+      .put<CustomNavigationItem>(`/navigation/items/${id}`, payload)
+      .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
   toggleItem(id: number): Observable<CustomNavigationItem> {
-    return this.api.post<CustomNavigationItem>(`/navigation/items/${id}/toggle`, {}).pipe(
-      tap(() => this.loadActiveItems().subscribe({ error: () => {} }))
-    );
+    return this.api
+      .post<CustomNavigationItem>(`/navigation/items/${id}/toggle`, {})
+      .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
   deleteItem(id: number, options?: ApiRequestOptions): Observable<void> {
-    return this.api.delete<void>(`/navigation/items/${id}`, options).pipe(
-      tap(() => this.loadActiveItems().subscribe({ error: () => {} }))
-    );
+    return this.api
+      .delete<void>(`/navigation/items/${id}`, options)
+      .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 }

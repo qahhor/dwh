@@ -5,7 +5,7 @@ import {
   SearchQueryPolicy,
   SearchRetryJobRequest,
   SearchSettingsSnapshot,
-  SearchStartJobRequest
+  SearchStartJobRequest,
 } from '../../../core/models/search-management.models';
 
 export type PendingMutation =
@@ -18,14 +18,22 @@ export interface MaintenanceConfirmation {
   generationId?: string;
 }
 
-export function validateSearchPolicy(policy: SearchQueryPolicy | null, entities: readonly SearchEntityType[]): string[] {
+export function validateSearchPolicy(
+  policy: SearchQueryPolicy | null,
+  entities: readonly SearchEntityType[],
+): string[] {
   if (!policy) return ['settings.search.validation.unavailable'];
   const errors: string[] = [];
   if (!Number.isInteger(policy.globalLimit) || policy.globalLimit < 1 || policy.globalLimit > 50)
     errors.push('settings.search.validation.global_limit');
   if (!Number.isInteger(policy.requestsPerMinute) || policy.requestsPerMinute < 30 || policy.requestsPerMinute > 600)
     errors.push('settings.search.validation.rate');
-  if (!Number.isInteger(policy.burst) || policy.burst < 10 || policy.burst > 60 || policy.burst > policy.requestsPerMinute)
+  if (
+    !Number.isInteger(policy.burst) ||
+    policy.burst < 10 ||
+    policy.burst > 60 ||
+    policy.burst > policy.requestsPerMinute
+  )
     errors.push('settings.search.validation.burst');
   for (const entity of entities) {
     const fields = policy.fields[entity] ?? [];
@@ -34,11 +42,11 @@ export function validateSearchPolicy(policy: SearchQueryPolicy | null, entities:
       errors.push('settings.search.validation.searchable_field');
       continue;
     }
-    if (!fields.some(field => Number.isInteger(field.weight) && field.weight > 0))
+    if (!fields.some((field) => Number.isInteger(field.weight) && field.weight > 0))
       errors.push('settings.search.validation.searchable_field');
-    if (fields.some(field => !Number.isInteger(field.weight) || field.weight < 0 || field.weight > 127))
+    if (fields.some((field) => !Number.isInteger(field.weight) || field.weight < 0 || field.weight > 127))
       errors.push('settings.search.validation.weight');
-    if (fields.some(field => !Number.isInteger(field.numTypos) || field.numTypos < 0 || field.numTypos > 2))
+    if (fields.some((field) => !Number.isInteger(field.numTypos) || field.numTypos < 0 || field.numTypos > 2))
       errors.push('settings.search.validation.typos');
   }
   return [...new Set(errors)];
@@ -58,7 +66,7 @@ export function toProblemDetail(error: unknown, fallbackTitle: string, fallbackD
     title: fallbackTitle,
     status: 0,
     code: 'NETWORK_ERROR',
-    detail: fallbackDetail
+    detail: fallbackDetail,
   };
 }
 
@@ -77,7 +85,7 @@ export function formatJobError(code: string | null | undefined, translate: (key:
     COLLECTION_MISSING: 'settings.search.error.collection_missing',
     STORAGE_CAPACITY_EXCEEDED: 'settings.search.error.storage_capacity',
     GENERATION_CAPACITY_EXCEEDED: 'settings.search.error.generation_capacity',
-    VERIFICATION_FAILED: 'settings.search.error.verification_failed'
+    VERIFICATION_FAILED: 'settings.search.error.verification_failed',
   };
   return translate(known[code] ?? 'settings.search.error.generic_job');
 }

@@ -8,19 +8,24 @@ import { I18nService } from './i18n.service';
 describe('NotificationService API contract', () => {
   it('maps the backend inbox and unread-count contracts to the UI model', async () => {
     const api = {
-      get: vi.fn()
+      get: vi
+        .fn()
         .mockReturnValueOnce(of({ unread_count: 3 }))
-        .mockReturnValueOnce(of([{
-          id: 7,
-          userId: 2,
-          type: 'info',
-          title: 'Task assigned',
-          body: 'Open the task',
-          formLink: '/tasks/42',
-          sourceCode: 'tasks',
-          isRead: false,
-          createdAt: '2026-09-02T00:00:00Z',
-        }])),
+        .mockReturnValueOnce(
+          of([
+            {
+              id: 7,
+              userId: 2,
+              type: 'info',
+              title: 'Task assigned',
+              body: 'Open the task',
+              formLink: '/tasks/42',
+              sourceCode: 'tasks',
+              isRead: false,
+              createdAt: '2026-09-02T00:00:00Z',
+            },
+          ]),
+        ),
       post: vi.fn(() => of(undefined)),
     };
     const service = new NotificationService(
@@ -37,16 +42,18 @@ describe('NotificationService API contract', () => {
     expect(count).toEqual({ unreadCount: 3 });
     expect(service.unreadCount()).toBe(3);
     expect(page).toEqual({
-      items: [{
-        id: 7,
-        userId: 2,
-        title: 'Task assigned',
-        bodyMarkdown: 'Open the task',
-        sourceModule: 'tasks',
-        targetUrl: '/tasks/42',
-        isRead: false,
-        createdAt: '2026-09-02T00:00:00Z',
-      }],
+      items: [
+        {
+          id: 7,
+          userId: 2,
+          title: 'Task assigned',
+          bodyMarkdown: 'Open the task',
+          sourceModule: 'tasks',
+          targetUrl: '/tasks/42',
+          isRead: false,
+          createdAt: '2026-09-02T00:00:00Z',
+        },
+      ],
       nextCursor: null,
       hasMore: false,
       totalReturned: 1,

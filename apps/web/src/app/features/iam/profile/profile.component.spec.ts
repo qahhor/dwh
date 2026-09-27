@@ -21,7 +21,7 @@ async function answerYes(fixture: { detectChanges(): void; whenStable(): Promise
 }
 
 describe('ProfileComponent UI contracts', () => {
-  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove()));
+  afterEach(() => document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove()));
 
   async function createFixture(options?: {
     sessions?: UserSession[];
@@ -41,7 +41,7 @@ describe('ProfileComponent UI contracts', () => {
       is2faEnabled: false,
       forcePasswordChange: false,
       createdAt: '2026-08-30T00:00:00Z',
-      modifiedAt: '2026-08-30T00:00:00Z'
+      modifiedAt: '2026-08-30T00:00:00Z',
     };
 
     const apiMock = options?.mockApi || {
@@ -56,7 +56,7 @@ describe('ProfileComponent UI contracts', () => {
         if (url.includes('/channels')) return of({ verifyToken: 'mock_verify_token_123' });
         return of({ record: { id: 1, name: 'test' }, rawSecretToken: 'dwh_secret_xyz' });
       }),
-      delete: vi.fn(() => of({}))
+      delete: vi.fn(() => of({})),
     };
 
     await TestBed.configureTestingModule({
@@ -64,9 +64,12 @@ describe('ProfileComponent UI contracts', () => {
       providers: [
         { provide: ApiService, useValue: apiMock },
         { provide: AuthService, useValue: { currentUser: signal(user), onPasswordChanged: vi.fn() } },
-        { provide: PermissionService, useValue: { hasPermission: vi.fn(() => true), permissions: signal(new Set(['*.*'])) } },
-        { provide: ToastService, useValue: { success: vi.fn(), info: vi.fn(), warning: vi.fn(), error: vi.fn() } }
-      ]
+        {
+          provide: PermissionService,
+          useValue: { hasPermission: vi.fn(() => true), permissions: signal(new Set(['*.*'])) },
+        },
+        { provide: ToastService, useValue: { success: vi.fn(), info: vi.fn(), warning: vi.fn(), error: vi.fn() } },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(ProfileComponent);
     fixture.detectChanges();
@@ -83,7 +86,9 @@ describe('ProfileComponent UI contracts', () => {
     expect(current.required).toBe(true);
     expect(current.getAttribute('aria-invalid')).toBe('true');
     expect(current.getAttribute('aria-describedby')).toBe('profile-current-password-error');
-    expect(current.closest('smt-input')!.querySelector('button[aria-controls="profile-current-password"]')).not.toBeNull();
+    expect(
+      current.closest('smt-input')!.querySelector('button[aria-controls="profile-current-password"]'),
+    ).not.toBeNull();
   });
 
   it('names channel, session and token table regions', async () => {
@@ -157,7 +162,7 @@ describe('ProfileComponent UI contracts', () => {
         deviceInfo: 'Desktop Windows',
         createdAt: '2026-09-01T10:00:00Z',
         lastSeenAt: '2026-09-01T12:00:00Z',
-        current: true
+        current: true,
       },
       {
         id: 102,
@@ -167,8 +172,8 @@ describe('ProfileComponent UI contracts', () => {
         deviceInfo: 'iPhone 15',
         createdAt: '2026-09-01T08:00:00Z',
         lastSeenAt: '2026-09-01T09:00:00Z',
-        current: false
-      }
+        current: false,
+      },
     ];
 
     const { fixture } = await createFixture({ sessions });
@@ -196,8 +201,8 @@ describe('ProfileComponent UI contracts', () => {
       '/iam/profile/tokens',
       expect.objectContaining({
         name: 'Deploy Bot',
-        expiresAt: expect.any(String)
-      })
+        expiresAt: expect.any(String),
+      }),
     );
 
     expect(comp.isTokenSecretModalOpen()).toBe(true);
@@ -214,8 +219,8 @@ describe('ProfileComponent UI contracts', () => {
         deviceInfo: 'PC',
         createdAt: '2026-09-01T00:00:00Z',
         lastSeenAt: '2026-09-01T00:00:00Z',
-        current: false
-      }
+        current: false,
+      },
     ];
 
     const { fixture, apiMock } = await createFixture({ sessions });
@@ -239,7 +244,7 @@ describe('ProfileComponent UI contracts', () => {
         channel: 'email',
         address: 'user@example.com',
         isVerified: true,
-        createdAt: '2026-09-01T10:00:00Z'
+        createdAt: '2026-09-01T10:00:00Z',
       },
       {
         id: 2,
@@ -247,8 +252,8 @@ describe('ProfileComponent UI contracts', () => {
         channel: 'telegram',
         address: '@user_tg',
         isVerified: false,
-        createdAt: '2026-09-01T11:00:00Z'
-      }
+        createdAt: '2026-09-01T11:00:00Z',
+      },
     ];
 
     const { fixture } = await createFixture({ channels });
@@ -265,8 +270,8 @@ describe('ProfileComponent UI contracts', () => {
     expect(pendingBadge?.textContent).toContain('Ожидает подтверждения');
 
     const unbindLabels = [...cardEl.querySelectorAll('button')]
-      .map(button => (button as HTMLElement).getAttribute('aria-label'))
-      .filter(label => label?.startsWith('Отвязать'));
+      .map((button) => (button as HTMLElement).getAttribute('aria-label'))
+      .filter((label) => label?.startsWith('Отвязать'));
     expect(unbindLabels).toEqual(['Отвязать user@example.com', 'Отвязать @user_tg']);
   });
 
@@ -278,7 +283,7 @@ describe('ProfileComponent UI contracts', () => {
 
     expect(apiMock.post).toHaveBeenCalledWith('/iam/profile/channels', {
       channel: 'email',
-      address: 'alex@example.test'
+      address: 'alex@example.test',
     });
 
     expect(comp.channelsCard?.isConfirmModalOpen).toBe(true);
@@ -297,7 +302,7 @@ describe('ProfileComponent UI contracts', () => {
 
     expect(apiMock.post).toHaveBeenCalledWith('/iam/profile/channels/confirm', {
       verifyToken: 'mock_verify_token_123',
-      code: '123456'
+      code: '123456',
     });
     expect(comp.channelsCard?.isConfirmModalOpen).toBe(false);
   });
@@ -310,8 +315,8 @@ describe('ProfileComponent UI contracts', () => {
         channel: 'telegram',
         address: '@user_tg',
         isVerified: true,
-        createdAt: '2026-09-01T11:00:00Z'
-      }
+        createdAt: '2026-09-01T11:00:00Z',
+      },
     ];
     const { fixture, apiMock } = await createFixture({ channels });
     const comp = fixture.componentInstance;
@@ -323,4 +328,3 @@ describe('ProfileComponent UI contracts', () => {
     expect(apiMock.delete).toHaveBeenCalledWith('/iam/profile/channels/telegram', { notifyError: false });
   });
 });
-

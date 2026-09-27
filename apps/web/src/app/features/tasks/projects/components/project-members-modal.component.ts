@@ -1,4 +1,15 @@
-import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
@@ -15,131 +26,151 @@ import { User } from '../../../../core/models/auth.models';
 import { ProjectMember } from '../projects.models';
 import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-project-members-modal',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
-    SMTAvatarComponent, CommonModule,
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    SMTAvatarComponent,
+    CommonModule,
     FormsModule,
     TranslatePipe,
-    SMTDialogComponent, SMTDialogContentDirective,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
     SMTButtonComponent,
     UiBadgeComponent,
-    UiLocalTableComponent
+    UiLocalTableComponent,
   ],
   template: `
     <smt-dialog
       [open]="isOpen"
-      [smtTitle]="'projects.uchastniki_proekta_title' | t:{name: project?.name || ''}"
+      [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project?.name || '' }"
       smtSize="lg"
-      (closed)="close.emit()">
+      (closed)="close.emit()"
+    >
       <ng-template smtDialogContent>
-      <div body class="members-modal-body">
-        <!-- Add Member Panel (visible if user can update project) -->
-        <div *ngIf="canUpdateProject" class="add-member-panel">
-          <div class="panel-header">
-            <span class="material-symbols-outlined panel-icon" aria-hidden="true">person_add</span>
-            <span class="panel-title">{{ 'projects.dobavit_uchastnika' | t }}</span>
+        <div body class="members-modal-body">
+          <!-- Add Member Panel (visible if user can update project) -->
+          <div *ngIf="canUpdateProject" class="add-member-panel">
+            <div class="panel-header">
+              <span class="material-symbols-outlined panel-icon" aria-hidden="true">person_add</span>
+              <span class="panel-title">{{ 'projects.dobavit_uchastnika' | t }}</span>
+            </div>
+
+            <div class="add-member-controls">
+              <!-- User Search / Selector -->
+              <div class="user-search-wrapper">
+                <label class="form-label" for="project-member-search">
+                  {{ 'projects.vyberite_polzovatelya' | t }} <span class="req">*</span>
+                </label>
+                <div class="search-input-box">
+                  <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+                  <smt-input
+                    smtFieldId="project-member-search"
+                    [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
+                    [(ngModel)]="userSearchQuery"
+                    (ngModelChange)="onSearchInput($event)"
+                    (focusin)="isUserDropdownOpen = true"
+                  />
+                  <button
+                    *ngIf="selectedUser"
+                    type="button"
+                    class="clear-user-btn"
+                    [title]="'common.clear' | t"
+                    (click)="clearSelectedUser()"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                  </button>
+                </div>
+
+                <!-- User Search Results Dropdown -->
+                <div *ngIf="isUserDropdownOpen && foundUsers.length > 0" class="user-dropdown-list">
+                  <button
+                    *ngFor="let u of foundUsers"
+                    type="button"
+                    class="user-dropdown-item"
+                    [class.is-member]="isUserAlreadyMember(u.id)"
+                    [disabled]="isUserAlreadyMember(u.id)"
+                    (click)="selectUser(u)"
+                  >
+                    <smt-avatar [name]="u.name" smtSize="sm" />
+                    <div class="user-item-info">
+                      <span class="user-item-name">{{ u.name }}</span>
+                      <span class="user-item-email text-muted">&#64;{{ u.login }} &bull; {{ u.email }}</span>
+                    </div>
+                    <span *ngIf="isUserAlreadyMember(u.id)" class="already-member-tag">
+                      {{ 'projects.polzovatel_uzhe_uchastnik' | t }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Role / Access Kind -->
+              <div class="access-kind-wrapper">
+                <label class="form-label" for="project-member-role">
+                  {{ 'projects.uroven_dostupa' | t }} <span class="req">*</span>
+                </label>
+                <smt-select
+                  smtTriggerId="project-member-role"
+                  name="accessKind"
+                  [(ngModel)]="selectedAccessKind"
+                  [options]="accessKindOptions()"
+                  [allowClear]="false"
+                  [required]="true"
+                ></smt-select>
+              </div>
+
+              <!-- Submit Button -->
+              <div class="add-btn-wrapper">
+                <button
+                  smt-button
+                  type="button"
+                  smtVariant="primary"
+                  smtSize="md"
+                  smtIcon="add"
+                  [disabled]="!selectedUser || isAddingMember"
+                  [smtLoading]="isAddingMember"
+                  (click)="submitAddMember()"
+                >
+                  {{ 'common.add' | t }}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div class="add-member-controls">
-            <!-- User Search / Selector -->
-            <div class="user-search-wrapper">
-              <label class="form-label" for="project-member-search">
-                {{ 'projects.vyberite_polzovatelya' | t }} <span class="req">*</span>
-              </label>
-              <div class="search-input-box">
-                <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-                <smt-input
-                  smtFieldId="project-member-search"
-                  [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
-                  [(ngModel)]="userSearchQuery"
-                  (ngModelChange)="onSearchInput($event)"
-                  (focusin)="isUserDropdownOpen = true" />
-                <button
-                  *ngIf="selectedUser"
-                  type="button"
-                  class="clear-user-btn"
-                  [title]="'common.clear' | t"
-                  (click)="clearSelectedUser()"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                </button>
-              </div>
-
-              <!-- User Search Results Dropdown -->
-              <div *ngIf="isUserDropdownOpen && foundUsers.length > 0" class="user-dropdown-list">
-                <button
-                  *ngFor="let u of foundUsers"
-                  type="button"
-                  class="user-dropdown-item"
-                  [class.is-member]="isUserAlreadyMember(u.id)"
-                  [disabled]="isUserAlreadyMember(u.id)"
-                  (click)="selectUser(u)"
-                >
-                  <smt-avatar [name]="u.name" smtSize="sm" />
-                  <div class="user-item-info">
-                    <span class="user-item-name">{{ u.name }}</span>
-                    <span class="user-item-email text-muted">&#64;{{ u.login }} &bull; {{ u.email }}</span>
-                  </div>
-                  <span *ngIf="isUserAlreadyMember(u.id)" class="already-member-tag">
-                    {{ 'projects.polzovatel_uzhe_uchastnik' | t }}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Role / Access Kind -->
-            <div class="access-kind-wrapper">
-              <label class="form-label" for="project-member-role">
-                {{ 'projects.uroven_dostupa' | t }} <span class="req">*</span>
-              </label>
-              <smt-select
-                smtTriggerId="project-member-role"
-                name="accessKind"
-                [(ngModel)]="selectedAccessKind"
-                [options]="accessKindOptions()"
-                [allowClear]="false"
-                [required]="true"
-              ></smt-select>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="add-btn-wrapper">
-              <button smt-button type="button"
-                smtVariant="primary"
-                smtSize="md"
-                smtIcon="add"
-                [disabled]="!selectedUser || isAddingMember"
-                [smtLoading]="isAddingMember"
-                (click)="submitAddMember()"
-              >
-                {{ 'common.add' | t }}
-              </button>
-            </div>
+          <!-- Members Table -->
+          <div
+            class="table-wrapper"
+            role="region"
+            [attr.aria-label]="'projects.tablica_uchastnikov_proekta' | t"
+            tabindex="0"
+          >
+            <ui-local-table
+              data-testid="project-members-table"
+              [rows]="rows()"
+              [config]="config()"
+              [sortValues]="sortValues"
+              [loading]="isLoadingMembers"
+              [emptyTemplate]="emptyMembers"
+            />
           </div>
         </div>
 
-        <!-- Members Table -->
-        <div class="table-wrapper" role="region" [attr.aria-label]="'projects.tablica_uchastnikov_proekta' | t" tabindex="0">
-          <ui-local-table
-            data-testid="project-members-table"
-            [rows]="rows()"
-            [config]="config()"
-            [sortValues]="sortValues"
-            [loading]="isLoadingMembers"
-            [emptyTemplate]="emptyMembers" />
+        <div footer class="modal-footer-actions">
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
+            {{ 'common.close' | t }}
+          </button>
         </div>
-      </div>
-
-      <div footer class="modal-footer-actions">
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
-          {{ 'common.close' | t }}
-        </button>
-      </div>
       </ng-template>
     </smt-dialog>
 
@@ -149,17 +180,21 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
         <span class="font-medium">{{ m.userName }}</span>
       </div>
     </ng-template>
-    <ng-template #memberEmailCell let-m><span class="text-muted tabular-nums">{{ m.userEmail || '—' }}</span></ng-template>
+    <ng-template #memberEmailCell let-m
+      ><span class="text-muted tabular-nums">{{ m.userEmail || '—' }}</span></ng-template
+    >
     <ng-template #memberAccessCell let-m>
       <ui-badge [variant]="accessVariant(m.accessKind)">{{ accessLabel(m.accessKind) }}</ui-badge>
     </ng-template>
     <ng-template #memberActionCell let-m>
       <div class="text-right">
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           smtVariant="danger"
           smtSize="sm"
           smtIcon="delete"
-          [attr.aria-label]="'projects.remove_member_named' | t:{name: m.userName}"
+          [attr.aria-label]="'projects.remove_member_named' | t: { name: m.userName }"
           [smtLoading]="removingUserId === m.userId"
           (click)="requestRemove(m)"
         >
@@ -167,232 +202,231 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
         </button>
       </div>
     </ng-template>
-    <ng-template #emptyMembers><p class="empty-cell">{{ 'projects.net_uchastnikov_proekta' | t }}</p></ng-template>
+    <ng-template #emptyMembers
+      ><p class="empty-cell">{{ 'projects.net_uchastnikov_proekta' | t }}</p></ng-template
+    >
   `,
-  styles: [`
-    .members-modal-body {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+  styles: [
+    `
+      .members-modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    .add-member-panel {
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+      .add-member-panel {
+        background-color: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
 
-    .panel-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--text-main);
-    }
+      .panel-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-main);
+      }
 
-    .panel-icon {
-      font-size: 18px;
-      color: var(--primary);
-    }
+      .panel-icon {
+        font-size: 18px;
+        color: var(--primary);
+      }
 
-    .add-member-controls {
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+      .add-member-controls {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
 
-    .user-search-wrapper {
-      position: relative;
-      flex: 1;
-      min-width: 220px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+      .user-search-wrapper {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
 
-    .access-kind-wrapper {
-      min-width: 160px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+      .access-kind-wrapper {
+        min-width: 160px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
 
-    .add-btn-wrapper {
-      padding-bottom: 1px;
-    }
+      .add-btn-wrapper {
+        padding-bottom: 1px;
+      }
 
-    .form-label {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
+      .form-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
 
-    .req {
-      color: var(--danger);
-    }
+      .req {
+        color: var(--danger);
+      }
 
-    .search-input-box {
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
+      .search-input-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
 
-    .search-icon {
-      position: absolute;
-      left: 10px;
-      font-size: 18px;
-      color: var(--text-muted);
-      pointer-events: none;
-    }
+      .search-icon {
+        position: absolute;
+        left: 10px;
+        font-size: 18px;
+        color: var(--text-muted);
+        pointer-events: none;
+      }
 
+      .clear-user-btn {
+        position: absolute;
+        right: 8px;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        padding: 2px;
+      }
 
+      .clear-user-btn:hover {
+        color: var(--text-main);
+      }
 
+      .clear-user-btn span {
+        font-size: 16px;
+      }
 
-    .clear-user-btn {
-      position: absolute;
-      right: 8px;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      padding: 2px;
-    }
+      /* Dropdown popup */
+      .user-dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 20;
+        margin-top: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-md);
+        display: flex;
+        flex-direction: column;
+      }
 
-    .clear-user-btn:hover {
-      color: var(--text-main);
-    }
+      .user-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border: none;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.1s;
+        width: 100%;
+      }
 
-    .clear-user-btn span {
-      font-size: 16px;
-    }
+      .user-dropdown-item:hover:not(:disabled) {
+        background-color: var(--bg-hover);
+      }
 
-    /* Dropdown popup */
-    .user-dropdown-list {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 20;
-      margin-top: 4px;
-      max-height: 200px;
-      overflow-y: auto;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-md);
-      display: flex;
-      flex-direction: column;
-    }
+      .user-dropdown-item:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
 
-    .user-dropdown-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border: none;
-      background: none;
-      text-align: left;
-      cursor: pointer;
-      transition: background-color 0.1s;
-      width: 100%;
-    }
+      .user-item-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+      }
 
-    .user-dropdown-item:hover:not(:disabled) {
-      background-color: var(--bg-hover);
-    }
+      .user-item-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
 
-    .user-dropdown-item:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
+      .user-item-email {
+        font-size: 11px;
+      }
 
-    .user-item-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      flex: 1;
-    }
+      .already-member-tag {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-style: italic;
+      }
 
-    .user-item-name {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
+      /* Table styles */
+      .table-wrapper {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background-color: var(--bg-surface);
+      }
 
-    .user-item-email {
-      font-size: 11px;
-    }
+      .member-user-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .already-member-tag {
-      font-size: 10px;
-      color: var(--text-muted);
-      font-style: italic;
-    }
+      .font-medium {
+        font-weight: 500;
+      }
 
+      .text-muted {
+        color: var(--text-muted);
+      }
 
-    /* Table styles */
-    .table-wrapper {
-      overflow-x: auto;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background-color: var(--bg-surface);
-    }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
 
+      .text-right {
+        text-align: right;
+      }
 
-    .member-user-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .empty-cell {
+        text-align: center;
+        color: var(--text-muted);
+        padding: 24px 14px;
+        font-style: italic;
+      }
 
-    .font-medium {
-      font-weight: 500;
-    }
+      .modal-footer-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        width: 100%;
+      }
 
-    .text-muted {
-      color: var(--text-muted);
-    }
+      .remove-prompt-body {
+        padding: 8px 0;
+      }
 
-    .tabular-nums {
-      font-variant-numeric: tabular-nums;
-    }
-
-    .text-right {
-      text-align: right;
-    }
-
-    .empty-cell {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 24px 14px;
-      font-style: italic;
-    }
-
-    .modal-footer-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      width: 100%;
-    }
-
-    .remove-prompt-body {
-      padding: 8px 0;
-    }
-
-    .remove-prompt-text {
-      font-size: 14px;
-      color: var(--text-main);
-      margin: 0;
-    }
-  `]
+      .remove-prompt-text {
+        font-size: 14px;
+        color: var(--text-main);
+        margin: 0;
+      }
+    `,
+  ],
 })
 export class ProjectMembersModalComponent {
   private readonly api = inject(ApiService);
@@ -419,9 +453,9 @@ export class ProjectMembersModalComponent {
         user: { header: header('nav.users'), content: cell(this.userCell) },
         email: { header: header('iam.email'), content: cell(this.emailCell) },
         access: { header: header('projects.uroven_dostupa'), content: cell(this.accessCell), width: '170px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' }
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' },
       },
-      columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access']
+      columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access'],
     };
   });
 
@@ -436,7 +470,7 @@ export class ProjectMembersModalComponent {
   readonly sortValues = {
     user: (m: ProjectMember) => m.userName,
     email: (m: ProjectMember) => m.userEmail,
-    access: (m: ProjectMember) => this.accessLabel(m.accessKind)
+    access: (m: ProjectMember) => this.accessLabel(m.accessKind),
   };
 
   @Output() close = new EventEmitter<void>();
@@ -454,29 +488,31 @@ export class ProjectMembersModalComponent {
   private searchSubject = new Subject<string>();
 
   constructor() {
-    this.searchSubject.pipe(
-      debounceTime(250),
-      distinctUntilChanged(),
-      switchMap(query => {
-        const trimmed = query.trim();
-        if (!trimmed) {
-          return of({ items: [] });
-        }
-        return this.api.get<{ items: User[] }>('/iam/users', {
-          state: 'A',
-          search: trimmed,
-          limit: 15
-        });
-      })
-    ).subscribe({
-      next: res => {
-        this.foundUsers = res.items || [];
-        this.isUserDropdownOpen = true;
-      },
-      error: () => {
-        this.foundUsers = [];
-      }
-    });
+    this.searchSubject
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          const trimmed = query.trim();
+          if (!trimmed) {
+            return of({ items: [] });
+          }
+          return this.api.get<{ items: User[] }>('/iam/users', {
+            state: 'A',
+            search: trimmed,
+            limit: 15,
+          });
+        }),
+      )
+      .subscribe({
+        next: (res) => {
+          this.foundUsers = res.items || [];
+          this.isUserDropdownOpen = true;
+        },
+        error: () => {
+          this.foundUsers = [];
+        },
+      });
   }
 
   /** Access levels a new member can get; translated again when the language changes. */
@@ -528,15 +564,19 @@ export class ProjectMembersModalComponent {
   /** The role's name; a kind this screen does not know shows as it came. */
   accessLabel(kind: string): string {
     switch (kind) {
-      case 'MANAGER': return this.i18n.translate('projects.rol_rukovoditel');
-      case 'MEMBER': return this.i18n.translate('projects.rol_uchastnik');
-      case 'OBSERVER': return this.i18n.translate('projects.rol_nablyudatel');
-      default: return kind;
+      case 'MANAGER':
+        return this.i18n.translate('projects.rol_rukovoditel');
+      case 'MEMBER':
+        return this.i18n.translate('projects.rol_uchastnik');
+      case 'OBSERVER':
+        return this.i18n.translate('projects.rol_nablyudatel');
+      default:
+        return kind;
     }
   }
 
   isUserAlreadyMember(userId: number): boolean {
-    return this.members.some(m => m.userId === userId);
+    return this.members.some((m) => m.userId === userId);
   }
 
   submitAddMember(): void {
@@ -544,7 +584,7 @@ export class ProjectMembersModalComponent {
     this.addMember.emit({
       projectId: this.project.id,
       userId: this.selectedUser.id,
-      accessKind: this.selectedAccessKind
+      accessKind: this.selectedAccessKind,
     });
     this.clearSelectedUser();
   }

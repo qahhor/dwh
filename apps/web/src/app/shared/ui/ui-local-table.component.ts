@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal, TemplateRef } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  signal,
+  TemplateRef,
+} from '@angular/core';
 import { I18nService } from '../../core/services/i18n.service';
 import { SMTTableComponent } from '../ui-kit/components/table/table.component';
 import { TableConfig } from '../ui-kit/components/table/table.types';
@@ -25,9 +34,17 @@ import { LocalSort, LocalSortValue, sortRows } from './local-sort';
       [smtEmptyTemplate]="emptyTemplate()"
       [smtColumnResizeEnabled]="false"
       (smtSortChange)="sort.set($event ?? null)"
-      (smtRowClick)="rowClick.emit($event)" />
+      (smtRowClick)="rowClick.emit($event)"
+    />
   `,
-  styles: [`:host { display: block; min-width: 0; }`],
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 0;
+      }
+    `,
+  ],
 })
 export class UiLocalTableComponent<T> {
   private readonly i18n = inject(I18nService);
@@ -44,22 +61,26 @@ export class UiLocalTableComponent<T> {
 
   protected readonly sort = signal<LocalSort | null>(null);
 
-  protected readonly sortedRows = computed(() =>
-    sortRows(this.rows(), this.sort(), this.sortValues(), this.locale()));
+  protected readonly sortedRows = computed(() => sortRows(this.rows(), this.sort(), this.sortValues(), this.locale()));
 
   /** The config with sorting offered where a reader exists and the current direction shown. */
   protected readonly shownConfig = computed<TableConfig<T>>(() => {
     const config = this.config();
     const readers = this.sortValues();
     const sort = this.sort();
-    const columns = Object.fromEntries(Object.entries(config.columns).map(([key, column]) => {
-      const sortKey = column.key ?? key;
-      return [key, {
-        ...column,
-        hasSorting: sortKey in readers,
-        sortedBy: sort && sort.column === sortKey ? sort.sortBy : undefined,
-      }];
-    }));
+    const columns = Object.fromEntries(
+      Object.entries(config.columns).map(([key, column]) => {
+        const sortKey = column.key ?? key;
+        return [
+          key,
+          {
+            ...column,
+            hasSorting: sortKey in readers,
+            sortedBy: sort && sort.column === sortKey ? sort.sortBy : undefined,
+          },
+        ];
+      }),
+    );
     return { ...config, columns };
   });
 

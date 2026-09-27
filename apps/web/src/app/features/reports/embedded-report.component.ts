@@ -17,7 +17,9 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
       <div class="report-toolbar">
         <div class="report-meta">
           <div class="report-icon-box">
-            <span class="material-symbols-outlined report-icon" aria-hidden="true">{{ report()?.icon || 'analytics' }}</span>
+            <span class="material-symbols-outlined report-icon" aria-hidden="true">{{
+              report()?.icon || 'analytics'
+            }}</span>
           </div>
           <div class="report-title-group">
             <h1 class="report-title">{{ report()?.title || ('reports.loading' | t) }}</h1>
@@ -25,7 +27,9 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
               <span class="report-badge" *ngIf="urlHost()">{{ urlHost() }}</span>
               <span class="status-indicator" [class.loading]="isLoading()" [class.ready]="!isLoading()">
                 <span class="status-dot"></span>
-                <span class="status-text">{{ isLoading() ? ('common.loading' | t) : ('nav.settings.stat_active' | t) }}</span>
+                <span class="status-text">{{
+                  isLoading() ? ('common.loading' | t) : ('nav.settings.stat_active' | t)
+                }}</span>
               </span>
             </div>
           </div>
@@ -50,8 +54,12 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
             [title]="isFullscreen() ? ('reports.exit_fullscreen' | t) : ('reports.fullscreen' | t)"
             [attr.aria-label]="isFullscreen() ? ('reports.exit_fullscreen' | t) : ('reports.fullscreen' | t)"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">{{ isFullscreen() ? 'fullscreen_exit' : 'fullscreen' }}</span>
-            <span class="action-label">{{ isFullscreen() ? ('reports.exit_fullscreen' | t) : ('reports.fullscreen' | t) }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
+            }}</span>
+            <span class="action-label">{{
+              isFullscreen() ? ('reports.exit_fullscreen' | t) : ('reports.fullscreen' | t)
+            }}</span>
           </button>
 
           <button
@@ -92,7 +100,9 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
         <div *ngIf="errorMessage()" class="report-error" role="alert">
           <span class="material-symbols-outlined icon" aria-hidden="true">error</span>
           <span>{{ errorMessage() }}</span>
-          <button smt-button smtVariant="secondary" type="button" (click)="loadReport()">{{ 'common.retry' | t }}</button>
+          <button smt-button smtVariant="secondary" type="button" (click)="loadReport()">
+            {{ 'common.retry' | t }}
+          </button>
         </div>
 
         <!-- Safe iFrame -->
@@ -131,7 +141,7 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
       </div>
     </div>
   `,
-  styleUrl: './embedded-report.component.css'
+  styleUrl: './embedded-report.component.css',
 })
 export class EmbeddedReportComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -148,7 +158,7 @@ export class EmbeddedReportComponent implements OnInit {
   readonly showTip = signal<boolean>(true);
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.subscribe((params) => {
       const code = params.get('code');
       if (code) {
         this.loadReport(code);
@@ -164,7 +174,7 @@ export class EmbeddedReportComponent implements OnInit {
     this.errorMessage.set(null);
 
     this.navService.getItemByCode(reportCode).subscribe({
-      next: item => {
+      next: (item) => {
         this.report.set(item);
         try {
           const parsed = new URL(item.url, window.location.origin);
@@ -177,7 +187,7 @@ export class EmbeddedReportComponent implements OnInit {
       error: () => {
         this.errorMessage.set(this.i18n.translate('reports.load_error'));
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -196,7 +206,7 @@ export class EmbeddedReportComponent implements OnInit {
   }
 
   toggleFullscreen(): void {
-    this.isFullscreen.update(v => !v);
+    this.isFullscreen.update((v) => !v);
   }
 
   openPopup(): void {
@@ -209,7 +219,7 @@ export class EmbeddedReportComponent implements OnInit {
     window.open(
       current.url,
       '_blank',
-      `width=${w},height=${h},top=${top},left=${left},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
+      `width=${w},height=${h},top=${top},left=${left},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`,
     );
   }
 }

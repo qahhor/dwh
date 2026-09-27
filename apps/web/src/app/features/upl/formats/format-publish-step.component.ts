@@ -42,7 +42,9 @@ import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 
     @if (version()?.status === 'draft') {
       @if (errorCount() > 0) {
-        <p class="upl-review-note upl-review-note--error" data-testid="upl-review-state">{{ 'upl.format.review.draft_errors' | t }}</p>
+        <p class="upl-review-note upl-review-note--error" data-testid="upl-review-state">
+          {{ 'upl.format.review.draft_errors' | t }}
+        </p>
       } @else if (!hasColumns()) {
         <p class="upl-review-note" data-testid="upl-review-state">{{ 'upl.format.review.draft_empty' | t }}</p>
       } @else {
@@ -58,15 +60,42 @@ import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
       <p class="upl-review-note" data-testid="upl-review-state">{{ 'upl.format.review.not_draft' | t }}</p>
     }
   `,
-  styles: [`
-    :host { display: flex; flex-direction: column; gap: 0.75rem; }
-    .upl-block-title { margin: 0; font-size: 1rem; color: var(--text-main); }
-    .upl-review { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.75rem; margin: 0; }
-    .upl-review dt { color: var(--text-muted); font-size: 0.75rem; }
-    .upl-review dd { margin: 0; color: var(--text-main); font-weight: 600; }
-    .upl-review-note { margin: 0; color: var(--text-main); }
-    .upl-review-note--error { color: var(--danger-text); }
-  `]
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .upl-block-title {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-main);
+      }
+      .upl-review {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+        gap: 0.75rem;
+        margin: 0;
+      }
+      .upl-review dt {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+      .upl-review dd {
+        margin: 0;
+        color: var(--text-main);
+        font-weight: 600;
+      }
+      .upl-review-note {
+        margin: 0;
+        color: var(--text-main);
+      }
+      .upl-review-note--error {
+        color: var(--danger-text);
+      }
+    `,
+  ],
 })
 export class FormatPublishStepComponent {
   private readonly i18n = inject(I18nService);
@@ -96,6 +125,6 @@ export class FormatPublishStepComponent {
   /** Каждый лист с хотя бы одной колонкой — иначе публиковать нечего. */
   hasColumns(): boolean {
     const sheets = this.model().sheets;
-    return sheets.length > 0 && sheets.every(sheet => sheet.columns.length > 0);
+    return sheets.length > 0 && sheets.every((sheet) => sheet.columns.length > 0);
   }
 }

@@ -12,7 +12,7 @@ import {
   AnnouncementAdminRecord,
   AnnouncementDraftPayload,
   Confirmation,
-  ApiProblem
+  ApiProblem,
 } from './announcements.models';
 
 import { AnnouncementsToolbarComponent } from './components/announcements-toolbar.component';
@@ -27,7 +27,7 @@ export type {
   AnnouncementAdminRecord,
   AnnouncementDraftPayload,
   Confirmation,
-  ApiProblem
+  ApiProblem,
 };
 
 @Component({
@@ -39,7 +39,7 @@ export type {
     SMTButtonComponent,
     AnnouncementsToolbarComponent,
     AnnouncementsListComponent,
-    AnnouncementsModalsComponent
+    AnnouncementsModalsComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -51,19 +51,27 @@ export type {
           <p class="subtitle">{{ 'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t }}</p>
         </div>
         <div class="header-actions">
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             smtVariant="secondary"
             smtIcon="refresh"
             [smtLoading]="isLoading()"
             [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
             (click)="loadAnnouncements()"
-          >{{ 'common.refresh' | t }}</button>
-          <button smt-button type="button"
+          >
+            {{ 'common.refresh' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
             *ngIf="canCreate()"
             smtIcon="add"
             [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
             (click)="openCreate()"
-          >{{ 'common.create' | t }}</button>
+          >
+            {{ 'common.create' | t }}
+          </button>
         </div>
       </header>
 
@@ -73,7 +81,14 @@ export type {
           <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
           <p>{{ operationError() }}</p>
         </div>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t" (click)="refreshAfterConflict()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+          (click)="refreshAfterConflict()"
+        >
           {{ 'announcements.obnovit_spisok' | t }}
         </button>
       </div>
@@ -97,26 +112,56 @@ export type {
         <span>{{ 'announcements.zagruzhaem_obyavleniya' | t }}</span>
       </div>
 
-      <div *ngIf="loadError() && !isLoading()" class="state-panel error-state" role="alert" data-testid="announcements-load-error">
+      <div
+        *ngIf="loadError() && !isLoading()"
+        class="state-panel error-state"
+        role="alert"
+        data-testid="announcements-load-error"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
         <div>
           <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
           <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
         </div>
-        <button smt-button type="button" smtVariant="secondary" [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t" (click)="loadAnnouncements()">{{ 'announcements.povtorit' | t }}</button>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t"
+          (click)="loadAnnouncements()"
+        >
+          {{ 'announcements.povtorit' | t }}
+        </button>
       </div>
 
-      <div *ngIf="!isLoading() && !loadError() && announcements().length === 0" class="state-panel empty-state" data-testid="announcements-empty">
+      <div
+        *ngIf="!isLoading() && !loadError() && announcements().length === 0"
+        class="state-panel empty-state"
+        data-testid="announcements-empty"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">campaign</span>
         <div>
           <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
           <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
         </div>
-        <button smt-button type="button" *ngIf="canCreate()" smtVariant="secondary" smtIcon="add" (click)="openCreate()">{{ 'announcements.sozdat_chernovik' | t }}</button>
+        <button
+          smt-button
+          type="button"
+          *ngIf="canCreate()"
+          smtVariant="secondary"
+          smtIcon="add"
+          (click)="openCreate()"
+        >
+          {{ 'announcements.sozdat_chernovik' | t }}
+        </button>
       </div>
 
       <!-- Empty state when search or tab filter matches nothing -->
-      <div *ngIf="!isLoading() && !loadError() && announcements().length > 0 && filteredAnnouncements().length === 0" class="state-panel empty-state" role="status">
+      <div
+        *ngIf="!isLoading() && !loadError() && announcements().length > 0 && filteredAnnouncements().length === 0"
+        class="state-panel empty-state"
+        role="status"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">filter_list_off</span>
         <div>
           <h2>{{ 'announcements.po_filtram_nichego_ne_naydeno' | t }}</h2>
@@ -155,35 +200,136 @@ export type {
       />
     </section>
   `,
-  styles: [`
-    :host { display: block; }
-    .announcements-page { display: flex; flex-direction: column; gap: 18px; max-width: 1180px; margin: 0 auto; }
-    .view-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
-    .eyebrow { margin: 0 0 4px; color: var(--primary); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-    h1 { margin: 0; color: var(--text-main); font-size: 26px; line-height: 1.2; }
-    .subtitle { margin: 8px 0 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; }
-    .header-actions { display: flex; gap: 8px; }
+  styles: [
+    `
+      :host {
+        display: block;
+      }
+      .announcements-page {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        max-width: 1180px;
+        margin: 0 auto;
+      }
+      .view-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .eyebrow {
+        margin: 0 0 4px;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        margin: 0;
+        color: var(--text-main);
+        font-size: 26px;
+        line-height: 1.2;
+      }
+      .subtitle {
+        margin: 8px 0 0;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+      .header-actions {
+        display: flex;
+        gap: 8px;
+      }
 
-    .state-panel, .inline-alert { display: flex; align-items: center; gap: 14px; padding: 22px; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-lg); color: var(--text-muted); }
-    .state-panel { justify-content: center; min-height: 180px; text-align: left; }
-    .state-panel h2, .inline-alert strong { margin: 0; color: var(--text-main); font-size: 15px; }
-    .state-panel p, .inline-alert p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; }
-    .empty-state { flex-direction: column; text-align: center; }
-    .empty-state > .material-symbols-outlined { color: var(--primary); font-size: 38px; }
-    .error-state > .material-symbols-outlined, .inline-alert > .material-symbols-outlined { color: var(--danger); font-size: 28px; }
-    .error-state .smt-button, .inline-alert .smt-button { margin-left: auto; }
-    .inline-alert { padding: 14px 16px; border-color: color-mix(in srgb, var(--danger) 35%, var(--border-color)); }
-    .spinner { width: 20px; height: 20px; border: 2px solid var(--border-color); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+      .state-panel,
+      .inline-alert {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 22px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        color: var(--text-muted);
+      }
+      .state-panel {
+        justify-content: center;
+        min-height: 180px;
+        text-align: left;
+      }
+      .state-panel h2,
+      .inline-alert strong {
+        margin: 0;
+        color: var(--text-main);
+        font-size: 15px;
+      }
+      .state-panel p,
+      .inline-alert p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .empty-state {
+        flex-direction: column;
+        text-align: center;
+      }
+      .empty-state > .material-symbols-outlined {
+        color: var(--primary);
+        font-size: 38px;
+      }
+      .error-state > .material-symbols-outlined,
+      .inline-alert > .material-symbols-outlined {
+        color: var(--danger);
+        font-size: 28px;
+      }
+      .error-state .smt-button,
+      .inline-alert .smt-button {
+        margin-left: auto;
+      }
+      .inline-alert {
+        padding: 14px 16px;
+        border-color: color-mix(in srgb, var(--danger) 35%, var(--border-color));
+      }
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-color);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @media (max-width: 680px) {
-      .view-header { flex-direction: column; }
-      .header-actions { width: 100%; }
-      .state-panel, .inline-alert { align-items: flex-start; flex-wrap: wrap; }
-      .error-state .smt-button, .inline-alert .smt-button { margin-left: 42px; }
-    }
-    @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 1.5s; } }
-  `]
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (max-width: 680px) {
+        .view-header {
+          flex-direction: column;
+        }
+        .header-actions {
+          width: 100%;
+        }
+        .state-panel,
+        .inline-alert {
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        .error-state .smt-button,
+        .inline-alert .smt-button {
+          margin-left: 42px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .spinner {
+          animation-duration: 1.5s;
+        }
+      }
+    `,
+  ],
 })
 export class AnnouncementsComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
@@ -203,20 +349,14 @@ export class AnnouncementsComponent implements OnInit {
   readonly draftTitles = signal<Record<string, string>>({ ru: '' });
   readonly draftBodies = signal<Record<string, string>>({ ru: '' });
 
-  readonly draftCount = computed(() =>
-    this.announcements().filter(a => a.state === 'DRAFT').length
-  );
+  readonly draftCount = computed(() => this.announcements().filter((a) => a.state === 'DRAFT').length);
 
-  readonly publishedCount = computed(() =>
-    this.announcements().filter(a => a.state === 'PUBLISHED').length
-  );
+  readonly publishedCount = computed(() => this.announcements().filter((a) => a.state === 'PUBLISHED').length);
 
-  readonly archivedCount = computed(() =>
-    this.announcements().filter(a => a.state === 'ARCHIVED').length
-  );
+  readonly archivedCount = computed(() => this.announcements().filter((a) => a.state === 'ARCHIVED').length);
 
   readonly activeAnnouncementId = computed(() => {
-    const published = this.announcements().filter(a => a.state === 'PUBLISHED');
+    const published = this.announcements().filter((a) => a.state === 'PUBLISHED');
     return published.length > 0 ? published[0].id : null;
   });
 
@@ -224,11 +364,11 @@ export class AnnouncementsComponent implements OnInit {
     let list = this.announcements();
     const filter = this.statusFilter();
     if (filter !== 'ALL') {
-      list = list.filter(a => a.state === filter);
+      list = list.filter((a) => a.state === filter);
     }
     const q = this.searchQuery().trim().toLowerCase();
     if (q) {
-      list = list.filter(a => {
+      list = list.filter((a) => {
         const title = this.localizedValue(a.titleJson).toLowerCase();
         const body = this.localizedValue(a.bodyJson).toLowerCase();
         const idStr = String(a.id);
@@ -244,7 +384,7 @@ export class AnnouncementsComponent implements OnInit {
   constructor(
     private readonly api: ApiService,
     private readonly permissions: PermissionService,
-    private readonly toast: ToastService
+    private readonly toast: ToastService,
   ) {}
 
   get titleRu(): string {
@@ -278,14 +418,14 @@ export class AnnouncementsComponent implements OnInit {
     this.isLoading.set(true);
     this.loadError.set(false);
     this.api.get<AnnouncementAdminRecord[]>('/announcements/manage').subscribe({
-      next: records => {
+      next: (records) => {
         this.announcements.set(records ?? []);
         this.isLoading.set(false);
       },
       error: () => {
         this.loadError.set(true);
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -336,15 +476,18 @@ export class AnnouncementsComponent implements OnInit {
   }
 
   isDraftValid(): boolean {
-    return this.titleRu.trim().length > 0
-      && this.titleRu.length <= 10_000
-      && this.bodyRu.trim().length > 0
-      && this.bodyRu.length <= 10_000;
+    return (
+      this.titleRu.trim().length > 0 &&
+      this.titleRu.length <= 10_000 &&
+      this.bodyRu.trim().length > 0 &&
+      this.bodyRu.length <= 10_000
+    );
   }
 
   hasPublishableContent(item: AnnouncementAdminRecord): boolean {
-    return this.localizedValue(item.titleJson).trim().length > 0
-      && this.localizedValue(item.bodyJson).trim().length > 0;
+    return (
+      this.localizedValue(item.titleJson).trim().length > 0 && this.localizedValue(item.bodyJson).trim().length > 0
+    );
   }
 
   saveDraft(): void {
@@ -367,24 +510,29 @@ export class AnnouncementsComponent implements OnInit {
       titleJson,
       bodyJson,
       bannerType: this.bannerType(),
-      lockVersion: this.editingLockVersion
+      lockVersion: this.editingLockVersion,
     };
     this.isSaving.set(true);
     this.operationError.set(null);
-    const request = this.editingId === null
-      ? this.api.post<AnnouncementAdminRecord>('/announcements', payload)
-      : this.api.put<AnnouncementAdminRecord>(`/announcements/${this.editingId}`, payload);
+    const request =
+      this.editingId === null
+        ? this.api.post<AnnouncementAdminRecord>('/announcements', payload)
+        : this.api.put<AnnouncementAdminRecord>(`/announcements/${this.editingId}`, payload);
     request.subscribe({
-      next: saved => {
+      next: (saved) => {
         this.upsert(saved);
         this.isSaving.set(false);
         this.isEditorOpen.set(false);
-        this.toast.success(this.editingId === null ? this.uiI18n.translate('announcements.chernovik_sozdan') : this.uiI18n.translate('announcements.chernovik_sohranen'));
+        this.toast.success(
+          this.editingId === null
+            ? this.uiI18n.translate('announcements.chernovik_sozdan')
+            : this.uiI18n.translate('announcements.chernovik_sohranen'),
+        );
       },
       error: (problem: ApiProblem) => {
         this.isSaving.set(false);
         this.handleMutationError(problem);
-      }
+      },
     });
   }
 
@@ -396,14 +544,16 @@ export class AnnouncementsComponent implements OnInit {
     const t = (key: string) => this.uiI18n.translate(key);
     const archive = action === 'archive';
     const title = this.localizedValue(announcement.titleJson);
-    this.modal.confirm({
-      title: t(archive ? 'announcements.arhivirovat_obyavlenie' : 'announcements.opublikovat_obyavlenie'),
-      message: `«${title}»\n${t(archive ? 'announcements.obyavlenie_ischeznet_u_polzovateley_i_ostanetsya' : 'announcements.posle_publikacii_obyavlenie_uvidyat_polzovateli_')}`,
-      yesLabel: t('common.confirm'),
-      noLabel: t('common.cancel'),
-      destructive: archive,
-      action: () => this.runConfirmedAction({ action, announcement })
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: t(archive ? 'announcements.arhivirovat_obyavlenie' : 'announcements.opublikovat_obyavlenie'),
+        message: `«${title}»\n${t(archive ? 'announcements.obyavlenie_ischeznet_u_polzovateley_i_ostanetsya' : 'announcements.posle_publikacii_obyavlenie_uvidyat_polzovateli_')}`,
+        yesLabel: t('common.confirm'),
+        noLabel: t('common.cancel'),
+        destructive: archive,
+        action: () => this.runConfirmedAction({ action, announcement }),
+      })
+      .subscribe();
   }
 
   refreshAfterConflict(): void {
@@ -417,7 +567,7 @@ export class AnnouncementsComponent implements OnInit {
       return '';
     }
     const current = this.uiI18n.currentLang();
-    return values[current] ?? values['ru'] ?? Object.values(values).find(value => value?.trim().length > 0) ?? '';
+    return values[current] ?? values['ru'] ?? Object.values(values).find((value) => value?.trim().length > 0) ?? '';
   }
 
   /**
@@ -429,24 +579,26 @@ export class AnnouncementsComponent implements OnInit {
     this.isSaving.set(true);
     const path = `/announcements/${pending.announcement.id}/${pending.action}`;
     return this.api.post<AnnouncementAdminRecord>(path, { lockVersion: pending.announcement.lockVersion }).pipe(
-      tap(saved => {
+      tap((saved) => {
         this.upsert(saved);
-        this.toast.success(pending.action === 'publish' ? this.uiI18n.translate('announcements.obyavlenie_opublikovano') : this.uiI18n.translate('announcements.obyavlenie_arhivirovano'));
+        this.toast.success(
+          pending.action === 'publish'
+            ? this.uiI18n.translate('announcements.obyavlenie_opublikovano')
+            : this.uiI18n.translate('announcements.obyavlenie_arhivirovano'),
+        );
       }),
       catchError((problem: ApiProblem) => {
         this.handleMutationError(problem);
         return EMPTY;
       }),
-      finalize(() => this.isSaving.set(false))
+      finalize(() => this.isSaving.set(false)),
     );
   }
 
   private upsert(saved: AnnouncementAdminRecord): void {
     const records = this.announcements();
-    const exists = records.some(item => item.id === saved.id);
-    this.announcements.set(exists
-      ? records.map(item => item.id === saved.id ? saved : item)
-      : [saved, ...records]);
+    const exists = records.some((item) => item.id === saved.id);
+    this.announcements.set(exists ? records.map((item) => (item.id === saved.id ? saved : item)) : [saved, ...records]);
   }
 
   private handleMutationError(problem: ApiProblem): void {
@@ -454,6 +606,8 @@ export class AnnouncementsComponent implements OnInit {
       this.operationError.set(this.uiI18n.translate('announcements.eto_obyavlenie_uzhe_izmeneno_drugim_polzovatelem'));
       return;
     }
-    this.operationError.set(problem?.detail || this.uiI18n.translate('announcements.ne_udalos_sohranit_izmenenie_povtorite_popytku'));
+    this.operationError.set(
+      problem?.detail || this.uiI18n.translate('announcements.ne_udalos_sohranit_izmenenie_povtorite_popytku'),
+    );
   }
 }

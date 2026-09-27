@@ -15,9 +15,23 @@ export interface EventTypeRow {
 @Component({
   selector: 'app-notification-preferences-modal',
   standalone: true,
-  imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, SMTCheckboxComponent, CommonModule, FormsModule, TranslatePipe],
+  imports: [
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    SMTButtonComponent,
+    SMTCheckboxComponent,
+    CommonModule,
+    FormsModule,
+    TranslatePipe,
+  ],
   template: `
-    <smt-dialog [open]="true" [smtTitle]="'notifications.preferences_title' | t" smtSize="lg" [dismissible]="!isSaving" (closed)="close.emit()">
+    <smt-dialog
+      [open]="true"
+      [smtTitle]="'notifications.preferences_title' | t"
+      smtSize="lg"
+      [dismissible]="!isSaving"
+      (closed)="close.emit()"
+    >
       <ng-template smtDialogContent>
         <p class="modal-desc">
           {{ 'notifications.preferences_desc' | t }}
@@ -48,22 +62,31 @@ export interface EventTypeRow {
                   {{ row.titleKey | t }}
                 </td>
                 <td class="channel-cell">
-                  <span smt-checkbox smtHideLabel
+                  <span
+                    smt-checkbox
+                    smtHideLabel
                     [checked]="isEnabled(row.code, 'in_app')"
                     (checkedChange)="toggle(row.code, 'in_app', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"></span>
+                    [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"
+                  ></span>
                 </td>
                 <td class="channel-cell">
-                  <span smt-checkbox smtHideLabel
+                  <span
+                    smt-checkbox
+                    smtHideLabel
                     [checked]="isEnabled(row.code, 'email')"
                     (checkedChange)="toggle(row.code, 'email', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - Email'"></span>
+                    [smtAriaLabel]="(row.titleKey | t) + ' - Email'"
+                  ></span>
                 </td>
                 <td class="channel-cell">
-                  <span smt-checkbox smtHideLabel
+                  <span
+                    smt-checkbox
+                    smtHideLabel
                     [checked]="isEnabled(row.code, 'telegram')"
                     (checkedChange)="toggle(row.code, 'telegram', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"></span>
+                    [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"
+                  ></span>
                 </td>
               </tr>
             </tbody>
@@ -79,60 +102,66 @@ export interface EventTypeRow {
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    .modal-desc {
-      margin: 0;
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.4;
-    }
-    .table-wrap {
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      overflow: hidden;
-    }
-    .pref-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13px;
-    }
-    .pref-table th {
-      background: var(--bg-hover);
-      padding: 10px 14px;
-      text-align: left;
-      font-weight: 600;
-      color: var(--text-main);
-      border-bottom: 1px solid var(--border-color);
-    }
-    .pref-table td {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-main);
-    }
-    .pref-table tr:last-child td {
-      border-bottom: none;
-    }
-    .pref-table tr:hover td {
-      background: var(--bg-hover);
-    }
-    .event-col { width: 52%; }
-    .channel-col {
-      width: 16%;
-      text-align: center;
-    }
-    .channel-cell {
-      text-align: center;
-    }
-    .channel-icon {
-      font-size: 15px;
-      vertical-align: text-bottom;
-      margin-right: 3px;
-      color: var(--text-muted);
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  `]
+  styles: [
+    `
+      .modal-desc {
+        margin: 0;
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.4;
+      }
+      .table-wrap {
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+      .pref-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .pref-table th {
+        background: var(--bg-hover);
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-main);
+        border-bottom: 1px solid var(--border-color);
+      }
+      .pref-table td {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-main);
+      }
+      .pref-table tr:last-child td {
+        border-bottom: none;
+      }
+      .pref-table tr:hover td {
+        background: var(--bg-hover);
+      }
+      .event-col {
+        width: 52%;
+      }
+      .channel-col {
+        width: 16%;
+        text-align: center;
+      }
+      .channel-cell {
+        text-align: center;
+      }
+      .channel-icon {
+        font-size: 15px;
+        vertical-align: text-bottom;
+        margin-right: 3px;
+        color: var(--text-muted);
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    `,
+  ],
 })
 export class NotificationPreferencesModalComponent implements OnInit {
   @Input() initialPreferences: NotificationPrefItem[] = [];
@@ -147,7 +176,7 @@ export class NotificationPreferencesModalComponent implements OnInit {
     { code: 'task_status', titleKey: 'notifications.pref_task_status' },
     { code: 'task_deadline', titleKey: 'notifications.pref_task_deadline' },
     { code: 'task_deadline_reminder', titleKey: 'notifications.pref_task_deadline_reminder' },
-    { code: 'task_member_removed', titleKey: 'notifications.pref_task_member_removed' }
+    { code: 'task_member_removed', titleKey: 'notifications.pref_task_member_removed' },
   ];
 
   private readonly prefsMap = new Map<string, boolean>();

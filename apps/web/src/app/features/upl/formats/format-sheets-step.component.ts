@@ -10,7 +10,11 @@ import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheet
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/ui-kit/components/forms/checkbox';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
@@ -21,7 +25,17 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   selector: 'app-upl-format-sheets-step',
   standalone: true,
   // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
-  imports: [SMTCheckboxComponent, SMTCheckboxValueAccessor, SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
+  imports: [
+    SMTCheckboxComponent,
+    SMTCheckboxValueAccessor,
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    FormsModule,
+    TranslatePipe,
+    SMTButtonComponent,
+  ],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.sheets' | t }}</h2>
     <div class="upl-tabs" role="tablist">
@@ -40,7 +54,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               data-testid="upl-remove-sheet"
               [attr.aria-label]="'upl.format.remove_sheet' | t"
               (click)="askRemoveSheet($index)"
-            >×</button>
+            >
+              ×
+            </button>
           }
         </span>
       }
@@ -64,7 +80,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               [smtInvalid]="sheetError(activeSheet(), 'sheetName')"
               [disabled]="!editable()"
               [(ngModel)]="sheet.sheetName"
-              [ngModelOptions]="{ standalone: true }" />
+              [ngModelOptions]="{ standalone: true }"
+            />
             @if (sheetError(activeSheet(), 'sheetName'); as problem) {
               <span class="upl-field-error">{{ errorText(problem) }}</span>
             }
@@ -80,7 +97,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [smtInvalid]="sheetError(activeSheet(), 'headerRow')"
             [disabled]="!editable()"
             [(ngModel)]="sheet.headerRow"
-            [ngModelOptions]="{ standalone: true }" />
+            [ngModelOptions]="{ standalone: true }"
+          />
           <span class="upl-hint">{{ 'upl.format.hint.header_row' | t }}</span>
           @if (sheetError(activeSheet(), 'headerRow'); as problem) {
             <span class="upl-field-error">{{ errorText(problem) }}</span>
@@ -93,7 +111,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [smtInvalid]="sheetError(activeSheet(), 'totalRowMarker')"
             [disabled]="!editable()"
             [(ngModel)]="sheet.totalRowMarker"
-            [ngModelOptions]="{ standalone: true }" />
+            [ngModelOptions]="{ standalone: true }"
+          />
           <span class="upl-hint">{{ 'upl.format.hint.total_marker' | t }}</span>
           @if (sheetError(activeSheet(), 'totalRowMarker'); as problem) {
             <span class="upl-field-error">{{ errorText(problem) }}</span>
@@ -138,7 +157,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                       [smtAriaLabel]="'upl.format.col.name_in_file' | t"
                       [disabled]="!editable()"
                       [(ngModel)]="column.nameInFile"
-                      [ngModelOptions]="{ standalone: true }" />
+                      [ngModelOptions]="{ standalone: true }"
+                    />
                   </td>
                   @if (model().matchColumnsBy !== 'position') {
                     <td
@@ -150,19 +170,23 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [smtAriaLabel]="'upl.format.col.header_synonyms' | t"
                         [disabled]="!editable()"
                         [value]="synonymsText(column)"
-                        (change)="setSynonyms(column, $any($event.target).value)" />
+                        (change)="setSynonyms(column, $any($event.target).value)"
+                      />
                     </td>
                   }
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'targetField')"
-                    [attr.title]="cellTitle(activeSheet(), $index, 'targetField') ?? text('upl.format.hint.target_field')"
+                    [attr.title]="
+                      cellTitle(activeSheet(), $index, 'targetField') ?? text('upl.format.hint.target_field')
+                    "
                   >
                     <smt-input
                       smtTestId="upl-cell-target-field"
                       [smtAriaLabel]="'upl.format.col.target_field' | t"
                       [disabled]="!editable()"
                       [(ngModel)]="column.targetField"
-                      [ngModelOptions]="{ standalone: true }" />
+                      [ngModelOptions]="{ standalone: true }"
+                    />
                   </td>
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'dataType')"
@@ -190,7 +214,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                       [smtAriaLabel]="'upl.format.col.required' | t"
                       [disabled]="!editable()"
                       [(ngModel)]="column.required"
-                      [ngModelOptions]="{ standalone: true }"></span>
+                      [ngModelOptions]="{ standalone: true }"
+                    ></span>
                   </td>
                   <td
                     [class.upl-cell-error]="cellError(activeSheet(), $index, 'sourceUnit')"
@@ -228,12 +253,17 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [smtAriaLabel]="'upl.format.col.key_mask' | t"
                         [disabled]="!editable()"
                         [(ngModel)]="column.keyMask"
-                        [ngModelOptions]="{ standalone: true }" />
+                        [ngModelOptions]="{ standalone: true }"
+                      />
                     }
                   </td>
                   <td
-                    [class.upl-cell-error]="cellError(activeSheet(), $index, 'keyPadLength') || cellError(activeSheet(), $index, 'keyPadMax')"
-                    [attr.title]="cellTitle(activeSheet(), $index, 'keyPadLength') ?? cellTitle(activeSheet(), $index, 'keyPadMax')"
+                    [class.upl-cell-error]="
+                      cellError(activeSheet(), $index, 'keyPadLength') || cellError(activeSheet(), $index, 'keyPadMax')
+                    "
+                    [attr.title]="
+                      cellTitle(activeSheet(), $index, 'keyPadLength') ?? cellTitle(activeSheet(), $index, 'keyPadMax')
+                    "
                   >
                     @if (column.dataType === 'object_key') {
                       <span class="upl-pad-pair">
@@ -245,7 +275,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                           [smtAriaLabel]="'upl.format.col.key_pad_length' | t"
                           [disabled]="!editable()"
                           [(ngModel)]="column.keyPadLength"
-                          [ngModelOptions]="{ standalone: true }" />
+                          [ngModelOptions]="{ standalone: true }"
+                        />
                         <smt-input
                           class="upl-input-small"
                           type="number"
@@ -254,7 +285,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                           [smtAriaLabel]="'upl.format.col.key_pad_max' | t"
                           [disabled]="!editable()"
                           [(ngModel)]="column.keyPadMax"
-                          [ngModelOptions]="{ standalone: true }" />
+                          [ngModelOptions]="{ standalone: true }"
+                        />
                       </span>
                     }
                   </td>
@@ -268,7 +300,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [smtAriaLabel]="'upl.format.col.ref_book' | t"
                         [disabled]="!editable()"
                         [(ngModel)]="column.refBookCode"
-                        [ngModelOptions]="{ standalone: true }" />
+                        [ngModelOptions]="{ standalone: true }"
+                      />
                     }
                   </td>
                   @if (model().matchColumnsBy === 'position') {
@@ -284,12 +317,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [smtAriaLabel]="'upl.format.col.file_position' | t"
                         [disabled]="!editable()"
                         [(ngModel)]="column.filePosition"
-                        [ngModelOptions]="{ standalone: true }" />
+                        [ngModelOptions]="{ standalone: true }"
+                      />
                     </td>
                   }
                   @if (editable()) {
                     <td class="upl-row-actions">
-                      <button smt-button type="button"
+                      <button
+                        smt-button
+                        type="button"
                         smtVariant="ghost"
                         smtSize="sm"
                         smtIcon="arrow_upward"
@@ -298,7 +334,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [disabled]="$index === 0"
                         (click)="moveColumn($index, -1)"
                       ></button>
-                      <button smt-button type="button"
+                      <button
+                        smt-button
+                        type="button"
                         smtVariant="ghost"
                         smtSize="sm"
                         smtIcon="arrow_downward"
@@ -307,7 +345,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [disabled]="$index === sheet.columns.length - 1"
                         (click)="moveColumn($index, 1)"
                       ></button>
-                      <button smt-button type="button"
+                      <button
+                        smt-button
+                        type="button"
                         smtVariant="ghost"
                         smtSize="sm"
                         smtIcon="close"
@@ -325,32 +365,120 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </div>
 
       @if (editable()) {
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" data-testid="upl-add-column" (click)="addColumn()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          data-testid="upl-add-column"
+          (click)="addColumn()"
+        >
           {{ 'upl.format.add_column' | t }}
         </button>
       }
     }
   `,
-  styles: [`
-    :host { display: flex; flex-direction: column; gap: 0.75rem; }
-    .upl-block-title { margin: 0; font-size: 1rem; color: var(--text-main); }
-    .upl-muted { color: var(--text-muted); }
-    .upl-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
-    .upl-input-small { max-width: 7rem; }
-    .upl-hint { color: var(--text-light); font-size: 0.75rem; }
-    .upl-field-error { color: var(--danger); font-size: 0.75rem; }
-    .upl-tabs { display: flex; flex-wrap: wrap; gap: 0.25rem; border-bottom: 1px solid var(--border-color); }
-    .upl-tab { display: inline-flex; align-items: center; background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
-    .upl-tab-active { background: var(--bg-active); border-color: var(--primary); }
-    .upl-tab-button { display: inline-flex; align-items: center; gap: 0.375rem; background: none; border: none; color: var(--text-main); padding: 0.375rem 0.625rem; cursor: pointer; }
-    .upl-tab-remove { background: none; border: none; color: var(--text-muted); padding: 0 0.5rem 0 0; cursor: pointer; }
-    .upl-tab-add { background: none; border: 1px dashed var(--border-color); border-radius: var(--radius-sm); color: var(--primary); padding: 0.375rem 0.625rem; cursor: pointer; }
-    .upl-tab-dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--danger); }
-    .upl-pad-pair { display: inline-flex; gap: 0.25rem; }
-    .upl-row-actions { display: flex; gap: 0.25rem; white-space: nowrap; }
-    .upl-cell-error { border: 1px solid var(--danger); background: var(--danger-bg); border-radius: var(--radius-sm); }
-    .upl-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-  `]
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .upl-block-title {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-main);
+      }
+      .upl-muted {
+        color: var(--text-muted);
+      }
+      .upl-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      .upl-input-small {
+        max-width: 7rem;
+      }
+      .upl-hint {
+        color: var(--text-light);
+        font-size: 0.75rem;
+      }
+      .upl-field-error {
+        color: var(--danger);
+        font-size: 0.75rem;
+      }
+      .upl-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .upl-tab {
+        display: inline-flex;
+        align-items: center;
+        background: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      }
+      .upl-tab-active {
+        background: var(--bg-active);
+        border-color: var(--primary);
+      }
+      .upl-tab-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        background: none;
+        border: none;
+        color: var(--text-main);
+        padding: 0.375rem 0.625rem;
+        cursor: pointer;
+      }
+      .upl-tab-remove {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        padding: 0 0.5rem 0 0;
+        cursor: pointer;
+      }
+      .upl-tab-add {
+        background: none;
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius-sm);
+        color: var(--primary);
+        padding: 0.375rem 0.625rem;
+        cursor: pointer;
+      }
+      .upl-tab-dot {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--danger);
+      }
+      .upl-pad-pair {
+        display: inline-flex;
+        gap: 0.25rem;
+      }
+      .upl-row-actions {
+        display: flex;
+        gap: 0.25rem;
+        white-space: nowrap;
+      }
+      .upl-cell-error {
+        border: 1px solid var(--danger);
+        background: var(--danger-bg);
+        border-radius: var(--radius-sm);
+      }
+      .upl-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+    `,
+  ],
 })
 export class FormatSheetsStepComponent {
   private readonly toast = inject(ToastService);
@@ -369,14 +497,16 @@ export class FormatSheetsStepComponent {
   /** Типы данных колонки; подписи переводятся заново при смене языка. */
   dataTypeOptions(): SMTSelectOption<UplDataType>[] {
     return this.dataTypeMemo([this.i18n.currentLang()], () =>
-      UPL_DATA_TYPES.map(type => ({ id: type, label: this.i18n.translate(UPL_DATA_TYPE_KEY[type]) })));
+      UPL_DATA_TYPES.map((type) => ({ id: type, label: this.i18n.translate(UPL_DATA_TYPE_KEY[type]) })),
+    );
   }
 
   /** Единицы из /upl/units как «Имя (код)». */
   unitOptions(): SMTSelectOption<string>[] {
-    return this.unitMemo([this.units()], () => this.units().map(unit => ({ id: unit.code, label: `${unit.name} (${unit.code})` })));
+    return this.unitMemo([this.units()], () =>
+      this.units().map((unit) => ({ id: unit.code, label: `${unit.name} (${unit.code})` })),
+    );
   }
-
 
   /** Synonyms as the person types them: separated by semicolons, since a header may hold a comma. */
   synonymsText(column: UplColumn): string {
@@ -384,12 +514,17 @@ export class FormatSheetsStepComponent {
   }
 
   setSynonyms(column: UplColumn, value: string): void {
-    column.headerSynonyms = value.split(';').map(name => name.trim()).filter(name => name.length > 0);
+    column.headerSynonyms = value
+      .split(';')
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0);
   }
 
   /** The first server problem with any of the column's synonyms, as words. */
   synonymError(sheet: number, column: number): string | null {
-    const found = this.errors().find(error => error.sheet === sheet && error.column === column && error.field.startsWith('headerSynonyms'));
+    const found = this.errors().find(
+      (error) => error.sheet === sheet && error.column === column && error.field.startsWith('headerSynonyms'),
+    );
     return found ? this.errorText(found) : null;
   }
 
@@ -424,13 +559,13 @@ export class FormatSheetsStepComponent {
 
   /** Неизвестный код не прячем: показываем сообщение сервера и сам код. */
   errorText(problem: UplFieldError): string {
-    return uplFieldErrorText(problem, key => this.i18n.translate(key));
+    return uplFieldErrorText(problem, (key) => this.i18n.translate(key));
   }
 
   /** «Имя (код)» из /upl/units; единица вне списка — только код. */
   baseUnitLabel(column: UplColumn): string {
     const code = column.baseUnit ?? '';
-    const unit = this.units().find(item => item.code === code);
+    const unit = this.units().find((item) => item.code === code);
     return unit ? `${unit.name} (${unit.code})` : code;
   }
 
@@ -442,15 +577,17 @@ export class FormatSheetsStepComponent {
   /** Removing a sheet drops its column mapping, so it is asked first, with the number of columns lost. */
   askRemoveSheet(index: number): void {
     const columns = this.model().sheets[index]?.columns.length ?? 0;
-    this.modal.confirm({
-      title: this.text('upl.format.remove_sheet'),
-      message: this.text('upl.format.remove_sheet_confirm', { count: columns.toString() }),
-      yesLabel: this.text('upl.format.remove_sheet'),
-      noLabel: this.text('upl.common.cancel'),
-      destructive: true
-    }).subscribe(confirmed => {
-      if (confirmed) this.confirmRemoveSheet(index);
-    });
+    this.modal
+      .confirm({
+        title: this.text('upl.format.remove_sheet'),
+        message: this.text('upl.format.remove_sheet_confirm', { count: columns.toString() }),
+        yesLabel: this.text('upl.format.remove_sheet'),
+        noLabel: this.text('upl.common.cancel'),
+        destructive: true,
+      })
+      .subscribe((confirmed) => {
+        if (confirmed) this.confirmRemoveSheet(index);
+      });
   }
 
   confirmRemoveSheet(index: number): void {
@@ -494,7 +631,7 @@ export class FormatSheetsStepComponent {
   }
 
   onUnitChange(column: UplColumn): void {
-    const unit = this.units().find(item => item.code === column.sourceUnit);
+    const unit = this.units().find((item) => item.code === column.sourceUnit);
     if (!unit) {
       column.sourceUnit = null;
       column.baseUnit = null;

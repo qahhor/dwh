@@ -142,7 +142,9 @@ export class SMTDatePickerComponent implements FormValueControl<string | null> {
         const invalid = this.showInvalid();
         const describe = this.textInvalid();
         if (!field) return;
-        const tokens = (field.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(t => t && t !== this.hintId);
+        const tokens = (field.getAttribute('aria-describedby') ?? '')
+          .split(/\s+/)
+          .filter((t) => t && t !== this.hintId);
         if (describe) tokens.push(this.hintId);
         if (tokens.length) field.setAttribute('aria-describedby', tokens.join(' '));
         else field.removeAttribute('aria-describedby');

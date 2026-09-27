@@ -31,7 +31,7 @@ export interface FlattenNestedTreeOptions<TNode, TRow> {
 /** Depth-first flatten for nested `{ children: TNode[] }` sources, as in the kit. */
 export function flattenNestedTreeData<TNode, TRow>(
   roots: TNode[],
-  options: FlattenNestedTreeOptions<TNode, TRow>
+  options: FlattenNestedTreeOptions<TNode, TRow>,
 ): TRow[] {
   const rows: TRow[] = [];
 
@@ -104,7 +104,10 @@ export interface TreeSearchResult<T> {
  * Keeps each match together with its ancestors, so a result is always read
  * in its place in the hierarchy, never as an orphan.
  */
-export function searchTreeRows<T>(rows: readonly TreeRow<T>[], isMatch: (row: TreeRow<T>) => boolean): TreeSearchResult<T> {
+export function searchTreeRows<T>(
+  rows: readonly TreeRow<T>[],
+  isMatch: (row: TreeRow<T>) => boolean,
+): TreeSearchResult<T> {
   const matched = new Set<string>();
   const keep = new Set<string>();
   const parentOf = new Map<string, string | null>();
@@ -115,12 +118,12 @@ export function searchTreeRows<T>(rows: readonly TreeRow<T>[], isMatch: (row: Tr
     // Ancestors are already in `parentOf`: depth-first order puts them first.
     for (let id: string | null = row.id; id !== null && !keep.has(id); id = parentOf.get(id) ?? null) keep.add(id);
   }
-  return { rows: rows.filter(row => keep.has(row.id)), matched };
+  return { rows: rows.filter((row) => keep.has(row.id)), matched };
 }
 
 /** Ids of every row that has children, for "expand all". */
 export function expandableIds<T>(rows: readonly TreeRow<T>[]): string[] {
-  return rows.filter(row => row.hasChildren).map(row => row.id);
+  return rows.filter((row) => row.hasChildren).map((row) => row.id);
 }
 
 export interface TreePosition {

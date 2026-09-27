@@ -1,5 +1,16 @@
 import { IdleLockDialogComponent } from './components/idle-lock-dialog.component';
-import { Component, DestroyRef, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  ViewChild,
+  computed,
+  effect,
+  signal,
+  inject,
+} from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -28,7 +39,7 @@ import {
   loadCollapsedState,
   COLLAPSED_STATE_KEY,
   COLLAPSED_SECTIONS_KEY,
-  SECTION_ICON_MAP
+  SECTION_ICON_MAP,
 } from './app-shell.models';
 import { AppShellFlyoutService } from './services/app-shell-flyout.service';
 @Component({
@@ -41,10 +52,10 @@ import { AppShellFlyoutService } from './services/app-shell-flyout.service';
     TranslatePipe,
     CommandPaletteComponent,
     AppHeaderComponent,
-    AppSidebarComponent
+    AppSidebarComponent,
   ],
   templateUrl: './app-shell.component.html',
-  styleUrl: './app-shell.component.css'
+  styleUrl: './app-shell.component.css',
 })
 export class AppShellComponent implements OnDestroy {
   private readonly uiI18n = inject(I18nService);
@@ -67,31 +78,33 @@ export class AppShellComponent implements OnDestroy {
   readonly canReadNotifications = computed(() => this.canViewNotifications());
   readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
 
-  readonly navSections = computed<NavSection[]>(() => buildNavSections({
-    activeCustomModules: this.moduleService.getActiveCustomModules(),
-    customNavItems: this.navService.activeItems(),
-    entityItems: this.navService.entityItems(),
-    isModuleActive: code => this.moduleService.isModuleActive(code),
-    canViewTasks: () => this.canViewTasks(),
-    canViewProjects: () => this.canViewProjects(),
-    canViewSources: () => this.canViewSources(),
-    canViewPackages: () => this.canViewPackages(),
-    canViewFiles: () => this.canViewFiles(),
-    canViewAnalytics: () => this.canViewAnalytics(),
-    canViewNotifications: () => this.canViewNotifications(),
-    canViewUsers: () => this.canViewUsers(),
-    canViewRoles: () => this.canViewRoles(),
-    canViewOrgUnits: () => this.canViewOrgUnits(),
-    canViewCustomFields: () => this.canViewCustomFields(),
-    canViewAnnouncements: () => this.canViewAnnouncements(),
-    canViewModules: () => this.canViewModules(),
-    canViewNavigationSettings: () => this.canViewNavigationSettings(),
-    canViewAudit: () => this.canViewAudit(),
-    canViewSystem: () => this.canViewSystem(),
-    canViewSettings: () => this.canViewSettings(),
-    hasPermission: permission => this.permService.hasPermissionKey(permission),
-    unreadCount: () => this.notifService.unreadCount()
-  }));
+  readonly navSections = computed<NavSection[]>(() =>
+    buildNavSections({
+      activeCustomModules: this.moduleService.getActiveCustomModules(),
+      customNavItems: this.navService.activeItems(),
+      entityItems: this.navService.entityItems(),
+      isModuleActive: (code) => this.moduleService.isModuleActive(code),
+      canViewTasks: () => this.canViewTasks(),
+      canViewProjects: () => this.canViewProjects(),
+      canViewSources: () => this.canViewSources(),
+      canViewPackages: () => this.canViewPackages(),
+      canViewFiles: () => this.canViewFiles(),
+      canViewAnalytics: () => this.canViewAnalytics(),
+      canViewNotifications: () => this.canViewNotifications(),
+      canViewUsers: () => this.canViewUsers(),
+      canViewRoles: () => this.canViewRoles(),
+      canViewOrgUnits: () => this.canViewOrgUnits(),
+      canViewCustomFields: () => this.canViewCustomFields(),
+      canViewAnnouncements: () => this.canViewAnnouncements(),
+      canViewModules: () => this.canViewModules(),
+      canViewNavigationSettings: () => this.canViewNavigationSettings(),
+      canViewAudit: () => this.canViewAudit(),
+      canViewSystem: () => this.canViewSystem(),
+      canViewSettings: () => this.canViewSettings(),
+      hasPermission: (permission) => this.permService.hasPermissionKey(permission),
+      unreadCount: () => this.notifService.unreadCount(),
+    }),
+  );
 
   @ViewChild('mainContent') mainContent?: ElementRef<HTMLElement>;
   @ViewChild(AppHeaderComponent) appHeader?: AppHeaderComponent;
@@ -122,13 +135,23 @@ export class AppShellComponent implements OnDestroy {
   canViewProjects = () => this.permService.canView('tasks.projects') || this.permService.canView('projects');
   canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
   canViewUsers = () => this.permService.canView('iam.users') || this.permService.canView('md_users');
-  canViewRoles = () => this.permService.canView('rbac.roles') || this.permService.canView('iam.roles') || this.permService.canView('md_roles') || this.permService.canView('md.roles');
+  canViewRoles = () =>
+    this.permService.canView('rbac.roles') ||
+    this.permService.canView('iam.roles') ||
+    this.permService.canView('md_roles') ||
+    this.permService.canView('md.roles');
   canViewOrgUnits = () => this.permService.canView('iam.org_units');
-  canViewCustomFields = () => this.permService.canView('md.custom_fields') || this.permService.canView('system.custom_fields') || this.permService.canView('md_custom_fields');
+  canViewCustomFields = () =>
+    this.permService.canView('md.custom_fields') ||
+    this.permService.canView('system.custom_fields') ||
+    this.permService.canView('md_custom_fields');
   canViewFiles = () => this.permService.canView('platform.files') || this.permService.canView('files');
   canViewNotifications = () => this.permService.canView('notify.inbox') || this.permService.canView('notifications');
   canViewAnnouncements = () => this.permService.canUpdate('platform.announcements');
-  canViewAudit = () => this.permService.canView('audit.log') || this.permService.canView('audit.logs') || this.permService.canView('audit');
+  canViewAudit = () =>
+    this.permService.canView('audit.log') ||
+    this.permService.canView('audit.logs') ||
+    this.permService.canView('audit');
   canViewSettings = () => true;
   canViewSystem = () => this.permService.canView('platform.settings');
   canViewSources = () => this.permService.canView('upl.sources') && this.moduleService.isModuleActive('upl');
@@ -145,7 +168,7 @@ export class AppShellComponent implements OnDestroy {
     public paletteService: CommandPaletteService,
     public moduleService: ModuleService,
     public navService: NavigationService,
-    private router: Router
+    private router: Router,
   ) {
     effect(() => {
       if (this.authService.currentUser()) {
@@ -155,9 +178,10 @@ export class AppShellComponent implements OnDestroy {
       }
     });
     if (this.breakpointObserver) {
-      this.breakpointObserver.observe('(max-width: 768px)')
+      this.breakpointObserver
+        .observe('(max-width: 768px)')
         .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(result => {
+        .subscribe((result) => {
           const wasMobile = this.isMobile();
           this.isMobile.set(result.matches);
           if (wasMobile && !result.matches) {
@@ -174,7 +198,7 @@ export class AppShellComponent implements OnDestroy {
 
     // Permissions arrive asynchronously after login. Start only the reads
     // allowed by the server contract, and cancel them when access changes.
-    effect(onCleanup => {
+    effect((onCleanup) => {
       if (!this.canReadNotifications()) {
         this.notifService.unreadCount.set(0);
         return;
@@ -187,7 +211,7 @@ export class AppShellComponent implements OnDestroy {
         this.notifService.unreadCount.set(0);
       });
     });
-    effect(onCleanup => {
+    effect((onCleanup) => {
       if (!this.canReadAnnouncements()) {
         this.notifService.activeAnnouncement.set(null);
         return;
@@ -225,9 +249,13 @@ export class AppShellComponent implements OnDestroy {
         event.preventDefault();
         event.stopPropagation();
         this.closeMobileMenu(true);
-      } else if ((event.ctrlKey || event.metaKey) && !event.altKey && (event.code === 'KeyK' || event.key.toLowerCase() === 'k')) {
+      } else if (
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        (event.code === 'KeyK' || event.key.toLowerCase() === 'k')
+      ) {
         this.isMobileMenuOpen.set(false);
-        const opener = this.mobileMenuBtn?.nativeElement || document.querySelector('.mobile-menu-btn') as HTMLElement;
+        const opener = this.mobileMenuBtn?.nativeElement || (document.querySelector('.mobile-menu-btn') as HTMLElement);
         if (opener) {
           opener.closest('.main-wrapper')?.removeAttribute('inert');
           opener.focus();
@@ -246,7 +274,7 @@ export class AppShellComponent implements OnDestroy {
   }
 
   hasVisibleItems(section: NavSection): boolean {
-    return section.items.some(item => item.permission());
+    return section.items.some((item) => item.permission());
   }
 
   isSectionExpanded(sectionId: string): boolean {
@@ -258,7 +286,7 @@ export class AppShellComponent implements OnDestroy {
       event.preventDefault();
       event.stopPropagation();
     }
-    this.collapsedSections.update(prev => {
+    this.collapsedSections.update((prev) => {
       const next = new Set(prev);
       if (next.has(sectionId)) {
         next.delete(sectionId);
@@ -277,10 +305,10 @@ export class AppShellComponent implements OnDestroy {
   }
 
   isSectionActive(section: NavSection): boolean {
-    return section.items.some(item => {
+    return section.items.some((item) => {
       if (item.route && this.isRouteActive(item.route, !!item.exact)) return true;
       if (item.children) {
-        return item.children.some(child => child.route && this.isRouteActive(child.route, !!child.exact));
+        return item.children.some((child) => child.route && this.isRouteActive(child.route, !!child.exact));
       }
       return false;
     });
@@ -295,7 +323,7 @@ export class AppShellComponent implements OnDestroy {
       event.preventDefault();
       event.stopPropagation();
     }
-    this.expandedSubmenus.update(prev => {
+    this.expandedSubmenus.update((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -387,7 +415,7 @@ export class AppShellComponent implements OnDestroy {
   }
 
   toggleSidebar() {
-    this.isCollapsed.update(v => {
+    this.isCollapsed.update((v) => {
       const next = !v;
       try {
         if (typeof window !== 'undefined' && window.localStorage) {
@@ -456,12 +484,13 @@ export class AppShellComponent implements OnDestroy {
     const a = this.notifService.activeAnnouncement();
     if (a && a.id) {
       this.isDismissingAnnouncement.set(true);
-      this.notifService.dismissAnnouncement(a.id).pipe(
-        finalize(() => this.isDismissingAnnouncement.set(false))
-      ).subscribe({
-        next: () => this.announcementRevision.update(revision => revision + 1),
-        error: () => {} // ApiService owns the single error message; keep the banner for retry.
-      });
+      this.notifService
+        .dismissAnnouncement(a.id)
+        .pipe(finalize(() => this.isDismissingAnnouncement.set(false)))
+        .subscribe({
+          next: () => this.announcementRevision.update((revision) => revision + 1),
+          error: () => {}, // ApiService owns the single error message; keep the banner for retry.
+        });
     }
   }
 
@@ -472,15 +501,19 @@ export class AppShellComponent implements OnDestroy {
     }
     if (request.code === this.i18n.currentLang()) return;
     this.isChangingLanguage.set(true);
-    this.i18n.setLanguage(request.code).pipe(
-      takeUntilDestroyed(this.destroyRef),
-      finalize(() => this.isChangingLanguage.set(false))
-    ).subscribe({
-      error: () => {
-        request.revert();
-        if (!this.destroyRef.destroyed) this.toast.error(this.uiI18n.translate('layout.app_shell.language_change_failed'));
-      }
-    });
+    this.i18n
+      .setLanguage(request.code)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isChangingLanguage.set(false)),
+      )
+      .subscribe({
+        error: () => {
+          request.revert();
+          if (!this.destroyRef.destroyed)
+            this.toast.error(this.uiI18n.translate('layout.app_shell.language_change_failed'));
+        },
+      });
   }
 
   onLogout() {

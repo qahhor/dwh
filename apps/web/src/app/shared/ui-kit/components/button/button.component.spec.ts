@@ -12,8 +12,18 @@ import { SMTButtonComponent } from './button.component';
   imports: [SMTButtonComponent],
   template: `
     <form (submit)="$event.preventDefault(); submitted = submitted + 1">
-      <button smt-button type="submit" smtIcon="save" class="save" [smtLoading]="saving()" [disabled]="locked()"
-        aria-label="Save the note" (click)="clicks = clicks + 1">Save</button>
+      <button
+        smt-button
+        type="submit"
+        smtIcon="save"
+        class="save"
+        [smtLoading]="saving()"
+        [disabled]="locked()"
+        aria-label="Save the note"
+        (click)="clicks = clicks + 1"
+      >
+        Save
+      </button>
       <button smt-button type="button" smtVariant="danger" smtSize="sm" smtFullWidth>Delete</button>
       <button smt-button type="button" smtVariant="ghost" smtIconOnly smtIcon="close" aria-label="Close"></button>
     </form>

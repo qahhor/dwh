@@ -20,7 +20,9 @@ export class SMTDatePickerValueAccessor extends PickerValueAccessor<string | nul
   selector:
     'smt-date-range-picker[ngModel], smt-date-range-picker[formControl], smt-date-range-picker[formControlName]',
   standalone: true,
-  providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTDateRangePickerValueAccessor), multi: true }],
+  providers: [
+    { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTDateRangePickerValueAccessor), multi: true },
+  ],
 })
 export class SMTDateRangePickerValueAccessor extends PickerValueAccessor<DateRange | null> {
   protected readonly picker = inject(SMTDateRangePickerComponent) as unknown as BridgedPicker<DateRange | null>;

@@ -14,30 +14,44 @@ import { translateTest } from '../../../testing/i18n-test.stub';
 describe('LanguageEditorComponent', () => {
   const editor: TranslationEditor = {
     language: {
-      code: 'de', name: 'Deutsch', builtin: true, active: true,
-      revision: 4, translated: 1, total: 2, coverage: 50
+      code: 'de',
+      name: 'Deutsch',
+      builtin: true,
+      active: true,
+      revision: 4,
+      translated: 1,
+      total: 2,
+      coverage: 50,
     },
     entries: [
       {
-        key: 'common.save', russianValue: 'Сохранить', bundledValue: 'Speichern',
-        overrideValue: null, effectiveValue: 'Speichern', translated: true
+        key: 'common.save',
+        russianValue: 'Сохранить',
+        bundledValue: 'Speichern',
+        overrideValue: null,
+        effectiveValue: 'Speichern',
+        translated: true,
       },
       {
-        key: 'feature.empty', russianValue: 'Нет данных', bundledValue: null,
-        overrideValue: null, effectiveValue: 'Нет данных', translated: false
-      }
-    ]
+        key: 'feature.empty',
+        russianValue: 'Нет данных',
+        bundledValue: null,
+        overrideValue: null,
+        effectiveValue: 'Нет данных',
+        translated: false,
+      },
+    ],
   };
 
   async function createFixture(putResult: object = { ...editor.language, revision: 5 }) {
     const api = {
       get: vi.fn(() => of(editor)),
-      put: vi.fn(() => putResult instanceof Error ? throwError(() => putResult) : of(putResult))
+      put: vi.fn(() => (putResult instanceof Error ? throwError(() => putResult) : of(putResult))),
     };
     const i18n = {
       currentLang: signal('de'),
       refreshLanguage: vi.fn(() => of(undefined)),
-      translate: translateTest
+      translate: translateTest,
     };
     const toast = { success: vi.fn(), error: vi.fn() };
     await TestBed.configureTestingModule({
@@ -46,8 +60,8 @@ describe('LanguageEditorComponent', () => {
         { provide: ApiService, useValue: api },
         { provide: I18nService, useValue: i18n },
         { provide: PermissionService, useValue: { hasPermission: () => true } },
-        { provide: ToastService, useValue: toast }
-      ]
+        { provide: ToastService, useValue: toast },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(LanguageEditorComponent);
     fixture.componentRef.setInput('languageCode', 'de');
@@ -75,7 +89,8 @@ describe('LanguageEditorComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-translation-key="common.save"]')).toBeNull();
 
     const input = fixture.nativeElement.querySelector(
-      '[data-translation-key="feature.empty"] input') as HTMLInputElement;
+      '[data-translation-key="feature.empty"] input',
+    ) as HTMLInputElement;
     input.value = 'Keine Daten';
     input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
@@ -98,7 +113,8 @@ describe('LanguageEditorComponent', () => {
 
   it('asks before discarding edits and stays open when declined', async () => {
     const { fixture } = await createFixture();
-    const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm')
+    const confirm = vi
+      .spyOn(TestBed.inject(SMTModalService), 'confirm')
       .mockReturnValueOnce(of(false))
       .mockReturnValueOnce(of(true));
     const closed = vi.fn();
@@ -120,7 +136,7 @@ describe('LanguageEditorComponent', () => {
 
     expect(api.put).toHaveBeenCalledWith('/i18n/admin/languages/de/translations', {
       expectedRevision: 4,
-      translations: { 'feature.empty': 'Keine Daten' }
+      translations: { 'feature.empty': 'Keine Daten' },
     });
     expect(i18n.refreshLanguage).toHaveBeenCalledWith('de');
     expect(toast.success).toHaveBeenCalled();
@@ -142,7 +158,7 @@ describe('LanguageEditorComponent', () => {
     fixture.componentInstance.editor.set({
       ...editor,
       language: { ...editor.language, code: 'ru', name: 'Русский' },
-      entries: [{ ...editor.entries[0], bundledValue: 'Сохранить', effectiveValue: 'Сохранить' }]
+      entries: [{ ...editor.entries[0], bundledValue: 'Сохранить', effectiveValue: 'Сохранить' }],
     });
     fixture.componentInstance.resetDraft();
     fixture.componentInstance.setValue('common.save', '');

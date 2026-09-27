@@ -29,7 +29,7 @@ function parseAddress(address: string): UplErrorAddress {
   return {
     sheet: Number(match[1]),
     column: match[2] === undefined ? null : Number(match[2]),
-    field: match[3] ?? ''
+    field: match[3] ?? '',
   };
 }
 
@@ -39,7 +39,7 @@ function toFieldError(address: string, code: string, message: string): UplFieldE
     ...parseAddress(address),
     code: normalizedCode,
     key: uplErrorKey(normalizedCode),
-    message: message ?? ''
+    message: message ?? '',
   };
 }
 
@@ -52,14 +52,14 @@ export function parseUplFieldErrors(errors: FieldErrorItem[] | null | undefined)
   if (!Array.isArray(errors)) {
     return [];
   }
-  return errors.map(item => toFieldError(item.field ?? '', item.code ?? '', item.message ?? ''));
+  return errors.map((item) => toFieldError(item.field ?? '', item.code ?? '', item.message ?? ''));
 }
 
 /** Все адресные ошибки ответа: `errors[]` плюс `invalid_params`, без дубликатов «адрес + код». */
 export function parseUplProblem(problem: ProblemDetail): UplFieldError[] {
   const fromErrors = parseUplFieldErrors(problem?.errors);
   const fromParams = Array.isArray(problem?.invalid_params)
-    ? problem.invalid_params!.map(param => toFieldError(param.name ?? '', param.code ?? '', param.reason ?? ''))
+    ? problem.invalid_params!.map((param) => toFieldError(param.name ?? '', param.code ?? '', param.reason ?? ''))
     : [];
 
   const seen = new Set<string>();
@@ -88,16 +88,21 @@ export function uplFieldErrorText(error: UplFieldError, translate: (key: string)
 }
 
 /** Ошибка конкретной ячейки колонки. */
-export function uplCellError(list: UplFieldError[], sheet: number, column: number, field: string): UplFieldError | null {
-  return list.find(error => error.sheet === sheet && error.column === column && error.field === field) ?? null;
+export function uplCellError(
+  list: UplFieldError[],
+  sheet: number,
+  column: number,
+  field: string,
+): UplFieldError | null {
+  return list.find((error) => error.sheet === sheet && error.column === column && error.field === field) ?? null;
 }
 
 /** Ошибка поля самого листа (не колонки). */
 export function uplSheetError(list: UplFieldError[], sheet: number, field: string): UplFieldError | null {
-  return list.find(error => error.sheet === sheet && error.column === null && error.field === field) ?? null;
+  return list.find((error) => error.sheet === sheet && error.column === null && error.field === field) ?? null;
 }
 
 /** Есть ли у листа хоть одна ошибка — своя или в колонке. */
 export function uplSheetHasErrors(list: UplFieldError[], sheet: number): boolean {
-  return list.some(error => error.sheet === sheet);
+  return list.some((error) => error.sheet === sheet);
 }

@@ -30,7 +30,7 @@ export function parseSort(sort: string): QuerySort {
 
 /** The filter as the server takes it: the conditions, or one `{"any": [...]}` group of them (roadmap item 53). */
 export function filterDsl(conditions: readonly QueryCondition[], match?: QueryMatch, keepLabels = false): unknown[] {
-  const plain = conditions.map(condition => {
+  const plain = conditions.map((condition) => {
     const normal = normalizeCondition(condition);
     return keepLabels && condition.label ? { ...normal, label: condition.label } : normal;
   });
@@ -38,12 +38,18 @@ export function filterDsl(conditions: readonly QueryCondition[], match?: QueryMa
 }
 
 /** A saved filter back into its conditions and how they combine; a group is only ever written whole. */
-export function readFilterDsl(filter: readonly unknown[] | null | undefined): { conditions: QueryCondition[]; match: QueryMatch } {
+export function readFilterDsl(filter: readonly unknown[] | null | undefined): {
+  conditions: QueryCondition[];
+  match: QueryMatch;
+} {
   const items = filter ?? [];
   const group = items.length === 1 ? (items[0] as { any?: QueryCondition[] }).any : undefined;
   return Array.isArray(group)
     ? { conditions: group, match: 'any' }
-    : { conditions: items.filter((item): item is QueryCondition => typeof (item as QueryCondition)?.field === 'string'), match: 'all' };
+    : {
+        conditions: items.filter((item): item is QueryCondition => typeof (item as QueryCondition)?.field === 'string'),
+        match: 'all',
+      };
 }
 
 /** Conditions without a value send none, so `empty` does not travel as `"value": undefined`; a label stays on the screen. */
@@ -65,7 +71,8 @@ export class QueryMetaService {
   get(list: string): Observable<QueryListMeta> {
     let meta = this.cache.get(list);
     if (!meta) {
-      meta = this.api.get<QueryListMeta>(`/query-meta/${encodeURIComponent(list)}`, undefined, { notifyError: false })
+      meta = this.api
+        .get<QueryListMeta>(`/query-meta/${encodeURIComponent(list)}`, undefined, { notifyError: false })
         .pipe(shareReplay({ bufferSize: 1, refCount: false }));
       this.cache.set(list, meta);
       meta.subscribe({ error: () => this.cache.delete(list) });

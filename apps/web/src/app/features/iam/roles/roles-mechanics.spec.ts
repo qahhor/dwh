@@ -8,13 +8,35 @@ import { ToastService } from '../../../core/services/toast.service';
 import { RolesComponent } from './roles.component';
 
 const roles: Role[] = [
-  { id: 1, name: 'Role A', state: 'A', orderNo: 1, createdAt: '2026-09-07T00:00:00Z', modifiedAt: '2026-09-07T00:00:00Z' },
-  { id: 2, name: 'Role B', state: 'A', orderNo: 2, createdAt: '2026-09-07T00:00:00Z', modifiedAt: '2026-09-07T00:00:00Z' },
-  { id: 3, name: 'Administrator', pcode: 'admin', state: 'A', orderNo: 3, createdAt: '2026-09-07T00:00:00Z', modifiedAt: '2026-09-07T00:00:00Z' }
+  {
+    id: 1,
+    name: 'Role A',
+    state: 'A',
+    orderNo: 1,
+    createdAt: '2026-09-07T00:00:00Z',
+    modifiedAt: '2026-09-07T00:00:00Z',
+  },
+  {
+    id: 2,
+    name: 'Role B',
+    state: 'A',
+    orderNo: 2,
+    createdAt: '2026-09-07T00:00:00Z',
+    modifiedAt: '2026-09-07T00:00:00Z',
+  },
+  {
+    id: 3,
+    name: 'Administrator',
+    pcode: 'admin',
+    state: 'A',
+    orderNo: 3,
+    createdAt: '2026-09-07T00:00:00Z',
+    modifiedAt: '2026-09-07T00:00:00Z',
+  },
 ];
 const forms: FormTreeItem[] = [
   { formCode: 'tasks.items', module: 'ms.task', formName: 'Tasks', action: 'view', actionName: 'View' },
-  { formCode: 'tasks.items', module: 'ms.task', formName: 'Tasks', action: 'update', actionName: 'Update' }
+  { formCode: 'tasks.items', module: 'ms.task', formName: 'Tasks', action: 'update', actionName: 'Update' },
 ];
 
 describe('RolesComponent permission matrix lifecycle', () => {
@@ -26,9 +48,11 @@ describe('RolesComponent permission matrix lifecycle', () => {
     await TestBed.configureTestingModule({
       imports: [RolesComponent],
       providers: [
-        provideHttpClient(), provideHttpClientTesting(), PermissionService,
-        { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } }
-      ]
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        PermissionService,
+        { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } },
+      ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.grant']);
@@ -58,8 +82,10 @@ describe('RolesComponent permission matrix lifecycle', () => {
   }
 
   function saveButton() {
-    return host.querySelector<HTMLButtonElement>('.matrix-actions-box .smt-button--primary')
-      ?? host.querySelector<HTMLButtonElement>('.matrix-actions-box button');
+    return (
+      host.querySelector<HTMLButtonElement>('.matrix-actions-box .smt-button--primary') ??
+      host.querySelector<HTMLButtonElement>('.matrix-actions-box button')
+    );
   }
 
   it('saves only role B permissions after a late role A response', () => {
@@ -87,7 +113,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect.soft(saveButton()?.disabled).toBe(true);
     saveButton()!.click();
     fixture.componentInstance.savePermissions();
-    const writes = http.match(request => request.method === 'PUT');
+    const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
 
@@ -101,7 +127,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     const pendingA = http.expectOne('/api/v1/rbac/roles/1/permissions');
     saveButton()!.click();
     fixture.componentInstance.savePermissions();
-    const writes = http.match(request => request.method === 'PUT');
+    const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
     pendingA.flush(['tasks.items.view']);
@@ -110,21 +136,22 @@ describe('RolesComponent permission matrix lifecycle', () => {
   it('keeps a failed role disabled and offers a retry for its own permissions', () => {
     loadRoleA();
     selectRole(1);
-    http.expectOne('/api/v1/rbac/roles/2/permissions').flush(
-      { detail: 'Permission lookup unavailable' }, { status: 503, statusText: 'Service Unavailable' }
-    );
+    http
+      .expectOne('/api/v1/rbac/roles/2/permissions')
+      .flush({ detail: 'Permission lookup unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     fixture.detectChanges();
 
     expect.soft(host.querySelector('[role="alert"]')?.textContent ?? '').toContain('Permission lookup unavailable');
     expect.soft(saveButton()?.disabled).toBe(true);
     expect.soft(checkbox('view').disabled).toBe(true);
     fixture.componentInstance.savePermissions();
-    const writes = http.match(request => request.method === 'PUT');
+    const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
 
-    const retry = Array.from(host.querySelectorAll<HTMLButtonElement>('.matrix-card button'))
-      .find(button => button.textContent?.trim() === 'Обновить');
+    const retry = Array.from(host.querySelectorAll<HTMLButtonElement>('.matrix-card button')).find(
+      (button) => button.textContent?.trim() === 'Обновить',
+    );
     expect(retry).toBeDefined();
     retry!.click();
     http.expectOne('/api/v1/rbac/roles/2/permissions').flush(['tasks.items.update']);
@@ -142,10 +169,15 @@ describe('RolesComponent permission matrix lifecycle', () => {
 
     expect.soft(checkbox('view').disabled).toBe(true);
     expect.soft(host.querySelector<HTMLButtonElement>('.role-select-btn')?.disabled).toBe(true);
-    expect.soft(Array.from(host.querySelectorAll<HTMLButtonElement>('.batch-btn, .mini-toggle-btn'))
-      .every(button => button.disabled)).toBe(true);
+    expect
+      .soft(
+        Array.from(host.querySelectorAll<HTMLButtonElement>('.batch-btn, .mini-toggle-btn')).every(
+          (button) => button.disabled,
+        ),
+      )
+      .toBe(true);
     fixture.componentInstance.savePermissions();
-    const duplicates = http.match(request => request.method === 'PUT');
+    const duplicates = http.match((request) => request.method === 'PUT');
     expect.soft(duplicates).toHaveLength(0);
     for (const write of duplicates) write.flush(null);
 
@@ -169,9 +201,9 @@ describe('RolesComponent permission matrix lifecycle', () => {
     checkbox('update').click();
     fixture.detectChanges();
     saveButton()!.click();
-    http.expectOne('/api/v1/rbac/roles/1/permissions').flush(
-      { detail: 'Save unavailable' }, { status: 503, statusText: 'Service Unavailable' }
-    );
+    http
+      .expectOne('/api/v1/rbac/roles/1/permissions')
+      .flush({ detail: 'Save unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     fixture.detectChanges();
 
     expect(saveButton()?.disabled).toBe(false);
@@ -180,7 +212,8 @@ describe('RolesComponent permission matrix lifecycle', () => {
     saveButton()!.click();
     const retry = http.expectOne('/api/v1/rbac/roles/1/permissions');
     expect(retry.request.body).toEqual([
-      { formCode: 'tasks.items', action: 'view' }, { formCode: 'tasks.items', action: 'update' }
+      { formCode: 'tasks.items', action: 'view' },
+      { formCode: 'tasks.items', action: 'update' },
     ]);
     retry.flush(null);
   });
@@ -195,7 +228,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     const component = fixture.componentInstance;
     component.toggleAllModule(component.moduleGroups[0], false);
     component.savePermissions();
-    const writes = http.match(request => request.method === 'PUT');
+    const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
     expect(Array.from(component.rolePermissions())).toEqual(['tasks.items.view']);
@@ -208,7 +241,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     fixture.detectChanges();
     saveButton()?.click();
     fixture.componentInstance.savePermissions();
-    const writes = http.match(request => request.method === 'PUT');
+    const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
     expect(checkbox('update').checked).toBe(true);

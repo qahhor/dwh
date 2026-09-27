@@ -25,7 +25,7 @@ class Host {
   phone = '+998901234567';
 }
 
-const country = (iso: string) => SMT_PHONE_COUNTRIES.find(item => item.iso === iso)!;
+const country = (iso: string) => SMT_PHONE_COUNTRIES.find((item) => item.iso === iso)!;
 
 describe('phone utils', () => {
   it('reads a stored number into its country and national digits, the longest code first', () => {
@@ -75,7 +75,7 @@ describe('SMTPhoneInputComponent', () => {
     expect(number.placeholder).toBe('(__) ___-__-__');
   });
 
-  it('formats as the person types, stops at the country\'s length and stores E.164', async () => {
+  it("formats as the person types, stops at the country's length and stores E.164", async () => {
     const { fixture, number, settle } = await render();
     number.value = '93 555 66 77 88';
     number.dispatchEvent(new Event('input'));

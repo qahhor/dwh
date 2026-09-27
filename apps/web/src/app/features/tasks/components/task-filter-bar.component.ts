@@ -4,7 +4,11 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
 import { ProjectOptionsPipe } from './project-options.pipe';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import {
+  optionsMemo,
+  SMTRadioGroupComponent,
+  SMTRadioOption,
+} from '../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/components/forms/input';
 
@@ -14,10 +18,12 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
   selector: 'app-task-filter-bar',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, SMTInputComponent, CommonModule,
+    SMTRadioGroupComponent,
+    SMTInputComponent,
+    CommonModule,
     TranslatePipe,
     SMTSelectComponent,
-    ProjectOptionsPipe
+    ProjectOptionsPipe,
   ],
   template: `
     <div class="toolbar">
@@ -29,7 +35,8 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [options]="presetOptions()"
           [value]="activePreset"
           [smtAriaLabel]="'tasks.bystrye_filtry' | t"
-          (valueChange)="onPresetClick($event ?? activePreset)" />
+          (valueChange)="onPresetClick($event ?? activePreset)"
+        />
 
         <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
         <smt-input
@@ -43,7 +50,8 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
           [value]="searchQuery"
           (valueChange)="onSearchValue($event)"
-          (keydown.enter)="searchApply.emit(); $event.preventDefault()" />
+          (keydown.enter)="searchApply.emit(); $event.preventDefault()"
+        />
       </div>
 
       <div class="toolbar-controls">
@@ -54,7 +62,8 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [options]="statusOptions()"
           [value]="statusFilterMode"
           [smtAriaLabel]="'tasks.filtr_po_statusu' | t"
-          (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode)" />
+          (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode)"
+        />
 
         <!-- Project Filter -->
         <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
@@ -94,64 +103,81 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-    }
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 8px 12px;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-    .toolbar-left-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      max-width: 100%;
-      min-width: 0;
-    }
-    .search-field { width: 260px; max-width: 100%; }
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+      }
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 8px 12px;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+      .toolbar-left-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        max-width: 100%;
+        min-width: 0;
+      }
+      .search-field {
+        width: 260px;
+        max-width: 100%;
+      }
 
-    .toolbar-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      max-width: 100%;
-      min-width: 0;
-    }
+      .toolbar-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        max-width: 100%;
+        min-width: 0;
+      }
 
+      /* A searchable project list; wide enough for a typical project name. */
+      .project-filter {
+        display: block;
+        width: 200px;
+        max-width: 100%;
+      }
+      .priority-filter {
+        display: block;
+        width: 160px;
+        max-width: 100%;
+      }
 
-    /* A searchable project list; wide enough for a typical project name. */
-    .project-filter { display: block; width: 200px; max-width: 100%; }
-    .priority-filter { display: block; width: 160px; max-width: 100%; }
-
-    .reset-filters-btn {
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      border-radius: var(--radius-sm);
-      height: 30px;
-      width: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-    .reset-filters-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
-    .reset-filters-btn .material-symbols-outlined { font-size: 16px; }
-  `]
+      .reset-filters-btn {
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        border-radius: var(--radius-sm);
+        height: 30px;
+        width: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+      .reset-filters-btn:hover {
+        color: var(--text-main);
+        border-color: var(--text-muted);
+      }
+      .reset-filters-btn .material-symbols-outlined {
+        font-size: 16px;
+      }
+    `,
+  ],
 })
 export class TaskFilterBarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
@@ -209,9 +235,17 @@ export class TaskFilterBarComponent {
   /** Active, all, then each status with its colour mark. */
   statusOptions(): SMTRadioOption<'active' | 'all' | number>[] {
     return this.statusMemo([this.statuses, this.optionText.currentLang()], () => [
-      { value: 'active', label: this.optionText.translate('iam.aktivnye'), title: this.optionText.translate('tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen') },
-      { value: 'all', label: this.optionText.translate('common.all'), title: this.optionText.translate('tasks.vse_zadachi_vklyuchaya_zavershennye') },
-      ...this.statuses.map(status => ({ value: status.id, label: status.name, color: status.color || undefined })),
+      {
+        value: 'active',
+        label: this.optionText.translate('iam.aktivnye'),
+        title: this.optionText.translate('tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen'),
+      },
+      {
+        value: 'all',
+        label: this.optionText.translate('common.all'),
+        title: this.optionText.translate('tasks.vse_zadachi_vklyuchaya_zavershennye'),
+      },
+      ...this.statuses.map((status) => ({ value: status.id, label: status.name, color: status.color || undefined })),
     ]);
   }
 

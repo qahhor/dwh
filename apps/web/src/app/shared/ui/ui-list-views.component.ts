@@ -24,9 +24,27 @@ const NAME_MAX = 80;
   selector: 'ui-list-views',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTCheckboxComponent, SMTInputComponent, CdkMenuTrigger, CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent],
+  imports: [
+    SMTCheckboxComponent,
+    SMTInputComponent,
+    CdkMenuTrigger,
+    CdkMenu,
+    CdkMenuGroup,
+    CdkMenuItem,
+    CdkMenuItemRadio,
+    TranslatePipe,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    SMTButtonComponent,
+  ],
   template: `
-    <button type="button" class="views-trigger" data-testid="views-trigger" [cdkMenuTriggerFor]="menu" [disabled]="state().busy()">
+    <button
+      type="button"
+      class="views-trigger"
+      data-testid="views-trigger"
+      [cdkMenuTriggerFor]="menu"
+      [disabled]="state().busy()"
+    >
       <span class="material-symbols-outlined" aria-hidden="true">bookmarks</span>
       <span class="views-name">{{ activeName() }}</span>
       @if (state().changed()) {
@@ -38,15 +56,31 @@ const NAME_MAX = 80;
     <ng-template #menu>
       <div class="views-menu" cdkMenu role="menu" [attr.aria-label]="'ui.views.menu' | t">
         <div cdkMenuGroup>
-          <button type="button" class="views-item" cdkMenuItemRadio data-testid="views-standard"
-            [cdkMenuItemChecked]="state().activeId() === null" (cdkMenuItemTriggered)="state().apply(null)">
-            <span class="views-check material-symbols-outlined" aria-hidden="true">{{ state().activeId() === null ? 'check' : '' }}</span>
+          <button
+            type="button"
+            class="views-item"
+            cdkMenuItemRadio
+            data-testid="views-standard"
+            [cdkMenuItemChecked]="state().activeId() === null"
+            (cdkMenuItemTriggered)="state().apply(null)"
+          >
+            <span class="views-check material-symbols-outlined" aria-hidden="true">{{
+              state().activeId() === null ? 'check' : ''
+            }}</span>
             <span>{{ 'ui.views.standard' | t }}</span>
           </button>
           @for (view of state().views(); track view.id) {
-            <button type="button" class="views-item" cdkMenuItemRadio data-testid="views-item"
-              [cdkMenuItemChecked]="state().activeId() === view.id" (cdkMenuItemTriggered)="state().apply(view)">
-              <span class="views-check material-symbols-outlined" aria-hidden="true">{{ state().activeId() === view.id ? 'check' : '' }}</span>
+            <button
+              type="button"
+              class="views-item"
+              cdkMenuItemRadio
+              data-testid="views-item"
+              [cdkMenuItemChecked]="state().activeId() === view.id"
+              (cdkMenuItemTriggered)="state().apply(view)"
+            >
+              <span class="views-check material-symbols-outlined" aria-hidden="true">{{
+                state().activeId() === view.id ? 'check' : ''
+              }}</span>
               <span class="views-item-name">{{ view.name }}</span>
               @if (view.isDefault) {
                 <span class="views-badge">{{ 'ui.views.default_badge' | t }}</span>
@@ -57,19 +91,43 @@ const NAME_MAX = 80;
         <div class="views-separator" role="separator"></div>
         @if (state().active(); as active) {
           @if (state().changed()) {
-            <button type="button" class="views-item" cdkMenuItem data-testid="views-save" (cdkMenuItemTriggered)="saveActive()">
+            <button
+              type="button"
+              class="views-item"
+              cdkMenuItem
+              data-testid="views-save"
+              (cdkMenuItemTriggered)="saveActive()"
+            >
               {{ 'ui.views.save' | t }}
             </button>
           }
         }
-        <button type="button" class="views-item" cdkMenuItem data-testid="views-save-as" (cdkMenuItemTriggered)="openSaveAs()">
+        <button
+          type="button"
+          class="views-item"
+          cdkMenuItem
+          data-testid="views-save-as"
+          (cdkMenuItemTriggered)="openSaveAs()"
+        >
           {{ 'ui.views.save_as' | t }}
         </button>
         @if (state().active(); as active) {
-          <button type="button" class="views-item" cdkMenuItem data-testid="views-default" (cdkMenuItemTriggered)="toggleDefault(active)">
+          <button
+            type="button"
+            class="views-item"
+            cdkMenuItem
+            data-testid="views-default"
+            (cdkMenuItemTriggered)="toggleDefault(active)"
+          >
             {{ (active.isDefault ? 'ui.views.unset_default' : 'ui.views.set_default') | t }}
           </button>
-          <button type="button" class="views-item views-danger" cdkMenuItem data-testid="views-delete" (cdkMenuItemTriggered)="remove(active)">
+          <button
+            type="button"
+            class="views-item views-danger"
+            cdkMenuItem
+            data-testid="views-delete"
+            (cdkMenuItemTriggered)="remove(active)"
+          >
             {{ 'ui.views.delete' | t }}
           </button>
         }
@@ -78,61 +136,172 @@ const NAME_MAX = 80;
 
     <smt-dialog [open]="saveAsOpen()" [smtTitle]="'ui.views.save_as_title' | t" smtSize="sm" (closed)="closeSaveAs()">
       <ng-template smtDialogContent>
-      <form body class="views-form" (submit)="$event.preventDefault(); submitSaveAs()" novalidate>
-        <label class="form-label" [for]="nameId">{{ 'ui.views.name' | t }}</label>
-        <smt-input #nameInput smtTestId="views-name" [smtFieldId]="nameId" [maxLength]="nameMax"
-          [value]="name()" (valueChange)="name.set($event === null ? '' : '' + $event)"
-          [smtInvalid]="!!nameError()" [smtDescribedBy]="nameError() ? nameId + '-error' : null" />
-        @if (nameError(); as error) {
-          <span class="views-error" [id]="nameId + '-error'" data-testid="views-name-error">{{ error | t }}</span>
-        }
-        <div smt-checkbox class="views-default-choice" data-testid="views-name-default" [checked]="makeDefault()" (checkedChange)="makeDefault.set($event)">
-          {{ 'ui.views.open_by_default' | t }}
+        <form body class="views-form" (submit)="$event.preventDefault(); submitSaveAs()" novalidate>
+          <label class="form-label" [for]="nameId">{{ 'ui.views.name' | t }}</label>
+          <smt-input
+            #nameInput
+            smtTestId="views-name"
+            [smtFieldId]="nameId"
+            [maxLength]="nameMax"
+            [value]="name()"
+            (valueChange)="name.set($event === null ? '' : '' + $event)"
+            [smtInvalid]="!!nameError()"
+            [smtDescribedBy]="nameError() ? nameId + '-error' : null"
+          />
+          @if (nameError(); as error) {
+            <span class="views-error" [id]="nameId + '-error'" data-testid="views-name-error">{{ error | t }}</span>
+          }
+          <div
+            smt-checkbox
+            class="views-default-choice"
+            data-testid="views-name-default"
+            [checked]="makeDefault()"
+            (checkedChange)="makeDefault.set($event)"
+          >
+            {{ 'ui.views.open_by_default' | t }}
+          </div>
+        </form>
+        <div footer class="views-footer">
+          <button smt-button type="button" smtVariant="secondary" (click)="closeSaveAs()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            data-testid="views-name-submit"
+            [smtLoading]="state().busy()"
+            (click)="submitSaveAs()"
+          >
+            {{ 'ui.views.save_button' | t }}
+          </button>
         </div>
-      </form>
-      <div footer class="views-footer">
-        <button smt-button type="button" smtVariant="secondary" (click)="closeSaveAs()">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" data-testid="views-name-submit" [smtLoading]="state().busy()" (click)="submitSaveAs()">
-          {{ 'ui.views.save_button' | t }}
-        </button>
-      </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    :host { display: inline-flex; }
-    .views-trigger {
-      display: inline-flex; align-items: center; gap: 6px; max-width: 280px; min-height: var(--control-height);
-      padding: 0 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md);
-      background: var(--bg-surface); color: var(--text-main); font-size: 13px; cursor: pointer;
-    }
-    .views-trigger:hover { background: var(--bg-hover); color: var(--text-main); }
-    .views-trigger:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-    .views-trigger .material-symbols-outlined { font-size: 18px; }
-    .views-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .views-changed { color: var(--text-muted); font-size: 12px; }
-    .views-menu {
-      display: flex; flex-direction: column; min-width: 240px; max-width: min(360px, calc(100vw - 32px)); padding: 6px;
-      border: 1px solid var(--border-color); border-radius: var(--radius-lg); background: var(--bg-surface);
-      color: var(--text-main); box-shadow: var(--shadow-overlay);
-    }
-    .views-item {
-      display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 10px; border: none;
-      border-radius: var(--radius-sm); background: none; color: var(--text-main); font-size: 13px; text-align: start; cursor: pointer;
-    }
-    .views-item:hover, .views-item:focus { background: var(--bg-hover); color: var(--text-main); outline: none; }
-    .views-item:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
-    .views-check { width: 18px; font-size: 18px; }
-    .views-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .views-badge { color: var(--text-muted); font-size: 12px; }
-    .views-danger { color: var(--danger-text); }
-    .views-danger:hover, .views-danger:focus { color: var(--danger-text); }
-    .views-separator { height: 1px; margin: 6px 0; background: var(--border-color); }
-    .views-form { display: flex; flex-direction: column; gap: 8px; }
-    .views-error { color: var(--danger-text); font-size: 12px; }
-    .views-default-choice { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
-    .views-footer { display: flex; justify-content: flex-end; gap: 8px; }
-  `],
+  styles: [
+    `
+      :host {
+        display: inline-flex;
+      }
+      .views-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 280px;
+        min-height: var(--control-height);
+        padding: 0 10px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background: var(--bg-surface);
+        color: var(--text-main);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .views-trigger:hover {
+        background: var(--bg-hover);
+        color: var(--text-main);
+      }
+      .views-trigger:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      .views-trigger .material-symbols-outlined {
+        font-size: 18px;
+      }
+      .views-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .views-changed {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .views-menu {
+        display: flex;
+        flex-direction: column;
+        min-width: 240px;
+        max-width: min(360px, calc(100vw - 32px));
+        padding: 6px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-surface);
+        color: var(--text-main);
+        box-shadow: var(--shadow-overlay);
+      }
+      .views-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 34px;
+        padding: 0 10px;
+        border: none;
+        border-radius: var(--radius-sm);
+        background: none;
+        color: var(--text-main);
+        font-size: 13px;
+        text-align: start;
+        cursor: pointer;
+      }
+      .views-item:hover,
+      .views-item:focus {
+        background: var(--bg-hover);
+        color: var(--text-main);
+        outline: none;
+      }
+      .views-item:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
+      }
+      .views-check {
+        width: 18px;
+        font-size: 18px;
+      }
+      .views-item-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .views-badge {
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+      .views-danger {
+        color: var(--danger-text);
+      }
+      .views-danger:hover,
+      .views-danger:focus {
+        color: var(--danger-text);
+      }
+      .views-separator {
+        height: 1px;
+        margin: 6px 0;
+        background: var(--border-color);
+      }
+      .views-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .views-error {
+        color: var(--danger-text);
+        font-size: 12px;
+      }
+      .views-default-choice {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+      }
+      .views-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+    `,
+  ],
 })
 export class UiListViewsComponent {
   private readonly i18n = inject(I18nService);
@@ -175,43 +344,55 @@ export class UiListViewsComponent {
       return;
     }
     this.nameError.set(null);
-    this.state().saveAs(name, this.makeDefault()).subscribe({
-      next: () => {
-        this.saveAsOpen.set(false);
-        this.toast.success(this.i18n.translate('ui.views.saved'));
-      },
-      error: (problem: ProblemDetail) => {
-        if (problem?.detail === 'LIST_VIEW_NAME_TAKEN') this.nameError.set('ui.views.name_taken');
-        else if (problem?.detail === 'LIST_VIEW_LIMIT') this.nameError.set('ui.views.limit');
-        else this.toast.error(this.i18n.translate('ui.views.save_error'));
-      },
-    });
+    this.state()
+      .saveAs(name, this.makeDefault())
+      .subscribe({
+        next: () => {
+          this.saveAsOpen.set(false);
+          this.toast.success(this.i18n.translate('ui.views.saved'));
+        },
+        error: (problem: ProblemDetail) => {
+          if (problem?.detail === 'LIST_VIEW_NAME_TAKEN') this.nameError.set('ui.views.name_taken');
+          else if (problem?.detail === 'LIST_VIEW_LIMIT') this.nameError.set('ui.views.limit');
+          else this.toast.error(this.i18n.translate('ui.views.save_error'));
+        },
+      });
   }
 
   saveActive(): void {
-    this.state().saveActive().subscribe({
-      next: () => this.toast.success(this.i18n.translate('ui.views.saved')),
-      error: (problem: ProblemDetail) => this.toast.error(this.i18n.translate(
-        problem?.detail === 'STALE_VERSION' ? 'ui.views.stale' : 'ui.views.save_error')),
-    });
+    this.state()
+      .saveActive()
+      .subscribe({
+        next: () => this.toast.success(this.i18n.translate('ui.views.saved')),
+        error: (problem: ProblemDetail) =>
+          this.toast.error(
+            this.i18n.translate(problem?.detail === 'STALE_VERSION' ? 'ui.views.stale' : 'ui.views.save_error'),
+          ),
+      });
   }
 
   toggleDefault(view: SavedListView): void {
-    this.state().setDefault(view, !view.isDefault).subscribe({
-      error: () => this.toast.error(this.i18n.translate('ui.views.save_error')),
-    });
+    this.state()
+      .setDefault(view, !view.isDefault)
+      .subscribe({
+        error: () => this.toast.error(this.i18n.translate('ui.views.save_error')),
+      });
   }
 
   remove(view: SavedListView): void {
-    this.modal.confirm({
-      message: this.i18n.translate('ui.views.delete_confirm', { name: view.name }),
-      destructive: true,
-    }).subscribe(confirmed => {
-      if (!confirmed) return;
-      this.state().remove(view).subscribe({
-        next: () => this.toast.success(this.i18n.translate('ui.views.deleted')),
-        error: () => this.toast.error(this.i18n.translate('ui.views.save_error')),
+    this.modal
+      .confirm({
+        message: this.i18n.translate('ui.views.delete_confirm', { name: view.name }),
+        destructive: true,
+      })
+      .subscribe((confirmed) => {
+        if (!confirmed) return;
+        this.state()
+          .remove(view)
+          .subscribe({
+            next: () => this.toast.success(this.i18n.translate('ui.views.deleted')),
+            error: () => this.toast.error(this.i18n.translate('ui.views.save_error')),
+          });
       });
-    });
   }
 }

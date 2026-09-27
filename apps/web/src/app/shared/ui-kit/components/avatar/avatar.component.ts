@@ -11,7 +11,16 @@
  * the name is written next to it almost everywhere; `smtLabelled` makes it
  * an image named by the person when it stands alone. A photo that fails to
  * load falls back to the initials. */
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, input, signal, ViewEncapsulation } from '@angular/core';
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  input,
+  signal,
+  ViewEncapsulation,
+} from '@angular/core';
 
 export type SMTAvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -23,7 +32,7 @@ export function avatarInitials(name: string | null | undefined): string {
   const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
   if (words.length === 0) return '?';
   const first = [...words[0]][0] ?? '';
-  const last = words.length > 1 ? [...words[words.length - 1]][0] ?? '' : '';
+  const last = words.length > 1 ? ([...words[words.length - 1]][0] ?? '') : '';
   return (first + last).toLocaleUpperCase();
 }
 
@@ -49,7 +58,11 @@ export function avatarTone(name: string | null | undefined): number {
     '[attr.title]': 'labelled() ? name() : null',
   },
   // One line: no spaces around the initials in the text of the row around it.
-  template: `@if (showImage()) {<img class="smt-avatar__image" [src]="imageUrl()" alt="" (error)="failed.set(true)" />} @else {<ng-container>{{ initials() }}</ng-container>}`,
+  template: `@if (showImage()) {
+      <img class="smt-avatar__image" [src]="imageUrl()" alt="" (error)="failed.set(true)" />
+    } @else {
+      <ng-container>{{ initials() }}</ng-container>
+    }`,
 })
 export class SMTAvatarComponent {
   readonly name = input<string | null | undefined>('');
@@ -68,7 +81,9 @@ export class SMTAvatarComponent {
 
   readonly showImage = computed(() => !!this.imageUrl() && !this.failed());
 
-  readonly hostClass = computed(() => `smt-avatar smt-avatar--${this.size()} smt-avatar--tone-${avatarTone(this.name())}`);
+  readonly hostClass = computed(
+    () => `smt-avatar smt-avatar--${this.size()} smt-avatar--tone-${avatarTone(this.name())}`,
+  );
 
   constructor() {
     // A new photo gets a new chance to load.

@@ -41,13 +41,14 @@ function formatBytes(bytes: number): string {
   selector: 'app-files',
   standalone: true,
   imports: [
-    SMTAlertComponent, CommonModule,
+    SMTAlertComponent,
+    CommonModule,
     SMTButtonComponent,
     TranslatePipe,
     FilesMetricsCardsComponent,
     FilesToolbarComponent,
     FilesTableComponent,
-    FilesModalsComponent
+    FilesModalsComponent,
   ],
   template: `
     <div class="files-page">
@@ -58,7 +59,13 @@ function formatBytes(bytes: number): string {
           <span class="count-badge" data-testid="files-count">{{ pager.total() }}</span>
         </div>
         <div class="header-right">
-          <button smt-button type="button" smtVariant="primary" smtIcon="cloud_upload" (click)="isUploadModalOpen.set(true)">
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtIcon="cloud_upload"
+            (click)="isUploadModalOpen.set(true)"
+          >
             {{ 'files.zagruzit_fayl' | t }}
           </button>
         </div>
@@ -82,7 +89,9 @@ function formatBytes(bytes: number): string {
       @if (metaError()) {
         <smt-alert smtTone="danger" data-testid="files-meta-error">
           <span>{{ 'files.list_load_error' | t }}</span>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadFiles()">{{ 'common.retry' | t }}</button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadFiles()">
+            {{ 'common.retry' | t }}
+          </button>
         </smt-alert>
       }
       <app-files-table
@@ -109,44 +118,46 @@ function formatBytes(bytes: number): string {
       ></app-files-modals>
     </div>
   `,
-  styles: [`
-    .files-page {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 0;
-      max-width: 1400px;
-      margin: 0 auto;
-    }
+  styles: [
+    `
+      .files-page {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 0;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
 
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
+      .view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
 
-    .view-title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin: 0;
-    }
+      .view-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+      }
 
-    .count-badge {
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--primary-subtle);
-      color: var(--primary-text);
-    }
-  `]
+      .count-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--primary-subtle);
+        color: var(--primary-text);
+      }
+    `,
+  ],
 })
 export class FilesComponent implements OnInit, OnDestroy {
   private readonly preview = inject(SMTFilePreviewService);
@@ -173,17 +184,27 @@ export class FilesComponent implements OnInit, OnDestroy {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.pager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
   /** Every request carries the scope, the search box, the sort and the filter; only the latest answer lands. */
   readonly pager = new KeysetPager<FileDetail>(
-    (cursor, limit) => this.api.get<KeysetPage<FileDetail>>('/files', {
-      scope: this.scope,
-      limit,
-      ...(cursor ? { cursor } : {}),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery })
-    }, { notifyError: false }),
-    { pageSize: 15, destroyRef: this.destroyRef }
+    (cursor, limit) =>
+      this.api.get<KeysetPage<FileDetail>>(
+        '/files',
+        {
+          scope: this.scope,
+          limit,
+          ...(cursor ? { cursor } : {}),
+          ...toQueryParams({
+            sort: this.views.sort(),
+            conditions: this.views.filter(),
+            match: this.views.match(),
+            search: this.searchQuery,
+          }),
+        },
+        { notifyError: false },
+      ),
+    { pageSize: 15, destroyRef: this.destroyRef },
   );
   readonly files = this.pager.items;
   readonly isLoading = this.pager.loading;
@@ -197,7 +218,7 @@ export class FilesComponent implements OnInit, OnDestroy {
   constructor(
     private api: ApiService,
     private permService: PermissionService,
-    private toast: ToastService
+    private toast: ToastService,
   ) {}
 
   /** The scope as an export option; the same object while the scope stays, so the button is not re-rendered. */
@@ -225,8 +246,8 @@ export class FilesComponent implements OnInit, OnDestroy {
     if (this.destroyed) return;
     this.statsRequest?.unsubscribe();
     this.statsRequest = this.api.get<StorageStats>('/files/storage/stats').subscribe({
-      next: res => this.stats.set(res),
-      error: () => {}
+      next: (res) => this.stats.set(res),
+      error: () => {},
     });
   }
 
@@ -238,13 +259,16 @@ export class FilesComponent implements OnInit, OnDestroy {
       return;
     }
     this.metaError.set(false);
-    this.queryMeta.get('mf.files').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: meta => {
-        this.meta.set(meta);
-        this.views.load().subscribe(() => this.pager.first());
-      },
-      error: () => this.metaError.set(true)
-    });
+    this.queryMeta
+      .get('mf.files')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (meta) => {
+          this.meta.set(meta);
+          this.views.load().subscribe(() => this.pager.first());
+        },
+        error: () => this.metaError.set(true),
+      });
   }
 
   searchFiles() {
@@ -274,9 +298,14 @@ export class FilesComponent implements OnInit, OnDestroy {
 
   /** Shows the images of the page in the preview, starting at this one. */
   previewFile(file: FileDetail) {
-    const previews = this.files().map(item => ({ name: item.originalName, mimeType: item.mimeType, url: `/api/v1/files/${item.id}/download`, item }));
-    const chosen = previews.find(preview => preview.item === file);
-    if (chosen) this.preview.open(previews, chosen, preview => this.downloadFile((preview as typeof chosen).item));
+    const previews = this.files().map((item) => ({
+      name: item.originalName,
+      mimeType: item.mimeType,
+      url: `/api/v1/files/${item.id}/download`,
+      item,
+    }));
+    const chosen = previews.find((preview) => preview.item === file);
+    if (chosen) this.preview.open(previews, chosen, (preview) => this.downloadFile((preview as typeof chosen).item));
   }
 
   downloadFile(file: FileDetail) {
@@ -284,9 +313,11 @@ export class FilesComponent implements OnInit, OnDestroy {
   }
 
   canDeleteFile(file: FileDetail): boolean {
-    return this.permService.hasPermission('platform.files', 'delete') &&
+    return (
+      this.permService.hasPermission('platform.files', 'delete') &&
       (this.permService.hasPermission('platform.files', 'manage_quotas') ||
-        (file.createdBy != null && file.createdBy === this.auth.currentUser()?.id));
+        (file.createdBy != null && file.createdBy === this.auth.currentUser()?.id))
+    );
   }
 
   /**
@@ -295,28 +326,30 @@ export class FilesComponent implements OnInit, OnDestroy {
    */
   confirmDeleteFile(file: FileDetail) {
     if (this.isDeleting() || !this.canDeleteFile(file)) return;
-    this.modal.confirm({
-      title: this.uiI18n.translate('files.podtverzhdenie_udaleniya'),
-      message: `${this.uiI18n.translate('files.delete_file_question', { name: file.originalName })}\n${this.uiI18n.translate('files.quota_will_be_released', { size: formatBytes(file.sizeBytes) })}`,
-      yesLabel: this.uiI18n.translate('common.delete'),
-      noLabel: this.uiI18n.translate('common.cancel'),
-      destructive: true,
-      action: () => this.deleteFile(file),
-      actionError: problemText
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: this.uiI18n.translate('files.podtverzhdenie_udaleniya'),
+        message: `${this.uiI18n.translate('files.delete_file_question', { name: file.originalName })}\n${this.uiI18n.translate('files.quota_will_be_released', { size: formatBytes(file.sizeBytes) })}`,
+        yesLabel: this.uiI18n.translate('common.delete'),
+        noLabel: this.uiI18n.translate('common.cancel'),
+        destructive: true,
+        action: () => this.deleteFile(file),
+        actionError: problemText,
+      })
+      .subscribe();
   }
 
   onBatchFileUploaded(taskFile: TaskFile) {
-    this.uploadedBatch.update(list => [...list, taskFile]);
+    this.uploadedBatch.update((list) => [...list, taskFile]);
     this.refreshAll();
   }
 
   onBatchFileRemoved(taskFile: TaskFile) {
     this.api.delete(`/files/${taskFile.fileId}`).subscribe({
       next: () => {
-        this.uploadedBatch.update(list => list.filter(f => f.fileId !== taskFile.fileId));
+        this.uploadedBatch.update((list) => list.filter((f) => f.fileId !== taskFile.fileId));
         this.refreshAll();
-      }
+      },
     });
   }
 
@@ -345,7 +378,7 @@ export class FilesComponent implements OnInit, OnDestroy {
         this.toast.success(this.uiI18n.translate('files.deleted_named', { name: file.originalName }));
         this.refreshAll();
       }),
-      finalize(() => this.isDeleting.set(false))
+      finalize(() => this.isDeleting.set(false)),
     );
   }
 }

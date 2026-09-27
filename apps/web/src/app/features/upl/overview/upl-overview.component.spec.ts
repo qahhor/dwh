@@ -12,22 +12,38 @@ const overview = (days: number, uploads = 12): UplOverview => ({
   previous: { uploads: 10, received: 0, verified: 2, rejected: 6, applied: 4, rowsApplied: 0 },
   daily: [
     { day: '2026-09-24', applied: 2, rejected: 1, other: 0 },
-    { day: '2026-09-25', applied: 4, rejected: 2, other: 3 }
+    { day: '2026-09-25', applied: 4, rejected: 2, other: 3 },
   ],
   freshness: [
-    { sourceId: 3, code: 'tax', name: 'Налоги', periodicity: 'month', state: 'fresh', lastPeriodTo: '2026-08-31', dueBy: '2026-10-05' },
-    { sourceId: 5, code: 'brick', name: 'Кирпич', periodicity: 'month', state: 'overdue', lastPeriodTo: '2026-06-30', dueBy: '2026-08-05' }
+    {
+      sourceId: 3,
+      code: 'tax',
+      name: 'Налоги',
+      periodicity: 'month',
+      state: 'fresh',
+      lastPeriodTo: '2026-08-31',
+      dueBy: '2026-10-05',
+    },
+    {
+      sourceId: 5,
+      code: 'brick',
+      name: 'Кирпич',
+      periodicity: 'month',
+      state: 'overdue',
+      lastPeriodTo: '2026-06-30',
+      dueBy: '2026-08-05',
+    },
   ],
   attention: [
     { kind: 'overdue', sourceId: 5, sourceCode: 'brick', sourceName: 'Кирпич', periodTo: '2026-07-31', daysLate: 51 },
-    { kind: 'waiting', sourceId: 3, sourceCode: 'tax', sourceName: 'Налоги', packageId: 'p-1', fileName: 'aug.xlsx' }
-  ]
+    { kind: 'waiting', sourceId: 3, sourceCode: 'tax', sourceName: 'Налоги', packageId: 'p-1', fileName: 'aug.xlsx' },
+  ],
 });
 
 async function render(get: ReturnType<typeof vi.fn>) {
   await TestBed.configureTestingModule({
     imports: [UplOverviewComponent],
-    providers: [provideRouter([]), { provide: UplOverviewApi, useValue: { get } }]
+    providers: [provideRouter([]), { provide: UplOverviewApi, useValue: { get } }],
   }).compileComponents();
   const fixture = TestBed.createComponent(UplOverviewComponent);
   fixture.detectChanges();
@@ -39,7 +55,7 @@ describe('UplOverviewComponent', () => {
     const { host } = await render(vi.fn(() => of(overview(30))));
 
     const rows = [...host.querySelectorAll('[data-testid="overview-freshness"] [role="rowgroup"] > [role="row"]')];
-    expect(rows.map(row => row.querySelector('.overview__source')?.textContent)).toEqual(['Кирпич', 'Налоги']);
+    expect(rows.map((row) => row.querySelector('.overview__source')?.textContent)).toEqual(['Кирпич', 'Налоги']);
     expect(rows[0].textContent).toContain('Просрочено');
     expect(rows[0].textContent).toContain('05.08.2026');
 
@@ -58,7 +74,7 @@ describe('UplOverviewComponent', () => {
     expect(get).toHaveBeenCalledWith(30);
     const card = host.querySelector('[data-testid="overview-totals"] section') as HTMLElement;
     expect(document.getElementById(card.getAttribute('aria-labelledby')!)?.textContent).toBe('Загрузки за период');
-    const kpis = [...card.querySelectorAll('.kpi')].map(kpi => kpi.getAttribute('aria-label'));
+    const kpis = [...card.querySelectorAll('.kpi')].map((kpi) => kpi.getAttribute('aria-label'));
     expect(kpis[0]).toBe('Всего загрузок: 12, рост на 20% к прошлому периоду');
     expect(kpis[3]).toBe('Отклонено: 3, снижение на 50% к прошлому периоду');
     expect(kpis[4]).toContain('рост на 12');
@@ -66,13 +82,14 @@ describe('UplOverviewComponent', () => {
     // The daily chart: a bar per day and the same figures as a table for screen readers.
     expect(host.querySelectorAll('[data-testid="bar-chart-bar"]')).toHaveLength(2);
     const firstDay = host.querySelector('[data-testid="bar-chart-table"] tbody tr') as HTMLElement;
-    expect([...firstDay.children].map(cell => cell.textContent?.trim())).toEqual(['24.09', '2', '0', '1']);
+    expect([...firstDay.children].map((cell) => cell.textContent?.trim())).toEqual(['24.09', '2', '0', '1']);
     expect(host.querySelector('[data-testid="overview-stamp"]')?.textContent).toContain('Данные на');
   });
 
   it('switches the period, marks the pressed one and keeps only the latest answer', async () => {
     const slow = new Subject<UplOverview>();
-    const get = vi.fn()
+    const get = vi
+      .fn()
       .mockReturnValueOnce(of(overview(30)))
       .mockReturnValueOnce(slow)
       .mockReturnValueOnce(of(overview(90, 40)));
@@ -86,13 +103,14 @@ describe('UplOverviewComponent', () => {
     slow.next(overview(7, 1));
     fixture.detectChanges();
 
-    expect(get.mock.calls.map(call => call[0])).toEqual([30, 7, 90]);
-    expect(buttons().map(button => button.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
+    expect(get.mock.calls.map((call) => call[0])).toEqual([30, 7, 90]);
+    expect(buttons().map((button) => button.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
     expect(host.querySelector('.kpi__value')?.textContent).toContain('40');
   });
 
   it('keeps a failure inside its widget with a retry, and says when there were no uploads', async () => {
-    const get = vi.fn()
+    const get = vi
+      .fn()
       .mockReturnValueOnce(throwError(() => ({ status: 503 })))
       .mockReturnValueOnce(of({ ...overview(30, 0), attention: [], freshness: [] }));
     const { fixture, host } = await render(get);

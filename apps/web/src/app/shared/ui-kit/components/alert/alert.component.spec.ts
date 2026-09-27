@@ -14,7 +14,9 @@ import { SMTAlertComponent } from './alert.component';
     <smt-alert smtTone="danger" smtTitle="Could not save" data-testid="danger">The server refused.</smt-alert>
     <smt-alert smtTone="success" data-testid="success">Saved.</smt-alert>
     <smt-alert smtTone="success" smtLive="off" data-testid="quiet">10 rows = 10 rows</smt-alert>
-    <smt-alert smtTone="warning" smtDismissible (smtDismiss)="dismissed = dismissed + 1" data-testid="warning">Check the period.</smt-alert>
+    <smt-alert smtTone="warning" smtDismissible (smtDismiss)="dismissed = dismissed + 1" data-testid="warning"
+      >Check the period.</smt-alert
+    >
   `,
 })
 class Host {

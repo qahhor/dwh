@@ -8,10 +8,12 @@ const outputPath = path.join(webRoot, 'src', 'app', 'core', 'i18n', 'packaged-ru
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
 
 await mkdir(path.dirname(outputPath), { recursive: true });
-await writeFile(outputPath,
+await writeFile(
+  outputPath,
   `// Generated from the canonical packaged Russian catalog.\n` +
-  `// The server remains authoritative after application initialization.\n` +
-  `export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(${JSON.stringify(catalog, null, 2)});\n`,
-  'utf8');
+    `// The server remains authoritative after application initialization.\n` +
+    `export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(${JSON.stringify(catalog, null, 2)});\n`,
+  'utf8',
+);
 
 process.stdout.write(`Synchronized ${Object.keys(catalog).length} Russian fallback strings.\n`);

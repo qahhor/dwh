@@ -15,7 +15,11 @@ import { inScreen } from '../../../../testing/in-screen';
 function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {
   const field = root.querySelector('#' + fieldId);
   const ids = (field?.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean);
-  return ids.map(id => root.querySelector<HTMLElement>('#' + id)).find(node => node?.classList.contains('smt-control__error')) ?? null;
+  return (
+    ids
+      .map((id) => root.querySelector<HTMLElement>('#' + id))
+      .find((node) => node?.classList.contains('smt-control__error')) ?? null
+  );
 }
 
 describe('SourceCardComponent', () => {
@@ -33,16 +37,35 @@ describe('SourceCardComponent', () => {
     lastPublishedVersion: 2,
     hasDraft: false,
     createdAt: '2026-09-01T08:00:00Z',
-    modifiedAt: '2026-09-02T08:00:00Z'
+    modifiedAt: '2026-09-02T08:00:00Z',
   };
 
   const publishedVersions: UplVersionItem[] = [
-    { version: 1, status: 'superseded', validFrom: '2026-01-01', validTo: '2026-06-30', publishedAt: '2025-12-20T10:00:00Z', publishedBy: 'admin' },
-    { version: 2, status: 'published', validFrom: '2026-07-01', validTo: null, publishedAt: '2026-06-25T10:00:00Z', publishedBy: 'admin' }
+    {
+      version: 1,
+      status: 'superseded',
+      validFrom: '2026-01-01',
+      validTo: '2026-06-30',
+      publishedAt: '2025-12-20T10:00:00Z',
+      publishedBy: 'admin',
+    },
+    {
+      version: 2,
+      status: 'published',
+      validFrom: '2026-07-01',
+      validTo: null,
+      publishedAt: '2026-06-25T10:00:00Z',
+      publishedBy: 'admin',
+    },
   ];
 
   const draftVersion: UplVersionItem = {
-    version: 3, status: 'draft', validFrom: null, validTo: null, publishedAt: null, publishedBy: null
+    version: 3,
+    status: 'draft',
+    validFrom: null,
+    validTo: null,
+    publishedAt: null,
+    publishedBy: null,
   };
 
   const createdDraft: UplFormatVersion = {
@@ -58,7 +81,7 @@ describe('SourceCardComponent', () => {
     encoding: null,
     delimiter: null,
     matchColumnsBy: null,
-    sheets: []
+    sheets: [],
   };
 
   interface Options {
@@ -72,14 +95,16 @@ describe('SourceCardComponent', () => {
 
   async function createFixture(options: Options = {}) {
     const api = {
-      getSource: vi.fn(() => options.loadError ? throwError(() => options.loadError) : of({ ...source })),
+      getSource: vi.fn(() => (options.loadError ? throwError(() => options.loadError) : of({ ...source }))),
       listVersions: vi.fn(() => of(options.versions ?? publishedVersions)),
-      updateSource: vi.fn(() => options.updateError
-        ? throwError(() => options.updateError)
-        : of({ ...source, name: 'Source B', lockVersion: 6 })),
-      createDraft: vi.fn(() => options.createDraftError
-        ? throwError(() => options.createDraftError)
-        : of(createdDraft))
+      updateSource: vi.fn(() =>
+        options.updateError
+          ? throwError(() => options.updateError)
+          : of({ ...source, name: 'Source B', lockVersion: 6 }),
+      ),
+      createDraft: vi.fn(() =>
+        options.createDraftError ? throwError(() => options.createDraftError) : of(createdDraft),
+      ),
     };
     const permissions = { hasPermission: vi.fn(() => options.canEdit ?? true) };
     const toast = { success: vi.fn(), error: vi.fn() };
@@ -87,7 +112,10 @@ describe('SourceCardComponent', () => {
       imports: [SourceCardComponent],
       providers: [
         provideRouter([]),
-        { provide: ApiService, useValue: { get: vi.fn(() => of([])), post: vi.fn(() => of({})), put: vi.fn(() => of({})) } },
+        {
+          provide: ApiService,
+          useValue: { get: vi.fn(() => of([])), post: vi.fn(() => of({})), put: vi.fn(() => of({})) },
+        },
         { provide: UplApiService, useValue: api },
         { provide: PermissionService, useValue: permissions },
         { provide: ToastService, useValue: toast },
@@ -95,10 +123,10 @@ describe('SourceCardComponent', () => {
           provide: ActivatedRoute,
           useValue: {
             paramMap: of(convertToParamMap({ id: '7' })),
-            snapshot: { queryParamMap: convertToParamMap(options.query ?? {}) }
-          }
-        }
-      ]
+            snapshot: { queryParamMap: convertToParamMap(options.query ?? {}) },
+          },
+        },
+      ],
     }).compileComponents();
     const router = TestBed.inject(Router);
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
@@ -136,14 +164,18 @@ describe('SourceCardComponent', () => {
     const link = rows[0] as HTMLAnchorElement;
     expect(link.getAttribute('href')).toBe('/upl/sources/7/formats/1');
     // Each version offers the supplier's file, named after the version for screen readers.
-    const template = inScreen(fixture.nativeElement).querySelector('[data-testid="upl-version-template"]') as HTMLAnchorElement;
+    const template = inScreen(fixture.nativeElement).querySelector(
+      '[data-testid="upl-version-template"]',
+    ) as HTMLAnchorElement;
     expect(template.getAttribute('href')).toBe('/api/v1/upl/sources/7/format-versions/1/template?lang=ru');
     expect(template.hasAttribute('download')).toBe(true);
     expect(template.getAttribute('aria-label')).toBe('Скачать шаблон файла для версии 1');
   });
 
   it('shows not found message on 404', async () => {
-    const { fixture } = await createFixture({ loadError: { status: 404, code: 'NOT_FOUND', detail: 'UPL_SOURCE_NOT_FOUND' } });
+    const { fixture } = await createFixture({
+      loadError: { status: 404, code: 'NOT_FOUND', detail: 'UPL_SOURCE_NOT_FOUND' },
+    });
     expect(el(fixture, 'upl-not-found')).not.toBeNull();
   });
 
@@ -159,18 +191,21 @@ describe('SourceCardComponent', () => {
     const { fixture, api, toast } = await createFixture();
     setInput(fixture, 'upl-field-name', 'Source B');
     clickUiButton(fixture, 'upl-save-source');
-    expect(api.updateSource).toHaveBeenCalledWith('7', expect.objectContaining({
-      code: 'sqb_output',
-      name: 'Source B',
-      sourceType: 'file',
-      lockVersion: 5
-    }));
+    expect(api.updateSource).toHaveBeenCalledWith(
+      '7',
+      expect.objectContaining({
+        code: 'sqb_output',
+        name: 'Source B',
+        sourceType: 'file',
+        lockVersion: 5,
+      }),
+    );
     expect(toast.success).toHaveBeenCalled();
   });
 
   it('keeps user input and offers refresh on 409 STALE_VERSION', async () => {
     const { fixture, api } = await createFixture({
-      updateError: { status: 409, code: 'CONFLICT', detail: 'STALE_VERSION' }
+      updateError: { status: 409, code: 'CONFLICT', detail: 'STALE_VERSION' },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(fixture, 'upl-save-source');
@@ -212,7 +247,7 @@ describe('SourceCardComponent', () => {
 
   it('offers to open the existing draft on FND_VERSION_DRAFT_EXISTS', async () => {
     const { fixture } = await createFixture({
-      createDraftError: { status: 409, code: 'CONFLICT', detail: 'FND_VERSION_DRAFT_EXISTS' }
+      createDraftError: { status: 409, code: 'CONFLICT', detail: 'FND_VERSION_DRAFT_EXISTS' },
     });
     clickUiButton(fixture, 'upl-new-draft');
     clickUiButton(fixture, 'upl-create-draft');
@@ -263,13 +298,15 @@ describe('SourceCardComponent', () => {
         status: 422,
         code: 'validation_failed',
         detail: 'VALIDATION_FAILED: name',
-        errors: [{ field: 'name', code: 'Size', message: 'x' }]
-      }
+        errors: [{ field: 'name', code: 'Size', message: 'x' }],
+      },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(fixture, 'upl-save-source');
     expect(fieldError(fixture.nativeElement, 'upl-source-name')).not.toBeNull();
-    expect(fieldError(fixture.nativeElement, 'upl-source-name')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
+    expect(fieldError(fixture.nativeElement, 'upl-source-name')?.textContent).toContain(
+      PACKAGED_RUSSIAN['upl.err.Size'],
+    );
     expect(el(fixture, 'upl-save-error')?.textContent).toContain(PACKAGED_RUSSIAN['upl.err.VALIDATION_FAILED']);
     expect((el(fixture, 'upl-field-name') as HTMLInputElement).value).toBe('Edited TEST');
     expect(el(fixture, 'upl-conflict')).toBeNull();
@@ -281,8 +318,8 @@ describe('SourceCardComponent', () => {
         status: 422,
         code: 'validation_failed',
         detail: 'VALIDATION_FAILED: ownerOrg',
-        errors: [{ field: 'ownerOrg', code: 'UPL_SOMETHING_NEW', message: 'srv' }]
-      }
+        errors: [{ field: 'ownerOrg', code: 'UPL_SOMETHING_NEW', message: 'srv' }],
+      },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(fixture, 'upl-save-source');
@@ -293,7 +330,7 @@ describe('SourceCardComponent', () => {
 
   it('shows permission denied and an unknown error as text', async () => {
     const denied = await createFixture({
-      updateError: { status: 403, code: 'permission_denied', detail: 'PERMISSION_DENIED' }
+      updateError: { status: 403, code: 'permission_denied', detail: 'PERMISSION_DENIED' },
     });
     setInput(denied.fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(denied.fixture, 'upl-save-source');
@@ -302,7 +339,7 @@ describe('SourceCardComponent', () => {
 
     TestBed.resetTestingModule();
     const unknown = await createFixture({
-      updateError: { status: 400, code: 'bad_request', detail: 'UPL_SOMETHING_NEW' }
+      updateError: { status: 400, code: 'bad_request', detail: 'UPL_SOMETHING_NEW' },
     });
     setInput(unknown.fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(unknown.fixture, 'upl-save-source');

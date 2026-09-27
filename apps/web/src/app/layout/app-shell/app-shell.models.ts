@@ -58,57 +58,111 @@ export interface BuildNavSectionsOptions {
  */
 function entityNavItems(options: BuildNavSectionsOptions, section: string): NavItem[] {
   return options.entityItems
-    .filter(item => item.section === section && (!item.module || options.isModuleActive(item.module)))
+    .filter((item) => item.section === section && (!item.module || options.isModuleActive(item.module)))
     .sort((a, b) => a.order - b.order)
-    .map(item => ({
+    .map((item) => ({
       id: item.code.includes('.') ? item.code.slice(item.code.indexOf('.') + 1) : item.code,
       route: item.route,
       labelKey: item.labelKey,
       icon: item.icon,
-      permission: () => options.hasPermission(`${item.form}.view`)
+      permission: () => options.hasPermission(`${item.form}.view`),
     }));
 }
 
 export function buildNavSections(options: BuildNavSectionsOptions): NavSection[] {
   // A module whose entity declares its own menu item is shown there, not again under Modules.
-  const declaredModules = new Set(options.entityItems.map(item => item.module).filter(Boolean));
-  const customItems: NavItem[] = options.activeCustomModules.filter(mod => !declaredModules.has(mod.code)).map(mod => ({
-    id: `module-${mod.code}`,
-    route: mod.route!,
-    label: mod.name,
-    icon: mod.icon || 'extension',
-    permission: () => true
-  }));
+  const declaredModules = new Set(options.entityItems.map((item) => item.module).filter(Boolean));
+  const customItems: NavItem[] = options.activeCustomModules
+    .filter((mod) => !declaredModules.has(mod.code))
+    .map((mod) => ({
+      id: `module-${mod.code}`,
+      route: mod.route!,
+      label: mod.name,
+      icon: mod.icon || 'extension',
+      permission: () => true,
+    }));
 
   const workspaceItems: NavItem[] = [
-    { id: 'tasks', route: '/tasks', labelKey: 'nav.tasks', icon: 'task_alt', permission: options.canViewTasks, exact: true },
-    { id: 'projects', route: '/tasks/projects', labelKey: 'nav.projects', icon: 'folder', permission: options.canViewProjects }
+    {
+      id: 'tasks',
+      route: '/tasks',
+      labelKey: 'nav.tasks',
+      icon: 'task_alt',
+      permission: options.canViewTasks,
+      exact: true,
+    },
+    {
+      id: 'projects',
+      route: '/tasks/projects',
+      labelKey: 'nav.projects',
+      icon: 'folder',
+      permission: options.canViewProjects,
+    },
   ];
 
   workspaceItems.push(...entityNavItems(options, 'workspace'));
 
   workspaceItems.push(
-    { id: 'upl-overview', route: '/upl/overview', labelKey: 'nav.upl_overview', icon: 'monitoring', permission: options.canViewPackages },
-    { id: 'upl-sources', route: '/upl/sources', labelKey: 'nav.upl_sources', icon: 'table_view', permission: options.canViewSources },
-    { id: 'upl-packages', route: '/upl/packages', labelKey: 'nav.upl_packages', icon: 'upload_file', permission: options.canViewPackages },
-    { id: 'files', route: '/files', labelKey: 'layout.app_shell.fayly', titleKey: 'files.faylovoe_hranilische', icon: 'folder_open', permission: options.canViewFiles },
-    { id: 'analytics', route: '/analytics', labelKey: 'layout.app_shell.analitika', titleKey: 'analytics.analitika_i_dashbordy', icon: 'insights', permission: options.canViewAnalytics },
-    { id: 'notifications', route: '/notifications', labelKey: 'nav.notifications', icon: 'notifications', permission: options.canViewNotifications, badge: options.unreadCount }
+    {
+      id: 'upl-overview',
+      route: '/upl/overview',
+      labelKey: 'nav.upl_overview',
+      icon: 'monitoring',
+      permission: options.canViewPackages,
+    },
+    {
+      id: 'upl-sources',
+      route: '/upl/sources',
+      labelKey: 'nav.upl_sources',
+      icon: 'table_view',
+      permission: options.canViewSources,
+    },
+    {
+      id: 'upl-packages',
+      route: '/upl/packages',
+      labelKey: 'nav.upl_packages',
+      icon: 'upload_file',
+      permission: options.canViewPackages,
+    },
+    {
+      id: 'files',
+      route: '/files',
+      labelKey: 'layout.app_shell.fayly',
+      titleKey: 'files.faylovoe_hranilische',
+      icon: 'folder_open',
+      permission: options.canViewFiles,
+    },
+    {
+      id: 'analytics',
+      route: '/analytics',
+      labelKey: 'layout.app_shell.analitika',
+      titleKey: 'analytics.analitika_i_dashbordy',
+      icon: 'insights',
+      permission: options.canViewAnalytics,
+    },
+    {
+      id: 'notifications',
+      route: '/notifications',
+      labelKey: 'nav.notifications',
+      icon: 'notifications',
+      permission: options.canViewNotifications,
+      badge: options.unreadCount,
+    },
   );
 
   const sections: NavSection[] = [
     {
       id: 'workspace',
       titleKey: 'nav.section.workspace',
-      items: workspaceItems
-    }
+      items: workspaceItems,
+    },
   ];
 
   if (customItems.length > 0) {
     sections.push({
       id: 'custom-modules',
       titleKey: 'modules.title',
-      items: customItems
+      items: customItems,
     });
   }
 
@@ -119,24 +173,77 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
       items: [
         { id: 'users', route: '/iam/users', labelKey: 'nav.users', icon: 'people', permission: options.canViewUsers },
         { id: 'roles', route: '/iam/roles', labelKey: 'nav.roles', icon: 'security', permission: options.canViewRoles },
-        { id: 'org-units', route: '/iam/org-units', labelKey: 'iam.org_units.title', titleKey: 'iam.org_units.title', icon: 'account_tree', permission: options.canViewOrgUnits },
-        { id: 'custom-fields', route: '/iam/custom-fields', labelKey: 'nav.custom_fields', icon: 'tune', permission: options.canViewCustomFields },
-        ...entityNavItems(options, 'iam')
-      ]
+        {
+          id: 'org-units',
+          route: '/iam/org-units',
+          labelKey: 'iam.org_units.title',
+          titleKey: 'iam.org_units.title',
+          icon: 'account_tree',
+          permission: options.canViewOrgUnits,
+        },
+        {
+          id: 'custom-fields',
+          route: '/iam/custom-fields',
+          labelKey: 'nav.custom_fields',
+          icon: 'tune',
+          permission: options.canViewCustomFields,
+        },
+        ...entityNavItems(options, 'iam'),
+      ],
     },
     {
       id: 'administration',
       titleKey: 'nav.section.administration',
       items: [
-        { id: 'announcements', route: '/announcements', labelKey: 'announcements.obyavleniya', titleKey: 'layout.app_shell.upravlenie_obyavleniyami', icon: 'campaign', permission: options.canViewAnnouncements },
-        { id: 'modules', route: '/settings/modules', labelKey: 'nav.modules', icon: 'extension', permission: options.canViewModules },
-        { id: 'navigation-settings', route: '/settings/navigation', labelKey: 'nav.navigation_settings', icon: 'menu_open', permission: options.canViewNavigationSettings },
-        { id: 'audit', route: '/audit', labelKey: 'nav.audit', titleKey: 'layout.app_shell.audit', icon: 'history', permission: options.canViewAudit },
-        { id: 'system', route: '/system', labelKey: 'layout.app_shell.sostoyanie', titleKey: 'system.sostoyanie_sistemy', icon: 'monitor_heart', permission: options.canViewSystem },
-        { id: 'settings', route: '/settings', labelKey: 'nav.settings', titleKey: 'layout.app_shell.nastroyki', icon: 'settings', permission: options.canViewSettings },
-        ...entityNavItems(options, 'administration')
-      ]
-    }
+        {
+          id: 'announcements',
+          route: '/announcements',
+          labelKey: 'announcements.obyavleniya',
+          titleKey: 'layout.app_shell.upravlenie_obyavleniyami',
+          icon: 'campaign',
+          permission: options.canViewAnnouncements,
+        },
+        {
+          id: 'modules',
+          route: '/settings/modules',
+          labelKey: 'nav.modules',
+          icon: 'extension',
+          permission: options.canViewModules,
+        },
+        {
+          id: 'navigation-settings',
+          route: '/settings/navigation',
+          labelKey: 'nav.navigation_settings',
+          icon: 'menu_open',
+          permission: options.canViewNavigationSettings,
+        },
+        {
+          id: 'audit',
+          route: '/audit',
+          labelKey: 'nav.audit',
+          titleKey: 'layout.app_shell.audit',
+          icon: 'history',
+          permission: options.canViewAudit,
+        },
+        {
+          id: 'system',
+          route: '/system',
+          labelKey: 'layout.app_shell.sostoyanie',
+          titleKey: 'system.sostoyanie_sistemy',
+          icon: 'monitor_heart',
+          permission: options.canViewSystem,
+        },
+        {
+          id: 'settings',
+          route: '/settings',
+          labelKey: 'nav.settings',
+          titleKey: 'layout.app_shell.nastroyki',
+          icon: 'settings',
+          permission: options.canViewSettings,
+        },
+        ...entityNavItems(options, 'administration'),
+      ],
+    },
   );
 
   const customNavItems = options.customNavItems;
@@ -146,16 +253,21 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
     for (const ci of customNavItems) {
       const navItem: NavItem = {
         id: `custom-nav-${ci.code}`,
-        route: ci.targetType === 'EMBEDDED_IFRAME' ? `/embed/${ci.code}` : (ci.targetType === 'INTERNAL_ROUTE' ? ci.url : undefined),
+        route:
+          ci.targetType === 'EMBEDDED_IFRAME'
+            ? `/embed/${ci.code}`
+            : ci.targetType === 'INTERNAL_ROUTE'
+              ? ci.url
+              : undefined,
         targetUrl: ci.targetType === 'EXTERNAL_LINK' ? ci.url : undefined,
         external: ci.targetType === 'EXTERNAL_LINK',
         openInIframe: ci.targetType === 'EMBEDDED_IFRAME',
         label: ci.title,
         icon: ci.icon || 'analytics',
-        permission: () => !ci.requiredPermission || options.hasPermission(ci.requiredPermission)
+        permission: () => !ci.requiredPermission || options.hasPermission(ci.requiredPermission),
       };
 
-      const targetSection = sections.find(s => s.id === ci.sectionId);
+      const targetSection = sections.find((s) => s.id === ci.sectionId);
       if (targetSection) {
         targetSection.items.push(navItem);
       } else {
@@ -167,7 +279,7 @@ export function buildNavSections(options: BuildNavSectionsOptions): NavSection[]
       sections.splice(1, 0, {
         id: 'custom-reports',
         titleKey: 'nav.section.reports_and_services',
-        items: customReportItems
+        items: customReportItems,
       });
     }
   }
@@ -201,9 +313,9 @@ export function loadCollapsedState(): boolean {
 }
 
 export const SECTION_ICON_MAP: Record<string, string> = {
-  'workspace': 'space_dashboard',
-  'iam': 'manage_accounts',
-  'administration': 'tune',
+  workspace: 'space_dashboard',
+  iam: 'manage_accounts',
+  administration: 'tune',
   'custom-modules': 'extension',
-  'custom-reports': 'analytics'
+  'custom-reports': 'analytics',
 };

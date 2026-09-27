@@ -90,7 +90,7 @@ export class SMTTooltipDirective implements OnDestroy {
           debounceTime(300),
           filter(() => this.isMouseOnElement && !this.overlayRef?.hasAttached()),
           filter(() => this.canShow()),
-          takeUntilDestroyed(this.destroyRef)
+          takeUntilDestroyed(this.destroyRef),
         )
         .subscribe(() => this.ngZone.run(() => this.attachTooltipLayer()));
 
@@ -104,7 +104,7 @@ export class SMTTooltipDirective implements OnDestroy {
       fromEvent(host, 'focusin')
         .pipe(
           filter(() => this.canShow()),
-          takeUntilDestroyed(this.destroyRef)
+          takeUntilDestroyed(this.destroyRef),
         )
         .subscribe(() => {
           this.hasFocus = true;
@@ -201,16 +201,16 @@ export class SMTTooltipDirective implements OnDestroy {
     overlayRef
       .keydownEvents()
       .pipe(
-        filter(event => event.key === 'Escape'),
-        takeUntil(overlayRef.detachments())
+        filter((event) => event.key === 'Escape'),
+        takeUntil(overlayRef.detachments()),
       )
-      .subscribe(event => {
+      .subscribe((event) => {
         event.preventDefault();
         event.stopPropagation();
         this.detachTooltipLayer();
       });
 
-    positionStrategy.positionChanges.pipe(takeUntil(overlayRef.detachments())).subscribe(change => {
+    positionStrategy.positionChanges.pipe(takeUntil(overlayRef.detachments())).subscribe((change) => {
       const currentArrowPosition = this.getArrowPositionFromConnection(change.connectionPair);
       componentRef.setInput('arrowPosition', currentArrowPosition);
     });

@@ -5,50 +5,86 @@ import { Role } from '../../../../core/models/rbac.models';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-role-modals',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTSelectComponent, SMTSelectValueAccessor, SMTInputComponent, SMTInputValueAccessor],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    SMTInputComponent,
+    SMTInputValueAccessor,
+  ],
   template: `
     <!-- Create Role Modal -->
     <smt-dialog
       [open]="isCreateModalOpen"
       [smtTitle]="'iam.sozdanie_novoy_roli' | t"
       smtSize="sm"
-      (closed)="closeCreate.emit()">
+      (closed)="closeCreate.emit()"
+    >
       <ng-template smtDialogContent>
-      <div body class="modal-body-form">
-        <div class="modal-field">
-          <label class="modal-label" for="role-create-name">{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label>
-          <smt-input
-            smtFieldId="role-create-name"
-            name="roleCreateName"
-            required
-            [smtInvalid]="isCreateSubmitted && !newRoleForm.name.trim()"
-            [smtDescribedBy]="isCreateSubmitted && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
-            [(ngModel)]="newRoleForm.name"
-            [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t" />
-          <span id="role-create-name-error" class="field-error" *ngIf="isCreateSubmitted && !newRoleForm.name.trim()">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
+        <div body class="modal-body-form">
+          <div class="modal-field">
+            <label class="modal-label" for="role-create-name"
+              >{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label
+            >
+            <smt-input
+              smtFieldId="role-create-name"
+              name="roleCreateName"
+              required
+              [smtInvalid]="isCreateSubmitted && !newRoleForm.name.trim()"
+              [smtDescribedBy]="isCreateSubmitted && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
+              [(ngModel)]="newRoleForm.name"
+              [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t"
+            />
+            <span
+              id="role-create-name-error"
+              class="field-error"
+              *ngIf="isCreateSubmitted && !newRoleForm.name.trim()"
+              >{{ 'iam.ukazhite_nazvanie_roli' | t }}</span
+            >
+          </div>
+          <div class="modal-field">
+            <label class="modal-label" for="role-create-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
+            <smt-input
+              smtFieldId="role-create-order"
+              name="roleCreateOrder"
+              type="number"
+              class="font-mono"
+              [(ngModel)]="newRoleForm.orderNo"
+              placeholder="0"
+            />
+          </div>
         </div>
-        <div class="modal-field">
-          <label class="modal-label" for="role-create-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
-          <smt-input
-            smtFieldId="role-create-order"
-            name="roleCreateOrder"
-            type="number"
-            class="font-mono"
-            [(ngModel)]="newRoleForm.orderNo"
-            placeholder="0" />
+        <div footer>
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreate.emit()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            [smtLoading]="isSubmittingRole"
+            (click)="submitCreate.emit()"
+          >
+            {{ 'common.create' | t }}
+          </button>
         </div>
-      </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreate.emit()">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmittingRole" (click)="submitCreate.emit()">{{ 'common.create' | t }}</button>
-      </div>
       </ng-template>
     </smt-dialog>
 
@@ -57,37 +93,66 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       [open]="isEditModalOpen"
       [smtTitle]="'iam.redaktirovanie_roli' | t"
       smtSize="sm"
-      (closed)="closeEdit.emit()">
+      (closed)="closeEdit.emit()"
+    >
       <ng-template smtDialogContent>
-      <div body class="modal-body-form" *ngIf="editingRole as r">
-        <div class="modal-field">
-          <label class="modal-label" for="role-edit-name">{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label>
-          <smt-input smtFieldId="role-edit-name" name="roleEditName" required
-            [smtInvalid]="isEditSubmitted && !editRoleForm.name.trim()"
-            [smtDescribedBy]="isEditSubmitted && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
-            [(ngModel)]="editRoleForm.name" />
-          <span id="role-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editRoleForm.name.trim()">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
+        <div body class="modal-body-form" *ngIf="editingRole as r">
+          <div class="modal-field">
+            <label class="modal-label" for="role-edit-name"
+              >{{ 'iam.nazvanie_roli' | t }} <span class="req">*</span></label
+            >
+            <smt-input
+              smtFieldId="role-edit-name"
+              name="roleEditName"
+              required
+              [smtInvalid]="isEditSubmitted && !editRoleForm.name.trim()"
+              [smtDescribedBy]="isEditSubmitted && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
+              [(ngModel)]="editRoleForm.name"
+            />
+            <span id="role-edit-name-error" class="field-error" *ngIf="isEditSubmitted && !editRoleForm.name.trim()">{{
+              'iam.ukazhite_nazvanie_roli' | t
+            }}</span>
+          </div>
+          <div class="modal-field">
+            <label class="modal-label" for="role-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
+            <smt-select
+              smtTriggerId="role-edit-state"
+              name="roleEditState"
+              [(ngModel)]="editRoleForm.state"
+              [options]="stateOptions()"
+              [allowClear]="false"
+              [disabled]="r.pcode === 'admin'"
+            />
+            <span class="modal-help" *ngIf="r.pcode === 'admin'">{{
+              'iam.rol_superadministratora_vsegda_aktivna' | t
+            }}</span>
+          </div>
+          <div class="modal-field">
+            <label class="modal-label" for="role-edit-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
+            <smt-input
+              smtFieldId="role-edit-order"
+              name="roleEditOrder"
+              type="number"
+              class="font-mono"
+              [(ngModel)]="editRoleForm.orderNo"
+            />
+          </div>
         </div>
-        <div class="modal-field">
-          <label class="modal-label" for="role-edit-state">{{ 'iam.status_aktivnosti' | t }}</label>
-          <smt-select
-            smtTriggerId="role-edit-state"
-            name="roleEditState"
-            [(ngModel)]="editRoleForm.state"
-            [options]="stateOptions()"
-            [allowClear]="false"
-            [disabled]="r.pcode === 'admin'" />
-          <span class="modal-help" *ngIf="r.pcode === 'admin'">{{ 'iam.rol_superadministratora_vsegda_aktivna' | t }}</span>
+        <div footer>
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeEdit.emit()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            [smtLoading]="isSubmittingRole"
+            (click)="submitEdit.emit()"
+          >
+            {{ 'common.save' | t }}
+          </button>
         </div>
-        <div class="modal-field">
-          <label class="modal-label" for="role-edit-order">{{ 'iam.poryadok_otobrazheniya' | t }}</label>
-          <smt-input smtFieldId="role-edit-order" name="roleEditOrder" type="number" class="font-mono" [(ngModel)]="editRoleForm.orderNo" />
-        </div>
-      </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeEdit.emit()">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSubmittingRole" (click)="submitEdit.emit()">{{ 'common.save' | t }}</button>
-      </div>
       </ng-template>
     </smt-dialog>
 
@@ -97,18 +162,38 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       [smtTitle]="'iam.udalenie_roli' | t"
       smtSize="sm"
       [dismissible]="!isSubmittingRole"
-      (closed)="closeDelete.emit()">
+      (closed)="closeDelete.emit()"
+    >
       <ng-template smtDialogContent>
-      <div body class="modal-delete-body" *ngIf="deletingRole as r">
-        <p class="delete-title">
-          {{ 'iam.vy_deystvitelno_hotite_udalit_polzovatelskuyu_ro' | t }} <strong>{{ r.name }}</strong>?
-        </p>
-        <span class="delete-desc">{{ 'iam.vse_naznachennye_prava_etoy_roli_budut_udaleny_e' | t }}</span>
-      </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSubmittingRole" (click)="closeDelete.emit()">{{ 'common.cancel' | t }}</button>
-        <button smt-button type="button" smtVariant="danger" smtSize="md" [smtLoading]="isSubmittingRole" (click)="confirmDelete.emit()">{{ 'common.delete' | t }}</button>
-      </div>
+        <div body class="modal-delete-body" *ngIf="deletingRole as r">
+          <p class="delete-title">
+            {{ 'iam.vy_deystvitelno_hotite_udalit_polzovatelskuyu_ro' | t }} <strong>{{ r.name }}</strong
+            >?
+          </p>
+          <span class="delete-desc">{{ 'iam.vse_naznachennye_prava_etoy_roli_budut_udaleny_e' | t }}</span>
+        </div>
+        <div footer>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="md"
+            [disabled]="isSubmittingRole"
+            (click)="closeDelete.emit()"
+          >
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="danger"
+            smtSize="md"
+            [smtLoading]="isSubmittingRole"
+            (click)="confirmDelete.emit()"
+          >
+            {{ 'common.delete' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
 
@@ -118,41 +203,97 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
       [smtTitle]="'iam.nesohranennye_izmeneniya_prav' | t"
       smtSize="sm"
       [dismissible]="!isSaving"
-      (closed)="closeDiscard.emit()">
+      (closed)="closeDiscard.emit()"
+    >
       <ng-template smtDialogContent>
-      <div body class="modal-delete-body" *ngIf="selectedRole as r">
-        <p class="delete-title">
-          {{ 'iam.u_vas_est_nesohranennye_izmeneniya_v_matrice' | t:{name: r.name, count: dirtyPermissionsCount} }}
-        </p>
-      </div>
-      <div footer>
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" [disabled]="isSaving" (click)="closeDiscard.emit()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <button smt-button type="button" smtVariant="danger" smtSize="md" [disabled]="isSaving" (click)="confirmDiscardAndSwitch.emit()">
-          {{ 'iam.sbrosit_i_pereyti' | t }}
-        </button>
-        <button smt-button type="button" smtVariant="primary" smtSize="md" [smtLoading]="isSaving" (click)="saveAndSwitch.emit()">
-          {{ 'iam.sohranit_i_pereyti' | t }}
-        </button>
-      </div>
+        <div body class="modal-delete-body" *ngIf="selectedRole as r">
+          <p class="delete-title">
+            {{ 'iam.u_vas_est_nesohranennye_izmeneniya_v_matrice' | t: { name: r.name, count: dirtyPermissionsCount } }}
+          </p>
+        </div>
+        <div footer>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="md"
+            [disabled]="isSaving"
+            (click)="closeDiscard.emit()"
+          >
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="danger"
+            smtSize="md"
+            [disabled]="isSaving"
+            (click)="confirmDiscardAndSwitch.emit()"
+          >
+            {{ 'iam.sbrosit_i_pereyti' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            [smtLoading]="isSaving"
+            (click)="saveAndSwitch.emit()"
+          >
+            {{ 'iam.sohranit_i_pereyti' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    .modal-body-form { display: flex; flex-direction: column; gap: 14px; }
-    .modal-field { display: flex; flex-direction: column; gap: 5px; }
-    .modal-label { font-size: 12px; font-weight: 500; color: var(--text-main); }
-    .modal-help { font-size: 11px; color: var(--text-muted); }
-    .field-error { font-size: 10px; color: var(--danger); }
+  styles: [
+    `
+      .modal-body-form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .modal-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .modal-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
+      .modal-help {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .field-error {
+        font-size: 10px;
+        color: var(--danger);
+      }
 
-    .modal-delete-body { display: flex; flex-direction: column; gap: 6px; }
-    .delete-title { font-size: 13px; margin: 0; }
-    .delete-desc { font-size: 11px; color: var(--text-muted); }
+      .modal-delete-body {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .delete-title {
+        font-size: 13px;
+        margin: 0;
+      }
+      .delete-desc {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
 
-    .req { color: var(--danger); }
-    .font-mono { font-family: monospace; }
-  `]
+      .req {
+        color: var(--danger);
+      }
+      .font-mono {
+        font-family: monospace;
+      }
+    `,
+  ],
 })
 export class RoleModalsComponent {
   private readonly i18n = inject(I18nService);

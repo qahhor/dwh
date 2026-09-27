@@ -42,7 +42,7 @@ export abstract class PickerValueAccessor<T> implements ControlValueAccessor {
 
   registerOnChange(onChange: (value: T) => void): void {
     if (this.destroyed) return;
-    this.picker.value.subscribe(value => {
+    this.picker.value.subscribe((value) => {
       if (!this.writing) onChange(value);
     });
   }

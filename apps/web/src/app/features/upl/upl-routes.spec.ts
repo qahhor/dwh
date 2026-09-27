@@ -10,13 +10,17 @@ import { I18nService } from '../../core/services/i18n.service';
 import { uplFormatMatcher, uplSourceMatcher } from './upl-routes';
 
 function segments(url: string): UrlSegment[] {
-  return url.split('/').filter(Boolean).map(part => new UrlSegment(part, {}));
+  return url
+    .split('/')
+    .filter(Boolean)
+    .map((part) => new UrlSegment(part, {}));
 }
 
 function uplRoutes(): Route[] {
-  const shell = routes.find(route => route.path === '');
-  return (shell?.children ?? []).filter(route =>
-    route.path === 'upl/sources' || route.matcher === uplSourceMatcher || route.matcher === uplFormatMatcher);
+  const shell = routes.find((route) => route.path === '');
+  return (shell?.children ?? []).filter(
+    (route) => route.path === 'upl/sources' || route.matcher === uplSourceMatcher || route.matcher === uplFormatMatcher,
+  );
 }
 
 describe('upl routes', () => {
@@ -28,18 +32,21 @@ describe('upl routes', () => {
     TestBed.configureTestingModule({
       providers: [
         PermissionService,
-        { provide: Router, useValue: { createUrlTree: (commands: unknown[]) => (commands[0] === '/tasks' ? 'to-tasks' : 'redirect') } },
+        {
+          provide: Router,
+          useValue: { createUrlTree: (commands: unknown[]) => (commands[0] === '/tasks' ? 'to-tasks' : 'redirect') },
+        },
         {
           provide: ModuleService,
           useValue: {
             isLoaded: () => true,
             isModuleActive: (code: string) => activeModules.has(code),
-            loadActiveModules: () => of([])
-          }
+            loadActiveModules: () => of([]),
+          },
         },
         { provide: ToastService, useValue: { warning: vi.fn() } },
-        { provide: I18nService, useValue: { translate: (key: string) => key } }
-      ]
+        { provide: I18nService, useValue: { translate: (key: string) => key } },
+      ],
     });
     permissions = TestBed.inject(PermissionService);
   });
@@ -97,10 +104,7 @@ describe('upl routes', () => {
   async function runGuard(route: Route, index: number): Promise<unknown> {
     const guard = route.canActivate?.[index] as CanActivateFn | undefined;
     expect(guard).toBeTypeOf('function');
-    const result = TestBed.runInInjectionContext(() => guard!(
-      {} as ActivatedRouteSnapshot,
-      {} as RouterStateSnapshot
-    ));
+    const result = TestBed.runInInjectionContext(() => guard!({} as ActivatedRouteSnapshot, {} as RouterStateSnapshot));
     return isObservable(result) ? await firstValueFrom(result) : result;
   }
 });

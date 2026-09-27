@@ -3,8 +3,18 @@
 
   <section class="settings-block" [attr.aria-busy]="statusLoading()" aria-labelledby="search-status-title">
     <header class="block-header">
-      <div><h3 id="search-status-title">{{ 'settings.search.status.title' | t }}</h3><p>{{ 'settings.search.status.description' | t }}</p></div>
-      <button smt-button smtVariant="secondary" type="button" data-action="refresh-search-status" [disabled]="statusLoading()" (click)="refreshOperationalData()">
+      <div>
+        <h3 id="search-status-title">{{ 'settings.search.status.title' | t }}</h3>
+        <p>{{ 'settings.search.status.description' | t }}</p>
+      </div>
+      <button
+        smt-button
+        smtVariant="secondary"
+        type="button"
+        data-action="refresh-search-status"
+        [disabled]="statusLoading()"
+        (click)="refreshOperationalData()"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">refresh</span>{{ 'common.refresh' | t }}
       </button>
     </header>
@@ -12,67 +22,255 @@
     <div *ngIf="statusError() as error" class="notice notice-error" role="alert">{{ error.detail }}</div>
     <ng-container *ngIf="status() as current">
       <div class="status-grid" [attr.data-status]="current.dependency.healthy ? 'healthy' : 'unhealthy'">
-        <div><span>{{ 'settings.search.status.engine' | t }}</span><strong>{{ current.dependency.healthy ? ('settings.search.status.healthy' | t) : ('settings.search.status.unhealthy' | t) }}</strong></div>
-        <div [attr.data-readiness]="current.dependency.healthy && current.initialized ? 'ready' : 'not-ready'"><span>{{ 'settings.search.status.readiness' | t }}</span><strong>{{ current.dependency.healthy && current.initialized ? ('settings.search.status.ready' | t) : ('settings.search.status.not_ready' | t) }}</strong></div>
-        <div><span>{{ 'settings.search.status.version' | t }}</span><strong>{{ current.dependency.version || ('settings.search.unknown' | t) }}</strong></div>
-        <div><span>{{ 'settings.search.status.active_profile' | t }}</span><strong>{{ current.activeProfile || ('settings.search.unknown' | t) }}</strong></div>
-        <div><span>{{ 'settings.search.status.configured_profile' | t }}</span><strong>{{ current.configuredProfile || ('settings.search.unknown' | t) }}</strong></div>
-        <div><span>{{ 'settings.search.status.settings_health' | t }}</span><strong>{{ current.settingsDegraded ? ('settings.search.status.degraded' | t) : ('settings.search.status.current' | t) }}</strong></div>
-        <div><span>{{ 'settings.search.status.last_check' | t }}</span><strong>{{ current.lastSuccessfulReconciliation ? (current.lastSuccessfulReconciliation | date:'medium') : ('settings.search.unknown' | t) }}</strong></div>
-        <div><span>{{ 'settings.search.status.connect_timeout' | t }}</span><strong>{{ current.budgets.connectTimeoutMs }} ms</strong></div>
-        <div><span>{{ 'settings.search.status.read_timeout' | t }}</span><strong>{{ current.budgets.readTimeoutMs }} ms</strong></div>
-        <div><span>{{ 'settings.search.status.fallback_timeout' | t }}</span><strong>{{ current.budgets.fallbackTimeoutMs }} ms</strong></div>
-        <div><span>{{ 'settings.search.status.disk' | t }}</span><strong>{{ displayBytes(current.dependency.installationDiskUsedBytes) }} / {{ displayBytes(current.dependency.installationDiskTotalBytes) }}</strong></div>
-        <div *ngIf="current.budgets.searchRate?.user as userRate" [attr.data-effective-user]="userRate.perMinute"><span>{{ 'settings.search.protection.effective_user' | t }}</span><strong>{{ userRate.perMinute }}/min · burst {{ userRate.capacity }}</strong></div>
-        <div *ngIf="current.budgets.searchRate?.api as apiRate" [attr.data-effective-api]="apiRate.perMinute"><span>{{ 'settings.search.protection.effective_api' | t }}</span><strong>{{ apiRate.perMinute }}/min · burst {{ apiRate.capacity }}</strong></div>
+        <div>
+          <span>{{ 'settings.search.status.engine' | t }}</span
+          ><strong>{{
+            current.dependency.healthy
+              ? ('settings.search.status.healthy' | t)
+              : ('settings.search.status.unhealthy' | t)
+          }}</strong>
+        </div>
+        <div [attr.data-readiness]="current.dependency.healthy && current.initialized ? 'ready' : 'not-ready'">
+          <span>{{ 'settings.search.status.readiness' | t }}</span
+          ><strong>{{
+            current.dependency.healthy && current.initialized
+              ? ('settings.search.status.ready' | t)
+              : ('settings.search.status.not_ready' | t)
+          }}</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.version' | t }}</span
+          ><strong>{{ current.dependency.version || ('settings.search.unknown' | t) }}</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.active_profile' | t }}</span
+          ><strong>{{ current.activeProfile || ('settings.search.unknown' | t) }}</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.configured_profile' | t }}</span
+          ><strong>{{ current.configuredProfile || ('settings.search.unknown' | t) }}</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.settings_health' | t }}</span
+          ><strong>{{
+            current.settingsDegraded ? ('settings.search.status.degraded' | t) : ('settings.search.status.current' | t)
+          }}</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.last_check' | t }}</span
+          ><strong>{{
+            current.lastSuccessfulReconciliation
+              ? (current.lastSuccessfulReconciliation | date: 'medium')
+              : ('settings.search.unknown' | t)
+          }}</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.connect_timeout' | t }}</span
+          ><strong>{{ current.budgets.connectTimeoutMs }} ms</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.read_timeout' | t }}</span
+          ><strong>{{ current.budgets.readTimeoutMs }} ms</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.fallback_timeout' | t }}</span
+          ><strong>{{ current.budgets.fallbackTimeoutMs }} ms</strong>
+        </div>
+        <div>
+          <span>{{ 'settings.search.status.disk' | t }}</span
+          ><strong
+            >{{ displayBytes(current.dependency.installationDiskUsedBytes) }} /
+            {{ displayBytes(current.dependency.installationDiskTotalBytes) }}</strong
+          >
+        </div>
+        <div *ngIf="current.budgets.searchRate?.user as userRate" [attr.data-effective-user]="userRate.perMinute">
+          <span>{{ 'settings.search.protection.effective_user' | t }}</span
+          ><strong>{{ userRate.perMinute }}/min · burst {{ userRate.capacity }}</strong>
+        </div>
+        <div *ngIf="current.budgets.searchRate?.api as apiRate" [attr.data-effective-api]="apiRate.perMinute">
+          <span>{{ 'settings.search.protection.effective_api' | t }}</span
+          ><strong>{{ apiRate.perMinute }}/min · burst {{ apiRate.capacity }}</strong>
+        </div>
       </div>
-      <div class="notice notice-warning" *ngIf="rebuildRequired()" data-state="rebuild-required" role="status">{{ 'settings.search.rebuild_required' | t }}</div>
-      <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.generations.scroll_label' | t">
-        <ui-local-table data-testid="search-generations-table" [rows]="current.generations" [config]="generationsConfig()" [sortValues]="generationSortValues" [emptyTemplate]="noGenerations" />
+      <div class="notice notice-warning" *ngIf="rebuildRequired()" data-state="rebuild-required" role="status">
+        {{ 'settings.search.rebuild_required' | t }}
+      </div>
+      <div
+        class="table-scroll"
+        role="region"
+        tabindex="0"
+        [attr.aria-label]="'settings.search.generations.scroll_label' | t"
+      >
+        <ui-local-table
+          data-testid="search-generations-table"
+          [rows]="current.generations"
+          [config]="generationsConfig()"
+          [sortValues]="generationSortValues"
+          [emptyTemplate]="noGenerations"
+        />
       </div>
     </ng-container>
   </section>
 
-  <div *ngIf="!canReadSettings()" class="notice" data-state="configuration-not-authorized" role="status">{{ 'settings.search.configuration_not_authorized' | t }}</div>
-  <div *ngIf="canReadSettings() && settingsLoading()" class="notice" role="status" aria-live="polite">{{ 'settings.search.configuration_loading' | t }}</div>
-  <div *ngIf="canReadSettings() && settingsError() as error" class="notice notice-error" data-state="configuration-unavailable" role="alert">
+  <div *ngIf="!canReadSettings()" class="notice" data-state="configuration-not-authorized" role="status">
+    {{ 'settings.search.configuration_not_authorized' | t }}
+  </div>
+  <div *ngIf="canReadSettings() && settingsLoading()" class="notice" role="status" aria-live="polite">
+    {{ 'settings.search.configuration_loading' | t }}
+  </div>
+  <div
+    *ngIf="canReadSettings() && settingsError() as error"
+    class="notice notice-error"
+    data-state="configuration-unavailable"
+    role="alert"
+  >
     <span>{{ 'settings.search.configuration_unavailable' | t }} {{ error.detail }}</span>
-    <button smt-button smtVariant="secondary" type="button" data-action="reload-search-settings" (click)="loadSettings()">{{ 'settings.search.reload' | t }}</button>
+    <button
+      smt-button
+      smtVariant="secondary"
+      type="button"
+      data-action="reload-search-settings"
+      (click)="loadSettings()"
+    >
+      {{ 'settings.search.reload' | t }}
+    </button>
   </div>
 
   <section class="settings-block" *ngIf="draft() || statusAuthorized()" aria-labelledby="search-relevance-title">
-    <header class="block-header"><div><h3 id="search-relevance-title">{{ 'settings.search.relevance.title' | t }}</h3><p>{{ 'settings.search.relevance.description' | t }}</p></div></header>
+    <header class="block-header">
+      <div>
+        <h3 id="search-relevance-title">{{ 'settings.search.relevance.title' | t }}</h3>
+        <p>{{ 'settings.search.relevance.description' | t }}</p>
+      </div>
+    </header>
     <ng-container *ngIf="draft() as policy">
       <div class="form-grid">
-        <label><span>{{ 'settings.search.global_limit' | t }}</span><smt-input smtFieldId="search-global-limit" name="searchGlobalLimit" type="number" [smtMin]="1" [smtMax]="50" [smtStep]="1" inputmode="numeric" [ngModel]="policy.globalLimit" (ngModelChange)="updatePolicyNumber('globalLimit', $event)" /><small>{{ 'settings.search.global_limit_hint' | t }}</small></label>
+        <label
+          ><span>{{ 'settings.search.global_limit' | t }}</span
+          ><smt-input
+            smtFieldId="search-global-limit"
+            name="searchGlobalLimit"
+            type="number"
+            [smtMin]="1"
+            [smtMax]="50"
+            [smtStep]="1"
+            inputmode="numeric"
+            [ngModel]="policy.globalLimit"
+            (ngModelChange)="updatePolicyNumber('globalLimit', $event)"
+          /><small>{{ 'settings.search.global_limit_hint' | t }}</small></label
+        >
       </div>
       <div class="field-groups">
         <div class="field-group" *ngFor="let entity of displayedEntities">
-          <h4>{{ ('settings.search.entity.' + entity.toLowerCase()) | t }}</h4>
-          <div class="field-grid-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.fields.scroll_label' | t:{entity: entity}">
-            <div class="field-grid field-grid-head" aria-hidden="true"><span>{{ 'settings.search.fields.field' | t }}</span><span>{{ 'settings.search.fields.weight' | t }}</span><span>{{ 'settings.search.fields.typos' | t }}</span><span>{{ 'settings.search.fields.prefix' | t }}</span></div>
+          <h4>{{ 'settings.search.entity.' + entity.toLowerCase() | t }}</h4>
+          <div
+            class="field-grid-scroll"
+            role="region"
+            tabindex="0"
+            [attr.aria-label]="'settings.search.fields.scroll_label' | t: { entity: entity }"
+          >
+            <div class="field-grid field-grid-head" aria-hidden="true">
+              <span>{{ 'settings.search.fields.field' | t }}</span
+              ><span>{{ 'settings.search.fields.weight' | t }}</span
+              ><span>{{ 'settings.search.fields.typos' | t }}</span
+              ><span>{{ 'settings.search.fields.prefix' | t }}</span>
+            </div>
             <div class="field-grid" *ngFor="let field of fields(entity); let i = index; trackBy: trackField">
-              <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{ ('settings.search.field.' + field.field) | t }}</span>
-              <label><span class="sr-only">{{ 'settings.search.fields.weight' | t }}</span><smt-input type="number" [smtMin]="0" [smtMax]="127" [smtStep]="1" inputmode="numeric" [smtDescribedBy]="'search-field-' + entity + '-' + i" [ngModel]="field.weight" (ngModelChange)="updateFieldNumber(entity, i, 'weight', $event)" /></label>
-              <label><span class="sr-only">{{ 'settings.search.fields.typos' | t }}</span><smt-input type="number" [smtMin]="0" [smtMax]="2" [smtStep]="1" inputmode="numeric" [smtDescribedBy]="'search-field-' + entity + '-' + i" [ngModel]="field.numTypos" (ngModelChange)="updateFieldNumber(entity, i, 'numTypos', $event)" /></label>
-              <div class="checkbox-cell"><div smt-checkbox smtHideLabel [smtAriaLabel]="('settings.search.fields.prefix' | t) + ': ' + (('settings.search.field.' + field.field) | t)" [checked]="field.prefix" (checkedChange)="updateFieldPrefix(entity, i, $event)"></div></div>
+              <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{
+                'settings.search.field.' + field.field | t
+              }}</span>
+              <label
+                ><span class="sr-only">{{ 'settings.search.fields.weight' | t }}</span
+                ><smt-input
+                  type="number"
+                  [smtMin]="0"
+                  [smtMax]="127"
+                  [smtStep]="1"
+                  inputmode="numeric"
+                  [smtDescribedBy]="'search-field-' + entity + '-' + i"
+                  [ngModel]="field.weight"
+                  (ngModelChange)="updateFieldNumber(entity, i, 'weight', $event)"
+              /></label>
+              <label
+                ><span class="sr-only">{{ 'settings.search.fields.typos' | t }}</span
+                ><smt-input
+                  type="number"
+                  [smtMin]="0"
+                  [smtMax]="2"
+                  [smtStep]="1"
+                  inputmode="numeric"
+                  [smtDescribedBy]="'search-field-' + entity + '-' + i"
+                  [ngModel]="field.numTypos"
+                  (ngModelChange)="updateFieldNumber(entity, i, 'numTypos', $event)"
+              /></label>
+              <div class="checkbox-cell">
+                <div
+                  smt-checkbox
+                  smtHideLabel
+                  [smtAriaLabel]="
+                    ('settings.search.fields.prefix' | t) + ': ' + ('settings.search.field.' + field.field | t)
+                  "
+                  [checked]="field.prefix"
+                  (checkedChange)="updateFieldPrefix(entity, i, $event)"
+                ></div>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </ng-container>
     <div class="preview-panel" *ngIf="statusAuthorized()">
-      <h4>{{ 'settings.search.preview.title' | t }}</h4><p>{{ 'settings.search.preview.description' | t }}</p>
+      <h4>{{ 'settings.search.preview.title' | t }}</h4>
+      <p>{{ 'settings.search.preview.description' | t }}</p>
       <div class="preview-controls">
-        <label><span>{{ 'settings.search.preview.query' | t }}</span><smt-input smtFieldId="search-preview-query" name="searchPreviewQuery" type="search" [(ngModel)]="previewQuery" autocomplete="off" /></label>
-        <label for="search-preview-entity"><span>{{ 'settings.search.preview.entity' | t }}</span><smt-select smtTriggerId="search-preview-entity" [options]="previewEntityOptions()" [placeholder]="'settings.search.preview.all_entities' | t" [emptyLabel]="'settings.search.preview.all_entities' | t" [value]="previewEntity || null" (valueChange)="previewEntity = $event ?? ''" /></label>
-        <button smt-button smtVariant="secondary" type="button" data-action="preview-search-settings" [disabled]="!previewQuery.trim() || (draft() !== null && policyErrors().length > 0) || previewCooldownSeconds() > 0" [attr.aria-busy]="previewPending()" (click)="preview()">{{ 'settings.search.preview.action' | t }}</button>
+        <label
+          ><span>{{ 'settings.search.preview.query' | t }}</span
+          ><smt-input
+            smtFieldId="search-preview-query"
+            name="searchPreviewQuery"
+            type="search"
+            [(ngModel)]="previewQuery"
+            autocomplete="off"
+        /></label>
+        <label for="search-preview-entity"
+          ><span>{{ 'settings.search.preview.entity' | t }}</span
+          ><smt-select
+            smtTriggerId="search-preview-entity"
+            [options]="previewEntityOptions()"
+            [placeholder]="'settings.search.preview.all_entities' | t"
+            [emptyLabel]="'settings.search.preview.all_entities' | t"
+            [value]="previewEntity || null"
+            (valueChange)="previewEntity = $event ?? ''"
+        /></label>
+        <button
+          smt-button
+          smtVariant="secondary"
+          type="button"
+          data-action="preview-search-settings"
+          [disabled]="
+            !previewQuery.trim() || (draft() !== null && policyErrors().length > 0) || previewCooldownSeconds() > 0
+          "
+          [attr.aria-busy]="previewPending()"
+          (click)="preview()"
+        >
+          {{ 'settings.search.preview.action' | t }}
+        </button>
       </div>
-      <p *ngIf="previewCooldownSeconds() > 0" role="status">{{ 'settings.search.preview.cooldown' | t:{seconds: previewCooldownSeconds()} }}</p>
-      <div *ngIf="previewError() as error" class="notice notice-error" data-state="preview-error" role="alert">{{ error.detail }}</div>
+      <p *ngIf="previewCooldownSeconds() > 0" role="status">
+        {{ 'settings.search.preview.cooldown' | t: { seconds: previewCooldownSeconds() } }}
+      </p>
+      <div *ngIf="previewError() as error" class="notice notice-error" data-state="preview-error" role="alert">
+        {{ error.detail }}
+      </div>
       <div *ngIf="previewResult() as preview" class="preview-results" aria-live="polite">
-        <p class="profile-label" [attr.data-active-profile]="preview.activeProfile">{{ 'settings.search.preview.active_profile' | t }}: <strong>{{ preview.activeProfile }}</strong></p>
-        <article class="preview-hit" *ngFor="let hit of preview.result.hits"><strong>{{ hit.title }}</strong><p>{{ hit.description }}</p><small>{{ hit.entityType }} · {{ hit.id }}</small></article>
+        <p class="profile-label" [attr.data-active-profile]="preview.activeProfile">
+          {{ 'settings.search.preview.active_profile' | t }}: <strong>{{ preview.activeProfile }}</strong>
+        </p>
+        <article class="preview-hit" *ngFor="let hit of preview.result.hits">
+          <strong>{{ hit.title }}</strong>
+          <p>{{ hit.description }}</p>
+          <small>{{ hit.entityType }} · {{ hit.id }}</small>
+        </article>
         <p *ngIf="preview.result.hits.length === 0">{{ 'settings.search.preview.empty' | t }}</p>
       </div>
     </div>
@@ -80,84 +278,366 @@
 
   <ng-container *ngIf="draft() as policy">
     <section class="settings-block" aria-labelledby="search-language-title">
-      <header class="block-header"><div><h3 id="search-language-title">{{ 'settings.search.language.title' | t }}</h3><p>{{ 'settings.search.language.description' | t }}</p></div></header>
-      <label class="profile-choice" for="search-schema-profile"><span>{{ 'settings.search.language.profile' | t }}</span><smt-select smtTriggerId="search-schema-profile" [options]="schemaProfileOptions" [allowClear]="false" [value]="policy.schemaProfile" (valueChange)="$event && updateSchemaProfile($event)" /></label>
+      <header class="block-header">
+        <div>
+          <h3 id="search-language-title">{{ 'settings.search.language.title' | t }}</h3>
+          <p>{{ 'settings.search.language.description' | t }}</p>
+        </div>
+      </header>
+      <label class="profile-choice" for="search-schema-profile"
+        ><span>{{ 'settings.search.language.profile' | t }}</span
+        ><smt-select
+          smtTriggerId="search-schema-profile"
+          [options]="schemaProfileOptions"
+          [allowClear]="false"
+          [value]="policy.schemaProfile"
+          (valueChange)="$event && updateSchemaProfile($event)"
+      /></label>
       <div class="notice notice-warning">{{ 'settings.search.language.rebuild_explanation' | t }}</div>
     </section>
 
     <section class="settings-block" aria-labelledby="search-protection-title">
-      <header class="block-header"><div><h3 id="search-protection-title">{{ 'settings.search.protection.title' | t }}</h3><p>{{ 'settings.search.protection.description' | t }}</p></div></header>
+      <header class="block-header">
+        <div>
+          <h3 id="search-protection-title">{{ 'settings.search.protection.title' | t }}</h3>
+          <p>{{ 'settings.search.protection.description' | t }}</p>
+        </div>
+      </header>
       <div class="form-grid protection-grid">
-        <label><span>{{ 'settings.search.requests_per_minute' | t }}</span><smt-input smtFieldId="search-requests-per-minute" type="number" [smtMin]="30" [smtMax]="600" [smtStep]="1" inputmode="numeric" [ngModel]="policy.requestsPerMinute" (ngModelChange)="updatePolicyNumber('requestsPerMinute', $event)" /></label>
-        <label><span>{{ 'settings.search.burst' | t }}</span><smt-input smtFieldId="search-burst" type="number" [smtMin]="10" [smtMax]="60" [smtStep]="1" inputmode="numeric" [ngModel]="policy.burst" (ngModelChange)="updatePolicyNumber('burst', $event)" /></label>
+        <label
+          ><span>{{ 'settings.search.requests_per_minute' | t }}</span
+          ><smt-input
+            smtFieldId="search-requests-per-minute"
+            type="number"
+            [smtMin]="30"
+            [smtMax]="600"
+            [smtStep]="1"
+            inputmode="numeric"
+            [ngModel]="policy.requestsPerMinute"
+            (ngModelChange)="updatePolicyNumber('requestsPerMinute', $event)"
+        /></label>
+        <label
+          ><span>{{ 'settings.search.burst' | t }}</span
+          ><smt-input
+            smtFieldId="search-burst"
+            type="number"
+            [smtMin]="10"
+            [smtMax]="60"
+            [smtStep]="1"
+            inputmode="numeric"
+            [ngModel]="policy.burst"
+            (ngModelChange)="updatePolicyNumber('burst', $event)"
+        /></label>
       </div>
-      <div *ngIf="status()?.budgets?.searchRate as rates" class="effective-rates"><span>{{ 'settings.search.protection.effective_user' | t }}: {{ rates.user.perMinute }}/min · burst {{ rates.user.capacity }}</span><span>{{ 'settings.search.protection.effective_api' | t }}: {{ rates.api.perMinute }}/min · burst {{ rates.api.capacity }}</span></div>
-      <div *ngIf="saveAttempted() && policyErrors().length > 0" class="notice notice-error" data-state="policy-invalid" role="alert"><strong>{{ 'settings.search.validation.title' | t }}</strong><ul><li *ngFor="let error of policyErrors()">{{ error | t }}</li></ul></div>
-      <div *ngIf="saveError() as error" class="notice notice-error" data-state="save-error" role="alert"><span>{{ error.detail }}</span><button smt-button smtVariant="secondary" *ngIf="error.status === 409" type="button" data-action="reload-search-settings" (click)="loadSettings()">{{ 'settings.search.reload_server_version' | t }}</button></div>
+      <div *ngIf="status()?.budgets?.searchRate as rates" class="effective-rates">
+        <span
+          >{{ 'settings.search.protection.effective_user' | t }}: {{ rates.user.perMinute }}/min · burst
+          {{ rates.user.capacity }}</span
+        ><span
+          >{{ 'settings.search.protection.effective_api' | t }}: {{ rates.api.perMinute }}/min · burst
+          {{ rates.api.capacity }}</span
+        >
+      </div>
+      <div
+        *ngIf="saveAttempted() && policyErrors().length > 0"
+        class="notice notice-error"
+        data-state="policy-invalid"
+        role="alert"
+      >
+        <strong>{{ 'settings.search.validation.title' | t }}</strong>
+        <ul>
+          <li *ngFor="let error of policyErrors()">{{ error | t }}</li>
+        </ul>
+      </div>
+      <div *ngIf="saveError() as error" class="notice notice-error" data-state="save-error" role="alert">
+        <span>{{ error.detail }}</span
+        ><button
+          smt-button
+          smtVariant="secondary"
+          *ngIf="error.status === 409"
+          type="button"
+          data-action="reload-search-settings"
+          (click)="loadSettings()"
+        >
+          {{ 'settings.search.reload_server_version' | t }}
+        </button>
+      </div>
       <div class="save-row">
-        <span *ngIf="!dirty() && savedSettings()" data-state="policy-clean" role="status">{{ 'settings.search.saved' | t }} · v{{ savedSettings()!.version }}</span><span *ngIf="dirty()" data-state="policy-dirty" role="status">{{ 'settings.search.unsaved' | t }}</span>
-        <button smt-button *ngIf="canMaintain()" type="button" data-action="save-search-settings" [disabled]="!canReadSettings() || !dirty() || savePending() || mutationPending() || activeOperation()" [attr.aria-busy]="savePending()" (click)="save()">{{ 'common.save' | t }}</button>
+        <span *ngIf="!dirty() && savedSettings()" data-state="policy-clean" role="status"
+          >{{ 'settings.search.saved' | t }} · v{{ savedSettings()!.version }}</span
+        ><span *ngIf="dirty()" data-state="policy-dirty" role="status">{{ 'settings.search.unsaved' | t }}</span>
+        <button
+          smt-button
+          *ngIf="canMaintain()"
+          type="button"
+          data-action="save-search-settings"
+          [disabled]="!canReadSettings() || !dirty() || savePending() || mutationPending() || activeOperation()"
+          [attr.aria-busy]="savePending()"
+          (click)="save()"
+        >
+          {{ 'common.save' | t }}
+        </button>
       </div>
     </section>
   </ng-container>
 
   <section class="settings-block" *ngIf="status() as current" aria-labelledby="search-maintenance-title">
-    <header class="block-header"><div><h3 id="search-maintenance-title">{{ 'settings.search.maintenance.title' | t }}</h3><p>{{ 'settings.search.maintenance.description' | t }}</p></div></header>
-    <div class="notice notice-warning" *ngIf="atCapacity()" data-state="generation-capacity" role="status">{{ 'settings.search.maintenance.capacity' | t }}</div>
+    <header class="block-header">
+      <div>
+        <h3 id="search-maintenance-title">{{ 'settings.search.maintenance.title' | t }}</h3>
+        <p>{{ 'settings.search.maintenance.description' | t }}</p>
+      </div>
+    </header>
+    <div class="notice notice-warning" *ngIf="atCapacity()" data-state="generation-capacity" role="status">
+      {{ 'settings.search.maintenance.capacity' | t }}
+    </div>
     <p class="maintenance-note">{{ 'settings.search.maintenance.cancel_limit' | t }}</p>
     <div class="maintenance-actions" *ngIf="canMaintain()">
-      <button smt-button smtVariant="secondary" type="button" data-action="start-check" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="requestMaintenance('CHECK')">{{ 'settings.search.maintenance.check' | t }}</button>
-      <button smt-button type="button" data-action="start-rebuild" [disabled]="mutationPending() || savePending() || activeOperation() || atCapacity()" (click)="requestMaintenance('REBUILD')">{{ 'settings.search.maintenance.rebuild' | t }}</button>
-      <button smt-button smtVariant="secondary" type="button" *ngFor="let target of current.rollbackTargets" [attr.data-generation-id]="target.id" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="requestMaintenance('ROLLBACK', target.id)">{{ 'settings.search.maintenance.rollback' | t }} · {{ target.schemaProfile }} · {{ target.id }}</button>
+      <button
+        smt-button
+        smtVariant="secondary"
+        type="button"
+        data-action="start-check"
+        [disabled]="mutationPending() || savePending() || activeOperation()"
+        (click)="requestMaintenance('CHECK')"
+      >
+        {{ 'settings.search.maintenance.check' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        data-action="start-rebuild"
+        [disabled]="mutationPending() || savePending() || activeOperation() || atCapacity()"
+        (click)="requestMaintenance('REBUILD')"
+      >
+        {{ 'settings.search.maintenance.rebuild' | t }}
+      </button>
+      <button
+        smt-button
+        smtVariant="secondary"
+        type="button"
+        *ngFor="let target of current.rollbackTargets"
+        [attr.data-generation-id]="target.id"
+        [disabled]="mutationPending() || savePending() || activeOperation()"
+        (click)="requestMaintenance('ROLLBACK', target.id)"
+      >
+        {{ 'settings.search.maintenance.rollback' | t }} · {{ target.schemaProfile }} · {{ target.id }}
+      </button>
     </div>
-    <div *ngIf="mutationError() as error" class="notice notice-error" role="alert"><span>{{ error.detail }}</span><button smt-button smtVariant="secondary" *ngIf="uncertainMutation()" type="button" data-action="retry-uncertain-mutation" (click)="retryUncertainMutation()">{{ 'common.retry' | t }}</button></div>
+    <div *ngIf="mutationError() as error" class="notice notice-error" role="alert">
+      <span>{{ error.detail }}</span
+      ><button
+        smt-button
+        smtVariant="secondary"
+        *ngIf="uncertainMutation()"
+        type="button"
+        data-action="retry-uncertain-mutation"
+        (click)="retryUncertainMutation()"
+      >
+        {{ 'common.retry' | t }}
+      </button>
+    </div>
     <div *ngIf="activeJob() as job" class="active-job" [attr.aria-busy]="!isTerminal(job)" aria-live="polite">
-      <strong>{{ job.action }} · {{ job.state }}</strong><span>{{ 'settings.search.jobs.processed' | t }}: {{ job.processedCount }}</span><span>{{ 'settings.search.jobs.failed' | t }}: {{ job.failedCount }}</span>
-      <span *ngIf="job.verification">{{ 'settings.search.jobs.verification' | t }}: {{ job.verification.missing }}/{{ job.verification.extra }}/{{ job.verification.mismatched }}/{{ job.verification.pending }}</span><span *ngIf="job.errorCode" class="error-text">{{ jobErrorMessage(job.errorCode) }}</span>
-      <button smt-button smtVariant="secondary" *ngIf="canMaintain() && canCancel(job)" type="button" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button><button smt-button smtVariant="secondary" *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button>
+      <strong>{{ job.action }} · {{ job.state }}</strong
+      ><span>{{ 'settings.search.jobs.processed' | t }}: {{ job.processedCount }}</span
+      ><span>{{ 'settings.search.jobs.failed' | t }}: {{ job.failedCount }}</span>
+      <span *ngIf="job.verification"
+        >{{ 'settings.search.jobs.verification' | t }}: {{ job.verification.missing }}/{{ job.verification.extra }}/{{
+          job.verification.mismatched
+        }}/{{ job.verification.pending }}</span
+      ><span *ngIf="job.errorCode" class="error-text">{{ jobErrorMessage(job.errorCode) }}</span>
+      <button
+        smt-button
+        smtVariant="secondary"
+        *ngIf="canMaintain() && canCancel(job)"
+        type="button"
+        [disabled]="mutationPending() || savePending()"
+        (click)="cancelJob(job)"
+      >
+        {{ 'common.cancel' | t }}</button
+      ><button
+        smt-button
+        smtVariant="secondary"
+        *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')"
+        type="button"
+        [disabled]="mutationPending() || savePending() || activeOperation()"
+        (click)="retryJob(job)"
+      >
+        {{ 'common.retry' | t }}
+      </button>
     </div>
-    <div *ngIf="pollError() as error" class="notice notice-error" role="alert"><span>{{ error.detail }} · {{ activeJobId() }}</span><button smt-button smtVariant="secondary" type="button" data-action="resume-job-polling" (click)="resumePolling()">{{ 'common.retry' | t }}</button></div>
-    <div *ngIf="historyError() as error" class="notice notice-error" [attr.data-state]="historyRetryNextPage() ? 'search-history-page-error' : 'search-history-error'" role="alert">
+    <div *ngIf="pollError() as error" class="notice notice-error" role="alert">
+      <span>{{ error.detail }} · {{ activeJobId() }}</span
+      ><button
+        smt-button
+        smtVariant="secondary"
+        type="button"
+        data-action="resume-job-polling"
+        (click)="resumePolling()"
+      >
+        {{ 'common.retry' | t }}
+      </button>
+    </div>
+    <div
+      *ngIf="historyError() as error"
+      class="notice notice-error"
+      [attr.data-state]="historyRetryNextPage() ? 'search-history-page-error' : 'search-history-error'"
+      role="alert"
+    >
       <span>{{ error.detail }}</span>
-      <button smt-button smtVariant="secondary" *ngIf="!historyRetryNextPage()" type="button" data-action="retry-search-history" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
-      <button smt-button smtVariant="secondary" *ngIf="historyRetryNextPage()" type="button" data-action="retry-search-history-page" (click)="retryHistory()">{{ 'common.retry' | t }}</button>
+      <button
+        smt-button
+        smtVariant="secondary"
+        *ngIf="!historyRetryNextPage()"
+        type="button"
+        data-action="retry-search-history"
+        (click)="retryHistory()"
+      >
+        {{ 'common.retry' | t }}
+      </button>
+      <button
+        smt-button
+        smtVariant="secondary"
+        *ngIf="historyRetryNextPage()"
+        type="button"
+        data-action="retry-search-history-page"
+        (click)="retryHistory()"
+      >
+        {{ 'common.retry' | t }}
+      </button>
     </div>
-    <div class="table-scroll" role="region" tabindex="0" [attr.aria-label]="'settings.search.jobs.scroll_label' | t" [attr.aria-busy]="historyLoading()">
-      <ui-local-table data-testid="search-jobs-table" [rows]="displayedJobs()" [config]="jobsConfig()" [emptyTemplate]="noJobs" />
+    <div
+      class="table-scroll"
+      role="region"
+      tabindex="0"
+      [attr.aria-label]="'settings.search.jobs.scroll_label' | t"
+      [attr.aria-busy]="historyLoading()"
+    >
+      <ui-local-table
+        data-testid="search-jobs-table"
+        [rows]="displayedJobs()"
+        [config]="jobsConfig()"
+        [emptyTemplate]="noJobs"
+      />
     </div>
-    <button smt-button smtVariant="secondary" *ngIf="historyHasMore() && !historyError()" type="button" class="load-more" data-action="load-more-search-jobs" [disabled]="historyLoading()" (click)="loadMoreHistory()">{{ 'settings.search.jobs.load_more' | t }}</button>
+    <button
+      smt-button
+      smtVariant="secondary"
+      *ngIf="historyHasMore() && !historyError()"
+      type="button"
+      class="load-more"
+      data-action="load-more-search-jobs"
+      [disabled]="historyLoading()"
+      (click)="loadMoreHistory()"
+    >
+      {{ 'settings.search.jobs.load_more' | t }}
+    </button>
   </section>
 
-  <smt-dialog *ngIf="confirmation() as dialog" [open]="true" [dismissible]="!mutationPending()" [smtTitle]="(dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_title' : 'settings.search.confirm.rollback_title') | t" (closed)="confirmation.set(null)">
+  <smt-dialog
+    *ngIf="confirmation() as dialog"
+    [open]="true"
+    [dismissible]="!mutationPending()"
+    [smtTitle]="
+      (dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_title' : 'settings.search.confirm.rollback_title')
+        | t
+    "
+    (closed)="confirmation.set(null)"
+  >
     <ng-template smtDialogContent>
-    <p>{{ (dialog.action === 'REBUILD' ? 'settings.search.confirm.rebuild_body' : 'settings.search.confirm.rollback_body') | t }}</p>
-    <div footer class="dialog-actions"><button smt-button smtVariant="secondary" type="button" (click)="confirmation.set(null)">{{ 'common.cancel' | t }}</button><button smt-button type="button" data-action="confirm-search-maintenance" (click)="confirmMaintenance()">{{ 'common.confirm' | t }}</button></div>
+      <p>
+        {{
+          (dialog.action === 'REBUILD'
+            ? 'settings.search.confirm.rebuild_body'
+            : 'settings.search.confirm.rollback_body'
+          ) | t
+        }}
+      </p>
+      <div footer class="dialog-actions">
+        <button smt-button smtVariant="secondary" type="button" (click)="confirmation.set(null)">
+          {{ 'common.cancel' | t }}</button
+        ><button smt-button type="button" data-action="confirm-search-maintenance" (click)="confirmMaintenance()">
+          {{ 'common.confirm' | t }}
+        </button>
+      </div>
     </ng-template>
   </smt-dialog>
 </section>
 
-<ng-template #generationIdCell let-generation><span class="mono">{{ generation.id }}</span></ng-template>
-<ng-template #generationStateCell let-generation>{{ generation.state }}<span *ngIf="generation.active"> · {{ 'settings.search.generations.active' | t }}</span></ng-template>
+<ng-template #generationIdCell let-generation
+  ><span class="mono">{{ generation.id }}</span></ng-template
+>
+<ng-template #generationStateCell let-generation
+  >{{ generation.state
+  }}<span *ngIf="generation.active"> · {{ 'settings.search.generations.active' | t }}</span></ng-template
+>
 <ng-template #generationDocumentsCell let-generation>
-  <span class="cell-stack">{{ displayNumber(generation.documentCount) }}<small>TASK {{ displayNumber(generation.entityDocumentCounts.TASK) }} · PROJECT {{ displayNumber(generation.entityDocumentCounts.PROJECT) }} · USER {{ displayNumber(generation.entityDocumentCounts.USER) }}</small></span>
+  <span class="cell-stack"
+    >{{ displayNumber(generation.documentCount)
+    }}<small
+      >TASK {{ displayNumber(generation.entityDocumentCounts.TASK) }} · PROJECT
+      {{ displayNumber(generation.entityDocumentCounts.PROJECT) }} · USER
+      {{ displayNumber(generation.entityDocumentCounts.USER) }}</small
+    ></span
+  >
 </ng-template>
-<ng-template #generationQueueCell let-generation>{{ generation.pendingDeliveries }} / {{ generation.failedDeliveries }} · {{ displayNumber(generation.queueLagSeconds) }}s</ng-template>
-<ng-template #noGenerations><p class="table-empty">{{ 'settings.search.generations.empty' | t }}</p></ng-template>
+<ng-template #generationQueueCell let-generation
+  >{{ generation.pendingDeliveries }} / {{ generation.failedDeliveries }} ·
+  {{ displayNumber(generation.queueLagSeconds) }}s</ng-template
+>
+<ng-template #noGenerations
+  ><p class="table-empty">{{ 'settings.search.generations.empty' | t }}</p></ng-template
+>
 
-<ng-template #jobIdCell let-job><span class="mono">{{ job.id }}</span></ng-template>
+<ng-template #jobIdCell let-job
+  ><span class="mono">{{ job.id }}</span></ng-template
+>
 <ng-template #jobStateCell let-job>
-  <span class="cell-stack">{{ job.state }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{ jobErrorMessage(job.errorCode) }}</small></span>
+  <span class="cell-stack"
+    >{{ job.state
+    }}<small *ngIf="job.errorCode" class="error-text" [attr.data-job-error]="job.id">{{
+      jobErrorMessage(job.errorCode)
+    }}</small></span
+  >
 </ng-template>
-<ng-template #jobGenerationCell let-job><span class="mono">{{ job.generationId }}</span></ng-template>
-<ng-template #jobCreatedCell let-job>{{ job.createdAt | date:'short' }}</ng-template>
+<ng-template #jobGenerationCell let-job
+  ><span class="mono">{{ job.generationId }}</span></ng-template
+>
+<ng-template #jobCreatedCell let-job>{{ job.createdAt | date: 'short' }}</ng-template>
 <ng-template #jobActionsCell let-job>
   <span class="cell-actions">
-    <button smt-button smtVariant="secondary" smtSize="sm" *ngIf="canMaintain() && canCancel(job)" type="button" [attr.aria-label]="'settings.search.jobs.cancel_named' | t:{id: job.id}" [disabled]="mutationPending() || savePending()" (click)="cancelJob(job)">{{ 'common.cancel' | t }}</button>
-    <button smt-button smtVariant="secondary" smtSize="sm" *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')" type="button" [attr.aria-label]="'settings.search.jobs.retry_named' | t:{id: job.id}" [disabled]="mutationPending() || savePending() || activeOperation()" (click)="retryJob(job)">{{ 'common.retry' | t }}</button>
+    <button
+      smt-button
+      smtVariant="secondary"
+      smtSize="sm"
+      *ngIf="canMaintain() && canCancel(job)"
+      type="button"
+      [attr.aria-label]="'settings.search.jobs.cancel_named' | t: { id: job.id }"
+      [disabled]="mutationPending() || savePending()"
+      (click)="cancelJob(job)"
+    >
+      {{ 'common.cancel' | t }}
+    </button>
+    <button
+      smt-button
+      smtVariant="secondary"
+      smtSize="sm"
+      *ngIf="canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')"
+      type="button"
+      [attr.aria-label]="'settings.search.jobs.retry_named' | t: { id: job.id }"
+      [disabled]="mutationPending() || savePending() || activeOperation()"
+      (click)="retryJob(job)"
+    >
+      {{ 'common.retry' | t }}
+    </button>
   </span>
 </ng-template>
 <ng-template #noJobs>
   <p *ngIf="!historyError()" class="table-empty">{{ 'settings.search.jobs.empty' | t }}</p>
 </ng-template>
 
-<ng-template #noSearchAccess><div class="notice notice-error" data-state="search-access-unavailable" role="alert">{{ 'settings.search.access_unavailable' | t }}</div></ng-template>
+<ng-template #noSearchAccess
+  ><div class="notice notice-error" data-state="search-access-unavailable" role="alert">
+    {{ 'settings.search.access_unavailable' | t }}
+  </div></ng-template
+>

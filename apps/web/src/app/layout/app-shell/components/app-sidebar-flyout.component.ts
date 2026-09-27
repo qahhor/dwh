@@ -7,11 +7,7 @@ import { NavSection } from '../app-shell.models';
 @Component({
   selector: 'app-sidebar-flyout',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    TranslatePipe
-  ],
+  imports: [CommonModule, RouterModule, TranslatePipe],
   template: `
     <!-- Collapsed Rail Flyout Popover (Opens next to hovered/clicked category) -->
     <div
@@ -39,7 +35,7 @@ import { NavSection } from '../app-shell.models';
             role="menuitem"
           >
             <span class="material-symbols-outlined flyout-icon" aria-hidden="true">{{ item.icon }}</span>
-            <span class="flyout-label">{{ item.label ? item.label : ((item.titleKey || item.labelKey!) | t) }}</span>
+            <span class="flyout-label">{{ item.label ? item.label : (item.titleKey || item.labelKey! | t) }}</span>
             <span class="unread-chip flyout-chip" *ngIf="item.badge && item.badge() > 0">
               {{ item.badge() }}
             </span>
@@ -56,7 +52,7 @@ import { NavSection } from '../app-shell.models';
             role="menuitem"
           >
             <span class="material-symbols-outlined flyout-icon" aria-hidden="true">{{ item.icon }}</span>
-            <span class="flyout-label">{{ item.label ? item.label : ((item.titleKey || item.labelKey!) | t) }}</span>
+            <span class="flyout-label">{{ item.label ? item.label : (item.titleKey || item.labelKey! | t) }}</span>
             <span class="material-symbols-outlined flyout-ext-icon" aria-hidden="true">open_in_new</span>
           </a>
 
@@ -64,7 +60,7 @@ import { NavSection } from '../app-shell.models';
           <div *ngIf="item.permission() && item.children?.length" class="flyout-parent-group">
             <div class="flyout-item flyout-parent-header">
               <span class="material-symbols-outlined flyout-icon" aria-hidden="true">{{ item.icon }}</span>
-              <span class="flyout-label">{{ item.label ? item.label : ((item.titleKey || item.labelKey!) | t) }}</span>
+              <span class="flyout-label">{{ item.label ? item.label : (item.titleKey || item.labelKey! | t) }}</span>
             </div>
             <div class="flyout-subitems">
               <ng-container *ngFor="let child of item.children">
@@ -77,7 +73,9 @@ import { NavSection } from '../app-shell.models';
                   (click)="flyoutItemClick.emit()"
                   role="menuitem"
                 >
-                  <span class="material-symbols-outlined flyout-icon sub-icon" aria-hidden="true">{{ child.icon }}</span>
+                  <span class="material-symbols-outlined flyout-icon sub-icon" aria-hidden="true">{{
+                    child.icon
+                  }}</span>
                   <span class="flyout-label">{{ child.label ? child.label : (child.labelKey! | t) }}</span>
                 </a>
               </ng-container>
@@ -120,185 +118,189 @@ import { NavSection } from '../app-shell.models';
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: contents;
-    }
-
-    .rail-flyout-popover {
-      position: fixed;
-      left: 64px;
-      width: 240px;
-      max-height: calc(100vh - 32px);
-      background-color: var(--bg-sidebar);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
-      z-index: 1250;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      padding: 8px;
-      animation: flyout-appear 0.14s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .rail-flyout-popover.profile-flyout {
-      width: 220px;
-    }
-
-    @keyframes flyout-appear {
-      from {
-        opacity: 0;
-        transform: translateX(-6px);
+  styles: [
+    `
+      :host {
+        display: contents;
       }
-      to {
+
+      .rail-flyout-popover {
+        position: fixed;
+        left: 64px;
+        width: 240px;
+        max-height: calc(100vh - 32px);
+        background-color: var(--bg-sidebar);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        box-shadow:
+          0 20px 25px -5px rgba(0, 0, 0, 0.5),
+          0 8px 10px -6px rgba(0, 0, 0, 0.5);
+        z-index: 1250;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        padding: 8px;
+        animation: flyout-appear 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .rail-flyout-popover.profile-flyout {
+        width: 220px;
+      }
+
+      @keyframes flyout-appear {
+        from {
+          opacity: 0;
+          transform: translateX(-6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      .flyout-header {
+        padding: 6px 10px 8px 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 4px;
+      }
+
+      .flyout-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--sidebar-text);
+      }
+
+      .profile-flyout-header {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .flyout-user-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--sidebar-text-strong);
+      }
+
+      .flyout-user-role {
+        font-size: 11px;
+        color: var(--sidebar-text);
+      }
+
+      .flyout-body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .flyout-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        color: var(--sidebar-text-item);
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.12s ease;
+        cursor: pointer;
+      }
+
+      .flyout-btn {
+        width: 100%;
+        background: transparent;
+        border: none;
+        font-family: inherit;
+        text-align: left;
+      }
+
+      .flyout-item:hover,
+      .flyout-item.highlighted {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: var(--sidebar-text-strong);
+      }
+
+      .flyout-item.active {
+        background-color: var(--sidebar-accent-fill) !important;
+        color: var(--sidebar-text-strong) !important;
+        font-weight: 600;
+      }
+
+      .flyout-item.active .flyout-icon {
+        color: var(--sidebar-text-strong) !important;
         opacity: 1;
-        transform: translateX(0);
       }
-    }
 
-    .flyout-header {
-      padding: 6px 10px 8px 10px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      margin-bottom: 4px;
-    }
+      .flyout-icon {
+        font-size: 18px;
+        color: var(--sidebar-text);
+        opacity: 0.9;
+        flex-shrink: 0;
+      }
 
-    .flyout-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--sidebar-text);
-    }
+      .flyout-label {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-    .profile-flyout-header {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+      .flyout-chip {
+        margin-left: auto;
+        font-size: 11px;
+        background-color: var(--primary);
+        color: var(--on-primary);
+        font-weight: 700;
+        padding: 1px 6px;
+        border-radius: 8px;
+      }
 
-    .flyout-user-name {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--sidebar-text-strong);
-    }
+      .flyout-ext-icon {
+        font-size: 14px;
+        margin-left: auto;
+        opacity: 0.7;
+      }
 
-    .flyout-user-role {
-      font-size: 11px;
-      color: var(--sidebar-text);
-    }
+      .flyout-parent-group {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
 
-    .flyout-body {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+      .flyout-parent-header {
+        font-weight: 600;
+        color: var(--sidebar-text);
+        pointer-events: none;
+      }
 
-    .flyout-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      color: var(--sidebar-text-item);
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 500;
-      transition: all 0.12s ease;
-      cursor: pointer;
-    }
+      .flyout-subitems {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-left: 12px;
+      }
 
-    .flyout-btn {
-      width: 100%;
-      background: transparent;
-      border: none;
-      font-family: inherit;
-      text-align: left;
-    }
+      .flyout-subitem {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
 
-    .flyout-item:hover,
-    .flyout-item.highlighted {
-      background-color: rgba(255, 255, 255, 0.08);
-      color: var(--sidebar-text-strong);
-    }
+      .text-danger {
+        color: var(--sidebar-danger) !important;
+      }
+      .text-danger:hover {
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        color: var(--sidebar-danger-hover) !important;
+      }
 
-    .flyout-item.active {
-      background-color: var(--sidebar-accent-fill) !important;
-      color: var(--sidebar-text-strong) !important;
-      font-weight: 600;
-    }
-
-    .flyout-item.active .flyout-icon {
-      color: var(--sidebar-text-strong) !important;
-      opacity: 1;
-    }
-
-    .flyout-icon {
-      font-size: 18px;
-      color: var(--sidebar-text);
-      opacity: 0.9;
-      flex-shrink: 0;
-    }
-
-    .flyout-label {
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .flyout-chip {
-      margin-left: auto;
-      font-size: 11px;
-      background-color: var(--primary);
-      color: var(--on-primary);
-      font-weight: 700;
-      padding: 1px 6px;
-      border-radius: 8px;
-    }
-
-    .flyout-ext-icon {
-      font-size: 14px;
-      margin-left: auto;
-      opacity: 0.7;
-    }
-
-    .flyout-parent-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .flyout-parent-header {
-      font-weight: 600;
-      color: var(--sidebar-text);
-      pointer-events: none;
-    }
-
-    .flyout-subitems {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      padding-left: 12px;
-    }
-
-    .flyout-subitem {
-      font-size: 12px;
-      padding: 6px 10px;
-    }
-
-    .text-danger {
-      color: var(--sidebar-danger) !important;
-    }
-    .text-danger:hover {
-      background-color: rgba(239, 68, 68, 0.15) !important;
-      color: var(--sidebar-danger-hover) !important;
-    }
-
-    .font-mono {
-      font-family: monospace;
-    }
-  `]
+      .font-mono {
+        font-family: monospace;
+      }
+    `,
+  ],
 })
 export class AppSidebarFlyoutComponent {
   @Input() isCollapsed = false;

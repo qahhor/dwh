@@ -60,7 +60,8 @@ import { LookupState, type SMTLookupKey, type SMTLookupSource } from './lookup-s
       (searchChange)="state.search($event)"
       (loadMore)="state.loadMore()"
       (retry)="state.retry()"
-      (touch)="touch.emit()" />
+      (touch)="touch.emit()"
+    />
   `,
   styles: [':host { display: block; min-width: 0; }'],
 })
@@ -111,7 +112,7 @@ export class SMTDataSelectComponent<Row, K extends SMTLookupKey = number> implem
     const value = this.value();
     const exclude = this.exclude();
     const chosen = value === null ? [] : this.state.chosen([value]);
-    return [...chosen, ...this.state.listed(row => exclude(row) || this.source().key(row) === value)];
+    return [...chosen, ...this.state.listed((row) => exclude(row) || this.source().key(row) === value)];
   });
 
   readonly state = new LookupState<Row, K>(() => this.source());
@@ -131,7 +132,7 @@ export class SMTDataSelectComponent<Row, K extends SMTLookupKey = number> implem
 
   choose(value: K | null): void {
     this.value.set(value);
-    this.rowChange.emit(value === null ? null : this.state.rowOf(value) ?? null);
+    this.rowChange.emit(value === null ? null : (this.state.rowOf(value) ?? null));
   }
 
   /** Called by SMTDataSelectValueAccessor. */

@@ -3,7 +3,11 @@ import { of, firstValueFrom } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from './api.service';
 import { NavigationService } from './navigation.service';
-import { CustomNavigationItem, CreateNavigationItemPayload, UpdateNavigationItemPayload } from '../models/navigation.models';
+import {
+  CustomNavigationItem,
+  CreateNavigationItemPayload,
+  UpdateNavigationItemPayload,
+} from '../models/navigation.models';
 
 describe('NavigationService', () => {
   const sampleItem: CustomNavigationItem = {
@@ -18,7 +22,7 @@ describe('NavigationService', () => {
     sortOrder: 10,
     state: 'A',
     createdAt: '2026-09-09T10:00:00Z',
-    modifiedAt: '2026-09-09T10:00:00Z'
+    modifiedAt: '2026-09-09T10:00:00Z',
   };
 
   function setup() {
@@ -26,14 +30,11 @@ describe('NavigationService', () => {
       get: vi.fn(),
       post: vi.fn(),
       put: vi.fn(),
-      delete: vi.fn()
+      delete: vi.fn(),
     };
 
     TestBed.configureTestingModule({
-      providers: [
-        NavigationService,
-        { provide: ApiService, useValue: api }
-      ]
+      providers: [NavigationService, { provide: ApiService, useValue: api }],
     });
 
     const service = TestBed.inject(NavigationService);
@@ -85,7 +86,7 @@ describe('NavigationService', () => {
       title: 'Новый отчет',
       targetType: 'EMBEDDED_IFRAME',
       url: 'https://bi.example.com',
-      openInIframe: true
+      openInIframe: true,
     };
     api.post.mockReturnValue(of({ ...sampleItem, ...payload, id: 2 }));
     api.get.mockReturnValue(of([{ ...sampleItem, ...payload, id: 2 }]));
@@ -99,7 +100,7 @@ describe('NavigationService', () => {
   it('updates an item', async () => {
     const { service, api } = setup();
     const payload: UpdateNavigationItemPayload = {
-      title: 'Обновленное название'
+      title: 'Обновленное название',
     };
     api.put.mockReturnValue(of({ ...sampleItem, title: 'Обновленное название' }));
     api.get.mockReturnValue(of([]));

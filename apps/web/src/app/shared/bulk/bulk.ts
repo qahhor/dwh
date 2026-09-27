@@ -25,5 +25,5 @@ export interface BulkResult {
 export const BULK_MAX_IDS = 100;
 
 export function failedItems(result: BulkResult): BulkItemResult[] {
-  return result.results.filter(item => !item.ok);
+  return result.results.filter((item) => !item.ok);
 }

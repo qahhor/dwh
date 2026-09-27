@@ -21,7 +21,7 @@ import { SMTTextareaComponent } from './textarea.component';
 })
 class FormHost {
   readonly model = signal({ text: 'First line' });
-  readonly note = form(this.model, path => {
+  readonly note = form(this.model, (path) => {
     required(path.text);
     maxLength(path.text, 20);
   });

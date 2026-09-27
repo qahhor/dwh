@@ -16,6 +16,10 @@ export class SMTSwitchValueAccessor extends PickerValueAccessor<boolean> {
 
   /** The switch's value is `checked`. */
   private bridge(control: SMTSwitchComponent): BridgedPicker<boolean> {
-    return { value: control.checked, touch: control.touch, setDisabledFromForms: disabled => control.setDisabledFromForms(disabled) };
+    return {
+      value: control.checked,
+      touch: control.touch,
+      setDisabledFromForms: (disabled) => control.setDisabledFromForms(disabled),
+    };
   }
 }

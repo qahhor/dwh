@@ -70,6 +70,6 @@ export function withinBounds(time: SMTTime, min: SMTTime | null, max: SMTTime | 
 export function nearestSlot(slots: readonly SMTTime[], time: SMTTime | null): number {
   const value = timeToMinutes(time);
   if (value === null || slots.length === 0) return -1;
-  const index = slots.findIndex(slot => (timeToMinutes(slot) ?? 0) >= value);
+  const index = slots.findIndex((slot) => (timeToMinutes(slot) ?? 0) >= value);
   return index >= 0 ? index : slots.length - 1;
 }

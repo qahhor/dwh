@@ -12,29 +12,29 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     items: [
       { form: 'iam.users', action: 'view', source: 'role' },
       { form: 'iam.users', action: 'create', source: 'personal' },
-      { form: 'tasks', action: 'view', source: 'role' }
-    ]
+      { form: 'tasks', action: 'view', source: 'role' },
+    ],
   };
 
   const mockPersonalGrants = {
-    grants: [
-      { form: 'iam.users', action: 'create' }
-    ]
+    grants: [{ form: 'iam.users', action: 'create' }],
   };
 
   const mockFormCatalog = [
     { formCode: 'iam.users', module: 'md', formName: 'Пользователи', action: 'view', actionName: 'Просмотр' },
     { formCode: 'iam.users', module: 'md', formName: 'Пользователи', action: 'create', actionName: 'Создание' },
     { formCode: 'iam.users', module: 'md', formName: 'Пользователи', action: 'update', actionName: 'Редактирование' },
-    { formCode: 'tasks', module: 'ms.task', formName: 'Задачи', action: 'view', actionName: 'Просмотр' }
+    { formCode: 'tasks', module: 'ms.task', formName: 'Задачи', action: 'view', actionName: 'Просмотр' },
   ];
 
-  async function createFixture(options: {
-    getHandler?: (path: string) => any;
-    putHandler?: (path: string, body: any) => any;
-    canAssign?: boolean;
-    userId?: number;
-  } = {}) {
+  async function createFixture(
+    options: {
+      getHandler?: (path: string) => any;
+      putHandler?: (path: string, body: any) => any;
+      canAssign?: boolean;
+      userId?: number;
+    } = {},
+  ) {
     const api = {
       get: vi.fn((path: string) => {
         if (options.getHandler) return options.getHandler(path);
@@ -46,7 +46,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
       put: vi.fn((path: string, body: any) => {
         if (options.putHandler) return options.putHandler(path, body);
         return of({});
-      })
+      }),
     };
 
     const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() };
@@ -57,8 +57,8 @@ describe('UserEffectivePermissionsPanelComponent', () => {
       providers: [
         { provide: ApiService, useValue: api },
         { provide: ToastService, useValue: toast },
-        { provide: I18nService, useValue: i18n }
-      ]
+        { provide: I18nService, useValue: i18n },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(UserEffectivePermissionsPanelComponent);
@@ -149,14 +149,18 @@ describe('UserEffectivePermissionsPanelComponent', () => {
 
     form.click();
     fixture.detectChanges();
-    options().find(option => option.textContent?.includes('Пользователи (iam.users)'))!.click();
+    options()
+      .find((option) => option.textContent?.includes('Пользователи (iam.users)'))!
+      .click();
     fixture.detectChanges();
     expect(component.selectedFormCode()).toBe('iam.users');
     expect(action().disabled).toBe(false);
 
     action().click();
     fixture.detectChanges();
-    options().find(option => option.textContent?.includes('Редактирование (update)'))!.click();
+    options()
+      .find((option) => option.textContent?.includes('Редактирование (update)'))!
+      .click();
     fixture.detectChanges();
     expect(component.selectedAction()).toBe('update');
 
@@ -183,8 +187,8 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     expect(api.put).toHaveBeenCalledWith('/iam/users/10/permissions', {
       grants: [
         { form: 'iam.users', action: 'create' },
-        { form: 'iam.users', action: 'update' }
-      ]
+        { form: 'iam.users', action: 'update' },
+      ],
     });
     expect(toast.success).toHaveBeenCalled();
     expect(component.hasUnsavedChanges()).toBe(false);
@@ -198,7 +202,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
           return shouldFail ? throwError(() => new Error('Server error')) : of(mockEffectivePermissions);
         }
         return of([]);
-      }
+      },
     });
     const component = fixture.componentInstance;
 
@@ -212,4 +216,3 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     expect(component.effectiveItems().length).toBe(3);
   });
 });
-

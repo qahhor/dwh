@@ -9,7 +9,7 @@ import {
   SearchPreviewResult,
   SearchRetryJobRequest,
   SearchSettingsSnapshot,
-  SearchStartJobRequest
+  SearchStartJobRequest,
 } from '../models/search-management.models';
 import { ApiService } from './api.service';
 

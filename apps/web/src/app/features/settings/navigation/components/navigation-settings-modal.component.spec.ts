@@ -8,7 +8,7 @@ describe('NavigationSettingsModalComponent — who sees the item', () => {
   function create() {
     TestBed.configureTestingModule({
       imports: [NavigationSettingsModalComponent],
-      providers: [{ provide: I18nService, useValue: { translate: translateTest, currentLang: () => 'ru' } }]
+      providers: [{ provide: I18nService, useValue: { translate: translateTest, currentLang: () => 'ru' } }],
     });
     const modal = TestBed.createComponent(NavigationSettingsModalComponent).componentInstance;
     modal.permissionChoices = [{ permission: 'tasks.items.view', formName: 'Tasks', actionName: 'View' }];
@@ -22,6 +22,6 @@ describe('NavigationSettingsModalComponent — who sees the item', () => {
   it('keeps a stored pair missing from the catalog visible by its key, so it is not dropped silently', () => {
     const modal = create();
     modal.formRequiredPermission = 'legacy.form.view';
-    expect(modal.permissionOptions().map(option => option.id)).toEqual(['legacy.form.view', 'tasks.items.view']);
+    expect(modal.permissionOptions().map((option) => option.id)).toEqual(['legacy.form.view', 'tasks.items.view']);
   });
 });

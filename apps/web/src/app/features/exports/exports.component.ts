@@ -1,5 +1,16 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, timer } from 'rxjs';
 import { ExportItem, ExportsService } from '../../core/services/exports.service';
@@ -14,17 +25,17 @@ import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 const LIST_TITLES: Record<string, string> = {
   'upl.sources': 'nav.upl_sources',
   'upl.packages': 'nav.upl_packages',
-  'mf.files': 'layout.app_shell.fayly'
+  'mf.files': 'layout.app_shell.fayly',
 };
 const STATE_KEYS: Record<ExportItem['state'], string> = {
   queued: 'exports.state.queued',
   running: 'exports.state.running',
   done: 'exports.state.done',
-  failed: 'exports.state.failed'
+  failed: 'exports.state.failed',
 };
 const ERROR_KEYS: Record<string, string> = {
   EXPORT_FORBIDDEN: 'exports.error.forbidden',
-  EXPORT_INVALID: 'exports.error.invalid'
+  EXPORT_INVALID: 'exports.error.invalid',
 };
 /** How often an unfinished export is looked at again. */
 const POLL_MS = 3000;
@@ -46,7 +57,15 @@ const POLL_MS = 3000;
           <h1 id="exports-title" class="exports-title">{{ 'exports.title' | t }}</h1>
           <p class="exports-subtitle">{{ 'exports.subtitle' | t }}</p>
         </div>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" data-testid="exports-refresh" (click)="load()">
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="refresh"
+          data-testid="exports-refresh"
+          (click)="load()"
+        >
           {{ 'common.refresh' | t }}
         </button>
       </header>
@@ -54,16 +73,26 @@ const POLL_MS = 3000;
       @if (failed()) {
         <smt-alert smtTone="danger" data-testid="exports-error">
           <span>{{ 'exports.load_error' | t }}</span>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="load()">{{ 'common.retry' | t }}</button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="load()">
+            {{ 'common.retry' | t }}
+          </button>
         </smt-alert>
       }
 
       <div class="table-card" data-testid="exports-table">
-        <ui-local-table [rows]="items()" [config]="config()" [sortValues]="sortValues" [loading]="loading()" [emptyTemplate]="empty" />
+        <ui-local-table
+          [rows]="items()"
+          [config]="config()"
+          [sortValues]="sortValues"
+          [loading]="loading()"
+          [emptyTemplate]="empty"
+        />
       </div>
     </section>
 
-    <ng-template #listCell let-e><span class="exports-list">{{ listTitle(e) }}</span></ng-template>
+    <ng-template #listCell let-e
+      ><span class="exports-list">{{ listTitle(e) }}</span></ng-template
+    >
     <ng-template #stateCell let-e>
       <ui-badge [variant]="stateVariant(e)" [dot]="true">{{ stateText(e) }}</ui-badge>
       @if (e.state === 'failed' && e.errorCode) {
@@ -80,30 +109,86 @@ const POLL_MS = 3000;
         <span class="exports-muted">—</span>
       }
     </ng-template>
-    <ng-template #createdCell let-e><span class="tabular-nums">{{ e.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template>
-    <ng-template #expiresCell let-e><span class="tabular-nums exports-muted">{{ e.expiresAt | date: 'dd.MM.yyyy' }}</span></ng-template>
+    <ng-template #createdCell let-e
+      ><span class="tabular-nums">{{ e.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template
+    >
+    <ng-template #expiresCell let-e
+      ><span class="tabular-nums exports-muted">{{ e.expiresAt | date: 'dd.MM.yyyy' }}</span></ng-template
+    >
     <ng-template #fileCell let-e>
       @if (e.state === 'done') {
-        <a class="exports-download" data-testid="exports-download" [href]="fileUrl(e)" download
-          [attr.aria-label]="'exports.download_named' | t: { name: e.fileName || listTitle(e) }">
+        <a
+          class="exports-download"
+          data-testid="exports-download"
+          [href]="fileUrl(e)"
+          download
+          [attr.aria-label]="'exports.download_named' | t: { name: e.fileName || listTitle(e) }"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>{{ 'exports.download' | t }}
         </a>
       }
     </ng-template>
-    <ng-template #empty><p class="exports-empty">{{ 'exports.empty' | t }}</p></ng-template>
+    <ng-template #empty
+      ><p class="exports-empty">{{ 'exports.empty' | t }}</p></ng-template
+    >
   `,
-  styles: [`
-    .exports-page { display: flex; flex-direction: column; gap: 16px; padding: 24px; min-width: 0; }
-    .exports-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-    .exports-title { margin: 0; font-size: 20px; font-weight: 700; color: var(--text-main); }
-    .exports-subtitle { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); }
-    .exports-list { font-weight: 500; }
-    .exports-note { display: block; margin-top: 2px; font-size: 12px; color: var(--text-muted); }
-    .exports-muted { color: var(--text-muted); }
-    .exports-download { display: inline-flex; align-items: center; gap: 4px; color: var(--primary-text, var(--primary)); font-size: 13px; }
-    .exports-download .material-symbols-outlined { font-size: 16px; }
-    .exports-empty { margin: 0; padding: 24px; text-align: center; color: var(--text-muted); }
-  `]
+  styles: [
+    `
+      .exports-page {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px;
+        min-width: 0;
+      }
+      .exports-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .exports-title {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .exports-subtitle {
+        margin: 4px 0 0;
+        font-size: 13px;
+        color: var(--text-muted);
+      }
+      .exports-list {
+        font-weight: 500;
+      }
+      .exports-note {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .exports-muted {
+        color: var(--text-muted);
+      }
+      .exports-download {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--primary-text, var(--primary));
+        font-size: 13px;
+      }
+      .exports-download .material-symbols-outlined {
+        font-size: 16px;
+      }
+      .exports-empty {
+        margin: 0;
+        padding: 24px;
+        text-align: center;
+        color: var(--text-muted);
+      }
+    `,
+  ],
 })
 export class ExportsComponent implements OnInit {
   private readonly exports = inject(ExportsService);
@@ -134,9 +219,9 @@ export class ExportsComponent implements OnInit {
         rows: { header: header('exports.col.rows'), content: cell(this.rowsCell), width: '140px', align: 'right' },
         created: { header: header('exports.col.created'), content: cell(this.createdCell), width: '150px' },
         expires: { header: header('exports.col.expires'), content: cell(this.expiresCell), width: '130px' },
-        file: { header: header('exports.col.file'), content: cell(this.fileCell), width: '140px' }
+        file: { header: header('exports.col.file'), content: cell(this.fileCell), width: '140px' },
       },
-      columnsOrder: ['list', 'state', 'rows', 'created', 'expires', 'file']
+      columnsOrder: ['list', 'state', 'rows', 'created', 'expires', 'file'],
     };
   });
 
@@ -149,7 +234,7 @@ export class ExportsComponent implements OnInit {
     state: (e: ExportItem) => this.stateText(e),
     rows: (e: ExportItem) => e.rowsCount,
     created: (e: ExportItem) => new Date(e.createdAt),
-    expires: (e: ExportItem) => new Date(e.expiresAt)
+    expires: (e: ExportItem) => new Date(e.expiresAt),
   };
 
   ngOnInit(): void {
@@ -159,17 +244,20 @@ export class ExportsComponent implements OnInit {
   load(): void {
     this.request?.unsubscribe();
     this.failed.set(false);
-    this.request = this.exports.journal().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: items => {
-        this.items.set(items);
-        this.loading.set(false);
-        this.schedule(items);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.failed.set(true);
-      }
-    });
+    this.request = this.exports
+      .journal()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items) => {
+          this.items.set(items);
+          this.loading.set(false);
+          this.schedule(items);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.failed.set(true);
+        },
+      });
   }
 
   listTitle(e: ExportItem): string {
@@ -182,7 +270,13 @@ export class ExportsComponent implements OnInit {
   }
 
   stateVariant(e: ExportItem): 'success' | 'warning' | 'danger' | 'info' {
-    return e.state === 'done' ? 'success' : e.state === 'failed' ? 'danger' : e.state === 'running' ? 'info' : 'warning';
+    return e.state === 'done'
+      ? 'success'
+      : e.state === 'failed'
+        ? 'danger'
+        : e.state === 'running'
+          ? 'info'
+          : 'warning';
   }
 
   errorText(e: ExportItem): string {
@@ -196,7 +290,9 @@ export class ExportsComponent implements OnInit {
   /** Looks again soon while an export is unfinished; a finished journal is left alone. */
   private schedule(items: ExportItem[]): void {
     this.poll?.unsubscribe();
-    if (!items.some(e => e.state === 'queued' || e.state === 'running')) return;
-    this.poll = timer(POLL_MS).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.load());
+    if (!items.some((e) => e.state === 'queued' || e.state === 'running')) return;
+    this.poll = timer(POLL_MS)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.load());
   }
 }

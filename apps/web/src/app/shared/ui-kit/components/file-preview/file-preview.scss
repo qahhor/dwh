@@ -24,12 +24,29 @@
   color: var(--text-muted);
 }
 
-.smt-file-card__icon .material-symbols-outlined { font-size: 18px; }
-.smt-file-card__icon--image { background-color: var(--accent-violet-bg); color: var(--accent-violet-text); }
-.smt-file-card__icon--pdf { background-color: var(--danger-bg); color: var(--danger-text); }
-.smt-file-card__icon--doc { background-color: var(--info-bg); color: var(--info-text); }
-.smt-file-card__icon--sheet { background-color: var(--success-bg); color: var(--success-text); }
-.smt-file-card__icon--archive { background-color: var(--warning-bg); color: var(--warning-text); }
+.smt-file-card__icon .material-symbols-outlined {
+  font-size: 18px;
+}
+.smt-file-card__icon--image {
+  background-color: var(--accent-violet-bg);
+  color: var(--accent-violet-text);
+}
+.smt-file-card__icon--pdf {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+}
+.smt-file-card__icon--doc {
+  background-color: var(--info-bg);
+  color: var(--info-text);
+}
+.smt-file-card__icon--sheet {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+}
+.smt-file-card__icon--archive {
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+}
 
 .smt-file-card__name {
   display: flex;

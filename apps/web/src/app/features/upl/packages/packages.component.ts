@@ -1,5 +1,17 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, OnInit, TemplateRef, ViewChild, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -10,8 +22,15 @@ import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '../../../shared/ui-kit/components/forms/date-picker';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import {
+  SMTDatePickerComponent,
+  SMTDatePickerValueAccessor,
+} from '../../../shared/ui-kit/components/forms/date-picker';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../shared/ui-kit/components/forms/select';
 import { LookupChannel } from '../../../shared/paging/lookup-channel';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
@@ -31,7 +50,7 @@ import {
   UPL_PACKAGE_STATUS_VARIANT,
   formatUplDateTime,
   formatUplPeriod,
-  uplPackageRowsText
+  uplPackageRowsText,
 } from './packages-labels';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
 
@@ -58,9 +77,18 @@ function emptyFormErrors(): UplPackageFormErrors {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    SMTAlertComponent, SMTControlComponent,
-    CommonModule, FormsModule, TranslatePipe, UiBadgeComponent, SMTButtonComponent, PackageCardComponent,
-    SMTDatePickerComponent, SMTDatePickerValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
+    SMTAlertComponent,
+    SMTControlComponent,
+    CommonModule,
+    FormsModule,
+    TranslatePipe,
+    UiBadgeComponent,
+    SMTButtonComponent,
+    PackageCardComponent,
+    SMTDatePickerComponent,
+    SMTDatePickerValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
     UiServerTableComponent,
   ],
   template: `
@@ -76,7 +104,14 @@ function emptyFormErrors(): UplPackageFormErrors {
       <div class="upl-page">
         <div class="toolbar upl-toolbar">
           <h1 class="upl-title">{{ 'upl.pkg.title' | t }}</h1>
-          <button smt-button type="button" smtVariant="secondary" smtIcon="refresh" data-testid="upl-pkg-refresh" (click)="load()">
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtIcon="refresh"
+            data-testid="upl-pkg-refresh"
+            (click)="load()"
+          >
             {{ 'upl.pkg.refresh' | t }}
           </button>
         </div>
@@ -94,7 +129,11 @@ function emptyFormErrors(): UplPackageFormErrors {
             }
 
             <div class="upl-pkg-fields">
-              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.source' | t" [smtError]="formErrors().source.join(' ')">
+              <smt-control
+                class="form-group"
+                [smtLabel]="'upl.pkg.form.source' | t"
+                [smtError]="formErrors().source.join(' ')"
+              >
                 <!-- A lookup over the server list: search by code or name, columns, "create" from the typed text. -->
                 <smt-select
                   smtTriggerId="upl-pkg-source-field"
@@ -136,7 +175,11 @@ function emptyFormErrors(): UplPackageFormErrors {
                 />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.period_to' | t" [smtError]="formErrors().period.join(' ')">
+              <smt-control
+                class="form-group"
+                [smtLabel]="'upl.pkg.form.period_to' | t"
+                [smtError]="formErrors().period.join(' ')"
+              >
                 <smt-date-picker
                   smtInputId="upl-pkg-period-to-field"
                   name="periodTo"
@@ -147,7 +190,11 @@ function emptyFormErrors(): UplPackageFormErrors {
                 />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'upl.pkg.form.file' | t" [smtError]="formErrors().file.join(' ')">
+              <smt-control
+                class="form-group"
+                [smtLabel]="'upl.pkg.form.file' | t"
+                [smtError]="formErrors().file.join(' ')"
+              >
                 <input
                   #fileInput
                   class="form-input"
@@ -162,13 +209,17 @@ function emptyFormErrors(): UplPackageFormErrors {
             </div>
 
             <div class="upl-pkg-form-actions">
-              <button smt-button type="button"
+              <button
+                smt-button
+                type="button"
                 smtVariant="primary"
                 [disabled]="!isReady()"
                 [smtLoading]="isSending()"
                 data-testid="upl-pkg-submit"
                 (click)="submit()"
-              >{{ 'upl.pkg.form.submit' | t }}</button>
+              >
+                {{ 'upl.pkg.form.submit' | t }}
+              </button>
             </div>
           </form>
         }
@@ -191,7 +242,8 @@ function emptyFormErrors(): UplPackageFormErrors {
             [errorLabel]="'upl.pkg.load_error' | t"
             [emptyTemplate]="emptyState"
             (sortChange)="onSort($event)"
-            (rowClick)="openCard($event)" />
+            (rowClick)="openCard($event)"
+          />
         } @else {
           <p class="upl-muted" role="status" data-testid="upl-pkg-meta-loading">{{ 'upl.common.loading' | t }}</p>
         }
@@ -204,130 +256,137 @@ function emptyFormErrors(): UplPackageFormErrors {
         <p class="upl-empty-text">{{ (canUpload() ? 'upl.pkg.empty_hint' : 'upl.pkg.empty') | t }}</p>
       </div>
     </ng-template>
-    <ng-template #uploadedAtCell let-item><span data-testid="upl-pkg-row">{{ dateTime(item.uploadedAt) }}</span></ng-template>
+    <ng-template #uploadedAtCell let-item
+      ><span data-testid="upl-pkg-row">{{ dateTime(item.uploadedAt) }}</span></ng-template
+    >
     <ng-template #periodCell let-item>{{ period(item) }}</ng-template>
     <ng-template #statusCell let-item>
-      <ui-badge [variant]="variantOf(item)"
-        [attr.title]="item.status === 'received' ? ('upl.pkg.status.received_hint' | t) : null">{{ statusKeyOf(item) | t }}</ui-badge>
+      <ui-badge
+        [variant]="variantOf(item)"
+        [attr.title]="item.status === 'received' ? ('upl.pkg.status.received_hint' | t) : null"
+        >{{ statusKeyOf(item) | t }}</ui-badge
+      >
     </ng-template>
     <ng-template #rowsCell let-item>{{ rowsText(item) }}</ng-template>
   `,
-  styles: [`
-    .upl-page {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  styles: [
+    `
+      .upl-page {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .upl-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+      .upl-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
 
-    .upl-title {
-      margin: 0;
-      font-family: var(--font-family);
-      font-size: 1.25rem;
-      color: var(--text-main);
-    }
+      .upl-title {
+        margin: 0;
+        font-family: var(--font-family);
+        font-size: 1.25rem;
+        color: var(--text-main);
+      }
 
-    .upl-pkg-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      padding: 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      background: var(--bg-surface);
-    }
+      .upl-pkg-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-surface);
+      }
 
-    .upl-pkg-form-title {
-      margin: 0;
-      font-family: var(--font-family);
-      font-size: 1rem;
-      color: var(--text-main);
-    }
+      .upl-pkg-form-title {
+        margin: 0;
+        font-family: var(--font-family);
+        font-size: 1rem;
+        color: var(--text-main);
+      }
 
-    .upl-pkg-fields {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
+      .upl-pkg-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
 
-    .upl-pkg-fields .form-group {
-      flex: 1 1 12rem;
-      min-width: 12rem;
-    }
+      .upl-pkg-fields .form-group {
+        flex: 1 1 12rem;
+        min-width: 12rem;
+      }
 
-    .upl-pkg-form-actions {
-      display: flex;
-      justify-content: flex-end;
-    }
+      .upl-pkg-form-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
 
-    .upl-pkg-err-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
+      .upl-pkg-err-form {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
 
-    .upl-pkg-err-line {
-      display: block;
-    }
+      .upl-pkg-err-line {
+        display: block;
+      }
 
-    .upl-pkg-template {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      align-self: flex-start;
-      font-size: 0.8125rem;
-      color: var(--primary-text, var(--primary));
-    }
+      .upl-pkg-template {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        align-self: flex-start;
+        font-size: 0.8125rem;
+        color: var(--primary-text, var(--primary));
+      }
 
-    .upl-pkg-template .material-symbols-outlined {
-      font-size: 16px;
-    }
+      .upl-pkg-template .material-symbols-outlined {
+        font-size: 16px;
+      }
 
-    .upl-field-error {
-      display: block;
-      margin-top: 0.25rem;
-      color: var(--danger);
-      font-size: 0.8125rem;
-    }
+      .upl-field-error {
+        display: block;
+        margin-top: 0.25rem;
+        color: var(--danger);
+        font-size: 0.8125rem;
+      }
 
-    .upl-alert {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-    }
+      .upl-alert {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
 
-    .upl-muted {
-      color: var(--text-muted);
-    }
+      .upl-muted {
+        color: var(--text-muted);
+      }
 
-    .upl-empty {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 3rem 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      background: var(--bg-surface);
-    }
+      .upl-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 3rem 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--bg-surface);
+      }
 
-    .upl-empty-icon {
-      font-size: 2.5rem;
-      color: var(--text-light);
-    }
+      .upl-empty-icon {
+        font-size: 2.5rem;
+        color: var(--text-light);
+      }
 
-    .upl-empty-text {
-      margin: 0;
-      color: var(--text-muted);
-    }
-  `]
+      .upl-empty-text {
+        margin: 0;
+        color: var(--text-muted);
+      }
+    `,
+  ],
 })
 export class PackagesComponent implements OnInit {
   private readonly api = inject(UplPackagesApiService);
@@ -360,7 +419,7 @@ export class PackagesComponent implements OnInit {
     const meta = this.meta();
     if (!meta) return null;
     return registryTableConfig<UplPackageItem>(meta, {
-      translate: key => this.i18n.translate(key),
+      translate: (key) => this.i18n.translate(key),
       trackBy: (_index, item) => item.id,
       ariaLabel: this.i18n.translate('upl.pkg.title'),
       sort: this.views.sort(),
@@ -368,14 +427,14 @@ export class PackagesComponent implements OnInit {
         uploadedAt: { type: 'templateRef', value: this.uploadedAtCell },
         periodFrom: { type: 'templateRef', value: this.periodCell },
         status: { type: 'templateRef', value: this.statusCell },
-        rowsTotal: { type: 'templateRef', value: this.rowsCell }
-      }
+        rowsTotal: { type: 'templateRef', value: this.rowsCell },
+      },
     });
   });
   readonly sourceColumns = computed(() => [
     this.i18n.translate('upl.list.col.code'),
     this.i18n.translate('upl.list.col.periodicity'),
-    this.i18n.translate('upl.list.col.published_version')
+    this.i18n.translate('upl.list.col.published_version'),
   ]);
 
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
@@ -385,26 +444,31 @@ export class PackagesComponent implements OnInit {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.pager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
   readonly pager = new KeysetPager<UplPackageItem>(
-    (cursor, limit) => this.api.list(limit, cursor, { sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match() }),
-    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: rows => this.syncSelected(rows) }
+    (cursor, limit) =>
+      this.api.list(limit, cursor, {
+        sort: this.views.sort(),
+        conditions: this.views.filter(),
+        match: this.views.match(),
+      }),
+    { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: (rows) => this.syncSelected(rows) },
   );
   readonly items = this.pager.items;
   readonly selectedSource = () => this.form.sourceId;
   readonly sourceLookup = new LookupChannel<UplSourceItem, number | null>(
     (query, cursor, pageSize) => this.api.searchSources(query, cursor, pageSize),
     (rows, append, selected) => {
-      const found = rows.map(row => this.sourceOption(row));
-      this.sourceOptions.update(current => {
+      const found = rows.map((row) => this.sourceOption(row));
+      this.sourceOptions.update((current) => {
         const next = append ? [...current, ...found] : found;
-        const chosen = current.find(option => option.id === selected);
-        return chosen && !next.some(option => option.id === selected) ? [chosen, ...next] : next;
+        const chosen = current.find((option) => option.id === selected);
+        return chosen && !next.some((option) => option.id === selected) ? [chosen, ...next] : next;
       });
     },
     null,
-    { pageSize: 20 }
+    { pageSize: 20 },
   );
 
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
@@ -422,11 +486,11 @@ export class PackagesComponent implements OnInit {
     // A link to one upload (from the data overview) opens its card at once.
     const open = this.route.snapshot.queryParamMap.get('open');
     if (open) {
-      this.api.get(open).subscribe({ next: item => this.openCard(item) });
+      this.api.get(open).subscribe({ next: (item) => this.openCard(item) });
     }
     const created = this.route.snapshot.queryParamMap.get('source');
     if (this.canUpload() && created && /^\d+$/.test(created)) {
-      this.api.source(created).subscribe({ next: source => this.chooseSource(source) });
+      this.api.source(created).subscribe({ next: (source) => this.chooseSource(source) });
     }
   }
 
@@ -477,7 +541,7 @@ export class PackagesComponent implements OnInit {
    */
   templateLink(): { href: string; version: number } | null {
     const id = this.form.sourceId;
-    const version = id === null || id === undefined ? null : this.publishedVersions.get(id) ?? null;
+    const version = id === null || id === undefined ? null : (this.publishedVersions.get(id) ?? null);
     if (id === null || id === undefined || version === null) return null;
     const lang = encodeURIComponent(this.i18n.currentLang());
     return { href: `/api/v1/upl/sources/${id}/format-versions/${version}/template?lang=${lang}`, version };
@@ -490,13 +554,16 @@ export class PackagesComponent implements OnInit {
       return;
     }
     this.metaError.set(false);
-    this.queryMeta.get('upl.packages').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: meta => {
-        this.meta.set(meta);
-        this.views.load().subscribe(() => this.pager.first());
-      },
-      error: () => this.metaError.set(true)
-    });
+    this.queryMeta
+      .get('upl.packages')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (meta) => {
+          this.meta.set(meta);
+          this.views.load().subscribe(() => this.pager.first());
+        },
+        error: () => this.metaError.set(true),
+      });
   }
 
   /** A header click sorts the whole list on the server; switching sorting off returns to the default order. */
@@ -534,7 +601,7 @@ export class PackagesComponent implements OnInit {
         sourceId: Number(this.form.sourceId),
         periodFrom: this.form.periodFrom,
         periodTo: this.form.periodTo,
-        file
+        file,
       })
       .subscribe({
         next: () => {
@@ -546,7 +613,7 @@ export class PackagesComponent implements OnInit {
         error: (problem: ProblemDetail) => {
           this.isSending.set(false);
           this.formErrors.set(mapUplUploadProblem(problem, this.translate));
-        }
+        },
       });
   }
 
@@ -568,7 +635,7 @@ export class PackagesComponent implements OnInit {
 
   private chooseSource(source: UplSource | UplSourceItem): void {
     const option = this.sourceOption(source);
-    this.sourceOptions.update(current => [option, ...current.filter(item => item.id !== option.id)]);
+    this.sourceOptions.update((current) => [option, ...current.filter((item) => item.id !== option.id)]);
     this.form = { ...this.form, sourceId: source.id };
   }
 
@@ -580,8 +647,10 @@ export class PackagesComponent implements OnInit {
       columns: [
         source.code,
         this.i18n.translate(UPL_PERIODICITY_KEY[source.periodicity]),
-        source.lastPublishedVersion === null || source.lastPublishedVersion === undefined ? '—' : String(source.lastPublishedVersion)
-      ]
+        source.lastPublishedVersion === null || source.lastPublishedVersion === undefined
+          ? '—'
+          : String(source.lastPublishedVersion),
+      ],
     };
   }
 
@@ -599,7 +668,7 @@ export class PackagesComponent implements OnInit {
     if (current === null) {
       return;
     }
-    const fresh = loaded.find(item => item.id === current.id);
+    const fresh = loaded.find((item) => item.id === current.id);
     if (fresh) {
       this.selected.set(fresh);
     }

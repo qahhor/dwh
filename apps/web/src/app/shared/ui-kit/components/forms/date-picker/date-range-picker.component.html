@@ -9,7 +9,8 @@
     [attr.aria-expanded]="open()"
     [attr.aria-controls]="open() ? dialogId : null"
     [attr.aria-label]="ariaLabel() ? ariaLabel() + ': ' + summary() : null"
-    (click)="toggle()">
+    (click)="toggle()"
+  >
     <span class="material-symbols-outlined" aria-hidden="true">date_range</span>
     <span class="smt-date-range-picker__summary">{{ summary() }}</span>
   </button>
@@ -18,7 +19,8 @@
       type="button"
       class="smt-date-picker__toggle"
       [attr.aria-label]="i18n.messages().date.clearPeriod"
-      (click)="clear()">
+      (click)="clear()"
+    >
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </button>
   }
@@ -31,7 +33,8 @@
   [cdkConnectedOverlayPositions]="positions"
   (overlayOutsideClick)="close(false)"
   (detach)="close(false)"
-  (attach)="onAttached()">
+  (attach)="onAttached()"
+>
   <div
     class="smt-date-popup smt-date-popup--range"
     role="dialog"
@@ -39,7 +42,8 @@
     [id]="dialogId"
     [attr.aria-label]="i18n.messages().date.rangeDialogLabel"
     cdkTrapFocus
-    (keydown)="onDialogKeydown($event)">
+    (keydown)="onDialogKeydown($event)"
+  >
     <div class="smt-date-popup__presets" role="group" [attr.aria-labelledby]="presetsLabelId">
       <p class="smt-date-popup__presets-title" [id]="presetsLabelId">{{ i18n.messages().date.presets }}</p>
       @for (key of presets; track key) {
@@ -47,7 +51,8 @@
           type="button"
           class="smt-date-popup__preset"
           [attr.aria-pressed]="activePreset() === key"
-          (click)="applyPreset(key)">
+          (click)="applyPreset(key)"
+        >
           {{ i18n.messages().date.preset[key] }}
         </button>
       }
@@ -60,7 +65,8 @@
         [max]="maxDay()"
         [today]="today()"
         [locale]="i18n.locale()"
-        (picked)="onPicked($event)" />
+        (picked)="onPicked($event)"
+      />
       <div class="smt-date-popup__actions">
         <button type="button" class="smt-date-popup__button" (click)="cancel()">
           {{ i18n.messages().common.cancel }}
@@ -69,7 +75,8 @@
           type="button"
           class="smt-date-popup__button smt-date-popup__button--primary"
           [disabled]="!draftFrom()"
-          (click)="apply()">
+          (click)="apply()"
+        >
           {{ i18n.messages().date.apply }}
         </button>
       </div>

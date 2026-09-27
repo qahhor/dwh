@@ -15,18 +15,58 @@ const META: QueryListMeta = {
   maxConditions: 2,
   maxInValues: 100,
   fields: [
-    { key: 'code', labelKey: 'upl.list.col.code', type: 'text', ops: ['eq', 'starts_with'], sortable: true, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null },
-    { key: 'periodicity', labelKey: 'upl.list.col.periodicity', type: 'enum', ops: ['eq', 'in'], sortable: false, nullable: false, defaultVisible: true, enumValues: ['month', 'year'], enumLabelPrefix: 'upl.periodicity.' },
-    { key: 'lastPublishedVersion', labelKey: 'upl.list.col.published_version', type: 'number', ops: ['gt', 'empty'], sortable: false, nullable: true, defaultVisible: true, enumValues: [], enumLabelPrefix: null }
-  ]
+    {
+      key: 'code',
+      labelKey: 'upl.list.col.code',
+      type: 'text',
+      ops: ['eq', 'starts_with'],
+      sortable: true,
+      nullable: false,
+      defaultVisible: true,
+      enumValues: [],
+      enumLabelPrefix: null,
+    },
+    {
+      key: 'periodicity',
+      labelKey: 'upl.list.col.periodicity',
+      type: 'enum',
+      ops: ['eq', 'in'],
+      sortable: false,
+      nullable: false,
+      defaultVisible: true,
+      enumValues: ['month', 'year'],
+      enumLabelPrefix: 'upl.periodicity.',
+    },
+    {
+      key: 'lastPublishedVersion',
+      labelKey: 'upl.list.col.published_version',
+      type: 'number',
+      ops: ['gt', 'empty'],
+      sortable: false,
+      nullable: true,
+      defaultVisible: true,
+      enumValues: [],
+      enumLabelPrefix: null,
+    },
+  ],
 };
 
 /** A list with a date field, for the period editor. */
 const DATED: QueryListMeta = {
   ...META,
   fields: [
-    { key: 'uploadedAt', labelKey: 'upl.pkg.col.uploaded_at', type: 'date', ops: ['between', 'gte'], sortable: true, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null }
-  ]
+    {
+      key: 'uploadedAt',
+      labelKey: 'upl.pkg.col.uploaded_at',
+      type: 'date',
+      ops: ['between', 'gte'],
+      sortable: true,
+      nullable: false,
+      defaultVisible: true,
+      enumValues: [],
+      enumLabelPrefix: null,
+    },
+  ],
 };
 
 async function render(conditions: QueryCondition[] = [], meta: QueryListMeta = META) {
@@ -35,8 +75,8 @@ async function render(conditions: QueryCondition[] = [], meta: QueryListMeta = M
     imports: [UiFilterPanelComponent],
     providers: [
       { provide: SMT_DRAWER_DATA, useValue: { meta, conditions } },
-      { provide: SMT_DRAWER_REF, useValue: { close, afterClosed: vi.fn(), componentInstance: null } }
-    ]
+      { provide: SMT_DRAWER_REF, useValue: { close, afterClosed: vi.fn(), componentInstance: null } },
+    ],
   }).compileComponents();
   const fixture = TestBed.createComponent(UiFilterPanelComponent);
   fixture.detectChanges();
@@ -50,13 +90,16 @@ const button = (fixture: ComponentFixture<UiFilterPanelComponent>, id: string) =
   el(fixture).querySelector(`button[data-testid="${id}"]`) as HTMLButtonElement;
 /** The smt-select whose host is the given element. */
 function picker(fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement): SMTSelectComponent<unknown> {
-  return fixture.debugElement.queryAll(By.directive(SMTSelectComponent)).find(debug => debug.nativeElement === host)!.componentInstance;
+  return fixture.debugElement.queryAll(By.directive(SMTSelectComponent)).find((debug) => debug.nativeElement === host)!
+    .componentInstance;
 }
 const labels = (fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement) =>
-  picker(fixture, host).options().map(option => option.label);
+  picker(fixture, host)
+    .options()
+    .map((option) => option.label);
 function choose(fixture: ComponentFixture<UiFilterPanelComponent>, host: HTMLElement, value: string) {
   const select = picker(fixture, host);
-  select.pick(select.options().find(option => option.id === value)!);
+  select.pick(select.options().find((option) => option.id === value)!);
 }
 function type(input: HTMLElement, value: string) {
   (input as HTMLInputElement).value = value;
@@ -76,15 +119,24 @@ describe('ui-filter-panel', () => {
     expect(row.querySelector('legend')?.textContent).toContain('Условие 1');
     const field = row.querySelector('[data-testid="filter-field"]') as HTMLElement;
     const fieldTrigger = field.querySelector('button[role="combobox"]') as HTMLButtonElement;
-    expect(row.querySelector(`label[for="${fieldTrigger.id}"]`)?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.field']);
+    expect(row.querySelector(`label[for="${fieldTrigger.id}"]`)?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.filter.field'],
+    );
     expect(fieldTrigger.textContent).toContain(PACKAGED_RUSSIAN['upl.list.col.code']);
     expect(labels(fixture, field)).toEqual([
-      PACKAGED_RUSSIAN['upl.list.col.code'], PACKAGED_RUSSIAN['upl.list.col.periodicity'], PACKAGED_RUSSIAN['upl.list.col.published_version']
+      PACKAGED_RUSSIAN['upl.list.col.code'],
+      PACKAGED_RUSSIAN['upl.list.col.periodicity'],
+      PACKAGED_RUSSIAN['upl.list.col.published_version'],
     ]);
     const op = row.querySelector('[data-testid="filter-op"]') as HTMLElement;
     const opTrigger = op.querySelector('button[role="combobox"]') as HTMLButtonElement;
-    expect(row.querySelector(`label[for="${opTrigger.id}"]`)?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.operation']);
-    expect(labels(fixture, op)).toEqual([PACKAGED_RUSSIAN['ui.filter.op.eq'], PACKAGED_RUSSIAN['ui.filter.op.starts_with']]);
+    expect(row.querySelector(`label[for="${opTrigger.id}"]`)?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.filter.operation'],
+    );
+    expect(labels(fixture, op)).toEqual([
+      PACKAGED_RUSSIAN['ui.filter.op.eq'],
+      PACKAGED_RUSSIAN['ui.filter.op.starts_with'],
+    ]);
     expect(row.querySelector('[data-testid="filter-remove"]')?.getAttribute('aria-label')).toBe('Удалить условие 1');
   });
 
@@ -108,7 +160,10 @@ describe('ui-filter-panel', () => {
     expect(all(fixture, 'filter-error')).toHaveLength(0);
 
     button(fixture, 'filter-apply').click();
-    expect(close).toHaveBeenCalledWith({ conditions: [{ field: 'code', op: 'starts_with', value: 'cement.' }], match: 'all' });
+    expect(close).toHaveBeenCalledWith({
+      conditions: [{ field: 'code', op: 'starts_with', value: 'cement.' }],
+      match: 'all',
+    });
   });
 
   it('offers the enum values as choices and needs no value for "is empty"', async () => {
@@ -118,21 +173,30 @@ describe('ui-filter-panel', () => {
     choose(fixture, all(fixture, 'filter-field')[0], 'periodicity');
     fixture.detectChanges();
     const single = all(fixture, 'filter-value')[0];
-    expect(single.querySelector('button[role="combobox"]')?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.choose']);
-    expect(labels(fixture, single)).toEqual([PACKAGED_RUSSIAN['upl.periodicity.month'], PACKAGED_RUSSIAN['upl.periodicity.year']]);
+    expect(single.querySelector('button[role="combobox"]')?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.filter.choose'],
+    );
+    expect(labels(fixture, single)).toEqual([
+      PACKAGED_RUSSIAN['upl.periodicity.month'],
+      PACKAGED_RUSSIAN['upl.periodicity.year'],
+    ]);
     choose(fixture, all(fixture, 'filter-op')[0], 'in');
     fixture.detectChanges();
 
     const group = el(fixture).querySelector('[role="group"]')!;
-    expect(document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent).toContain(PACKAGED_RUSSIAN['ui.filter.values']);
-    const boxes = all(fixture, 'filter-choice').map(choice => choice.querySelector('[role="checkbox"]') as HTMLElement);
-    expect(boxes.map(box => document.getElementById(box.getAttribute('aria-labelledby')!)?.textContent?.trim())).toEqual([
-      PACKAGED_RUSSIAN['upl.periodicity.month'], PACKAGED_RUSSIAN['upl.periodicity.year']
-    ]);
-    expect(boxes.map(box => box.getAttribute('aria-checked'))).toEqual(['false', 'false']);
+    expect(document.getElementById(group.getAttribute('aria-labelledby')!)?.textContent).toContain(
+      PACKAGED_RUSSIAN['ui.filter.values'],
+    );
+    const boxes = all(fixture, 'filter-choice').map(
+      (choice) => choice.querySelector('[role="checkbox"]') as HTMLElement,
+    );
+    expect(
+      boxes.map((box) => document.getElementById(box.getAttribute('aria-labelledby')!)?.textContent?.trim()),
+    ).toEqual([PACKAGED_RUSSIAN['upl.periodicity.month'], PACKAGED_RUSSIAN['upl.periodicity.year']]);
+    expect(boxes.map((box) => box.getAttribute('aria-checked'))).toEqual(['false', 'false']);
     boxes[1].click();
     fixture.detectChanges();
-    expect(boxes.map(box => box.getAttribute('aria-checked'))).toEqual(['false', 'true']);
+    expect(boxes.map((box) => box.getAttribute('aria-checked'))).toEqual(['false', 'true']);
 
     button(fixture, 'filter-add').click();
     fixture.detectChanges();
@@ -145,10 +209,13 @@ describe('ui-filter-panel', () => {
     expect(el(fixture).textContent).toContain('Не больше 2 условий');
 
     button(fixture, 'filter-apply').click();
-    expect(close).toHaveBeenCalledWith({ conditions: [
-      { field: 'periodicity', op: 'in', value: ['year'] },
-      { field: 'lastPublishedVersion', op: 'empty' }
-    ], match: 'all' });
+    expect(close).toHaveBeenCalledWith({
+      conditions: [
+        { field: 'periodicity', op: 'in', value: ['year'] },
+        { field: 'lastPublishedVersion', op: 'empty' },
+      ],
+      match: 'all',
+    });
   });
 
   it('opens with the active conditions, clears them all and cancels without a result', async () => {
@@ -167,7 +234,10 @@ describe('ui-filter-panel', () => {
   });
 
   it('edits a "between" date as one period with presets and applies both bounds', async () => {
-    const { fixture, close } = await render([{ field: 'uploadedAt', op: 'between', value: ['2026-09-01', '2026-09-10'] }], DATED);
+    const { fixture, close } = await render(
+      [{ field: 'uploadedAt', op: 'between', value: ['2026-09-01', '2026-09-10'] }],
+      DATED,
+    );
 
     const range = all(fixture, 'filter-date-range')[0];
     const trigger = range.querySelector('.smt-date-range-picker__trigger') as HTMLButtonElement;

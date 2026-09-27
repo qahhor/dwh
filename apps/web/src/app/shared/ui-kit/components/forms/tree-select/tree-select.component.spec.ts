@@ -46,7 +46,11 @@ class NgModelHost {
   standalone: true,
   imports: [SMTTreeSelectComponent, SMTTreeSelectValueAccessor, FormsModule],
   // Inside a form, NgForm registers the control in a microtask, as on the org unit editor.
-  template: `<form>@if (shown()) { <smt-tree-select [(ngModel)]="unit" name="unit" [nodes]="nodes" /> }</form>`,
+  template: `<form>
+    @if (shown()) {
+      <smt-tree-select [(ngModel)]="unit" name="unit" [nodes]="nodes" />
+    }
+  </form>`,
 })
 class FleetingHost {
   readonly shown = signal(true);
@@ -56,7 +60,7 @@ class FleetingHost {
 
 describe('SMTTreeSelectComponent', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -74,7 +78,7 @@ describe('SMTTreeSelectComponent', () => {
     const trigger = element.querySelector('.smt-select__trigger') as HTMLButtonElement;
     const search = () => document.querySelector('.smt-select__search-input') as HTMLInputElement;
     const items = () => Array.from(document.querySelectorAll('[role="treeitem"]')) as HTMLElement[];
-    const labels = () => items().map(item => item.querySelector('.smt-select__option-label')?.textContent?.trim());
+    const labels = () => items().map((item) => item.querySelector('.smt-select__option-label')?.textContent?.trim());
     const active = () => document.getElementById(search().getAttribute('aria-activedescendant')!)!;
     const key = async (target: HTMLElement, name: string) => {
       target.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true }));

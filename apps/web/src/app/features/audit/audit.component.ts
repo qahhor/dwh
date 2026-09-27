@@ -13,12 +13,7 @@ import { sortFromHeader } from '../../shared/ui/registry-table-config';
 import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 
-import {
-  AuditRecord,
-  SecurityEventRecord,
-  AuditStats,
-  AuditPage
-} from './audit.models';
+import { AuditRecord, SecurityEventRecord, AuditStats, AuditPage } from './audit.models';
 
 import { AuditStatsTilesComponent } from './components/audit-stats-tiles.component';
 import { AuditLogsTableComponent } from './components/audit-logs-table.component';
@@ -34,13 +29,16 @@ export * from './audit.models';
 @Component({
   selector: 'app-audit',
   standalone: true,
-  imports: [SMTButtonComponent, SMTAlertComponent,
-    SMTTabBarComponent, CommonModule,
+  imports: [
+    SMTButtonComponent,
+    SMTAlertComponent,
+    SMTTabBarComponent,
+    CommonModule,
     TranslatePipe,
     AuditStatsTilesComponent,
     AuditLogsTableComponent,
     AuditSecurityTableComponent,
-    AuditModalsComponent
+    AuditModalsComponent,
   ],
   template: `
     <div class="audit-page">
@@ -51,7 +49,14 @@ export * from './audit.models';
           <span class="count-badge">WORM Log</span>
         </div>
         <div class="header-right">
-          <button smt-button smtVariant="secondary" type="button" [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t" (click)="refreshAll()" [title]="'audit.obnovit_zhurnal' | t">
+          <button
+            smt-button
+            smtVariant="secondary"
+            type="button"
+            [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t"
+            (click)="refreshAll()"
+            [title]="'audit.obnovit_zhurnal' | t"
+          >
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
             <span>{{ 'common.refresh' | t }}</span>
           </button>
@@ -72,13 +77,16 @@ export * from './audit.models';
           [tabs]="auditTabs()"
           [value]="activeTab"
           [smtAriaLabel]="'audit.razdely_audita' | t"
-          (valueChange)="$event && setTab($event)" />
+          (valueChange)="$event && setTab($event)"
+        />
       </div>
 
       @if (metaError()) {
         <smt-alert smtTone="danger" data-testid="audit-meta-error">
           <span>{{ (activeTab === 'audit' ? 'audit.load_log_error' : 'audit.load_security_error') | t }}</span>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refreshAll()">{{ 'common.retry' | t }}</button>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refreshAll()">
+            {{ 'common.retry' | t }}
+          </button>
         </smt-alert>
       }
 
@@ -139,7 +147,7 @@ export * from './audit.models';
       ></app-audit-modals>
     </div>
   `,
-  styleUrl: './audit.component.css'
+  styleUrl: './audit.component.css',
 })
 export class AuditComponent implements OnInit {
   /** Texts of the tabs below; translated again when the language changes. */
@@ -170,7 +178,7 @@ export class AuditComponent implements OnInit {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.auditPager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
   readonly securityViews = new ListViewState('audit.security_events', inject(ListViewsApi), {
     defaultSort: () => {
@@ -178,7 +186,7 @@ export class AuditComponent implements OnInit {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.securityPager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
 
   activeTab: 'audit' | 'security' = 'audit';
@@ -203,21 +211,35 @@ export class AuditComponent implements OnInit {
   /* Each list pages through its own keyset endpoint. The pager reads the
      filters at request time, cancels a superseded request and moves the page
      number only when that page arrives. */
-  readonly auditPager = new KeysetPager<AuditRecord>((cursor, limit) =>
-    this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
-      ...this.auditFlatFilters(),
-      ...toQueryParams({ sort: this.auditViews.sort(), conditions: this.auditViews.filter(), match: this.auditViews.match() }),
-      limit,
-      cursor: cursor ?? undefined
-    }), { destroyRef: this.destroyRef });
+  readonly auditPager = new KeysetPager<AuditRecord>(
+    (cursor, limit) =>
+      this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
+        ...this.auditFlatFilters(),
+        ...toQueryParams({
+          sort: this.auditViews.sort(),
+          conditions: this.auditViews.filter(),
+          match: this.auditViews.match(),
+        }),
+        limit,
+        cursor: cursor ?? undefined,
+      }),
+    { destroyRef: this.destroyRef },
+  );
 
-  readonly securityPager = new KeysetPager<SecurityEventRecord>((cursor, limit) =>
-    this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
-      ...this.securityFlatFilters(),
-      ...toQueryParams({ sort: this.securityViews.sort(), conditions: this.securityViews.filter(), match: this.securityViews.match() }),
-      limit,
-      cursor: cursor ?? undefined
-    }), { destroyRef: this.destroyRef });
+  readonly securityPager = new KeysetPager<SecurityEventRecord>(
+    (cursor, limit) =>
+      this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
+        ...this.securityFlatFilters(),
+        ...toQueryParams({
+          sort: this.securityViews.sort(),
+          conditions: this.securityViews.filter(),
+          match: this.securityViews.match(),
+        }),
+        limit,
+        cursor: cursor ?? undefined,
+      }),
+    { destroyRef: this.destroyRef },
+  );
   readonly auditTotal = this.auditPager.total;
   readonly auditHasMore = this.auditPager.canGoForward;
   readonly auditError = this.auditPager.failed;
@@ -229,13 +251,21 @@ export class AuditComponent implements OnInit {
 
   constructor(
     private api: ApiService,
-    private toast: ToastService
+    private toast: ToastService,
   ) {}
 
-  get auditCurrentPage(): number { return this.auditPager.page(); }
-  get auditPageSize(): number { return this.auditPager.pageSize(); }
-  get secCurrentPage(): number { return this.securityPager.page(); }
-  get secPageSize(): number { return this.securityPager.pageSize(); }
+  get auditCurrentPage(): number {
+    return this.auditPager.page();
+  }
+  get auditPageSize(): number {
+    return this.auditPager.pageSize();
+  }
+  get secCurrentPage(): number {
+    return this.securityPager.page();
+  }
+  get secPageSize(): number {
+    return this.securityPager.pageSize();
+  }
 
   ngOnInit() {
     this.refreshAll();
@@ -262,11 +292,11 @@ export class AuditComponent implements OnInit {
   loadStats() {
     this.statsError.set(false);
     this.api.get<AuditStats>('/audit/stats').subscribe({
-      next: res => {
+      next: (res) => {
         this.stats.set(res);
         this.statsError.set(false);
       },
-      error: () => this.statsError.set(true)
+      error: () => this.statsError.set(true),
     });
   }
 
@@ -373,8 +403,18 @@ export class AuditComponent implements OnInit {
 
   auditTabs(): SMTTabItem<'audit' | 'security'>[] {
     return this.tabsMemo([this.tabText.currentLang(), this.auditTotal(), this.securityTotal()], () => [
-      { value: 'audit', label: this.tabText.translate('audit.change_log_count', { count: this.auditTotal() }), icon: 'database', id: 'audit-log-tab' },
-      { value: 'security', label: this.tabText.translate('audit.security_events_count', { count: this.securityTotal() }), icon: 'shield', id: 'security-events-tab' },
+      {
+        value: 'audit',
+        label: this.tabText.translate('audit.change_log_count', { count: this.auditTotal() }),
+        icon: 'database',
+        id: 'audit-log-tab',
+      },
+      {
+        value: 'security',
+        label: this.tabText.translate('audit.security_events_count', { count: this.securityTotal() }),
+        icon: 'shield',
+        id: 'security-events-tab',
+      },
     ]);
   }
 
@@ -385,7 +425,7 @@ export class AuditComponent implements OnInit {
       event: this.eventFilter || undefined,
       user_id: this.auditUserFilter.trim() || undefined,
       from: this.startOfUtcDay(this.auditFromFilter),
-      to: this.endOfUtcDay(this.auditToFilter)
+      to: this.endOfUtcDay(this.auditToFilter),
     };
   }
 
@@ -395,19 +435,27 @@ export class AuditComponent implements OnInit {
       user_id: this.securityUserFilter.trim() || undefined,
       ip: this.secIpFilter || undefined,
       from: this.startOfUtcDay(this.securityFromFilter),
-      to: this.endOfUtcDay(this.securityToFilter)
+      to: this.endOfUtcDay(this.securityToFilter),
     };
   }
 
-  private loadMeta(code: string, meta: { set(value: QueryListMeta): void }, views: ListViewState, pager: { first(): void }) {
+  private loadMeta(
+    code: string,
+    meta: { set(value: QueryListMeta): void },
+    views: ListViewState,
+    pager: { first(): void },
+  ) {
     this.metaError.set(false);
-    this.queryMeta.get(code).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: loaded => {
-        meta.set(loaded);
-        views.load().subscribe(() => pager.first());
-      },
-      error: () => this.metaError.set(true)
-    });
+    this.queryMeta
+      .get(code)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (loaded) => {
+          meta.set(loaded);
+          views.load().subscribe(() => pager.first());
+        },
+        error: () => this.metaError.set(true),
+      });
   }
 
   private startOfUtcDay(value: string): string | undefined {
@@ -420,12 +468,16 @@ export class AuditComponent implements OnInit {
 }
 
 /** Filters as export options, keeping the previous object while nothing changed. */
-function sameOrNext(previous: Record<string, string>, filters: Record<string, string | undefined>): Record<string, string> {
+function sameOrNext(
+  previous: Record<string, string>,
+  filters: Record<string, string | undefined>,
+): Record<string, string> {
   const next: Record<string, string> = {};
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== '') next[key] = value;
   }
-  const same = Object.keys(next).length === Object.keys(previous).length
-    && Object.entries(next).every(([key, value]) => previous[key] === value);
+  const same =
+    Object.keys(next).length === Object.keys(previous).length &&
+    Object.entries(next).every(([key, value]) => previous[key] === value);
   return same ? previous : next;
 }

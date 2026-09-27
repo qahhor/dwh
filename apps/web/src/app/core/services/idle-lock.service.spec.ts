@@ -14,7 +14,7 @@ describe('IdleLockService', () => {
   const tabs = { messages: messages.asObservable(), publish: vi.fn() };
   let minutes: number | 'error' = 2;
   const api = {
-    get: vi.fn(() => (minutes === 'error' ? throwError(() => new Error('down')) : of({ idleLockMinutes: minutes })))
+    get: vi.fn(() => (minutes === 'error' ? throwError(() => new Error('down')) : of({ idleLockMinutes: minutes }))),
   };
   let idle: IdleLockService;
 
@@ -25,11 +25,13 @@ describe('IdleLockService', () => {
     auth.logout.mockClear();
     tabs.publish.mockClear();
     api.get.mockClear();
-    TestBed.configureTestingModule({ providers: [
-      { provide: AuthService, useValue: auth },
-      { provide: TabSyncService, useValue: tabs },
-      { provide: ApiService, useValue: api }
-    ] });
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: auth },
+        { provide: TabSyncService, useValue: tabs },
+        { provide: ApiService, useValue: api },
+      ],
+    });
     idle = TestBed.inject(IdleLockService);
   });
 
@@ -101,7 +103,7 @@ describe('IdleLockService', () => {
     expect(auth.logout).not.toHaveBeenCalled();
   });
 
-  it.each([0, 'error'] as const)('stays off when the instance says %s', value => {
+  it.each([0, 'error'] as const)('stays off when the instance says %s', (value) => {
     minutes = value;
     signIn();
     vi.advanceTimersByTime(24 * 60 * 60_000);

@@ -8,17 +8,29 @@ const META = withCustomField(NOTES_FORM_META, BUDGET);
 
 describe('form-meta helpers', () => {
   it('reads declared fields from the row and custom ones from its attributes', () => {
-    const values = recordValues(META, { title: 'T', contentMd: 'x', color: 'blue', attributes: { budget: 5, other: 1 } });
+    const values = recordValues(META, {
+      title: 'T',
+      contentMd: 'x',
+      color: 'blue',
+      attributes: { budget: 5, other: 1 },
+    });
 
     expect(values).toEqual({ title: 'T', contentMd: 'x', color: 'blue', isPinned: false, cfBudget: 5 });
   });
 
   it('saves declared fields by key and custom ones in attributes, keeping attributes the form does not show', () => {
-    const payload = recordPayload(META, { title: '  T  ', contentMd: ' text ', color: 'red', isPinned: true, cfBudget: '' },
-      { attributes: { budget: 5, other: 1 } });
+    const payload = recordPayload(
+      META,
+      { title: '  T  ', contentMd: ' text ', color: 'red', isPinned: true, cfBudget: '' },
+      { attributes: { budget: 5, other: 1 } },
+    );
 
     expect(payload).toEqual({
-      title: 'T', contentMd: ' text ', color: 'red', isPinned: true, attributes: { budget: null, other: 1 },
+      title: 'T',
+      contentMd: ' text ',
+      color: 'red',
+      isPinned: true,
+      attributes: { budget: null, other: 1 },
     });
   });
 
@@ -31,15 +43,21 @@ describe('form-meta helpers', () => {
       cfBudget: translateTest('ui.entity_form.required'),
     });
     expect(formProblems(META, { title: 'ok', color: 'blue', cfBudget: 3 }, translateTest)).toEqual({});
-    expect(formProblems(META, { title: '   ', cfBudget: 3 }, translateTest)).toEqual({ title: translateTest('ui.entity_form.required') });
+    expect(formProblems(META, { title: '   ', cfBudget: 3 }, translateTest)).toEqual({
+      title: translateTest('ui.entity_form.required'),
+    });
   });
 
   it('puts the server problems on their fields, a custom field by its attribute', () => {
-    const problems = serverProblems(META, [
-      { field: 'title', code: 'too_long', message: 'server words' },
-      { field: 'attributes.budget', code: 'invalid_number', message: 'Поле Бюджет должно быть числом' },
-      { field: 'unknown', code: 'required', message: 'ignored' },
-    ], translateTest);
+    const problems = serverProblems(
+      META,
+      [
+        { field: 'title', code: 'too_long', message: 'server words' },
+        { field: 'attributes.budget', code: 'invalid_number', message: 'Поле Бюджет должно быть числом' },
+        { field: 'unknown', code: 'required', message: 'ignored' },
+      ],
+      translateTest,
+    );
 
     expect(problems).toEqual({
       title: translateTest('ui.entity_form.too_long', { n: 255 }),

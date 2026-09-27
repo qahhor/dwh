@@ -10,7 +10,10 @@ import { SMTEntityCardComponent } from './smt-entity-card.component';
 describe('SMTEntityCardComponent', () => {
   async function render(meta: FormMeta, value: FormValues, sections: string[] = []) {
     const api = { get: vi.fn(() => of({ id: 42, name: 'Анна Смирнова' })) };
-    await TestBed.configureTestingModule({ imports: [SMTEntityCardComponent], providers: [{ provide: ApiService, useValue: api }] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [SMTEntityCardComponent],
+      providers: [{ provide: ApiService, useValue: api }],
+    }).compileComponents();
     const fixture = TestBed.createComponent(SMTEntityCardComponent);
     fixture.componentRef.setInput('meta', meta);
     fixture.componentRef.setInput('value', value);
@@ -18,13 +21,19 @@ describe('SMTEntityCardComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    const lines = () => Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.entity-card-line'))
-      .map(line => `${line.querySelector('dt')?.textContent?.trim()}=${line.querySelector('dd')?.textContent?.trim()}`);
+    const lines = () =>
+      Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.entity-card-line')).map(
+        (line) => `${line.querySelector('dt')?.textContent?.trim()}=${line.querySelector('dd')?.textContent?.trim()}`,
+      );
     return { fixture, api, lines };
   }
 
   it('reads the filled fields in words and leaves the empty ones out', async () => {
-    const { lines } = await render(NOTES_FORM_META, { title: 'Заметка', contentMd: '', color: 'blue', isPinned: true }, ['main', 'settings']);
+    const { lines } = await render(
+      NOTES_FORM_META,
+      { title: 'Заметка', contentMd: '', color: 'blue', isPinned: true },
+      ['main', 'settings'],
+    );
 
     expect(lines()).toEqual([
       `${translateTest('notes.col.title')}=Заметка`,
@@ -35,7 +44,9 @@ describe('SMTEntityCardComponent', () => {
 
   it('names a referenced record by its own read', async () => {
     const owner = formField('cfOwner', 'ref', {
-      labelKey: '', label: 'Ответственный', attribute: 'owner',
+      labelKey: '',
+      label: 'Ответственный',
+      attribute: 'owner',
       ref: { path: '/iam/users', labelField: 'name', keyField: 'id', paged: true },
     });
     const { lines, api } = await render(withCustomField(NOTES_FORM_META, owner), { cfOwner: 42 }, ['custom']);

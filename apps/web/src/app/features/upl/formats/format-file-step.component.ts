@@ -1,11 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { UPL_ENCODINGS, UPL_FILE_KINDS, UPL_MATCH_BY, UplEncoding, UplFileKind, UplFormatDraftRequest, UplMatchBy } from '../upl-api';
+import {
+  UPL_ENCODINGS,
+  UPL_FILE_KINDS,
+  UPL_MATCH_BY,
+  UplEncoding,
+  UplFileKind,
+  UplFormatDraftRequest,
+  UplMatchBy,
+} from '../upl-api';
 import { UPL_ENCODING_KEY, UPL_FILE_KIND_KEY, UPL_MATCH_BY_KEY } from '../upl-labels';
 import { isFilled } from './upl-format-model';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Шаг «Файл» анкеты: вид файла, кодировка и разделитель CSV, сопоставление колонок. Правит модель на месте. */
@@ -13,7 +25,14 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   selector: 'app-upl-format-file-step',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor, FormsModule, TranslatePipe],
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
+    FormsModule,
+    TranslatePipe,
+  ],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.file' | t }}</h2>
     <div class="upl-row">
@@ -52,7 +71,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [maxLength]="1"
             [disabled]="!editable()"
             [(ngModel)]="model().delimiter"
-            [ngModelOptions]="{ standalone: true }" />
+            [ngModelOptions]="{ standalone: true }"
+          />
         </div>
       }
       <div class="form-group">
@@ -70,13 +90,32 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </div>
     </div>
   `,
-  styles: [`
-    :host { display: flex; flex-direction: column; gap: 0.75rem; }
-    .upl-block-title { margin: 0; font-size: 1rem; color: var(--text-main); }
-    .upl-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
-    .upl-input-tiny { max-width: 4rem; }
-    .upl-select { min-width: 12rem; }
-  `]
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .upl-block-title {
+        margin: 0;
+        font-size: 1rem;
+        color: var(--text-main);
+      }
+      .upl-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      .upl-input-tiny {
+        max-width: 4rem;
+      }
+      .upl-select {
+        min-width: 12rem;
+      }
+    `,
+  ],
 })
 export class FormatFileStepComponent {
   private readonly i18n = inject(I18nService);
@@ -91,17 +130,20 @@ export class FormatFileStepComponent {
 
   fileKindOptions(): SMTSelectOption<UplFileKind>[] {
     return this.fileKindMemo([this.i18n.currentLang()], () =>
-      UPL_FILE_KINDS.map(kind => ({ id: kind, label: this.i18n.translate(UPL_FILE_KIND_KEY[kind]) })));
+      UPL_FILE_KINDS.map((kind) => ({ id: kind, label: this.i18n.translate(UPL_FILE_KIND_KEY[kind]) })),
+    );
   }
 
   encodingOptions(): SMTSelectOption<UplEncoding>[] {
     return this.encodingMemo([this.i18n.currentLang()], () =>
-      UPL_ENCODINGS.map(encoding => ({ id: encoding, label: this.i18n.translate(UPL_ENCODING_KEY[encoding]) })));
+      UPL_ENCODINGS.map((encoding) => ({ id: encoding, label: this.i18n.translate(UPL_ENCODING_KEY[encoding]) })),
+    );
   }
 
   matchByOptions(): SMTSelectOption<UplMatchBy>[] {
     return this.matchByMemo([this.i18n.currentLang()], () =>
-      UPL_MATCH_BY.map(match => ({ id: match, label: this.i18n.translate(UPL_MATCH_BY_KEY[match]) })));
+      UPL_MATCH_BY.map((match) => ({ id: match, label: this.i18n.translate(UPL_MATCH_BY_KEY[match]) })),
+    );
   }
 
   onFileKindChange(kind: UplFileKind | null): void {

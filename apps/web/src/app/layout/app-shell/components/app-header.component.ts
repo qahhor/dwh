@@ -18,12 +18,7 @@ export interface LanguageChangeRequest {
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [
-    CommonModule,
-    RouterModule,
-    TranslatePipe,
-    SMTSelectComponent
-  ],
+  imports: [CommonModule, RouterModule, TranslatePipe, SMTSelectComponent],
   template: `
     <!-- Top Navigation -->
     <header class="topbar">
@@ -102,7 +97,7 @@ export interface LanguageChangeRequest {
           <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
           <span class="bell-dot" *ngIf="notifService.unreadCount() > 0" aria-hidden="true"></span>
           <span id="header-unread-count" class="sr-only" *ngIf="notifService.unreadCount() > 0">
-            {{ 'layout.app_shell.unread_notifications' | t:{count: notifService.unreadCount()} }}
+            {{ 'layout.app_shell.unread_notifications' | t: { count: notifService.unreadCount() } }}
           </span>
         </button>
 
@@ -143,241 +138,245 @@ export interface LanguageChangeRequest {
       </button>
     </div>
   `,
-  styles: [`
-    /* Topbar */
-    .topbar {
-      height: 52px;
-      background-color: var(--bg-surface);
-      border-bottom: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 18px;
-      flex-shrink: 0;
-      gap: 12px;
-    }
-
-    .topbar-left {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-    }
-
-    .palette-trigger {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background-color: var(--bg-hover);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 6px 12px;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 13px;
-      font-family: inherit;
-      width: 240px;
-      height: 34px;
-      flex-shrink: 0;
-    }
-    .palette-trigger:hover:not(:disabled) {
-      border-color: var(--primary);
-      color: var(--text-main);
-    }
-
-    .trigger-text {
-      flex: 1;
-      text-align: left;
-    }
-
-    .shortcut-kbd {
-      font-size: 10px;
-      padding: 2px 4px;
-      border-radius: 3px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-    }
-
-    .topbar-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .lang-selector {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-shrink: 0;
-    }
-
-    .lang-icon {
-      color: var(--text-muted);
-      font-size: 17px;
-    }
-
-    .lang-select {
-      width: 174px;
-    }
-
-    .icon-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
-      background-color: var(--bg-surface);
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      position: relative;
-      flex-shrink: 0;
-    }
-    .icon-btn:hover:not(:disabled) {
-      background-color: var(--bg-hover);
-      color: var(--text-main);
-    }
-
-    .icon-btn:disabled, .palette-trigger:disabled {
-      opacity: 0.6;
-      cursor: wait;
-    }
-
-    .palette-trigger:focus-visible,
-    .icon-btn:focus-visible {
-      outline: 2px solid var(--focus-ring, var(--primary));
-      outline-offset: 2px;
-    }
-
-    .bell-dot {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background-color: var(--danger);
-    }
-
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border-width: 0;
-    }
-
-    /* Announcement Banner */
-    .announcement-banner {
-      flex-shrink: 0;
-      max-height: 28vh;
-      overflow-y: auto;
-      background-color: var(--info-bg);
-      border-bottom: 1px solid var(--border-color);
-      color: var(--info-text);
-      padding: 8px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .announcement-content {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    .banner-icon {
-      font-size: 20px;
-    }
-
-    .banner-text {
-      min-width: 0;
-      overflow-wrap: anywhere;
-      color: var(--text-main);
-    }
-    .banner-body {
-      margin: 4px 0 0;
-      white-space: pre-wrap;
-      font-weight: 400;
-    }
-
-    .banner-close {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      color: var(--info);
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-      width: 44px;
-      height: 44px;
-      justify-content: center;
-    }
-    .banner-close:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: -2px;
-    }
-    .banner-close:disabled {
-      cursor: wait;
-      opacity: 0.5;
-    }
-
-    .mobile-menu-btn {
-      display: none;
-    }
-
-    @media (max-width: 1023px) {
-      .palette-trigger {
-        width: min(240px, 40vw);
-      }
-    }
-
-    @media (max-width: 767px) {
-      .mobile-menu-btn {
-        display: inline-flex;
-      }
-
+  styles: [
+    `
+      /* Topbar */
       .topbar {
-        padding-inline: 8px;
-        gap: 4px;
+        height: 52px;
+        background-color: var(--bg-surface);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 18px;
+        flex-shrink: 0;
+        gap: 12px;
       }
 
-      .topbar-left, .topbar-right {
-        gap: 4px;
-      }
-      .icon-btn {
-        width: 44px;
-        height: 44px;
-      }
-      .lang-icon {
-        display: none;
-      }
-      .lang-select {
-        width: 96px;
-      }
-
-      .trigger-text,
-      .shortcut-kbd {
-        display: none;
+      .topbar-left {
+        display: flex;
+        align-items: center;
+        min-width: 0;
       }
 
       .palette-trigger {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background-color: var(--bg-hover);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 6px 12px;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+        width: 240px;
+        height: 34px;
+        flex-shrink: 0;
+      }
+      .palette-trigger:hover:not(:disabled) {
+        border-color: var(--primary);
+        color: var(--text-main);
+      }
+
+      .trigger-text {
+        flex: 1;
+        text-align: left;
+      }
+
+      .shortcut-kbd {
+        font-size: 10px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .lang-selector {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+
+      .lang-icon {
+        color: var(--text-muted);
+        font-size: 17px;
+      }
+
+      .lang-select {
+        width: 174px;
+      }
+
+      .icon-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-color);
+        background-color: var(--bg-surface);
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        flex-shrink: 0;
+      }
+      .icon-btn:hover:not(:disabled) {
+        background-color: var(--bg-hover);
+        color: var(--text-main);
+      }
+
+      .icon-btn:disabled,
+      .palette-trigger:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+
+      .palette-trigger:focus-visible,
+      .icon-btn:focus-visible {
+        outline: 2px solid var(--focus-ring, var(--primary));
+        outline-offset: 2px;
+      }
+
+      .bell-dot {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: var(--danger);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
+
+      /* Announcement Banner */
+      .announcement-banner {
+        flex-shrink: 0;
+        max-height: 28vh;
+        overflow-y: auto;
+        background-color: var(--info-bg);
+        border-bottom: 1px solid var(--border-color);
+        color: var(--info-text);
+        padding: 8px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .announcement-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .banner-icon {
+        font-size: 20px;
+      }
+
+      .banner-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: var(--text-main);
+      }
+      .banner-body {
+        margin: 4px 0 0;
+        white-space: pre-wrap;
+        font-weight: 400;
+      }
+
+      .banner-close {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--info);
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
         width: 44px;
         height: 44px;
-        padding: 0;
         justify-content: center;
       }
-    }
-  `]
+      .banner-close:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+      }
+      .banner-close:disabled {
+        cursor: wait;
+        opacity: 0.5;
+      }
+
+      .mobile-menu-btn {
+        display: none;
+      }
+
+      @media (max-width: 1023px) {
+        .palette-trigger {
+          width: min(240px, 40vw);
+        }
+      }
+
+      @media (max-width: 767px) {
+        .mobile-menu-btn {
+          display: inline-flex;
+        }
+
+        .topbar {
+          padding-inline: 8px;
+          gap: 4px;
+        }
+
+        .topbar-left,
+        .topbar-right {
+          gap: 4px;
+        }
+        .icon-btn {
+          width: 44px;
+          height: 44px;
+        }
+        .lang-icon {
+          display: none;
+        }
+        .lang-select {
+          width: 96px;
+        }
+
+        .trigger-text,
+        .shortcut-kbd {
+          display: none;
+        }
+
+        .palette-trigger {
+          width: 44px;
+          height: 44px;
+          padding: 0;
+          justify-content: center;
+        }
+      }
+    `,
+  ],
 })
 export class AppHeaderComponent {
   readonly authService = inject(AuthService);
@@ -411,7 +410,7 @@ export class AppHeaderComponent {
   languageOptions(): SMTSelectOption<string>[] {
     const languages = this.i18n.languages();
     return this.languageMemo([languages], () =>
-      languages.map(lang => ({ id: lang.code, label: `${lang.code.toUpperCase()} — ${lang.name}` }))
+      languages.map((lang) => ({ id: lang.code, label: `${lang.code.toUpperCase()} — ${lang.name}` })),
     );
   }
 

@@ -11,15 +11,21 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
   selector: 'app-sidebar',
   standalone: true,
   imports: [
-    SMTAvatarComponent, CommonModule,
+    SMTAvatarComponent,
+    CommonModule,
     RouterModule,
     TranslatePipe,
     AppSidebarNavSectionsComponent,
-    AppSidebarFlyoutComponent
+    AppSidebarFlyoutComponent,
   ],
   template: `
     <!-- Mobile Drawer Backdrop -->
-    <div *ngIf="isMobile && isMobileMenuOpen" class="mobile-drawer-backdrop" (click)="closeMobileMenu.emit(true)" aria-hidden="true"></div>
+    <div
+      *ngIf="isMobile && isMobileMenuOpen"
+      class="mobile-drawer-backdrop"
+      (click)="closeMobileMenu.emit(true)"
+      aria-hidden="true"
+    ></div>
 
     <!-- Sidebar Slot (preserves flex-layout width during floating hover) -->
     <div class="sidebar-slot" [class.collapsed]="isCollapsed">
@@ -49,11 +55,15 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
             class="toggle-btn"
             [class.pinned]="!isCollapsed"
             (click)="toggleSidebar.emit()"
-            [attr.aria-label]="(isCollapsed ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t"
+            [attr.aria-label]="
+              (isCollapsed ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t
+            "
             [attr.aria-expanded]="!isCollapsed"
             [title]="(isCollapsed ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t"
           >
-            <span class="material-symbols-outlined" aria-hidden="true">{{ isCollapsed ? 'chevron_right' : 'chevron_left' }}</span>
+            <span class="material-symbols-outlined" aria-hidden="true">{{
+              isCollapsed ? 'chevron_right' : 'chevron_left'
+            }}</span>
           </button>
           <button
             *ngIf="isMobile && isMobileMenuOpen"
@@ -67,7 +77,11 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
           </button>
         </div>
 
-        <nav class="sidebar-nav" [attr.aria-label]="'layout.app_shell.osnovnaya_navigaciya' | t" (click)="onNavClick.emit()">
+        <nav
+          class="sidebar-nav"
+          [attr.aria-label]="'layout.app_shell.osnovnaya_navigaciya' | t"
+          (click)="onNavClick.emit()"
+        >
           <!-- Collapsed Mode: Categories Rail (Main Categories of the Menu) -->
           <div *ngIf="isCollapsed && !isMobileMenuOpen" class="rail-category-list">
             <ng-container *ngFor="let section of navSections">
@@ -83,9 +97,13 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
                 (mouseenter)="categoryMouseEnter.emit({ section: section, event: $event })"
                 (mouseleave)="categoryMouseLeave.emit()"
               >
-                <span class="material-symbols-outlined rail-category-icon" aria-hidden="true">{{ getSectionIcon(section.id) }}</span>
+                <span class="material-symbols-outlined rail-category-icon" aria-hidden="true">{{
+                  getSectionIcon(section.id)
+                }}</span>
                 <span class="rail-category-active-bar" *ngIf="isSectionActive(section)" aria-hidden="true"></span>
-                <span class="rail-category-badge" *ngIf="getSectionBadge(section) > 0">{{ getSectionBadge(section) }}</span>
+                <span class="rail-category-badge" *ngIf="getSectionBadge(section) > 0">{{
+                  getSectionBadge(section)
+                }}</span>
                 <div class="nav-tooltip" role="tooltip">
                   <span>{{ section.titleKey | t }}</span>
                 </div>
@@ -149,7 +167,7 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
       ></app-sidebar-flyout>
     </div>
   `,
-  styleUrl: './app-sidebar.component.css'
+  styleUrl: './app-sidebar.component.css',
 })
 export class AppSidebarComponent {
   @ViewChild('sidebarElement') sidebarElement?: ElementRef<HTMLElement>;
@@ -177,10 +195,10 @@ export class AppSidebarComponent {
   @Output() toggleSidebar = new EventEmitter<void>();
   @Output() closeMobileMenu = new EventEmitter<boolean>();
   @Output() onNavClick = new EventEmitter<void>();
-  @Output() toggleSection = new EventEmitter<{ id: string, event: MouseEvent }>();
-  @Output() toggleSubmenu = new EventEmitter<{ id: string, event: MouseEvent }>();
-  @Output() categoryClick = new EventEmitter<{ section: NavSection, event: MouseEvent }>();
-  @Output() categoryMouseEnter = new EventEmitter<{ section: NavSection, event: MouseEvent }>();
+  @Output() toggleSection = new EventEmitter<{ id: string; event: MouseEvent }>();
+  @Output() toggleSubmenu = new EventEmitter<{ id: string; event: MouseEvent }>();
+  @Output() categoryClick = new EventEmitter<{ section: NavSection; event: MouseEvent }>();
+  @Output() categoryMouseEnter = new EventEmitter<{ section: NavSection; event: MouseEvent }>();
   @Output() categoryMouseLeave = new EventEmitter<void>();
   @Output() profileMouseEnter = new EventEmitter<MouseEvent>();
   @Output() profileMouseLeave = new EventEmitter<void>();
@@ -191,5 +209,4 @@ export class AppSidebarComponent {
   @Output() profileFlyoutMouseLeave = new EventEmitter<void>();
   @Output() profileFlyoutClick = new EventEmitter<void>();
   @Output() logout = new EventEmitter<void>();
-
 }

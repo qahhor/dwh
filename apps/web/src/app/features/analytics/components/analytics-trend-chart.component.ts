@@ -6,16 +6,13 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
 @Component({
   selector: 'app-analytics-trend-chart',
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslatePipe
-  ],
+  imports: [CommonModule, TranslatePipe],
   template: `
     <div class="analytics-card chart-card" [attr.aria-busy]="loading">
       <div class="card-header-row">
         <div>
           <h2 class="card-title">{{ 'analytics.dinamika_potoka_zadach' | t }}</h2>
-          <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t:{range: displayedRange} }}</p>
+          <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t: { range: displayedRange } }}</p>
         </div>
         <div class="chart-legend">
           <div class="legend-item">
@@ -32,9 +29,14 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
       <p *ngIf="loading" class="card-subtitle" role="status">{{ 'common.loading' | t }}</p>
 
       <!-- SVG Area / Line Chart -->
-      <div class="svg-chart-container" *ngIf="trends.length > 0"
-        role="region" tabindex="0" [attr.aria-label]="'analytics.dinamika_potoka_zadach' | t"
-        (mouseleave)="clearHover()">
+      <div
+        class="svg-chart-container"
+        *ngIf="trends.length > 0"
+        role="region"
+        tabindex="0"
+        [attr.aria-label]="'analytics.dinamika_potoka_zadach' | t"
+        (mouseleave)="clearHover()"
+      >
         <!-- Y Axis numeric tick values -->
         <div class="chart-y-axis" aria-hidden="true">
           <span *ngFor="let tick of yAxisTicks()" class="y-axis-tick font-mono" [style.top.px]="tick.y - 7">
@@ -45,40 +47,58 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
         <svg class="trend-svg" viewBox="0 0 700 240" preserveAspectRatio="none">
           <defs>
             <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25"/>
-              <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0" />
             </linearGradient>
             <linearGradient id="completedGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--success)" stop-opacity="0.25"/>
-              <stop offset="100%" stop-color="var(--success)" stop-opacity="0.0"/>
+              <stop offset="0%" stop-color="var(--success)" stop-opacity="0.25" />
+              <stop offset="100%" stop-color="var(--success)" stop-opacity="0.0" />
             </linearGradient>
           </defs>
 
           <!-- Gridlines -->
           <g class="gridlines">
-            <line x1="40" y1="40" x2="680" y2="40" stroke="var(--border-subtle)" stroke-dasharray="3,3"/>
-            <line x1="40" y1="90" x2="680" y2="90" stroke="var(--border-subtle)" stroke-dasharray="3,3"/>
-            <line x1="40" y1="140" x2="680" y2="140" stroke="var(--border-subtle)" stroke-dasharray="3,3"/>
-            <line x1="40" y1="190" x2="680" y2="190" stroke="var(--border-subtle)"/>
+            <line x1="40" y1="40" x2="680" y2="40" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+            <line x1="40" y1="90" x2="680" y2="90" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+            <line x1="40" y1="140" x2="680" y2="140" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+            <line x1="40" y1="190" x2="680" y2="190" stroke="var(--border-subtle)" />
           </g>
 
           <!-- Area Fills -->
-          <path [attr.d]="createdAreaPath()" fill="url(#createdGrad)"/>
-          <path [attr.d]="completedAreaPath()" fill="url(#completedGrad)"/>
+          <path [attr.d]="createdAreaPath()" fill="url(#createdGrad)" />
+          <path [attr.d]="completedAreaPath()" fill="url(#completedGrad)" />
 
           <!-- Line Strokes -->
-          <path [attr.d]="createdLinePath()" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"/>
-          <path [attr.d]="completedLinePath()" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round"/>
+          <path
+            [attr.d]="createdLinePath()"
+            fill="none"
+            stroke="var(--primary)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
+          <path
+            [attr.d]="completedLinePath()"
+            fill="none"
+            stroke="var(--success)"
+            stroke-width="2.5"
+            stroke-linecap="round"
+          />
 
           <!-- Hover guideline -->
-          <line *ngIf="hoveredPoint() as hp"
-            [attr.x1]="hp.x" y1="40"
-            [attr.x2]="hp.x" y2="190"
-            stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4,4"
+          <line
+            *ngIf="hoveredPoint() as hp"
+            [attr.x1]="hp.x"
+            y1="40"
+            [attr.x2]="hp.x"
+            y2="190"
+            stroke="var(--text-muted)"
+            stroke-width="1.5"
+            stroke-dasharray="4,4"
           />
 
           <!-- Data Dots -->
-          <g *ngFor="let pt of chartPoints(); let i = index"
+          <g
+            *ngFor="let pt of chartPoints(); let i = index"
             class="chart-point-group"
             (mouseenter)="setHoveredPoint(pt, i)"
             (focus)="setHoveredPoint(pt, i)"
@@ -86,10 +106,24 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
             <!-- Hit area for easy hovering -->
             <rect [attr.x]="pt.x - 12" y="30" width="24" height="170" fill="transparent" class="hit-area" />
 
-            <circle [attr.cx]="pt.x" [attr.cy]="pt.yCreated" [attr.r]="hoverIndex() === i ? 5.5 : 3.5" fill="var(--bg-surface)" stroke="var(--primary)" stroke-width="2">
+            <circle
+              [attr.cx]="pt.x"
+              [attr.cy]="pt.yCreated"
+              [attr.r]="hoverIndex() === i ? 5.5 : 3.5"
+              fill="var(--bg-surface)"
+              stroke="var(--primary)"
+              stroke-width="2"
+            >
               <title>{{ pt.date }}: {{ 'analytics.sozdano' | t }}: {{ pt.created }}</title>
             </circle>
-            <circle [attr.cx]="pt.x" [attr.cy]="pt.yCompleted" [attr.r]="hoverIndex() === i ? 5.5 : 3.5" fill="var(--bg-surface)" stroke="var(--success)" stroke-width="2">
+            <circle
+              [attr.cx]="pt.x"
+              [attr.cy]="pt.yCompleted"
+              [attr.r]="hoverIndex() === i ? 5.5 : 3.5"
+              fill="var(--bg-surface)"
+              stroke="var(--success)"
+              stroke-width="2"
+            >
               <title>{{ pt.date }}: {{ 'analytics.zaversheno' | t }}: {{ pt.completed }}</title>
             </circle>
             <!-- X axis date labels for some points -->
@@ -113,181 +147,189 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
           <div class="tooltip-values">
             <div class="tooltip-val">
               <span class="tooltip-dot" style="background-color: var(--primary);"></span>
-              <span>{{ 'analytics.sozdano' | t }}: <strong>{{ hp.created }}</strong></span>
+              <span
+                >{{ 'analytics.sozdano' | t }}: <strong>{{ hp.created }}</strong></span
+              >
             </div>
             <div class="tooltip-val">
               <span class="tooltip-dot" style="background-color: var(--success);"></span>
-              <span>{{ 'analytics.zaversheno' | t }}: <strong>{{ hp.completed }}</strong></span>
+              <span
+                >{{ 'analytics.zaversheno' | t }}: <strong>{{ hp.completed }}</strong></span
+              >
             </div>
           </div>
         </div>
       </div>
 
       <div *ngIf="trends.length === 0 && !loading && !error" class="empty-chart">
-        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true">show_chart</span>
+        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
+          >show_chart</span
+        >
         <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
       </div>
     </div>
   `,
-  styles: [`
-    .analytics-card {
-      min-width: 0;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 18px 22px;
-      box-shadow: var(--shadow-sm);
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+  styles: [
+    `
+      .analytics-card {
+        min-width: 0;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 18px 22px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    .card-header-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
+      .card-header-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
 
-    .card-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text-main);
-      overflow-wrap: anywhere;
-    }
+      .card-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-main);
+        overflow-wrap: anywhere;
+      }
 
-    .card-subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 2px;
-      overflow-wrap: anywhere;
-    }
+      .card-subtitle {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        overflow-wrap: anywhere;
+      }
 
-    .chart-legend {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 14px;
-    }
+      .chart-legend {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
 
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
 
-    .legend-dot {
-      width: 8px;
-      height: 8px;
-      flex-shrink: 0;
-      border-radius: 50%;
-    }
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        flex-shrink: 0;
+        border-radius: 50%;
+      }
 
-    .svg-chart-container {
-      width: 100%;
-      min-width: 0;
-      overflow-x: auto;
-      position: relative;
-    }
+      .svg-chart-container {
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        position: relative;
+      }
 
-    .svg-chart-container:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: -2px;
-    }
+      .svg-chart-container:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: -2px;
+      }
 
-    .chart-y-axis {
-      position: absolute;
-      left: 4px;
-      top: 0;
-      bottom: 0;
-      width: 32px;
-      pointer-events: none;
-      z-index: 2;
-    }
+      .chart-y-axis {
+        position: absolute;
+        left: 4px;
+        top: 0;
+        bottom: 0;
+        width: 32px;
+        pointer-events: none;
+        z-index: 2;
+      }
 
-    .y-axis-tick {
-      position: absolute;
-      right: 0;
-      font-size: 10px;
-      line-height: 1;
-      color: var(--text-muted);
-      text-align: right;
-    }
+      .y-axis-tick {
+        position: absolute;
+        right: 0;
+        font-size: 10px;
+        line-height: 1;
+        color: var(--text-muted);
+        text-align: right;
+      }
 
-    .trend-svg {
-      display: block;
-      width: 100%;
-      min-width: 700px;
-      height: 240px;
-    }
+      .trend-svg {
+        display: block;
+        width: 100%;
+        min-width: 700px;
+        height: 240px;
+      }
 
-    .empty-chart {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 50px 20px;
-      gap: 8px;
-      color: var(--text-muted);
-      font-size: 13px;
-    }
+      .empty-chart {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 50px 20px;
+        gap: 8px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
 
-    .chart-tooltip-floating {
-      position: absolute;
-      top: 10px;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      box-shadow: var(--shadow-md);
-      padding: 6px 10px;
-      font-size: 11px;
-      pointer-events: none;
-      z-index: 10;
-      transition: left 0.08s ease-out;
-    }
+      .chart-tooltip-floating {
+        position: absolute;
+        top: 10px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-md);
+        padding: 6px 10px;
+        font-size: 11px;
+        pointer-events: none;
+        z-index: 10;
+        transition: left 0.08s ease-out;
+      }
 
-    .tooltip-date {
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
+      .tooltip-date {
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+      }
 
-    .tooltip-values {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+      .tooltip-values {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
 
-    .tooltip-val {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: var(--text-main);
-    }
+      .tooltip-val {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-main);
+      }
 
-    .tooltip-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-    }
+      .tooltip-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
 
-    .hit-area {
-      cursor: pointer;
-    }
+      .hit-area {
+        cursor: pointer;
+      }
 
-    .chart-point-group:focus-visible circle {
-      stroke-width: 3;
-      stroke: var(--text-main);
-    }
+      .chart-point-group:focus-visible circle {
+        stroke-width: 3;
+        stroke: var(--text-main);
+      }
 
-    .font-mono {
-      font-family: monospace;
-    }
-  `]
+      .font-mono {
+        font-family: monospace;
+      }
+    `,
+  ],
 })
 export class AnalyticsTrendChartComponent {
   hoveredPoint = signal<ChartPoint | null>(null);
@@ -333,7 +375,7 @@ export class AnalyticsTrendChartComponent {
       { y: 40, value: maxVal },
       { y: 90, value: Math.round((maxVal * 2) / 3) },
       { y: 140, value: Math.round(maxVal / 3) },
-      { y: 190, value: 0 }
+      { y: 190, value: 0 },
     ];
   });
 

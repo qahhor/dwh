@@ -123,7 +123,9 @@ export class SMTTimePickerComponent implements FormValueControl<SMTTime | null> 
 
   readonly slots = computed(() => timeSlots(this.step(), this.minTime(), this.maxTime()));
 
-  readonly activeId = computed(() => (this.open() && this.activeIndex() >= 0 ? this.optionId(this.activeIndex()) : null));
+  readonly activeId = computed(() =>
+    this.open() && this.activeIndex() >= 0 ? this.optionId(this.activeIndex()) : null,
+  );
 
   readonly problemText = computed(() => {
     const problem = this.problem();
@@ -141,7 +143,7 @@ export class SMTTimePickerComponent implements FormValueControl<SMTTime | null> 
       required: this.required(),
       empty: !this.value(),
       localError: this.problem() !== null,
-    })
+    }),
   );
 
   readonly baseId = `smt-time-picker-${nextTimePickerId++}`;
@@ -181,7 +183,8 @@ export class SMTTimePickerComponent implements FormValueControl<SMTTime | null> 
         }
         const last = this.slots().length - 1;
         const current = this.activeIndex();
-        const next = current < 0 ? (event.key === 'ArrowDown' ? 0 : last) : current + (event.key === 'ArrowDown' ? 1 : -1);
+        const next =
+          current < 0 ? (event.key === 'ArrowDown' ? 0 : last) : current + (event.key === 'ArrowDown' ? 1 : -1);
         this.navigated = true;
         this.setActive(Math.min(Math.max(next, 0), last));
         return;

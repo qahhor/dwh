@@ -2,17 +2,18 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ProjectStateFilter } from '../projects.models';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
+import {
+  optionsMemo,
+  SMTRadioGroupComponent,
+  SMTRadioOption,
+} from '../../../../shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '../../../../core/services/i18n.service';
 import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-project-filter-bar',
   standalone: true,
-  imports: [
-    SMTRadioGroupComponent, SMTInputComponent, CommonModule,
-    TranslatePipe
-  ],
+  imports: [SMTRadioGroupComponent, SMTInputComponent, CommonModule, TranslatePipe],
   template: `
     <div class="toolbar">
       <label class="sr-only" for="project-search">{{ 'projects.poisk_proektov' | t }}</label>
@@ -25,7 +26,8 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
         clearable
         [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
         [value]="searchQuery"
-        (valueChange)="onSearchValue($event)" />
+        (valueChange)="onSearchValue($event)"
+      />
 
       <smt-radio-group
         smtAppearance="segmented"
@@ -33,38 +35,41 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
         [options]="stateOptions()"
         [value]="selectedState"
         [smtAriaLabel]="'projects.filtr_proektov_po_statusu' | t"
-        (valueChange)="stateChange.emit($event ?? selectedState)" />
+        (valueChange)="stateChange.emit($event ?? selectedState)"
+      />
     </div>
   `,
-  styles: [`
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 8px 12px;
-    }
-    .search-field {
-      min-width: 260px;
-      flex: 1;
-      max-width: 400px;
-    }
-    .sr-only {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border-width: 0;
-    }
-  `]
+  styles: [
+    `
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 8px 12px;
+      }
+      .search-field {
+        min-width: 260px;
+        flex: 1;
+        max-width: 400px;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border-width: 0;
+      }
+    `,
+  ],
 })
 export class ProjectFilterBarComponent {
   /** Texts of the radio options below; translated again when the language changes. */

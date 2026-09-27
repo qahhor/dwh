@@ -17,12 +17,33 @@ import { QueryMetaService } from '../../../core/services/query-meta.service';
 import { ListViewsApi } from '../../../shared/list-views/list-views';
 import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
 
-const field = (key: string, labelKey: string, type: QueryListMeta['fields'][number]['type'], extra: Partial<QueryListMeta['fields'][number]> = {}) =>
-  ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null, ...extra }) as QueryListMeta['fields'][number];
+const field = (
+  key: string,
+  labelKey: string,
+  type: QueryListMeta['fields'][number]['type'],
+  extra: Partial<QueryListMeta['fields'][number]> = {},
+) =>
+  ({
+    key,
+    labelKey,
+    type,
+    ops: ['eq'],
+    sortable: false,
+    nullable: false,
+    defaultVisible: true,
+    enumValues: [],
+    enumLabelPrefix: null,
+    ...extra,
+  }) as QueryListMeta['fields'][number];
 
 /** What `query-meta/iam.users` answers. */
 const USERS_META: QueryListMeta = {
-  code: 'iam.users', defaultSort: 'name', defaultLimit: 20, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+  code: 'iam.users',
+  defaultSort: 'name',
+  defaultLimit: 20,
+  maxLimit: 200,
+  maxConditions: 20,
+  maxInValues: 100,
   fields: [
     field('name', 'iam.users.col.name', 'text', { sortable: true }),
     field('login', 'iam.users.col.login', 'text', { sortable: true, defaultVisible: false }),
@@ -30,8 +51,8 @@ const USERS_META: QueryListMeta = {
     field('phone', 'iam.users.col.phone', 'text', { nullable: true, defaultVisible: false }),
     field('state', 'iam.users.col.state', 'enum', { enumValues: ['A', 'P'], enumLabelPrefix: 'iam.users.state.' }),
     field('is2faEnabled', 'iam.users.col.two_factor', 'boolean'),
-    field('createdAt', 'iam.users.col.created_at', 'instant', { sortable: true })
-  ]
+    field('createdAt', 'iam.users.col.created_at', 'instant', { sortable: true }),
+  ],
 };
 
 describe('UsersComponent UI contracts', () => {
@@ -42,14 +63,14 @@ describe('UsersComponent UI contracts', () => {
         {
           provide: ApiService,
           useValue: {
-            get: vi.fn((path: string) => of(path === '/iam/users'
-              ? { items: [], nextCursor: null, hasMore: false }
-              : [])),
+            get: vi.fn((path: string) =>
+              of(path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false } : []),
+            ),
             post: vi.fn(() => of({})),
             patch: vi.fn(() => of({})),
             put: vi.fn(() => of({})),
-            delete: vi.fn(() => of({}))
-          }
+            delete: vi.fn(() => of({})),
+          },
         },
         {
           provide: I18nService,
@@ -57,16 +78,16 @@ describe('UsersComponent UI contracts', () => {
             languages: signal([
               { code: 'ru', name: 'Русский', active: true },
               { code: 'de', name: 'Deutsch', active: true },
-              { code: 'tr', name: 'Türkçe', active: true }
+              { code: 'tr', name: 'Türkçe', active: true },
             ]),
             translate: translateTest,
-            currentLang: signal('ru')
-          }
+            currentLang: signal('ru'),
+          },
         },
         { provide: ToastService, useValue: { success: vi.fn(), warning: vi.fn(), error: vi.fn() } },
         { provide: QueryMetaService, useValue: { get: () => of(USERS_META) } },
-        { provide: ListViewsApi, useValue: { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } }
-      ]
+        { provide: ListViewsApi, useValue: { list: () => of([]), create: vi.fn(), update: vi.fn(), remove: vi.fn() } },
+      ],
     }).compileComponents();
     TestBed.inject(PermissionService).setPermissions(['*.*']);
     const fixture = TestBed.createComponent(UsersComponent);
@@ -104,7 +125,7 @@ describe('UsersComponent UI contracts', () => {
       is2faEnabled: false,
       forcePasswordChange: false,
       createdAt: '2026-08-30T00:00:00Z',
-      modifiedAt: '2026-08-30T00:00:00Z'
+      modifiedAt: '2026-08-30T00:00:00Z',
     };
     fixture.componentInstance.users.set([user]);
     redraw(fixture);
@@ -114,13 +135,19 @@ describe('UsersComponent UI contracts', () => {
     const identity = inScreen(fixture.nativeElement).querySelector('.user-identity') as HTMLElement;
 
     expect(inScreen(fixture.nativeElement).querySelector(`label[for="${search.id}"]`)).not.toBeNull();
-    expect(inScreen(fixture.nativeElement).querySelector('[role="radiogroup"][aria-label="Фильтр пользователей по статусу"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector(
+        '[role="radiogroup"][aria-label="Фильтр пользователей по статусу"]',
+      ),
+    ).not.toBeNull();
     expect(region.getAttribute('aria-label')).toBe('Таблица пользователей');
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список пользователей');
     // The whole list sorts on the server by the registry's sortable fields; name is the default.
     expect(region.querySelector('[aria-sort="ascending"]')?.textContent).toContain('Имя');
     expect(identity.tagName).toBe('BUTTON');
-    expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Редактировать пользователя Анна Иванова"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('button[aria-label="Редактировать пользователя Анна Иванова"]'),
+    ).not.toBeNull();
   });
 
   it('connects required create-user fields to inline validation', async () => {
@@ -136,13 +163,20 @@ describe('UsersComponent UI contracts', () => {
     expect(inScreen(fixture.nativeElement).querySelector(`label[for="${name.id}"]`)).not.toBeNull();
     expect(name.required).toBe(true);
     expect(name.getAttribute('aria-invalid')).toBe('true');
-    expect((name.getAttribute('aria-describedby') ?? '').split(' ').map(id => inScreen(fixture.nativeElement).querySelector('#' + id)).find(node => node?.classList.contains('smt-control__error'))?.textContent).toContain('Укажите ФИО пользователя');
+    expect(
+      (name.getAttribute('aria-describedby') ?? '')
+        .split(' ')
+        .map((id) => inScreen(fixture.nativeElement).querySelector('#' + id))
+        .find((node) => node?.classList.contains('smt-control__error'))?.textContent,
+    ).toContain('Укажите ФИО пользователя');
     expect(password.getAttribute('aria-describedby')?.split(' ').length).toBe(2); // hint and error
     expect(password.required).toBe(true);
     expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Показать пароль"]')).not.toBeNull();
     // The 2FA flag is saved with the form, so it is a checkbox named by its visible text.
     const twoFactor = inScreen(fixture.nativeElement).querySelector('[role="dialog"] [role="checkbox"]') as HTMLElement;
-    expect(document.getElementById(twoFactor.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe('Включить двухфакторную защиту (2FA OTP)');
+    expect(document.getElementById(twoFactor.getAttribute('aria-labelledby')!)?.textContent?.trim()).toBe(
+      'Включить двухфакторную защиту (2FA OTP)',
+    );
     twoFactor.click();
     await fixture.whenStable();
     expect(fixture.componentInstance.createForm.is2faEnabled).toBe(true);
@@ -151,8 +185,11 @@ describe('UsersComponent UI contracts', () => {
     expect(inScreen(fixture.nativeElement).querySelector(`label[for="${language.id}"]`)).not.toBeNull();
     language.click();
     redraw(fixture);
-    expect((Array.from(document.querySelectorAll('.smt-select__option-label')) as HTMLElement[]).map(option => option.textContent?.trim()))
-      .toEqual(['Русский (ru)', 'Deutsch (de)', 'Türkçe (tr)']);
+    expect(
+      (Array.from(document.querySelectorAll('.smt-select__option-label')) as HTMLElement[]).map((option) =>
+        option.textContent?.trim(),
+      ),
+    ).toEqual(['Русский (ru)', 'Deutsch (de)', 'Türkçe (tr)']);
   });
 
   it('keeps a dirty organization draft mounted until Escape or record selection is decided', async () => {
@@ -164,13 +201,18 @@ describe('UsersComponent UI contracts', () => {
 
     fixture.componentInstance.openViewModal(first);
     redraw(fixture);
-    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+      .componentInstance as UserOrgUnitsPanelComponent;
     (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     redraw(fixture);
     expect(panel.hasUnsavedWork()).toBe(true);
-    expect(inScreen(fixture.nativeElement).querySelector('[role="treegrid"] [role="row"][aria-expanded="true"]')).not.toBeNull();
+    expect(
+      inScreen(fixture.nativeElement).querySelector('[role="treegrid"] [role="row"][aria-expanded="true"]'),
+    ).not.toBeNull();
 
-    (document.activeElement ?? document.body).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    (document.activeElement ?? document.body).dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+    );
     redraw(fixture);
     expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
     expect(fixture.componentInstance.isViewModalOpen()).toBe(true);
@@ -186,7 +228,9 @@ describe('UsersComponent UI contracts', () => {
     panel.discard.confirm();
     redraw(fixture);
     expect(fixture.componentInstance.viewingUser?.id).toBe(second.id);
-    expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance.userId).toBe(second.id);
+    expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance.userId).toBe(
+      second.id,
+    );
   });
 
   it('rejects record replacement while assignment save is pending and ignores a leave decision after destruction', async () => {
@@ -203,7 +247,8 @@ describe('UsersComponent UI contracts', () => {
 
     fixture.componentInstance.openViewModal(first);
     redraw(fixture);
-    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+      .componentInstance as UserOrgUnitsPanelComponent;
     (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     panel.save();
     fixture.componentInstance.openViewModal(second);
@@ -222,7 +267,7 @@ describe('UsersComponent UI contracts', () => {
 
   it.each(['success', 'error'] as const)(
     'retains the real assignment panel through view revocation and ignores the old %s result',
-    async outcome => {
+    async (outcome) => {
       const fixture = await createFixture();
       const api = TestBed.inject(ApiService) as unknown as {
         get: ReturnType<typeof vi.fn>;
@@ -238,13 +283,16 @@ describe('UsersComponent UI contracts', () => {
 
       fixture.componentInstance.openViewModal(first);
       redraw(fixture);
-      const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+      const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+        .componentInstance as UserOrgUnitsPanelComponent;
       (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
       fixture.componentInstance.openViewModal(second);
       expect(panel.discard.open()).toBe(true);
       panel.discard.cancel();
       panel.save();
-      const readsBeforeRevocation = api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units')).length;
+      const readsBeforeRevocation = api.get.mock.calls.filter(([path]) =>
+        String(path).startsWith('/iam/org-units'),
+      ).length;
 
       permissions.setPermissions(['iam.users.view', 'iam.users.update', 'iam.org_units.assign']);
       redraw(fixture);
@@ -255,7 +303,9 @@ describe('UsersComponent UI contracts', () => {
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.orgPanelBusy()).toBe(true);
       expect(panel.discard.open()).toBe(false);
-      expect(inScreen(fixture.nativeElement).querySelector('app-user-org-units-panel input[data-smt-check]')).toBeNull();
+      expect(
+        inScreen(fixture.nativeElement).querySelector('app-user-org-units-panel input[data-smt-check]'),
+      ).toBeNull();
       expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]')).toHaveLength(1);
       expect(inScreen(fixture.nativeElement).textContent).not.toContain('Компания');
       expect(fixture.componentInstance.canLeaveRecordPage()).toBe(false);
@@ -270,7 +320,9 @@ describe('UsersComponent UI contracts', () => {
       permissions.setPermissions(['*.*']);
       redraw(fixture);
       expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance).toBe(panel);
-      expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(readsBeforeRevocation);
+      expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(
+        readsBeforeRevocation,
+      );
       panel.save();
       expect(api.put).toHaveBeenCalledTimes(1);
 
@@ -292,9 +344,11 @@ describe('UsersComponent UI contracts', () => {
 
       panel.reloadAll();
       redraw(fixture);
-      expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(readsBeforeRevocation + 3);
-      expect(panel.units.map(unit => unit.id)).toEqual([1, 2]);
-    }
+      expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(
+        readsBeforeRevocation + 3,
+      );
+      expect(panel.units.map((unit) => unit.id)).toEqual([1, 2]);
+    },
   );
 
   it('mounts the organization panel for a safe deep-linked user record', async () => {
@@ -306,7 +360,8 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.loadRecordView('7');
     redraw(fixture);
 
-    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+      .componentInstance as UserOrgUnitsPanelComponent;
     expect(fixture.componentInstance.routeRecordId()).toBe('7');
     expect(panel.userId).toBe(7);
   });
@@ -318,7 +373,8 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
     fixture.componentInstance.loadRecordView('7');
     redraw(fixture);
-    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+      .componentInstance as UserOrgUnitsPanelComponent;
     (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
@@ -338,7 +394,8 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockImplementation((path: string) => of(orgResponse(path, first)));
     fixture.componentInstance.loadRecordView('7');
     redraw(fixture);
-    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+    const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+      .componentInstance as UserOrgUnitsPanelComponent;
     (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
     const readsBeforeReload = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
 
@@ -352,7 +409,7 @@ describe('UsersComponent UI contracts', () => {
 
   it.each(['dirty', 'pending'] as const)(
     'does not let a delayed profile save replace a newer %s organization panel after edit cancellation',
-    async panelState => {
+    async (panelState) => {
       const fixture = await createFixture();
       const api = TestBed.inject(ApiService) as unknown as {
         get: ReturnType<typeof vi.fn>;
@@ -372,7 +429,8 @@ describe('UsersComponent UI contracts', () => {
       fixture.componentInstance.submitEditUser();
       fixture.componentInstance.closeEditModal();
       redraw(fixture);
-      const newerPanel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance as UserOrgUnitsPanelComponent;
+      const newerPanel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
+        .componentInstance as UserOrgUnitsPanelComponent;
       (inScreen(fixture.nativeElement).querySelector('[data-smt-check="2"]') as HTMLInputElement).click();
       if (panelState === 'pending') newerPanel.save();
       const readsBeforeProfileSettlement = api.get.mock.calls.filter(([path]) => path === '/iam/users/7').length;
@@ -386,7 +444,7 @@ describe('UsersComponent UI contracts', () => {
       expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeProfileSettlement);
       expect(newerPanel.pending).toBe(panelState === 'pending');
       expect(newerPanel.hasUnsavedWork()).toBe(true);
-    }
+    },
   );
 
   it('keeps the shared submitting state owned by the newest edit save', async () => {
@@ -455,11 +513,19 @@ describe('UsersComponent UI contracts', () => {
       authVersion: 2,
       activeSessionsCount: 1,
       activeSessions: [
-        { id: 101, userId: 15, ip: '127.0.0.1', userAgent: 'Chrome', deviceInfo: 'Desktop', createdAt: '2026-09-09T00:00:00Z', lastSeenAt: '2026-09-09T00:00:00Z' }
+        {
+          id: 101,
+          userId: 15,
+          ip: '127.0.0.1',
+          userAgent: 'Chrome',
+          deviceInfo: 'Desktop',
+          createdAt: '2026-09-09T00:00:00Z',
+          lastSeenAt: '2026-09-09T00:00:00Z',
+        },
       ],
       recentLoginAttempts: [
-        { id: 201, login: 'dmitriy', ip: '127.0.0.1', isSuccess: true, attemptAt: '2026-09-09T00:00:00Z' }
-      ]
+        { id: 201, login: 'dmitriy', ip: '127.0.0.1', isSuccess: true, attemptAt: '2026-09-09T00:00:00Z' },
+      ],
     };
 
     api.get.mockImplementation((path: string) => {
@@ -484,8 +550,11 @@ describe('UsersComponent UI contracts', () => {
     expect(sessionsTable?.getAttribute('aria-label')).toBe('Активные сессии');
     const endButton = root.querySelector('[data-testid="user-sessions-table"] button.smt-button') as HTMLButtonElement;
     expect(endButton?.getAttribute('aria-label')).toBe('Завершить сессию с IP 127.0.0.1');
-    const attemptCells = [...root.querySelectorAll('[data-testid="user-login-attempts-table"] [role="rowgroup"] > [role="row"] [role="cell"]')]
-      .map(cell => cell.textContent?.trim());
+    const attemptCells = [
+      ...root.querySelectorAll(
+        '[data-testid="user-login-attempts-table"] [role="rowgroup"] > [role="row"] [role="cell"]',
+      ),
+    ].map((cell) => cell.textContent?.trim());
     expect(attemptCells.slice(1)).toEqual(['127.0.0.1', 'Успешно', '—']);
   });
 
@@ -500,8 +569,11 @@ describe('UsersComponent UI contracts', () => {
 
     api.get.mockReturnValueOnce(of({ items: [user(2, 'Пользователь 2')], nextCursor: null, hasMore: false }));
     fixture.componentInstance.userPager.next();
-    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: 'cursor_abc', limit: 20 }));
-    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([2]);
+    expect(api.get).toHaveBeenLastCalledWith(
+      '/iam/users',
+      expect.objectContaining({ cursor: 'cursor_abc', limit: 20 }),
+    );
+    expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([2]);
     expect(fixture.componentInstance.userPager.page()).toBe(2);
     expect(fixture.componentInstance.userPager.canGoForward()).toBe(false);
 
@@ -525,22 +597,29 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.selectedState = 'P';
     fixture.componentInstance.loadUsers(true);
 
-    pendingFilter.next({ items: [user(9, 'Заблокированный')], nextCursor: null, hasMore: false }); pendingFilter.complete();
-    pendingNext.next({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }); pendingNext.complete();
+    pendingFilter.next({ items: [user(9, 'Заблокированный')], nextCursor: null, hasMore: false });
+    pendingFilter.complete();
+    pendingNext.next({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false });
+    pendingNext.complete();
 
-    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([9]);
+    expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([9]);
     expect(fixture.componentInstance.userPager.page()).toBe(1);
   });
 
   it('keeps the page on screen after blocking a user, and steps back when its last row is gone', async () => {
     const fixture = await createFixture();
-    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn> };
+    const api = TestBed.inject(ApiService) as unknown as {
+      get: ReturnType<typeof vi.fn>;
+      post: ReturnType<typeof vi.fn>;
+    };
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
     fixture.componentInstance.loadUsers(true);
     api.get.mockReturnValueOnce(of({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }));
     fixture.componentInstance.userPager.next();
 
-    api.get.mockReturnValueOnce(of({ items: [{ ...user(2, 'Второй'), state: 'P' }], nextCursor: null, hasMore: false }));
+    api.get.mockReturnValueOnce(
+      of({ items: [{ ...user(2, 'Второй'), state: 'P' }], nextCursor: null, hasMore: false }),
+    );
     fixture.componentInstance.toggleUserState(user(2, 'Второй'), 'block');
     expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: 'c2' }));
     expect(fixture.componentInstance.userPager.page()).toBe(2);
@@ -550,7 +629,7 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
     fixture.componentInstance.toggleUserState(user(2, 'Второй'), 'block');
     expect(fixture.componentInstance.userPager.page()).toBe(1);
-    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([1]);
+    expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([1]);
   });
 
   it('sorts the whole list on the server and hands the quick filters to the server export', async () => {
@@ -561,7 +640,10 @@ describe('UsersComponent UI contracts', () => {
 
     fixture.componentInstance.onSort({ column: 'createdAt', sortBy: OrderBy.Desc });
 
-    expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ sort: '-createdAt', state: 'A', is_2fa_enabled: true, cursor: undefined }));
+    expect(api.get).toHaveBeenLastCalledWith(
+      '/iam/users',
+      expect.objectContaining({ sort: '-createdAt', state: 'A', is_2fa_enabled: true, cursor: undefined }),
+    );
     const options = fixture.componentInstance.exportOptions();
     expect(options).toEqual({ state: 'A', is_2fa_enabled: 'true' });
     expect(fixture.componentInstance.exportOptions()).toBe(options);
@@ -587,7 +669,7 @@ describe('UsersComponent UI contracts', () => {
       api.get.mockReturnValueOnce(of({ items: [user(4, 'Анна')], nextCursor: null, hasMore: false }));
       vi.advanceTimersByTime(250);
       expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ q: 'ann', cursor: undefined }));
-      expect(fixture.componentInstance.users().map(item => item.id)).toEqual([4]);
+      expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([4]);
     } finally {
       vi.useRealTimers();
     }
@@ -605,10 +687,12 @@ describe('UsersComponent UI contracts', () => {
     api.get.mockReturnValueOnce(late.asObservable());
     fixture.componentInstance.loadUsers(true);
 
-    late.next({ items: [user(3, 'abc')], nextCursor: null, hasMore: false }); late.complete();
-    early.next({ items: [user(4, 'ab')], nextCursor: null, hasMore: false }); early.complete();
+    late.next({ items: [user(3, 'abc')], nextCursor: null, hasMore: false });
+    late.complete();
+    early.next({ items: [user(4, 'ab')], nextCursor: null, hasMore: false });
+    early.complete();
 
-    expect(fixture.componentInstance.users().map(item => item.id)).toEqual([3]);
+    expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([3]);
   });
 
   it('names a manager who is not on the loaded page and offers managers from a server search', async () => {
@@ -616,11 +700,15 @@ describe('UsersComponent UI contracts', () => {
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
     const report = { ...user(5, 'Подчинённый'), managerId: 42 };
 
-    api.get.mockImplementation((path: string) => of(
-      path === '/iam/users' ? { items: [report], nextCursor: null, hasMore: false }
-        : path === '/iam/users/42' ? { ...user(42, 'Дальний руководитель') }
-          : []
-    ));
+    api.get.mockImplementation((path: string) =>
+      of(
+        path === '/iam/users'
+          ? { items: [report], nextCursor: null, hasMore: false }
+          : path === '/iam/users/42'
+            ? { ...user(42, 'Дальний руководитель') }
+            : [],
+      ),
+    );
     fixture.componentInstance.loadUsers(true);
     redraw(fixture);
 
@@ -629,7 +717,9 @@ describe('UsersComponent UI contracts', () => {
 
     fixture.componentInstance.openEditModal(report);
     redraw(fixture);
-    const picker = inScreen(fixture.nativeElement).querySelector('[role="dialog"] smt-select button[aria-haspopup="listbox"]') as HTMLButtonElement;
+    const picker = inScreen(fixture.nativeElement).querySelector(
+      '[role="dialog"] smt-select button[aria-haspopup="listbox"]',
+    ) as HTMLButtonElement;
     expect(picker.textContent).toContain('Дальний руководитель');
     expect(inScreen(fixture.nativeElement).querySelector('#user-edit-manager')).toBeNull();
   });
@@ -655,8 +745,8 @@ describe('UsersComponent UI contracts', () => {
     const writeTextSpy = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {
       clipboard: {
-        writeText: writeTextSpy
-      }
+        writeText: writeTextSpy,
+      },
     });
 
     fixture.componentInstance.createForm.password = 'ComplexPass123!';
@@ -713,7 +803,7 @@ describe('UsersComponent UI contracts', () => {
 
     yes.click();
     expect(api.delete).toHaveBeenCalledWith('/iam/users/42/sessions', { notifyError: false });
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
 
     confirmSpy.mockRestore();
   });
@@ -742,18 +832,49 @@ describe('UsersComponent UI contracts', () => {
 
   function user(id: number, name: string): User {
     return {
-      id, name, login: name.toLowerCase(), email: `${name.toLowerCase()}@example.test`, state: 'A',
-      language: 'ru', timezone: 'Asia/Tashkent', attributes: {}, roleIds: [], is2faEnabled: false,
-      forcePasswordChange: false, createdAt: '2026-08-30T00:00:00Z', modifiedAt: '2026-08-30T00:00:00Z'
+      id,
+      name,
+      login: name.toLowerCase(),
+      email: `${name.toLowerCase()}@example.test`,
+      state: 'A',
+      language: 'ru',
+      timezone: 'Asia/Tashkent',
+      attributes: {},
+      roleIds: [],
+      is2faEnabled: false,
+      forcePasswordChange: false,
+      createdAt: '2026-08-30T00:00:00Z',
+      modifiedAt: '2026-08-30T00:00:00Z',
     };
   }
 
   function orgResponse(path: string, selected: User): unknown {
     if (path === `/iam/users/${selected.id}`) return selected;
-    if (path === '/iam/org-units') return [
-      { id: 1, parentId: null, code: 'ROOT', name: 'Компания', kind: 'company', state: 'A', orderNo: 0, createdAt: '', modifiedAt: '' },
-      { id: 2, parentId: 1, code: 'OPS', name: 'Операции', kind: 'department', state: 'A', orderNo: 0, createdAt: '', modifiedAt: '' }
-    ];
+    if (path === '/iam/org-units')
+      return [
+        {
+          id: 1,
+          parentId: null,
+          code: 'ROOT',
+          name: 'Компания',
+          kind: 'company',
+          state: 'A',
+          orderNo: 0,
+          createdAt: '',
+          modifiedAt: '',
+        },
+        {
+          id: 2,
+          parentId: 1,
+          code: 'OPS',
+          name: 'Операции',
+          kind: 'department',
+          state: 'A',
+          orderNo: 0,
+          createdAt: '',
+          modifiedAt: '',
+        },
+      ];
     const assignments = path.match(/^\/iam\/org-units\/users\/(\d+)$/);
     if (assignments) return { userId: Number(assignments[1]), orgUnitIds: [], legacyOrgUnitId: null };
     if (/^\/iam\/org-units\/users\/\d+\/scope$/.test(path)) return { rule: 'ALL', visibleOrgUnitIds: [] };

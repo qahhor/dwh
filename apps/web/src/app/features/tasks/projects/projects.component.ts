@@ -14,7 +14,14 @@ import { Project, ProjectTaskStats } from '../../../core/models/task.models';
 import { CustomField } from '../../../core/models/custom-field.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { ProjectCreateForm, ProjectEditForm, ProjectViewState, ProjectStateFilter, ProjectMember, ProjectListItem } from './projects.models';
+import {
+  ProjectCreateForm,
+  ProjectEditForm,
+  ProjectViewState,
+  ProjectStateFilter,
+  ProjectMember,
+  ProjectListItem,
+} from './projects.models';
 import { ProjectFilterBarComponent } from './components/project-filter-bar.component';
 import { ProjectTableViewComponent } from './components/project-table-view.component';
 import { ProjectCardsViewComponent } from './components/project-cards-view.component';
@@ -30,13 +37,18 @@ import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-col
 import { sortFromHeader } from '../../../shared/ui/registry-table-config';
 import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import {
+  optionsMemo,
+  SMTRadioGroupComponent,
+  SMTRadioOption,
+} from '../../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-projects',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, CommonModule,
+    SMTRadioGroupComponent,
+    CommonModule,
     FormsModule,
     RouterModule,
     TranslatePipe,
@@ -46,11 +58,11 @@ import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../../sh
     ProjectTableViewComponent,
     ProjectCardsViewComponent,
     ProjectModalsComponent,
-    ProjectMembersModalComponent
+    ProjectMembersModalComponent,
   ],
   providers: [ProjectFormsService],
   templateUrl: './projects.component.html',
-  styleUrl: './projects.component.css'
+  styleUrl: './projects.component.css',
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   readonly forms = inject(ProjectFormsService);
@@ -92,7 +104,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         projectId: project.id,
         totalTasks: project.totalTasks,
         doneTasks: project.doneTasks,
-        activeTasks: project.totalTasks - project.doneTasks
+        activeTasks: project.totalTasks - project.doneTasks,
       } as ProjectTaskStats;
     }
     return stats;
@@ -110,19 +122,29 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       return meta ? parseSort(meta.defaultSort) : null;
     },
     onApply: () => this.pager.first(),
-    columnsStore: inject(TableColumnStateStore)
+    columnsStore: inject(TableColumnStateStore),
   });
 
   /* A page at a time from the server, which sorts the whole list (by progress too) and counts each
      project's tasks over the ones the viewer may see. The pager cancels a superseded request. */
   readonly pager = new KeysetPager<ProjectListItem>(
-    (cursor, limit) => this.api.get<KeysetPage<ProjectListItem>>('/tasks/projects/page', {
-      limit,
-      cursor: cursor ?? undefined,
-      ...this.flatFilters(),
-      ...toQueryParams({ sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery })
-    }, { notifyError: false }),
-    { pageSize: 10, destroyRef: this.destroyRef, onLoaded: () => this.listLoaded.set(true) }
+    (cursor, limit) =>
+      this.api.get<KeysetPage<ProjectListItem>>(
+        '/tasks/projects/page',
+        {
+          limit,
+          cursor: cursor ?? undefined,
+          ...this.flatFilters(),
+          ...toQueryParams({
+            sort: this.views.sort(),
+            conditions: this.views.filter(),
+            match: this.views.match(),
+            search: this.searchQuery,
+          }),
+        },
+        { notifyError: false },
+      ),
+    { pageSize: 10, destroyRef: this.destroyRef, onLoaded: () => this.listLoaded.set(true) },
   );
   readonly projects = this.pager.items;
   readonly isLoading = this.pager.loading;
@@ -153,23 +175,43 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   constructor(
     public permService: PermissionService,
     private api: ApiService,
-    private router: Router
+    private router: Router,
   ) {}
 
-  get createForm(): ProjectCreateForm { return this.forms.createForm; }
-  set createForm(val: ProjectCreateForm) { this.forms.createForm = val; }
+  get createForm(): ProjectCreateForm {
+    return this.forms.createForm;
+  }
+  set createForm(val: ProjectCreateForm) {
+    this.forms.createForm = val;
+  }
 
-  get editForm(): ProjectEditForm { return this.forms.editForm; }
-  set editForm(val: ProjectEditForm) { this.forms.editForm = val; }
+  get editForm(): ProjectEditForm {
+    return this.forms.editForm;
+  }
+  set editForm(val: ProjectEditForm) {
+    this.forms.editForm = val;
+  }
 
-  get isCreateSubmitted(): boolean { return this.forms.isCreateSubmitted; }
-  set isCreateSubmitted(val: boolean) { this.forms.isCreateSubmitted = val; }
+  get isCreateSubmitted(): boolean {
+    return this.forms.isCreateSubmitted;
+  }
+  set isCreateSubmitted(val: boolean) {
+    this.forms.isCreateSubmitted = val;
+  }
 
-  get isEditSubmitted(): boolean { return this.forms.isEditSubmitted; }
-  set isEditSubmitted(val: boolean) { this.forms.isEditSubmitted = val; }
+  get isEditSubmitted(): boolean {
+    return this.forms.isEditSubmitted;
+  }
+  set isEditSubmitted(val: boolean) {
+    this.forms.isEditSubmitted = val;
+  }
 
-  get editingProject(): Project | null { return this.forms.editingProject; }
-  set editingProject(val: Project | null) { this.forms.editingProject = val; }
+  get editingProject(): Project | null {
+    return this.forms.editingProject;
+  }
+  set editingProject(val: Project | null) {
+    this.forms.editingProject = val;
+  }
 
   ngOnInit() {
     this.forms.onProjectCreated = () => {
@@ -180,7 +222,9 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.forms.onProjectUpdated = () => this.loadProjects();
     this.loadProjects();
     this.loadProjectCustomFields();
-    this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe(params => this.loadRecordView(params.get('id')));
+    this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe((params) =>
+      this.loadRecordView(params.get('id')),
+    );
   }
 
   ngOnDestroy() {
@@ -204,19 +248,41 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     return this.permService.canView('tasks.items');
   }
 
-  openCreateModal() { this.forms.openCreateModal(); }
-  requestCloseCreate() { this.forms.requestCloseCreate(); }
-  confirmDiscardCreate() { this.forms.confirmDiscardCreate(); }
-  submitCreateProject() { this.forms.submitCreateProject(); }
+  openCreateModal() {
+    this.forms.openCreateModal();
+  }
+  requestCloseCreate() {
+    this.forms.requestCloseCreate();
+  }
+  confirmDiscardCreate() {
+    this.forms.confirmDiscardCreate();
+  }
+  submitCreateProject() {
+    this.forms.submitCreateProject();
+  }
 
-  openEditModal(p: Project) { this.forms.openEditModal(p); }
-  retryEditLoad() { this.forms.retryEditLoad(); }
-  requestCloseEdit() { this.forms.requestCloseEdit(); }
-  confirmDiscardEdit() { this.forms.confirmDiscardEdit(); }
-  submitEditProject() { this.forms.submitEditProject(); }
+  openEditModal(p: Project) {
+    this.forms.openEditModal(p);
+  }
+  retryEditLoad() {
+    this.forms.retryEditLoad();
+  }
+  requestCloseEdit() {
+    this.forms.requestCloseEdit();
+  }
+  confirmDiscardEdit() {
+    this.forms.confirmDiscardEdit();
+  }
+  submitEditProject() {
+    this.forms.submitEditProject();
+  }
 
-  cancelNavigationDiscard(kind: 'create' | 'edit') { this.forms.cancelNavigationDiscard(kind); }
-  canLeaveRecordPage(): boolean | Observable<boolean> | Promise<boolean> { return this.forms.canLeaveRecordPage(); }
+  cancelNavigationDiscard(kind: 'create' | 'edit') {
+    this.forms.cancelNavigationDiscard(kind);
+  }
+  canLeaveRecordPage(): boolean | Observable<boolean> | Promise<boolean> {
+    return this.forms.canLeaveRecordPage();
+  }
 
   /** The first page for the current filters; the list's metadata comes first, once. */
   loadProjects() {
@@ -224,13 +290,16 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     clearTimeout(this.searchTimer);
     if (!this.meta()) {
       this.metaError.set(false);
-      this.queryMeta.get('ms.projects').pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-        next: meta => {
-          this.meta.set(meta);
-          this.views.load().subscribe(() => this.pager.first());
-        },
-        error: () => this.metaError.set(true)
-      });
+      this.queryMeta
+        .get('ms.projects')
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (meta) => {
+            this.meta.set(meta);
+            this.views.load().subscribe(() => this.pager.first());
+          },
+          error: () => this.metaError.set(true),
+        });
       return;
     }
     this.pager.first();
@@ -292,25 +361,30 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     this.recordNotFound.set(false);
     if (id === null) return;
     if (!canonicalRecordId(id)) {
-      this.recordError.set(true); this.recordNotFound.set(true); return;
+      this.recordError.set(true);
+      this.recordNotFound.set(true);
+      return;
     }
     this.recordLoading.set(true);
     this.recordRequest = this.api.get<Project>(`/tasks/projects/${id}`, undefined, { notifyError: false }).subscribe({
-      next: project => {
+      next: (project) => {
         if (this.destroyed || requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
         if (recordResponseMatches(project?.id, id)) this.viewingProject.set(project);
         else this.recordError.set(true);
       },
-      error: error => {
+      error: (error) => {
         if (this.destroyed || requestId !== this.recordRequestId) return;
-        this.recordLoading.set(false); this.recordError.set(true);
+        this.recordLoading.set(false);
+        this.recordError.set(true);
         this.recordNotFound.set(error?.status === 404 || error?.status === 403);
-      }
+      },
     });
   }
 
-  closeRecordView() { this.router.navigate(['/tasks/projects'], { queryParamsHandling: 'preserve' }); }
+  closeRecordView() {
+    this.router.navigate(['/tasks/projects'], { queryParamsHandling: 'preserve' });
+  }
 
   openMembersModal(project: Project): void {
     this.selectedProjectForMembers.set(project);
@@ -332,68 +406,81 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       error: () => {
         this.isLoadingMembers.set(false);
         this.toast.error(this.uiI18n.translate('projects.oshibka_zagruzki_uchastnikov'));
-      }
+      },
     });
   }
 
   onAddProjectMember(event: { projectId: number; userId: number; accessKind: string }): void {
     this.isAddingMember.set(true);
-    this.api.post<void>(`/tasks/projects/${event.projectId}/members`, {
-      userId: event.userId,
-      accessKind: event.accessKind
-    }).subscribe({
-      next: () => {
-        this.isAddingMember.set(false);
-        this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
-        this.loadProjectMembers(event.projectId);
-      },
-      error: (err: any) => {
-        this.isAddingMember.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
-      }
-    });
+    this.api
+      .post<void>(`/tasks/projects/${event.projectId}/members`, {
+        userId: event.userId,
+        accessKind: event.accessKind,
+      })
+      .subscribe({
+        next: () => {
+          this.isAddingMember.set(false);
+          this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
+          this.loadProjectMembers(event.projectId);
+        },
+        error: (err: any) => {
+          this.isAddingMember.set(false);
+          this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
+        },
+      });
   }
 
   /** Asks before removing a member; the dialog stays open until the server answers. */
   onRemoveProjectMember(event: { projectId: number; userId: number; userName: string }): void {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
-    this.modal.confirm({
-      title: t('projects.udalit_iz_proekta'),
-      message: t('projects.vy_uvereny_chto_hotite_udalit_uchastnika', { name: event.userName }),
-      yesLabel: t('projects.udalit_iz_proekta'),
-      noLabel: t('common.cancel'),
-      destructive: true,
-      action: () => {
-        this.removingMemberId.set(event.userId);
-        return this.api.delete(`/tasks/projects/${event.projectId}/members/${event.userId}`, { notifyError: false }).pipe(
-          tap(() => {
-            this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
-            this.loadProjectMembers(event.projectId);
-          }),
-          finalize(() => this.removingMemberId.set(null))
-        );
-      },
-      actionError: error => problemText(error) || t('projects.oshibka_udaleniya_uchastnika')
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: t('projects.udalit_iz_proekta'),
+        message: t('projects.vy_uvereny_chto_hotite_udalit_uchastnika', { name: event.userName }),
+        yesLabel: t('projects.udalit_iz_proekta'),
+        noLabel: t('common.cancel'),
+        destructive: true,
+        action: () => {
+          this.removingMemberId.set(event.userId);
+          return this.api
+            .delete(`/tasks/projects/${event.projectId}/members/${event.userId}`, { notifyError: false })
+            .pipe(
+              tap(() => {
+                this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
+                this.loadProjectMembers(event.projectId);
+              }),
+              finalize(() => this.removingMemberId.set(null)),
+            );
+        },
+        actionError: (error) => problemText(error) || t('projects.oshibka_udaleniya_uchastnika'),
+      })
+      .subscribe();
   }
 
   loadProjectCustomFields() {
     this.api.get<CustomField[]>('/custom-fields', { entity_type: 'PROJECT' }).subscribe({
-      next: res => {
+      next: (res) => {
         if (Array.isArray(res)) {
-          const validFields = res.filter(f => f && typeof f === 'object' && typeof f.code === 'string' && typeof f.fieldType === 'string');
+          const validFields = res.filter(
+            (f) => f && typeof f === 'object' && typeof f.code === 'string' && typeof f.fieldType === 'string',
+          );
           this.projectCustomFields.set(validFields);
         } else {
           this.projectCustomFields.set([]);
         }
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   viewOptions(): SMTRadioOption<ProjectViewState>[] {
     return this.viewMemo([this.optionText.currentLang()], () => [
-      { value: 'list', label: this.optionText.translate('projects.spisok'), icon: 'table_rows', title: this.optionText.translate('projects.spisok_tablica') },
+      {
+        value: 'list',
+        label: this.optionText.translate('projects.spisok'),
+        icon: 'table_rows',
+        title: this.optionText.translate('projects.spisok_tablica'),
+      },
       { value: 'cards', label: this.optionText.translate('projects.kartochki'), icon: 'grid_view' },
     ]);
   }
@@ -401,5 +488,4 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   private flatFilters() {
     return { state: this.selectedState === 'all' ? undefined : this.selectedState };
   }
-
 }

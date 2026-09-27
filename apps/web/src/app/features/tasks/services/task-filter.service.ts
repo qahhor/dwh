@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class TaskFilterService {
   private readonly authService = inject(AuthService, { optional: true });
@@ -19,7 +19,13 @@ export class TaskFilterService {
   taskSearchTimer?: ReturnType<typeof setTimeout>;
 
   hasActiveFilters(): boolean {
-    return !!this.searchQuery || !!this.selectedPriority || this.selectedProjectId !== null || this.statusFilterMode !== 'active' || this.activePreset !== 'all';
+    return (
+      !!this.searchQuery ||
+      !!this.selectedPriority ||
+      this.selectedProjectId !== null ||
+      this.statusFilterMode !== 'active' ||
+      this.activePreset !== 'all'
+    );
   }
 
   clearSearch(onReload: () => void): void {
@@ -102,7 +108,7 @@ export class TaskFilterService {
       assigned_user_id: assignedUserIdParam,
       member_role: memberRoleParam,
       reporter_id: reporterIdParam,
-      overdue: overdueParam
+      overdue: overdueParam,
     };
   }
 

@@ -7,7 +7,8 @@
     [attr.tabindex]="scrollsSideways() ? 0 : null"
     [attr.role]="scrollsSideways() ? 'region' : null"
     [attr.aria-label]="scrollsSideways() ? config().ariaLabel || null : null"
-    [style.max-height]="maxHeight()">
+    [style.max-height]="maxHeight()"
+  >
     <div
       #tableSurface
       [class]="tableSurfaceClass() + ' min-h-full bg-white'"
@@ -17,7 +18,8 @@
       [class.flex]="isEmptyData()"
       [class.flex-col]="isEmptyData()"
       [style.width.px]="biruniGridLayout() ? biruniGridWidthPx() : null"
-      [style.min-width.px]="biruniGridLayout() ? biruniGridWidthPx() : null">
+      [style.min-width.px]="biruniGridLayout() ? biruniGridWidthPx() : null"
+    >
       <div
         #tableRef
         [class]="tableRefClass()"
@@ -25,13 +27,15 @@
         [attr.aria-label]="config().ariaLabel || null"
         [attr.aria-rowcount]="ariaRowCount()"
         [attr.aria-multiselectable]="tableRole() === 'treegrid' && config().ariaMultiselectable ? 'true' : null"
-        [attr.aria-busy]="isLoading() || null">
+        [attr.aria-busy]="isLoading() || null"
+      >
         @if (!config().hideHeader) {
           <div
             class="smt-grid-header smt-grid-line sticky top-0 z-10 w-full bg-gray-50 border-b border-gray-200"
             role="row"
             aria-rowindex="1"
-            [style.grid-template-columns]="gridTemplateColumns()">
+            [style.grid-template-columns]="gridTemplateColumns()"
+          >
             @if (showCheckboxInDedicatedColumn()) {
               <div class="smt-grid-checkbox-cell text-start p-0 relative overflow-hidden" role="columnheader">
                 <smt-cell-header
@@ -39,7 +43,8 @@
                   [smtSelectedType]="selectionType()"
                   [smtHasSelection]="true"
                   [smtData]="checkboxHeaderContent"
-                  [smtHasSorting]="false" />
+                  [smtHasSorting]="false"
+                />
               </div>
             }
             @if (virtualLeftSpacerPx() > 0) {
@@ -59,7 +64,8 @@
                 [smtColumnResizePreventOverflow]="!biruniGridLayout()"
                 [smtColumnResizeLive]="true"
                 (resizeChange)="onColumnResizePreview(col.key, $event)"
-                (resizeEnd)="onColumnResizeEnd(col.key, $event)">
+                (resizeEnd)="onColumnResizeEnd(col.key, $event)"
+              >
                 <smt-cell-header
                   (smtCheckboxClick)="onHeaderCheckboxToggle($event)"
                   [smtSelectedType]="selectionType()"
@@ -68,7 +74,8 @@
                   [smtData]="col.header"
                   [smtHasSorting]="col.hasSorting"
                   [smtSort]="col.sortedBy"
-                  (smtSortChange)="onSortingChange(col.sortKey, $event, col.key)"></smt-cell-header>
+                  (smtSortChange)="onSortingChange(col.sortKey, $event, col.key)"
+                ></smt-cell-header>
               </div>
             }
             @if (virtualRightSpacerPx() > 0) {
@@ -87,11 +94,16 @@
             [cdkDropListDisabled]="!canUseRowDnd()"
             (cdkDropListDropped)="onRowDrop($event)"
             class="smt-grid-body"
-            role="rowgroup">
+            role="rowgroup"
+          >
             @if (virtualTopSpacerPx() > 0) {
               <div class="smt-virtual-spacer" aria-hidden="true" [style.height.px]="virtualTopSpacerPx()"></div>
             }
-            @for (row of virtualRows(); track trackByRow($index + virtualRange().start, row); let windowIndex = $index) {
+            @for (
+              row of virtualRows();
+              track trackByRow($index + virtualRange().start, row);
+              let windowIndex = $index
+            ) {
               @let aria = rowAria(row);
               @if (canUseRowDnd()) {
                 <div
@@ -118,7 +130,8 @@
                   (click)="emitRowClick(row, $event)"
                   (dblclick)="emitRowDblClick(row)"
                   [style.height]="config().rowHeight"
-                  [style.grid-template-columns]="gridTemplateColumns()">
+                  [style.grid-template-columns]="gridTemplateColumns()"
+                >
                   <ng-container *ngTemplateOutlet="rowCells; context: { $implicit: row }" />
                 </div>
               } @else {
@@ -141,7 +154,8 @@
                   (click)="emitRowClick(row, $event)"
                   (dblclick)="emitRowDblClick(row)"
                   [style.height]="config().rowHeight"
-                  [style.grid-template-columns]="gridTemplateColumns()">
+                  [style.grid-template-columns]="gridTemplateColumns()"
+                >
                   <ng-container *ngTemplateOutlet="rowCells; context: { $implicit: row }" />
                 </div>
               }
@@ -153,16 +167,19 @@
                   [class.smt-closing]="detailClosing()"
                   [style.height.px]="detailCloseHeightPx()"
                   (animationend)="onDetailAnimationEnd(row, $event)"
-                  (transitionend)="onDetailCloseTransitionEnd(row, $event)">
+                  (transitionend)="onDetailCloseTransitionEnd(row, $event)"
+                >
                   <div class="smt-detail-content overflow-hidden" [attr.role]="cellRole()">
                     <div
                       class="smt-detail-inner pb-2 pe-3"
                       [class.ps-12]="config().hasMultipleSelection"
                       [class.ps-3]="!config().hasMultipleSelection"
-                      (click)="$event.stopPropagation()">
+                      (click)="$event.stopPropagation()"
+                    >
                       @if (showDetailContent()) {
                         <ng-container
-                          *ngTemplateOutlet="detailRowTemplate()!; context: { $implicit: row }"></ng-container>
+                          *ngTemplateOutlet="detailRowTemplate()!; context: { $implicit: row }"
+                        ></ng-container>
                       }
                     </div>
                   </div>
@@ -198,7 +215,8 @@
       <button
         type="button"
         class="pointer-events-auto opacity-50 transition-all flex items-center justify-center rounded-t bg-gray-300 w-25 h-6 text-white hover:opacity-100 hover:text-gray-500"
-        (click)="scrollContainerToTop(scrollContainer)">
+        (click)="scrollContainerToTop(scrollContainer)"
+      >
         <smt-icon key="chevron-up" [fontSize]="20" />
       </button>
     </div>
@@ -209,7 +227,8 @@
       <div
         class="pointer-events-auto opacity-50 flex h-15 w-7 cursor-pointer items-center justify-center pe-2 rounded-r-full text-white bg-gray-300 transition-all hover:bg-gray-300 hover:opacity-100 hover:text-gray-500"
         (mouseenter)="startHorizontalAutoScroll('left')"
-        (mouseleave)="stopHorizontalAutoScroll()">
+        (mouseleave)="stopHorizontalAutoScroll()"
+      >
         <smt-icon key="left-arrow" [fontSize]="13" />
       </div>
     </div>
@@ -220,7 +239,8 @@
       <div
         class="pointer-events-auto opacity-50 flex h-15 w-7 cursor-pointer items-center justify-center ps-2 rounded-l-full bg-gray-300 text-white transition-all hover:bg-gray-300 hover:opacity-100"
         (mouseenter)="startHorizontalAutoScroll('right')"
-        (mouseleave)="stopHorizontalAutoScroll()">
+        (mouseleave)="stopHorizontalAutoScroll()"
+      >
         <smt-icon key="right-arrow" [fontSize]="13" />
       </div>
     </div>
@@ -232,7 +252,8 @@
     <div
       class="smt-grid-checkbox-cell text-start p-0 overflow-hidden"
       [attr.role]="cellRole()"
-      (click)="$event.stopPropagation()">
+      (click)="$event.stopPropagation()"
+    >
       <div class="flex h-full w-full items-center justify-center">
         @if (isLoading()) {
           <ng-container *smtSkeleton="true; width: '16px'; height: '16px'; radius: '4px'">
@@ -241,7 +262,8 @@
               [smtRow]="row"
               [smtHasSelection]="true"
               [smtIsSelected]="selectedSet().has(row)"
-              (smtIsSelectedChange)="toggleSelection(row)" />
+              (smtIsSelectedChange)="toggleSelection(row)"
+            />
           </ng-container>
         } @else {
           <smt-cell-content
@@ -249,7 +271,8 @@
             [smtRow]="row"
             [smtHasSelection]="true"
             [smtIsSelected]="selectedSet().has(row)"
-            (smtIsSelectedChange)="toggleSelection(row)" />
+            (smtIsSelectedChange)="toggleSelection(row)"
+          />
         }
       </div>
     </div>
@@ -262,13 +285,15 @@
       <div
         class="flex min-h-9 min-w-0 items-center gap-3 h-full px-4 py-1"
         [class.justify-center]="col.align === 'center'"
-        [class.justify-end]="col.align === 'right'">
+        [class.justify-end]="col.align === 'right'"
+      >
         @if (col.index === 0 && canUseRowDnd() && row !== 2) {
           <smt-icon
             key="menu-01"
             [fontSize]="16"
             class="shrink-0 text-gray-400 cursor-grab active:cursor-grabbing"
-            aria-hidden="true" />
+            aria-hidden="true"
+          />
         }
         @if (isLoading()) {
           <div *smtSkeleton="true; width: '80%'; height: '1rem'; radius: '0.25rem'" class="w-full min-w-0">
@@ -298,13 +323,15 @@
       [smtAlign]="col.align"
       [smtHasSelection]="col.hasInlineSelection"
       [smtIsSelected]="selectedSet().has(row)"
-      (smtIsSelectedChange)="toggleSelection(row)" />
+      (smtIsSelectedChange)="toggleSelection(row)"
+    />
   } @else if (col.content.type === 'html') {
     <span
       class="block min-w-0 [overflow-wrap:anywhere] whitespace-normal text-md text-gray-700"
       [class.text-end]="col.align === 'right'"
       [class.text-center]="col.align === 'center'"
-      [innerHTML]="col.content.value(row)"></span>
+      [innerHTML]="col.content.value(row)"
+    ></span>
   } @else {
     <span
       class="block min-w-0 [overflow-wrap:anywhere] whitespace-normal text-md text-gray-700"

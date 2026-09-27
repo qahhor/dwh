@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { Role } from '../../../../core/models/rbac.models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class UserFilterService {
   readonly isFilterMenuOpen = signal<boolean>(false);
@@ -33,7 +33,12 @@ export class UserFilterService {
   }
 
   hasAnyActiveFilters(): boolean {
-    return !!(this.selectedRoleId !== null || this.selected2fa !== null || this.selectedState || this.searchQuery.trim());
+    return !!(
+      this.selectedRoleId !== null ||
+      this.selected2fa !== null ||
+      this.selectedState ||
+      this.searchQuery.trim()
+    );
   }
 
   resetAllFilters(onResetNav: () => void, onReload: () => void): void {
@@ -47,7 +52,7 @@ export class UserFilterService {
 
   toggleFilterMenu(event: MouseEvent): void {
     event.stopPropagation();
-    this.isFilterMenuOpen.update(v => !v);
+    this.isFilterMenuOpen.update((v) => !v);
   }
 
   setStateFilter(state: string, onReload: () => void): void {
@@ -57,7 +62,7 @@ export class UserFilterService {
 
   getSelectedRoleName(roles: Role[]): string {
     if (!this.selectedRoleId) return '';
-    const role = roles.find(r => r.id === this.selectedRoleId);
+    const role = roles.find((r) => r.id === this.selectedRoleId);
     return role ? role.name : String(this.selectedRoleId);
   }
 

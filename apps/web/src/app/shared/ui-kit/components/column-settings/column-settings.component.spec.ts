@@ -23,13 +23,20 @@ describe('SMTColumnSettingsComponent', () => {
     fixture.componentRef.setInput('smtColumns', COLUMNS);
     fixture.componentRef.setInput('smtState', state);
     const changes: TableColumnState[] = [];
-    fixture.componentInstance.state.subscribe(next => changes.push(next));
+    fixture.componentInstance.state.subscribe((next) => changes.push(next));
     fixture.detectChanges();
     const trigger = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
     const panel = () => document.querySelector('[role="dialog"]') as HTMLElement | null;
-    const refresh = () => { tickInZone(); fixture.detectChanges(); };
-    const openPanel = () => { trigger.click(); refresh(); };
-    const labels = () => [...panel()!.querySelectorAll('.smt-columns__label')].map(label => label.firstChild?.textContent?.trim());
+    const refresh = () => {
+      tickInZone();
+      fixture.detectChanges();
+    };
+    const openPanel = () => {
+      trigger.click();
+      refresh();
+    };
+    const labels = () =>
+      [...panel()!.querySelectorAll('.smt-columns__label')].map((label) => label.firstChild?.textContent?.trim());
     return { fixture, trigger, panel, openPanel, refresh, labels, changes };
   }
 
@@ -46,8 +53,10 @@ describe('SMTColumnSettingsComponent', () => {
     const titleId = panel()!.getAttribute('aria-labelledby')!;
     expect(document.getElementById(titleId)!.textContent).toContain('Table columns');
     const checks = [...panel()!.querySelectorAll('input[type="checkbox"]')] as HTMLInputElement[];
-    expect(checks.map(check => document.querySelector(`label[for="${check.id}"]`)?.textContent)).toEqual([
-      expect.stringContaining('Code'), expect.stringContaining('Name'), expect.stringContaining('Period'),
+    expect(checks.map((check) => document.querySelector(`label[for="${check.id}"]`)?.textContent)).toEqual([
+      expect.stringContaining('Code'),
+      expect.stringContaining('Name'),
+      expect.stringContaining('Period'),
     ]);
     expect(checks[0].disabled).toBe(true);
     expect(panel()!.textContent).toContain('always shown');
@@ -55,7 +64,10 @@ describe('SMTColumnSettingsComponent', () => {
 
   it('hides a column but never the last visible one', () => {
     const { panel, openPanel, refresh, changes, fixture } = render({ order: [], hidden: ['name'], widths: {} });
-    fixture.componentRef.setInput('smtColumns', COLUMNS.map(column => ({ ...column, locked: false })));
+    fixture.componentRef.setInput(
+      'smtColumns',
+      COLUMNS.map((column) => ({ ...column, locked: false })),
+    );
     openPanel();
 
     const period = panel()!.querySelectorAll('input[type="checkbox"]')[2] as HTMLInputElement;
@@ -89,7 +101,11 @@ describe('SMTColumnSettingsComponent', () => {
   });
 
   it('resets to the table defaults and closes on Escape with focus back on the button', () => {
-    const { panel, openPanel, refresh, changes, trigger } = render({ order: ['period'], hidden: ['name'], widths: { code: '90px' } });
+    const { panel, openPanel, refresh, changes, trigger } = render({
+      order: ['period'],
+      hidden: ['name'],
+      widths: { code: '90px' },
+    });
     openPanel();
 
     (panel()!.querySelector('.smt-columns__reset') as HTMLButtonElement).click();

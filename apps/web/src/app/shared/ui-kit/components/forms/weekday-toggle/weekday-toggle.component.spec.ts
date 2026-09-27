@@ -45,7 +45,15 @@ describe('SMTWeekdayToggleComponent', () => {
     expect(days).toHaveLength(7);
     expect(days[0].getAttribute('aria-label')!.toLowerCase()).toContain('monday');
     expect(days[6].getAttribute('aria-label')!.toLowerCase()).toContain('sunday');
-    expect(days.map(day => day.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false', 'true', 'false', 'false']);
+    expect(days.map((day) => day.getAttribute('aria-pressed'))).toEqual([
+      'true',
+      'false',
+      'false',
+      'false',
+      'true',
+      'false',
+      'false',
+    ]);
   });
 
   it('toggles days and gives ngModel the chosen ISO days in week order', async () => {

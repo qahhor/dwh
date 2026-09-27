@@ -50,7 +50,8 @@ export type SMTTagTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger
         class="smt-tag__remove"
         [disabled]="disabled()"
         [attr.aria-label]="i18n.messages().tag.remove(label())"
-        (click)="remove.emit()">
+        (click)="remove.emit()"
+      >
         <span class="material-symbols-outlined" aria-hidden="true">close</span>
       </button>
     }
@@ -96,7 +97,8 @@ let nextTagGroupId = 0;
       [id]="customId() || groupId"
       [attr.aria-label]="ariaLabel() || null"
       [attr.aria-disabled]="isDisabled() ? 'true' : null"
-      (focusout)="onFocusOut($event)">
+      (focusout)="onFocusOut($event)"
+    >
       @for (option of options(); track $index) {
         <button
           type="button"
@@ -105,7 +107,8 @@ let nextTagGroupId = 0;
           [attr.aria-pressed]="isChosen(option.value) ? 'true' : 'false'"
           [disabled]="isDisabled() || !!option.disabled"
           [attr.title]="option.note || null"
-          (click)="toggle(option.value)">
+          (click)="toggle(option.value)"
+        >
           @if (isChosen(option.value)) {
             <span class="material-symbols-outlined smt-tag__check" aria-hidden="true">check</span>
           }
@@ -163,7 +166,11 @@ export class SMTTagGroupComponent<K> implements FormValueControl<readonly K[]> {
     const next = new Set(this.chosen());
     if (next.has(key)) next.delete(key);
     else next.add(key);
-    this.value.set(this.options().map(option => option.value).filter(value => next.has(value)));
+    this.value.set(
+      this.options()
+        .map((option) => option.value)
+        .filter((value) => next.has(value)),
+    );
   }
 
   onFocusOut(event: FocusEvent): void {

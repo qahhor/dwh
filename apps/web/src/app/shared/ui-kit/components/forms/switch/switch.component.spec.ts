@@ -13,7 +13,11 @@ import { SMTSwitchComponent } from './switch.component';
 @Component({
   standalone: true,
   imports: [SMTSwitchComponent, FormField],
-  template: `<smt-switch [formField]="settings.enabled" smtLabel="Send reminders" (smtUserChange)="flips.push($event)" />`,
+  template: `<smt-switch
+    [formField]="settings.enabled"
+    smtLabel="Send reminders"
+    (smtUserChange)="flips.push($event)"
+  />`,
 })
 class FormHost {
   readonly model = signal({ enabled: false });

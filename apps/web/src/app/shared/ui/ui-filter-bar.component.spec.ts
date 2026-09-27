@@ -15,28 +15,51 @@ const META: QueryListMeta = {
   maxConditions: 20,
   maxInValues: 100,
   fields: [
-    { key: 'code', labelKey: 'upl.list.col.code', type: 'text', ops: ['starts_with'], sortable: true, nullable: false, defaultVisible: true, enumValues: [], enumLabelPrefix: null },
-    { key: 'periodicity', labelKey: 'upl.list.col.periodicity', type: 'enum', ops: ['in'], sortable: false, nullable: false, defaultVisible: true, enumValues: ['month', 'year'], enumLabelPrefix: 'upl.periodicity.' }
-  ]
+    {
+      key: 'code',
+      labelKey: 'upl.list.col.code',
+      type: 'text',
+      ops: ['starts_with'],
+      sortable: true,
+      nullable: false,
+      defaultVisible: true,
+      enumValues: [],
+      enumLabelPrefix: null,
+    },
+    {
+      key: 'periodicity',
+      labelKey: 'upl.list.col.periodicity',
+      type: 'enum',
+      ops: ['in'],
+      sortable: false,
+      nullable: false,
+      defaultVisible: true,
+      enumValues: ['month', 'year'],
+      enumLabelPrefix: 'upl.periodicity.',
+    },
+  ],
 };
 
 const ACTIVE: QueryCondition[] = [
   { field: 'code', op: 'starts_with', value: 'cement.' },
-  { field: 'periodicity', op: 'in', value: ['month', 'year'] }
+  { field: 'periodicity', op: 'in', value: ['month', 'year'] },
 ];
 
-async function render(conditions: QueryCondition[], result: { conditions: QueryCondition[]; match: 'all' | 'any' } | undefined = undefined) {
+async function render(
+  conditions: QueryCondition[],
+  result: { conditions: QueryCondition[]; match: 'all' | 'any' } | undefined = undefined,
+) {
   const open = vi.fn(() => ({ close: vi.fn(), afterClosed: () => of(result), componentInstance: null }));
   await TestBed.configureTestingModule({
     imports: [UiFilterBarComponent],
-    providers: [{ provide: SMTDrawerService, useValue: { open } }]
+    providers: [{ provide: SMTDrawerService, useValue: { open } }],
   }).compileComponents();
   const fixture = TestBed.createComponent(UiFilterBarComponent);
   fixture.componentRef.setInput('meta', META);
   fixture.componentRef.setInput('conditions', conditions);
   const changes: QueryCondition[][] = [];
-  fixture.componentInstance.conditionsChange.subscribe(next => changes.push(next));
-  fixture.componentInstance.filterChange.subscribe(next => changes.push(next.conditions));
+  fixture.componentInstance.conditionsChange.subscribe((next) => changes.push(next));
+  fixture.componentInstance.filterChange.subscribe((next) => changes.push(next.conditions));
   fixture.detectChanges();
   return { fixture, open, changes };
 }
@@ -49,10 +72,12 @@ describe('ui-filter-bar', () => {
 
     const list = el(fixture).querySelector('ul')!;
     expect(list.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['ui.filter.active']);
-    const chips = [...el(fixture).querySelectorAll('[data-testid="filter-chip"] .filter-chip-text')].map(chip => chip.textContent?.replace(/\s+/g, ' ').trim());
+    const chips = [...el(fixture).querySelectorAll('[data-testid="filter-chip"] .filter-chip-text')].map((chip) =>
+      chip.textContent?.replace(/\s+/g, ' ').trim(),
+    );
     expect(chips).toEqual([
       `${PACKAGED_RUSSIAN['upl.list.col.code']}: ${PACKAGED_RUSSIAN['ui.filter.op.starts_with']} cement.`,
-      `${PACKAGED_RUSSIAN['upl.list.col.periodicity']}: ${PACKAGED_RUSSIAN['ui.filter.op.in']} ${PACKAGED_RUSSIAN['upl.periodicity.month']}, ${PACKAGED_RUSSIAN['upl.periodicity.year']}`
+      `${PACKAGED_RUSSIAN['upl.list.col.periodicity']}: ${PACKAGED_RUSSIAN['ui.filter.op.in']} ${PACKAGED_RUSSIAN['upl.periodicity.month']}, ${PACKAGED_RUSSIAN['upl.periodicity.year']}`,
     ]);
     expect(el(fixture).querySelector('[data-testid="filter-count"]')?.textContent).toContain('Активных условий: 2');
   });
@@ -75,10 +100,13 @@ describe('ui-filter-bar', () => {
 
     (el(fixture).querySelector('[data-testid="filter-trigger"]') as HTMLButtonElement).click();
 
-    expect(open).toHaveBeenCalledWith(UiFilterPanelComponent, expect.objectContaining({
-      title: PACKAGED_RUSSIAN['ui.filter.title'],
-      data: { meta: META, conditions: [], match: 'all' }
-    }));
+    expect(open).toHaveBeenCalledWith(
+      UiFilterPanelComponent,
+      expect.objectContaining({
+        title: PACKAGED_RUSSIAN['ui.filter.title'],
+        data: { meta: META, conditions: [], match: 'all' },
+      }),
+    );
     expect(changes).toEqual([applied]);
   });
 

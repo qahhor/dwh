@@ -12,7 +12,8 @@
           [attr.aria-current]="step.id === current() ? 'step' : null"
           [attr.aria-controls]="step.controls ?? null"
           [attr.data-step]="step.id"
-          (click)="select(step)">
+          (click)="select(step)"
+        >
           <span class="smt-stepper__marker" aria-hidden="true">
             @switch (step.status) {
               @case ('complete') {

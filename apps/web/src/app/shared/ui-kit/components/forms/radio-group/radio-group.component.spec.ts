@@ -31,7 +31,7 @@ const PERIODS: SMTRadioOption<Period>[] = [
 })
 class FormHost {
   readonly model = signal({ period: null as Period | null });
-  readonly source = form(this.model, path => required(path.period));
+  readonly source = form(this.model, (path) => required(path.period));
   readonly periods = PERIODS;
 }
 
@@ -48,7 +48,13 @@ class ReadonlyHost {
 @Component({
   standalone: true,
   imports: [SMTRadioGroupComponent],
-  template: `<smt-radio-group [(value)]="size" [options]="sizes" smtAriaLabel="Size" smtOrientation="horizontal" [compareWith]="sameId" />`,
+  template: `<smt-radio-group
+    [(value)]="size"
+    [options]="sizes"
+    smtAriaLabel="Size"
+    smtOrientation="horizontal"
+    [compareWith]="sameId"
+  />`,
 })
 class ObjectHost {
   size: { id: number } | null = { id: 2 };
@@ -98,9 +104,22 @@ describe('optionsMemo', () => {
     const memo = optionsMemo<string[]>();
     let builds = 0;
     const deps = ['ru', 1];
-    const first = memo(deps, () => { builds++; return ['a']; });
-    expect(memo(['ru', 1], () => { builds++; return ['b']; })).toBe(first);
-    expect(memo(['en', 1], () => { builds++; return ['c']; })).toEqual(['c']);
+    const first = memo(deps, () => {
+      builds++;
+      return ['a'];
+    });
+    expect(
+      memo(['ru', 1], () => {
+        builds++;
+        return ['b'];
+      }),
+    ).toBe(first);
+    expect(
+      memo(['en', 1], () => {
+        builds++;
+        return ['c'];
+      }),
+    ).toEqual(['c']);
     expect(builds).toBe(2);
   });
 });
@@ -132,7 +151,7 @@ describe('SMTRadioGroupComponent', () => {
     const { element, group, radios } = await render(FormHost);
     expect(group.getAttribute('aria-labelledby')).toBe(element.querySelector('label')!.id);
     expect(group.getAttribute('aria-required')).toBe('true');
-    expect(radios().map(radio => radio.tabIndex)).toEqual([0, -1, -1, -1]);
+    expect(radios().map((radio) => radio.tabIndex)).toEqual([0, -1, -1, -1]);
     expect(radios()[1].getAttribute('aria-disabled')).toBe('true');
     expect(radios()[2].getAttribute('aria-describedby')).toBe(radios()[2].querySelector('.smt-radio-group__hint')!.id);
   });
@@ -143,7 +162,7 @@ describe('SMTRadioGroupComponent', () => {
     await settle();
     expect(fixture.componentInstance.model().period).toBe('month');
     expect(radios()[2].getAttribute('aria-checked')).toBe('true');
-    expect(radios().map(radio => radio.tabIndex)).toEqual([-1, -1, 0, -1]);
+    expect(radios().map((radio) => radio.tabIndex)).toEqual([-1, -1, 0, -1]);
   });
 
   it('moves and chooses with the arrows, skipping a disabled item and wrapping around', async () => {

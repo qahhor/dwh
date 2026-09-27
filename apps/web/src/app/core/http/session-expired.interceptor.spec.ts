@@ -13,11 +13,24 @@ import { isSessionBound } from './session-bound';
 
 describe('sessionExpiredInterceptor', () => {
   const user: User = {
-    id: 17, name: 'Session QA', login: 'session-qa', email: 'session@example.test',
-    state: 'A', language: 'ru', timezone: 'UTC', attributes: {}, is2faEnabled: false,
-    forcePasswordChange: false, createdAt: '2026-09-25T00:00:00Z', modifiedAt: '2026-09-25T00:00:00Z'
+    id: 17,
+    name: 'Session QA',
+    login: 'session-qa',
+    email: 'session@example.test',
+    state: 'A',
+    language: 'ru',
+    timezone: 'UTC',
+    attributes: {},
+    is2faEnabled: false,
+    forcePasswordChange: false,
+    createdAt: '2026-09-25T00:00:00Z',
+    modifiedAt: '2026-09-25T00:00:00Z',
   };
-  const router = { url: '/upl/packages?open=4', navigate: vi.fn(() => Promise.resolve(true)), navigateByUrl: vi.fn(() => Promise.resolve(true)) };
+  const router = {
+    url: '/upl/packages?open=4',
+    navigate: vi.fn(() => Promise.resolve(true)),
+    navigateByUrl: vi.fn(() => Promise.resolve(true)),
+  };
   let auth: AuthService;
   let api: ApiService;
   let http: HttpTestingController;
@@ -27,10 +40,13 @@ describe('sessionExpiredInterceptor', () => {
   beforeEach(() => {
     router.navigate.mockClear();
     router.navigateByUrl.mockClear();
-    TestBed.configureTestingModule({ providers: [
-      provideHttpClient(withInterceptors([sessionExpiredInterceptor])), provideHttpClientTesting(),
-      { provide: Router, useValue: router }
-    ] });
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(withInterceptors([sessionExpiredInterceptor])),
+        provideHttpClientTesting(),
+        { provide: Router, useValue: router },
+      ],
+    });
     auth = TestBed.inject(AuthService);
     api = TestBed.inject(ApiService);
     http = TestBed.inject(HttpTestingController);
@@ -41,7 +57,9 @@ describe('sessionExpiredInterceptor', () => {
   });
 
   function unauthorized(url: string): void {
-    http.expectOne(url).flush({ code: 'UNAUTHORIZED', detail: 'No session' }, { status: 401, statusText: 'Unauthorized' });
+    http
+      .expectOne(url)
+      .flush({ code: 'UNAUTHORIZED', detail: 'No session' }, { status: 401, statusText: 'Unauthorized' });
   }
 
   it('signs the tab out once, says why and tells the other tabs, however many requests failed', () => {
@@ -56,7 +74,7 @@ describe('sessionExpiredInterceptor', () => {
     expect(router.navigate).toHaveBeenCalledTimes(1);
     expect(router.navigate).toHaveBeenCalledWith(['/login'], { replaceUrl: true });
     expect(publish).toHaveBeenCalledWith({ kind: 'signed-out' });
-    expect(toast.toasts().map(t => t.message)).toEqual([expect.stringMatching(/./)]);
+    expect(toast.toasts().map((t) => t.message)).toEqual([expect.stringMatching(/./)]);
     expect(toast.toasts()[0].type).toBe('info');
     http.verify();
   });
@@ -108,7 +126,9 @@ describe('sessionExpiredInterceptor', () => {
 
   it('keeps other failures as they were', () => {
     api.get('/ms/tasks').subscribe({ error: () => undefined });
-    http.expectOne('/api/v1/ms/tasks').flush({ code: 'FORBIDDEN', detail: 'No right' }, { status: 403, statusText: 'Forbidden' });
+    http
+      .expectOne('/api/v1/ms/tasks')
+      .flush({ code: 'FORBIDDEN', detail: 'No right' }, { status: 403, statusText: 'Forbidden' });
     expect(auth.isAuthenticated()).toBe(true);
     expect(toast.toasts()).toHaveLength(1);
     http.verify();

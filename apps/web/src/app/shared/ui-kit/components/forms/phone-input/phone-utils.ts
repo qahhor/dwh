@@ -44,13 +44,17 @@ export function formatNational(digits: string, country: SMTPhoneCountry | null):
  * caller prefers another country with the same code. A number no country
  * matches keeps its digits under "other" (country null).
  */
-export function splitPhone(value: string | null | undefined, preferred: SMTPhoneCountry | null = null): { country: SMTPhoneCountry | null; digits: string } {
+export function splitPhone(
+  value: string | null | undefined,
+  preferred: SMTPhoneCountry | null = null,
+): { country: SMTPhoneCountry | null; digits: string } {
   const digits = (value ?? '').replace(/\D/g, '');
   if (!digits) return { country: preferred ?? SMT_PHONE_COUNTRIES[0], digits: '' };
-  const matches = SMT_PHONE_COUNTRIES.filter(country => digits.startsWith(country.code))
-    .sort((a, b) => b.code.length - a.code.length);
+  const matches = SMT_PHONE_COUNTRIES.filter((country) => digits.startsWith(country.code)).sort(
+    (a, b) => b.code.length - a.code.length,
+  );
   if (matches.length === 0) return { country: null, digits };
-  const best = matches.find(country => country.code === matches[0].code && country === preferred) ?? matches[0];
+  const best = matches.find((country) => country.code === matches[0].code && country === preferred) ?? matches[0];
   return { country: best, digits: digits.slice(best.code.length) };
 }
 

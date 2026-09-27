@@ -14,16 +14,29 @@ describe('Login form interactions', () => {
   let component: LoginComponent;
   let http: HttpTestingController;
   const forcedUser: User = {
-    id: 17, name: 'Login UX', login: 'login-ux', email: 'login-ux@example.test',
-    state: 'A', language: 'ru', timezone: 'UTC', attributes: {}, is2faEnabled: false,
-    forcePasswordChange: true, createdAt: '2026-09-06T00:00:00Z', modifiedAt: '2026-09-06T00:00:00Z'
+    id: 17,
+    name: 'Login UX',
+    login: 'login-ux',
+    email: 'login-ux@example.test',
+    state: 'A',
+    language: 'ru',
+    timezone: 'UTC',
+    attributes: {},
+    is2faEnabled: false,
+    forcePasswordChange: true,
+    createdAt: '2026-09-06T00:00:00Z',
+    modifiedAt: '2026-09-06T00:00:00Z',
   };
 
   beforeEach(async () => {
     localStorage.setItem('dwh_theme', 'dark');
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([{ path: 'login', component: LoginComponent }])]
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'login', component: LoginComponent }]),
+      ],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(LoginComponent);
@@ -59,9 +72,11 @@ describe('Login form interactions', () => {
   async function enterStep(step: 'otp' | 'must_change_password'): Promise<void> {
     fillCredentials();
     submit();
-    http.expectOne('/api/v1/auth/login').flush(step === 'otp'
-      ? { step: 'otp', otp_token: 'synthetic-challenge' }
-      : { step: 'success', user: forcedUser });
+    http
+      .expectOne('/api/v1/auth/login')
+      .flush(
+        step === 'otp' ? { step: 'otp', otp_token: 'synthetic-challenge' } : { step: 'success', user: forcedUser },
+      );
     fixture.detectChanges();
     await fixture.whenStable();
   }
@@ -77,7 +92,7 @@ describe('Login form interactions', () => {
   it.each([
     ['credentials', 'password'],
     ['must_change_password', 'new-password'],
-    ['must_change_password', 'confirm-new-password']
+    ['must_change_password', 'confirm-new-password'],
   ] as const)('allows %s / %s to be revealed without submitting or losing its value', async (step, id) => {
     if (step !== 'credentials') await enterStep(step);
     const field = input(id);
@@ -97,24 +112,27 @@ describe('Login form interactions', () => {
     toggle.click();
     fixture.detectChanges();
     expect(field.type).toBe('password');
-    http.expectNone(request => request.method === 'POST');
+    http.expectNone((request) => request.method === 'POST');
   });
 
-  it.each(['password', 'new-password', 'confirm-new-password'])('announces Caps Lock only for the active %s field', async id => {
-    if (id !== 'password') await enterStep('must_change_password');
-    const field = input(id);
-    field.focus();
-    field.dispatchEvent(new KeyboardEvent('keyup', { key: 'A', modifierCapsLock: true, bubbles: true }));
-    fixture.detectChanges();
-    const hint = fixture.nativeElement.querySelector(`#${id}-caps-lock`);
-    expect(hint).not.toBeNull();
-    expect(hint.textContent).toContain('Caps Lock');
-    expect(field.getAttribute('aria-describedby')).toContain(`${id}-caps-lock`);
-    field.dispatchEvent(new FocusEvent('blur'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector(`#${id}-caps-lock`).textContent.trim()).toBe('');
-    expect(field.getAttribute('aria-describedby') ?? '').not.toContain(`${id}-caps-lock`);
-  });
+  it.each(['password', 'new-password', 'confirm-new-password'])(
+    'announces Caps Lock only for the active %s field',
+    async (id) => {
+      if (id !== 'password') await enterStep('must_change_password');
+      const field = input(id);
+      field.focus();
+      field.dispatchEvent(new KeyboardEvent('keyup', { key: 'A', modifierCapsLock: true, bubbles: true }));
+      fixture.detectChanges();
+      const hint = fixture.nativeElement.querySelector(`#${id}-caps-lock`);
+      expect(hint).not.toBeNull();
+      expect(hint.textContent).toContain('Caps Lock');
+      expect(field.getAttribute('aria-describedby')).toContain(`${id}-caps-lock`);
+      field.dispatchEvent(new FocusEvent('blur'));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(`#${id}-caps-lock`).textContent.trim()).toBe('');
+      expect(field.getAttribute('aria-describedby') ?? '').not.toContain(`${id}-caps-lock`);
+    },
+  );
 
   it('blocks duplicate login submits and recovery while the request is pending', () => {
     fillCredentials();
@@ -131,7 +149,9 @@ describe('Login form interactions', () => {
   it('shows login failure once, associates it with the field and restores retry focus', async () => {
     fillCredentials();
     submit();
-    http.expectOne('/api/v1/auth/login').flush({ detail: 'Неверный логин или пароль' }, { status: 401, statusText: 'Unauthorized' });
+    http
+      .expectOne('/api/v1/auth/login')
+      .flush({ detail: 'Неверный логин или пароль' }, { status: 401, statusText: 'Unauthorized' });
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelectorAll('[role="alert"]')).toHaveLength(1);
@@ -152,7 +172,7 @@ describe('Login form interactions', () => {
     http.expectNone('/api/v1/auth/login');
   });
 
-  it.each(['otp', 'must_change_password'] as const)('moves focus to the first field on %s transition', async step => {
+  it.each(['otp', 'must_change_password'] as const)('moves focus to the first field on %s transition', async (step) => {
     await enterStep(step);
     expect(document.activeElement).toBe(input(step === 'otp' ? 'otp-code' : 'new-password'));
   });
@@ -227,23 +247,32 @@ describe('Login form interactions', () => {
     expect(document.activeElement).toBe(input('new-password'));
   });
 
-  it.each(['otp', 'must_change_password'] as const)('clears abandoned secrets and errors when returning from %s', async step => {
-    await enterStep(step);
-    component.otpCode = '246810';
-    component.newPassword = 'Synthetic-draft';
-    component.confirmNewPassword = 'Synthetic-draft';
-    component.formError.set('Previous step error');
-    fixture.detectChanges();
-    fixture.nativeElement.querySelector('.smt-button--ghost').click();
-    fixture.detectChanges();
-    await fixture.whenStable();
-    expect(component.step()).toBe('credentials');
-    expect(component.login).toBe('login-ux');
-    expect([component.password, component.tempOldPassword, component.otpToken, component.otpCode,
-      component.newPassword, component.confirmNewPassword]).toEqual(['', '', '', '', '', '']);
-    expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
-    expect(document.activeElement).toBe(input('login'));
-  });
+  it.each(['otp', 'must_change_password'] as const)(
+    'clears abandoned secrets and errors when returning from %s',
+    async (step) => {
+      await enterStep(step);
+      component.otpCode = '246810';
+      component.newPassword = 'Synthetic-draft';
+      component.confirmNewPassword = 'Synthetic-draft';
+      component.formError.set('Previous step error');
+      fixture.detectChanges();
+      fixture.nativeElement.querySelector('.smt-button--ghost').click();
+      fixture.detectChanges();
+      await fixture.whenStable();
+      expect(component.step()).toBe('credentials');
+      expect(component.login).toBe('login-ux');
+      expect([
+        component.password,
+        component.tempOldPassword,
+        component.otpToken,
+        component.otpCode,
+        component.newPassword,
+        component.confirmNewPassword,
+      ]).toEqual(['', '', '', '', '', '']);
+      expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
+      expect(document.activeElement).toBe(input('login'));
+    },
+  );
 
   it('cancels a pending login subscription when the component is destroyed', () => {
     fillCredentials();
@@ -268,7 +297,9 @@ describe('Login form interactions', () => {
   });
 
   it('retains default error toasts for unrelated POST callers', () => {
-    TestBed.inject(ApiService).post('/example').subscribe({ error: () => {} });
+    TestBed.inject(ApiService)
+      .post('/example')
+      .subscribe({ error: () => {} });
     http.expectOne('/api/v1/example').flush({ detail: 'Обычная ошибка' }, { status: 400, statusText: 'Bad Request' });
     expect(TestBed.inject(ToastService).toasts()).toHaveLength(1);
   });

@@ -6,12 +6,7 @@ import { Observable, Subscription, forkJoin } from 'rxjs';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 
-import {
-  AnalyticsSummary,
-  TrendDataPoint,
-  ProjectDistribution,
-  UserWorkload
-} from './analytics.models';
+import { AnalyticsSummary, TrendDataPoint, ProjectDistribution, UserWorkload } from './analytics.models';
 
 import { AnalyticsMetricsTilesComponent } from './components/analytics-metrics-tiles.component';
 import { AnalyticsTrendChartComponent } from './components/analytics-trend-chart.component';
@@ -26,13 +21,15 @@ export * from './analytics.models';
   selector: 'app-analytics',
   standalone: true,
   imports: [
-    SMTRadioGroupComponent, SMTAlertComponent, CommonModule,
+    SMTRadioGroupComponent,
+    SMTAlertComponent,
+    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     AnalyticsMetricsTilesComponent,
     AnalyticsTrendChartComponent,
     AnalyticsProjectsCardComponent,
-    AnalyticsWorkloadTableComponent
+    AnalyticsWorkloadTableComponent,
   ],
   template: `
     <div class="analytics-container">
@@ -51,9 +48,12 @@ export * from './analytics.models';
             [options]="rangeOptions()"
             [value]="selectedRange"
             [smtAriaLabel]="'analytics.period_analitiki' | t"
-            (valueChange)="setRange($event ?? selectedRange)" />
+            (valueChange)="setRange($event ?? selectedRange)"
+          />
 
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             smtVariant="secondary"
             smtSize="sm"
             smtIcon="download"
@@ -63,7 +63,9 @@ export * from './analytics.models';
             {{ 'analytics.eksport' | t }}
           </button>
 
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             smtVariant="secondary"
             smtSize="sm"
             smtIcon="refresh"
@@ -79,13 +81,13 @@ export * from './analytics.models';
       <!-- Error Alert -->
       <smt-alert smtTone="danger" *ngIf="error()">
         <span>{{ error() }}</span>
-        <button type="button" class="alert-retry" data-testid="analytics-retry" (click)="setRange(selectedRange)">{{ 'common.retry' | t }}</button>
+        <button type="button" class="alert-retry" data-testid="analytics-retry" (click)="setRange(selectedRange)">
+          {{ 'common.retry' | t }}
+        </button>
       </smt-alert>
 
       <!-- KPI Metrics Row -->
-      <app-analytics-metrics-tiles
-        [summary]="summary()"
-      ></app-analytics-metrics-tiles>
+      <app-analytics-metrics-tiles [summary]="summary()"></app-analytics-metrics-tiles>
 
       <!-- Main Analytics Grid: Trend Chart & Project Distribution -->
       <div class="analytics-grid">
@@ -112,91 +114,105 @@ export * from './analytics.models';
       ></app-analytics-workload-table>
     </div>
   `,
-  styles: [`
-    .alert-retry { margin-left: 8px; padding: 0; border: none; background: transparent; color: inherit; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
-    .alert-retry:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-    :host {
-      display: block;
-      min-width: 0;
-    }
-
-    .analytics-container {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      gap: 0;
-    }
-
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 20px;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      min-width: 0;
-      max-width: 100%;
-      gap: 10px;
-    }
-
-    .view-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-main);
-      letter-spacing: -0.3px;
-      overflow-wrap: anywhere;
-    }
-
-    .count-badge {
-      font-size: 12px;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 9999px;
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      border: 1px solid var(--border-color);
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-
-    .analytics-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-      gap: 20px;
-    }
-
-    @media (max-width: 1024px) {
-      .analytics-grid {
-        grid-template-columns: minmax(0, 1fr);
+  styles: [
+    `
+      .alert-retry {
+        margin-left: 8px;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-weight: 600;
+        text-decoration: underline;
+        cursor: pointer;
       }
-    }
+      .alert-retry:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+      }
+      :host {
+        display: block;
+        min-width: 0;
+      }
 
-    @media (max-width: 640px) {
-      .view-header {
-        align-items: flex-start;
+      .analytics-container {
+        display: flex;
         flex-direction: column;
+        min-width: 0;
+        gap: 0;
       }
-      .header-right {
-        width: 100%;
+
+      .view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        gap: 16px;
         flex-wrap: wrap;
       }
-      .range-picker {
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        min-width: 0;
         max-width: 100%;
-        overflow-x: auto;
+        gap: 10px;
       }
-    }
-  `]
+
+      .view-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+        letter-spacing: -0.3px;
+        overflow-wrap: anywhere;
+      }
+
+      .count-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .analytics-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        gap: 20px;
+      }
+
+      @media (max-width: 1024px) {
+        .analytics-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .view-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+        .header-right {
+          width: 100%;
+          flex-wrap: wrap;
+        }
+        .range-picker {
+          max-width: 100%;
+          overflow-x: auto;
+        }
+      }
+    `,
+  ],
 })
 export class AnalyticsComponent implements OnInit, OnDestroy {
   /** Texts of the radio options below; translated again when the language changes. */
@@ -247,19 +263,22 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
     const range = this.selectedRange;
     // A failed or superseded refresh must be retried as a whole snapshot.
     this.refreshRequired = true;
-    this.loadRequest(forkJoin({
-      summary: this.http.get<AnalyticsSummary>('/api/v1/analytics/summary'),
-      trends: this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`),
-      projects: this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects'),
-      workload: this.http.get<UserWorkload[]>('/api/v1/analytics/workload')
-    }), data => {
-      this.summary.set(data.summary);
-      this.trends.set(data.trends);
-      this.projects.set(data.projects);
-      this.workload.set(data.workload);
-      this.displayedRange = range;
-      this.refreshRequired = false;
-    });
+    this.loadRequest(
+      forkJoin({
+        summary: this.http.get<AnalyticsSummary>('/api/v1/analytics/summary'),
+        trends: this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`),
+        projects: this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects'),
+        workload: this.http.get<UserWorkload[]>('/api/v1/analytics/workload'),
+      }),
+      (data) => {
+        this.summary.set(data.summary);
+        this.trends.set(data.trends);
+        this.projects.set(data.projects);
+        this.workload.set(data.workload);
+        this.displayedRange = range;
+        this.refreshRequired = false;
+      },
+    );
   }
 
   /** The periods as one segmented bar. */
@@ -273,7 +292,7 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
 
   private loadTrends(): void {
     const range = this.selectedRange;
-    this.loadRequest(this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`), data => {
+    this.loadRequest(this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`), (data) => {
       this.trends.set(data);
       this.displayedRange = range;
     });
@@ -284,12 +303,12 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
     this.loading.set(true);
     this.error.set('');
     this.activeRequest = request.subscribe({
-      next: data => apply(data),
-      error: e => {
+      next: (data) => apply(data),
+      error: (e) => {
         this.error.set(e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'));
         this.loading.set(false);
       },
-      complete: () => this.loading.set(false)
+      complete: () => this.loading.set(false),
     });
   }
 }

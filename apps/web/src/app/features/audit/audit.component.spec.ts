@@ -13,22 +13,29 @@ function periodTrigger(fixture: { nativeElement: HTMLElement }, tab: 'audit' | '
 
 describe('AuditComponent UI contracts', () => {
   /** Stats plus two-page list endpoints: the first page hands out cursor 'p2'. */
-  const pagedGet = () => vi.fn((url: string, params?: Record<string, unknown>) => url === '/audit/stats'
-    ? of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 })
-    : params?.['cursor'] === 'p2'
-      ? of({ items: [], nextCursor: null, hasMore: false, totalEstimated: 0 })
-      : of({ items: [], nextCursor: 'p2', hasMore: true, totalEstimated: 0 }));
+  const pagedGet = () =>
+    vi.fn((url: string, params?: Record<string, unknown>) =>
+      url === '/audit/stats'
+        ? of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 })
+        : params?.['cursor'] === 'p2'
+          ? of({ items: [], nextCursor: null, hasMore: false, totalEstimated: 0 })
+          : of({ items: [], nextCursor: 'p2', hasMore: true, totalEstimated: 0 }),
+    );
 
-  async function createFixture(get: any = vi.fn((url: string) => url === '/audit/stats'
-    ? of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 })
-    : of({ items: [], nextCursor: null, hasMore: false, totalEstimated: 0 }))) {
+  async function createFixture(
+    get: any = vi.fn((url: string) =>
+      url === '/audit/stats'
+        ? of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 })
+        : of({ items: [], nextCursor: null, hasMore: false, totalEstimated: 0 }),
+    ),
+  ) {
     await TestBed.configureTestingModule({
       imports: [AuditComponent],
       providers: [
         { provide: ApiService, useValue: { get } },
         ...registryProviders(AUDIT_LOGS_META, SECURITY_EVENTS_META),
-        { provide: ToastService, useValue: { error: vi.fn() } }
-      ]
+        { provide: ToastService, useValue: { error: vi.fn() } },
+      ],
     }).compileComponents();
     const fixture = TestBed.createComponent(AuditComponent);
     fixture.detectChanges();
@@ -44,7 +51,7 @@ describe('AuditComponent UI contracts', () => {
       event: 'U',
       isApi: false,
       changedAt: '2026-08-30T00:00:00Z',
-      changedColumns: ['title']
+      changedColumns: ['title'],
     };
     fixture.componentInstance.auditPager.items.set([record]);
     fixture.detectChanges();
@@ -54,7 +61,9 @@ describe('AuditComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('label[for="audit-table-filter"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#audit-table-filter')?.getAttribute('role')).toBe('combobox');
     expect(fixture.nativeElement.querySelector('#audit-event-filter')?.getAttribute('role')).toBe('combobox');
-    const region = fixture.nativeElement.querySelector('#audit-log-panel .table-container[role="region"]') as HTMLElement;
+    const region = fixture.nativeElement.querySelector(
+      '#audit-log-panel .table-container[role="region"]',
+    ) as HTMLElement;
     expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Журнал изменений данных');
     expect(region.querySelectorAll('[role="rowgroup"] > [role="row"]')).toHaveLength(1);
     // Details open from an explicit button, not from a click anywhere on the row.
@@ -68,7 +77,7 @@ describe('AuditComponent UI contracts', () => {
       eventType: 'LOGIN_FAILED',
       ip: '127.0.0.1',
       details: {},
-      createdAt: '2026-08-30T00:00:00Z'
+      createdAt: '2026-08-30T00:00:00Z',
     };
     // The tab loads its metadata and first page on the way in; the row is set after it.
     fixture.componentInstance.setTab('security');
@@ -78,8 +87,12 @@ describe('AuditComponent UI contracts', () => {
     expect(fixture.nativeElement.querySelector('label[for="security-event-filter"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('#security-event-filter')?.getAttribute('role')).toBe('combobox');
     expect(fixture.nativeElement.querySelector('label[for="security-ip-search"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('#security-events-panel [role="table"]')?.getAttribute('aria-label')).toBe('События безопасности');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Просмотреть событие безопасности #9"]')).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('#security-events-panel [role="table"]')?.getAttribute('aria-label'),
+    ).toBe('События безопасности');
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="Просмотреть событие безопасности #9"]'),
+    ).not.toBeNull();
   });
 
   it('loads audit pages from the server and uses the returned cursor for the next page', async () => {
@@ -89,17 +102,37 @@ describe('AuditComponent UI contracts', () => {
       }
       if (url === '/audit/logs' && params?.['cursor'] === 'audit-next') {
         return of({
-          items: [{ id: 20, tableName: 'md_users', rowPk: '20', event: 'U', isApi: false, changedAt: '2026-09-03T00:00:00Z', changedColumns: [] }],
+          items: [
+            {
+              id: 20,
+              tableName: 'md_users',
+              rowPk: '20',
+              event: 'U',
+              isApi: false,
+              changedAt: '2026-09-03T00:00:00Z',
+              changedColumns: [],
+            },
+          ],
           nextCursor: null,
           hasMore: false,
-          totalEstimated: 41
+          totalEstimated: 41,
         });
       }
       return of({
-        items: [{ id: 41, tableName: 'md_users', rowPk: '41', event: 'U', isApi: false, changedAt: '2026-09-04T00:00:00Z', changedColumns: [] }],
+        items: [
+          {
+            id: 41,
+            tableName: 'md_users',
+            rowPk: '41',
+            event: 'U',
+            isApi: false,
+            changedAt: '2026-09-04T00:00:00Z',
+            changedColumns: [],
+          },
+        ],
         nextCursor: 'audit-next',
         hasMore: true,
-        totalEstimated: 41
+        totalEstimated: 41,
       });
     });
     const { fixture } = await createFixture(get);
@@ -125,7 +158,7 @@ describe('AuditComponent UI contracts', () => {
       changedAt: '2026-09-04T00:00:00Z',
       changedColumns: ['password_hash'],
       oldRow: { password_hash: '[REDACTED]' },
-      newRow: { password_hash: '[REDACTED]' }
+      newRow: { password_hash: '[REDACTED]' },
     };
 
     expect(fixture.componentInstance.getDiffKeys(record)).toContain('password_hash');
@@ -140,7 +173,7 @@ describe('AuditComponent UI contracts', () => {
       event: 'U',
       isApi: false,
       changedAt: '2026-09-04T00:00:00Z',
-      changedColumns: ['title']
+      changedColumns: ['title'],
     };
     const get = vi.fn((url: string) => {
       if (url === '/audit/stats') {
@@ -200,10 +233,12 @@ describe('AuditComponent UI contracts', () => {
     expect(component.auditFromFilter).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(component.auditToFilter).toBe(component.auditFromFilter);
     const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/logs').at(-1)?.[1];
-    expect(params).toEqual(expect.objectContaining({
-      from: `${component.auditFromFilter}T00:00:00.000Z`,
-      to: `${component.auditFromFilter}T23:59:59.999Z`
-    }));
+    expect(params).toEqual(
+      expect.objectContaining({
+        from: `${component.auditFromFilter}T00:00:00.000Z`,
+        to: `${component.auditFromFilter}T23:59:59.999Z`,
+      }),
+    );
   });
 
   it('sends every audit filter to the server and resets the cursor history', async () => {
@@ -221,15 +256,17 @@ describe('AuditComponent UI contracts', () => {
     component.loadAuditLogs(true);
 
     const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/logs').at(-1)?.[1];
-    expect(params).toEqual(expect.objectContaining({
-      table_name: 'ms_tasks',
-      row_pk: '42',
-      event: 'U',
-      user_id: '7',
-      from: '2026-09-01T00:00:00.000Z',
-      to: '2026-09-04T23:59:59.999Z',
-      cursor: undefined
-    }));
+    expect(params).toEqual(
+      expect.objectContaining({
+        table_name: 'ms_tasks',
+        row_pk: '42',
+        event: 'U',
+        user_id: '7',
+        from: '2026-09-01T00:00:00.000Z',
+        to: '2026-09-04T23:59:59.999Z',
+        cursor: undefined,
+      }),
+    );
     expect(component.auditCurrentPage).toBe(1);
   });
 
@@ -254,14 +291,16 @@ describe('AuditComponent UI contracts', () => {
     expect(component.securityToFilter).toBe('');
     expect(component.secCurrentPage).toBe(1);
     const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/security-events').at(-1)?.[1];
-    expect(params).toEqual(expect.objectContaining({
-      event_type: undefined,
-      ip: undefined,
-      user_id: undefined,
-      from: undefined,
-      to: undefined,
-      cursor: undefined
-    }));
+    expect(params).toEqual(
+      expect.objectContaining({
+        event_type: undefined,
+        ip: undefined,
+        user_id: undefined,
+        from: undefined,
+        to: undefined,
+        cursor: undefined,
+      }),
+    );
   });
 
   it('sends every security-event filter to the server', async () => {
@@ -276,13 +315,15 @@ describe('AuditComponent UI contracts', () => {
     component.loadSecurityEvents(true);
 
     const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/security-events').at(-1)?.[1];
-    expect(params).toEqual(expect.objectContaining({
-      event_type: 'LOGIN_FAILED',
-      ip: '10.0.0.1',
-      user_id: '9',
-      from: '2026-08-01T00:00:00.000Z',
-      to: '2026-08-31T23:59:59.999Z'
-    }));
+    expect(params).toEqual(
+      expect.objectContaining({
+        event_type: 'LOGIN_FAILED',
+        ip: '10.0.0.1',
+        user_id: '9',
+        from: '2026-08-01T00:00:00.000Z',
+        to: '2026-08-31T23:59:59.999Z',
+      }),
+    );
   });
 
   it('clears every audit filter before requesting the first page', async () => {
@@ -343,10 +384,12 @@ describe('AuditComponent UI contracts', () => {
         return securityAttempts === 1
           ? throwError(() => new Error('security events unavailable'))
           : of({
-              items: [{ id: 51, eventType: 'LOGIN_FAILED', ip: '127.0.0.1', details: {}, createdAt: '2026-09-04T00:00:00Z' }],
+              items: [
+                { id: 51, eventType: 'LOGIN_FAILED', ip: '127.0.0.1', details: {}, createdAt: '2026-09-04T00:00:00Z' },
+              ],
               nextCursor: null,
               hasMore: false,
-              totalEstimated: 1
+              totalEstimated: 1,
             });
       }
       return of({ items: [], nextCursor: null, hasMore: false, totalEstimated: 0 });
@@ -370,35 +413,86 @@ describe('AuditComponent UI contracts', () => {
   it('does not let a slow answer to an earlier filter overwrite the newer result', async () => {
     const answers: Subject<unknown>[] = [];
     const get = vi.fn((url: string) => {
-      if (url === '/audit/stats') return of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 });
+      if (url === '/audit/stats')
+        return of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 });
       const answer = new Subject<unknown>();
       answers.push(answer);
       return answer.asObservable();
     });
     const { fixture } = await createFixture(get);
     const component = fixture.componentInstance;
-    const record = (id: number) => ({ items: [{ id, tableName: 'md_users', rowPk: String(id), event: 'U', isApi: false, changedAt: '2026-09-04T00:00:00Z', changedColumns: [] }], nextCursor: null, hasMore: false, totalEstimated: 1 });
+    const record = (id: number) => ({
+      items: [
+        {
+          id,
+          tableName: 'md_users',
+          rowPk: String(id),
+          event: 'U',
+          isApi: false,
+          changedAt: '2026-09-04T00:00:00Z',
+          changedColumns: [],
+        },
+      ],
+      nextCursor: null,
+      hasMore: false,
+      totalEstimated: 1,
+    });
 
     // The user narrows the filter twice; the first narrowing answers last.
-    component.rowPkFilter = '5'; component.loadAuditLogs(true);
+    component.rowPkFilter = '5';
+    component.loadAuditLogs(true);
     const stale = answers.at(-1)!;
-    component.rowPkFilter = '7'; component.loadAuditLogs(true);
+    component.rowPkFilter = '7';
+    component.loadAuditLogs(true);
     const fresh = answers.at(-1)!;
-    fresh.next(record(7)); fresh.complete();
-    stale.next(record(5)); stale.complete();
+    fresh.next(record(7));
+    fresh.complete();
+    stale.next(record(5));
+    stale.complete();
 
-    expect(component.auditLogs().map(row => row.id)).toEqual([7]);
+    expect(component.auditLogs().map((row) => row.id)).toEqual([7]);
   });
 
   it('stays on the current page when the next page fails, and retries that page', async () => {
     let failNext = false;
     const get = vi.fn((url: string, params?: Record<string, unknown>) => {
-      if (url === '/audit/stats') return of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 });
+      if (url === '/audit/stats')
+        return of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 });
       if (params?.['cursor'] === 'p2') {
         if (failNext) return throwError(() => new Error('offline'));
-        return of({ items: [{ id: 2, tableName: 't', rowPk: '2', event: 'U', isApi: false, changedAt: '2026-09-04T00:00:00Z', changedColumns: [] }], nextCursor: null, hasMore: false, totalEstimated: 2 });
+        return of({
+          items: [
+            {
+              id: 2,
+              tableName: 't',
+              rowPk: '2',
+              event: 'U',
+              isApi: false,
+              changedAt: '2026-09-04T00:00:00Z',
+              changedColumns: [],
+            },
+          ],
+          nextCursor: null,
+          hasMore: false,
+          totalEstimated: 2,
+        });
       }
-      return of({ items: [{ id: 1, tableName: 't', rowPk: '1', event: 'U', isApi: false, changedAt: '2026-09-04T00:00:00Z', changedColumns: [] }], nextCursor: 'p2', hasMore: true, totalEstimated: 2 });
+      return of({
+        items: [
+          {
+            id: 1,
+            tableName: 't',
+            rowPk: '1',
+            event: 'U',
+            isApi: false,
+            changedAt: '2026-09-04T00:00:00Z',
+            changedColumns: [],
+          },
+        ],
+        nextCursor: 'p2',
+        hasMore: true,
+        totalEstimated: 2,
+      });
     });
     const { fixture } = await createFixture(get);
     const component = fixture.componentInstance;
@@ -406,20 +500,22 @@ describe('AuditComponent UI contracts', () => {
     failNext = true;
     component.onAuditPageChange(2);
     expect(component.auditCurrentPage).toBe(1);
-    expect(component.auditLogs().map(row => row.id)).toEqual([1]);
+    expect(component.auditLogs().map((row) => row.id)).toEqual([1]);
 
     failNext = false;
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('#audit-load-error button') as HTMLButtonElement).click();
     expect(component.auditCurrentPage).toBe(2);
-    expect(component.auditLogs().map(row => row.id)).toEqual([2]);
+    expect(component.auditLogs().map((row) => row.id)).toEqual([2]);
   });
 
   it('announces an in-progress audit request and clears the busy state when it completes', async () => {
     const pending = new Subject<{ items: AuditRecord[]; nextCursor: null; hasMore: false; totalEstimated: number }>();
-    const get = vi.fn((url: string) => url === '/audit/stats'
-      ? of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 })
-      : pending.asObservable());
+    const get = vi.fn((url: string) =>
+      url === '/audit/stats'
+        ? of({ totalAuditLogs: 0, totalSecurityEvents: 0, securityEventsLast24h: 0, failedLoginsLast24h: 0 })
+        : pending.asObservable(),
+    );
     const { fixture } = await createFixture(get);
 
     const region = fixture.nativeElement.querySelector('#audit-log-panel .table-container') as HTMLElement;

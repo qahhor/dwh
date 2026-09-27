@@ -71,14 +71,15 @@ export class ProjectFormsService {
 
   openCreateModal() {
     if (
-      this.destroyed
-      || !this.canCreateProject()
-      || this.isSubmitting()
-      || this.isCreateModalOpen()
-      || this.isEditModalOpen()
-      || this.isCreateDiscardConfirmationOpen()
-      || this.isEditDiscardConfirmationOpen()
-    ) return;
+      this.destroyed ||
+      !this.canCreateProject() ||
+      this.isSubmitting() ||
+      this.isCreateModalOpen() ||
+      this.isEditModalOpen() ||
+      this.isCreateDiscardConfirmationOpen() ||
+      this.isEditDiscardConfirmationOpen()
+    )
+      return;
     this.isCreateSubmitted = false;
     this.createForm = { name: '', description: '' };
     this.createFormBaseline = { ...this.createForm };
@@ -97,26 +98,23 @@ export class ProjectFormsService {
   }
 
   confirmDiscardCreate() {
-    if (
-      this.destroyed
-      || this.isSubmitting()
-      || !this.isCreateModalOpen()
-      || !this.isCreateDiscardConfirmationOpen()
-    ) return;
+    if (this.destroyed || this.isSubmitting() || !this.isCreateModalOpen() || !this.isCreateDiscardConfirmationOpen())
+      return;
     this.closeCreateModal();
     this.navigationDecision.settle(true);
   }
 
   submitCreateProject() {
     if (
-      this.destroyed
-      || !this.canCreateProject()
-      || !this.isCreateModalOpen()
-      || this.isEditModalOpen()
-      || this.isCreateDiscardConfirmationOpen()
-      || this.isEditDiscardConfirmationOpen()
-      || this.isSubmitting()
-    ) return;
+      this.destroyed ||
+      !this.canCreateProject() ||
+      !this.isCreateModalOpen() ||
+      this.isEditModalOpen() ||
+      this.isCreateDiscardConfirmationOpen() ||
+      this.isEditDiscardConfirmationOpen() ||
+      this.isSubmitting()
+    )
+      return;
     this.isCreateSubmitted = true;
     if (!this.createForm.name.trim()) {
       this.toast.warning(this.uiI18n.translate('projects.vvedite_nazvanie_proekta'));
@@ -128,48 +126,51 @@ export class ProjectFormsService {
     this.isSubmitting.set(true);
     const payload: any = {
       name: this.createForm.name.trim(),
-      description: this.createForm.description.trim()
+      description: this.createForm.description.trim(),
     };
     if (this.createForm.attributes && Object.keys(this.createForm.attributes).length > 0) {
       payload.attributes = this.createForm.attributes;
     }
     this.createSaveRequest = this.api.post<Project>('/tasks/projects', payload).subscribe({
-      next: created => {
+      next: (created) => {
         if (
-          this.destroyed
-          || requestId !== this.createSaveRequestId
-          || !this.isCreateModalOpen()
-          || this.isEditModalOpen()
-        ) return;
+          this.destroyed ||
+          requestId !== this.createSaveRequestId ||
+          !this.isCreateModalOpen() ||
+          this.isEditModalOpen()
+        )
+          return;
         this.isSubmitting.set(false);
         this.closeCreateModal();
         this.toast.success(this.uiI18n.translate('projects.proekt_uspeshno_sozdan'));
         this.onProjectCreated?.(created);
       },
-      error: err => {
+      error: (err) => {
         if (
-          this.destroyed
-          || requestId !== this.createSaveRequestId
-          || !this.isCreateModalOpen()
-          || this.isEditModalOpen()
-        ) return;
+          this.destroyed ||
+          requestId !== this.createSaveRequestId ||
+          !this.isCreateModalOpen() ||
+          this.isEditModalOpen()
+        )
+          return;
         this.isSubmitting.set(false);
         this.createSaveError.set(err?.detail || this.uiI18n.translate('projects.create_save_error'));
-      }
+      },
     });
   }
 
   openEditModal(p: Project) {
     if (!safeNumericRecordId(p.id)) return;
     if (
-      this.destroyed
-      || !this.canUpdateProject()
-      || this.isSubmitting()
-      || this.isCreateModalOpen()
-      || this.isEditModalOpen()
-      || this.isCreateDiscardConfirmationOpen()
-      || this.isEditDiscardConfirmationOpen()
-    ) return;
+      this.destroyed ||
+      !this.canUpdateProject() ||
+      this.isSubmitting() ||
+      this.isCreateModalOpen() ||
+      this.isEditModalOpen() ||
+      this.isCreateDiscardConfirmationOpen() ||
+      this.isEditDiscardConfirmationOpen()
+    )
+      return;
     this.isEditSubmitted = false;
     this.editTargetId = p.id;
     this.editingProject = null;
@@ -182,15 +183,16 @@ export class ProjectFormsService {
 
   retryEditLoad() {
     if (
-      this.destroyed
-      || this.isSubmitting()
-      || this.editLoading()
-      || !this.isEditModalOpen()
-      || this.isCreateModalOpen()
-      || this.isCreateDiscardConfirmationOpen()
-      || this.isEditDiscardConfirmationOpen()
-      || this.editTargetId == null
-    ) return;
+      this.destroyed ||
+      this.isSubmitting() ||
+      this.editLoading() ||
+      !this.isEditModalOpen() ||
+      this.isCreateModalOpen() ||
+      this.isCreateDiscardConfirmationOpen() ||
+      this.isEditDiscardConfirmationOpen() ||
+      this.editTargetId == null
+    )
+      return;
     this.loadEditDetails(this.editTargetId);
   }
 
@@ -204,30 +206,27 @@ export class ProjectFormsService {
   }
 
   confirmDiscardEdit() {
-    if (
-      this.destroyed
-      || this.isSubmitting()
-      || !this.isEditModalOpen()
-      || !this.isEditDiscardConfirmationOpen()
-    ) return;
+    if (this.destroyed || this.isSubmitting() || !this.isEditModalOpen() || !this.isEditDiscardConfirmationOpen())
+      return;
     this.closeEditModal();
     this.navigationDecision.settle(true);
   }
 
   submitEditProject() {
     if (
-      this.destroyed
-      || !this.canUpdateProject()
-      || !this.isEditModalOpen()
-      || this.isCreateModalOpen()
-      || this.isCreateDiscardConfirmationOpen()
-      || this.isEditDiscardConfirmationOpen()
-      || !this.editingProject
-      || !this.editFormBaseline
-      || this.editLoading()
-      || this.editLoadError()
-      || this.isSubmitting()
-    ) return;
+      this.destroyed ||
+      !this.canUpdateProject() ||
+      !this.isEditModalOpen() ||
+      this.isCreateModalOpen() ||
+      this.isCreateDiscardConfirmationOpen() ||
+      this.isEditDiscardConfirmationOpen() ||
+      !this.editingProject ||
+      !this.editFormBaseline ||
+      this.editLoading() ||
+      this.editLoadError() ||
+      this.isSubmitting()
+    )
+      return;
     this.isEditSubmitted = true;
     if (!this.editForm.name.trim()) {
       this.toast.warning(this.uiI18n.translate('projects.nazvanie_proekta_obyazatelno'));
@@ -255,41 +254,46 @@ export class ProjectFormsService {
     this.editSaveRequest = this.api.patch<void>(`/tasks/projects/${editedProjectId}`, payload).subscribe({
       next: () => {
         if (
-          this.destroyed
-          || requestId !== this.editSaveRequestId
-          || !this.isEditModalOpen()
-          || this.editingProject?.id !== editedProjectId
-        ) return;
+          this.destroyed ||
+          requestId !== this.editSaveRequestId ||
+          !this.isEditModalOpen() ||
+          this.editingProject?.id !== editedProjectId
+        )
+          return;
         this.isSubmitting.set(false);
         this.closeEditModal();
         this.toast.success(this.uiI18n.translate('projects.proekt_obnovlen'));
         this.onProjectUpdated?.();
       },
-      error: err => {
+      error: (err) => {
         if (
-          this.destroyed
-          || requestId !== this.editSaveRequestId
-          || !this.isEditModalOpen()
-          || this.editingProject?.id !== editedProjectId
-        ) return;
+          this.destroyed ||
+          requestId !== this.editSaveRequestId ||
+          !this.isEditModalOpen() ||
+          this.editingProject?.id !== editedProjectId
+        )
+          return;
         this.isSubmitting.set(false);
         this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
-      }
+      },
     });
   }
 
   isCreateDraftDirty(): boolean {
-    return this.createForm.name !== this.createFormBaseline.name
-      || this.createForm.description !== this.createFormBaseline.description
-      || (!!this.createForm.attributes && Object.keys(this.createForm.attributes).length > 0);
+    return (
+      this.createForm.name !== this.createFormBaseline.name ||
+      this.createForm.description !== this.createFormBaseline.description ||
+      (!!this.createForm.attributes && Object.keys(this.createForm.attributes).length > 0)
+    );
   }
 
   isEditDraftDirty(): boolean {
-    return !!this.editFormBaseline && (
-      this.editForm.name !== this.editFormBaseline.name
-      || this.editForm.description !== this.editFormBaseline.description
-      || this.editForm.state !== this.editFormBaseline.state
-      || JSON.stringify(this.editForm.attributes || {}) !== JSON.stringify(this.editFormBaseline.attributes || {})
+    return (
+      !!this.editFormBaseline &&
+      (this.editForm.name !== this.editFormBaseline.name ||
+        this.editForm.description !== this.editFormBaseline.description ||
+        this.editForm.state !== this.editFormBaseline.state ||
+        JSON.stringify(this.editForm.attributes || {}) !== JSON.stringify(this.editFormBaseline.attributes || {}))
     );
   }
 
@@ -325,9 +329,17 @@ export class ProjectFormsService {
 
   canLeaveRecordPage(): boolean | Observable<boolean> | Promise<boolean> {
     if (this.isSubmitting()) return false;
-    const dialog = this.isCreateModalOpen() && this.isCreateDraftDirty() ? this.isCreateDiscardConfirmationOpen :
-      this.isEditModalOpen() && this.isEditDraftDirty() ? this.isEditDiscardConfirmationOpen : null;
-    if (dialog) return this.navigationDecision.request(() => dialog.set(true), () => dialog.set(false));
+    const dialog =
+      this.isCreateModalOpen() && this.isCreateDraftDirty()
+        ? this.isCreateDiscardConfirmationOpen
+        : this.isEditModalOpen() && this.isEditDraftDirty()
+          ? this.isEditDiscardConfirmationOpen
+          : null;
+    if (dialog)
+      return this.navigationDecision.request(
+        () => dialog.set(true),
+        () => dialog.set(false),
+      );
     if (this.isCreateModalOpen()) this.closeCreateModal();
     if (this.isEditModalOpen()) this.closeEditModal();
     return true;
@@ -342,42 +354,49 @@ export class ProjectFormsService {
     this.editingProject = null;
     this.editFormBaseline = null;
 
-    this.editDetailRequest = this.api.get<Project>(`/tasks/projects/${projectId}`, undefined, { notifyError: false }).subscribe({
-      next: project => {
-        if (
-          this.destroyed
-          || requestId !== this.editDetailRequestId
-          || !this.isEditModalOpen()
-          || this.isCreateModalOpen()
-          || this.editTargetId !== projectId
-        ) return;
-        this.editLoading.set(false);
-        if (!project || project.id !== projectId) {
+    this.editDetailRequest = this.api
+      .get<Project>(`/tasks/projects/${projectId}`, undefined, { notifyError: false })
+      .subscribe({
+        next: (project) => {
+          if (
+            this.destroyed ||
+            requestId !== this.editDetailRequestId ||
+            !this.isEditModalOpen() ||
+            this.isCreateModalOpen() ||
+            this.editTargetId !== projectId
+          )
+            return;
+          this.editLoading.set(false);
+          if (!project || project.id !== projectId) {
+            this.editLoadError.set(true);
+            return;
+          }
+          const normalized: ProjectEditForm = {
+            name: project.name.trim(),
+            description: (project.description || '').trim(),
+            state: project.state,
+          };
+          if (project.attributes && Object.keys(project.attributes).length > 0) {
+            normalized.attributes = { ...project.attributes };
+          }
+          this.editingProject = project;
+          this.editForm = { ...normalized };
+          this.editFormBaseline = {
+            ...normalized,
+            ...(normalized.attributes ? { attributes: { ...normalized.attributes } } : {}),
+          };
+        },
+        error: () => {
+          if (
+            this.destroyed ||
+            requestId !== this.editDetailRequestId ||
+            !this.isEditModalOpen() ||
+            this.editTargetId !== projectId
+          )
+            return;
+          this.editLoading.set(false);
           this.editLoadError.set(true);
-          return;
-        }
-        const normalized: ProjectEditForm = {
-          name: project.name.trim(),
-          description: (project.description || '').trim(),
-          state: project.state
-        };
-        if (project.attributes && Object.keys(project.attributes).length > 0) {
-          normalized.attributes = { ...project.attributes };
-        }
-        this.editingProject = project;
-        this.editForm = { ...normalized };
-        this.editFormBaseline = { ...normalized, ...(normalized.attributes ? { attributes: { ...normalized.attributes } } : {}) };
-      },
-      error: () => {
-        if (
-          this.destroyed
-          || requestId !== this.editDetailRequestId
-          || !this.isEditModalOpen()
-          || this.editTargetId !== projectId
-        ) return;
-        this.editLoading.set(false);
-        this.editLoadError.set(true);
-      }
-    });
+        },
+      });
   }
 }

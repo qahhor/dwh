@@ -55,7 +55,8 @@ export interface TreeTableColumns<T> {
       [smtVirtualRows]="false"
       [smtColumnResizeEnabled]="false"
       (smtRowClick)="choose($event)"
-      (smtRowKeydown)="onKeydown($event)" />
+      (smtRowKeydown)="onKeydown($event)"
+    />
 
     <ng-template #treeCell let-row>
       <div class="flex min-w-0 items-center gap-1" [style.padding-inline-start.px]="row.level * indentPx()">
@@ -72,7 +73,8 @@ export interface TreeTableColumns<T> {
             [attr.data-smt-check]="row.id"
             [checked]="isChecked(row)"
             [disabled]="disabled()"
-            (click)="$event.preventDefault(); $event.stopPropagation(); choose(row)" />
+            (click)="$event.preventDefault(); $event.stopPropagation(); choose(row)"
+          />
         }
         @if (row.hasChildren) {
           <!-- A pointer affordance only: the row's aria-expanded states it and
@@ -83,8 +85,11 @@ export interface TreeTableColumns<T> {
             aria-hidden="true"
             class="inline-flex h-[24px] w-[24px] shrink-0 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-gray-600 hover:bg-gray-100"
             [disabled]="searching()"
-            (click)="$event.stopPropagation(); toggle(row)">
-            <span class="material-symbols-outlined" style="font-size: 18px" aria-hidden="true">{{ isExpanded(row) ? 'expand_more' : 'chevron_right' }}</span>
+            (click)="$event.stopPropagation(); toggle(row)"
+          >
+            <span class="material-symbols-outlined" style="font-size: 18px" aria-hidden="true">{{
+              isExpanded(row) ? 'expand_more' : 'chevron_right'
+            }}</span>
           </button>
         } @else {
           <span class="inline-block h-[24px] w-[24px] shrink-0" aria-hidden="true"></span>
@@ -92,7 +97,8 @@ export interface TreeTableColumns<T> {
         <div
           class="min-w-0 flex-1 break-normal [overflow-wrap:anywhere]"
           [class.font-semibold]="row.hasChildren"
-          [class.text-gray-500]="searching() && !searchResult().matched.has(row.id)">
+          [class.text-gray-500]="searching() && !searchResult().matched.has(row.id)"
+        >
           @if (treeContent(); as content) {
             @if (content.type === 'templateRef') {
               <ng-container *ngTemplateOutlet="content.value(); context: { $implicit: row }" />
@@ -146,12 +152,12 @@ export class SMTTreeTableComponent<T> {
   protected readonly searchResult = computed(() => {
     const query = this.search().trim().toLocaleLowerCase();
     const text = this.searchText();
-    return searchTreeRows(this.rows(), row => !!query && text(row).toLocaleLowerCase().includes(query));
+    return searchTreeRows(this.rows(), (row) => !!query && text(row).toLocaleLowerCase().includes(query));
   });
 
   /** While searching, every branch on the way to a match is open: the result is the path. */
   protected readonly displayRows = computed(() =>
-    this.searching() ? this.searchResult().rows : visibleTreeRows(this.rows(), this.expanded())
+    this.searching() ? this.searchResult().rows : visibleTreeRows(this.rows(), this.expanded()),
   );
 
   protected readonly treeContent = computed(() => this.columns().columns[this.columns().treeColumn]?.content ?? null);
@@ -175,7 +181,7 @@ export class SMTTreeTableComponent<T> {
       ariaRole: 'treegrid',
       ariaMultiselectable: multiple,
       ariaLabel: this.ariaLabel(),
-      rowAria: row => ({
+      rowAria: (row) => ({
         id: row.id,
         level: row.level + 1,
         expanded: row.hasChildren ? open.has(row.id) : null,
@@ -191,19 +197,29 @@ export class SMTTreeTableComponent<T> {
 
   private readonly expanded = computed<ReadonlySet<string>>(() => {
     const collapsed = this.collapsed();
-    return new Set(this.rows().filter(row => row.hasChildren && !collapsed.has(row.id)).map(row => row.id));
+    return new Set(
+      this.rows()
+        .filter((row) => row.hasChildren && !collapsed.has(row.id))
+        .map((row) => row.id),
+    );
   });
 
   private readonly positions = computed(() => treePositions(this.displayRows()));
 
   /** Rows whose children are on screen. While searching, a match need not show its children. */
   private readonly openRows = computed<ReadonlySet<string>>(() =>
-    this.searching() ? new Set(this.displayRows().map(row => row.parentId).filter(id => id !== null)) : this.expanded()
+    this.searching()
+      ? new Set(
+          this.displayRows()
+            .map((row) => row.parentId)
+            .filter((id) => id !== null),
+        )
+      : this.expanded(),
   );
 
   /** The active row if it is still shown, otherwise the selected row, otherwise the first. */
   private readonly focusableId = computed(() => {
-    const shown = new Set(this.displayRows().map(row => row.id));
+    const shown = new Set(this.displayRows().map((row) => row.id));
     for (const id of [this.activeId(), this.selectedId()]) if (id !== null && shown.has(id)) return id;
     return this.displayRows()[0]?.id ?? null;
   });
@@ -254,26 +270,35 @@ export class SMTTreeTableComponent<T> {
     // Move from the row the grid last moved to, not from the element that has
     // focus: focus follows after the next render, so a quick second key press
     // still lands on the previous row and would otherwise repeat the same step.
-    const activeIndex = rows.findIndex(item => item.id === this.activeId());
-    const index = activeIndex >= 0 ? activeIndex : rows.findIndex(item => item.id === focused.id);
+    const activeIndex = rows.findIndex((item) => item.id === this.activeId());
+    const index = activeIndex >= 0 ? activeIndex : rows.findIndex((item) => item.id === focused.id);
     const row = rows[index] ?? focused;
     let target: TreeRow<T> | undefined;
 
     switch (event.key) {
-      case 'ArrowDown': target = rows[index + 1]; break;
-      case 'ArrowUp': target = rows[index - 1]; break;
-      case 'Home': target = rows[0]; break;
-      case 'End': target = rows[rows.length - 1]; break;
+      case 'ArrowDown':
+        target = rows[index + 1];
+        break;
+      case 'ArrowUp':
+        target = rows[index - 1];
+        break;
+      case 'Home':
+        target = rows[0];
+        break;
+      case 'End':
+        target = rows[rows.length - 1];
+        break;
       case 'ArrowRight':
         if (!row.hasChildren) break;
         // While searching, the result decides what is open (as for the toggle
         // button); expanding here would silently rewrite the user's own tree.
-        if (!this.isExpanded(row)) { if (!this.searching()) this.setExpanded(row, true); }
-        else if (rows[index + 1]?.parentId === row.id) target = rows[index + 1];
+        if (!this.isExpanded(row)) {
+          if (!this.searching()) this.setExpanded(row, true);
+        } else if (rows[index + 1]?.parentId === row.id) target = rows[index + 1];
         break;
       case 'ArrowLeft':
         if (row.hasChildren && this.isExpanded(row) && !this.searching()) this.setExpanded(row, false);
-        else target = rows.find(item => item.id === row.parentId);
+        else target = rows.find((item) => item.id === row.parentId);
         break;
       case 'Enter':
       case ' ':
@@ -294,7 +319,7 @@ export class SMTTreeTableComponent<T> {
   }
 
   private rootOf(id: string): string | null {
-    const byId = new Map(this.rows().map(row => [row.id, row]));
+    const byId = new Map(this.rows().map((row) => [row.id, row]));
     let row = byId.get(id);
     while (row?.parentId != null && byId.has(row.parentId)) row = byId.get(row.parentId);
     return row?.id ?? null;
@@ -305,9 +330,9 @@ export class SMTTreeTableComponent<T> {
     afterNextRender(
       () =>
         [...this.host.nativeElement.querySelectorAll<HTMLElement>('[data-smt-row-id]')]
-          .find(element => element.dataset['smtRowId'] === id)
+          .find((element) => element.dataset['smtRowId'] === id)
           ?.focus(),
-      { injector: this.injector }
+      { injector: this.injector },
     );
   }
 }

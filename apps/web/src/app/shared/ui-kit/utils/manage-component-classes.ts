@@ -36,8 +36,8 @@ export function manageComponentClasses(hostElement: ElementRef<HTMLElement>, cla
 
     // Normalize classes: split any class strings that contain spaces
     const newClasses = rawClasses
-      .flatMap(cls => (cls.includes(' ') ? parseClassString(cls) : [cls]))
-      .filter(cls => cls && cls.length > 0);
+      .flatMap((cls) => (cls.includes(' ') ? parseClassString(cls) : [cls]))
+      .filter((cls) => cls && cls.length > 0);
 
     const newClassesSet = new Set(newClasses);
 
@@ -50,14 +50,14 @@ export function manageComponentClasses(hostElement: ElementRef<HTMLElement>, cla
     const classList = el.classList;
 
     // Remove old classes that we added previously
-    previousClasses.forEach(cls => {
+    previousClasses.forEach((cls) => {
       if (!newClassesSet.has(cls)) {
         classList.remove(cls);
       }
     });
 
     // Add new classes
-    newClasses.forEach(cls => {
+    newClasses.forEach((cls) => {
       if (cls && !classList.contains(cls)) {
         classList.add(cls);
       }
@@ -97,6 +97,6 @@ function setsAreEqual<T>(a: Set<T>, b: Set<T>): boolean {
 export function parseClassString(classString: string): string[] {
   return classString
     .split(/\s+/)
-    .map(cls => cls.trim())
-    .filter(cls => cls.length > 0);
+    .map((cls) => cls.trim())
+    .filter((cls) => cls.length > 0);
 }

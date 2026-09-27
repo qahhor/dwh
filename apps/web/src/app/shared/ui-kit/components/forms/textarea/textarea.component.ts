@@ -123,7 +123,7 @@ export class SMTTextareaComponent implements FormValueControl<string> {
       touched: this.wasTouched(),
       required: this.required(),
       empty: this.text().trim() === '',
-    })
+    }),
   );
 
   readonly counter = computed(() => {
@@ -131,7 +131,9 @@ export class SMTTextareaComponent implements FormValueControl<string> {
     return max === undefined ? null : this.i18n.messages().textarea.counter(this.text().length, max);
   });
 
-  readonly describedByIds = computed(() => [this.describedBy().trim(), this.counter() ? this.counterId : ''].filter(Boolean).join(' ') || null);
+  readonly describedByIds = computed(
+    () => [this.describedBy().trim(), this.counter() ? this.counterId : ''].filter(Boolean).join(' ') || null,
+  );
 
   /** The last tenth of the allowed length is marked, so the limit is not a surprise. */
   readonly nearLimit = computed(() => {
@@ -180,12 +182,16 @@ export class SMTTextareaComponent implements FormValueControl<string> {
   private fit(element: HTMLTextAreaElement): void {
     const style = getComputedStyle(element);
     const line = parseFloat(style.lineHeight) || 20;
-    const chrome = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0)
-      + (parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.borderBottomWidth) || 0);
+    const chrome =
+      (parseFloat(style.paddingTop) || 0) +
+      (parseFloat(style.paddingBottom) || 0) +
+      (parseFloat(style.borderTopWidth) || 0) +
+      (parseFloat(style.borderBottomWidth) || 0);
     const min = this.rows() * line + chrome;
     const max = Math.max(this.maxRows(), this.rows()) * line + chrome;
     element.style.height = 'auto';
-    const wanted = element.scrollHeight + (parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.borderBottomWidth) || 0);
+    const wanted =
+      element.scrollHeight + (parseFloat(style.borderTopWidth) || 0) + (parseFloat(style.borderBottomWidth) || 0);
     element.style.height = `${Math.min(Math.max(wanted, min), max)}px`;
     element.style.overflowY = wanted > max ? 'auto' : 'hidden';
   }

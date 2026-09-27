@@ -16,6 +16,10 @@ export class SMTCheckboxValueAccessor extends PickerValueAccessor<boolean> {
 
   /** The checkbox's value is `checked`. */
   private bridge(control: SMTCheckboxComponent<unknown>): BridgedPicker<boolean> {
-    return { value: control.checked, touch: control.touch, setDisabledFromForms: disabled => control.setDisabledFromForms(disabled) };
+    return {
+      value: control.checked,
+      touch: control.touch,
+      setDisabledFromForms: (disabled) => control.setDisabledFromForms(disabled),
+    };
   }
 }

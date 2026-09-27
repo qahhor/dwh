@@ -13,8 +13,8 @@ describe('UiMarkdownEditorComponent', () => {
 
     expect(toolbar.getAttribute('aria-label')).toBe('Форматирование Markdown');
     expect(actions.length).toBeGreaterThan(0);
-    expect(actions.every(action => Boolean(action.getAttribute('aria-label')))).toBe(true);
-    expect(actions.every(action => action.querySelector('[aria-hidden="true"]'))).toBe(true);
+    expect(actions.every((action) => Boolean(action.getAttribute('aria-label')))).toBe(true);
+    expect(actions.every((action) => action.querySelector('[aria-hidden="true"]'))).toBe(true);
   });
 
   it('connects labelled editor and preview tab panels', async () => {
@@ -29,13 +29,17 @@ describe('UiMarkdownEditorComponent', () => {
 
     expect(label.textContent).toContain('Описание задачи');
     expect(tabs[0].getAttribute('aria-selected')).toBe('true');
-    expect(fixture.nativeElement.querySelector(`#${tabs[0].getAttribute('aria-controls')}[role="tabpanel"]`)).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(`#${tabs[0].getAttribute('aria-controls')}[role="tabpanel"]`),
+    ).not.toBeNull();
 
     tabs[1].click();
     fixture.detectChanges();
 
     expect(tabs[1].getAttribute('aria-selected')).toBe('true');
-    expect(fixture.nativeElement.querySelector(`#${tabs[1].getAttribute('aria-controls')}[role="tabpanel"]`)).not.toBeNull();
+    expect(
+      fixture.nativeElement.querySelector(`#${tabs[1].getAttribute('aria-controls')}[role="tabpanel"]`),
+    ).not.toBeNull();
   });
 
   it('does not create executable links in preview mode', async () => {

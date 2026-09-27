@@ -5,60 +5,150 @@
   } @else {
     <section class="card" [attr.aria-labelledby]="'assigned-title-' + userId">
       <div class="heading">
-        <div><h4 [id]="'assigned-title-' + userId">{{ 'iam.org_units.assignments_title' | t }}</h4>
-          <p class="help">{{ 'iam.org_units.assignments_help' | t }}</p></div>
-        <button smt-button type="button" data-action="retry-assignments" smtVariant="secondary" [disabled]="pending || dirty || assignmentsLoading" (click)="reloadAssignments()">{{ 'iam.org_units.retry' | t }}</button>
+        <div>
+          <h4 [id]="'assigned-title-' + userId">{{ 'iam.org_units.assignments_title' | t }}</h4>
+          <p class="help">{{ 'iam.org_units.assignments_help' | t }}</p>
+        </div>
+        <button
+          smt-button
+          type="button"
+          data-action="retry-assignments"
+          smtVariant="secondary"
+          [disabled]="pending || dirty || assignmentsLoading"
+          (click)="reloadAssignments()"
+        >
+          {{ 'iam.org_units.retry' | t }}
+        </button>
       </div>
-      @if (treeLoading || assignmentsLoading) { <p role="status">{{ 'iam.org_units.assignments_loading' | t }}</p> }
+      @if (treeLoading || assignmentsLoading) {
+        <p role="status">{{ 'iam.org_units.assignments_loading' | t }}</p>
+      }
       @if (treeError) {
-        <div role="alert"><p>{{ treeError.detail || ('iam.org_units.load_error' | t) }}</p>
-          <button smt-button type="button" data-action="retry-assignment-tree" smtVariant="secondary" [disabled]="pending || treeLoading" (click)="reloadTree()">{{ 'iam.org_units.retry' | t }}</button>
+        <div role="alert">
+          <p>{{ treeError.detail || ('iam.org_units.load_error' | t) }}</p>
+          <button
+            smt-button
+            type="button"
+            data-action="retry-assignment-tree"
+            smtVariant="secondary"
+            [disabled]="pending || treeLoading"
+            (click)="reloadTree()"
+          >
+            {{ 'iam.org_units.retry' | t }}
+          </button>
         </div>
       }
-      @if (assignmentsError) { <p role="alert">{{ assignmentsError.detail || ('iam.org_units.assignments_load_error' | t) }}</p> }
+      @if (assignmentsError) {
+        <p role="alert">{{ assignmentsError.detail || ('iam.org_units.assignments_load_error' | t) }}</p>
+      }
       @if (assignmentsLoaded) {
-        @if (!can('assign')) { <p role="status">{{ 'iam.org_units.assignments_view_only' | t }}</p> }
-        @if (inactiveAssignments.length) { <p class="warning" role="status">{{ 'iam.org_units.inactive_assignment_warning' | t }}</p> }
+        @if (!can('assign')) {
+          <p role="status">{{ 'iam.org_units.assignments_view_only' | t }}</p>
+        }
+        @if (inactiveAssignments.length) {
+          <p class="warning" role="status">{{ 'iam.org_units.inactive_assignment_warning' | t }}</p>
+        }
         @if (unresolvedAssignmentIds.length) {
-          <p class="warning" role="status">{{ 'iam.org_units.unknown_assignment_warning' | t:{ids: unresolvedAssignmentIds.join(', ')} }}</p>
+          <p class="warning" role="status">
+            {{ 'iam.org_units.unknown_assignment_warning' | t: { ids: unresolvedAssignmentIds.join(', ') } }}
+          </p>
         }
         @if (units.length) {
-          <smt-input type="search" smtIcon="search" clearable [(value)]="search"
-            [placeholder]="'iam.org_units.search' | t" [smtAriaLabel]="'iam.org_units.search' | t" />
-          <smt-tree-table [smtRows]="treeRows" [smtColumns]="treeColumns()" [smtAriaLabel]="'iam.org_units.assignments_title' | t"
-            smtSelectionMode="multiple" [smtCheckedIds]="checkedRowIds()" [smtSearch]="search()" [smtSearchText]="searchText"
-            [smtDisabled]="pending || !can('assign')" (smtToggle)="toggleAssignment($event.data)" />
+          <smt-input
+            type="search"
+            smtIcon="search"
+            clearable
+            [(value)]="search"
+            [placeholder]="'iam.org_units.search' | t"
+            [smtAriaLabel]="'iam.org_units.search' | t"
+          />
+          <smt-tree-table
+            [smtRows]="treeRows"
+            [smtColumns]="treeColumns()"
+            [smtAriaLabel]="'iam.org_units.assignments_title' | t"
+            smtSelectionMode="multiple"
+            [smtCheckedIds]="checkedRowIds()"
+            [smtSearch]="search()"
+            [smtSearchText]="searchText"
+            [smtDisabled]="pending || !can('assign')"
+            (smtToggle)="toggleAssignment($event.data)"
+          />
         }
-        @if (!units.length && treeLoaded) { <p>{{ 'iam.org_units.empty' | t }}</p> }
+        @if (!units.length && treeLoaded) {
+          <p>{{ 'iam.org_units.empty' | t }}</p>
+        }
         <div class="legacy">
           <h5>{{ 'iam.org_units.legacy_title' | t }}</h5>
           <p>{{ legacyOrgUnitId === null ? ('iam.org_units.legacy_none' | t) : unitLabel(legacyOrgUnitId) }}</p>
           <p class="help">{{ 'iam.org_units.legacy_help' | t }}</p>
         </div>
-        @if (saveError) { <p role="alert">{{ saveError.detail || ('iam.org_units.assignments_save_error' | t) }}</p> }
+        @if (saveError) {
+          <p role="alert">{{ saveError.detail || ('iam.org_units.assignments_save_error' | t) }}</p>
+        }
         <div class="actions">
           @if (can('assign')) {
-            <button smt-button type="button" smtVariant="secondary" [disabled]="pending || !dirty" (click)="cancelEdits()">{{ 'iam.org_units.cancel' | t }}</button>
-            <button smt-button type="button" data-action="save-assignments" [smtLoading]="pending" [disabled]="!dirty" (click)="save()">{{ 'iam.org_units.save' | t }}</button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              [disabled]="pending || !dirty"
+              (click)="cancelEdits()"
+            >
+              {{ 'iam.org_units.cancel' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              data-action="save-assignments"
+              [smtLoading]="pending"
+              [disabled]="!dirty"
+              (click)="save()"
+            >
+              {{ 'iam.org_units.save' | t }}
+            </button>
           }
         </div>
       }
     </section>
 
     <section class="card" [attr.aria-labelledby]="'scope-title-' + userId">
-      <div class="heading"><h4 [id]="'scope-title-' + userId">{{ 'iam.org_units.effective_scope_title' | t }}</h4>
-        <button smt-button type="button" smtVariant="secondary" [disabled]="pending || scopeLoading" (click)="reloadScope()">{{ 'iam.org_units.retry' | t }}</button></div>
+      <div class="heading">
+        <h4 [id]="'scope-title-' + userId">{{ 'iam.org_units.effective_scope_title' | t }}</h4>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [disabled]="pending || scopeLoading"
+          (click)="reloadScope()"
+        >
+          {{ 'iam.org_units.retry' | t }}
+        </button>
+      </div>
       <p class="help">{{ 'iam.org_units.effective_scope_help' | t }}</p>
-      @if (scopeLoading) { <p role="status">{{ 'iam.data_scope.loading' | t }}</p> }
+      @if (scopeLoading) {
+        <p role="status">{{ 'iam.data_scope.loading' | t }}</p>
+      }
       @if (scopeError) {
-        <p role="alert">{{ (savedRefreshFailed ? 'iam.data_scope.saved_refresh_error' : 'iam.data_scope.load_error') | t }} {{ scopeError.detail }}</p>
+        <p role="alert">
+          {{ (savedRefreshFailed ? 'iam.data_scope.saved_refresh_error' : 'iam.data_scope.load_error') | t }}
+          {{ scopeError.detail }}
+        </p>
       }
       @if (scopeLoaded && effectiveScope; as scope) {
-        <dl><dt>{{ 'iam.data_scope.rule' | t }}</dt><dd>{{ scopeRuleKey() | t }}</dd></dl>
+        <dl>
+          <dt>{{ 'iam.data_scope.rule' | t }}</dt>
+          <dd>{{ scopeRuleKey() | t }}</dd>
+        </dl>
         @if (scope.visibleOrgUnitIds.length) {
           <h5>{{ 'iam.data_scope.visible_units' | t }}</h5>
-          <ul class="visible">@for (id of scope.visibleOrgUnitIds; track id) { <li>{{ unitLabel(id) }}</li> }</ul>
-        } @else { <p>{{ emptyScopeKey() | t }}</p> }
+          <ul class="visible">
+            @for (id of scope.visibleOrgUnitIds; track id) {
+              <li>{{ unitLabel(id) }}</li>
+            }
+          </ul>
+        } @else {
+          <p>{{ emptyScopeKey() | t }}</p>
+        }
       }
     </section>
   }
@@ -66,11 +156,15 @@
 @if (can('view')) {
   <smt-dialog [open]="discard.open()" [smtTitle]="'iam.org_units.discard_title' | t" (closed)="discard.cancel()">
     <ng-template smtDialogContent>
-    <p body>{{ 'iam.org_units.assignments_discard_warning' | t }}</p>
-    <div footer class="actions">
-      <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">{{ 'iam.org_units.keep_editing' | t }}</button>
-      <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">{{ 'iam.org_units.discard' | t }}</button>
-    </div>
+      <p body>{{ 'iam.org_units.assignments_discard_warning' | t }}</p>
+      <div footer class="actions">
+        <button smt-button type="button" smtVariant="secondary" (click)="discard.cancel()">
+          {{ 'iam.org_units.keep_editing' | t }}
+        </button>
+        <button smt-button type="button" smtVariant="danger" (click)="discard.confirm()">
+          {{ 'iam.org_units.discard' | t }}
+        </button>
+      </div>
     </ng-template>
   </smt-dialog>
 }

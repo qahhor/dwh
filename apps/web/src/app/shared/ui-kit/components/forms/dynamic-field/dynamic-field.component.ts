@@ -24,7 +24,8 @@ import { SMTSwitchComponent } from '../switch/switch.component';
 import { SMTTextareaComponent } from '../textarea/textarea.component';
 import { SMTTimePickerComponent } from '../time-picker/time-picker.component';
 
-export type SMTDynamicFieldType = 'string' | 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select' | 'user_ref';
+export type SMTDynamicFieldType =
+  'string' | 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select' | 'user_ref';
 
 export interface SMTDynamicFieldDef {
   readonly code: string;
@@ -58,7 +59,12 @@ let nextFieldId = 0;
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'smt-dynamic-field' },
   template: `
-    <smt-control [smtLabel]="field().label" [smtHint]="field().hint ?? ''" [required]="!!field().required" [smtError]="error()">
+    <smt-control
+      [smtLabel]="field().label"
+      [smtHint]="field().hint ?? ''"
+      [required]="!!field().required"
+      [smtError]="error()"
+    >
       @switch (field().type) {
         @case ('text') {
           <smt-textarea
@@ -69,7 +75,8 @@ let nextFieldId = 0;
             [disabled]="disabled()"
             [maxLength]="field().maxLength ?? undefined"
             [value]="text()"
-            (valueChange)="value.set($event)" />
+            (valueChange)="value.set($event)"
+          />
         }
         @case ('number') {
           <input
@@ -81,10 +88,16 @@ let nextFieldId = 0;
             [required]="!!field().required"
             [disabled]="disabled()"
             [value]="text()"
-            (input)="setNumber($event)" />
+            (input)="setNumber($event)"
+          />
         }
         @case ('boolean') {
-          <smt-switch [smtFieldId]="fieldId" [disabled]="disabled()" [checked]="checked()" (smtUserChange)="value.set($event)" />
+          <smt-switch
+            [smtFieldId]="fieldId"
+            [disabled]="disabled()"
+            [checked]="checked()"
+            (smtUserChange)="value.set($event)"
+          />
         }
         @case ('date') {
           <smt-date-picker
@@ -93,7 +106,8 @@ let nextFieldId = 0;
             [required]="!!field().required"
             [disabled]="disabled()"
             [ngModel]="value() || null"
-            (ngModelChange)="value.set($event ?? '')" />
+            (ngModelChange)="value.set($event ?? '')"
+          />
         }
         @case ('datetime') {
           <smt-date-picker
@@ -103,7 +117,8 @@ let nextFieldId = 0;
             [required]="!!field().required"
             [disabled]="disabled()"
             [ngModel]="value() || null"
-            (ngModelChange)="value.set($event ?? '')" />
+            (ngModelChange)="value.set($event ?? '')"
+          />
         }
         @case ('time') {
           <smt-time-picker
@@ -112,7 +127,8 @@ let nextFieldId = 0;
             [required]="!!field().required"
             [disabled]="disabled()"
             [value]="timeValue()"
-            (valueChange)="value.set($event)" />
+            (valueChange)="value.set($event)"
+          />
         }
         @case ('select') {
           <smt-select
@@ -122,7 +138,8 @@ let nextFieldId = 0;
             [disabled]="disabled()"
             [placeholder]="field().placeholder ?? ''"
             [value]="selectValue()"
-            (valueChange)="value.set($event)" />
+            (valueChange)="value.set($event)"
+          />
         }
         @case ('user_ref') {
           @if (userSource(); as source) {
@@ -133,7 +150,8 @@ let nextFieldId = 0;
               [disabled]="disabled()"
               [placeholder]="field().placeholder ?? ''"
               [value]="userValue()"
-              (valueChange)="value.set($event)" />
+              (valueChange)="value.set($event)"
+            />
           }
         }
         @default {
@@ -147,7 +165,8 @@ let nextFieldId = 0;
             [disabled]="disabled()"
             [attr.maxlength]="field().maxLength ?? null"
             [value]="text()"
-            (input)="setText($event)" />
+            (input)="setText($event)"
+          />
         }
       }
     </smt-control>
@@ -176,7 +195,9 @@ export class SMTDynamicFieldComponent {
   /** A stored "true" counts as yes, as the API has sent it both ways. */
   readonly checked = computed(() => this.value() === true || this.value() === 'true');
 
-  readonly timeValue = computed(() => (typeof this.value() === 'string' && this.value() ? (this.value() as string) : null));
+  readonly timeValue = computed(() =>
+    typeof this.value() === 'string' && this.value() ? (this.value() as string) : null,
+  );
 
   readonly selectValue = computed(() => {
     const value = this.value();

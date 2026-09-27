@@ -19,14 +19,16 @@ export * from './login.models';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, 
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
     TranslatePipe,
     CommonModule,
     FormsModule,
     SMTButtonComponent,
     LoginTopBarComponent,
     LoginHeaderComponent,
-    LoginResetModalComponent
+    LoginResetModalComponent,
   ],
   template: `
     <main class="login-wrapper">
@@ -35,7 +37,12 @@ export * from './login.models';
         <app-login-header></app-login-header>
 
         <!-- Step 1: Login & Password Form -->
-        <form *ngIf="step() === 'credentials'" (ngSubmit)="onLoginSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+        <form
+          *ngIf="step() === 'credentials'"
+          (ngSubmit)="onLoginSubmit()"
+          class="login-form"
+          [attr.aria-busy]="isLoading()"
+        >
           <div class="form-group">
             <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
             <smt-input
@@ -50,7 +57,8 @@ export * from './login.models';
               placeholder="user@company.com"
               [smtInvalid]="formError() ? 'true' : null"
               [smtDescribedBy]="formError() ? 'login-error' : null"
-              [disabled]="isLoading()" />
+              [disabled]="isLoading()"
+            />
           </div>
 
           <div class="form-group">
@@ -71,14 +79,20 @@ export * from './login.models';
               [spellcheck]="false"
               [smtInvalid]="!!formError()"
               [smtDescribedBy]="passwordDescription('password')"
-              [disabled]="isLoading()" />
-            <p id="password-caps-lock" class="caps-lock-hint" role="status">{{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}</p>
-            <button type="button" class="forgot-link" [disabled]="isLoading()" (click)="openResetModal()">{{ 'auth.zabyli_parol' | t }}</button>
+              [disabled]="isLoading()"
+            />
+            <p id="password-caps-lock" class="caps-lock-hint" role="status">
+              {{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}
+            </p>
+            <button type="button" class="forgot-link" [disabled]="isLoading()" (click)="openResetModal()">
+              {{ 'auth.zabyli_parol' | t }}
+            </button>
           </div>
 
           <p *ngIf="formError()" id="login-error" class="form-error" role="alert">{{ formError() }}</p>
 
-          <button smt-button
+          <button
+            smt-button
             type="submit"
             smtVariant="primary"
             smtSize="lg"
@@ -88,7 +102,6 @@ export * from './login.models';
           >
             {{ 'auth.voyti_v_sistemu' | t }}
           </button>
-
         </form>
 
         <!-- Step 2: 2FA OTP Code Verification -->
@@ -116,13 +129,15 @@ export * from './login.models';
               smtPattern="[0-9]{6}"
               [smtDescribedBy]="formError() ? 'otp-hint otp-error' : 'otp-hint'"
               [smtInvalid]="formError() ? 'true' : null"
-              [disabled]="isLoading()" />
+              [disabled]="isLoading()"
+            />
           </div>
 
           <p *ngIf="formError()" id="otp-error" class="form-error" role="alert">{{ formError() }}</p>
 
           <div class="otp-actions">
-            <button smt-button
+            <button
+              smt-button
               type="submit"
               smtVariant="primary"
               smtSize="lg"
@@ -133,7 +148,8 @@ export * from './login.models';
               {{ 'auth.podtverdit_vhod' | t }}
             </button>
 
-            <button smt-button
+            <button
+              smt-button
               type="button"
               smtVariant="ghost"
               smtSize="md"
@@ -146,7 +162,12 @@ export * from './login.models';
         </form>
 
         <!-- Step 3: Mandatory Password Change on First Login -->
-        <form *ngIf="step() === 'must_change_password'" (ngSubmit)="onChangePasswordSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+        <form
+          *ngIf="step() === 'must_change_password'"
+          (ngSubmit)="onChangePasswordSubmit()"
+          class="login-form"
+          [attr.aria-busy]="isLoading()"
+        >
           <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning);">
             <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
             <div>
@@ -173,8 +194,11 @@ export * from './login.models';
               [spellcheck]="false"
               [smtInvalid]="!!formError()"
               [smtDescribedBy]="passwordDescription('new-password')"
-              [disabled]="isLoading()" />
-            <p id="new-password-caps-lock" class="caps-lock-hint" role="status">{{ capsLockField() === 'new-password' ? ('auth.caps_lock_on' | t) : '' }}</p>
+              [disabled]="isLoading()"
+            />
+            <p id="new-password-caps-lock" class="caps-lock-hint" role="status">
+              {{ capsLockField() === 'new-password' ? ('auth.caps_lock_on' | t) : '' }}
+            </p>
           </div>
 
           <div class="form-group">
@@ -195,14 +219,18 @@ export * from './login.models';
               [spellcheck]="false"
               [smtInvalid]="!!formError()"
               [smtDescribedBy]="passwordDescription('confirm-new-password')"
-              [disabled]="isLoading()" />
-            <p id="confirm-new-password-caps-lock" class="caps-lock-hint" role="status">{{ capsLockField() === 'confirm-new-password' ? ('auth.caps_lock_on' | t) : '' }}</p>
+              [disabled]="isLoading()"
+            />
+            <p id="confirm-new-password-caps-lock" class="caps-lock-hint" role="status">
+              {{ capsLockField() === 'confirm-new-password' ? ('auth.caps_lock_on' | t) : '' }}
+            </p>
           </div>
 
           <p *ngIf="formError()" id="password-change-error" class="form-error" role="alert">{{ formError() }}</p>
 
           <div class="otp-actions">
-            <button smt-button
+            <button
+              smt-button
               type="submit"
               smtVariant="primary"
               smtSize="lg"
@@ -213,7 +241,8 @@ export * from './login.models';
               {{ 'auth.change_password' | t }}
             </button>
 
-            <button smt-button
+            <button
+              smt-button
               type="button"
               smtVariant="ghost"
               smtSize="md"
@@ -228,12 +257,9 @@ export * from './login.models';
     </main>
 
     <!-- Password Reset Modal -->
-    <app-login-reset-modal
-      [isOpen]="isResetModalOpen()"
-      (close)="isResetModalOpen.set(false)"
-    ></app-login-reset-modal>
+    <app-login-reset-modal [isOpen]="isResetModalOpen()" (close)="isResetModalOpen.set(false)"></app-login-reset-modal>
   `,
-  styleUrl: './login.component.css'
+  styleUrl: './login.component.css',
 })
 export class LoginComponent {
   readonly i18n = inject(I18nService);
@@ -260,7 +286,7 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
-    private api: ApiService
+    private api: ApiService,
   ) {
     // Apply the saved theme on this public route before the app shell exists.
     inject(ThemeService);
@@ -278,27 +304,31 @@ export class LoginComponent {
     this.formError.set('');
     this.capsLockField.set(null);
     this.isLoading.set(true);
-    this.authService.login(this.login, this.password, navigator.userAgent)
-      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        this.isLoading.set(false);
-        if (res.step === 'otp') {
-          this.otpToken = res.otp_token || '';
-          this.otpCode = '';
-          this.changeStep('otp');
-        } else if (res.step === 'success' && res.user?.forcePasswordChange) {
-          this.tempOldPassword = this.password;
-          this.newPassword = '';
-          this.confirmNewPassword = '';
-          this.changeStep('must_change_password');
-        }
-      },
-      error: err => {
-        this.isLoading.set(false);
-        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_vypolnit_vhod_proverte_dannye_i_povtor')));
-        this.focusInput('password');
-      }
-    });
+    this.authService
+      .login(this.login, this.password, navigator.userAgent)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.isLoading.set(false);
+          if (res.step === 'otp') {
+            this.otpToken = res.otp_token || '';
+            this.otpCode = '';
+            this.changeStep('otp');
+          } else if (res.step === 'success' && res.user?.forcePasswordChange) {
+            this.tempOldPassword = this.password;
+            this.newPassword = '';
+            this.confirmNewPassword = '';
+            this.changeStep('must_change_password');
+          }
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.formError.set(
+            this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_vypolnit_vhod_proverte_dannye_i_povtor')),
+          );
+          this.focusInput('password');
+        },
+      });
   }
 
   onOtpSubmit() {
@@ -311,23 +341,27 @@ export class LoginComponent {
 
     this.formError.set('');
     this.isLoading.set(true);
-    this.authService.verifyOtp(this.otpToken, this.otpCode, navigator.userAgent)
-      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: res => {
-        this.isLoading.set(false);
-        if (res.step === 'success' && res.user?.forcePasswordChange) {
-          this.tempOldPassword = this.password;
-          this.newPassword = '';
-          this.confirmNewPassword = '';
-          this.changeStep('must_change_password');
-        }
-      },
-      error: err => {
-        this.isLoading.set(false);
-        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.kod_ne_podtverzhden_proverte_kod_i_povtorite_pop')));
-        this.focusInput('otp-code');
-      }
-    });
+    this.authService
+      .verifyOtp(this.otpToken, this.otpCode, navigator.userAgent)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res) => {
+          this.isLoading.set(false);
+          if (res.step === 'success' && res.user?.forcePasswordChange) {
+            this.tempOldPassword = this.password;
+            this.newPassword = '';
+            this.confirmNewPassword = '';
+            this.changeStep('must_change_password');
+          }
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.formError.set(
+            this.errorMessage(err, this.uiI18n.translate('auth.kod_ne_podtverzhden_proverte_kod_i_povtorite_pop')),
+          );
+          this.focusInput('otp-code');
+        },
+      });
   }
 
   onChangePasswordSubmit() {
@@ -353,27 +387,35 @@ export class LoginComponent {
     this.isLoading.set(true);
     // A committed password change must clear global authentication even if
     // navigation destroys this view before the response arrives.
-    this.api.post('/auth/password', {
-      oldPassword: this.tempOldPassword || this.password,
-      newPassword: this.newPassword
-    }, { notifyError: false }).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.password = '';
-        this.tempOldPassword = '';
-        this.newPassword = '';
-        this.confirmNewPassword = '';
-        this.otpToken = '';
-        this.otpCode = '';
-        this.changeStep('credentials');
-        this.authService.onPasswordChanged();
-      },
-      error: err => {
-        this.isLoading.set(false);
-        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_izmenit_parol_proverte_slozhnost_parol')));
-        this.focusInput('new-password');
-      }
-    });
+    this.api
+      .post(
+        '/auth/password',
+        {
+          oldPassword: this.tempOldPassword || this.password,
+          newPassword: this.newPassword,
+        },
+        { notifyError: false },
+      )
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.password = '';
+          this.tempOldPassword = '';
+          this.newPassword = '';
+          this.confirmNewPassword = '';
+          this.otpToken = '';
+          this.otpCode = '';
+          this.changeStep('credentials');
+          this.authService.onPasswordChanged();
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          this.formError.set(
+            this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_izmenit_parol_proverte_slozhnost_parol')),
+          );
+          this.focusInput('new-password');
+        },
+      });
   }
 
   openResetModal() {
@@ -423,14 +465,17 @@ export class LoginComponent {
 
   private focusInput(id: string): void {
     if (this.destroyRef.destroyed) return;
-    afterNextRender(() => {
-      // NgModel applies its disabled state in a microtask after rendering.
-      // Wait for that update so an error can focus a re-enabled input.
-      queueMicrotask(() => {
-        if (!this.destroyRef.destroyed && !this.isResetModalOpen()) {
-          this.element.nativeElement.querySelector<HTMLInputElement>(`#${id}`)?.focus();
-        }
-      });
-    }, { injector: this.injector });
+    afterNextRender(
+      () => {
+        // NgModel applies its disabled state in a microtask after rendering.
+        // Wait for that update so an error can focus a re-enabled input.
+        queueMicrotask(() => {
+          if (!this.destroyRef.destroyed && !this.isResetModalOpen()) {
+            this.element.nativeElement.querySelector<HTMLInputElement>(`#${id}`)?.focus();
+          }
+        });
+      },
+      { injector: this.injector },
+    );
   }
 }

@@ -29,7 +29,7 @@ export const UPL_PACKAGE_CODES = [
   'UPL_CELL_NOT_INTEGER',
   'UPL_CELL_NOT_NUMBER',
   'UPL_CELL_NOT_DATE',
-  'UPL_CELL_KEY_MASK'
+  'UPL_CELL_KEY_MASK',
 ] as const;
 
 /** Перевод с параметрами: `I18nService.translate` либо его заглушка в тестах. */
@@ -39,7 +39,7 @@ export type UplTranslate = (key: string, params?: UplPackageParams) => string;
 export function uplPackageCodeText(
   code: string,
   params: UplPackageParams | null | undefined,
-  translate: UplTranslate
+  translate: UplTranslate,
 ): string {
   const key = uplErrorKey(code);
   const text = translate(key, params ?? undefined);
@@ -61,7 +61,7 @@ const FIELD_PLACE: Record<string, UplFormPlace> = {
   sourceId: 'source',
   periodFrom: 'period',
   periodTo: 'period',
-  file: 'file'
+  file: 'file',
 };
 
 /** Отказы по размеру приходят с этим кодом и от нашей проверки, и от каркаса. */
@@ -89,14 +89,14 @@ function fieldText(code: string, message: string, translate: UplTranslate): stri
 /** Отказ сервера → тексты по местам формы; неизвестный код не прячем — он уходит полосой над формой. */
 export function mapUplUploadProblem(
   problem: ProblemDetail | null | undefined,
-  translate: UplTranslate
+  translate: UplTranslate,
 ): UplPackageFormErrors {
   const errors = emptyErrors();
   if (problem && (problem.code ?? '').toLowerCase() === FILE_SIZE_CODE) {
     add(errors, 'file', translate(uplErrorKey('UPL_PKG_FILE_TOO_LARGE')));
     return errors;
   }
-  const fields = problem?.status === 422 ? problem.errors ?? [] : [];
+  const fields = problem?.status === 422 ? (problem.errors ?? []) : [];
   if (fields.length > 0) {
     for (const field of fields) {
       add(errors, FIELD_PLACE[field.field] ?? 'form', fieldText(field.code, field.message, translate));

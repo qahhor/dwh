@@ -19,7 +19,7 @@ import {
   CreatedTokenResponse,
   PasswordForm,
   PasswordStrength,
-  TokenExpirationOption
+  TokenExpirationOption,
 } from './profile.models';
 
 import { UserProfileCardComponent } from './components/user-profile-card.component';
@@ -42,7 +42,7 @@ export * from './profile.models';
     ProfileSecurityCardComponent,
     ProfileChannelsCardComponent,
     ProfileSessionsCardComponent,
-    ProfileTokensCardComponent
+    ProfileTokensCardComponent,
   ],
   template: `
     <div class="profile-container">
@@ -122,64 +122,66 @@ export * from './profile.models';
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-      min-width: 0;
-    }
-
-    .profile-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      max-width: 1400px;
-      min-width: 0;
-    }
-
-    .view-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 4px;
-    }
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .view-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin: 0;
-    }
-
-    .count-badge {
-      background-color: var(--bg-hover);
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 500;
-      padding: 3px 10px;
-      border-radius: 12px;
-      border: 1px solid var(--border-color);
-    }
-
-    .sections-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 16px;
-    }
-
-    @media (max-width: 1024px) {
-      .sections-grid {
-        grid-template-columns: minmax(0, 1fr);
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 0;
       }
-    }
-  `]
+
+      .profile-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 1400px;
+        min-width: 0;
+      }
+
+      .view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 4px;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .view-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0;
+      }
+
+      .count-badge {
+        background-color: var(--bg-hover);
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+      }
+
+      .sections-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+      }
+
+      @media (max-width: 1024px) {
+        .sections-grid {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+    `,
+  ],
 })
 export class ProfileComponent implements OnInit {
   public readonly permissionService = inject(PermissionService);
@@ -218,19 +220,19 @@ export class ProfileComponent implements OnInit {
     { value: '30', labelKey: 'iam.srok_30_dney' },
     { value: '90', labelKey: 'iam.srok_90_dney' },
     { value: '365', labelKey: 'iam.srok_1_god' },
-    { value: 'never', labelKey: 'iam.bessrochno' }
+    { value: 'never', labelKey: 'iam.bessrochno' },
   ];
 
   passwordForm: PasswordForm = {
     oldPassword: '',
     newPassword: '',
-    confirmPassword: ''
+    confirmPassword: '',
   };
 
   constructor(
     public authService: AuthService,
     private api: ApiService,
-    private toast: ToastService
+    private toast: ToastService,
   ) {}
 
   passwordStrength(): PasswordStrength {
@@ -292,20 +294,20 @@ export class ProfileComponent implements OnInit {
   loadChannels() {
     this.isLoadingChannels.set(true);
     this.api.get<UserChannel[]>('/iam/profile/channels').subscribe({
-      next: res => {
+      next: (res) => {
         this.channels.set(res || []);
         this.isLoadingChannels.set(false);
       },
       error: () => {
         this.isLoadingChannels.set(false);
-      }
+      },
     });
   }
 
   onBindChannel(event: { channel: string; address: string }) {
     this.isBindingChannel.set(true);
     this.api.post<BindChannelResponse>('/iam/profile/channels', event).subscribe({
-      next: res => {
+      next: (res) => {
         this.isBindingChannel.set(false);
         this.toast.info(this.uiI18n.translate('iam.kod_podtverzhdeniya_otpravlen', { address: event.address }));
         this.channelsCard?.openConfirmModal(res.verifyToken, event.address);
@@ -314,7 +316,7 @@ export class ProfileComponent implements OnInit {
       error: (err: any) => {
         this.isBindingChannel.set(false);
         this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_privyazki_kanala'));
-      }
+      },
     });
   }
 
@@ -330,7 +332,7 @@ export class ProfileComponent implements OnInit {
       error: (err: any) => {
         this.isConfirmingChannel.set(false);
         this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_podtverzhdeniya_kanala'));
-      }
+      },
     });
   }
 
@@ -346,20 +348,20 @@ export class ProfileComponent implements OnInit {
         this.toast.success(t('iam.kanal_uspeshno_otvyazan'));
         this.loadChannels();
       },
-      failure: t('iam.oshibka_otvyazki_kanala')
+      failure: t('iam.oshibka_otvyazki_kanala'),
     });
   }
 
   loadSessions() {
     this.isLoadingSessions.set(true);
     this.api.get<UserSession[]>('/iam/profile/sessions').subscribe({
-      next: res => {
+      next: (res) => {
         this.sessions.set(res || []);
         this.isLoadingSessions.set(false);
       },
       error: () => {
         this.isLoadingSessions.set(false);
-      }
+      },
     });
   }
 
@@ -375,7 +377,7 @@ export class ProfileComponent implements OnInit {
         this.loadSessions();
       },
       failure: t('iam.oshibka_pri_zavershenii_sessii'),
-      busy: on => this.isTerminatingSession.set(on)
+      busy: (on) => this.isTerminatingSession.set(on),
     });
   }
 
@@ -391,7 +393,7 @@ export class ProfileComponent implements OnInit {
         this.loadSessions();
       },
       failure: t('iam.oshibka_pri_zavershenii_sessiy'),
-      busy: on => this.isTerminatingSession.set(on)
+      busy: (on) => this.isTerminatingSession.set(on),
     });
   }
 
@@ -415,32 +417,34 @@ export class ProfileComponent implements OnInit {
     }
 
     this.isChangingPassword.set(true);
-    this.api.post('/iam/users/me/password', {
-      oldPassword: this.passwordForm.oldPassword,
-      newPassword: this.passwordForm.newPassword
-    }).subscribe({
-      next: () => {
-        this.isChangingPassword.set(false);
-        this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
-        this.isPasswordSubmitted = false;
-        this.authService.onPasswordChanged();
-      },
-      error: () => {
-        this.isChangingPassword.set(false);
-      }
-    });
+    this.api
+      .post('/iam/users/me/password', {
+        oldPassword: this.passwordForm.oldPassword,
+        newPassword: this.passwordForm.newPassword,
+      })
+      .subscribe({
+        next: () => {
+          this.isChangingPassword.set(false);
+          this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
+          this.isPasswordSubmitted = false;
+          this.authService.onPasswordChanged();
+        },
+        error: () => {
+          this.isChangingPassword.set(false);
+        },
+      });
   }
 
   loadTokens() {
     this.isLoadingTokens.set(true);
     this.api.get<ApiToken[]>('/iam/profile/tokens').subscribe({
-      next: res => {
+      next: (res) => {
         this.tokens.set(res || []);
         this.isLoadingTokens.set(false);
       },
       error: () => {
         this.isLoadingTokens.set(false);
-      }
+      },
     });
   }
 
@@ -469,24 +473,26 @@ export class ProfileComponent implements OnInit {
     }
 
     this.isCreatingToken.set(true);
-    this.api.post<CreatedTokenResponse>('/iam/profile/tokens', {
-      name: this.newTokenName.trim(),
-      expiresAt
-    }).subscribe({
-      next: res => {
-        this.isCreatingToken.set(false);
-        this.isCreateTokenModalOpen.set(false);
-        this.isTokenSubmitted = false;
-        this.createdTokenSecret = res.rawSecretToken;
-        this.copiedSecret.set(false);
-        this.isTokenSecretModalOpen.set(true);
-        this.loadTokens();
-      },
-      error: (err: any) => {
-        this.isCreatingToken.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
-      }
-    });
+    this.api
+      .post<CreatedTokenResponse>('/iam/profile/tokens', {
+        name: this.newTokenName.trim(),
+        expiresAt,
+      })
+      .subscribe({
+        next: (res) => {
+          this.isCreatingToken.set(false);
+          this.isCreateTokenModalOpen.set(false);
+          this.isTokenSubmitted = false;
+          this.createdTokenSecret = res.rawSecretToken;
+          this.copiedSecret.set(false);
+          this.isTokenSecretModalOpen.set(true);
+          this.loadTokens();
+        },
+        error: (err: any) => {
+          this.isCreatingToken.set(false);
+          this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
+        },
+      });
   }
 
   requestRevokeToken(token: ApiToken) {
@@ -500,7 +506,7 @@ export class ProfileComponent implements OnInit {
         this.toast.success(t('iam.token_uspeshno_otozvan'));
         this.loadTokens();
       },
-      failure: t('iam.oshibka_pri_otzyve_tokena')
+      failure: t('iam.oshibka_pri_otzyve_tokena'),
     });
   }
 
@@ -517,18 +523,31 @@ export class ProfileComponent implements OnInit {
    * the dialog stays open while the request runs and shows the server's
    * reason (or `failure`) if it fails, so the person can retry or keep things.
    */
-  private askThenRun(ask: { title: string; message: string; yesLabel: string; request: () => Observable<unknown>; done: () => void; failure: string; busy?: (on: boolean) => void }): void {
-    this.modal.confirm({
-      title: ask.title,
-      message: ask.message,
-      yesLabel: ask.yesLabel,
-      noLabel: this.uiI18n.translate('common.cancel'),
-      destructive: true,
-      action: () => {
-        ask.busy?.(true);
-        return ask.request().pipe(tap(() => ask.done()), finalize(() => ask.busy?.(false)));
-      },
-      actionError: error => problemText(error) || ask.failure
-    }).subscribe();
+  private askThenRun(ask: {
+    title: string;
+    message: string;
+    yesLabel: string;
+    request: () => Observable<unknown>;
+    done: () => void;
+    failure: string;
+    busy?: (on: boolean) => void;
+  }): void {
+    this.modal
+      .confirm({
+        title: ask.title,
+        message: ask.message,
+        yesLabel: ask.yesLabel,
+        noLabel: this.uiI18n.translate('common.cancel'),
+        destructive: true,
+        action: () => {
+          ask.busy?.(true);
+          return ask.request().pipe(
+            tap(() => ask.done()),
+            finalize(() => ask.busy?.(false)),
+          );
+        },
+        actionError: (error) => problemText(error) || ask.failure,
+      })
+      .subscribe();
   }
 }

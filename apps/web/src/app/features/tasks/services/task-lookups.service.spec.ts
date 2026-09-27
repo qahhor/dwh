@@ -22,12 +22,20 @@ describe('TaskLookupsService', () => {
     api.get.mockReturnValue(of({ items: [], nextCursor: null, hasMore: false }));
     lookups.users.page('ann', null, 50).subscribe();
     lookups.tasks.page('Outside', 'c1', 50).subscribe();
-    expect(api.get).toHaveBeenCalledWith('/iam/users', { state: 'A', limit: 50, cursor: undefined, search: 'ann' }, { notifyError: false });
-    expect(api.get).toHaveBeenCalledWith('/tasks', { limit: 50, cursor: 'c1', search: 'Outside' }, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith(
+      '/iam/users',
+      { state: 'A', limit: 50, cursor: undefined, search: 'ann' },
+      { notifyError: false },
+    );
+    expect(api.get).toHaveBeenCalledWith(
+      '/tasks',
+      { limit: 50, cursor: 'c1', search: 'Outside' },
+      { notifyError: false },
+    );
     expect(lookups.tasks.option({ id: 12, title: 'Report' })).toEqual({ label: '#12 Report', icon: 'task_alt' });
   });
 
-  it('remembers a card\'s members and parent, a fresher card replacing an older name', () => {
+  it("remembers a card's members and parent, a fresher card replacing an older name", () => {
     lookups.retainTaskMember(member(501, 'Old Name'));
     lookups.retainTaskMember(member(501, 'Fresh Name'));
     lookups.retainParentOption(999, 'Parent');
@@ -53,7 +61,7 @@ describe('TaskLookupsService', () => {
   it('reads a chosen parent from its card', () => {
     api.get.mockReturnValue(of({ task: { id: 999, title: 'Remote Parent' }, members: [] }));
     let found: readonly unknown[] = [];
-    lookups.tasks.resolve!([999]).subscribe(rows => (found = rows));
+    lookups.tasks.resolve!([999]).subscribe((rows) => (found = rows));
     expect(api.get).toHaveBeenCalledWith('/tasks/999', undefined, { notifyError: false });
     expect(found).toEqual([{ id: 999, title: 'Remote Parent' }]);
   });

@@ -25,19 +25,22 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
             [field]="field"
             [userSource]="users"
             [value]="values[field.code] ?? null"
-            (valueChange)="onValueChange(field.code, $event)" />
+            (valueChange)="onValueChange(field.code, $event)"
+          />
         }
       </div>
     }
   `,
-  styles: [`
-    .custom-fields-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 12px;
-      margin-top: 8px;
-    }
-  `]
+  styles: [
+    `
+      .custom-fields-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+      }
+    `,
+  ],
 })
 export class UiCustomFieldsComponent {
   private readonly i18n = inject(I18nService);
@@ -56,7 +59,7 @@ export class UiCustomFieldsComponent {
   definitions(): SMTDynamicFieldDef[] {
     const lang = this.i18n.currentLang();
     if (this.cache?.fields !== this.fields || this.cache.lang !== lang) {
-      this.cache = { fields: this.fields, lang, definitions: this.fields.map(field => this.definitionOf(field)) };
+      this.cache = { fields: this.fields, lang, definitions: this.fields.map((field) => this.definitionOf(field)) };
     }
     return this.cache.definitions;
   }
@@ -76,11 +79,24 @@ export class UiCustomFieldsComponent {
       case 'date':
         return { ...base, type: 'date' };
       case 'select':
-        return { ...base, type: 'select', options: selectOptions(field), placeholder: this.i18n.translate('ui.custom_fields.vyberite_znachenie') };
+        return {
+          ...base,
+          type: 'select',
+          options: selectOptions(field),
+          placeholder: this.i18n.translate('ui.custom_fields.vyberite_znachenie'),
+        };
       case 'user_ref':
-        return { ...base, type: 'user_ref', placeholder: this.i18n.translate('ui.custom_fields.vyberite_polzovatelya') };
+        return {
+          ...base,
+          type: 'user_ref',
+          placeholder: this.i18n.translate('ui.custom_fields.vyberite_polzovatelya'),
+        };
       default:
-        return { ...base, type: 'string', placeholder: field.defaultValue || this.i18n.translate('ui.custom_fields.text_value_placeholder') };
+        return {
+          ...base,
+          type: 'string',
+          placeholder: field.defaultValue || this.i18n.translate('ui.custom_fields.text_value_placeholder'),
+        };
     }
   }
 }
@@ -91,7 +107,7 @@ export function selectOptions(field: CustomField): SMTSelectOption<string | numb
   try {
     const options: unknown = JSON.parse(field.optionsJson);
     if (!Array.isArray(options)) return [];
-    return options.flatMap(option => {
+    return options.flatMap((option) => {
       if (typeof option === 'string' || typeof option === 'number' || typeof option === 'boolean') {
         return [{ id: option, label: String(option) }];
       }

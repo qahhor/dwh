@@ -8,7 +8,7 @@ import {
   NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload,
-  NavigationTargetType
+  NavigationTargetType,
 } from '../../../core/models/navigation.models';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -32,7 +32,7 @@ import { problemText } from '../../../shared/ui/problem-text';
     SMTButtonComponent,
     NavigationSettingsStatsComponent,
     NavigationSettingsTableComponent,
-    NavigationSettingsModalComponent
+    NavigationSettingsModalComponent,
   ],
   template: `
     <div class="nav-settings-page">
@@ -43,11 +43,7 @@ import { problemText } from '../../../shared/ui/problem-text';
           <p class="page-subtitle">{{ 'nav.settings.navigation_subtitle' | t }}</p>
         </div>
         <div class="header-actions">
-          <button smt-button type="button"
-            smtVariant="primary"
-            smtIcon="add"
-            (click)="openCreateModal()"
-          >
+          <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
             {{ 'nav.settings.add_item' | t }}
           </button>
         </div>
@@ -105,37 +101,39 @@ import { problemText } from '../../../shared/ui/problem-text';
       ></app-navigation-settings-modal>
     </div>
   `,
-  styles: [`
-    .nav-settings-page {
-      padding: 24px;
-      max-width: 1200px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+  styles: [
+    `
+      .nav-settings-page {
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
 
-    .page-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+      .page-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
 
-    .page-title {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text-main);
-      margin: 0 0 4px 0;
-    }
+      .page-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--text-main);
+        margin: 0 0 4px 0;
+      }
 
-    .page-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0;
-    }
-  `]
+      .page-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0;
+      }
+    `,
+  ],
 })
 export class NavigationSettingsComponent implements OnInit {
   private readonly navService = inject(NavigationService);
@@ -150,15 +148,23 @@ export class NavigationSettingsComponent implements OnInit {
   readonly editingItem = signal<CustomNavigationItem | null>(null);
   readonly permissionChoices = signal<NavigationPermissionChoice[]>([]);
 
-  readonly activeCount = computed(() => this.items().filter(i => i.state === 'A').length);
-  readonly embeddedCount = computed(() => this.items().filter(i => i.targetType === 'EMBEDDED_IFRAME').length);
-  readonly externalCount = computed(() => this.items().filter(i => i.targetType === 'EXTERNAL_LINK').length);
+  readonly activeCount = computed(() => this.items().filter((i) => i.state === 'A').length);
+  readonly embeddedCount = computed(() => this.items().filter((i) => i.targetType === 'EMBEDDED_IFRAME').length);
+  readonly externalCount = computed(() => this.items().filter((i) => i.targetType === 'EXTERNAL_LINK').length);
 
   searchQuery = '';
 
   readonly popularIcons = [
-    'analytics', 'bar_chart', 'pie_chart', 'table_view', 'dashboard',
-    'insights', 'monitoring', 'database', 'language', 'open_in_new'
+    'analytics',
+    'bar_chart',
+    'pie_chart',
+    'table_view',
+    'dashboard',
+    'insights',
+    'monitoring',
+    'database',
+    'language',
+    'open_in_new',
   ];
 
   formCode = '';
@@ -178,15 +184,15 @@ export class NavigationSettingsComponent implements OnInit {
   /** Without the list the item keeps its right: the select shows the stored pair only. */
   loadPermissionChoices(): void {
     this.navService.loadPermissionChoices().subscribe({
-      next: choices => this.permissionChoices.set(choices || []),
-      error: () => this.permissionChoices.set([])
+      next: (choices) => this.permissionChoices.set(choices || []),
+      error: () => this.permissionChoices.set([]),
     });
   }
 
   loadItems(): void {
     this.isLoading.set(true);
     this.navService.loadAllItems().subscribe({
-      next: data => {
+      next: (data) => {
         this.items.set(data || []);
         this.isLoading.set(false);
       },
@@ -194,36 +200,45 @@ export class NavigationSettingsComponent implements OnInit {
         const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
         this.toast.error(msg);
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
   filteredItems(): CustomNavigationItem[] {
     const q = this.searchQuery.trim().toLowerCase();
     if (!q) return this.items();
-    return this.items().filter(item =>
-      item.title.toLowerCase().includes(q) ||
-      item.code.toLowerCase().includes(q) ||
-      item.url.toLowerCase().includes(q) ||
-      item.sectionId.toLowerCase().includes(q)
+    return this.items().filter(
+      (item) =>
+        item.title.toLowerCase().includes(q) ||
+        item.code.toLowerCase().includes(q) ||
+        item.url.toLowerCase().includes(q) ||
+        item.sectionId.toLowerCase().includes(q),
     );
   }
 
   targetTypeLabel(type: NavigationTargetType): string {
     switch (type) {
-      case 'EMBEDDED_IFRAME': return this.i18n.translate('nav.settings.type_embedded');
-      case 'EXTERNAL_LINK': return this.i18n.translate('nav.settings.type_external');
-      case 'INTERNAL_ROUTE': return this.i18n.translate('nav.settings.type_internal');
+      case 'EMBEDDED_IFRAME':
+        return this.i18n.translate('nav.settings.type_embedded');
+      case 'EXTERNAL_LINK':
+        return this.i18n.translate('nav.settings.type_external');
+      case 'INTERNAL_ROUTE':
+        return this.i18n.translate('nav.settings.type_internal');
     }
   }
 
   sectionLabel(sectionId: string): string {
     switch (sectionId) {
-      case 'custom': return this.i18n.translate('nav.settings.section_custom');
-      case 'workspace': return this.i18n.translate('nav.section.workspace');
-      case 'iam': return this.i18n.translate('nav.section.iam');
-      case 'administration': return this.i18n.translate('nav.section.administration');
-      default: return sectionId;
+      case 'custom':
+        return this.i18n.translate('nav.settings.section_custom');
+      case 'workspace':
+        return this.i18n.translate('nav.section.workspace');
+      case 'iam':
+        return this.i18n.translate('nav.section.iam');
+      case 'administration':
+        return this.i18n.translate('nav.section.administration');
+      default:
+        return sectionId;
     }
   }
 
@@ -317,7 +332,7 @@ export class NavigationSettingsComponent implements OnInit {
         requiredPermission: this.formRequiredPermission,
         parentId: editing.parentId ?? null,
         titleKey: editing.titleKey ?? null,
-        state: editing.state
+        state: editing.state,
       };
       this.navService.updateItem(editing.id, payload).subscribe({
         next: () => {
@@ -330,7 +345,7 @@ export class NavigationSettingsComponent implements OnInit {
           const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
           this.toast.error(msg);
           this.isSubmitting.set(false);
-        }
+        },
       });
     } else {
       const payload: CreateNavigationItemPayload = {
@@ -342,7 +357,7 @@ export class NavigationSettingsComponent implements OnInit {
         icon: this.formIcon.trim() || 'bar_chart',
         sortOrder: this.formSortOrder,
         openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
-        requiredPermission: this.formRequiredPermission
+        requiredPermission: this.formRequiredPermission,
       };
       this.navService.createItem(payload).subscribe({
         next: () => {
@@ -355,7 +370,7 @@ export class NavigationSettingsComponent implements OnInit {
           const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
           this.toast.error(msg);
           this.isSubmitting.set(false);
-        }
+        },
       });
     }
   }
@@ -366,25 +381,28 @@ export class NavigationSettingsComponent implements OnInit {
       error: (err: any) => {
         const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
         this.toast.error(msg);
-      }
+      },
     });
   }
 
   /** Asks before deleting a menu item; the dialog stays open until the server answers. */
   confirmDelete(item: CustomNavigationItem): void {
-    this.modal.confirm({
-      title: this.i18n.translate('nav.settings.delete_modal_title'),
-      message: this.i18n.translate('nav.settings.delete_confirm', { title: item.title }),
-      yesLabel: this.i18n.translate('common.delete'),
-      noLabel: this.i18n.translate('common.cancel'),
-      destructive: true,
-      action: () => this.navService.deleteItem(item.id, { notifyError: false }).pipe(
-        tap(() => {
-          this.toast.success(this.i18n.translate('common.saved'));
-          this.loadItems();
-        })
-      ),
-      actionError: error => problemText(error) || this.i18n.translate('common.error')
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: this.i18n.translate('nav.settings.delete_modal_title'),
+        message: this.i18n.translate('nav.settings.delete_confirm', { title: item.title }),
+        yesLabel: this.i18n.translate('common.delete'),
+        noLabel: this.i18n.translate('common.cancel'),
+        destructive: true,
+        action: () =>
+          this.navService.deleteItem(item.id, { notifyError: false }).pipe(
+            tap(() => {
+              this.toast.success(this.i18n.translate('common.saved'));
+              this.loadItems();
+            }),
+          ),
+        actionError: (error) => problemText(error) || this.i18n.translate('common.error'),
+      })
+      .subscribe();
   }
 }

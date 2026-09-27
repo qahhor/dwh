@@ -14,9 +14,21 @@
   line-height: 1.45;
 }
 
-.smt-alert--danger { border-color: var(--danger-border); background-color: var(--danger-bg); color: var(--danger-text); }
-.smt-alert--warning { border-color: var(--warning-border); background-color: var(--warning-bg); color: var(--warning-text); }
-.smt-alert--success { border-color: var(--success-border); background-color: var(--success-bg); color: var(--success-text); }
+.smt-alert--danger {
+  border-color: var(--danger-border);
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+}
+.smt-alert--warning {
+  border-color: var(--warning-border);
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+}
+.smt-alert--success {
+  border-color: var(--success-border);
+  background-color: var(--success-bg);
+  color: var(--success-text);
+}
 
 .smt-alert__icon {
   flex-shrink: 0;

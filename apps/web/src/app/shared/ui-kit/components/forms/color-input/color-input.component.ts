@@ -52,7 +52,7 @@ const HEX = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i;
 export function normalizeHex(text: string): string | null {
   const match = HEX.exec(text.trim());
   if (!match) return null;
-  const hex = match[1].length === 3 ? [...match[1]].map(char => char + char).join('') : match[1];
+  const hex = match[1].length === 3 ? [...match[1]].map((char) => char + char).join('') : match[1];
   return `#${hex.toLowerCase()}`;
 }
 
@@ -73,7 +73,8 @@ let nextColorId = 0;
       [options]="swatches()"
       [value]="chosenSwatch()"
       [disabled]="isDisabled()"
-      (valueChange)="choose($event)" />
+      (valueChange)="choose($event)"
+    />
     <div class="smt-color-input__own">
       <input
         type="color"
@@ -82,7 +83,8 @@ let nextColorId = 0;
         [attr.aria-label]="i18n.messages().color.own"
         [disabled]="isDisabled()"
         [value]="value() || '#000000'"
-        (input)="choose(asInput($event).value)" />
+        (input)="choose(asInput($event).value)"
+      />
       <input
         type="text"
         class="smt-color-input__hex"
@@ -95,7 +97,8 @@ let nextColorId = 0;
         [value]="draft()"
         (input)="draft.set(asInput($event).value); problem.set(false)"
         (blur)="commit()"
-        (keydown.enter)="commit()" />
+        (keydown.enter)="commit()"
+      />
     </div>
     @if (problem()) {
       <p class="smt-color-input__problem" [id]="problemId">{{ i18n.messages().color.invalid }}</p>
@@ -129,13 +132,13 @@ export class SMTColorInputComponent implements FormValueControl<string> {
 
   readonly swatches = computed<SMTRadioOption<string>[]>(() => {
     const names = this.i18n.messages().color.names;
-    return SMT_COLOR_SWATCHES.map(swatch => ({ value: swatch.value, label: names[swatch.key], color: swatch.value }));
+    return SMT_COLOR_SWATCHES.map((swatch) => ({ value: swatch.value, label: names[swatch.key], color: swatch.value }));
   });
 
   /** The palette entry of the value, or null for an own colour. */
   readonly chosenSwatch = computed(() => {
     const value = (this.value() ?? '').toLowerCase();
-    return SMT_COLOR_SWATCHES.some(swatch => swatch.value === value) ? value : null;
+    return SMT_COLOR_SWATCHES.some((swatch) => swatch.value === value) ? value : null;
   });
 
   readonly fieldId = `smt-color-input-${nextColorId++}`;

@@ -35,7 +35,8 @@ let cache: { ru: Record<string, string>; en: Record<string, string>; sources: Ma
 
 function load() {
   if (cache) return cache;
-  const catalog = (code: string) => JSON.parse(readFileSync(path.join(CATALOG_ROOT, `${code}.json`), 'utf8')) as Record<string, string>;
+  const catalog = (code: string) =>
+    JSON.parse(readFileSync(path.join(CATALOG_ROOT, `${code}.json`), 'utf8')) as Record<string, string>;
   const sources = new Map<string, string>();
   for (const file of sourceFiles(APP_ROOT)) {
     if (!NOT_A_USE.test(file)) sources.set(file, withoutComments(readFileSync(file, 'utf8')));
@@ -46,8 +47,8 @@ function load() {
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { recursive: true, encoding: 'utf8' })
-    .filter(name => (name.endsWith('.ts') && !name.endsWith('.spec.ts')) || name.endsWith('.html'))
-    .map(name => path.join(directory, name));
+    .filter((name) => (name.endsWith('.ts') && !name.endsWith('.spec.ts')) || name.endsWith('.html'))
+    .map((name) => path.join(directory, name));
 }
 
 function withoutComments(source: string): string {
@@ -60,8 +61,10 @@ function withoutComments(source: string): string {
 /** Keys a file uses the ways the app spells them: `'key' | t`, `translate('key')`, `t('key')`. */
 function usedKeys(source: string): string[] {
   const keys: string[] = [];
-  for (const match of source.matchAll(/['"]([a-z][a-z0-9_]*(?:\.[A-Za-z0-9_-]+)+)['"]\s*\|\s*t\b/g)) keys.push(match[1]);
-  for (const match of source.matchAll(/\b(?:translate|t)\(\s*['"]([a-z][a-z0-9_]*(?:\.[A-Za-z0-9_-]+)+)['"]/g)) keys.push(match[1]);
+  for (const match of source.matchAll(/['"]([a-z][a-z0-9_]*(?:\.[A-Za-z0-9_-]+)+)['"]\s*\|\s*t\b/g))
+    keys.push(match[1]);
+  for (const match of source.matchAll(/\b(?:translate|t)\(\s*['"]([a-z][a-z0-9_]*(?:\.[A-Za-z0-9_-]+)+)['"]/g))
+    keys.push(match[1]);
   return keys;
 }
 
@@ -78,7 +81,7 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
   const { ru, en } = feature.catalogs ?? loaded;
   const { sources } = loaded;
   const folder = path.join(WEB_ROOT, feature.dir) + path.sep;
-  const own = (key: string) => feature.owns.some(prefix => key.startsWith(prefix));
+  const own = (key: string) => feature.owns.some((prefix) => key.startsWith(prefix));
   const dynamic = new Set(feature.dynamic ?? []);
   const problems: string[] = [];
 
@@ -86,7 +89,8 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
   if (featureSources.length === 0) return [`${feature.dir}: no source files`];
   for (const [file, source] of featureSources) {
     for (const key of usedKeys(source)) {
-      if (!(key in ru)) problems.push(`${path.relative(WEB_ROOT, file).split(path.sep).join('/')}: '${key}' is missing from ru.json`);
+      if (!(key in ru))
+        problems.push(`${path.relative(WEB_ROOT, file).split(path.sep).join('/')}: '${key}' is missing from ru.json`);
     }
   }
   for (const key of dynamic) {
@@ -95,7 +99,8 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
   const everywhere = [...sources.values()];
   for (const key of Object.keys(ru).filter(own).sort()) {
     if (feature.english && !(key in en)) problems.push(`'${key}' is missing from en.json`);
-    if (!dynamic.has(key) && !mentioned(key, everywhere)) problems.push(`'${key}' is not used: remove it, or declare it as a run-time key`);
+    if (!dynamic.has(key) && !mentioned(key, everywhere))
+      problems.push(`'${key}' is not used: remove it, or declare it as a run-time key`);
   }
   return [...new Set(problems)];
 }
@@ -131,13 +136,13 @@ function serverSources(): Map<string, string> {
 }
 
 function catalogKeys(prefix: string): string[] {
-  return Object.keys(load().ru).filter(key => key.startsWith(prefix));
+  return Object.keys(load().ru).filter((key) => key.startsWith(prefix));
 }
 
 /** Catalog keys under `prefix` that the server's code names in full, e.g. `"upl.template.title"`. */
 export function serverLiteralKeys(prefix: string): string[] {
   const sources = [...serverSources().values()];
-  return catalogKeys(prefix).filter(key => sources.some(source => source.includes(`"${key}"`)));
+  return catalogKeys(prefix).filter((key) => sources.some((source) => source.includes(`"${key}"`)));
 }
 
 /**
@@ -147,14 +152,17 @@ export function serverLiteralKeys(prefix: string): string[] {
  * code (`error.i18n_language_invalid` → `I18N_LANGUAGE_INVALID`); `file` limits the
  * search to one class under com/smartup24/cms, for codes as short as a field name.
  */
-export function serverCodeKeys(prefix: string, options: { toCode?: (suffix: string) => string; file?: string } = {}): string[] {
-  const toCode = options.toCode ?? (suffix => suffix);
+export function serverCodeKeys(
+  prefix: string,
+  options: { toCode?: (suffix: string) => string; file?: string } = {},
+): string[] {
+  const toCode = options.toCode ?? ((suffix) => suffix);
   const sources = options.file
     ? [withoutComments(readFileSync(path.join(SERVER_PACKAGE, options.file), 'utf8'))]
     : [...serverSources().values()];
-  return catalogKeys(prefix).filter(key => {
+  return catalogKeys(prefix).filter((key) => {
     const code = toCode(key.slice(prefix.length));
     const word = new RegExp(`(?<![\\w])@?${code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w])`);
-    return sources.some(source => source.includes(`"${code}"`) || (!options.file && word.test(source)));
+    return sources.some((source) => source.includes(`"${code}"`) || (!options.file && word.test(source)));
   });
 }

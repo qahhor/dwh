@@ -17,10 +17,13 @@
     [attr.aria-required]="required() ? 'true' : null"
     [attr.aria-readonly]="readonly() ? 'true' : null"
     (click)="toggle()"
-    (keydown)="onTriggerKeydown($event)">
+    (keydown)="onTriggerKeydown($event)"
+  >
     @if (selectedOption(); as selected) {
       @if (selected.icon) {
-        <span class="material-symbols-outlined smt-select__icon" [style.color]="selected.color" aria-hidden="true">{{ selected.icon }}</span>
+        <span class="material-symbols-outlined smt-select__icon" [style.color]="selected.color" aria-hidden="true">{{
+          selected.icon
+        }}</span>
       }
       <span class="smt-select__value">{{ selected.label }}</span>
       @if (selected.subLabel) {
@@ -29,10 +32,17 @@
     } @else {
       <span class="smt-select__placeholder">{{ placeholder() || i18n.messages().select.placeholder }}</span>
     }
-    <span class="material-symbols-outlined smt-select__arrow" aria-hidden="true">{{ open() ? 'expand_less' : 'expand_more' }}</span>
+    <span class="material-symbols-outlined smt-select__arrow" aria-hidden="true">{{
+      open() ? 'expand_less' : 'expand_more'
+    }}</span>
   </button>
   @if (allowClear() && selectedOption() && !isDisabled() && !readonly()) {
-    <button type="button" class="smt-select__clear" [attr.aria-label]="i18n.messages().select.clear" (click)="clear($event)">
+    <button
+      type="button"
+      class="smt-select__clear"
+      [attr.aria-label]="i18n.messages().select.clear"
+      (click)="clear($event)"
+    >
       <span class="material-symbols-outlined" aria-hidden="true">close</span>
     </button>
   }
@@ -43,10 +53,15 @@
   [cdkConnectedOverlayOrigin]="origin"
   [cdkConnectedOverlayOpen]="open()"
   [cdkConnectedOverlayPositions]="positions"
-  [cdkConnectedOverlayMinWidth]="(origin.elementRef.nativeElement.offsetWidth || 0) > popupMinWidth() ? origin.elementRef.nativeElement.offsetWidth : popupMinWidth()"
+  [cdkConnectedOverlayMinWidth]="
+    (origin.elementRef.nativeElement.offsetWidth || 0) > popupMinWidth()
+      ? origin.elementRef.nativeElement.offsetWidth
+      : popupMinWidth()
+  "
   (overlayOutsideClick)="close(false)"
   (detach)="close(false)"
-  (attach)="onAttached()">
+  (attach)="onAttached()"
+>
   <div class="smt-select__popup" [id]="listboxId + '-popup'" (focusout)="onPopupFocusOut($event)">
     <div class="smt-select__search">
       <span class="material-symbols-outlined smt-select__search-icon" aria-hidden="true">search</span>
@@ -64,9 +79,15 @@
         [placeholder]="searchPlaceholder() || i18n.messages().select.search"
         [value]="query()"
         (input)="onSearchInput($event)"
-        (keydown)="onSearchKeydown($event)" />
+        (keydown)="onSearchKeydown($event)"
+      />
       @if (query()) {
-        <button type="button" class="smt-select__mini" [attr.aria-label]="i18n.messages().select.clearSearch" (click)="clearSearch()">
+        <button
+          type="button"
+          class="smt-select__mini"
+          [attr.aria-label]="i18n.messages().select.clearSearch"
+          (click)="clearSearch()"
+        >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>
         </button>
       }
@@ -84,7 +105,8 @@
       class="smt-select__list"
       role="listbox"
       [id]="listboxId"
-      [attr.aria-label]="ariaLabel() || i18n.messages().select.name">
+      [attr.aria-label]="ariaLabel() || i18n.messages().select.name"
+    >
       @if (showNone()) {
         <li
           class="smt-select__option smt-select__option--none"
@@ -94,7 +116,8 @@
           [attr.aria-selected]="!selectedOption()"
           (mousedown)="$event.preventDefault()"
           (mouseenter)="highlight(none)"
-          (click)="pickNone()">
+          (click)="pickNone()"
+        >
           {{ emptyLabel() || i18n.messages().select.none }}
         </li>
       }
@@ -113,9 +136,12 @@
           [attr.aria-disabled]="option.disabled ? 'true' : null"
           (mousedown)="$event.preventDefault()"
           (mouseenter)="highlight(index)"
-          (click)="pick(option)">
+          (click)="pick(option)"
+        >
           @if (option.icon) {
-            <span class="material-symbols-outlined smt-select__icon" [style.color]="option.color" aria-hidden="true">{{ option.icon }}</span>
+            <span class="material-symbols-outlined smt-select__icon" [style.color]="option.color" aria-hidden="true">{{
+              option.icon
+            }}</span>
           }
           <span class="smt-select__option-label">{{ option.label }}</span>
           @if (option.subLabel) {
@@ -140,7 +166,8 @@
           [class.smt-select__option--active]="activeIndex() === createIndex()"
           (mousedown)="$event.preventDefault()"
           (mouseenter)="highlight(createIndex())"
-          (click)="pickCreate()">
+          (click)="pickCreate()"
+        >
           <span class="material-symbols-outlined smt-select__icon" aria-hidden="true">add</span>
           <span class="smt-select__option-label">{{ i18n.messages().select.create(query().trim()) }}</span>
         </li>
@@ -156,11 +183,15 @@
     @if (loadError() && !loading()) {
       <div class="smt-select__error" role="alert">
         <span>{{ i18n.messages().select.loadFailed }}</span>
-        <button type="button" class="smt-select__link" (click)="retry.emit()">{{ i18n.messages().select.retry }}</button>
+        <button type="button" class="smt-select__link" (click)="retry.emit()">
+          {{ i18n.messages().select.retry }}
+        </button>
       </div>
     }
     @if (hasMore() && !loading() && !loadError()) {
-      <button type="button" class="smt-select__more" (click)="loadMore.emit()">{{ i18n.messages().select.loadMore }}</button>
+      <button type="button" class="smt-select__more" (click)="loadMore.emit()">
+        {{ i18n.messages().select.loadMore }}
+      </button>
     }
   </div>
 </ng-template>

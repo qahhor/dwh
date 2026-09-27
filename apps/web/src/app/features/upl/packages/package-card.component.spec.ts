@@ -9,7 +9,7 @@ import {
   UplPackageErrors,
   UplPackageItem,
   UplPackageStatus,
-  UplPackagesApiService
+  UplPackagesApiService,
 } from './packages-api';
 import { PackageCardComponent } from './package-card.component';
 
@@ -35,7 +35,7 @@ function item(patch: Partial<UplPackageItem> = {}): UplPackageItem {
     rejectParams: null,
     loadId: null,
     rawRows: null,
-    ...patch
+    ...patch,
   };
 }
 
@@ -47,7 +47,7 @@ function cell(patch: Partial<UplPackageErrorItem> = {}): UplPackageErrorItem {
     value: '12AB',
     code: 'UPL_CELL_REQUIRED',
     params: null,
-    ...patch
+    ...patch,
   };
 }
 
@@ -62,16 +62,16 @@ function errorsPage(items: UplPackageErrorItem[], total = items.length, shown = 
 async function createFixture(
   value: UplPackageItem,
   results: Array<Observable<UplPackageErrors>> = [of(errorsPage([]))],
-  canApply?: boolean
+  canApply?: boolean,
 ) {
   let call = 0;
   const api = {
     errors: vi.fn(() => results[Math.min(call++, results.length - 1)]),
-    apply: vi.fn()
+    apply: vi.fn(),
   };
   await TestBed.configureTestingModule({
     imports: [PackageCardComponent],
-    providers: [{ provide: UplPackagesApiService, useValue: api }]
+    providers: [{ provide: UplPackagesApiService, useValue: api }],
   }).compileComponents();
   const fixture = TestBed.createComponent(PackageCardComponent);
   fixture.componentRef.setInput('item', value);
@@ -83,7 +83,9 @@ async function createFixture(
 }
 
 function testId(fixture: ComponentFixture<PackageCardComponent>, id: string): HTMLElement[] {
-  return fixture.debugElement.queryAll(By.css(`[data-testid="${id}"]`)).map(node => node.nativeElement as HTMLElement);
+  return fixture.debugElement
+    .queryAll(By.css(`[data-testid="${id}"]`))
+    .map((node) => node.nativeElement as HTMLElement);
 }
 
 function text(fixture: ComponentFixture<PackageCardComponent>): string {
@@ -101,12 +103,18 @@ function problem(status: number, detail: string, code = 'not_found'): ProblemDet
 
 /** Rows of the cell error table (the kit table renders rows as role="row"). */
 function errorRows(fixture: ComponentFixture<PackageCardComponent>): HTMLElement[] {
-  return [...(fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="upl-pkg-errors-table"] [role="rowgroup"] > [role="row"]')] as HTMLElement[];
+  return [
+    ...(fixture.nativeElement as HTMLElement).querySelectorAll(
+      '[data-testid="upl-pkg-errors-table"] [role="rowgroup"] > [role="row"]',
+    ),
+  ] as HTMLElement[];
 }
 
 describe('PackageCardComponent', () => {
   it('статус «получен»: показывает ожидание проверки и ошибок не запрашивает', async () => {
-    const { fixture, api } = await createFixture(item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null }));
+    const { fixture, api } = await createFixture(
+      item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null }),
+    );
 
     expect(testId(fixture, 'upl-pkg-checking')).toHaveLength(1);
     expect(text(fixture)).toContain(PACKAGED_RUSSIAN['upl.pkg.card.checking']);
@@ -136,10 +144,7 @@ describe('PackageCardComponent', () => {
   });
 
   it('статус «проверен» с ошибками: три числа и таблица с адресом и русским текстом без кода', async () => {
-    const rows = [
-      cell(),
-      cell({ rowNo: 48, columnName: 'Summa', value: 'sto', code: 'UPL_CELL_NOT_NUMBER' })
-    ];
+    const rows = [cell(), cell({ rowNo: 48, columnName: 'Summa', value: 'sto', code: 'UPL_CELL_NOT_NUMBER' })];
     const { fixture, api } = await createFixture(item(), [of(errorsPage(rows))]);
 
     expect(api.errors).toHaveBeenCalledWith(item().id);
@@ -151,7 +156,9 @@ describe('PackageCardComponent', () => {
     expect(tableRows).toHaveLength(2);
     // The same errors as a file the supplier fixes the data from, in the reader's language.
     const file = testId(fixture, 'upl-pkg-errors-file')[0] as HTMLAnchorElement;
-    expect(file.getAttribute('href')).toBe('/api/v1/upl/packages/6f1b0d1e-0000-4000-8000-000000000001/errors/file?lang=ru');
+    expect(file.getAttribute('href')).toBe(
+      '/api/v1/upl/packages/6f1b0d1e-0000-4000-8000-000000000001/errors/file?lang=ru',
+    );
     expect(file.hasAttribute('download')).toBe(true);
     expect(tableRows[0].textContent).toContain('Sheet1');
     expect(tableRows[0].textContent).toContain('17');
@@ -175,7 +182,7 @@ describe('PackageCardComponent', () => {
   it('статус «отклонён»: причина с числом расхождений, каждое расхождение строкой, подсказка, без чисел', async () => {
     const rows = [
       struct('UPL_STRUCT_SHEET_MISSING', { sheet: 'Sheet1' }),
-      struct('UPL_STRUCT_COLUMN_MISSING', { sheet: 'Sheet2', column: 'Summa', headerRow: 4 })
+      struct('UPL_STRUCT_COLUMN_MISSING', { sheet: 'Sheet2', column: 'Summa', headerRow: 4 }),
     ];
     const rejected = item({
       status: 'rejected',
@@ -184,7 +191,7 @@ describe('PackageCardComponent', () => {
       rowsRejected: null,
       errorsTotal: 2,
       rejectCode: 'UPL_PKG_STRUCTURE',
-      rejectParams: { count: 2 }
+      rejectParams: { count: 2 },
     });
     const { fixture } = await createFixture(rejected, [of(errorsPage(rows))]);
 
@@ -206,7 +213,7 @@ describe('PackageCardComponent', () => {
       sheet: 'Sheet2',
       columnName: 'Summa',
       code: 'UPL_STRUCT_COLUMN_MISSING',
-      params: { sheet: 'Sheet2', column: 'Summa', headerRow: 4 }
+      params: { sheet: 'Sheet2', column: 'Summa', headerRow: 4 },
     } as unknown as UplPackageErrorItem;
     const rejected = item({
       status: 'rejected',
@@ -215,7 +222,7 @@ describe('PackageCardComponent', () => {
       rowsRejected: null,
       errorsTotal: 1,
       rejectCode: 'UPL_PKG_STRUCTURE',
-      rejectParams: { count: 1 }
+      rejectParams: { count: 1 },
     });
     const { fixture } = await createFixture(rejected, [of(errorsPage([fromServer]))]);
 
@@ -233,17 +240,21 @@ describe('PackageCardComponent', () => {
       rowsRejected: null,
       errorsTotal: 0,
       rejectCode: 'UPL_PKG_UNREADABLE',
-      rejectParams: null
+      rejectParams: null,
     });
     const { fixture } = await createFixture(rejected, [of(errorsPage([]))]);
 
-    expect(testId(fixture, 'upl-pkg-rejected')[0].textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_UNREADABLE']);
+    expect(testId(fixture, 'upl-pkg-rejected')[0].textContent).toContain(
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_UNREADABLE'],
+    );
     expect(testId(fixture, 'upl-pkg-struct-row')).toHaveLength(0);
     expect(testId(fixture, 'upl-pkg-counters')).toHaveLength(0);
   });
 
   it('статус «применён»: числа и таблица ошибок остаются', async () => {
-    const { fixture } = await createFixture(item({ status: 'applied', loadId: 9, rawRows: 117 }), [of(errorsPage([cell()]))]);
+    const { fixture } = await createFixture(item({ status: 'applied', loadId: 9, rawRows: 117 }), [
+      of(errorsPage([cell()])),
+    ]);
 
     expect(testId(fixture, 'upl-pkg-counters')).toHaveLength(1);
     expect(testId(fixture, 'upl-pkg-errors-table')).toHaveLength(1);
@@ -264,10 +275,12 @@ describe('PackageCardComponent', () => {
   it('сбой запроса ошибок: полоса и «Повторить» повторяет запрос', async () => {
     const { fixture, api } = await createFixture(item(), [
       throwError(() => problem(500, 'boom', 'internal_error')),
-      of(errorsPage([cell()]))
+      of(errorsPage([cell()])),
     ]);
 
-    expect(testId(fixture, 'upl-pkg-errors-load-error')[0].textContent).toContain(PACKAGED_RUSSIAN['upl.pkg.load_error']);
+    expect(testId(fixture, 'upl-pkg-errors-load-error')[0].textContent).toContain(
+      PACKAGED_RUSSIAN['upl.pkg.load_error'],
+    );
     click(fixture, 'upl-pkg-errors-retry');
     expect(api.errors).toHaveBeenCalledTimes(2);
     expect(testId(fixture, 'upl-pkg-errors-load-error')).toHaveLength(0);
@@ -277,13 +290,15 @@ describe('PackageCardComponent', () => {
   it('пакет не найден: в полосе «Загрузка не найдена»', async () => {
     const { fixture } = await createFixture(item(), [throwError(() => problem(404, 'UPL_PKG_NOT_FOUND'))]);
 
-    expect(testId(fixture, 'upl-pkg-errors-load-error')[0].textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_NOT_FOUND']);
+    expect(testId(fixture, 'upl-pkg-errors-load-error')[0].textContent).toContain(
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_NOT_FOUND'],
+    );
   });
 
   it('смена загрузки перечитывает ошибки', async () => {
     const { fixture, api } = await createFixture(item(), [
       of(errorsPage([cell()])),
-      of(errorsPage([cell({ rowNo: 3 }), cell({ rowNo: 9 })]))
+      of(errorsPage([cell({ rowNo: 3 }), cell({ rowNo: 9 })])),
     ]);
 
     fixture.componentRef.setInput('item', item({ id: '6f1b0d1e-0000-4000-8000-000000000002' }));
@@ -323,7 +338,7 @@ describe('PackageCardComponent', () => {
       const { fixture } = await createFixture(
         item({ status, rejectCode: status === 'rejected' ? 'UPL_PKG_INTERNAL' : null }),
         [of(errorsPage([cell()]))],
-        true
+        true,
       );
       expect(testId(fixture, 'upl-pkg-apply')).toHaveLength(0);
     }
@@ -353,7 +368,9 @@ describe('PackageCardComponent', () => {
 
     click(fixture, 'upl-pkg-apply');
 
-    expect(testId(fixture, 'upl-pkg-apply-error')[0].textContent).toContain('Применить можно только проверенную загрузку');
+    expect(testId(fixture, 'upl-pkg-apply-error')[0].textContent).toContain(
+      'Применить можно только проверенную загрузку',
+    );
   });
 
   it('AC-12: отказ «нечего применять» — красная полоса текстом словаря', async () => {
@@ -362,7 +379,9 @@ describe('PackageCardComponent', () => {
 
     click(fixture, 'upl-pkg-apply');
 
-    expect(testId(fixture, 'upl-pkg-apply-error')[0].textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_PKG_NOTHING_TO_APPLY']);
+    expect(testId(fixture, 'upl-pkg-apply-error')[0].textContent).toContain(
+      PACKAGED_RUSSIAN['upl.err.UPL_PKG_NOTHING_TO_APPLY'],
+    );
   });
 
   it('AC-13: отказ без кода загрузки — общий текст «Не удалось применить загрузку»', async () => {
@@ -377,7 +396,9 @@ describe('PackageCardComponent', () => {
   it('AC-13: применённая загрузка с обоими числами — зелёная строка сверки', async () => {
     const { fixture } = await createFixture(item({ status: 'applied', loadId: 9, rowsTotal: 10, rawRows: 10 }));
 
-    expect(testId(fixture, 'upl-pkg-reconciliation')[0].querySelector('.smt-alert__content')?.textContent?.trim()).toBe('В файле 10 строк = в базе 10 строк');
+    expect(testId(fixture, 'upl-pkg-reconciliation')[0].querySelector('.smt-alert__content')?.textContent?.trim()).toBe(
+      'В файле 10 строк = в базе 10 строк',
+    );
   });
 
   it('AC-13: применённая загрузка без числа строк в базе — строки сверки нет', async () => {
@@ -394,11 +415,13 @@ describe('PackageCardComponent', () => {
       rowsRejected: null,
       errorsTotal: 0,
       rejectCode: 'UPL_PKG_RECONCILIATION',
-      rejectParams: { fileRows: 10, rawRows: 9 }
+      rejectParams: { fileRows: 10, rawRows: 9 },
     });
     const { fixture } = await createFixture(rejected);
 
-    expect(testId(fixture, 'upl-pkg-rejected')[0].textContent).toContain('Сверка не сошлась: в файле 10 строк, в базе 9');
+    expect(testId(fixture, 'upl-pkg-rejected')[0].textContent).toContain(
+      'Сверка не сошлась: в файле 10 строк, в базе 9',
+    );
     expect(testId(fixture, 'upl-pkg-reconciliation')).toHaveLength(0);
   });
 });

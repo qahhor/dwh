@@ -8,13 +8,13 @@ import { ProjectMembersModalComponent } from './project-members-modal.component'
 const members: ProjectMember[] = [
   { projectId: 7, userId: 1, userName: 'Ольга Петрова', userEmail: 'olga@example.test', accessKind: 'MEMBER' },
   { projectId: 7, userId: 2, userName: 'Андрей Ким', userEmail: '', accessKind: 'MANAGER' },
-  { projectId: 7, userId: 3, userName: 'Бахром Алиев', userEmail: 'bahrom@example.test', accessKind: 'AUDITOR' }
+  { projectId: 7, userId: 3, userName: 'Бахром Алиев', userEmail: 'bahrom@example.test', accessKind: 'AUDITOR' },
 ];
 
 async function createFixture(canUpdateProject: boolean, list: ProjectMember[] = members) {
   await TestBed.configureTestingModule({
     imports: [ProjectMembersModalComponent],
-    providers: [{ provide: ApiService, useValue: { get: vi.fn(() => of({ items: [] })) } }]
+    providers: [{ provide: ApiService, useValue: { get: vi.fn(() => of({ items: [] })) } }],
   }).compileComponents();
   const fixture = TestBed.createComponent(ProjectMembersModalComponent);
   const component = fixture.componentInstance;
@@ -33,8 +33,9 @@ function table(root: HTMLElement): HTMLElement {
 }
 
 function rowTexts(root: HTMLElement): string[][] {
-  return [...table(root).querySelectorAll('[role="rowgroup"] > [role="row"]')].map(row =>
-    [...row.querySelectorAll('[role="cell"]')].map(cell => (cell.textContent ?? '').replace(/\s+/g, ' ').trim()));
+  return [...table(root).querySelectorAll('[role="rowgroup"] > [role="row"]')].map((row) =>
+    [...row.querySelectorAll('[role="cell"]')].map((cell) => (cell.textContent ?? '').replace(/\s+/g, ' ').trim()),
+  );
 }
 
 describe('ProjectMembersModalComponent', () => {
@@ -44,8 +45,8 @@ describe('ProjectMembersModalComponent', () => {
 
     expect(table(root).querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Участники проекта');
     const rows = rowTexts(root);
-    expect(rows.map(row => row[0])).toEqual(['ОПОльга Петрова', 'АКАндрей Ким', 'БАБахром Алиев']);
-    expect(rows.map(row => row[2])).toEqual(['Участник (Member)', 'Руководитель (Manager)', 'AUDITOR']);
+    expect(rows.map((row) => row[0])).toEqual(['ОПОльга Петрова', 'АКАндрей Ким', 'БАБахром Алиев']);
+    expect(rows.map((row) => row[2])).toEqual(['Участник (Member)', 'Руководитель (Manager)', 'AUDITOR']);
     expect(rows[1][1]).toBe('—');
     fixture.destroy();
   });
@@ -54,10 +55,10 @@ describe('ProjectMembersModalComponent', () => {
     const fixture = await createFixture(true);
     const buttons = [...table(document.body).querySelectorAll<HTMLButtonElement>('button')];
 
-    expect(buttons.map(button => button.getAttribute('aria-label'))).toEqual([
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
       'Удалить Ольга Петрова из проекта',
       'Удалить Андрей Ким из проекта',
-      'Удалить Бахром Алиев из проекта'
+      'Удалить Бахром Алиев из проекта',
     ]);
     const removed = vi.fn();
     fixture.componentInstance.removeMember.subscribe(removed);

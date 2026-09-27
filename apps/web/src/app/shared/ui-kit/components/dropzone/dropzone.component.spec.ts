@@ -37,8 +37,8 @@ describe('SMTDropzoneComponent', () => {
     for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
     const selected: File[][] = [];
     const rejected: SMTDropzoneRejection[][] = [];
-    fixture.componentInstance.filesSelected.subscribe(files => selected.push(files));
-    fixture.componentInstance.rejected.subscribe(list => rejected.push(list));
+    fixture.componentInstance.filesSelected.subscribe((files) => selected.push(files));
+    fixture.componentInstance.rejected.subscribe((list) => rejected.push(list));
     fixture.detectChanges();
     const element = fixture.nativeElement as HTMLElement;
     const input = element.querySelector('input[type="file"]') as HTMLInputElement;
@@ -66,8 +66,8 @@ describe('SMTDropzoneComponent', () => {
 
     pick(file('ok.pdf', 'application/pdf', 10), file('virus.exe'), file('huge.pdf', 'application/pdf', 4096));
 
-    expect(selected.map(files => files.map(f => f.name))).toEqual([['ok.pdf']]);
-    expect(rejected[0].map(r => `${r.file.name}:${r.reason}`)).toEqual(['virus.exe:type', 'huge.pdf:size']);
+    expect(selected.map((files) => files.map((f) => f.name))).toEqual([['ok.pdf']]);
+    expect(rejected[0].map((r) => `${r.file.name}:${r.reason}`)).toEqual(['virus.exe:type', 'huge.pdf:size']);
     const alert = element.querySelector('[role="alert"]')!;
     expect(alert.textContent).toContain('virus.exe: this file type is not accepted');
     expect(alert.textContent).toContain('huge.pdf: the file is larger than 1 KB');
@@ -90,9 +90,11 @@ describe('SMTDropzoneComponent', () => {
     fixture.detectChanges();
     expect(zone.classList).toContain('smt-dropzone--dragging');
 
-    zone.dispatchEvent(Object.assign(new Event('drop', { cancelable: true }), { dataTransfer: { files: [file('dropped.pdf')] } }));
+    zone.dispatchEvent(
+      Object.assign(new Event('drop', { cancelable: true }), { dataTransfer: { files: [file('dropped.pdf')] } }),
+    );
     fixture.detectChanges();
     expect(zone.classList).not.toContain('smt-dropzone--dragging');
-    expect(selected.map(files => files.map(f => f.name))).toEqual([['dropped.pdf']]);
+    expect(selected.map((files) => files.map((f) => f.name))).toEqual([['dropped.pdf']]);
   });
 });

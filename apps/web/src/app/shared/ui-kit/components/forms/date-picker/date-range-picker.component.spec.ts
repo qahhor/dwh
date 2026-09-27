@@ -35,7 +35,7 @@ class NgModelHost {
 
 describe('SMTDateRangePickerComponent', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -57,7 +57,7 @@ describe('SMTDateRangePickerComponent', () => {
       return document.querySelector('[role="dialog"]') as HTMLElement;
     };
     const button = (dialog: HTMLElement, label: string) =>
-      Array.from(dialog.querySelectorAll('button')).find(b => b.textContent?.trim() === label) as HTMLButtonElement;
+      Array.from(dialog.querySelectorAll('button')).find((b) => b.textContent?.trim() === label) as HTMLButtonElement;
     return { fixture, element, trigger, open, button, settle };
   }
 

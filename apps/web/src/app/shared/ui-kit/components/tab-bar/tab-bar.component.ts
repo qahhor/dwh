@@ -15,7 +15,18 @@
  * `aria-labelledby` the tab's id (`tabId(value)` or the item's own `id`).
  *
  * <smt-tab-bar [tabs]="sections" [(value)]="section" smtAriaLabel="Settings" /> */
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, model, viewChildren, ViewEncapsulation } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  inject,
+  input,
+  model,
+  viewChildren,
+  ViewEncapsulation,
+} from '@angular/core';
 
 export interface SMTTabItem<K extends string = string> {
   readonly value: K;
@@ -58,14 +69,19 @@ let nextTabBarId = 0;
           [disabled]="!!tab.disabled"
           (click)="choose(index)"
           (focus)="centre($event)"
-          (keydown)="onKeydown($event, index)">
+          (keydown)="onKeydown($event, index)"
+        >
           @if (tab.icon) {
             <span class="material-symbols-outlined smt-tab-bar__icon" aria-hidden="true">{{ tab.icon }}</span>
           }
           <span class="smt-tab-bar__label">{{ tab.label }}</span>
           @if (tab.count !== undefined) {
             <!-- The space keeps the name "Audit 3", not "Audit3"; flex drops it from the layout. -->
-            &ngsp;<span class="smt-tab-bar__count" [class.smt-tab-bar__count--attention]="tab.countTone === 'attention'">{{ tab.count }}</span>
+            &ngsp;<span
+              class="smt-tab-bar__count"
+              [class.smt-tab-bar__count--attention]="tab.countTone === 'attention'"
+              >{{ tab.count }}</span
+            >
           }
         </button>
       }
@@ -87,8 +103,8 @@ export class SMTTabBarComponent<K extends string = string> {
   /** The chosen tab, or the first available one while nothing is chosen. */
   readonly tabStop = computed(() => {
     const tabs = this.tabs();
-    const chosen = tabs.findIndex(tab => tab.value === this.value() && !tab.disabled);
-    return chosen >= 0 ? chosen : tabs.findIndex(tab => !tab.disabled);
+    const chosen = tabs.findIndex((tab) => tab.value === this.value() && !tab.disabled);
+    return chosen >= 0 ? chosen : tabs.findIndex((tab) => !tab.disabled);
   });
 
   private pendingCentre: ReturnType<typeof setTimeout> | null = null;
@@ -112,7 +128,7 @@ export class SMTTabBarComponent<K extends string = string> {
 
   /** The id a panel's aria-labelledby names. */
   tabId(value: K): string {
-    const tab = this.tabs().find(item => item.value === value);
+    const tab = this.tabs().find((item) => item.value === value);
     return tab ? this.idOf(tab) : `${this.idPrefix()}-${value}-tab`;
   }
 
@@ -128,7 +144,7 @@ export class SMTTabBarComponent<K extends string = string> {
 
   onKeydown(event: KeyboardEvent, index: number): void {
     const tabs = this.tabs();
-    const available = tabs.map((tab, i) => (tab.disabled ? -1 : i)).filter(i => i >= 0);
+    const available = tabs.map((tab, i) => (tab.disabled ? -1 : i)).filter((i) => i >= 0);
     if (available.length === 0) return;
     const position = available.indexOf(index);
     let target: number | undefined;

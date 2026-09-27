@@ -1,4 +1,15 @@
-import { Component, EventEmitter, Input, Output, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -9,19 +20,28 @@ import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.comp
 import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
 import { UserChannel } from '../profile.models';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../../../../shared/ui-kit/components/forms/select';
+import {
+  SMTSelectComponent,
+  SMTSelectOption,
+  SMTSelectValueAccessor,
+} from '../../../../shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-profile-channels-card',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, SMTSelectComponent, SMTSelectValueAccessor,
+  imports: [
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    SMTSelectComponent,
+    SMTSelectValueAccessor,
     CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     UiBadgeComponent,
-    SMTDialogComponent, SMTDialogContentDirective,
-    UiLocalTableComponent
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiLocalTableComponent,
   ],
   template: `
     <div class="card section-card full-width">
@@ -36,7 +56,9 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
             <p class="section-subtitle">{{ 'iam.kanaly_svyazi_opisanie' | t }}</p>
           </div>
         </div>
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           *ngIf="canManageChannels"
           smtVariant="primary"
           smtSize="sm"
@@ -48,7 +70,14 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_kanalov_svyazi' | t" tabindex="0">
-        <ui-local-table data-testid="profile-channels-table" [rows]="rows()" [config]="config()" [sortValues]="sortValues" [loading]="isLoadingChannels" [emptyTemplate]="emptyChannels" />
+        <ui-local-table
+          data-testid="profile-channels-table"
+          [rows]="rows()"
+          [config]="config()"
+          [sortValues]="sortValues"
+          [loading]="isLoadingChannels"
+          [emptyTemplate]="emptyChannels"
+        />
       </div>
     </div>
 
@@ -58,90 +87,105 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
         <span class="font-medium">{{ channelLabel(c.channel) }}</span>
       </div>
     </ng-template>
-    <ng-template #channelAddressCell let-c><span class="tabular-nums font-mono">{{ c.address }}</span></ng-template>
-    <ng-template #channelCreatedCell let-c><span class="tabular-nums text-muted">{{ c.createdAt | date:'dd.MM.yyyy HH:mm' }}</span></ng-template>
+    <ng-template #channelAddressCell let-c
+      ><span class="tabular-nums font-mono">{{ c.address }}</span></ng-template
+    >
+    <ng-template #channelCreatedCell let-c
+      ><span class="tabular-nums text-muted">{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template
+    >
     <ng-template #channelStatusCell let-c>
       <ui-badge [variant]="c.isVerified ? 'success' : 'warning'" [dot]="true">{{ channelStatus(c) }}</ui-badge>
     </ng-template>
     <ng-template #channelActionCell let-c>
       <div class="row-actions">
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           *ngIf="!c.isVerified && canManageChannels"
           smtVariant="secondary"
           smtSize="sm"
           smtIcon="verified"
-          [attr.aria-label]="'iam.confirm_channel_named' | t:{address: c.address}"
+          [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
           [smtLoading]="isConfirmingChannel"
           (click)="requestConfirm(c)"
         >
           {{ 'iam.podtverdit_kodom' | t }}
         </button>
-        <button smt-button type="button"
+        <button
+          smt-button
+          type="button"
           *ngIf="canManageChannels"
           smtVariant="danger"
           smtSize="sm"
           smtIcon="delete"
-          [attr.aria-label]="'iam.unbind_channel_named' | t:{address: c.address}"
+          [attr.aria-label]="'iam.unbind_channel_named' | t: { address: c.address }"
           (click)="requestUnbind(c)"
         >
           {{ 'iam.otvyazat_kanal' | t }}
         </button>
       </div>
     </ng-template>
-    <ng-template #emptyChannels><p class="empty-cell">{{ 'iam.net_privyazannyh_kanalov' | t }}</p></ng-template>
+    <ng-template #emptyChannels
+      ><p class="empty-cell">{{ 'iam.net_privyazannyh_kanalov' | t }}</p></ng-template
+    >
 
     <!-- Bind Channel Modal -->
     <smt-dialog
       [open]="isBindModalOpen"
       [smtTitle]="'iam.privyazka_kanala_svyazi' | t"
       smtSize="sm"
-      (closed)="closeBindModal()">
+      (closed)="closeBindModal()"
+    >
       <ng-template smtDialogContent>
-      <div body class="channel-form">
-        <div class="form-group">
-          <label class="form-label" for="profile-channel-type">
-            {{ 'iam.tip_kanala' | t }} <span class="req">*</span>
-          </label>
-          <smt-select
-            smtTriggerId="profile-channel-type"
-            name="channelType"
-            [(ngModel)]="selectedChannelType"
-            [options]="channelTypeOptions()"
-            [allowClear]="false" />
-        </div>
+        <div body class="channel-form">
+          <div class="form-group">
+            <label class="form-label" for="profile-channel-type">
+              {{ 'iam.tip_kanala' | t }} <span class="req">*</span>
+            </label>
+            <smt-select
+              smtTriggerId="profile-channel-type"
+              name="channelType"
+              [(ngModel)]="selectedChannelType"
+              [options]="channelTypeOptions()"
+              [allowClear]="false"
+            />
+          </div>
 
-        <div class="form-group">
-          <label class="form-label" for="profile-channel-address">
-            {{ 'iam.adres_ili_login' | t }} <span class="req">*</span>
-          </label>
-          <smt-input
-            smtFieldId="profile-channel-address"
-            name="channelAddress"
-            required
-            [placeholder]="getChannelPlaceholder()"
-            [(ngModel)]="newAddress"
-            [smtInvalid]="isBindSubmitted && !newAddress.trim()"
-            [smtDescribedBy]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
-            (keydown.enter)="submitBind()" />
-          <span id="profile-channel-address-error" class="field-error" *ngIf="isBindSubmitted && !newAddress.trim()">
-            {{ 'iam.adres_kanala_obyazatelen' | t }}
-          </span>
+          <div class="form-group">
+            <label class="form-label" for="profile-channel-address">
+              {{ 'iam.adres_ili_login' | t }} <span class="req">*</span>
+            </label>
+            <smt-input
+              smtFieldId="profile-channel-address"
+              name="channelAddress"
+              required
+              [placeholder]="getChannelPlaceholder()"
+              [(ngModel)]="newAddress"
+              [smtInvalid]="isBindSubmitted && !newAddress.trim()"
+              [smtDescribedBy]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
+              (keydown.enter)="submitBind()"
+            />
+            <span id="profile-channel-address-error" class="field-error" *ngIf="isBindSubmitted && !newAddress.trim()">
+              {{ 'iam.adres_kanala_obyazatelen' | t }}
+            </span>
+          </div>
         </div>
-      </div>
-      <div footer class="modal-actions">
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeBindModal()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <button smt-button type="button"
-          smtVariant="primary"
-          smtSize="md"
-          smtIcon="send"
-          [smtLoading]="isBindingChannel"
-          (click)="submitBind()"
-        >
-          {{ 'iam.otpravit_kod' | t }}
-        </button>
-      </div>
+        <div footer class="modal-actions">
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeBindModal()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="send"
+            [smtLoading]="isBindingChannel"
+            (click)="submitBind()"
+          >
+            {{ 'iam.otpravit_kod' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
 
@@ -150,274 +194,284 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '../
       [open]="isConfirmModalOpen"
       [smtTitle]="'iam.podtverzhdenie_kanala' | t"
       smtSize="sm"
-      (closed)="closeConfirmModal()">
+      (closed)="closeConfirmModal()"
+    >
       <ng-template smtDialogContent>
-      <div body class="channel-form">
-        <p class="confirm-info-text">
-          {{ 'iam.kod_podtverzhdeniya_otpravlen' | t:{address: activeVerifyAddress} }}
-        </p>
+        <div body class="channel-form">
+          <p class="confirm-info-text">
+            {{ 'iam.kod_podtverzhdeniya_otpravlen' | t: { address: activeVerifyAddress } }}
+          </p>
 
-        <div class="form-group">
-          <label class="form-label" for="profile-channel-code">
-            {{ 'iam.vvedite_6_znachnyy_kod' | t }} <span class="req">*</span>
-          </label>
-          <smt-input
-            class="font-mono otp-input"
-            smtFieldId="profile-channel-code"
-            name="confirmCode"
-            [maxLength]="6"
-            inputmode="numeric"
-            smtPattern="[0-9]*"
-            placeholder="000000"
-            [(ngModel)]="verificationCode"
-            [smtInvalid]="isConfirmSubmitted && verificationCode.trim().length !== 6"
-            [smtDescribedBy]="isConfirmSubmitted && verificationCode.trim().length !== 6 ? 'profile-channel-code-error' : null"
-            (keydown.enter)="submitConfirm()" />
-          <span id="profile-channel-code-error" class="field-error" *ngIf="isConfirmSubmitted && verificationCode.trim().length !== 6">
-            {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
-          </span>
+          <div class="form-group">
+            <label class="form-label" for="profile-channel-code">
+              {{ 'iam.vvedite_6_znachnyy_kod' | t }} <span class="req">*</span>
+            </label>
+            <smt-input
+              class="font-mono otp-input"
+              smtFieldId="profile-channel-code"
+              name="confirmCode"
+              [maxLength]="6"
+              inputmode="numeric"
+              smtPattern="[0-9]*"
+              placeholder="000000"
+              [(ngModel)]="verificationCode"
+              [smtInvalid]="isConfirmSubmitted && verificationCode.trim().length !== 6"
+              [smtDescribedBy]="
+                isConfirmSubmitted && verificationCode.trim().length !== 6 ? 'profile-channel-code-error' : null
+              "
+              (keydown.enter)="submitConfirm()"
+            />
+            <span
+              id="profile-channel-code-error"
+              class="field-error"
+              *ngIf="isConfirmSubmitted && verificationCode.trim().length !== 6"
+            >
+              {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
+            </span>
+          </div>
         </div>
-      </div>
-      <div footer class="modal-actions">
-        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeConfirmModal()">
-          {{ 'common.cancel' | t }}
-        </button>
-        <button smt-button type="button"
-          smtVariant="primary"
-          smtSize="md"
-          smtIcon="check"
-          [smtLoading]="isConfirmingChannel"
-          (click)="submitConfirm()"
-        >
-          {{ 'common.confirm' | t }}
-        </button>
-      </div>
+        <div footer class="modal-actions">
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeConfirmModal()">
+            {{ 'common.cancel' | t }}
+          </button>
+          <button
+            smt-button
+            type="button"
+            smtVariant="primary"
+            smtSize="md"
+            smtIcon="check"
+            [smtLoading]="isConfirmingChannel"
+            (click)="submitConfirm()"
+          >
+            {{ 'common.confirm' | t }}
+          </button>
+        </div>
       </ng-template>
     </smt-dialog>
   `,
-  styles: [`
-    :host {
-      display: block;
-      min-width: 0;
-      grid-column: 1 / -1;
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+        min-width: 0;
+        grid-column: 1 / -1;
+      }
 
-    .card {
-      background-color: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      padding: 18px 22px;
-    }
+      .card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 18px 22px;
+      }
 
-    .section-card {
-      min-width: 0;
-    }
+      .section-card {
+        min-width: 0;
+      }
 
-    .full-width {
-      width: 100%;
-      box-sizing: border-box;
-    }
+      .full-width {
+        width: 100%;
+        box-sizing: border-box;
+      }
 
-    .section-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 16px;
-      margin-bottom: 14px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border-color);
-    }
+      .section-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-color);
+      }
 
-    .section-title-box {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      color: var(--text-main);
-    }
+      .section-title-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        color: var(--text-main);
+      }
 
-    .section-icon {
-      font-size: 22px;
-      color: var(--primary);
-      margin-top: 2px;
-    }
+      .section-icon {
+        font-size: 22px;
+        color: var(--primary);
+        margin-top: 2px;
+      }
 
-    .title-with-desc {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
+      .title-with-desc {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
 
-    .title-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .section-title {
-      font-size: 15px;
-      font-weight: 600;
-      margin: 0;
-    }
+      .section-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0;
+      }
 
-    .section-subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin: 0;
-    }
+      .section-subtitle {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin: 0;
+      }
 
-    .badge-count {
-      background-color: var(--bg-hover);
-      color: var(--primary);
-      font-size: 11px;
-      font-weight: 600;
-      padding: 1px 6px;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-    }
+      .badge-count {
+        background-color: var(--bg-hover);
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 10px;
+        border: 1px solid var(--border-color);
+      }
 
-    .table-wrapper {
-      overflow-x: auto;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background-color: var(--bg-surface);
-    }
+      .table-wrapper {
+        overflow-x: auto;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background-color: var(--bg-surface);
+      }
 
-    .table-wrapper:focus-visible {
-      outline: 2px solid var(--primary);
-      outline-offset: 2px;
-    }
+      .table-wrapper:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+      }
 
+      .channel-type-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
 
-    .channel-type-cell {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+      .channel-icon {
+        font-size: 18px;
+        color: var(--primary);
+      }
 
-    .channel-icon {
-      font-size: 18px;
-      color: var(--primary);
-    }
+      .row-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-    .row-actions {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
 
-    .tabular-nums {
-      font-variant-numeric: tabular-nums;
-    }
+      .font-mono {
+        font-family: var(--font-mono, monospace);
+      }
 
-    .font-mono {
-      font-family: var(--font-mono, monospace);
-    }
+      .font-medium {
+        font-weight: 500;
+      }
 
-    .font-medium {
-      font-weight: 500;
-    }
+      .text-muted {
+        color: var(--text-muted);
+      }
 
-    .text-muted {
-      color: var(--text-muted);
-    }
+      .text-right {
+        text-align: right;
+      }
 
-    .text-right {
-      text-align: right;
-    }
+      .empty-cell {
+        text-align: center;
+        color: var(--text-muted);
+        padding: 24px 14px;
+        font-style: italic;
+      }
 
-    .empty-cell {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 24px 14px;
-      font-style: italic;
-    }
+      /* Modal Form Styles */
+      .channel-form {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
 
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
 
-    /* Modal Form Styles */
-    .channel-form {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
+      .form-label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-main);
+      }
 
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+      .req {
+        color: var(--danger);
+      }
 
-    .form-label {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-main);
-    }
+      .form-input {
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        background-color: var(--bg-surface);
+        color: var(--text-main);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
 
-    .req {
-      color: var(--danger);
-    }
+      .form-input:focus {
+        border-color: var(--primary);
+      }
 
-    .form-input {
-      padding: 8px 12px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      background-color: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 13px;
-      outline: none;
-      transition: border-color 0.15s;
-    }
+      .form-input[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
 
-    .form-input:focus {
-      border-color: var(--primary);
-    }
+      .field-error {
+        font-size: 11px;
+        color: var(--danger);
+      }
 
-    .form-input[aria-invalid="true"] {
-      border-color: var(--danger);
-    }
+      .otp-input {
+        font-size: 20px;
+        letter-spacing: 6px;
+        text-align: center;
+      }
 
-    .field-error {
-      font-size: 11px;
-      color: var(--danger);
-    }
+      .confirm-info-text {
+        font-size: 13px;
+        color: var(--text-main);
+        margin: 0;
+        line-height: 1.5;
+      }
 
-    .otp-input {
-      font-size: 20px;
-      letter-spacing: 6px;
-      text-align: center;
-    }
+      .unbind-confirm-body {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
 
-    .confirm-info-text {
-      font-size: 13px;
-      color: var(--text-main);
-      margin: 0;
-      line-height: 1.5;
-    }
+      .confirm-prompt {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--text-main);
+        margin: 0;
+      }
 
-    .unbind-confirm-body {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
+      .confirm-warning {
+        font-size: 12px;
+        margin: 0;
+      }
 
-    .confirm-prompt {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-main);
-      margin: 0;
-    }
-
-    .confirm-warning {
-      font-size: 12px;
-      margin: 0;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      width: 100%;
-    }
-  `]
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        width: 100%;
+      }
+    `,
+  ],
 })
 export class ProfileChannelsCardComponent {
   private readonly i18n = inject(I18nService);
@@ -442,9 +496,9 @@ export class ProfileChannelsCardComponent {
         address: { header: header('iam.adres_ili_login'), content: cell(this.addressCell) },
         created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '150px' },
         status: { header: header('common.status'), content: cell(this.statusCell), width: '200px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '260px', align: 'right' }
+        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '260px', align: 'right' },
       },
-      columnsOrder: ['type', 'address', 'created', 'status', 'action']
+      columnsOrder: ['type', 'address', 'created', 'status', 'action'],
     };
   });
 
@@ -484,7 +538,7 @@ export class ProfileChannelsCardComponent {
     type: (c: UserChannel) => this.channelLabel(c.channel),
     address: (c: UserChannel) => c.address,
     created: (c: UserChannel) => new Date(c.createdAt),
-    status: (c: UserChannel) => this.channelStatus(c)
+    status: (c: UserChannel) => this.channelStatus(c),
   };
 
   @Input() set channels(channels: UserChannel[]) {
@@ -543,7 +597,7 @@ export class ProfileChannelsCardComponent {
     this.activeVerifyAddress = this.newAddress.trim();
     this.bindChannel.emit({
       channel: this.selectedChannelType,
-      address: this.newAddress.trim()
+      address: this.newAddress.trim(),
     });
   }
 
@@ -568,7 +622,7 @@ export class ProfileChannelsCardComponent {
     this.activeVerifyAddress = channel.address;
     this.bindChannel.emit({
       channel: channel.channel,
-      address: channel.address
+      address: channel.address,
     });
   }
 
@@ -579,7 +633,7 @@ export class ProfileChannelsCardComponent {
 
     this.confirmChannel.emit({
       verifyToken: this.activeVerifyToken,
-      code: cleanCode
+      code: cleanCode,
     });
   }
 

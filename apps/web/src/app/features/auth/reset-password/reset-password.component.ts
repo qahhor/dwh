@@ -20,7 +20,15 @@ type ResetState = 'form' | 'done' | 'invalid';
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [FormsModule, TranslatePipe, SMTButtonComponent, SMTInputComponent, SMTInputValueAccessor, LoginHeaderComponent, LoginTopBarComponent],
+  imports: [
+    FormsModule,
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    LoginHeaderComponent,
+    LoginTopBarComponent,
+  ],
   styleUrl: '../login/login.component.css',
   template: `
     <main class="login-wrapper">
@@ -53,7 +61,8 @@ type ResetState = 'form' | 'done' | 'invalid';
                 [spellcheck]="false"
                 [smtInvalid]="!!formError()"
                 smtDescribedBy="reset-password-hint"
-                [disabled]="isLoading()" />
+                [disabled]="isLoading()"
+              />
             </div>
 
             <div class="form-group">
@@ -71,14 +80,23 @@ type ResetState = 'form' | 'done' | 'invalid';
                 [spellcheck]="false"
                 [smtInvalid]="!!formError()"
                 [smtDescribedBy]="formError() ? 'reset-password-error' : null"
-                [disabled]="isLoading()" />
+                [disabled]="isLoading()"
+              />
             </div>
 
             @if (formError()) {
               <p id="reset-password-error" class="form-error" role="alert">{{ formError() }}</p>
             }
 
-            <button smt-button type="submit" smtVariant="primary" smtSize="lg" [smtLoading]="isLoading()" [smtFullWidth]="true" class="submit-btn">
+            <button
+              smt-button
+              type="submit"
+              smtVariant="primary"
+              smtSize="lg"
+              [smtLoading]="isLoading()"
+              [smtFullWidth]="true"
+              class="submit-btn"
+            >
               {{ 'auth.reset.submit' | t }}
             </button>
           </form>
@@ -87,14 +105,21 @@ type ResetState = 'form' | 'done' | 'invalid';
             <p [attr.role]="state() === 'invalid' ? 'alert' : 'status'">
               {{ (state() === 'done' ? 'auth.reset.done' : 'auth.reset.invalid_link') | t }}
             </p>
-            <button smt-button type="button" smtVariant="primary" smtSize="lg" [smtFullWidth]="true" (click)="toLogin()">
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              smtSize="lg"
+              [smtFullWidth]="true"
+              (click)="toLogin()"
+            >
               {{ 'auth.reset.to_login' | t }}
             </button>
           </div>
         }
       </div>
     </main>
-  `
+  `,
 })
 export class ResetPasswordComponent {
   private readonly api = inject(ApiService);
@@ -125,22 +150,28 @@ export class ResetPasswordComponent {
       return;
     }
     this.isLoading.set(true);
-    this.api.post('/auth/password-reset/confirm', { token: this.token, newPassword: this.newPassword }, { notifyError: false }).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.newPassword = '';
-        this.confirmPassword = '';
-        this.state.set('done');
-      },
-      error: (err: unknown) => {
-        this.isLoading.set(false);
-        if (errorCode(err) === 'reset_code_invalid') {
-          this.state.set('invalid');
-          return;
-        }
-        this.formError.set(errorDetail(err) ?? this.i18n.translate('auth.reset.failed'));
-      }
-    });
+    this.api
+      .post(
+        '/auth/password-reset/confirm',
+        { token: this.token, newPassword: this.newPassword },
+        { notifyError: false },
+      )
+      .subscribe({
+        next: () => {
+          this.isLoading.set(false);
+          this.newPassword = '';
+          this.confirmPassword = '';
+          this.state.set('done');
+        },
+        error: (err: unknown) => {
+          this.isLoading.set(false);
+          if (errorCode(err) === 'reset_code_invalid') {
+            this.state.set('invalid');
+            return;
+          }
+          this.formError.set(errorDetail(err) ?? this.i18n.translate('auth.reset.failed'));
+        },
+      });
   }
 
   toLogin(): void {

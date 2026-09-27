@@ -53,7 +53,7 @@ export function markSMTFormFieldsTouched(fieldTree: unknown): void {
     visited.add(node);
 
     const tree = node as SMTFieldTree;
-    const children = Object.values(tree).filter(value => typeof value === 'function');
+    const children = Object.values(tree).filter((value) => typeof value === 'function');
     if (children.length > 0) {
       children.forEach(visit);
     }

@@ -18,7 +18,7 @@ describe('WebhooksSettingsComponent', () => {
       subscribedEvents: ['task.created', 'task.updated'],
       state: 'A',
       createdAt: '2026-09-18T10:00:00Z',
-      createdBy: 42
+      createdBy: 42,
     },
     {
       id: 2,
@@ -27,14 +27,11 @@ describe('WebhooksSettingsComponent', () => {
       subscribedEvents: ['*'],
       state: 'P',
       createdAt: '2026-09-17T12:00:00Z',
-      createdBy: 42
-    }
+      createdBy: 42,
+    },
   ];
 
-  async function createFixture(
-    subscriptions: WebhookSubscription[] = mockSubscriptions,
-    canManage = true
-  ) {
+  async function createFixture(subscriptions: WebhookSubscription[] = mockSubscriptions, canManage = true) {
     const api = {
       get: vi.fn((url: string) => {
         if (url === '/webhooks/subscriptions') {
@@ -51,29 +48,29 @@ describe('WebhooksSettingsComponent', () => {
           state: 'A',
           createdAt: '2026-09-18T12:00:00Z',
           createdBy: 1,
-          secretToken: 'whsec_test_secret_key_12345'
+          secretToken: 'whsec_test_secret_key_12345',
         };
         return of(created);
       }),
       patch: vi.fn(() => of(undefined)),
-      delete: vi.fn(() => of(undefined))
+      delete: vi.fn(() => of(undefined)),
     };
 
     const toast = {
       success: vi.fn(),
       error: vi.fn(),
-      info: vi.fn()
+      info: vi.fn(),
     };
 
     const permService = {
       hasPermission: vi.fn((form: string, action: string) => {
         if (form === 'platform.webhooks' && action === 'manage') return canManage;
         return true;
-      })
+      }),
     };
 
     const i18nService = {
-      translate: translateTest
+      translate: translateTest,
     };
 
     await TestBed.configureTestingModule({
@@ -82,8 +79,8 @@ describe('WebhooksSettingsComponent', () => {
         { provide: ApiService, useValue: api },
         { provide: ToastService, useValue: toast },
         { provide: PermissionService, useValue: permService },
-        { provide: I18nService, useValue: i18nService }
-      ]
+        { provide: I18nService, useValue: i18nService },
+      ],
     }).compileComponents();
 
     const fixture = TestBed.createComponent(WebhooksSettingsComponent);
@@ -139,7 +136,7 @@ describe('WebhooksSettingsComponent', () => {
     expect(api.post).toHaveBeenCalledWith('/webhooks/subscriptions', {
       name: 'New CRM Webhook',
       targetUrl: 'https://crm.corp/hook',
-      subscribedEvents: ['task.created', 'task.completed']
+      subscribedEvents: ['task.created', 'task.completed'],
     });
 
     expect(toast.success).toHaveBeenCalled();

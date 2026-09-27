@@ -21,7 +21,9 @@ import { SMTButtonComponent } from '../ui-kit/components/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent],
   template: `
-    <button smt-button type="button"
+    <button
+      smt-button
+      type="button"
       smtVariant="secondary"
       smtSize="sm"
       smtIcon="download"
@@ -29,7 +31,8 @@ import { SMTButtonComponent } from '../ui-kit/components/button';
       [smtLoading]="busy()"
       [disabled]="!meta()"
       [attr.aria-label]="'exports.button_label' | t"
-      (click)="export()">
+      (click)="export()"
+    >
       {{ 'exports.button' | t }}
     </button>
   `,
@@ -55,32 +58,34 @@ export class UiExportButtonComponent {
     const views = this.views();
     const params = toQueryParams({ sort: views.sort(), conditions: views.filter(), search: this.search() ?? '' });
     this.busy.set(true);
-    this.exports.request({
-      list: meta.code,
-      ...params,
-      columns: this.shownColumns(meta, views),
-      ...(this.options() ? { options: this.options()! } : {}),
-      lang: this.i18n.currentLang()
-    }).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.toast.success(this.i18n.translate('exports.queued'));
-      },
-      error: problem => {
-        this.busy.set(false);
-        if ((problem as { detail?: string })?.detail === 'EXPORT_BUSY') {
-          this.toast.warning(this.i18n.translate('exports.busy'));
-        } else {
-          this.toast.error(problemText(problem) || this.i18n.translate('exports.request_failed'));
-        }
-      }
-    });
+    this.exports
+      .request({
+        list: meta.code,
+        ...params,
+        columns: this.shownColumns(meta, views),
+        ...(this.options() ? { options: this.options()! } : {}),
+        lang: this.i18n.currentLang(),
+      })
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          this.toast.success(this.i18n.translate('exports.queued'));
+        },
+        error: (problem) => {
+          this.busy.set(false);
+          if ((problem as { detail?: string })?.detail === 'EXPORT_BUSY') {
+            this.toast.warning(this.i18n.translate('exports.busy'));
+          } else {
+            this.toast.error(problemText(problem) || this.i18n.translate('exports.request_failed'));
+          }
+        },
+      });
   }
 
   /** The columns on screen in their order: the list's default columns with the person's order and hiding. */
   private shownColumns(meta: QueryListMeta, views: ListViewState): string[] {
-    const keys = meta.fields.filter(field => field.defaultVisible).map(field => field.key);
+    const keys = meta.fields.filter((field) => field.defaultVisible).map((field) => field.key);
     const state = normalizeColumnState(views.columns(), keys);
-    return state.order.filter(key => !state.hidden.includes(key));
+    return state.order.filter((key) => !state.hidden.includes(key));
   }
 }

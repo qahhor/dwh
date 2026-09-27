@@ -9,13 +9,13 @@ import { LoginComponent } from './login.component';
 describe('LoginComponent', () => {
   const authService = {
     login: vi.fn(),
-    verifyOtp: vi.fn()
+    verifyOtp: vi.fn(),
   };
   const apiService = {
-    post: vi.fn()
+    post: vi.fn(),
   };
   const toastService = {
-    success: vi.fn()
+    success: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -25,8 +25,8 @@ describe('LoginComponent', () => {
       providers: [
         { provide: AuthService, useValue: authService },
         { provide: ApiService, useValue: apiService },
-        { provide: ToastService, useValue: toastService }
-      ]
+        { provide: ToastService, useValue: toastService },
+      ],
     }).compileComponents();
   });
 

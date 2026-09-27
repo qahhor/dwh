@@ -23,7 +23,7 @@ class FakeChannel {
     }
   }
   close(): void {
-    FakeChannel.open = FakeChannel.open.filter(channel => channel !== this);
+    FakeChannel.open = FakeChannel.open.filter((channel) => channel !== this);
   }
 }
 
@@ -38,14 +38,17 @@ describe('TabSyncService', () => {
     const here = TestBed.runInInjectionContext(() => new TabSyncService());
     const there = TestBed.runInInjectionContext(() => new TabSyncService());
     const heard: TabSyncMessage[] = [];
-    there.messages.subscribe(message => heard.push(message));
+    there.messages.subscribe((message) => heard.push(message));
 
     here.publish({ kind: 'signed-in', userId: 7 });
     here.publish({ kind: 'language', code: 'uz' });
     FakeChannel.open[0].postMessage({ kind: 'language', code: '<script>' });
     FakeChannel.open[0].postMessage('signed-out');
 
-    expect(heard).toEqual([{ kind: 'signed-in', userId: 7 }, { kind: 'language', code: 'uz' }]);
+    expect(heard).toEqual([
+      { kind: 'signed-in', userId: 7 },
+      { kind: 'language', code: 'uz' },
+    ]);
   });
 
   it('works without BroadcastChannel: nothing syncs and nothing breaks', () => {
@@ -63,11 +66,17 @@ describe('tab sync of the session and the language', () => {
     const router = { navigate, navigateByUrl: vi.fn(() => Promise.resolve(true)), url: '/tasks' };
     const toast = { toasts: vi.fn(() => []), dismiss: vi.fn(), info: vi.fn(), success: vi.fn() };
     const permissions = { clear: vi.fn(), setPermissions: vi.fn() };
-    const api = { get: vi.fn(() => of({ user: { id: 9, language: 'ru' }, permissions: [], permissionsVersion: 1 })), post: vi.fn(() => of({})) };
+    const api = {
+      get: vi.fn(() => of({ user: { id: 9, language: 'ru' }, permissions: [], permissionsVersion: 1 })),
+      post: vi.fn(() => of({})),
+    };
     const chosen = new Subject<string>();
     const i18n = {
-      translate: (key: string) => key, useAuthenticatedPreference: vi.fn(), currentLang: () => 'ru',
-      languageChosen: chosen.asObservable(), setLanguage: vi.fn(() => of(undefined))
+      translate: (key: string) => key,
+      useAuthenticatedPreference: vi.fn(),
+      currentLang: () => 'ru',
+      languageChosen: chosen.asObservable(),
+      setLanguage: vi.fn(() => of(undefined)),
     };
     TestBed.configureTestingModule({
       providers: [
@@ -76,8 +85,8 @@ describe('tab sync of the session and the language', () => {
         { provide: ToastService, useValue: toast },
         { provide: PermissionService, useValue: permissions },
         { provide: ApiService, useValue: api },
-        { provide: I18nService, useValue: i18n }
-      ]
+        { provide: I18nService, useValue: i18n },
+      ],
     });
     return { incoming, tabs, router, toast, permissions, api, i18n, chosen, auth: TestBed.inject(AuthService) };
   }

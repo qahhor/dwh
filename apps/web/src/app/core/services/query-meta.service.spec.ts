@@ -12,7 +12,7 @@ const META: QueryListMeta = {
   defaultLimit: 50,
   maxLimit: 200,
   maxConditions: 20,
-  maxInValues: 100
+  maxInValues: 100,
 };
 
 describe('toQueryParams', () => {
@@ -26,15 +26,15 @@ describe('toQueryParams', () => {
       conditions: [
         { field: 'code', op: 'starts_with', value: 'sales.' },
         { field: 'periodicity', op: 'in', value: ['month', 'year'] },
-        { field: 'lastPublishedVersion', op: 'empty', value: undefined }
+        { field: 'lastPublishedVersion', op: 'empty', value: undefined },
       ],
-      sort: { field: 'name', descending: true }
+      sort: { field: 'name', descending: true },
     });
 
     expect(JSON.parse(params.filter!)).toEqual([
       { field: 'code', op: 'starts_with', value: 'sales.' },
       { field: 'periodicity', op: 'in', value: ['month', 'year'] },
-      { field: 'lastPublishedVersion', op: 'empty' }
+      { field: 'lastPublishedVersion', op: 'empty' },
     ]);
     expect(params.filter).not.toContain('undefined');
     expect(params.sort).toBe('-name');
@@ -68,7 +68,8 @@ describe('QueryMetaService', () => {
   });
 
   it('does not keep a failed request, so the next call asks again', async () => {
-    const get = vi.fn()
+    const get = vi
+      .fn()
       .mockReturnValueOnce(throwError(() => ({ status: 503 })))
       .mockReturnValueOnce(of(META));
     const service = setup(get);

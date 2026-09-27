@@ -30,7 +30,14 @@ import type { FormValueControl, ValidationError, WithOptionalFieldTree } from '@
 import { SMTI18nService } from '../../../i18n';
 import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '../../../forms/field-registry';
 import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
-import { formatNational, joinPhone, nationalLength, SMT_PHONE_COUNTRIES, splitPhone, type SMTPhoneCountry } from './phone-utils';
+import {
+  formatNational,
+  joinPhone,
+  nationalLength,
+  SMT_PHONE_COUNTRIES,
+  splitPhone,
+  type SMTPhoneCountry,
+} from './phone-utils';
 
 const OTHER = 'other';
 /** E.164 allows fifteen digits in all. */
@@ -57,7 +64,8 @@ let nextPhoneId = 0;
         [attr.aria-label]="i18n.messages().phone.country"
         [disabled]="isDisabled() || readonly()"
         [value]="countryKey()"
-        (change)="onCountry($event)">
+        (change)="onCountry($event)"
+      >
         @for (country of countries; track country.iso) {
           <option [value]="country.iso">{{ country.iso }} +{{ country.code }}</option>
         }
@@ -78,7 +86,8 @@ let nextPhoneId = 0;
         [attr.aria-describedby]="incomplete() ? problemId : null"
         [attr.aria-invalid]="hasError() ? 'true' : null"
         (input)="onInput($event)"
-        (blur)="onBlur()" />
+        (blur)="onBlur()"
+      />
     </div>
     @if (incomplete()) {
       <p class="smt-phone-input__problem" [id]="problemId">{{ i18n.messages().phone.incomplete }}</p>
@@ -116,9 +125,10 @@ export class SMTPhoneInputComponent implements FormValueControl<string> {
   readonly country = linkedSignal<string, SMTPhoneCountry | null>({
     source: () => this.value() ?? '',
     // "Other" chosen by the person stays, even when the digits happen to start like a listed code.
-    computation: (value, previous) => (value && previous && previous.value === null && this.otherChosen
-      ? null
-      : splitPhone(value, previous?.value ?? null).country),
+    computation: (value, previous) =>
+      value && previous && previous.value === null && this.otherChosen
+        ? null
+        : splitPhone(value, previous?.value ?? null).country,
   });
 
   protected readonly wasTouched = linkedSignal(() => this.touched());
@@ -156,7 +166,7 @@ export class SMTPhoneInputComponent implements FormValueControl<string> {
       required: this.required(),
       empty: !this.value(),
       localError: this.incomplete(),
-    })
+    }),
   );
 
   private otherChosen = false;
@@ -179,7 +189,7 @@ export class SMTPhoneInputComponent implements FormValueControl<string> {
 
   onCountry(event: Event): void {
     const key = (event.target as HTMLSelectElement).value;
-    const country = SMT_PHONE_COUNTRIES.find(item => item.iso === key) ?? null;
+    const country = SMT_PHONE_COUNTRIES.find((item) => item.iso === key) ?? null;
     const digits = this.digits();
     this.otherChosen = country === null;
     this.country.set(country);

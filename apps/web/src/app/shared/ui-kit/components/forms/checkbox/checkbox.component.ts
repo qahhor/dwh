@@ -108,7 +108,7 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
       touched: this.wasTouched(),
       required: this.required(),
       empty: !this.checked(),
-    })
+    }),
   );
 
   /** Non-empty supporting text (layout: top-align box with label stack when true). */

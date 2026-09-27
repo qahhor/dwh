@@ -20,7 +20,7 @@ interface ToastTimer {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ToastService {
   private readonly i18n = inject(I18nService);
@@ -39,8 +39,9 @@ export class ToastService {
    * same message again restarts the visible one instead of stacking a copy.
    */
   show(type: ToastMessage['type'], message: string, title?: string, durationMs: number = 4000): string {
-    const duplicate = this.toasts().find(toast =>
-      toast.type === type && toast.message === message && toast.title === title);
+    const duplicate = this.toasts().find(
+      (toast) => toast.type === type && toast.message === message && toast.title === title,
+    );
     const id = duplicate?.id ?? Math.random().toString(36).substring(2, 9);
 
     if (!duplicate) {
@@ -82,7 +83,7 @@ export class ToastService {
 
   dismiss(id: string) {
     this.clearTimer(id);
-    this.toasts.update(current => current.filter(t => t.id !== id));
+    this.toasts.update((current) => current.filter((t) => t.id !== id));
   }
 
   /** Stops the dismiss countdown while the user reads or reaches the toast (WCAG 2.2.1). */

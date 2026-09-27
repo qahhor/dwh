@@ -35,11 +35,17 @@ import { SMTModalService } from '../ui-kit/components/modal';
       }
     }
     @if (canBulkDelete() && selected().length > 0) {
-      <button smt-button type="button" smtVariant="danger" smtSize="sm" smtIcon="delete"
+      <button
+        smt-button
+        type="button"
+        smtVariant="danger"
+        smtSize="sm"
+        smtIcon="delete"
         data-testid="entity-bulk-delete"
         [smtLoading]="busy()"
-        (click)="deleteSelected()">
-        {{ 'ui.entity_toolbar.delete_selected' | t:{ n: selected().length } }}
+        (click)="deleteSelected()"
+      >
+        {{ 'ui.entity_toolbar.delete_selected' | t: { n: selected().length } }}
       </button>
       <button smt-button type="button" smtVariant="ghost" smtSize="sm" [disabled]="busy()" (click)="selected.set([])">
         {{ 'ui.entity_toolbar.clear_selection' | t }}
@@ -90,28 +96,32 @@ export class SMTEntityToolbarComponent {
     const ids = this.selected().slice(0, BULK_MAX_IDS);
     if (!meta || ids.length === 0 || this.busy()) return;
     const t = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
-    this.modal.confirm({
-      title: t('ui.entity_toolbar.delete_title'),
-      message: t('ui.entity_toolbar.delete_confirm', { n: ids.length }),
-      yesLabel: t('common.delete'),
-      noLabel: t('common.cancel'),
-      destructive: true,
-      action: () => this.runDelete(meta.code, ids),
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: t('ui.entity_toolbar.delete_title'),
+        message: t('ui.entity_toolbar.delete_confirm', { n: ids.length }),
+        yesLabel: t('common.delete'),
+        noLabel: t('common.cancel'),
+        destructive: true,
+        action: () => this.runDelete(meta.code, ids),
+      })
+      .subscribe();
   }
 
   private runDelete(code: string, ids: number[]): Observable<BulkResult> {
     this.busy.set(true);
-    return this.api.post<BulkResult>(`/entities/${encodeURIComponent(code)}/bulk`, { action: 'delete', ids }, { notifyError: false }).pipe(
-      tap({
-        next: result => {
-          this.busy.set(false);
-          this.selected.set([]);
-          this.result.set(result.failed > 0 ? result : null);
-          this.bulkDone.emit(result);
-        },
-        error: () => this.busy.set(false),
-      }),
-    );
+    return this.api
+      .post<BulkResult>(`/entities/${encodeURIComponent(code)}/bulk`, { action: 'delete', ids }, { notifyError: false })
+      .pipe(
+        tap({
+          next: (result) => {
+            this.busy.set(false);
+            this.selected.set([]);
+            this.result.set(result.failed > 0 ? result : null);
+            this.bulkDone.emit(result);
+          },
+          error: () => this.busy.set(false),
+        }),
+      );
   }
 }

@@ -20,31 +20,28 @@ export interface ModuleGroup {
 }
 
 export const MODULE_ICON_MAP: Record<string, string> = {
-  'md': 'admin_panel_settings',
-  'iam': 'security',
+  md: 'admin_panel_settings',
+  iam: 'security',
   'ms.task': 'task_alt',
   'ms.notify': 'notifications',
-  'platform': 'hub',
-  'audit': 'history',
-  'mf': 'folder_open',
-  'kwh': 'database'
+  platform: 'hub',
+  audit: 'history',
+  mf: 'folder_open',
+  kwh: 'database',
 };
 
 export const MODULE_NAME_KEY_MAP: Record<string, string> = {
-  'md': 'iam.polzovateli_i_bezopasnost_iam',
-  'iam': 'iam.uchetnye_zapisi_i_profil_iam',
+  md: 'iam.polzovateli_i_bezopasnost_iam',
+  iam: 'iam.uchetnye_zapisi_i_profil_iam',
   'ms.task': 'iam.upravlenie_zadachami_task',
   'ms.notify': 'iam.opovescheniya_i_sobytiya_notif',
-  'platform': 'iam.sistemnaya_platforma_platform',
-  'audit': 'iam.zhurnal_audita_audit',
-  'mf': 'iam.faylovoe_hranilische_file',
-  'kwh': 'iam.hranilische_dannyh_dwh'
+  platform: 'iam.sistemnaya_platforma_platform',
+  audit: 'iam.zhurnal_audita_audit',
+  mf: 'iam.faylovoe_hranilische_file',
+  kwh: 'iam.hranilische_dannyh_dwh',
 };
 
-export function buildModuleGroups(
-  items: FormTreeItem[],
-  getModuleName: (modCode: string) => string
-): ModuleGroup[] {
+export function buildModuleGroups(items: FormTreeItem[], getModuleName: (modCode: string) => string): ModuleGroup[] {
   const groupedMap = new Map<string, Map<string, GroupedForm>>();
 
   for (const item of items) {
@@ -58,13 +55,13 @@ export function buildModuleGroups(
         module: item.module,
         formCode: item.formCode,
         formName: item.formName,
-        actions: []
+        actions: [],
       });
     }
 
     moduleMap.get(item.formCode)!.actions.push({
       action: item.action,
-      actionName: item.actionName
+      actionName: item.actionName,
     });
   }
 
@@ -74,7 +71,7 @@ export function buildModuleGroups(
       moduleCode: modCode,
       moduleName: getModuleName(modCode),
       forms: Array.from(formMap.values()),
-      isExpanded: true
+      isExpanded: true,
     });
   });
 
@@ -100,43 +97,35 @@ export function countDirtyPermissions(orig: Set<string>, curr: Set<string>): num
   return diff;
 }
 
-export function toggleFormPermissionSet(
-  current: Set<string>,
-  form: GroupedForm,
-  grant: boolean
-): Set<string> {
+export function toggleFormPermissionSet(current: Set<string>, form: GroupedForm, grant: boolean): Set<string> {
   const next = new Set(current);
   for (const act of form.actions) {
     const key = `${form.formCode}.${act.action}`;
-    if (grant) next.add(key); else next.delete(key);
+    if (grant) next.add(key);
+    else next.delete(key);
   }
   return next;
 }
 
-export function toggleModulePermissionSet(
-  current: Set<string>,
-  moduleGroup: ModuleGroup,
-  grant: boolean
-): Set<string> {
+export function toggleModulePermissionSet(current: Set<string>, moduleGroup: ModuleGroup, grant: boolean): Set<string> {
   const next = new Set(current);
   for (const f of moduleGroup.forms) {
     for (const act of f.actions) {
       const key = `${f.formCode}.${act.action}`;
-      if (grant) next.add(key); else next.delete(key);
+      if (grant) next.add(key);
+      else next.delete(key);
     }
   }
   return next;
 }
 
-export function toggleReadOnlyModulePermissionSet(
-  current: Set<string>,
-  moduleGroup: ModuleGroup
-): Set<string> {
+export function toggleReadOnlyModulePermissionSet(current: Set<string>, moduleGroup: ModuleGroup): Set<string> {
   const next = new Set(current);
   for (const f of moduleGroup.forms) {
     for (const act of f.actions) {
       const key = `${f.formCode}.${act.action}`;
-      if (act.action === 'view') next.add(key); else next.delete(key);
+      if (act.action === 'view') next.add(key);
+      else next.delete(key);
     }
   }
   return next;
@@ -145,30 +134,29 @@ export function toggleReadOnlyModulePermissionSet(
 export function toggleAllPermissionsSet(
   current: Set<string>,
   moduleGroups: ModuleGroup[],
-  grant: boolean
+  grant: boolean,
 ): Set<string> {
   const next = new Set(current);
   for (const group of moduleGroups) {
     for (const f of group.forms) {
       for (const act of f.actions) {
         const key = `${f.formCode}.${act.action}`;
-        if (grant) next.add(key); else next.delete(key);
+        if (grant) next.add(key);
+        else next.delete(key);
       }
     }
   }
   return next;
 }
 
-export function toggleReadOnlyAllPermissionsSet(
-  current: Set<string>,
-  moduleGroups: ModuleGroup[]
-): Set<string> {
+export function toggleReadOnlyAllPermissionsSet(current: Set<string>, moduleGroups: ModuleGroup[]): Set<string> {
   const next = new Set(current);
   for (const group of moduleGroups) {
     for (const f of group.forms) {
       for (const act of f.actions) {
         const key = `${f.formCode}.${act.action}`;
-        if (act.action === 'view') next.add(key); else next.delete(key);
+        if (act.action === 'view') next.add(key);
+        else next.delete(key);
       }
     }
   }
@@ -178,31 +166,26 @@ export function toggleReadOnlyAllPermissionsSet(
 export function filterRoles(roles: Role[], query: string): Role[] {
   const q = query.trim().toLowerCase();
   if (!q) return roles;
-  return roles.filter(r =>
-    r.name.toLowerCase().includes(q) || (r.pcode && r.pcode.toLowerCase().includes(q))
-  );
+  return roles.filter((r) => r.name.toLowerCase().includes(q) || (r.pcode && r.pcode.toLowerCase().includes(q)));
 }
 
-export function filterModuleGroups(
-  moduleGroups: ModuleGroup[],
-  query: string,
-  activeTab: string
-): ModuleGroup[] {
+export function filterModuleGroups(moduleGroups: ModuleGroup[], query: string, activeTab: string): ModuleGroup[] {
   const q = query.trim().toLowerCase();
   return moduleGroups
-    .filter(mod => activeTab === 'all' || mod.moduleCode === activeTab)
-    .map(mod => {
+    .filter((mod) => activeTab === 'all' || mod.moduleCode === activeTab)
+    .map((mod) => {
       if (!q) return mod;
-      const matchingForms = mod.forms.filter(f =>
-        f.formName.toLowerCase().includes(q) ||
-        f.formCode.toLowerCase().includes(q) ||
-        f.actions.some(a => a.actionName.toLowerCase().includes(q) || a.action.toLowerCase().includes(q))
+      const matchingForms = mod.forms.filter(
+        (f) =>
+          f.formName.toLowerCase().includes(q) ||
+          f.formCode.toLowerCase().includes(q) ||
+          f.actions.some((a) => a.actionName.toLowerCase().includes(q) || a.action.toLowerCase().includes(q)),
       );
       return {
         ...mod,
         isExpanded: true,
-        forms: matchingForms
+        forms: matchingForms,
       };
     })
-    .filter(mod => mod.forms.length > 0);
+    .filter((mod) => mod.forms.length > 0);
 }

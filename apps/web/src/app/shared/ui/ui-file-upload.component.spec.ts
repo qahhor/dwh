@@ -13,21 +13,23 @@ describe('UiFileUploadComponent', () => {
     const toast = { success: vi.fn(), error: vi.fn() };
     await TestBed.configureTestingModule({
       imports: [UiFileUploadComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ToastService, useValue: toast }]
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: ToastService, useValue: toast }],
     }).compileComponents();
     const fixture = TestBed.createComponent(UiFileUploadComponent);
     const attached: TaskFile[] = [];
-    fixture.componentInstance.fileAttached.subscribe(file => attached.push(file));
+    fixture.componentInstance.fileAttached.subscribe((file) => attached.push(file));
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
     const pick = (...names: string[]) => {
       const input = fixture.nativeElement.querySelector('input[type="file"]') as HTMLInputElement;
-      Object.defineProperty(input, 'files', { value: names.map(name => new File(['x'], name)), configurable: true });
+      Object.defineProperty(input, 'files', { value: names.map((name) => new File(['x'], name)), configurable: true });
       input.dispatchEvent(new Event('change'));
       fixture.detectChanges();
     };
     const queueNames = () =>
-      Array.from(fixture.nativeElement.querySelectorAll('.queue-name')).map(node => (node as HTMLElement).textContent?.trim());
+      Array.from(fixture.nativeElement.querySelectorAll('.queue-name')).map((node) =>
+        (node as HTMLElement).textContent?.trim(),
+      );
     return { fixture, toast, attached, http, pick, queueNames };
   }
 
@@ -53,12 +55,12 @@ describe('UiFileUploadComponent', () => {
 
     first.flush({ id: 'f-1', originalName: 'a.pdf', sizeBytes: 1, mimeType: 'application/pdf' });
     fixture.detectChanges();
-    expect(attached.map(file => file.fileId)).toEqual(['f-1']);
+    expect(attached.map((file) => file.fileId)).toEqual(['f-1']);
     expect(queueNames()).toEqual(['b.pdf']);
 
     http.expectOne('/api/v1/files/upload').flush({ id: 'f-2', originalName: 'b.pdf' });
     fixture.detectChanges();
-    expect(attached.map(file => file.fileId)).toEqual(['f-1', 'f-2']);
+    expect(attached.map((file) => file.fileId)).toEqual(['f-1', 'f-2']);
     expect(queueNames()).toEqual([]);
   });
 
@@ -80,10 +82,9 @@ describe('UiFileUploadComponent', () => {
     const { fixture, http, pick, toast, queueNames } = await createFixture();
 
     pick('big.pdf', 'small.pdf');
-    http.expectOne('/api/v1/files/upload').flush(
-      { detail: 'Размер файла превышает допустимые 50 МБ' },
-      { status: 413, statusText: 'Payload Too Large' }
-    );
+    http
+      .expectOne('/api/v1/files/upload')
+      .flush({ detail: 'Размер файла превышает допустимые 50 МБ' }, { status: 413, statusText: 'Payload Too Large' });
     fixture.detectChanges();
     expect(toast.error).toHaveBeenCalledWith('Размер файла превышает допустимые 50 МБ', 'Загрузка не удалась');
     expect(fixture.nativeElement.querySelector('.queue-error')?.textContent).toContain('50 МБ');
@@ -93,7 +94,9 @@ describe('UiFileUploadComponent', () => {
     fixture.detectChanges();
     expect(queueNames()).toEqual(['big.pdf']);
 
-    (fixture.nativeElement.querySelector('button[aria-label="Повторить загрузку big.pdf"]') as HTMLButtonElement).click();
+    (
+      fixture.nativeElement.querySelector('button[aria-label="Повторить загрузку big.pdf"]') as HTMLButtonElement
+    ).click();
     fixture.detectChanges();
     http.expectOne('/api/v1/files/upload').flush({ id: 'f-1' });
     fixture.detectChanges();
@@ -111,22 +114,28 @@ describe('UiFileUploadComponent', () => {
     expect(first.cancelled).toBe(true);
     expect(queueNames()).toEqual(['b.pdf']);
     http.expectOne('/api/v1/files/upload').flush({ id: 'f-2' });
-    expect(attached.map(file => file.fileId)).toEqual(['f-2']);
+    expect(attached.map((file) => file.fileId)).toEqual(['f-2']);
   });
 
   it('names every attached file action', async () => {
     const { fixture } = await createFixture();
-    fixture.componentRef.setInput('files', [{
-      fileId: 'file-1',
-      fileName: 'report.pdf',
-      sizeBytes: 2048,
-      mimeType: 'application/pdf',
-      createdAt: '2026-08-30T00:00:00Z'
-    }]);
+    fixture.componentRef.setInput('files', [
+      {
+        fileId: 'file-1',
+        fileName: 'report.pdf',
+        sizeBytes: 2048,
+        mimeType: 'application/pdf',
+        createdAt: '2026-08-30T00:00:00Z',
+      },
+    ]);
     fixture.detectChanges();
 
-    const download = fixture.nativeElement.querySelector('button[aria-label="Скачать «report.pdf»"]') as HTMLButtonElement;
-    const remove = fixture.nativeElement.querySelector('button[aria-label="Удалить «report.pdf»"]') as HTMLButtonElement;
+    const download = fixture.nativeElement.querySelector(
+      'button[aria-label="Скачать «report.pdf»"]',
+    ) as HTMLButtonElement;
+    const remove = fixture.nativeElement.querySelector(
+      'button[aria-label="Удалить «report.pdf»"]',
+    ) as HTMLButtonElement;
     const fileNameAction = fixture.nativeElement.querySelector('.smt-file-card__name') as HTMLElement;
 
     expect(download.type).toBe('button');

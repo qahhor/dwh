@@ -9,7 +9,8 @@
     'items-center': !hasHint(),
     'items-start': hasHint(),
   }"
-  class="flex">
+  class="flex"
+>
   <input
     #inputElement
     aria-hidden="true"
@@ -18,7 +19,8 @@
     [id]="id()"
     class="sr-only"
     tabindex="-1"
-    type="checkbox" />
+    type="checkbox"
+  />
   <span
     (blur)="markTouched()"
     (keydown)="handleKeydown($event)"
@@ -31,7 +33,8 @@
     [attr.aria-required]="isNamedCheckbox() && required() ? 'true' : null"
     [attr.role]="isNamedCheckbox() ? 'checkbox' : null"
     [class]="controlClasses()"
-    [tabindex]="isNamedCheckbox() && !isDisabled() ? '0' : '-1'">
+    [tabindex]="isNamedCheckbox() && !isDisabled() ? '0' : '-1'"
+  >
     <smt-icon
       key="checkbox-minus"
       [fontSize]="size() === 'sm' ? '10px' : size() === 'lg' ? '14px' : '12px'"
@@ -40,7 +43,8 @@
         'opacity-100': isHalfChecked(),
       }"
       [class]="iconColorClasses()"
-      class="pointer-events-none col-start-1 row-start-1 transition-inherit-all" />
+      class="pointer-events-none col-start-1 row-start-1 transition-inherit-all"
+    />
     <smt-icon
       key="checkbox-check"
       [fontSize]="size() === 'sm' ? '10px' : size() === 'lg' ? '14px' : '12px'"
@@ -49,7 +53,8 @@
         'opacity-100': checked() && !isHalfChecked(),
       }"
       [class]="iconColorClasses()"
-      class="pointer-events-none absolute transition-inherit-all" />
+      class="pointer-events-none absolute transition-inherit-all"
+    />
   </span>
 
   @if (!hideLabel()) {
@@ -60,7 +65,8 @@
         [ngClass]="{
           'text-sm': size() === 'sm' || size() === 'md',
           'text-md': size() === 'lg',
-        }">
+        }"
+      >
         <ng-content></ng-content>
       </p>
       @if (hasHint()) {
@@ -71,7 +77,8 @@
             'text-sm': size() === 'sm' || size() === 'md',
             'text-md': size() === 'lg',
           }"
-          (click)="$event.stopPropagation()">
+          (click)="$event.stopPropagation()"
+        >
           {{ hint() }}
         </span>
       }

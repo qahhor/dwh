@@ -14,7 +14,15 @@ import { SMTFilePreviewService, type SMTPreviewFile } from './file-preview.compo
   standalone: true,
   imports: [SMTFileCardComponent],
   template: `
-    <smt-file-card name="photo.png" mimeType="image/png" [size]="1536" smtRemovable (download)="log.push('download')" (preview)="log.push('preview')" (remove)="log.push('remove')" />
+    <smt-file-card
+      name="photo.png"
+      mimeType="image/png"
+      [size]="1536"
+      smtRemovable
+      (download)="log.push('download')"
+      (preview)="log.push('preview')"
+      (remove)="log.push('remove')"
+    />
     <smt-file-card name="report.pdf" mimeType="application/pdf" [size]="3 * 1024 * 1024" />
   `,
 })
@@ -43,7 +51,7 @@ describe('file kinds', () => {
     expect(canPreview(null, 'photo.webp')).toBe(true);
   });
 
-  it('writes sizes in the person\'s language', () => {
+  it("writes sizes in the person's language", () => {
     expect(formatFileSize(0, 'en')).toBe('0 byte');
     expect(formatFileSize(1536, 'en')).toBe('1.5 kB');
     expect(formatFileSize(3 * 1024 * 1024, 'ru')).toMatch(/^3\sМБ$/);
@@ -52,7 +60,7 @@ describe('file kinds', () => {
 
 describe('SMTFileCardComponent and SMTFilePreviewService', () => {
   afterEach(() => {
-    document.querySelectorAll('.cdk-overlay-container').forEach(node => node.remove());
+    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
     TestBed.resetTestingModule();
   });
 
@@ -67,8 +75,14 @@ describe('SMTFileCardComponent and SMTFilePreviewService', () => {
     const fixture = TestBed.createComponent(CardHost);
     await settleFor(fixture);
     const [photo, report] = Array.from(fixture.nativeElement.querySelectorAll('smt-file-card')) as HTMLElement[];
-    const labels = (card: HTMLElement) => Array.from(card.querySelectorAll('button')).map(button => button.getAttribute('aria-label'));
-    expect(labels(photo)).toEqual(['Download photo.png', 'Preview photo.png', 'Download photo.png', 'Remove photo.png']);
+    const labels = (card: HTMLElement) =>
+      Array.from(card.querySelectorAll('button')).map((button) => button.getAttribute('aria-label'));
+    expect(labels(photo)).toEqual([
+      'Download photo.png',
+      'Preview photo.png',
+      'Download photo.png',
+      'Remove photo.png',
+    ]);
     expect(labels(report)).toEqual(['Download report.pdf', 'Download report.pdf']);
     expect(photo.querySelector('.smt-file-card__size')!.textContent).toBe('1.5 kB');
     expect(photo.querySelector('.smt-file-card__icon--image')).not.toBeNull();
@@ -95,7 +109,9 @@ describe('SMTFileCardComponent and SMTFilePreviewService', () => {
     expect(dialog.querySelector('img')!.getAttribute('src')).toBe('/f/c');
     expect(dialog.querySelector('.smt-file-preview__count')!.textContent).toBe('2 of 2');
 
-    dialog.querySelector('smt-file-preview')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    dialog
+      .querySelector('smt-file-preview')!
+      .dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     await settleFor(fixture);
     expect(title.textContent).toBe('a.png');
     expect((dialog.querySelector('button[aria-label="Previous"]') as HTMLButtonElement).disabled).toBe(true);
@@ -107,7 +123,10 @@ describe('SMTFileCardComponent and SMTFilePreviewService', () => {
   it('says so and offers the download when an image cannot be read, and opens nothing for a non-image', async () => {
     TestBed.configureTestingModule({ providers: [{ provide: SMTI18nService, useValue: testI18n() }] });
     const download = vi.fn();
-    const files: SMTPreviewFile[] = [{ name: 'broken.png', url: '/f/x', mimeType: 'image/png' }, { name: 'b.pdf', url: '/f/b', mimeType: 'application/pdf' }];
+    const files: SMTPreviewFile[] = [
+      { name: 'broken.png', url: '/f/x', mimeType: 'image/png' },
+      { name: 'b.pdf', url: '/f/b', mimeType: 'application/pdf' },
+    ];
     const fixture = TestBed.createComponent(CardHost);
     const service = TestBed.inject(SMTFilePreviewService);
     service.open(files, files[1], download);

@@ -83,7 +83,7 @@ export class ListViewState {
   readonly match = signal<QueryMatch>('all');
   readonly busy = signal(false);
 
-  readonly active = computed(() => this.views().find(view => view.id === this.activeId()) ?? null);
+  readonly active = computed(() => this.views().find((view) => view.id === this.activeId()) ?? null);
 
   /** What would be saved now. */
   readonly current = computed<ListViewPayload>(() => ({
@@ -107,9 +107,9 @@ export class ListViewState {
   /** Loads the views and applies the default one; a failure leaves the standard view. */
   load(): Observable<boolean> {
     return this.api.list(this.listCode).pipe(
-      map(views => {
+      map((views) => {
         this.views.set(views);
-        const preferred = views.find(view => view.isDefault) ?? null;
+        const preferred = views.find((view) => view.isDefault) ?? null;
         this.show(preferred);
         return true;
       }),
@@ -146,7 +146,7 @@ export class ListViewState {
     this.busy.set(true);
     return this.api.create(this.listCode, { name, state: this.current(), isDefault }).pipe(
       tap({
-        next: saved => {
+        next: (saved) => {
           this.replace(saved);
           this.activeId.set(saved.id);
         },
@@ -170,7 +170,7 @@ export class ListViewState {
     return this.api.remove(this.listCode, view.id).pipe(
       tap({
         next: () => {
-          this.views.update(views => views.filter(item => item.id !== view.id));
+          this.views.update((views) => views.filter((item) => item.id !== view.id));
           if (this.activeId() === view.id) this.activeId.set(null);
         },
         finalize: () => this.busy.set(false),
@@ -182,7 +182,7 @@ export class ListViewState {
     this.busy.set(true);
     return this.api.update(this.listCode, view.id, { ...body, lockVersion: view.lockVersion }).pipe(
       tap({
-        next: saved => this.replace(saved),
+        next: (saved) => this.replace(saved),
         finalize: () => this.busy.set(false),
       }),
     );
@@ -190,10 +190,10 @@ export class ListViewState {
 
   /** The saved view replaces its old copy; only one view of a list can be the default. */
   private replace(saved: SavedListView): void {
-    this.views.update(views => {
+    this.views.update((views) => {
       const others = views
-        .filter(view => view.id !== saved.id)
-        .map(view => (saved.isDefault && view.isDefault ? { ...view, isDefault: false } : view));
+        .filter((view) => view.id !== saved.id)
+        .map((view) => (saved.isDefault && view.isDefault ? { ...view, isDefault: false } : view));
       return [...others, saved].sort((a, b) => a.name.localeCompare(b.name) || a.id - b.id);
     });
   }
@@ -218,7 +218,9 @@ export class ListViewState {
   private sortText(sort: QuerySort | null): string | null {
     if (!sort) return null;
     const fallback = this.options.defaultSort();
-    return fallback && fallback.field === sort.field && fallback.descending === sort.descending ? null : formatSort(sort);
+    return fallback && fallback.field === sort.field && fallback.descending === sort.descending
+      ? null
+      : formatSort(sort);
   }
 }
 
@@ -229,6 +231,14 @@ export function samePayload(a: ListViewPayload, b: ListViewPayload): boolean {
 
 function canonical(payload: ListViewPayload): string {
   const columns = payload.columns ?? EMPTY_COLUMN_STATE;
-  const widths = Object.keys(columns.widths ?? {}).sort().map(key => [key, columns.widths[key]]);
-  return JSON.stringify([columns.order ?? [], columns.hidden ?? [], widths, payload.sort ?? null, payload.filter ?? []]);
+  const widths = Object.keys(columns.widths ?? {})
+    .sort()
+    .map((key) => [key, columns.widths[key]]);
+  return JSON.stringify([
+    columns.order ?? [],
+    columns.hidden ?? [],
+    widths,
+    payload.sort ?? null,
+    payload.filter ?? [],
+  ]);
 }

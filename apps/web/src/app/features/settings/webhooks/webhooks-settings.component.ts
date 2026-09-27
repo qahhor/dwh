@@ -17,7 +17,7 @@ import {
   CreatedWebhookSubscription,
   CreateWebhookSubscriptionDto,
   AVAILABLE_WEBHOOK_EVENTS,
-  WebhookEventOption
+  WebhookEventOption,
 } from './webhooks-settings.models';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
@@ -25,7 +25,18 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
 @Component({
   selector: 'app-webhooks-settings',
   standalone: true,
-  imports: [SMTCheckboxComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, UiLocalTableComponent],
+  imports: [
+    SMTCheckboxComponent,
+    SMTInputComponent,
+    SMTInputValueAccessor,
+    CommonModule,
+    FormsModule,
+    TranslatePipe,
+    SMTButtonComponent,
+    SMTDialogComponent,
+    SMTDialogContentDirective,
+    UiLocalTableComponent,
+  ],
   template: `
     <div class="webhooks-container">
       <!-- Section Header -->
@@ -35,7 +46,9 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           <p class="section-subtitle">{{ 'settings.webhooks.subtitle' | t }}</p>
         </div>
         <div class="header-right">
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             smtVariant="secondary"
             smtSize="sm"
             smtIcon="refresh"
@@ -44,7 +57,9 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           >
             {{ 'common.refresh' | t }}
           </button>
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             *ngIf="canManageWebhooks()"
             smtVariant="primary"
             smtSize="sm"
@@ -78,7 +93,9 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">webhook</span>
           <h4>{{ 'settings.webhooks.empty' | t }}</h4>
           <p class="empty-desc">{{ 'settings.webhooks.subtitle' | t }}</p>
-          <button smt-button type="button"
+          <button
+            smt-button
+            type="button"
             *ngIf="canManageWebhooks()"
             smtVariant="primary"
             smtSize="sm"
@@ -95,15 +112,19 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
         </div>
       </div>
 
-      <ng-template #idCell let-sub><span class="font-mono text-muted text-xs">#{{ sub.id }}</span></ng-template>
+      <ng-template #idCell let-sub
+        ><span class="font-mono text-muted text-xs">#{{ sub.id }}</span></ng-template
+      >
       <ng-template #nameCell let-sub>
         <span class="sub-name-cell">
           <strong>{{ sub.name }}</strong>
-          <span class="text-xs text-muted">{{ sub.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
+          <span class="text-xs text-muted">{{ sub.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
         </span>
       </ng-template>
       <ng-template #urlCell let-sub>
-        <span class="url-cell"><span class="url-text font-mono text-xs" [title]="sub.targetUrl">{{ sub.targetUrl }}</span></span>
+        <span class="url-cell"
+          ><span class="url-text font-mono text-xs" [title]="sub.targetUrl">{{ sub.targetUrl }}</span></span
+        >
       </ng-template>
       <ng-template #eventsCell let-sub>
         <div class="events-wrap">
@@ -128,8 +149,12 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
             smtIconOnly
             [smtIcon]="sub.state === 'A' ? 'pause_circle' : 'play_circle'"
             [title]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
-            [attr.aria-label]="(sub.state === 'A' ? 'settings.webhooks.pause_named' : 'settings.webhooks.resume_named') | t:{ name: sub.name }"
-            (click)="toggleState(sub)"></button>
+            [attr.aria-label]="
+              (sub.state === 'A' ? 'settings.webhooks.pause_named' : 'settings.webhooks.resume_named')
+                | t: { name: sub.name }
+            "
+            (click)="toggleState(sub)"
+          ></button>
           <button
             smt-button
             type="button"
@@ -139,8 +164,9 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
             smtIcon="delete"
             class="danger"
             [title]="'common.delete' | t"
-            [attr.aria-label]="'settings.webhooks.delete_named' | t:{ name: sub.name }"
-            (click)="confirmDelete(sub)"></button>
+            [attr.aria-label]="'settings.webhooks.delete_named' | t: { name: sub.name }"
+            (click)="confirmDelete(sub)"
+          ></button>
         </div>
       </ng-template>
 
@@ -149,65 +175,71 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
         [open]="isCreateModalOpen()"
         [smtTitle]="'settings.webhooks.add' | t"
         smtSize="md"
-        (closed)="closeCreateModal()">
+        (closed)="closeCreateModal()"
+      >
         <ng-template smtDialogContent>
-        <div body class="create-form-body">
-          <div class="form-row">
-            <label for="webhook-name" class="form-lbl">{{ 'settings.webhooks.name' | t }} *</label>
-            <smt-input
-              smtFieldId="webhook-name"
-              [placeholder]="'settings.webhooks.name_placeholder' | t"
-              [(ngModel)]="createName"
-              [maxLength]="100"
-              required />
-          </div>
-
-          <div class="form-row">
-            <label for="webhook-url" class="form-lbl">{{ 'settings.webhooks.target_url' | t }} *</label>
-            <smt-input
-              class="font-mono"
-              smtFieldId="webhook-url"
-              type="url"
-              [placeholder]="'settings.webhooks.url_placeholder' | t"
-              [(ngModel)]="createTargetUrl"
-              [maxLength]="500"
-              required />
-          </div>
-
-          <div class="form-row">
-            <div class="events-header">
-              <label class="form-lbl">{{ 'settings.webhooks.events' | t }} *</label>
-              <button type="button" class="link-btn text-xs" (click)="toggleAllEvents()">
-                {{ isAllEventsSelected() ? ('iam.snyat_vse' | t) : ('iam.vybrat_vse' | t) }}
-              </button>
+          <div body class="create-form-body">
+            <div class="form-row">
+              <label for="webhook-name" class="form-lbl">{{ 'settings.webhooks.name' | t }} *</label>
+              <smt-input
+                smtFieldId="webhook-name"
+                [placeholder]="'settings.webhooks.name_placeholder' | t"
+                [(ngModel)]="createName"
+                [maxLength]="100"
+                required
+              />
             </div>
-            <div class="events-grid">
-              <div
-                *ngFor="let opt of availableEvents"
-                smt-checkbox
-                class="event-checkbox-label"
-                [checked]="selectedEvents.has(opt.code)"
-                [smtHint]="opt.descKey | t"
-                (smtCheckedChange)="onEventCheck(opt.code, $event)">
-                <span class="event-opt-code font-mono">{{ opt.code }}</span>
+
+            <div class="form-row">
+              <label for="webhook-url" class="form-lbl">{{ 'settings.webhooks.target_url' | t }} *</label>
+              <smt-input
+                class="font-mono"
+                smtFieldId="webhook-url"
+                type="url"
+                [placeholder]="'settings.webhooks.url_placeholder' | t"
+                [(ngModel)]="createTargetUrl"
+                [maxLength]="500"
+                required
+              />
+            </div>
+
+            <div class="form-row">
+              <div class="events-header">
+                <label class="form-lbl">{{ 'settings.webhooks.events' | t }} *</label>
+                <button type="button" class="link-btn text-xs" (click)="toggleAllEvents()">
+                  {{ isAllEventsSelected() ? ('iam.snyat_vse' | t) : ('iam.vybrat_vse' | t) }}
+                </button>
+              </div>
+              <div class="events-grid">
+                <div
+                  *ngFor="let opt of availableEvents"
+                  smt-checkbox
+                  class="event-checkbox-label"
+                  [checked]="selectedEvents.has(opt.code)"
+                  [smtHint]="opt.descKey | t"
+                  (smtCheckedChange)="onEventCheck(opt.code, $event)"
+                >
+                  <span class="event-opt-code font-mono">{{ opt.code }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div footer>
-          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateModal()">
-            {{ 'common.cancel' | t }}
-          </button>
-          <button smt-button type="button"
-            smtVariant="primary"
-            smtSize="md"
-            [disabled]="!isCreateValid()"
-            [smtLoading]="isSaving()"
-            (click)="submitCreate()"
-          >
-            {{ 'common.save' | t }}
-          </button>
-        </div>
+          <div footer>
+            <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateModal()">
+              {{ 'common.cancel' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              smtSize="md"
+              [disabled]="!isCreateValid()"
+              [smtLoading]="isSaving()"
+              (click)="submitCreate()"
+            >
+              {{ 'common.save' | t }}
+            </button>
+          </div>
         </ng-template>
       </smt-dialog>
 
@@ -216,325 +248,338 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
         [open]="createdSecretModalOpen()"
         [smtTitle]="'settings.webhooks.secret_modal_title' | t"
         smtSize="md"
-        (closed)="closeSecretModal()">
+        (closed)="closeSecretModal()"
+      >
         <ng-template smtDialogContent>
-        <div body class="secret-modal-body" *ngIf="recentlyCreatedSubscription() as sub">
-          <div class="warning-callout">
-            <span class="material-symbols-outlined callout-icon" aria-hidden="true">warning</span>
-            <p>{{ 'settings.webhooks.secret_modal_warning' | t }}</p>
-          </div>
+          <div body class="secret-modal-body" *ngIf="recentlyCreatedSubscription() as sub">
+            <div class="warning-callout">
+              <span class="material-symbols-outlined callout-icon" aria-hidden="true">warning</span>
+              <p>{{ 'settings.webhooks.secret_modal_warning' | t }}</p>
+            </div>
 
-          <div class="secret-field-box">
-            <label class="form-lbl">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
-            <div class="secret-input-row">
-              <smt-input
-                class="font-mono secret-input"
-                [value]="sub.secretToken"
-                readonly
-                smtAriaLabel="Secret token" />
-              <button smt-button type="button"
-                smtVariant="secondary"
-                smtSize="sm"
-                smtIcon="content_copy"
-                (click)="copySecret(sub.secretToken)"
-              >
-                {{ 'settings.webhooks.copy_secret' | t }}
-              </button>
+            <div class="secret-field-box">
+              <label class="form-lbl">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
+              <div class="secret-input-row">
+                <smt-input
+                  class="font-mono secret-input"
+                  [value]="sub.secretToken"
+                  readonly
+                  smtAriaLabel="Secret token"
+                />
+                <button
+                  smt-button
+                  type="button"
+                  smtVariant="secondary"
+                  smtSize="sm"
+                  smtIcon="content_copy"
+                  (click)="copySecret(sub.secretToken)"
+                >
+                  {{ 'settings.webhooks.copy_secret' | t }}
+                </button>
+              </div>
+            </div>
+
+            <div class="hmac-info-box">
+              <span class="text-xs text-muted">
+                {{ 'settings.webhooks.request_headers' | t }}:
+                <code>X-Hub-Signature-256: sha256=&lt;hmac-hex&gt;</code>,
+                <code>X-Webhook-Event: &lt;event_type&gt;</code>.
+              </span>
             </div>
           </div>
-
-          <div class="hmac-info-box">
-            <span class="text-xs text-muted">
-              {{ 'settings.webhooks.request_headers' | t }}: <code>X-Hub-Signature-256: sha256=&lt;hmac-hex&gt;</code>, <code>X-Webhook-Event: &lt;event_type&gt;</code>.
-            </span>
+          <div footer>
+            <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="closeSecretModal()">
+              {{ 'common.confirm' | t }}
+            </button>
           </div>
-        </div>
-        <div footer>
-          <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="closeSecretModal()">
-            {{ 'common.confirm' | t }}
-          </button>
-        </div>
         </ng-template>
       </smt-dialog>
     </div>
   `,
-  styles: [`
-    .webhooks-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+  styles: [
+    `
+      .webhooks-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    .webhooks-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .section-title {
-      margin: 0 0 4px 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-    }
-    .section-subtitle {
-      margin: 0;
-      font-size: 0.82rem;
-      color: var(--text-muted);
-    }
-    .header-right {
-      display: flex;
-      gap: 8px;
-    }
+      .webhooks-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .section-title {
+        margin: 0 0 4px 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      .section-subtitle {
+        margin: 0;
+        font-size: 0.82rem;
+        color: var(--text-muted);
+      }
+      .header-right {
+        display: flex;
+        gap: 8px;
+      }
 
-    .loading-state {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 40px;
-      gap: 10px;
-      color: var(--text-muted);
-    }
-    .spin-icon {
-      font-size: 24px;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+      .loading-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        gap: 10px;
+        color: var(--text-muted);
+      }
+      .spin-icon {
+        font-size: 24px;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
 
-    .error-banner {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 16px;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: var(--radius-sm, 6px);
-      color: var(--danger);
-    }
+      .error-banner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        border-radius: var(--radius-sm, 6px);
+        color: var(--danger);
+      }
 
-    .empty-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 48px 24px;
-      background: var(--bg-surface);
-      border: 1px dashed var(--border-color);
-      border-radius: var(--radius-md, 8px);
-      text-align: center;
-      gap: 10px;
-    }
-    .empty-icon {
-      font-size: 48px;
-      color: var(--text-muted);
-    }
-    .empty-desc {
-      max-width: 450px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-    }
+      .empty-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        background: var(--bg-surface);
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius-md, 8px);
+        text-align: center;
+        gap: 10px;
+      }
+      .empty-icon {
+        font-size: 48px;
+        color: var(--text-muted);
+      }
+      .empty-desc {
+        max-width: 450px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-bottom: 10px;
+      }
 
-    .table-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md, 8px);
-      overflow-x: auto;
-    }
+      .table-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md, 8px);
+        overflow-x: auto;
+      }
 
-    .clean-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.84rem;
-    }
-    .clean-table th, .clean-table td {
-      padding: 10px 14px;
-      text-align: left;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .clean-table th {
-      background: var(--bg-hover);
-      font-weight: 600;
-      color: var(--text-muted);
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
+      .clean-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+      }
+      .clean-table th,
+      .clean-table td {
+        padding: 10px 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+      }
+      .clean-table th {
+        background: var(--bg-hover);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
 
-    .sub-name-cell {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+      .sub-name-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
 
-    .url-cell {
-      max-width: 250px;
-    }
-    .url-text {
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--primary);
-    }
+      .url-cell {
+        max-width: 250px;
+      }
+      .url-text {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--primary);
+      }
 
-    .events-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-    }
-    .event-pill {
-      font-family: var(--font-mono, monospace);
-      font-size: 0.72rem;
-      padding: 2px 6px;
-      background: rgba(0, 0, 0, 0.05);
-      border-radius: 4px;
-      color: var(--text-muted);
-    }
+      .events-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .event-pill {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.72rem;
+        padding: 2px 6px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 4px;
+        color: var(--text-muted);
+      }
 
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 8px;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-    }
-    .status-badge.active {
-      background: rgba(34, 197, 94, 0.12);
-      color: var(--success-text);
-    }
-    .status-badge.paused {
-      background: rgba(245, 158, 11, 0.12);
-      color: var(--warning-text);
-    }
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-    }
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 8px;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      .status-badge.active {
+        background: rgba(34, 197, 94, 0.12);
+        color: var(--success-text);
+      }
+      .status-badge.paused {
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--warning-text);
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
 
-    .actions-cell {
-      display: flex;
-      gap: 4px;
-    }
-    .smt-button.danger:hover {
-      color: var(--danger);
-      background: rgba(239, 68, 68, 0.1);
-    }
+      .actions-cell {
+        display: flex;
+        gap: 4px;
+      }
+      .smt-button.danger:hover {
+        color: var(--danger);
+        background: rgba(239, 68, 68, 0.1);
+      }
 
-    .create-form-body {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .form-row {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .form-lbl {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--text-muted);
-    }
-    .form-input {
-      height: 36px;
-      padding: 0 10px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-      background: var(--bg-surface);
-      color: var(--text-main);
-      font-size: 0.85rem;
-    }
-    .form-input:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
+      .create-form-body {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-lbl {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .form-input {
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 6px);
+        background: var(--bg-surface);
+        color: var(--text-main);
+        font-size: 0.85rem;
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
 
-    .events-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .link-btn {
-      background: transparent;
-      border: none;
-      color: var(--primary);
-      cursor: pointer;
-      font-weight: 500;
-      padding: 0;
-    }
-    .events-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      max-height: 200px;
-      overflow-y: auto;
-      padding: 8px;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm, 6px);
-      background: var(--bg-hover);
-    }
-    .event-checkbox-label {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-    }
-    .event-checkbox-label:hover {
-      background: rgba(0, 0, 0, 0.03);
-    }
+      .events-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .link-btn {
+        background: transparent;
+        border: none;
+        color: var(--primary);
+        cursor: pointer;
+        font-weight: 500;
+        padding: 0;
+      }
+      .events-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        padding: 8px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-sm, 6px);
+        background: var(--bg-hover);
+      }
+      .event-checkbox-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+      }
+      .event-checkbox-label:hover {
+        background: rgba(0, 0, 0, 0.03);
+      }
 
-    .warning-callout {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      border-radius: var(--radius-sm, 6px);
-      color: var(--warning-text);
-      font-size: 0.84rem;
-    }
-    .callout-icon {
-      font-size: 24px;
-      color: var(--warning-text);
-    }
+      .warning-callout {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: var(--radius-sm, 6px);
+        color: var(--warning-text);
+        font-size: 0.84rem;
+      }
+      .callout-icon {
+        font-size: 24px;
+        color: var(--warning-text);
+      }
 
-    .secret-field-box {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 14px;
-    }
-    .secret-input-row {
-      display: flex;
-      gap: 8px;
-    }
-    .secret-input {
-      flex: 1;
-      font-weight: 600;
-      color: var(--text-main);
-      background: rgba(0, 0, 0, 0.03);
-    }
-    .hmac-info-box {
-      margin-top: 12px;
-      padding: 8px 12px;
-      background: var(--bg-hover);
-      border-radius: var(--radius-sm, 6px);
-      border: 1px solid var(--border-color);
-    }
-    .hmac-info-box code {
-      font-size: 0.75rem;
-      color: var(--primary);
-    }
-  `]
+      .secret-field-box {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 14px;
+      }
+      .secret-input-row {
+        display: flex;
+        gap: 8px;
+      }
+      .secret-input {
+        flex: 1;
+        font-weight: 600;
+        color: var(--text-main);
+        background: rgba(0, 0, 0, 0.03);
+      }
+      .hmac-info-box {
+        margin-top: 12px;
+        padding: 8px 12px;
+        background: var(--bg-hover);
+        border-radius: var(--radius-sm, 6px);
+        border: 1px solid var(--border-color);
+      }
+      .hmac-info-box code {
+        font-size: 0.75rem;
+        color: var(--primary);
+      }
+    `,
+  ],
 })
 export class WebhooksSettingsComponent implements OnInit {
   private readonly api = inject(ApiService);
@@ -568,26 +613,39 @@ export class WebhooksSettingsComponent implements OnInit {
       name: { header: header(i18n.translate('settings.webhooks.name')), content: cell(this.nameCell) },
       url: { header: header(i18n.translate('settings.webhooks.target_url')), content: cell(this.urlCell) },
       events: { header: header(i18n.translate('settings.webhooks.events')), content: cell(this.eventsCell) },
-      status: { header: header(i18n.translate('settings.webhooks.status')), content: cell(this.statusCell), width: '130px' }
+      status: {
+        header: header(i18n.translate('settings.webhooks.status')),
+        content: cell(this.statusCell),
+        width: '130px',
+      },
     };
     const order = ['id', 'name', 'url', 'events', 'status'];
     if (this.canManageWebhooks()) {
-      columns['actions'] = { header: header(i18n.translate('common.actions')), content: cell(this.actionsCell), width: '120px', align: 'right' };
+      columns['actions'] = {
+        header: header(i18n.translate('common.actions')),
+        content: cell(this.actionsCell),
+        width: '120px',
+        align: 'right',
+      };
       order.push('actions');
     }
-    return { trackBy: (_index, sub) => sub.id, ariaLabel: i18n.translate('settings.webhooks.title'), layout: 'fit', columns, columnsOrder: order };
+    return {
+      trackBy: (_index, sub) => sub.id,
+      ariaLabel: i18n.translate('settings.webhooks.title'),
+      layout: 'fit',
+      columns,
+      columnsOrder: order,
+    };
   });
 
-  readonly canManageWebhooks = computed(() =>
-    this.permService.hasPermission('platform.webhooks', 'manage')
-  );
+  readonly canManageWebhooks = computed(() => this.permService.hasPermission('platform.webhooks', 'manage'));
 
   /** Every subscription is loaded, so a header click sorts the whole list. */
   readonly sortValues = {
     id: (sub: WebhookSubscription) => sub.id,
     name: (sub: WebhookSubscription) => sub.name,
     url: (sub: WebhookSubscription) => sub.targetUrl,
-    status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1)
+    status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1),
   };
 
   createName = '';
@@ -611,7 +669,7 @@ export class WebhooksSettingsComponent implements OnInit {
       error: () => {
         this.loadError.set(true);
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -649,9 +707,7 @@ export class WebhooksSettingsComponent implements OnInit {
   }
 
   isCreateValid(): boolean {
-    return this.createName.trim().length > 0 &&
-           this.createTargetUrl.trim().length > 0 &&
-           this.selectedEvents.size > 0;
+    return this.createName.trim().length > 0 && this.createTargetUrl.trim().length > 0 && this.selectedEvents.size > 0;
   }
 
   submitCreate(): void {
@@ -661,7 +717,7 @@ export class WebhooksSettingsComponent implements OnInit {
     const body: CreateWebhookSubscriptionDto = {
       name: this.createName.trim(),
       targetUrl: this.createTargetUrl.trim(),
-      subscribedEvents: Array.from(this.selectedEvents)
+      subscribedEvents: Array.from(this.selectedEvents),
     };
 
     this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body).subscribe({
@@ -676,7 +732,7 @@ export class WebhooksSettingsComponent implements OnInit {
       error: (err: any) => {
         this.isSaving.set(false);
         this.toast.error(err?.error?.detail || err?.message || 'Error creating subscription');
-      }
+      },
     });
   }
 
@@ -699,30 +755,31 @@ export class WebhooksSettingsComponent implements OnInit {
         this.toast.success(this.uiI18n.translate('settings.webhooks.updated_success'));
         this.loadSubscriptions();
       },
-      error: () => {}
+      error: () => {},
     });
   }
 
   /** Asks before deleting a subscription; the dialog stays open until the server answers. */
   confirmDelete(sub: WebhookSubscription): void {
-    this.modal.confirm({
-      title: this.uiI18n.translate('common.confirm'),
-      message: this.uiI18n.translate('settings.webhooks.delete_confirm', { name: sub.name }),
-      yesLabel: this.uiI18n.translate('common.delete'),
-      noLabel: this.uiI18n.translate('common.cancel'),
-      destructive: true,
-      action: () => {
-        this.isSaving.set(true);
-        return this.api.delete<void>(`/webhooks/subscriptions/${sub.id}`, { notifyError: false }).pipe(
-          tap(() => {
-            this.toast.success(this.uiI18n.translate('settings.webhooks.deleted_success'));
-            this.loadSubscriptions();
-          }),
-          finalize(() => this.isSaving.set(false))
-        );
-      },
-      actionError: problemText
-    }).subscribe();
+    this.modal
+      .confirm({
+        title: this.uiI18n.translate('common.confirm'),
+        message: this.uiI18n.translate('settings.webhooks.delete_confirm', { name: sub.name }),
+        yesLabel: this.uiI18n.translate('common.delete'),
+        noLabel: this.uiI18n.translate('common.cancel'),
+        destructive: true,
+        action: () => {
+          this.isSaving.set(true);
+          return this.api.delete<void>(`/webhooks/subscriptions/${sub.id}`, { notifyError: false }).pipe(
+            tap(() => {
+              this.toast.success(this.uiI18n.translate('settings.webhooks.deleted_success'));
+              this.loadSubscriptions();
+            }),
+            finalize(() => this.isSaving.set(false)),
+          );
+        },
+        actionError: problemText,
+      })
+      .subscribe();
   }
 }
-

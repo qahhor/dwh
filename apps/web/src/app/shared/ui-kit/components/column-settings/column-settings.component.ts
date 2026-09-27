@@ -76,13 +76,17 @@ export class SMTColumnSettingsComponent {
 
   readonly rows = computed<Row[]>(() => {
     const columns = this.columns();
-    const byKey = new Map(columns.map(column => [column.key, column]));
-    const locked = columns.filter(column => column.locked).map(column => column.key);
-    const normalized = normalizeColumnState(this.state(), columns.map(column => column.key), locked);
-    return normalized.order.map(key => ({ ...byKey.get(key)!, visible: !normalized.hidden.includes(key) }));
+    const byKey = new Map(columns.map((column) => [column.key, column]));
+    const locked = columns.filter((column) => column.locked).map((column) => column.key);
+    const normalized = normalizeColumnState(
+      this.state(),
+      columns.map((column) => column.key),
+      locked,
+    );
+    return normalized.order.map((key) => ({ ...byKey.get(key)!, visible: !normalized.hidden.includes(key) }));
   });
 
-  readonly visibleCount = computed(() => this.rows().filter(row => row.visible).length);
+  readonly visibleCount = computed(() => this.rows().filter((row) => row.visible).length);
 
   readonly panelId = `smt-column-settings-${nextColumnSettingsId++}`;
 
@@ -135,18 +139,21 @@ export class SMTColumnSettingsComponent {
     const columns = this.columns();
     return normalizeColumnState(
       this.state(),
-      columns.map(column => column.key),
-      columns.filter(column => column.locked).map(column => column.key),
+      columns.map((column) => column.key),
+      columns.filter((column) => column.locked).map((column) => column.key),
     );
   }
 
   /** The moved column keeps focus; at the edge its button is disabled, so focus goes to the other one. */
   private keepFocus(key: string, delta: -1 | 1): void {
-    afterNextRender(() => {
-      const panel = document.getElementById(this.panelId);
-      const same = panel?.querySelector<HTMLButtonElement>(`[data-column="${key}"][data-move="${delta}"]`);
-      const other = panel?.querySelector<HTMLButtonElement>(`[data-column="${key}"][data-move="${-delta}"]`);
-      (same && !same.disabled ? same : other)?.focus();
-    }, { injector: this.injector });
+    afterNextRender(
+      () => {
+        const panel = document.getElementById(this.panelId);
+        const same = panel?.querySelector<HTMLButtonElement>(`[data-column="${key}"][data-move="${delta}"]`);
+        const other = panel?.querySelector<HTMLButtonElement>(`[data-column="${key}"][data-move="${-delta}"]`);
+        (same && !same.disabled ? same : other)?.focus();
+      },
+      { injector: this.injector },
+    );
   }
 }
