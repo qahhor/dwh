@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.fnd.versioning;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
@@ -7,13 +11,6 @@ import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
 import com.smartup24.cms.instance.fnd.error.StaleVersionException;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.simple.JdbcClient;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +21,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * Блок C основы: версионность с датой действия (AC-10…AC-17). Стандарт проверяется на тестовой сущности
@@ -40,8 +39,10 @@ class FndVersioningTest extends EmbeddedPostgresTest {
 
     @Autowired
     private FndVersioning versioning;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private FndActors actors;
 
@@ -71,7 +72,9 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                     lock_version integer     not null default 0,
                     primary key (thing_id, version)
                 )""").update();
-        jdbc.sql("select fnd_versioning_enable('fnd_test_thing_versions', 'thing_id')").query().singleRow();
+        jdbc.sql("select fnd_versioning_enable('fnd_test_thing_versions', 'thing_id')")
+                .query()
+                .singleRow();
         actor = actors.system();
         thing = insertThing("TEST-A");
         otherThing = insertThing("TEST-B");
@@ -80,36 +83,60 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("AC-10: стандарт даёт колонки, ключ, exclusion, триггеры и одну функцию версии на дату")
     void standardIsApplied() {
-        List<String> columns = jdbc.sql("select column_name from information_schema.columns"
-                + " where table_name = :t").param("t", VERSIONS).query(String.class).list();
-        assertThat(columns).contains("version", "valid_from", "valid_to", "status",
-                "published_at", "published_by", "lock_version");
+        List<String> columns = jdbc.sql("select column_name from information_schema.columns" + " where table_name = :t")
+                .param("t", VERSIONS)
+                .query(String.class)
+                .list();
+        assertThat(columns)
+                .contains(
+                        "version", "valid_from", "valid_to", "status", "published_at", "published_by", "lock_version");
 
         Map<String, Object> types = jdbc.sql("select data_type, is_nullable from information_schema.columns"
                         + " where table_name = :t and column_name = 'valid_from'")
-                .param("t", VERSIONS).query().singleRow();
+                .param("t", VERSIONS)
+                .query()
+                .singleRow();
         assertThat(types).containsEntry("data_type", "date").containsEntry("is_nullable", "NO");
         assertThat(jdbc.sql("select is_nullable from information_schema.columns"
-                        + " where table_name = :t and column_name = 'valid_to'")
-                .param("t", VERSIONS).query(String.class).single()).isEqualTo("YES");
+                                + " where table_name = :t and column_name = 'valid_to'")
+                        .param("t", VERSIONS)
+                        .query(String.class)
+                        .single())
+                .isEqualTo("YES");
 
         List<String> constraints = jdbc.sql("select conname from pg_constraint where conrelid = :t::regclass")
-                .param("t", VERSIONS).query(String.class).list();
-        assertThat(constraints).contains(VERSIONS + "_pkey", VERSIONS + "_ex_valid",
-                VERSIONS + "_ck_status", VERSIONS + "_ck_valid_order", VERSIONS + "_ck_version_positive");
+                .param("t", VERSIONS)
+                .query(String.class)
+                .list();
+        assertThat(constraints)
+                .contains(
+                        VERSIONS + "_pkey",
+                        VERSIONS + "_ex_valid",
+                        VERSIONS + "_ck_status",
+                        VERSIONS + "_ck_valid_order",
+                        VERSIONS + "_ck_version_positive");
         assertThat(jdbc.sql("select pg_get_constraintdef(oid) from pg_constraint"
-                        + " where conrelid = :t::regclass and conname = :n")
-                .param("t", VERSIONS).param("n", VERSIONS + "_pkey").query(String.class).single())
+                                + " where conrelid = :t::regclass and conname = :n")
+                        .param("t", VERSIONS)
+                        .param("n", VERSIONS + "_pkey")
+                        .query(String.class)
+                        .single())
                 .isEqualTo("PRIMARY KEY (thing_id, version)");
 
-        List<String> triggers = jdbc.sql("select tgname from pg_trigger where tgrelid = :t::regclass"
-                + " and not tgisinternal").param("t", VERSIONS).query(String.class).list();
+        List<String> triggers = jdbc.sql(
+                        "select tgname from pg_trigger where tgrelid = :t::regclass" + " and not tgisinternal")
+                .param("t", VERSIONS)
+                .query(String.class)
+                .list();
         assertThat(triggers).contains(VERSIONS + "_bump_version", VERSIONS + "_deny_update_published");
 
         // Функция одна на все модули — по имени в схеме её ровно одна реализация
-        assertThat(jdbc.sql("select count(*) from pg_proc where proname in"
-                        + " ('fnd_version_at', 'bump_version', 'deny_update_published', 'fnd_versioning_enable')")
-                .query(Long.class).single()).isEqualTo(4L);
+        assertThat(jdbc.sql(
+                                "select count(*) from pg_proc where proname in"
+                                        + " ('fnd_version_at', 'bump_version', 'deny_update_published', 'fnd_versioning_enable')")
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(4L);
     }
 
     @Test
@@ -122,17 +149,20 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         assertThat(published.status()).isEqualTo(FndVersion.PUBLISHED);
         assertThat(published.publishedAt()).isNotNull();
         assertThat(published.publishedBy()).isEqualTo(actor.name());
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-15"))).contains(1);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2025-12-31"))).isEmpty();
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-15")))
+                .contains(1);
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2025-12-31")))
+                .isEmpty();
 
         // черновик 2 в «действующей на дату» не участвует
         assertThat(versioning.createDraft(VERSIONS, thing, actor)).isEqualTo(2);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-15"))).contains(1);
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-15")))
+                .contains(1);
 
         assertThat(codeOf(() -> versioning.createDraft(VERSIONS, thing, actor)))
                 .isEqualTo(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS);
-        assertThat(codeOf(() -> versioning.publish(VERSIONS, otherThing, 2,
-                LocalDate.parse("2026-01-01"), null, actor)))
+        assertThat(codeOf(
+                        () -> versioning.publish(VERSIONS, otherThing, 2, LocalDate.parse("2026-01-01"), null, actor)))
                 .isEqualTo(ConstraintErrorCode.FND_VERSION_UNKNOWN);
     }
 
@@ -148,15 +178,18 @@ class FndVersioningTest extends EmbeddedPostgresTest {
             FndVersion first = versioning.find(VERSIONS, thing, 1).orElseThrow();
             assertThat(first.validTo()).isNull();
             assertThat(first.status()).isEqualTo(FndVersion.PUBLISHED);
-            assertThat(versioning.find(VERSIONS, thing, 2).orElseThrow().status()).isEqualTo(FndVersion.DRAFT);
+            assertThat(versioning.find(VERSIONS, thing, 2).orElseThrow().status())
+                    .isEqualTo(FndVersion.DRAFT);
         }
 
         versioning.publish(VERSIONS, thing, 2, LocalDate.parse("2026-07-01"), null, actor);
         FndVersion first = versioning.find(VERSIONS, thing, 1).orElseThrow();
         assertThat(first.validTo()).isEqualTo(LocalDate.parse("2026-06-30"));
         assertThat(first.status()).isEqualTo(FndVersion.PUBLISHED);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-30"))).contains(1);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-07-01"))).contains(2);
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-30")))
+                .contains(1);
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-07-01")))
+                .contains(2);
     }
 
     @Test
@@ -171,14 +204,17 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .contains("fnd_version_published_immutable");
         assertThat(directUpdateError("set valid_to = null", thing, 1)).contains("fnd_version_published_immutable");
         assertThatThrownBy(() -> jdbc.sql("delete from " + VERSIONS + " where thing_id = :h and version = 1")
-                .param("h", thing).update())
+                        .param("h", thing)
+                        .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("fnd_version_published_immutable");
 
         versioning.createDraft(VERSIONS, thing, actor);
         versioning.updateDraft(VERSIONS, thing, 2, 0, Map.of("payload", "TEST-draft"), actor);
         assertThat(jdbc.sql("delete from " + VERSIONS + " where thing_id = :h and version = 2")
-                .param("h", thing).update()).isEqualTo(1);
+                        .param("h", thing)
+                        .update())
+                .isEqualTo(1);
     }
 
     @Test
@@ -187,11 +223,12 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         publishVersion(thing, "2026-01-01", "2026-06-30");
 
         // Проверяется само ограничение БД, поэтому строки вставляются напрямую, минуя порядок публикации
-        for (String[] range : new String[][] {{"2026-06-30", null}, {"2026-03-01", "2026-04-01"},
-                {"2025-01-01", "2026-01-01"}}) {
-            Throwable error = catchThrowable(() -> insertVersionDirectly(thing, 2, range[0], range[1],
-                    FndVersion.PUBLISHED));
-            assertThat(error).as("интервал %s..%s", range[0], range[1])
+        for (String[] range :
+                new String[][] {{"2026-06-30", null}, {"2026-03-01", "2026-04-01"}, {"2025-01-01", "2026-01-01"}}) {
+            Throwable error =
+                    catchThrowable(() -> insertVersionDirectly(thing, 2, range[0], range[1], FndVersion.PUBLISHED));
+            assertThat(error)
+                    .as("интервал %s..%s", range[0], range[1])
                     .isInstanceOf(DataAccessException.class)
                     .hasMessageContaining(VERSIONS + "_ex_valid");
         }
@@ -201,21 +238,25 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         insertVersionDirectly(thing, 3, "2026-02-01", "2026-03-01", FndVersion.DRAFT);
         insertVersionDirectly(thing, 4, "2026-02-01", "2026-03-01", FndVersion.SUPERSEDED);
         assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h")
-                .param("h", thing).query(Long.class).single()).isEqualTo(4L);
+                        .param("h", thing)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(4L);
     }
 
     @Test
     @DisplayName("AC-15: границы дат и номеров версий")
     void dateAndVersionBounds() {
         versioning.createDraft(VERSIONS, thing, actor);
-        assertThatThrownBy(() -> versioning.publish(VERSIONS, thing, 1,
-                LocalDate.parse("2026-06-30"), LocalDate.parse("2026-01-01"), actor))
+        assertThatThrownBy(() -> versioning.publish(
+                        VERSIONS, thing, 1, LocalDate.parse("2026-06-30"), LocalDate.parse("2026-01-01"), actor))
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining(VERSIONS + "_ck_valid_order");
 
         // один день — валидный интервал
         versioning.publish(VERSIONS, thing, 1, LocalDate.parse("2026-01-01"), LocalDate.parse("2026-01-01"), actor);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-01-01"))).contains(1);
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-01-01")))
+                .contains(1);
 
         assertThatThrownBy(() -> insertVersionDirectly(otherThing, 0, "2026-01-01", null, FndVersion.DRAFT))
                 .isInstanceOf(DataAccessException.class)
@@ -235,10 +276,12 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     @DisplayName("AC-16: оптимистическая блокировка черновика — второй клиент со старым lock_version получает отказ")
     void optimisticLocking() {
         versioning.createDraft(VERSIONS, thing, actor);
-        assertThat(versioning.find(VERSIONS, thing, 1).orElseThrow().lockVersion()).isZero();
+        assertThat(versioning.find(VERSIONS, thing, 1).orElseThrow().lockVersion())
+                .isZero();
 
         versioning.updateDraft(VERSIONS, thing, 1, 0, Map.of("payload", "TEST-1"), actor);
-        assertThat(versioning.find(VERSIONS, thing, 1).orElseThrow().lockVersion()).isEqualTo(1);
+        assertThat(versioning.find(VERSIONS, thing, 1).orElseThrow().lockVersion())
+                .isEqualTo(1);
 
         assertThatThrownBy(() -> versioning.updateDraft(VERSIONS, thing, 1, 0, Map.of("payload", "TEST-2"), actor))
                 .isInstanceOf(StaleVersionException.class)
@@ -247,7 +290,8 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         assertThat(payloadOf(thing, 1)).isEqualTo("TEST-1");
 
         versioning.updateDraft(VERSIONS, thing, 1, 1, Map.of("payload", "TEST-3"), actor);
-        assertThat(versioning.find(VERSIONS, thing, 1).orElseThrow().lockVersion()).isEqualTo(2);
+        assertThat(versioning.find(VERSIONS, thing, 1).orElseThrow().lockVersion())
+                .isEqualTo(2);
         assertThat(payloadOf(thing, 1)).isEqualTo("TEST-3");
     }
 
@@ -260,13 +304,18 @@ class FndVersioningTest extends EmbeddedPostgresTest {
 
         versioning.supersede(VERSIONS, thing, 2, actor);
         assertThat(versioning.find(VERSIONS, thing, 2).orElseThrow().status()).isEqualTo(FndVersion.SUPERSEDED);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-08-01"))).isEmpty();
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-08-01")))
+                .isEmpty();
 
         versioning.createDraft(VERSIONS, thing, actor);
         versioning.publish(VERSIONS, thing, 3, LocalDate.parse("2026-07-01"), null, actor);
-        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-08-01"))).contains(3);
-        assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h").param("h", thing)
-                .query(Long.class).single()).isEqualTo(3L);
+        assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-08-01")))
+                .contains(3);
+        assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h")
+                        .param("h", thing)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(3L);
     }
 
     @Test
@@ -280,8 +329,8 @@ class FndVersioningTest extends EmbeddedPostgresTest {
             for (int i = 0; i < 2; i++) {
                 outcomes.add(pool.submit(() -> {
                     barrier.await();
-                    return catchThrowable(() -> versioning.publish(VERSIONS, thing, version,
-                            LocalDate.parse("2026-01-01"), null, actor));
+                    return catchThrowable(() ->
+                            versioning.publish(VERSIONS, thing, version, LocalDate.parse("2026-01-01"), null, actor));
                 }));
             }
             List<Throwable> errors = new ArrayList<>();
@@ -289,28 +338,43 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 errors.add(outcome.get(30, TimeUnit.SECONDS));
             }
             assertThat(errors).filteredOn(Objects::isNull).hasSize(1);
-            assertThat(errors).filteredOn(Objects::nonNull).singleElement()
-                    .isInstanceOfSatisfying(ConstraintViolationException.class,
+            assertThat(errors)
+                    .filteredOn(Objects::nonNull)
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                            ConstraintViolationException.class,
                             e -> assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_VERSION_UNKNOWN));
         } finally {
             pool.shutdownNow();
         }
         assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h and status = 'published'")
-                .param("h", thing).query(Long.class).single()).isEqualTo(1L);
+                        .param("h", thing)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("S-5/доп.14: индекс <таблица>_draft_uidx есть у таблицы теста (fnd_versioning_enable) и у fnd_unit_coefficient_versions (V109)")
+    @DisplayName(
+            "S-5/доп.14: индекс <таблица>_draft_uidx есть у таблицы теста (fnd_versioning_enable) и у fnd_unit_coefficient_versions (V109)")
     void draftUniqueIndexIsApplied() {
-        List<String> indexes = jdbc.sql("select indexname from pg_indexes where indexname like '%\\_draft\\_uidx' order by 1")
-                .query(String.class).list();
+        List<String> indexes = jdbc.sql(
+                        "select indexname from pg_indexes where indexname like '%\\_draft\\_uidx' order by 1")
+                .query(String.class)
+                .list();
         assertThat(indexes).contains(VERSIONS + "_draft_uidx", "fnd_unit_coefficient_versions_draft_uidx");
-        assertThat(jdbc.sql("select indexdef from pg_indexes where indexname = :n").param("n", VERSIONS + "_draft_uidx")
-                .query(String.class).single()).contains("UNIQUE").contains("thing_id").contains("status = 'draft'");
+        assertThat(jdbc.sql("select indexdef from pg_indexes where indexname = :n")
+                        .param("n", VERSIONS + "_draft_uidx")
+                        .query(String.class)
+                        .single())
+                .contains("UNIQUE")
+                .contains("thing_id")
+                .contains("status = 'draft'");
     }
 
     @Test
-    @DisplayName("S-5/доп.14: 30 × два параллельных createDraft одного заголовка — черновик один, второй поток получает fnd_version_draft_exists или fnd_version_conflict")
+    @DisplayName(
+            "S-5/доп.14: 30 × два параллельных createDraft одного заголовка — черновик один, второй поток получает fnd_version_draft_exists или fnd_version_conflict")
     void concurrentCreateDraftLeavesSingleDraft() throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
@@ -329,14 +393,26 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                     errors.add(outcome.get(30, TimeUnit.SECONDS));
                 }
                 long drafts = jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h and status = 'draft'")
-                        .param("h", header).query(Long.class).single();
-                assertThat(drafts).as("попытка %d: черновиков у заголовка", attempt).isLessThanOrEqualTo(1L);
-                assertThat(errors).as("попытка %d: ровно один успех", attempt)
-                        .filteredOn(Objects::isNull).hasSize(1);
-                assertThat(errors).filteredOn(Objects::nonNull).singleElement()
+                        .param("h", header)
+                        .query(Long.class)
+                        .single();
+                assertThat(drafts)
+                        .as("попытка %d: черновиков у заголовка", attempt)
+                        .isLessThanOrEqualTo(1L);
+                assertThat(errors)
+                        .as("попытка %d: ровно один успех", attempt)
+                        .filteredOn(Objects::isNull)
+                        .hasSize(1);
+                assertThat(errors)
+                        .filteredOn(Objects::nonNull)
+                        .singleElement()
                         .as("попытка %d: код второго потока", attempt)
-                        .isInstanceOfSatisfying(ConstraintViolationException.class, e -> assertThat(e.code())
-                                .isIn(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS, ConstraintErrorCode.FND_VERSION_CONFLICT));
+                        .isInstanceOfSatisfying(
+                                ConstraintViolationException.class,
+                                e -> assertThat(e.code())
+                                        .isIn(
+                                                ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS,
+                                                ConstraintErrorCode.FND_VERSION_CONFLICT));
             }
         } finally {
             pool.shutdownNow();
@@ -347,65 +423,97 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     @DisplayName("M-3: updateDraft не даёт обойти publish через служебные колонки")
     void updateDraftRejectsReservedColumns() {
         int version = versioning.createDraft(VERSIONS, thing, actor);
-        for (String column : List.of("status", "version", "valid_from", "lock_version", "published_at", "thing_id", "STATUS")) {
-            assertThatThrownBy(() -> versioning.updateDraft(VERSIONS, thing, version, 0, Map.of(column, "published"), actor))
-                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining(column);
+        for (String column :
+                List.of("status", "version", "valid_from", "lock_version", "published_at", "thing_id", "STATUS")) {
+            assertThatThrownBy(() ->
+                            versioning.updateDraft(VERSIONS, thing, version, 0, Map.of(column, "published"), actor))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining(column);
         }
         assertThat(jdbc.sql("select status from " + VERSIONS + " where thing_id = :t and version = :v")
-                .param("t", thing).param("v", version).query(String.class).single()).isEqualTo("draft");
+                        .param("t", thing)
+                        .param("v", version)
+                        .query(String.class)
+                        .single())
+                .isEqualTo("draft");
     }
 
     @Test
-    @DisplayName("M-13: дубль (заголовок, версия) через транслятор версий — fnd_version_conflict, а не DuplicateKeyException")
+    @DisplayName(
+            "M-13: дубль (заголовок, версия) через транслятор версий — fnd_version_conflict, а не DuplicateKeyException")
     void duplicateVersionNumberIsTranslatedToConflictCode() {
         insertVersionDirectly(thing, 1, "2026-01-01", null, "published");
 
         // гонка createDraft: оба посчитали max+1 — воспроизводим без триггера, PK срабатывает первым
-        jdbc.sql("alter table " + VERSIONS + " disable trigger " + VERSIONS + "_bump_version").update();
+        jdbc.sql("alter table " + VERSIONS + " disable trigger " + VERSIONS + "_bump_version")
+                .update();
         try {
-            ConstraintErrorCode code = codeOf(() -> FndSqlErrors.translatingVersions(VERSIONS,
+            ConstraintErrorCode code = codeOf(() -> FndSqlErrors.translatingVersions(
+                    VERSIONS,
                     () -> jdbc.sql("insert into " + VERSIONS + " (thing_id, version, valid_from, status)"
                                     + " overriding system value values (:h, 1, current_date, 'draft')")
-                            .param("h", thing).update()));
+                            .param("h", thing)
+                            .update()));
             assertThat(code).isEqualTo(ConstraintErrorCode.FND_VERSION_CONFLICT);
         } finally {
-            jdbc.sql("alter table " + VERSIONS + " enable trigger " + VERSIONS + "_bump_version").update();
+            jdbc.sql("alter table " + VERSIONS + " enable trigger " + VERSIONS + "_bump_version")
+                    .update();
         }
-        assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :t").param("t", thing)
-                .query(Long.class).single()).as("дубль не вставлен").isEqualTo(1L);
+        assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :t")
+                        .param("t", thing)
+                        .query(Long.class)
+                        .single())
+                .as("дубль не вставлен")
+                .isEqualTo(1L);
     }
 
     // ---------- вспомогательное ----------
 
     private long insertThing(String code) {
         return jdbc.sql("insert into fnd_test_things (code) values (:c) returning id")
-                .param("c", code).query(Long.class).single();
+                .param("c", code)
+                .query(Long.class)
+                .single();
     }
 
     private void publishVersion(long headerId, String validFrom, String validTo) {
         int version = versioning.createDraft(VERSIONS, headerId, actor);
-        versioning.publish(VERSIONS, headerId, version, LocalDate.parse(validFrom),
-                validTo == null ? null : LocalDate.parse(validTo), actor);
+        versioning.publish(
+                VERSIONS,
+                headerId,
+                version,
+                LocalDate.parse(validFrom),
+                validTo == null ? null : LocalDate.parse(validTo),
+                actor);
     }
 
     private void insertVersionDirectly(long headerId, int version, String validFrom, String validTo, String status) {
         jdbc.sql("insert into " + VERSIONS + " (thing_id, version, valid_from, valid_to, status)"
                         + " values (:h, :v, cast(:from as date), cast(:to as date), :s)")
-                .param("h", headerId).param("v", version).param("from", validFrom)
-                .param("to", validTo).param("s", status).update();
+                .param("h", headerId)
+                .param("v", version)
+                .param("from", validFrom)
+                .param("to", validTo)
+                .param("s", status)
+                .update();
     }
 
     private String directUpdateError(String assignment, long headerId, int version) {
-        Throwable error = catchThrowable(() -> jdbc.sql("update " + VERSIONS + " " + assignment
-                        + " where thing_id = :h and version = :v")
-                .param("h", headerId).param("v", version).update());
+        Throwable error = catchThrowable(
+                () -> jdbc.sql("update " + VERSIONS + " " + assignment + " where thing_id = :h and version = :v")
+                        .param("h", headerId)
+                        .param("v", version)
+                        .update());
         assertThat(error).as("изменение опубликованной версии: %s", assignment).isInstanceOf(DataAccessException.class);
         return error.getMessage();
     }
 
     private String payloadOf(long headerId, int version) {
         return jdbc.sql("select payload from " + VERSIONS + " where thing_id = :h and version = :v")
-                .param("h", headerId).param("v", version).query(String.class).single();
+                .param("h", headerId)
+                .param("v", version)
+                .query(String.class)
+                .single();
     }
 
     private ConstraintErrorCode codeOf(Runnable action) {

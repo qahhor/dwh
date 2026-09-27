@@ -9,13 +9,12 @@ import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class KauthAuthService {
@@ -57,7 +56,6 @@ public class KauthAuthService {
         this.otpSender = otpSender;
     }
 
-
     /**
      * The answer does not tell which logins exist (plan 10/10, item 0.6): an unknown login costs one Argon2
      * verification like a wrong password, both answer "invalid credentials", and a blocked account shows its state
@@ -81,15 +79,20 @@ public class KauthAuthService {
         int failedUser = loginAttemptRepository.countFailedAttemptsForLoginSince(login, tenMinutesAgo);
         if (failedUser >= MAX_FAILED_ATTEMPTS_PER_USER) {
             auditLogService.logSecurityEvent("LOGIN_LOCKED", null, ip, userAgent, Map.of("login", login));
-            throw ApiException.locked(ErrorCode.LOGIN_LOCKED, "Учётная запись временно заблокирована из-за частых ошибок ввода пароля");
+            throw ApiException.locked(
+                    ErrorCode.LOGIN_LOCKED, "Учётная запись временно заблокирована из-за частых ошибок ввода пароля");
         }
 
         var userOpt = userService.findAuthUserByLogin(login);
         String storedHash = userOpt.map(MdUserService.AuthUser::passwordHash).orElse(null);
-        boolean passwordMatches = passwordHasher.verifyPassword(password,
-                storedHash != null ? storedHash : dummyPasswordHash());
+        boolean passwordMatches =
+                passwordHasher.verifyPassword(password, storedHash != null ? storedHash : dummyPasswordHash());
         if (userOpt.isEmpty() || storedHash == null || !passwordMatches) {
-            refuse(login, ip, userAgent, userOpt.map(MdUserService.AuthUser::id).orElse(null),
+            refuse(
+                    login,
+                    ip,
+                    userAgent,
+                    userOpt.map(MdUserService.AuthUser::id).orElse(null),
                     userOpt.isEmpty() ? "USER_NOT_FOUND" : "INVALID_PASSWORD");
             throw ApiException.invalidCredentials();
         }
@@ -101,9 +104,12 @@ public class KauthAuthService {
         }
 
         loginAttemptRepository.recordAttempt(login, ip, true, null);
-        auditLogService.logSecurityEvent("LOGIN_SUCCESS", user.id(), ip, userAgent,
+        auditLogService.logSecurityEvent(
+                "LOGIN_SUCCESS",
+                user.id(),
+                ip,
+                userAgent,
                 Map.of("login", login, "deviceInfo", deviceInfo != null ? deviceInfo : "web"));
-
 
         // FR-AUTH-5: второй фактор. Канал выбирает не код, а пользователь —
         // берём подтверждённый по порядку предпочтения. Нет канала — отказ со
@@ -114,16 +120,21 @@ public class KauthAuthService {
             String otpToken = generateSecureToken();
             String otpCode = String.format("%06d", secureRandom.nextInt(1000000));
 
-            otpCodeRepository.create(user.id(), user.authenticationVersion(), channel.channel(),
-                    KauthPasswordHasher.sha256(otpCode), KauthPasswordHasher.sha256(otpToken),
-                    "login", Instant.now().plusSeconds(300));
+            otpCodeRepository.create(
+                    user.id(),
+                    user.authenticationVersion(),
+                    channel.channel(),
+                    KauthPasswordHasher.sha256(otpCode),
+                    KauthPasswordHasher.sha256(otpToken),
+                    "login",
+                    Instant.now().plusSeconds(300));
 
             // Отправка синхронная: код живёт пять минут, очередь с повторами
             // здесь работает против пользователя. Провал — отказ входа.
             otpSender.sendLoginCode(channel, otpCode);
 
-            auditLogService.logSecurityEvent("OTP_SENT", user.id(), ip, userAgent,
-                    Map.of("channel", channel.channel()));
+            auditLogService.logSecurityEvent(
+                    "OTP_SENT", user.id(), ip, userAgent, Map.of("channel", channel.channel()));
 
             return LoginResult.requires2fa(otpToken, user.id());
         }
@@ -132,8 +143,7 @@ public class KauthAuthService {
         String sessionToken = generateSecureToken();
         String sessionTokenHash = KauthPasswordHasher.sha256(sessionToken);
         var session = sessionRepository.create(
-                user.id(), user.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo
-        );
+                user.id(), user.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo);
 
         return LoginResult.success(sessionToken, user, session);
     }
@@ -152,7 +162,8 @@ public class KauthAuthService {
         // Код ищется по хешу выданного токена и только по нему. До V015 здесь
         // стоял extractUserIdFromOtpToken(), возвращавший захардкоженную 1L:
         // любой непустой токен приводил к коду администратора.
-        var otp = otpCodeRepository.findActiveByTokenHash(KauthPasswordHasher.sha256(otpToken), "login")
+        var otp = otpCodeRepository
+                .findActiveByTokenHash(KauthPasswordHasher.sha256(otpToken), "login")
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен"));
         Long userId = otp.userId();
         if (otp.expiresAt().isBefore(Instant.now())) {
@@ -171,9 +182,11 @@ public class KauthAuthService {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Неверный код подтверждения");
         }
 
-        var user = userService.findAuthUserById(userId)
+        var user = userService
+                .findAuthUserById(userId)
                 .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен"));
-        if (!MdPref.STATE_ACTIVE.equals(user.state()) || user.authenticationVersion() != otp.authenticationVersion()
+        if (!MdPref.STATE_ACTIVE.equals(user.state())
+                || user.authenticationVersion() != otp.authenticationVersion()
                 || !otpCodeRepository.consume(otp.id(), userId, otp.authenticationVersion(), "login")) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
         }
@@ -182,7 +195,8 @@ public class KauthAuthService {
         String sessionTokenHash = KauthPasswordHasher.sha256(sessionToken);
         KauthSessionRepository.SessionRecord session;
         try {
-            session = sessionRepository.create(user.id(), otp.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo);
+            session = sessionRepository.create(
+                    user.id(), otp.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo);
         } catch (ApiException e) {
             if (e.getErrorCode() == ErrorCode.INVALID_CREDENTIALS) {
                 throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
@@ -195,7 +209,8 @@ public class KauthAuthService {
 
     private void refuse(String login, String ip, String userAgent, Long userId, String reason) {
         loginAttemptRepository.recordAttempt(login, ip, false, reason);
-        auditLogService.logSecurityEvent("LOGIN_FAILED", userId, ip, userAgent, Map.of("login", login, "reason", reason));
+        auditLogService.logSecurityEvent(
+                "LOGIN_FAILED", userId, ip, userAgent, Map.of("login", login, "reason", reason));
     }
 
     private String dummyPasswordHash() {
@@ -213,19 +228,18 @@ public class KauthAuthService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-
     public record LoginResult(
             boolean isOtpRequired,
             String otpToken,
             String rawSessionCookie,
             MdUserService.AuthUser user,
-            KauthSessionRepository.SessionRecord session
-    ) {
+            KauthSessionRepository.SessionRecord session) {
         public static LoginResult requires2fa(String otpToken, Long userId) {
             return new LoginResult(true, otpToken, null, null, null);
         }
 
-        public static LoginResult success(String rawSessionCookie, MdUserService.AuthUser user, KauthSessionRepository.SessionRecord session) {
+        public static LoginResult success(
+                String rawSessionCookie, MdUserService.AuthUser user, KauthSessionRepository.SessionRecord session) {
             return new LoginResult(false, null, rawSessionCookie, user, session);
         }
     }

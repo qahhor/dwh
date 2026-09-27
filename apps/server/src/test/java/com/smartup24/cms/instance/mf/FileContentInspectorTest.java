@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.mf;
 
-import com.smartup24.cms.instance.mf.service.FileContentInspector;
-import org.junit.jupiter.api.Test;
-
-import java.io.ByteArrayInputStream;
-
 import static org.assertj.core.api.Assertions.assertThat;
+
+import com.smartup24.cms.instance.mf.service.FileContentInspector;
+import java.io.ByteArrayInputStream;
+import org.junit.jupiter.api.Test;
 
 class FileContentInspectorTest {
 
@@ -15,8 +14,7 @@ class FileContentInspectorTest {
     void inspectionDoesNotConsumeTheUploadStream() throws Exception {
         byte[] content = "%PDF-1.7\nbody".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
 
-        var inspected = inspector.inspect(
-                "application/pdf; charset=binary", new ByteArrayInputStream(content));
+        var inspected = inspector.inspect("application/pdf; charset=binary", new ByteArrayInputStream(content));
 
         assertThat(inspected.verifiedMimeType()).isEqualTo("application/pdf");
         assertThat(inspected.content().readAllBytes()).containsExactly(content);
@@ -30,7 +28,7 @@ class FileContentInspectorTest {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 new ByteArrayInputStream(zipHeader));
 
-        assertThat(inspected.verifiedMimeType()).isEqualTo(
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        assertThat(inspected.verifiedMimeType())
+                .isEqualTo("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     }
 }

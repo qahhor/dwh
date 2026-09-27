@@ -1,9 +1,8 @@
 package com.smartup24.cms.instance.config.security;
 
 import com.smartup24.cms.instance.search.SearchOwnerRateLimits;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
 import java.util.List;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Лимиты частоты запросов (FR-SEC-2, ADR-0008 разд. 2.2). Значения — в минуту.
@@ -18,8 +17,8 @@ public record RateLimitProperties(
         int tokenPerMinute,
         int expensivePerMinute,
         List<String> expensivePaths,
-        int maxEntries
-) implements SearchOwnerRateLimits {
+        int maxEntries)
+        implements SearchOwnerRateLimits {
     public RateLimitProperties {
         if (ipPerMinute <= 0) ipPerMinute = 60;
         if (publicReadPerMinute <= 0) publicReadPerMinute = 600;
@@ -29,10 +28,7 @@ public record RateLimitProperties(
         if (maxEntries <= 0) maxEntries = 10_000;
         if (expensivePaths == null) {
             expensivePaths = List.of(
-                    "/api/v1/audit/stats",
-                    "/api/v1/audit/logs",
-                    "/api/v1/audit/security-events",
-                    "/api/v1/search/**");
+                    "/api/v1/audit/stats", "/api/v1/audit/logs", "/api/v1/audit/security-events", "/api/v1/search/**");
         }
     }
 }

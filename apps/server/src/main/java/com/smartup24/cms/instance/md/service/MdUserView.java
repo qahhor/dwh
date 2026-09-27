@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -28,15 +27,25 @@ public record MdUserView(
         boolean forcePasswordChange,
         List<Long> roleIds,
         Instant createdAt,
-        Instant modifiedAt
-) {
+        Instant modifiedAt) {
     public static MdUserView from(MdUserRepository.UserRecord u, List<Long> roleIds) {
         return new MdUserView(
-                u.id(), u.name(), u.login(), u.email(), u.phone(), u.state(),
-                u.managerId(), u.language(), u.timezone(), u.avatarFileId(),
-                u.attributes(), u.is2faEnabled(), u.forcePasswordChange(),
+                u.id(),
+                u.name(),
+                u.login(),
+                u.email(),
+                u.phone(),
+                u.state(),
+                u.managerId(),
+                u.language(),
+                u.timezone(),
+                u.avatarFileId(),
+                u.attributes(),
+                u.is2faEnabled(),
+                u.forcePasswordChange(),
                 roleIds != null ? roleIds : List.of(),
-                u.createdAt(), u.modifiedAt());
+                u.createdAt(),
+                u.modifiedAt());
     }
 
     public static MdUserView from(MdUserRepository.UserRecord u) {
@@ -49,11 +58,21 @@ public record MdUserView(
 
     public static MdUserView from(MdUserService.AuthUser u, List<Long> roleIds) {
         return new MdUserView(
-                u.id(), u.name(), u.login(), u.email(), u.phone(), u.state(),
-                u.managerId(), u.language(), u.timezone(), u.avatarFileId(),
-                u.attributes(), u.is2faEnabled(), u.forcePasswordChange(),
+                u.id(),
+                u.name(),
+                u.login(),
+                u.email(),
+                u.phone(),
+                u.state(),
+                u.managerId(),
+                u.language(),
+                u.timezone(),
+                u.avatarFileId(),
+                u.attributes(),
+                u.is2faEnabled(),
+                u.forcePasswordChange(),
                 roleIds != null ? roleIds : List.of(),
-                u.createdAt(), u.modifiedAt());
+                u.createdAt(),
+                u.modifiedAt());
     }
 }
-

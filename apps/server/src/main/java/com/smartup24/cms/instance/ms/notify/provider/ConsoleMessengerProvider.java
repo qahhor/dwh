@@ -4,11 +4,10 @@ import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.messenger.MessengerMessage;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.messenger.MessengerSendResult;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.UUID;
 
 /**
  * Заглушка канала мессенджера для разработки: пишет сообщение в журнал,
@@ -31,15 +30,17 @@ public class ConsoleMessengerProvider implements MessengerProvider {
 
     @Override
     public MessengerSendResult send(MessengerMessage message) {
-        log.warn("[ЗАГЛУШКА МЕССЕНДЖЕРА — НЕ ДОСТАВЛЕНО] chat={}, текст: {}",
-                message.recipientChatId(), message.textMarkdown());
+        log.warn(
+                "[ЗАГЛУШКА МЕССЕНДЖЕРА — НЕ ДОСТАВЛЕНО] chat={}, текст: {}",
+                message.recipientChatId(),
+                message.textMarkdown());
 
         return MessengerSendResult.success(UUID.randomUUID().toString(), 1);
     }
 
     @Override
     public ProviderHealth checkHealth() {
-        return ProviderHealth.unhealthy(getProviderCode(),
-                "Заглушка: сообщения не доставляются. Задайте dwh.telegram.bot-token", 0);
+        return ProviderHealth.unhealthy(
+                getProviderCode(), "Заглушка: сообщения не доставляются. Задайте dwh.telegram.bot-token", 0);
     }
 }

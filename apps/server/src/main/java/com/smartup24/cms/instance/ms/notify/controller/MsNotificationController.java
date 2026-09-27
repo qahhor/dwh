@@ -7,16 +7,14 @@ import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/api/v1/notify", "/api/v1/notifications"})
 public class MsNotificationController {
-
 
     private final MsNotificationService notificationService;
 
@@ -76,8 +74,7 @@ public class MsNotificationController {
 
     @PutMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
-    public ResponseEntity<Void> updatePreferences(
-            @RequestBody List<MsNotificationService.PrefUpdateDto> updates) {
+    public ResponseEntity<Void> updatePreferences(@RequestBody List<MsNotificationService.PrefUpdateDto> updates) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
 

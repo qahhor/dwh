@@ -1,14 +1,13 @@
 package com.smartup24.cms.instance.config.cache;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import java.time.Duration;
+import java.util.List;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Duration;
-import java.util.List;
 
 /**
  * In-memory caching configuration using Caffeine for frequently queried reference data
@@ -40,8 +39,7 @@ public class CacheConfig {
                 ALL_MODULES_CACHE,
                 MODULE_ACTIVE_CACHE,
                 NAVIGATION_ITEMS_CACHE,
-                CUSTOM_FIELDS_CACHE
-        ));
+                CUSTOM_FIELDS_CACHE));
         return cacheManager;
     }
 }

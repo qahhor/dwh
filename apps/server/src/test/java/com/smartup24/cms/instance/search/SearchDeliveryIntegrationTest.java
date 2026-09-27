@@ -1,7 +1,16 @@
 package com.smartup24.cms.instance.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.search.repository.SearchDeliveryRepository;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
+import java.time.Duration;
+import java.util.UUID;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -10,18 +19,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.AbstractDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
-import java.time.Duration;
-import java.util.UUID;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
 class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
-    @Test void nextCycleReleasesOnlyItsOwnClaimLeftAfterDatabaseCheckpointFailure() {
+    @Test
+    void nextCycleReleasesOnlyItsOwnClaimLeftAfterDatabaseCheckpointFailure() {
         var generation = activeGeneration();
         long id = user("Checkpoint retry");
         long otherId = user("Other owner");
@@ -29,16 +29,22 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         jdbc.sql("""
                 insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,owner_token)
                 values (:generation,'USER',:id,1,:owner)
-                """).param("generation", generation).param("id", otherId).param("owner", otherOwner).update();
+                """)
+                .param("generation", generation)
+                .param("id", otherId)
+                .param("owner", otherOwner)
+                .update();
         var failedDatabase = new FailingCheckpointDataSource(database);
         var failedManager = new DataSourceTransactionManager(failedDatabase);
-        delivery = SearchRevisionIntegrationTest.proxied(new SearchDeliveryRepository(
-                JdbcClient.create(failedDatabase)), failedManager);
+        delivery = SearchRevisionIntegrationTest.proxied(
+                new SearchDeliveryRepository(JdbcClient.create(failedDatabase)), failedManager);
         worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5);
         worker.startLifecycle(owner);
         // Restore the foreign claim after lifecycle recovery; no next-cycle cleanup may release it.
         jdbc.sql("update search_generation_delivery set owner_token=:owner where entity_id=:id and entity_type='USER'")
-                .param("owner", otherOwner).param("id", otherId).update();
+                .param("owner", otherOwner)
+                .param("id", otherId)
+                .update();
         beforeWrite = exchange -> failedDatabase.fail.set(true);
         assertThatThrownBy(worker::runOnce).isInstanceOf(DataAccessException.class);
         assertThat(failedDatabase.rejected.get()).isEqualTo(3);
@@ -49,35 +55,57 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         worker.runOnce();
         assertThat(delivered("USER", id)).isOne();
         assertThat(documents.get("users/" + id)).containsEntry("name", "Checkpoint retry");
-        assertThat(jdbc.sql("select worker_owner from search_index_state where id=1").query(UUID.class).single()).isEqualTo(owner);
-        assertThat(jdbc.sql("select owner_token from search_generation_delivery where entity_type='USER' and entity_id=:id")
-                .param("id", otherId).query(UUID.class).single()).isEqualTo(otherOwner);
+        assertThat(jdbc.sql("select worker_owner from search_index_state where id=1")
+                        .query(UUID.class)
+                        .single())
+                .isEqualTo(owner);
+        assertThat(jdbc.sql(
+                                "select owner_token from search_generation_delivery where entity_type='USER' and entity_id=:id")
+                        .param("id", otherId)
+                        .query(UUID.class)
+                        .single())
+                .isEqualTo(otherOwner);
     }
 
     private static final class FailingCheckpointDataSource extends AbstractDataSource {
         final javax.sql.DataSource delegate;
         final AtomicBoolean fail = new AtomicBoolean();
         final AtomicInteger rejected = new AtomicInteger();
-        FailingCheckpointDataSource(javax.sql.DataSource delegate) { this.delegate = delegate; }
-        @Override public java.sql.Connection getConnection() throws java.sql.SQLException { return wrap(delegate.getConnection()); }
-        @Override public java.sql.Connection getConnection(String user, String password) throws java.sql.SQLException {
-            return wrap(delegate.getConnection(user,password));
+
+        FailingCheckpointDataSource(javax.sql.DataSource delegate) {
+            this.delegate = delegate;
         }
+
+        @Override
+        public java.sql.Connection getConnection() throws java.sql.SQLException {
+            return wrap(delegate.getConnection());
+        }
+
+        @Override
+        public java.sql.Connection getConnection(String user, String password) throws java.sql.SQLException {
+            return wrap(delegate.getConnection(user, password));
+        }
+
         private java.sql.Connection wrap(java.sql.Connection connection) {
-            return (java.sql.Connection) java.lang.reflect.Proxy.newProxyInstance(getClass().getClassLoader(),
-                    new Class<?>[]{java.sql.Connection.class}, (proxy, method, args) -> {
-                        if (method.getName().equals("prepareStatement") && fail.get()
+            return (java.sql.Connection) java.lang.reflect.Proxy.newProxyInstance(
+                    getClass().getClassLoader(), new Class<?>[] {java.sql.Connection.class}, (proxy, method, args) -> {
+                        if (method.getName().equals("prepareStatement")
+                                && fail.get()
                                 && ((String) args[0]).stripLeading().startsWith("update search_generation_delivery")) {
                             rejected.incrementAndGet();
                             throw new java.sql.SQLException("Injected checkpoint outage", "08006");
                         }
-                        try { return method.invoke(connection,args); }
-                        catch (java.lang.reflect.InvocationTargetException e) { throw e.getCause(); }
+                        try {
+                            return method.invoke(connection, args);
+                        } catch (java.lang.reflect.InvocationTargetException e) {
+                            throw e.getCause();
+                        }
                     });
         }
     }
 
-    @Test void oldOwnerAndOldAttemptCannotAcknowledgeTheReplacementClaim() {
+    @Test
+    void oldOwnerAndOldAttemptCannotAcknowledgeTheReplacementClaim() {
         var generation = activeGeneration();
         long id = user("Owner fence");
         var oldClaim = delivery.claim(generation, owner, clock.instant(), 100).getFirst();
@@ -98,24 +126,34 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(delivered("USER", id)).isEqualTo(2);
     }
 
-    @Test void deletionAfterInflightUpsertIsDeliveredAfterRestart() throws Exception {
+    @Test
+    void deletionAfterInflightUpsertIsDeliveredAfterRestart() throws Exception {
         activeGeneration();
         long reporter = user("Reporter");
         worker.runOnce();
         long id = task(reporter, "Will be deleted");
         var entered = new CountDownLatch(1);
         var respond = new CountDownLatch(1);
-        beforeWrite = exchange -> { entered.countDown(); SearchRevisionIntegrationTest.await(respond); };
+        beforeWrite = exchange -> {
+            entered.countDown();
+            SearchRevisionIntegrationTest.await(respond);
+        };
         try (var executor = Executors.newSingleThreadExecutor()) {
             var future = executor.submit(worker::runOnce);
             try {
                 assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
                 tx.executeWithoutResult(status -> {
-                    jdbc.sql("delete from ms_task_members where task_id=:id").param("id", id).update();
-                    jdbc.sql("delete from ms_tasks where id=:id").param("id", id).update();
+                    jdbc.sql("delete from ms_task_members where task_id=:id")
+                            .param("id", id)
+                            .update();
+                    jdbc.sql("delete from ms_tasks where id=:id")
+                            .param("id", id)
+                            .update();
                     publisher.changed("TASK", id);
                 });
-            } finally { respond.countDown(); }
+            } finally {
+                respond.countDown();
+            }
             future.get(10, TimeUnit.SECONDS);
         }
         assertThat(documents).containsKey("tasks/" + id);
@@ -132,7 +170,8 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(delivered("TASK", id)).isEqualTo(2);
     }
 
-    @Test void workerCannotSeeTaskCreatedInsideHeldBusinessTransaction() throws Exception {
+    @Test
+    void workerCannotSeeTaskCreatedInsideHeldBusinessTransaction() throws Exception {
         activeGeneration();
         long reporter = user("Reporter");
         worker.runOnce();
@@ -141,14 +180,18 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         var id = new AtomicLong();
         try (var executor = Executors.newSingleThreadExecutor()) {
             var future = executor.submit(() -> tx.executeWithoutResult(status -> {
-                id.set(task(reporter, "Committed only")); created.countDown(); SearchRevisionIntegrationTest.await(commit);
+                id.set(task(reporter, "Committed only"));
+                created.countDown();
+                SearchRevisionIntegrationTest.await(commit);
             }));
             try {
                 assertThat(created.await(10, TimeUnit.SECONDS)).isTrue();
                 worker.runOnce();
                 assertThat(documents).doesNotContainKey("tasks/" + id.get());
                 assertThat(delivered("TASK", id.get())).isZero();
-            } finally { commit.countDown(); }
+            } finally {
+                commit.countDown();
+            }
             future.get(10, TimeUnit.SECONDS);
         }
         worker.runOnce();
@@ -156,22 +199,29 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(delivered("TASK", id.get())).isOne();
     }
 
-    @Test void acknowledgementOfInflightRevisionDoesNotConsumeNewerCommitAndHttpHoldsNoTransaction() throws Exception {
+    @Test
+    void acknowledgementOfInflightRevisionDoesNotConsumeNewerCommitAndHttpHoldsNoTransaction() throws Exception {
         activeGeneration();
         long id = user("Revision one");
         var entered = new CountDownLatch(1);
         var respond = new CountDownLatch(1);
         beforeWrite = exchange -> {
-            assertThat(jdbc.sql("select count(*) from pg_stat_activity where datname=current_database() and state='idle in transaction'")
-                    .query(Long.class).single()).isZero();
-            entered.countDown(); SearchRevisionIntegrationTest.await(respond);
+            assertThat(jdbc.sql(
+                                    "select count(*) from pg_stat_activity where datname=current_database() and state='idle in transaction'")
+                            .query(Long.class)
+                            .single())
+                    .isZero();
+            entered.countDown();
+            SearchRevisionIntegrationTest.await(respond);
         };
         try (var executor = Executors.newSingleThreadExecutor()) {
             var future = executor.submit(worker::runOnce);
             try {
                 assertThat(entered.await(10, TimeUnit.SECONDS)).isTrue();
                 users.updateUser(id, "Revision two", null, null, null, null, null, null, null, null, id);
-            } finally { respond.countDown(); }
+            } finally {
+                respond.countDown();
+            }
             future.get(10, TimeUnit.SECONDS);
         }
         assertThat(delivered("USER", id)).isOne();
@@ -182,23 +232,30 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(documents.get("users/" + id)).containsEntry("name", "Revision two");
     }
 
-    @ParameterizedTest @ValueSource(booleans = {true, false})
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     void blockedOrAnonymizedUserEndsAbsentAfterFailedQueuedUpsertAndRestart(boolean anonymize) {
         activeGeneration();
         long id = user("Will disappear");
         failures.set(1);
         worker.runOnce();
         assertThat(delivered("USER", id)).isZero();
-        if (anonymize) users.anonymizeUser(id, id); else users.setUserState(id, "P", id);
+        if (anonymize) users.anonymizeUser(id, id);
+        else users.setUserState(id, "P", id);
         recreateWorker();
         worker.runOnce();
         assertThat(delivered("USER", id)).isEqualTo(2);
         assertThat(documents).doesNotContainKey("users/" + id);
         assertThat(writes).contains("DELETE /collections/users/documents/" + id);
-        assertThat(jdbc.sql("select auth_version from md_users where id=:id").param("id", id).query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select auth_version from md_users where id=:id")
+                        .param("id", id)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(1);
     }
 
-    @Test void eighthFailureIsTerminalForThatRevisionAndNewRevisionResetsFailures() {
+    @Test
+    void eighthFailureIsTerminalForThatRevisionAndNewRevisionResetsFailures() {
         activeGeneration();
         long id = user("Retry");
         failures.set(100);
@@ -223,7 +280,8 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(documents.get("users/" + id)).containsEntry("name", "Recovered");
     }
 
-    @Test void eachCycleDeliversAtMostOneHundredAndRestartResumesTheRemainder() {
+    @Test
+    void eachCycleDeliversAtMostOneHundredAndRestartResumesTheRemainder() {
         activeGeneration();
         tx.executeWithoutResult(status -> {
             for (int i = 0; i < 205; i++) user("Bounded " + i);

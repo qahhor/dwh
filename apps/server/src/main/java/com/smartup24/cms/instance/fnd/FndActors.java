@@ -1,9 +1,8 @@
 package com.smartup24.cms.instance.fnd;
 
+import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 /**
  * Акторы основы и их установка в сессию БД. Аудит каркаса ({@code fnd_audit_trigger}) требует числовой
@@ -69,16 +68,20 @@ public class FndActors {
                             values (:name, :login, :email, 'P', 'uz', 'UTC')
                             on conflict (login) do nothing
                             """)
-                    .param("name", name).param("login", login).param("email", email)
+                    .param("name", name)
+                    .param("login", login)
+                    .param("email", email)
                     .update();
-            return findUserId(jdbc, login).orElseThrow(() -> new IllegalStateException(
-                    "Учётка " + login + " не создана в md_users"));
+            return findUserId(jdbc, login)
+                    .orElseThrow(() -> new IllegalStateException("Учётка " + login + " не создана в md_users"));
         });
     }
 
     private static Optional<Long> findUserId(JdbcClient jdbc, String login) {
         return jdbc.sql("select id from md_users where login = :login")
-                .param("login", login).query(Long.class).optional();
+                .param("login", login)
+                .query(Long.class)
+                .optional();
     }
 
     public FndActor user(long userId) {
@@ -93,6 +96,7 @@ public class FndActors {
     public void apply(FndActor actor) {
         jdbc.sql("select set_config('app.user_id', :id, true)")
                 .param("id", String.valueOf(actor.userId()))
-                .query(String.class).single();
+                .query(String.class)
+                .single();
     }
 }

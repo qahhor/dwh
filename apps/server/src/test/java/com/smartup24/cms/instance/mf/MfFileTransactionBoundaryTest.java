@@ -1,16 +1,30 @@
 package com.smartup24.cms.instance.mf;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.FileContentInspector;
-import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.mf.service.MfFileMetadataService;
 import com.smartup24.cms.instance.mf.service.MfFileObjectLock;
-import com.smartup24.cms.spi.storage.StorageProvider;
+import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
+import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -20,21 +34,6 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-
-import javax.sql.DataSource;
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
 
 class MfFileTransactionBoundaryTest {
 
@@ -63,43 +62,46 @@ class MfFileTransactionBoundaryTest {
                     transactionStatesAtStorageBoundary.add(
                             TransactionSynchronizationManager.isActualTransactionActive());
                     return new StoredFileMetadata(
-                            "instance-files", invocation.getArgument(1), SHA, content.length,
-                            "application/pdf", Instant.now());
+                            "instance-files",
+                            invocation.getArgument(1),
+                            SHA,
+                            content.length,
+                            "application/pdf",
+                            Instant.now());
                 });
-        when(storage.download(anyString(), anyString()))
-                .thenAnswer(invocation -> {
-                    transactionStatesAtStorageBoundary.add(
-                            TransactionSynchronizationManager.isActualTransactionActive());
-                    return new FileDownloadStream(
-                            new ByteArrayInputStream(content), content.length, "application/pdf");
-                });
+        when(storage.download(anyString(), anyString())).thenAnswer(invocation -> {
+            transactionStatesAtStorageBoundary.add(TransactionSynchronizationManager.isActualTransactionActive());
+            return new FileDownloadStream(new ByteArrayInputStream(content), content.length, "application/pdf");
+        });
         Mockito.doAnswer(invocation -> {
                     transactionStatesAtStorageBoundary.add(
                             TransactionSynchronizationManager.isActualTransactionActive());
                     return null;
                 })
-                .when(storage).delete(anyString(), anyString());
+                .when(storage)
+                .delete(anyString(), anyString());
 
         try (var context = new AnnotationConfigApplicationContext()) {
-            DataSource dataSource = new DriverManagerDataSource(
-                    "jdbc:h2:mem:file_tx_boundary;DB_CLOSE_DELAY=-1", "sa", "");
+            DataSource dataSource =
+                    new DriverManagerDataSource("jdbc:h2:mem:file_tx_boundary;DB_CLOSE_DELAY=-1", "sa", "");
             context.register(EnableTransactions.class);
             context.registerBean(DataSource.class, () -> dataSource);
-            context.registerBean(PlatformTransactionManager.class,
-                    () -> new DataSourceTransactionManager(dataSource));
-            context.registerBean(MfFileMetadataService.class,
-                    () -> new MfFileMetadataService(repository, auditLog));
-            context.registerBean(MfFileService.class,
+            context.registerBean(PlatformTransactionManager.class, () -> new DataSourceTransactionManager(dataSource));
+            context.registerBean(MfFileMetadataService.class, () -> new MfFileMetadataService(repository, auditLog));
+            context.registerBean(
+                    MfFileService.class,
                     () -> new MfFileService(
                             context.getBean(MfFileMetadataService.class),
-                            storage, new FileContentInspector(), List.of(),
-                            new MfFileObjectLock(), scopeService));
+                            storage,
+                            new FileContentInspector(),
+                            List.of(),
+                            new MfFileObjectLock(),
+                            scopeService));
             context.refresh();
 
             MfFileService service = context.getBean(MfFileService.class);
             service.uploadFile(
-                    "document.pdf", "application/pdf",
-                    new ByteArrayInputStream(content), content.length, 1L);
+                    "document.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 1L);
             try (var ignored = service.downloadFile(record().id())) {
                 // Closing verifies the same real stream contract used by the controller.
             }
@@ -114,8 +116,15 @@ class MfFileTransactionBoundaryTest {
 
     private static MfFileRepository.FileRecord record() {
         return new MfFileRepository.FileRecord(
-                UUID.randomUUID(), SHA, "document.pdf", 128, "application/pdf",
-                "instance-files", "e3/" + SHA, Instant.now(), 1L);
+                UUID.randomUUID(),
+                SHA,
+                "document.pdf",
+                128,
+                "application/pdf",
+                "instance-files",
+                "e3/" + SHA,
+                Instant.now(),
+                1L);
     }
 
     private static byte[] pdfBytes(int size) {
@@ -127,6 +136,5 @@ class MfFileTransactionBoundaryTest {
 
     @Configuration(proxyBeanMethods = false)
     @EnableTransactionManagement
-    static class EnableTransactions {
-    }
+    static class EnableTransactions {}
 }

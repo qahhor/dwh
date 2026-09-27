@@ -4,10 +4,6 @@ import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -19,6 +15,9 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HexFormat;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 /**
  * File storage provider supporting local filesystem storage with S3 compatible semantics.
@@ -44,7 +43,8 @@ public class LocalStorageProvider implements StorageProvider {
     }
 
     @Override
-    public StoredFileMetadata upload(String bucket, String key, InputStream contentStream, long sizeBytes, String contentType) {
+    public StoredFileMetadata upload(
+            String bucket, String key, InputStream contentStream, long sizeBytes, String contentType) {
         if (contentStream == null || sizeBytes < 0) {
             throw new IllegalArgumentException("Storage content and non-negative size are required");
         }
@@ -56,8 +56,7 @@ public class LocalStorageProvider implements StorageProvider {
 
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             try (DigestInputStream dis = new DigestInputStream(contentStream, digest);
-                 FileOutputStream fos = new FileOutputStream(targetFile.toFile())) {
-
+                    FileOutputStream fos = new FileOutputStream(targetFile.toFile())) {
 
                 byte[] buffer = new byte[8192];
                 int bytesRead;
@@ -71,8 +70,7 @@ public class LocalStorageProvider implements StorageProvider {
                     written += bytesRead;
                 }
                 if (written != sizeBytes) {
-                    throw new IllegalArgumentException(
-                            "Declared storage object size does not match content length");
+                    throw new IllegalArgumentException("Declared storage object size does not match content length");
                 }
             }
 
@@ -126,8 +124,9 @@ public class LocalStorageProvider implements StorageProvider {
     @Override
     public ProviderHealth checkHealth() {
         boolean writable = Files.isWritable(basePath);
-        return writable ? ProviderHealth.healthy(getProviderCode(), 1)
-                        : ProviderHealth.unhealthy(getProviderCode(), "Storage path is not writable", 1);
+        return writable
+                ? ProviderHealth.healthy(getProviderCode(), 1)
+                : ProviderHealth.unhealthy(getProviderCode(), "Storage path is not writable", 1);
     }
 
     private Path resolveObjectPath(String bucket, String key) {

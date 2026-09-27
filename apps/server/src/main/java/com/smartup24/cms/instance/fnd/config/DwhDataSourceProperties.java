@@ -2,11 +2,10 @@ package com.smartup24.cms.instance.fnd.config;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
-
-import java.time.Duration;
 
 /**
  * Подключение к {@code pg-dwh} (промпт 02 п.18). Таймаут соединения обязателен: дефолта «без таймаута»

@@ -1,12 +1,16 @@
 package com.smartup24.cms.instance.db;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrap;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
-import com.smartup24.cms.instance.config.db.SchemaVersionGate;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
+import com.smartup24.cms.instance.config.db.SchemaVersionGate;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -17,11 +21,6 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import javax.sql.DataSource;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * R4 (ремедиация, NFR-10 / FR-INST-1 / FR-INST-2, AUDIT-03 C-1/C-2):
@@ -70,18 +69,23 @@ class MigrationGateAndBootstrapTest {
     @Order(3)
     void seedContainsNoInstanceDataOrUsers() {
         JdbcClient jdbc = JdbcClient.create(dataSource());
-        assertThat(jdbc.sql("select count(*) from md_instance_info").query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("select count(*) from md_users").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from md_instance_info")
+                        .query(Long.class)
+                        .single())
+                .isZero();
+        assertThat(jdbc.sql("select count(*) from md_users").query(Long.class).single())
+                .isZero();
         // Справочники при этом на месте
-        assertThat(jdbc.sql("select count(*) from md_roles where pcode = 'admin'").query(Long.class).single())
+        assertThat(jdbc.sql("select count(*) from md_roles where pcode = 'admin'")
+                        .query(Long.class)
+                        .single())
                 .isEqualTo(1);
     }
 
     @Test
     @Order(4)
     void bootstrapFailsWithoutConfiguration() {
-        InstanceBootstrap bootstrap = bootstrap(new InstanceBootstrapProperties(
-                null, null, null, null, null, null));
+        InstanceBootstrap bootstrap = bootstrap(new InstanceBootstrapProperties(null, null, null, null, null, null));
         assertThatThrownBy(() -> bootstrap.run(null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("dwh.instance.client-code");
@@ -95,22 +99,33 @@ class MigrationGateAndBootstrapTest {
         bootstrap.run(null);
 
         JdbcClient jdbc = JdbcClient.create(dataSource());
-        assertThat(jdbc.sql("select client_code from md_instance_info").query(String.class).single())
+        assertThat(jdbc.sql("select client_code from md_instance_info")
+                        .query(String.class)
+                        .single())
                 .isEqualTo("client-042");
         assertThat(jdbc.sql("select force_password_change from md_users where login = 'admin'")
-                .query(Boolean.class).single())
+                        .query(Boolean.class)
+                        .single())
                 .as("первый вход обязан требовать смену пароля (AUDIT-03 C-1)")
                 .isTrue();
-        Long adminId = jdbc.sql("select id from md_users where login = 'admin'").query(Long.class).single();
+        Long adminId = jdbc.sql("select id from md_users where login = 'admin'")
+                .query(Long.class)
+                .single();
         assertThat(jdbc.sql("select count(*) from md_effective_permissions where user_id = :id")
-                .param("id", adminId).query(Long.class).single())
+                        .param("id", adminId)
+                        .query(Long.class)
+                        .single())
                 .as("эффективные права админа материализованы")
                 .isPositive();
 
         // Идемпотентность: повторный запуск ничего не дублирует
         bootstrap.run(null);
-        assertThat(jdbc.sql("select count(*) from md_users").query(Long.class).single()).isEqualTo(1);
-        assertThat(jdbc.sql("select count(*) from md_instance_info").query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select count(*) from md_users").query(Long.class).single())
+                .isEqualTo(1);
+        assertThat(jdbc.sql("select count(*) from md_instance_info")
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(1);
     }
 
     private static InstanceBootstrap bootstrap(InstanceBootstrapProperties props) {

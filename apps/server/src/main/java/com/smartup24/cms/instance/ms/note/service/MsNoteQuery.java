@@ -3,10 +3,9 @@ package com.smartup24.cms.instance.ms.note.service;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * The personal note list in the field registry (ADR-0016, roadmap item 51): {@code GET /api/v1/notes} and
@@ -21,33 +20,43 @@ public class MsNoteQuery {
             n.id, n.title, n.content_md, n.color, n.is_pinned, n.attributes::text as attributes_str,
             n.created_by, n.modified_by, n.created_at, n.modified_at""";
 
-    private static final String RANK =
-            "(case when n.is_pinned then '1' else '0' end"
-                    + " || to_char(n.modified_at at time zone 'UTC', 'YYYYMMDDHH24MISSUS'))";
+    private static final String RANK = "(case when n.is_pinned then '1' else '0' end"
+            + " || to_char(n.modified_at at time zone 'UTC', 'YYYYMMDDHH24MISSUS'))";
 
     public static final QueryList LIST = new QueryList(
-            "ms.notes",
-            "notes",
-            "view",
-            COLUMNS,
-            "ms_notes n",
-            "n.id",
-            List.of(
-                    QueryField.of("title", "notes.col.title", QueryFieldType.TEXT, "n.title").asSortable().asSearchable(),
-                    QueryField.of("contentMd", "notes.col.content", QueryFieldType.TEXT, "n.content_md")
-                            .asSearchable().asHidden(),
-                    QueryField.of("color", "notes.col.color", QueryFieldType.TEXT, "n.color"),
-                    QueryField.of("isPinned", "notes.col.pinned", QueryFieldType.BOOLEAN, "n.is_pinned"),
-                    QueryField.of("modifiedAt", "notes.col.modified_at", QueryFieldType.INSTANT, "n.modified_at")
-                            .asSortable(),
-                    QueryField.of("createdAt", "notes.col.created_at", QueryFieldType.INSTANT, "n.created_at")
-                            .asSortable().asHidden(),
-                    QueryField.of("rank", "notes.col.rank", QueryFieldType.TEXT, RANK)
-                            .asSortable().asNotFilterable().asHidden()),
-            "rank",
-            true,
-            QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT).withCustomFields("NOTE", "n.attributes");
+                    "ms.notes",
+                    "notes",
+                    "view",
+                    COLUMNS,
+                    "ms_notes n",
+                    "n.id",
+                    List.of(
+                            QueryField.of("title", "notes.col.title", QueryFieldType.TEXT, "n.title")
+                                    .asSortable()
+                                    .asSearchable(),
+                            QueryField.of("contentMd", "notes.col.content", QueryFieldType.TEXT, "n.content_md")
+                                    .asSearchable()
+                                    .asHidden(),
+                            QueryField.of("color", "notes.col.color", QueryFieldType.TEXT, "n.color"),
+                            QueryField.of("isPinned", "notes.col.pinned", QueryFieldType.BOOLEAN, "n.is_pinned"),
+                            QueryField.of(
+                                            "modifiedAt",
+                                            "notes.col.modified_at",
+                                            QueryFieldType.INSTANT,
+                                            "n.modified_at")
+                                    .asSortable(),
+                            QueryField.of("createdAt", "notes.col.created_at", QueryFieldType.INSTANT, "n.created_at")
+                                    .asSortable()
+                                    .asHidden(),
+                            QueryField.of("rank", "notes.col.rank", QueryFieldType.TEXT, RANK)
+                                    .asSortable()
+                                    .asNotFilterable()
+                                    .asHidden()),
+                    "rank",
+                    true,
+                    QueryList.DEFAULT_LIMIT,
+                    QueryList.MAX_LIMIT)
+            .withCustomFields("NOTE", "n.attributes");
 
     @Bean
     public QueryList msNotesQueryList() {

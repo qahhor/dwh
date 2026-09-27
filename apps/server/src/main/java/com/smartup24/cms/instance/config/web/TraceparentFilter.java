@@ -11,5 +11,4 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class TraceparentFilter extends W3cTraceparentFilter {
-}
+public class TraceparentFilter extends W3cTraceparentFilter {}

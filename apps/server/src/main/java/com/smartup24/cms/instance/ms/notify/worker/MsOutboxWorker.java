@@ -7,13 +7,12 @@ import com.smartup24.cms.spi.messenger.MessengerMessage;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.sms.SmsMessage;
 import com.smartup24.cms.spi.sms.SmsProvider;
+import java.time.Instant;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.util.List;
 
 @Component
 public class MsOutboxWorker {
@@ -56,37 +55,38 @@ public class MsOutboxWorker {
 
                 outboxRepository.markFailed(
                         item.id(), item.claimToken(), newAttempts, nextAttempt, e.getMessage(), isDeadLetter);
-                log.warn("Failed to deliver notification outbox id={}, attempt {}/{}: {}",
-                        item.id(), newAttempts, item.maxAttempts(), e.getMessage());
+                log.warn(
+                        "Failed to deliver notification outbox id={}, attempt {}/{}: {}",
+                        item.id(),
+                        newAttempts,
+                        item.maxAttempts(),
+                        e.getMessage());
             }
         }
     }
 
     private void deliverItem(MsOutboxRepository.OutboxRecord item) {
         String body = item.payload() != null && item.payload().get("body") != null
-                ? item.payload().get("body").toString() : "";
+                ? item.payload().get("body").toString()
+                : "";
         String subject = item.payload() != null && item.payload().get("subject") != null
-                ? item.payload().get("subject").toString() : "Уведомление DWH";
+                ? item.payload().get("subject").toString()
+                : "Уведомление DWH";
         String idempotencyKey = item.idempotencyKey().toString();
-
 
         switch (item.channel().toLowerCase()) {
             case "email" -> {
-                var res = mailProvider.send(new MailMessage(
-                        item.recipient(), subject, body, null, List.of(), idempotencyKey
-                ));
+                var res = mailProvider.send(
+                        new MailMessage(item.recipient(), subject, body, null, List.of(), idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("Email failed: " + res.errorMessage());
             }
             case "sms" -> {
-                var res = smsProvider.send(new SmsMessage(
-                        item.recipient(), body, "DWH", idempotencyKey
-                ));
+                var res = smsProvider.send(new SmsMessage(item.recipient(), body, "DWH", idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("SMS failed: " + res.errorMessage());
             }
             case "telegram" -> {
-                var res = messengerProvider.send(new MessengerMessage(
-                        item.recipient(), body, null, null, idempotencyKey
-                ));
+                var res = messengerProvider.send(
+                        new MessengerMessage(item.recipient(), body, null, null, idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("Telegram failed: " + res.errorMessage());
             }
             default -> throw new IllegalArgumentException("Unsupported notification channel: " + item.channel());

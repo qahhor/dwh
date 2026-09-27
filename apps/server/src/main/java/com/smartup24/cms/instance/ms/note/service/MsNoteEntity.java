@@ -8,12 +8,11 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.FormFieldType;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * The note entity, declared once (ADR-0019 pilot, roadmap item 54): {@code GET /api/v1/form-meta/ms.notes} gives
@@ -35,15 +34,21 @@ public class MsNoteEntity {
             MsNoteQuery.LIST.code(),
             "NOTE",
             "ms_notes",
-            new EntityRights("ms.note", "Заметки", Map.of(
-                    "view", "Просмотр заметок",
-                    "create", "Создание заметки",
-                    "update", "Редактирование и закрепление заметки",
-                    "delete", "Удаление заметки")),
+            new EntityRights(
+                    "ms.note",
+                    "Заметки",
+                    Map.of(
+                            "view", "Просмотр заметок",
+                            "create", "Создание заметки",
+                            "update", "Редактирование и закрепление заметки",
+                            "delete", "Удаление заметки")),
             new EntityMenu("/notes", "nav.notes", "description", "workspace", 30, "notes"),
             List.of(
-                    FormField.of("title", "notes.col.title", FormFieldType.TEXT).asRequired().length(1, 255),
-                    FormField.of("contentMd", "notes.col.content", FormFieldType.MARKDOWN).length(null, MAX_CONTENT),
+                    FormField.of("title", "notes.col.title", FormFieldType.TEXT)
+                            .asRequired()
+                            .length(1, 255),
+                    FormField.of("contentMd", "notes.col.content", FormFieldType.MARKDOWN)
+                            .length(null, MAX_CONTENT),
                     FormField.select("color", "notes.col.color", COLORS, "notes.color_"),
                     FormField.of("isPinned", "notes.col.pinned", FormFieldType.BOOLEAN)),
             List.of(
@@ -54,8 +59,12 @@ public class MsNoteEntity {
                     new EntityAction("update", "update"),
                     new EntityAction("pin", "update"),
                     new EntityAction("delete", "delete")),
-            Set.of(EntityCapability.CUSTOM_FIELDS, EntityCapability.SAVED_VIEWS, EntityCapability.EXPORT,
-                    EntityCapability.HISTORY, EntityCapability.BULK));
+            Set.of(
+                    EntityCapability.CUSTOM_FIELDS,
+                    EntityCapability.SAVED_VIEWS,
+                    EntityCapability.EXPORT,
+                    EntityCapability.HISTORY,
+                    EntityCapability.BULK));
 
     @Bean
     public EntityDefinition msNotesEntity() {

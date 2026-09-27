@@ -1,10 +1,22 @@
 package com.smartup24.cms.instance.mf;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import jakarta.servlet.http.Cookie;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,19 +29,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
 /** The file list through the field registry: {@code GET /api/v1/files} (keyset over UUID keys, scope, search). */
 class MfFileListControllerTest extends EmbeddedPostgresTest {
 
@@ -37,15 +36,16 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
 
     @Autowired
     private WebApplicationContext wac;
+
     @Autowired
     private MdUserService users;
+
     @Autowired
     private JdbcClient jdbc;
 
     private MockMvc mvc;
 
-    private record Session(Cookie session, Cookie csrf, long userId) {
-    }
+    private record Session(Cookie session, Cookie csrf, long userId) {}
 
     @BeforeEach
     void setUp() {
@@ -62,13 +62,15 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
             insertFile(tag + "-" + i + ".txt", i * 100L, admin.userId());
         }
         insertFile(tag + "-foreign.txt", 1L, other.userId());
-        String mine = URLEncoder.encode("[{\"field\":\"originalName\",\"op\":\"starts_with\",\"value\":\"" + tag + "\"}]",
+        String mine = URLEncoder.encode(
+                "[{\"field\":\"originalName\",\"op\":\"starts_with\",\"value\":\"" + tag + "\"}]",
                 StandardCharsets.UTF_8);
 
         List<String> seen = new ArrayList<>();
         String cursor = null;
         do {
-            var page = fetch(admin, "/api/v1/files?limit=2&filter=" + mine + (cursor == null ? "" : "&cursor=" + cursor));
+            var page =
+                    fetch(admin, "/api/v1/files?limit=2&filter=" + mine + (cursor == null ? "" : "&cursor=" + cursor));
             seen.addAll(read(page, "$.items[*].originalName"));
             cursor = (String) ((Map<String, Object>) read(page, "$")).get("nextCursor");
         } while (cursor != null);
@@ -106,32 +108,59 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
 
     private String user(String role) {
         String login = "files-" + UUID.randomUUID().toString().substring(0, 8);
-        Long systemId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
-        Long roleId = jdbc.sql("select id from md_roles where pcode = :role").param("role", role)
-                .query(Long.class).single();
-        users.createUser("TEST " + login, login, login + "@test.local", null, PASSWORD, null, "ru", "UTC", null,
-                Map.of(), false, false, List.of(roleId), systemId);
+        Long systemId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
+        Long roleId = jdbc.sql("select id from md_roles where pcode = :role")
+                .param("role", role)
+                .query(Long.class)
+                .single();
+        users.createUser(
+                "TEST " + login,
+                login,
+                login + "@test.local",
+                null,
+                PASSWORD,
+                null,
+                "ru",
+                "UTC",
+                null,
+                Map.of(),
+                false,
+                false,
+                List.of(roleId),
+                systemId);
         return login;
     }
 
     private Session login(String login) throws Exception {
-        var response = mvc.perform(post("/api/v1/auth/login").contentType("application/json")
-                        .content(new ObjectMapper().writeValueAsString(
-                                Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
-                .andReturn().getResponse();
+        var response = mvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
+                        .content(new ObjectMapper()
+                                .writeValueAsString(
+                                        Map.of("login", login, "password", PASSWORD, "deviceInfo", "test"))))
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         Cookie session = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
         Cookie csrf = response.getCookie("XSRF-TOKEN");
         if (csrf == null) {
-            csrf = mvc.perform(get("/api/v1/auth/me").cookie(session)).andReturn().getResponse().getCookie("XSRF-TOKEN");
+            csrf = mvc.perform(get("/api/v1/auth/me").cookie(session))
+                    .andReturn()
+                    .getResponse()
+                    .getCookie("XSRF-TOKEN");
         }
-        long userId = jdbc.sql("select id from md_users where login = :login").param("login", login).query(Long.class).single();
+        long userId = jdbc.sql("select id from md_users where login = :login")
+                .param("login", login)
+                .query(Long.class)
+                .single();
         return new Session(session, csrf, userId);
     }
 
     private MockHttpServletResponse fetch(Session s, String url) throws Exception {
-        var response = mvc.perform(MockMvcRequestBuilders.get(URI.create(url))
-                .cookie(s.session(), s.csrf())).andReturn().getResponse();
+        var response = mvc.perform(MockMvcRequestBuilders.get(URI.create(url)).cookie(s.session(), s.csrf()))
+                .andReturn()
+                .getResponse();
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
         return response;
     }

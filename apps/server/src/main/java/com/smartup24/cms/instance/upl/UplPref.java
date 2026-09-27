@@ -16,6 +16,5 @@ public final class UplPref {
     /** Код обработчика задания «разобрать файл пакета» в очереди основы. */
     public static final String JOB_PARSE = "upl.parse";
 
-    private UplPref() {
-    }
+    private UplPref() {}
 }

@@ -4,6 +4,10 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.report.export.ReportExportService;
 import com.smartup24.cms.instance.report.export.ReportExportService.ExportRequest;
 import com.smartup24.cms.instance.report.repository.ReportExportRepository.ExportRow;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -16,11 +20,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Exports of registry lists and the person's journal of them (ADR-0018). Any
@@ -38,12 +37,32 @@ public class ReportExportController {
     }
 
     /** One export in the journal; the file is there while {@code state} is {@code done} and it has not expired. */
-    public record ExportItem(UUID id, String list, String state, Integer rowsCount, boolean truncated, String fileName,
-                             Long sizeBytes, String errorCode, Instant createdAt, Instant finishedAt, Instant expiresAt) {
+    public record ExportItem(
+            UUID id,
+            String list,
+            String state,
+            Integer rowsCount,
+            boolean truncated,
+            String fileName,
+            Long sizeBytes,
+            String errorCode,
+            Instant createdAt,
+            Instant finishedAt,
+            Instant expiresAt) {
 
         static ExportItem of(ExportRow row) {
-            return new ExportItem(row.publicId(), row.listCode(), row.state(), row.rowsCount(), row.truncated(),
-                    row.fileName(), row.sizeBytes(), row.errorCode(), row.createdAt(), row.finishedAt(), row.expiresAt());
+            return new ExportItem(
+                    row.publicId(),
+                    row.listCode(),
+                    row.state(),
+                    row.rowsCount(),
+                    row.truncated(),
+                    row.fileName(),
+                    row.sizeBytes(),
+                    row.errorCode(),
+                    row.createdAt(),
+                    row.finishedAt(),
+                    row.expiresAt());
         }
     }
 
@@ -64,9 +83,14 @@ public class ReportExportController {
     public ResponseEntity<InputStreamResource> file(@PathVariable String id) {
         ReportExportService.ExportFile file = exports.file(id);
         var response = ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(file.fileName(), StandardCharsets.UTF_8).build().toString());
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(file.fileName(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString());
         if (file.sizeBytes() >= 0) {
             response.contentLength(file.sizeBytes());
         }

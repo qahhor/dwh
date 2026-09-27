@@ -1,20 +1,19 @@
 package com.smartup24.cms.instance.mf.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Owns the short database transactions used by file workflows.
@@ -86,33 +85,25 @@ public class MfFileMetadataService {
         // A second process may have published this content after the storage
         // preflight. Reuse its canonical location when that happened.
         var sharedObject = fileRepository.findBySha256(sha256);
-        String canonicalBucket = sharedObject
-                .map(MfFileRepository.FileRecord::storageBucket)
-                .orElse(storageBucket);
-        String canonicalKey = sharedObject
-                .map(MfFileRepository.FileRecord::storageKey)
-                .orElse(storageKey);
+        String canonicalBucket =
+                sharedObject.map(MfFileRepository.FileRecord::storageBucket).orElse(storageBucket);
+        String canonicalKey =
+                sharedObject.map(MfFileRepository.FileRecord::storageKey).orElse(storageKey);
 
         try {
             var created = fileRepository.create(
-                    sha256,
-                    originalName,
-                    sizeBytes,
-                    mimeType,
-                    canonicalBucket,
-                    canonicalKey,
-                    ownerId);
+                    sha256, originalName, sizeBytes, mimeType, canonicalBucket, canonicalKey, ownerId);
 
-            auditLogService.logChange("mf_files", created.id().toString(), "I",
+            auditLogService.logChange(
+                    "mf_files",
+                    created.id().toString(),
+                    "I",
                     List.of("original_name", "size_bytes", "mime_type"),
                     null,
-                    Map.of("original_name", originalName,
-                            "size_bytes", sizeBytes,
-                            "mime_type", created.mimeType()));
+                    Map.of("original_name", originalName, "size_bytes", sizeBytes, "mime_type", created.mimeType()));
             return created;
         } catch (DuplicateKeyException exception) {
-            return fileRepository.findBySha256AndOwner(sha256, ownerId)
-                    .orElseThrow(() -> exception);
+            return fileRepository.findBySha256AndOwner(sha256, ownerId).orElseThrow(() -> exception);
         }
     }
 
@@ -129,11 +120,18 @@ public class MfFileMetadataService {
         }
 
         fileRepository.delete(id);
-        auditLogService.logChange("mf_files", id.toString(), "D",
+        auditLogService.logChange(
+                "mf_files",
+                id.toString(),
+                "D",
                 List.of("original_name", "size_bytes", "created_by"),
-                Map.of("original_name", file.originalName(),
-                        "size_bytes", file.sizeBytes(),
-                        "created_by", file.createdBy() != null ? file.createdBy() : "null"),
+                Map.of(
+                        "original_name",
+                        file.originalName(),
+                        "size_bytes",
+                        file.sizeBytes(),
+                        "created_by",
+                        file.createdBy() != null ? file.createdBy() : "null"),
                 null);
 
         return new DeletionResult(file, !fileRepository.existsBySha256(file.sha256()));
@@ -146,7 +144,8 @@ public class MfFileMetadataService {
 
     @Transactional(readOnly = true)
     public MfFileRepository.FileRecord requireFile(UUID id, ScopeFilter scope) {
-        return fileRepository.findById(id, scope)
+        return fileRepository
+                .findById(id, scope)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
     }
 
@@ -169,7 +168,8 @@ public class MfFileMetadataService {
     }
 
     @Transactional(readOnly = true)
-    public KeysetPage<MfFileRepository.FileDetailRecord> pageFiles(QueryPlan plan, ScopeFilter scope, Long onlyOwnerId) {
+    public KeysetPage<MfFileRepository.FileDetailRecord> pageFiles(
+            QueryPlan plan, ScopeFilter scope, Long onlyOwnerId) {
         return fileRepository.pageFiles(plan, scope, onlyOwnerId);
     }
 
@@ -177,18 +177,20 @@ public class MfFileMetadataService {
         long companyQuota = fileRepository.getCompanyQuotaBytes();
         long companyUsed = fileRepository.getTotalCompanyUsedBytes();
         if (exceedsQuota(companyUsed, requestedBytes, companyQuota)) {
-            throw ApiException.badRequest(ErrorCode.STORAGE_QUOTA_EXCEEDED,
-                    "Превышена дисковая квота компании (" + formatBytes(companyQuota)
-                            + "). Занято: " + formatBytes(companyUsed));
+            throw ApiException.badRequest(
+                    ErrorCode.STORAGE_QUOTA_EXCEEDED,
+                    "Превышена дисковая квота компании (" + formatBytes(companyQuota) + "). Занято: "
+                            + formatBytes(companyUsed));
         }
 
         if (ownerId != null) {
             long userQuota = fileRepository.getUserEffectiveQuotaBytes(ownerId);
             long userUsed = fileRepository.getUserUsedBytes(ownerId);
             if (exceedsQuota(userUsed, requestedBytes, userQuota)) {
-                throw ApiException.badRequest(ErrorCode.USER_STORAGE_QUOTA_EXCEEDED,
-                        "Превышена ваша персональная дисковая квота (" + formatBytes(userQuota)
-                                + "). Занято: " + formatBytes(userUsed));
+                throw ApiException.badRequest(
+                        ErrorCode.USER_STORAGE_QUOTA_EXCEEDED,
+                        "Превышена ваша персональная дисковая квота (" + formatBytes(userQuota) + "). Занято: "
+                                + formatBytes(userUsed));
             }
         }
     }
@@ -204,6 +206,5 @@ public class MfFileMetadataService {
         return String.format("%.1f %sB", bytes / Math.pow(1024, exp), prefix);
     }
 
-    public record DeletionResult(MfFileRepository.FileRecord file, boolean deletePhysicalObject) {
-    }
+    public record DeletionResult(MfFileRepository.FileRecord file, boolean deletePhysicalObject) {}
 }

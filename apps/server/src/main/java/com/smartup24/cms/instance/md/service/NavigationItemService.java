@@ -8,11 +8,6 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository.FormTreeItem;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository.NavigationItemRecord;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,12 +17,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class NavigationItemService {
 
     private static final Pattern SAFE_URL_PATTERN = Pattern.compile("^(https?://|/).*", Pattern.CASE_INSENSITIVE);
-    private static final Pattern DANGEROUS_SCHEME = Pattern.compile("^(javascript|data|vbscript):.*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DANGEROUS_SCHEME =
+            Pattern.compile("^(javascript|data|vbscript):.*", Pattern.CASE_INSENSITIVE);
 
     /** Право на пункт указано неизвестной или устаревшей парой каталога. */
     public static final String PERMISSION_UNKNOWN = "NAVIGATION_PERMISSION_UNKNOWN";
@@ -65,8 +65,7 @@ public class NavigationItemService {
             Long createdBy,
             Long modifiedBy,
             Instant createdAt,
-            Instant modifiedAt
-    ) {
+            Instant modifiedAt) {
         public static NavigationItemView from(NavigationItemRecord r) {
             return new NavigationItemView(
                     r.id(),
@@ -85,8 +84,7 @@ public class NavigationItemService {
                     r.createdBy(),
                     r.modifiedBy(),
                     r.createdAt(),
-                    r.modifiedAt()
-            );
+                    r.modifiedAt());
         }
     }
 
@@ -101,8 +99,7 @@ public class NavigationItemService {
             String url,
             boolean openInIframe,
             String requiredPermission,
-            int sortOrder
-    ) {}
+            int sortOrder) {}
 
     public record UpdateNavigationItemCommand(
             String code,
@@ -116,19 +113,22 @@ public class NavigationItemService {
             boolean openInIframe,
             String requiredPermission,
             int sortOrder,
-            String state
-    ) {}
+            String state) {}
 
     @Transactional(readOnly = true)
     @Cacheable(value = "navigationItems", key = "'all'")
     public List<NavigationItemView> getAllItems() {
-        return navigationRepository.findAll().stream().map(NavigationItemView::from).toList();
+        return navigationRepository.findAll().stream()
+                .map(NavigationItemView::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     @Cacheable(value = "navigationItems", key = "'active'")
     public List<NavigationItemView> getActiveItems() {
-        return navigationRepository.findActive().stream().map(NavigationItemView::from).toList();
+        return navigationRepository.findActive().stream()
+                .map(NavigationItemView::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -150,7 +150,9 @@ public class NavigationItemService {
     public static List<NavigationItemView> visibleToViewer(List<NavigationItemView> items) {
         Map<Long, NavigationItemView> byId = new HashMap<>();
         items.forEach(item -> byId.put(item.id(), item));
-        return items.stream().filter(item -> visible(item, byId, new HashSet<>())).toList();
+        return items.stream()
+                .filter(item -> visible(item, byId, new HashSet<>()))
+                .toList();
     }
 
     /** Пункт по коду для встроенного отчёта: чужой пункт неотличим от несуществующего. */
@@ -158,7 +160,8 @@ public class NavigationItemService {
     public Optional<NavigationItemView> getVisibleItemByCode(String code) {
         return getItemByCode(code)
                 .filter(item -> "A".equals(item.state()))
-                .filter(item -> visibleToViewer(getAllItemsUncached()).stream().anyMatch(v -> v.id().equals(item.id())));
+                .filter(item ->
+                        visibleToViewer(getAllItemsUncached()).stream().anyMatch(v -> v.id().equals(item.id())));
     }
 
     /** Живые пары каталога для выбора права в настройках меню. */
@@ -175,7 +178,9 @@ public class NavigationItemService {
     }
 
     private List<NavigationItemView> getAllItemsUncached() {
-        return navigationRepository.findAll().stream().map(NavigationItemView::from).toList();
+        return navigationRepository.findAll().stream()
+                .map(NavigationItemView::from)
+                .toList();
     }
 
     private static boolean visible(NavigationItemView item, Map<Long, NavigationItemView> byId, Set<Long> seen) {
@@ -194,7 +199,8 @@ public class NavigationItemService {
             return true;
         }
         int dot = permission.lastIndexOf('.');
-        return dot > 0 && dot < permission.length() - 1
+        return dot > 0
+                && dot < permission.length() - 1
                 && SecurityContext.hasPermission(permission.substring(0, dot), permission.substring(dot + 1));
     }
 
@@ -204,8 +210,10 @@ public class NavigationItemService {
         }
         String permission = value.trim();
         if (!permissionService.getGrantablePairs().contains(permission)) {
-            throw ApiException.validation(PERMISSION_UNKNOWN, List.of(new FieldErrorItem(
-                    "requiredPermission", PERMISSION_UNKNOWN, "Право не найдено в каталоге: " + permission)));
+            throw ApiException.validation(
+                    PERMISSION_UNKNOWN,
+                    List.of(new FieldErrorItem(
+                            "requiredPermission", PERMISSION_UNKNOWN, "Право не найдено в каталоге: " + permission)));
         }
         return permission;
     }
@@ -227,11 +235,17 @@ public class NavigationItemService {
                 null,
                 code,
                 cmd.title().trim(),
-                cmd.titleKey() != null && !cmd.titleKey().isBlank() ? cmd.titleKey().trim() : null,
-                cmd.sectionId() != null && !cmd.sectionId().isBlank() ? cmd.sectionId().trim() : "custom",
+                cmd.titleKey() != null && !cmd.titleKey().isBlank()
+                        ? cmd.titleKey().trim()
+                        : null,
+                cmd.sectionId() != null && !cmd.sectionId().isBlank()
+                        ? cmd.sectionId().trim()
+                        : "custom",
                 cmd.parentId(),
                 cmd.icon() != null && !cmd.icon().isBlank() ? cmd.icon().trim() : "bar_chart",
-                cmd.targetType() != null && !cmd.targetType().isBlank() ? cmd.targetType().trim() : "EMBEDDED_IFRAME",
+                cmd.targetType() != null && !cmd.targetType().isBlank()
+                        ? cmd.targetType().trim()
+                        : "EMBEDDED_IFRAME",
                 cmd.url().trim(),
                 cmd.openInIframe(),
                 requiredPermission(cmd.requiredPermission()),
@@ -240,8 +254,7 @@ public class NavigationItemService {
                 userId,
                 userId,
                 null,
-                null
-        );
+                null);
 
         Long id = navigationRepository.insert(record);
         auditLogService.logChange(
@@ -250,8 +263,17 @@ public class NavigationItemService {
                 "I",
                 List.of("code", "title", "url", "target_type", "required_permission"),
                 null,
-                Map.of("code", code, "title", record.title(), "url", record.url(), "target_type", record.targetType(), "required_permission", Objects.toString(record.requiredPermission(), ""))
-        );
+                Map.of(
+                        "code",
+                        code,
+                        "title",
+                        record.title(),
+                        "url",
+                        record.url(),
+                        "target_type",
+                        record.targetType(),
+                        "required_permission",
+                        Objects.toString(record.requiredPermission(), "")));
 
         return getItemById(id).orElseThrow();
     }
@@ -259,7 +281,8 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView updateItem(Long id, UpdateNavigationItemCommand cmd, Long userId) {
-        NavigationItemRecord existing = navigationRepository.findById(id)
+        NavigationItemRecord existing = navigationRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Пункт навигации не найден: " + id));
 
         validateUrl(cmd.url());
@@ -274,11 +297,17 @@ public class NavigationItemService {
                 id,
                 code,
                 cmd.title().trim(),
-                cmd.titleKey() != null && !cmd.titleKey().isBlank() ? cmd.titleKey().trim() : null,
-                cmd.sectionId() != null && !cmd.sectionId().isBlank() ? cmd.sectionId().trim() : "custom",
+                cmd.titleKey() != null && !cmd.titleKey().isBlank()
+                        ? cmd.titleKey().trim()
+                        : null,
+                cmd.sectionId() != null && !cmd.sectionId().isBlank()
+                        ? cmd.sectionId().trim()
+                        : "custom",
                 cmd.parentId(),
                 cmd.icon() != null && !cmd.icon().isBlank() ? cmd.icon().trim() : "bar_chart",
-                cmd.targetType() != null && !cmd.targetType().isBlank() ? cmd.targetType().trim() : "EMBEDDED_IFRAME",
+                cmd.targetType() != null && !cmd.targetType().isBlank()
+                        ? cmd.targetType().trim()
+                        : "EMBEDDED_IFRAME",
                 cmd.url().trim(),
                 cmd.openInIframe(),
                 requiredPermission(cmd.requiredPermission()),
@@ -287,8 +316,7 @@ public class NavigationItemService {
                 existing.createdBy(),
                 userId,
                 existing.createdAt(),
-                null
-        );
+                null);
 
         navigationRepository.update(id, updated);
         auditLogService.logChange(
@@ -296,9 +324,32 @@ public class NavigationItemService {
                 String.valueOf(id),
                 "U",
                 List.of("code", "title", "url", "target_type", "state", "required_permission"),
-                Map.of("code", existing.code(), "title", existing.title(), "url", existing.url(), "target_type", existing.targetType(), "state", existing.state(), "required_permission", Objects.toString(existing.requiredPermission(), "")),
-                Map.of("code", updated.code(), "title", updated.title(), "url", updated.url(), "target_type", updated.targetType(), "state", updated.state(), "required_permission", Objects.toString(updated.requiredPermission(), ""))
-        );
+                Map.of(
+                        "code",
+                        existing.code(),
+                        "title",
+                        existing.title(),
+                        "url",
+                        existing.url(),
+                        "target_type",
+                        existing.targetType(),
+                        "state",
+                        existing.state(),
+                        "required_permission",
+                        Objects.toString(existing.requiredPermission(), "")),
+                Map.of(
+                        "code",
+                        updated.code(),
+                        "title",
+                        updated.title(),
+                        "url",
+                        updated.url(),
+                        "target_type",
+                        updated.targetType(),
+                        "state",
+                        updated.state(),
+                        "required_permission",
+                        Objects.toString(updated.requiredPermission(), "")));
 
         return getItemById(id).orElseThrow();
     }
@@ -306,7 +357,8 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView toggleState(Long id, Long userId) {
-        NavigationItemRecord existing = navigationRepository.findById(id)
+        NavigationItemRecord existing = navigationRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Пункт навигации не найден: " + id));
 
         String newState = "A".equals(existing.state()) ? "P" : "A";
@@ -318,8 +370,7 @@ public class NavigationItemService {
                 "U",
                 List.of("state"),
                 Map.of("state", existing.state()),
-                Map.of("state", newState)
-        );
+                Map.of("state", newState));
 
         return getItemById(id).orElseThrow();
     }
@@ -327,18 +378,13 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public void deleteItem(Long id, Long userId) {
-        NavigationItemRecord existing = navigationRepository.findById(id)
+        NavigationItemRecord existing = navigationRepository
+                .findById(id)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Пункт навигации не найден: " + id));
 
         navigationRepository.delete(id);
         auditLogService.logChange(
-                "md_navigation_items",
-                String.valueOf(id),
-                "D",
-                List.of("code"),
-                Map.of("code", existing.code()),
-                null
-        );
+                "md_navigation_items", String.valueOf(id), "D", List.of("code"), Map.of("code", existing.code()), null);
     }
 
     private void validateUrl(String url) {

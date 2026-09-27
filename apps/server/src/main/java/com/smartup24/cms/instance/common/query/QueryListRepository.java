@@ -1,14 +1,13 @@
 package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * Выполняет {@link QueryPlan}: страница по keyset-курсору и итог на первой странице.
@@ -46,14 +45,19 @@ public class QueryListRepository {
         params.putAll(keyset.params());
         params.put("q_limit", plan.limit() + 1);
 
-        List<Row<T>> rows = new ArrayList<>(jdbc.sql(sql).params(params).query((rs, rowNum) -> new Row<>(
-                mapper.mapRow(rs, rowNum),
-                QueryValues.read(rs, SORT_COLUMN, plan.sort().type()),
-                rs.getString(ID_COLUMN))).list());
+        List<Row<T>> rows = new ArrayList<>(jdbc.sql(sql)
+                .params(params)
+                .query((rs, rowNum) -> new Row<>(
+                        mapper.mapRow(rs, rowNum),
+                        QueryValues.read(rs, SORT_COLUMN, plan.sort().type()),
+                        rs.getString(ID_COLUMN)))
+                .list());
 
         boolean hasMore = rows.size() > plan.limit();
         List<Row<T>> page = rows.subList(0, Math.min(rows.size(), plan.limit()));
-        long total = plan.cursor() == null ? count(plan, extra, where) : plan.cursor().total();
+        long total = plan.cursor() == null
+                ? count(plan, extra, where)
+                : plan.cursor().total();
         String next = null;
         if (hasMore && !page.isEmpty()) {
             Row<T> last = page.getLast();
@@ -71,6 +75,5 @@ public class QueryListRepository {
                 .single();
     }
 
-    private record Row<T>(T item, Object sortValue, String id) {
-    }
+    private record Row<T>(T item, Object sortValue, String id) {}
 }

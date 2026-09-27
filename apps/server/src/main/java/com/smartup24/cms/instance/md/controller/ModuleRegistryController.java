@@ -4,11 +4,10 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService.InstalledModuleView;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/modules")
@@ -21,6 +20,7 @@ public class ModuleRegistryController {
     }
 
     public record ToggleStatusRequest(boolean enabled) {}
+
     public record RegisterModuleRequest(
             String code,
             String name,
@@ -29,8 +29,7 @@ public class ModuleRegistryController {
             String icon,
             String route,
             int sortOrder,
-            Map<String, Object> attributes
-    ) {}
+            Map<String, Object> attributes) {}
 
     @GetMapping
     @RequiresPermission(form = "platform.modules", action = "view")
@@ -47,7 +46,8 @@ public class ModuleRegistryController {
     @GetMapping("/{code}")
     @RequiresPermission(form = "platform.modules", action = "view")
     public ResponseEntity<InstalledModuleView> getModule(@PathVariable String code) {
-        return moduleService.getModule(code)
+        return moduleService
+                .getModule(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -57,21 +57,23 @@ public class ModuleRegistryController {
     public ResponseEntity<InstalledModuleView> toggleModule(
             @PathVariable String code,
             @RequestBody(required = false) ToggleStatusRequest body,
-            @RequestParam(required = false) Boolean active
-    ) {
+            @RequestParam(required = false) Boolean active) {
         boolean enabled = (body != null) ? body.enabled() : (active != null ? active : true);
         return ResponseEntity.ok(moduleService.toggleModuleStatus(code, enabled));
     }
 
     @PostMapping
     @RequiresPermission(form = "platform.modules", action = "manage")
-    public ResponseEntity<InstalledModuleView> registerModule(
-            @RequestBody RegisterModuleRequest body
-    ) {
+    public ResponseEntity<InstalledModuleView> registerModule(@RequestBody RegisterModuleRequest body) {
         return ResponseEntity.ok(moduleService.registerModule(
-                body.code(), body.name(), body.description(),
-                body.version(), body.icon(), body.route(),
-                false, body.sortOrder(), body.attributes()
-        ));
+                body.code(),
+                body.name(),
+                body.description(),
+                body.version(),
+                body.icon(),
+                body.route(),
+                false,
+                body.sortOrder(),
+                body.attributes()));
     }
 }

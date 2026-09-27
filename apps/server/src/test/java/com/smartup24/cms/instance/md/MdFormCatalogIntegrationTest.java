@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -10,18 +13,14 @@ import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * FR-PERM-1 (дефект Д-5): каталог форм приводится в соответствие с кодом.
@@ -46,9 +45,10 @@ class MdFormCatalogIntegrationTest {
 
         permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
         roleRepository = new MdRoleRepository(jdbc);
-        roleService = new MdRoleService(roleRepository, permissionService,
-                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null,
-                        new AuditDataRedactor()),
+        roleService = new MdRoleService(
+                roleRepository,
+                permissionService,
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor()),
                 new MdScopeRepository(jdbc));
     }
 
@@ -70,9 +70,11 @@ class MdFormCatalogIntegrationTest {
         permissionService.syncFormCatalog(realPairs());
 
         assertThat(isDeprecated("notify.preferences", "view"))
-                .as("мёртвая пара обязана быть помечена").isTrue();
+                .as("мёртвая пара обязана быть помечена")
+                .isTrue();
         assertThat(countActions("notify.preferences"))
-                .as("удалять нельзя: каскад снял бы уже выданные права").isEqualTo(2);
+                .as("удалять нельзя: каскад снял бы уже выданные права")
+                .isEqualTo(2);
         assertThat(permissionService.getGrantablePairs()).doesNotContain("notify.preferences.view");
     }
 
@@ -82,8 +84,8 @@ class MdFormCatalogIntegrationTest {
         permissionService.syncFormCatalog(realPairs());
         var role = roleRepository.create("Роль для устаревшего права", null, "A", 100);
 
-        assertThatThrownBy(() -> roleService.setRolePermissions(role.id(),
-                List.of(new MdRoleRepository.PermissionPair("notify.preferences", "view"))))
+        assertThatThrownBy(() -> roleService.setRolePermissions(
+                        role.id(), List.of(new MdRoleRepository.PermissionPair("notify.preferences", "view"))))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("недоступна для выдачи");
     }
@@ -133,12 +135,14 @@ class MdFormCatalogIntegrationTest {
                         """)
                 .param("form", formCode)
                 .param("action", action)
-                .query(Boolean.class).single());
+                .query(Boolean.class)
+                .single());
     }
 
     private static long countActions(String formCode) {
         return jdbc.sql("select count(*) from md_form_actions where form_code = :form")
                 .param("form", formCode)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 }

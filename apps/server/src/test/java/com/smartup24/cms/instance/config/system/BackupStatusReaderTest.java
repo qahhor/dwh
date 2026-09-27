@@ -1,17 +1,16 @@
 package com.smartup24.cms.instance.config.system;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.core.env.MapPropertySource;
-import tools.jackson.databind.ObjectMapper;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.core.env.MapPropertySource;
+import tools.jackson.databind.ObjectMapper;
 
 class BackupStatusReaderTest {
 
@@ -23,9 +22,13 @@ class BackupStatusReaderTest {
     @Test
     void productionConstructorIsResolvableBySpring() {
         try (var context = new AnnotationConfigApplicationContext()) {
-            context.getEnvironment().getPropertySources().addFirst(new MapPropertySource(
-                    "test",
-                    Map.of("dwh.backup.status-file", directory.resolve("status.json").toString())));
+            context.getEnvironment()
+                    .getPropertySources()
+                    .addFirst(new MapPropertySource(
+                            "test",
+                            Map.of(
+                                    "dwh.backup.status-file",
+                                    directory.resolve("status.json").toString())));
             context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
             context.register(BackupStatusReader.class);
 
@@ -53,8 +56,7 @@ class BackupStatusReaderTest {
         BackupStatus status = new BackupStatusReader(statusFile, objectMapper).read();
 
         assertThat(status).isEqualTo(new BackupStatus("SUCCESS", completedAt, null));
-        assertThat(status.toString())
-                .doesNotContain("customer.dump", "access-key", "secret", "DB_PASSWORD");
+        assertThat(status.toString()).doesNotContain("customer.dump", "access-key", "secret", "DB_PASSWORD");
     }
 
     @Test

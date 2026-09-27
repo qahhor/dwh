@@ -6,6 +6,10 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.mf.pref.MfPref;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileService;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -13,11 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/files")
@@ -31,7 +30,8 @@ public class MfFileController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequiresPermission(form = MfPref.FORM_FILES, action = "upload")
-    public ResponseEntity<MfFileRepository.FileRecord> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
+    public ResponseEntity<MfFileRepository.FileRecord> uploadFile(@RequestParam("file") MultipartFile file)
+            throws IOException {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
         var record = fileService.uploadFile(
@@ -39,8 +39,7 @@ public class MfFileController {
                 file.getContentType(),
                 file.getInputStream(),
                 file.getSize(),
-                currentUserId
-        );
+                currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(record);
     }
@@ -60,8 +59,7 @@ public class MfFileController {
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "filter", required = false) String filter,
-            @RequestParam(name = "sort", required = false) String sort
-    ) {
+            @RequestParam(name = "sort", required = false) String sort) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         boolean onlyMine = "mine".equalsIgnoreCase(scope);
         return ResponseEntity.ok(fileService.listFiles(currentUserId, onlyMine, limit, cursor, filter, sort, query));
@@ -89,7 +87,8 @@ public class MfFileController {
         var metadata = fileService.getFileMetadata(id, currentUserId);
         var stream = fileService.downloadFile(id, currentUserId);
 
-        String encodedFilename = URLEncoder.encode(metadata.originalName(), StandardCharsets.UTF_8).replace("+", "%20");
+        String encodedFilename = URLEncoder.encode(metadata.originalName(), StandardCharsets.UTF_8)
+                .replace("+", "%20");
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedFilename)
@@ -98,4 +97,3 @@ public class MfFileController {
                 .body(new InputStreamResource(stream.inputStream()));
     }
 }
-

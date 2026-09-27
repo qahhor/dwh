@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.fnd.migration;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /** Область миграции {@code DWH_MIGRATE_SCOPE}: проверки без Spring и без базы. */
 class MigrateMainTest {

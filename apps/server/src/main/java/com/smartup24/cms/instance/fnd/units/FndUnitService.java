@@ -7,16 +7,15 @@ import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
 import com.smartup24.cms.instance.fnd.units.FndConversion.FndCoefficientRef;
 import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Единицы экземпляра и пересчёт по датированному коэффициенту (13 инв.3; 18 п.14; AC-18…AC-24).
@@ -59,8 +58,11 @@ public class FndUnitService {
         String names = json.writeValueAsString(nameI18n == null ? Map.of() : nameI18n);
         return FndSqlErrors.translating(() -> jdbc.sql("insert into fnd_units (code, name_i18n, base_unit_code)"
                         + " values (:code, cast(:names as jsonb), :base) returning id")
-                .param("code", code).param("names", names).param("base", baseUnitCode)
-                .query(Long.class).single());
+                .param("code", code)
+                .param("names", names)
+                .param("base", baseUnitCode)
+                .query(Long.class)
+                .single());
     }
 
     /** Единица по коду — как её видит экземпляр. */
@@ -69,8 +71,11 @@ public class FndUnitService {
         return jdbc.sql("select id, code, name_i18n::text as name_i18n, base_unit_code from fnd_units"
                         + " where code = :code")
                 .param("code", code)
-                .query((rs, rowNum) -> new FndUnit(rs.getLong("id"), rs.getString("code"),
-                        rs.getString("name_i18n"), rs.getString("base_unit_code")))
+                .query((rs, rowNum) -> new FndUnit(
+                        rs.getLong("id"),
+                        rs.getString("code"),
+                        rs.getString("name_i18n"),
+                        rs.getString("base_unit_code")))
                 .optional();
     }
 
@@ -78,8 +83,11 @@ public class FndUnitService {
     @Transactional(readOnly = true)
     public List<FndUnit> listUnits() {
         return jdbc.sql("select id, code, name_i18n::text as name_i18n, base_unit_code from fnd_units order by code")
-                .query((rs, rowNum) -> new FndUnit(rs.getLong("id"), rs.getString("code"),
-                        rs.getString("name_i18n"), rs.getString("base_unit_code")))
+                .query((rs, rowNum) -> new FndUnit(
+                        rs.getLong("id"),
+                        rs.getString("code"),
+                        rs.getString("name_i18n"),
+                        rs.getString("base_unit_code")))
                 .list();
     }
 
@@ -88,16 +96,19 @@ public class FndUnitService {
      * вызове, значение кладётся в новую версию стандарта блока C и закрывает предыдущую (AC-19).
      */
     @Transactional
-    public FndCoefficientRef publishCoefficient(String fromUnit, String toUnit, BigDecimal factor,
-                                                LocalDate validFrom, FndActor actor) {
+    public FndCoefficientRef publishCoefficient(
+            String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, FndActor actor) {
         if (factor == null) {
             throw new IllegalArgumentException("Множитель не задан");
         }
         actors.apply(actor);
         long coefficientId = coefficientId(fromUnit, toUnit)
-                .orElseGet(() -> FndSqlErrors.translating(() -> jdbc
-                        .sql("insert into fnd_unit_coefficients (from_unit, to_unit) values (:from, :to) returning id")
-                        .param("from", fromUnit).param("to", toUnit).query(Long.class).single()));
+                .orElseGet(() -> FndSqlErrors.translating(() -> jdbc.sql(
+                                "insert into fnd_unit_coefficients (from_unit, to_unit) values (:from, :to) returning id")
+                        .param("from", fromUnit)
+                        .param("to", toUnit)
+                        .query(Long.class)
+                        .single()));
         int version = versioning.createDraft(COEFFICIENT_VERSIONS, coefficientId, actor);
         versioning.updateDraft(COEFFICIENT_VERSIONS, coefficientId, version, 0, Map.of("factor", factor), actor);
         versioning.publish(COEFFICIENT_VERSIONS, coefficientId, version, validFrom, null, actor);
@@ -120,13 +131,16 @@ public class FndUnitService {
         }
         long coefficientId = coefficientId(fromUnit, toUnit)
                 .orElseThrow(() -> new FndCoefficientMissingException(fromUnit, toUnit, date));
-        int version = versioning.versionAt(COEFFICIENT_VERSIONS, coefficientId, date)
+        int version = versioning
+                .versionAt(COEFFICIENT_VERSIONS, coefficientId, date)
                 .orElseThrow(() -> new FndCoefficientMissingException(fromUnit, toUnit, date));
-        BigDecimal factor = jdbc.sql("select factor from " + COEFFICIENT_VERSIONS
-                        + " where coefficient_id = :id and version = :v")
-                .param("id", coefficientId).param("v", version).query(BigDecimal.class).single();
-        return new FndConversion(value.multiply(factor), toUnit,
-                new FndCoefficientRef(coefficientId, version), date);
+        BigDecimal factor = jdbc.sql(
+                        "select factor from " + COEFFICIENT_VERSIONS + " where coefficient_id = :id and version = :v")
+                .param("id", coefficientId)
+                .param("v", version)
+                .query(BigDecimal.class)
+                .single();
+        return new FndConversion(value.multiply(factor), toUnit, new FndCoefficientRef(coefficientId, version), date);
     }
 
     /** Пересчёт в базовую единицу (13 инв.3): база единицы берётся из справочника, не из кода. */
@@ -155,10 +169,12 @@ public class FndUnitService {
 
     private Optional<Long> coefficientId(String fromUnit, String toUnit) {
         return jdbc.sql("select id from fnd_unit_coefficients where from_unit = :from and to_unit = :to")
-                .param("from", fromUnit).param("to", toUnit).query(Long.class).optional();
+                .param("from", fromUnit)
+                .param("to", toUnit)
+                .query(Long.class)
+                .optional();
     }
 
     /** Единица экземпляра; {@code nameI18n} отдаётся как JSON-текст — ядру его содержимое безразлично. */
-    public record FndUnit(long id, String code, String nameI18n, String baseUnitCode) {
-    }
+    public record FndUnit(long id, String code, String nameI18n, String baseUnitCode) {}
 }

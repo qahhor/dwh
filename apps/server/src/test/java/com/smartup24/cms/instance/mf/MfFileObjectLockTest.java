@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.mf;
 
-import com.smartup24.cms.instance.mf.service.MfFileObjectLock;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.mf.service.MfFileObjectLock;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class MfFileObjectLockTest {
 

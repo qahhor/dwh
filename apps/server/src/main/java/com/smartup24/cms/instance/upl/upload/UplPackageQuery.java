@@ -4,10 +4,9 @@ import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.upl.UplPref;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * Список загрузок в реестре полей: {@code GET /api/v1/upl/packages} и {@code /api/v1/query-meta/upl.packages}.
@@ -27,24 +26,42 @@ public class UplPackageQuery {
                     QueryField.of("uploadedAt", "upl.pkg.col.uploaded_at", QueryFieldType.INSTANT, "p.uploaded_at")
                             .asSortable(),
                     QueryField.of("sourceName", "upl.pkg.col.source", QueryFieldType.TEXT, "s.name")
-                            .asSortable().asSearchable(),
+                            .asSortable()
+                            .asSearchable(),
                     QueryField.of("sourceCode", "upl.list.col.code", QueryFieldType.TEXT, "s.code")
-                            .asSearchable().asHidden(),
+                            .asSearchable()
+                            .asHidden(),
                     QueryField.of("periodFrom", "upl.pkg.col.period", QueryFieldType.DATE, "p.period_from")
                             .asSortable(),
-                    QueryField.of("periodTo", "upl.pkg.col.period_to", QueryFieldType.DATE, "p.period_to").asHidden(),
-                    QueryField.of("fileName", "upl.pkg.col.file", QueryFieldType.TEXT, "p.file_name").asSearchable(),
-                    QueryField.enumeration("status", "upl.pkg.col.status", "p.status",
-                            List.of(UplPackageModel.RECEIVED, UplPackageModel.VERIFIED, UplPackageModel.REJECTED,
-                                    UplPackageModel.APPLIED), "upl.pkg.status."),
-                    QueryField.of("rowsTotal", "upl.pkg.col.rows", QueryFieldType.NUMBER, "p.rows_total").asNullable(),
+                    QueryField.of("periodTo", "upl.pkg.col.period_to", QueryFieldType.DATE, "p.period_to")
+                            .asHidden(),
+                    QueryField.of("fileName", "upl.pkg.col.file", QueryFieldType.TEXT, "p.file_name")
+                            .asSearchable(),
+                    QueryField.enumeration(
+                            "status",
+                            "upl.pkg.col.status",
+                            "p.status",
+                            List.of(
+                                    UplPackageModel.RECEIVED,
+                                    UplPackageModel.VERIFIED,
+                                    UplPackageModel.REJECTED,
+                                    UplPackageModel.APPLIED),
+                            "upl.pkg.status."),
+                    QueryField.of("rowsTotal", "upl.pkg.col.rows", QueryFieldType.NUMBER, "p.rows_total")
+                            .asNullable(),
                     QueryField.of("errorsTotal", "upl.pkg.col.errors", QueryFieldType.NUMBER, "p.errors_total")
-                            .asNullable().asHidden(),
-                    QueryField.of("formatVersion", "upl.pkg.col.format_version", QueryFieldType.NUMBER,
-                            "p.format_version").asHidden(),
+                            .asNullable()
+                            .asHidden(),
+                    QueryField.of(
+                                    "formatVersion",
+                                    "upl.pkg.col.format_version",
+                                    QueryFieldType.NUMBER,
+                                    "p.format_version")
+                            .asHidden(),
                     // Who uploaded names a person: shown to those who may see the user directory (ADR-0016, 2.9).
                     QueryField.of("uploadedBy", "upl.pkg.col.uploaded_by", QueryFieldType.TEXT, "p.uploaded_by")
-                            .asHidden().requires("iam.users", "view")),
+                            .asHidden()
+                            .requires("iam.users", "view")),
             "uploadedAt",
             true,
             QueryList.DEFAULT_LIMIT,

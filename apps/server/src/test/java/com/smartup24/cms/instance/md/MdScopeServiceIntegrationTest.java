@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -20,18 +23,14 @@ import com.smartup24.cms.instance.mf.service.MfFileQuery;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Скоуп данных (ADR-0013): правило видимости у роли, позиция у пользователя,
@@ -65,8 +64,8 @@ class MdScopeServiceIntegrationTest {
         var ds = TestDatabases.migratedCopy("dwh_scope_test");
         jdbc = JdbcClient.create(ds);
 
-        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null,
-                new AuditDataRedactor());
+        var auditLogService =
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         scopeRepository = new MdScopeRepository(jdbc);
         orgUnitRepository = new MdOrgUnitRepository(jdbc);
         roleRepository = new MdRoleRepository(jdbc);
@@ -77,14 +76,18 @@ class MdScopeServiceIntegrationTest {
 
         scopeService = new MdScopeService(scopeRepository, orgUnitRepository, permissionService, auditLogService);
         orgUnitService = new MdOrgUnitService(orgUnitRepository, scopeService, auditLogService);
-        userList = new MdUserListService(
-                new QueryListRepository(jdbc), userRepository, scopeService,
-                roleRepository);
+        userList = new MdUserListService(new QueryListRepository(jdbc), userRepository, scopeService, roleRepository);
 
         company = orgUnitService.create(null, "HQ", "Компания", "company", 10).id();
-        regionTashkent = orgUnitService.create(company, "R-TAS", "Регион Ташкент", "region", 10).id();
-        branchYunusabad = orgUnitService.create(regionTashkent, "B-YUN", "Филиал Юнусабад", "branch", 10).id();
-        regionSamarkand = orgUnitService.create(company, "R-SAM", "Регион Самарканд", "region", 20).id();
+        regionTashkent = orgUnitService
+                .create(company, "R-TAS", "Регион Ташкент", "region", 10)
+                .id();
+        branchYunusabad = orgUnitService
+                .create(regionTashkent, "B-YUN", "Филиал Юнусабад", "branch", 10)
+                .id();
+        regionSamarkand = orgUnitService
+                .create(company, "R-SAM", "Регион Самарканд", "region", 20)
+                .id();
     }
 
     // ------------------------------------------------------------ правила
@@ -114,8 +117,7 @@ class MdScopeServiceIntegrationTest {
 
         scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
 
-        assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds())
-                .containsExactly(regionTashkent);
+        assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactly(regionTashkent);
     }
 
     @Test
@@ -147,17 +149,21 @@ class MdScopeServiceIntegrationTest {
     void passiveUnitCutsWholeBranch() {
         Long userId = createUser("scope_passive", null);
         assignRole(userId, createRole("Менеджер выключаемой ветки", MdScopeService.RULE_SUBTREE));
-        Long region = orgUnitService.create(company, "R-TMP", "Временный регион", "region", 30).id();
-        Long branch = orgUnitService.create(region, "B-TMP", "Временный филиал", "branch", 10).id();
+        Long region = orgUnitService
+                .create(company, "R-TMP", "Временный регион", "region", 30)
+                .id();
+        Long branch = orgUnitService
+                .create(region, "B-TMP", "Временный филиал", "branch", 10)
+                .id();
         scopeService.assignUserOrgUnits(userId, List.of(region));
 
-        assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds())
-                .containsExactlyInAnyOrder(region, branch);
+        assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactlyInAnyOrder(region, branch);
 
         orgUnitService.update(region, company, null, null, "P", null);
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds())
-                .as("выключение региона обязано унести и его филиал").isEmpty();
+                .as("выключение региона обязано унести и его филиал")
+                .isEmpty();
     }
 
     // ----------------------------------------------------- инварианты дерева
@@ -181,7 +187,9 @@ class MdScopeServiceIntegrationTest {
     @Test
     @DisplayName("I-ORG-2: узел с сотрудниками не удаляется молча")
     void cannotDeleteUnitWithAssignedUsers() {
-        Long unit = orgUnitService.create(company, "R-DEL", "Удаляемый регион", "region", 40).id();
+        Long unit = orgUnitService
+                .create(company, "R-DEL", "Удаляемый регион", "region", 40)
+                .id();
         Long userId = createUser("scope_delete_guard", null);
         scopeService.assignUserOrgUnits(userId, List.of(unit));
 
@@ -202,8 +210,13 @@ class MdScopeServiceIntegrationTest {
         Long inBranch = createUser("scope_in_branch", branchYunusabad);
         Long inOtherRegion = createUser("scope_in_samarkand", regionSamarkand);
 
-        var visible = userList.page(viewer, 100, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
-                .items().stream().map(MdUserRepository.UserRecord::id).toList();
+        var visible =
+                userList
+                        .page(viewer, 100, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                        .items()
+                        .stream()
+                        .map(MdUserRepository.UserRecord::id)
+                        .toList();
 
         assertThat(visible).contains(viewer, inBranch);
         assertThat(visible).as("соседний регион виден быть не должен").doesNotContain(inOtherRegion);
@@ -221,8 +234,13 @@ class MdScopeServiceIntegrationTest {
         var filter = scopeService.filterFor(admin, "md_users.org_unit_id", "md_users.id");
         assertThat(filter.isUnrestricted()).isTrue();
 
-        var visible = userList.page(admin, 200, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
-                .items().stream().map(MdUserRepository.UserRecord::id).toList();
+        var visible =
+                userList
+                        .page(admin, 200, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                        .items()
+                        .stream()
+                        .map(MdUserRepository.UserRecord::id)
+                        .toList();
         assertThat(visible).contains(admin, other);
     }
 
@@ -332,20 +350,21 @@ class MdScopeServiceIntegrationTest {
         UUID hiddenFile = createFile("repository-hidden.txt", other);
 
         var taskScope = scopeService.filterForTasks(viewer);
-        var taskIds = new MsTaskListService(
-                        new QueryListRepository(jdbc), taskRepository, scopeService)
-                .page(viewer, 100, null, null, null, null, MsTaskRepository.LegacyTaskFilters.none())
-                .items().stream().map(MsTaskRepository.TaskRecord::id).toList();
+        var taskIds = new MsTaskListService(new QueryListRepository(jdbc), taskRepository, scopeService)
+                .page(viewer, 100, null, null, null, null, MsTaskRepository.LegacyTaskFilters.none()).items().stream()
+                        .map(MsTaskRepository.TaskRecord::id)
+                        .toList();
         assertThat(taskIds).contains(visibleTask).doesNotContain(hiddenTask);
         assertThat(taskRepository.findById(visibleTask, taskScope)).isPresent();
         assertThat(taskRepository.findById(hiddenTask, taskScope)).isEmpty();
 
         var fileScope = scopeService.filterForFiles(viewer);
-        var fileIds = fileRepository.pageFiles(
-                        QueryCompiler.compile(
-                                MfFileQuery.LIST, null, null, 200, null),
-                        fileScope, null)
-                .items().stream().map(MfFileRepository.FileDetailRecord::id).toList();
+        var fileIds = fileRepository
+                .pageFiles(QueryCompiler.compile(MfFileQuery.LIST, null, null, 200, null), fileScope, null)
+                .items()
+                .stream()
+                .map(MfFileRepository.FileDetailRecord::id)
+                .toList();
         assertThat(fileIds).contains(visibleFile).doesNotContain(hiddenFile);
         assertThat(fileRepository.findById(visibleFile, fileScope)).isPresent();
         assertThat(fileRepository.findById(hiddenFile, fileScope)).isEmpty();
@@ -373,14 +392,16 @@ class MdScopeServiceIntegrationTest {
                         """)
                 .param("login", login)
                 .param("orgUnitId", orgUnitId)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
         scopeService.recalculateFor(id);
         return id;
     }
 
     private static Long createTask(String title, Long participantUserId) {
         Long statusId = jdbc.sql("select id from ms_task_statuses order by id limit 1")
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
         Long taskId = jdbc.sql("""
                         insert into ms_tasks (title, description_markdown, status_id, priority, reporter_id,
                                               attributes, created_by, modified_by)
@@ -390,7 +411,8 @@ class MdScopeServiceIntegrationTest {
                 .param("title", title)
                 .param("statusId", statusId)
                 .param("userId", participantUserId)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
         addTaskMember(taskId, participantUserId, "A");
         return taskId;
     }
@@ -437,7 +459,8 @@ class MdScopeServiceIntegrationTest {
                         """)
                 .param("taskId", taskId)
                 .param("authorId", authorId)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
         jdbc.sql("insert into ms_task_comment_files (comment_id, file_id) values (:commentId, :fileId)")
                 .param("commentId", commentId)
                 .param("fileId", fileId)

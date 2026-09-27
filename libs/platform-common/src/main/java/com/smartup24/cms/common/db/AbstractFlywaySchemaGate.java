@@ -1,11 +1,10 @@
 package com.smartup24.cms.common.db;
 
 import jakarta.annotation.PostConstruct;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
 
 /**
  * Базовый абстрактный шлюз проверки схемы БД Flyway перед стартом приложения (Zero-Downtime Expand-Contract).
@@ -32,10 +31,8 @@ public abstract class AbstractFlywaySchemaGate {
             log.warn("Schema-gate [{}] ОТКЛЮЧЁН — допустимо только в тестах", moduleName);
             return;
         }
-        Flyway flyway = Flyway.configure()
-                .dataSource(dataSource)
-                .locations(location)
-                .load();
+        Flyway flyway =
+                Flyway.configure().dataSource(dataSource).locations(location).load();
         var result = flyway.validateWithResult();
         if (!result.validationSuccessful) {
             String details = result.invalidMigrations.stream()
@@ -47,7 +44,9 @@ public abstract class AbstractFlywaySchemaGate {
                             + "--spring.profiles.active=migrate. Детали: " + details);
         }
         var current = flyway.info().current();
-        log.info("Schema-gate [{}]: версия схемы {} соответствует приложению",
-                moduleName, current != null ? current.getVersion() : "<пусто>");
+        log.info(
+                "Schema-gate [{}]: версия схемы {} соответствует приложению",
+                moduleName,
+                current != null ? current.getVersion() : "<пусто>");
     }
 }

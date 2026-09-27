@@ -9,13 +9,13 @@ import java.util.Map;
 public final class SearchCollectionSchema {
     private SearchCollectionSchema() {}
 
-    public static Map<String,Object> mixed(String collection, String entityType) {
+    public static Map<String, Object> mixed(String collection, String entityType) {
         return forProfile(collection, entityType, "MIXED");
     }
 
-    public static Map<String,Object> forProfile(String collection, String entityType, String profile) {
+    public static Map<String, Object> forProfile(String collection, String entityType, String profile) {
         if (!List.of("MIXED", "RU").contains(profile)) throw new IllegalArgumentException("Unknown schema profile");
-        List<Map<String,Object>> fields = new ArrayList<>();
+        List<Map<String, Object>> fields = new ArrayList<>();
         switch (entityType) {
             case "TASK" -> {
                 fields.add(number("task_id", false));
@@ -60,7 +60,7 @@ public final class SearchCollectionSchema {
             };
             fields.replaceAll(field -> {
                 if (!naturalLanguage.contains(field.get("name"))) return field;
-                var localized = new LinkedHashMap<String,Object>(field);
+                var localized = new LinkedHashMap<String, Object>(field);
                 localized.put("locale", "ru");
                 localized.put("stem", true);
                 return Map.copyOf(localized);
@@ -69,10 +69,11 @@ public final class SearchCollectionSchema {
         return Map.of("name", collection, "fields", List.copyOf(fields));
     }
 
-    private static Map<String,Object> text(String name, boolean optional) {
+    private static Map<String, Object> text(String name, boolean optional) {
         return Map.of("name", name, "type", "string", "optional", optional, "stem", false);
     }
-    private static Map<String,Object> number(String name, boolean optional) {
+
+    private static Map<String, Object> number(String name, boolean optional) {
         return Map.of("name", name, "type", "int64", "optional", optional);
     }
 }

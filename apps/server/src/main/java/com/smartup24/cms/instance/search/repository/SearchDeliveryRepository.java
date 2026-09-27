@@ -1,19 +1,21 @@
 package com.smartup24.cms.instance.search.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class SearchDeliveryRepository {
     private final JdbcClient jdbc;
-    public SearchDeliveryRepository(JdbcClient jdbc) { this.jdbc = jdbc; }
+
+    public SearchDeliveryRepository(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
 
     /** Previous synchronous cycle has returned. This is not recovery or takeover of another lifecycle's ownership. */
     @Transactional
@@ -28,7 +30,9 @@ public class SearchDeliveryRepository {
     @Transactional
     public List<Claim> claim(UUID generation, UUID owner, Instant now, int limit) {
         boolean currentOwner = jdbc.sql("select worker_owner=:owner from search_index_state where id=1 for share")
-                .param("owner", owner).query(Boolean.class).single();
+                .param("owner", owner)
+                .query(Boolean.class)
+                .single();
         if (!currentOwner) return List.of();
         return jdbc.sql("""
                 with candidates as (
@@ -48,10 +52,19 @@ public class SearchDeliveryRepository {
                     error_code=case when d.attempted_revision=excluded.attempted_revision then d.error_code else null end
                 where d.owner_token is null
                 returning entity_type,entity_id,attempted_revision,attempts
-                """).param("generation", generation).param("owner", owner).param("now", Timestamp.from(now))
+                """)
+                .param("generation", generation)
+                .param("owner", owner)
+                .param("now", Timestamp.from(now))
                 .param("limit", Math.max(1, Math.min(100, limit)))
-                .query((rs, row) -> new Claim(generation, rs.getString("entity_type"), rs.getLong("entity_id"),
-                        rs.getLong("attempted_revision"), rs.getInt("attempts"), owner)).list();
+                .query((rs, row) -> new Claim(
+                        generation,
+                        rs.getString("entity_type"),
+                        rs.getLong("entity_id"),
+                        rs.getLong("attempted_revision"),
+                        rs.getInt("attempts"),
+                        owner))
+                .list();
     }
 
     @Transactional
@@ -64,21 +77,25 @@ public class SearchDeliveryRepository {
 
     @Transactional
     public void failed(Claim claim, Instant retryAt) {
-        failed(claim,retryAt,"DELIVERY_FAILED");
+        failed(claim, retryAt, "DELIVERY_FAILED");
     }
 
     @Transactional
-    public void failed(Claim claim,Instant retryAt,String code) {
-        String safeCode=Set.of("DOCUMENT_TOO_LARGE","IMPORT_REJECTED").contains(code) ? code : "DELIVERY_FAILED";
+    public void failed(Claim claim, Instant retryAt, String code) {
+        String safeCode = Set.of("DOCUMENT_TOO_LARGE", "IMPORT_REJECTED").contains(code) ? code : "DELIVERY_FAILED";
         updateClaim("""
                 update search_generation_delivery set attempts=attempts+1,next_attempt_at=:retry,
                     owner_token=null,error_code=:error
-                """, claim).param("retry", Timestamp.from(retryAt)).param("error",safeCode).update();
+                """, claim)
+                .param("retry", Timestamp.from(retryAt))
+                .param("error", safeCode)
+                .update();
     }
 
     @Transactional
     public void release(Claim claim) {
-        updateClaim("update search_generation_delivery set owner_token=null", claim).update();
+        updateClaim("update search_generation_delivery set owner_token=null", claim)
+                .update();
     }
 
     private JdbcClient.StatementSpec updateClaim(String update, Claim claim) {
@@ -86,8 +103,12 @@ public class SearchDeliveryRepository {
                  where generation_id=:generation and entity_type=:type and entity_id=:id
                     and owner_token=:owner and attempted_revision=:revision
                     and exists(select 1 from search_index_state where id=1 and worker_owner=:owner)
-                """).param("generation", claim.generationId()).param("type", claim.entityType())
-                .param("id", claim.entityId()).param("owner", claim.owner()).param("revision", claim.revision());
+                """)
+                .param("generation", claim.generationId())
+                .param("type", claim.entityType())
+                .param("id", claim.entityId())
+                .param("owner", claim.owner())
+                .param("revision", claim.revision());
     }
 
     public record Claim(UUID generationId, String entityType, long entityId, long revision, int attempts, UUID owner) {}
@@ -98,7 +119,11 @@ public class SearchDeliveryRepository {
                 from search_projection_versions v left join search_generation_delivery d
                 on d.generation_id=:generation and d.entity_type=v.entity_type and d.entity_id=v.entity_id
                 where v.revision>coalesce(d.delivered_revision,0)
-                """).param("generation",generation).query((rs,row) -> new QueueObservation(rs.getLong("pending"),rs.getLong("lag"))).single();
+                """)
+                .param("generation", generation)
+                .query((rs, row) -> new QueueObservation(rs.getLong("pending"), rs.getLong("lag")))
+                .single();
     }
-    public record QueueObservation(long pending,long lagSeconds) {}
+
+    public record QueueObservation(long pending, long lagSeconds) {}
 }

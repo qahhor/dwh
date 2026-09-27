@@ -20,9 +20,20 @@ import java.util.Optional;
  * @param customEntity сущность дополнительных полей ({@code TASK}); null — у списка их нет (ADR-0019, 2.3)
  * @param attributesSql выражение колонки {@code attributes} строки ({@code t.attributes})
  */
-public record QueryList(String code, String form, String action, String select, String from, String idSql,
-                        List<QueryField> fields, String defaultSort, boolean defaultDescending, int defaultLimit,
-                        int maxLimit, String customEntity, String attributesSql) {
+public record QueryList(
+        String code,
+        String form,
+        String action,
+        String select,
+        String from,
+        String idSql,
+        List<QueryField> fields,
+        String defaultSort,
+        boolean defaultDescending,
+        int defaultLimit,
+        int maxLimit,
+        String customEntity,
+        String attributesSql) {
 
     public static final int DEFAULT_LIMIT = 50;
     public static final int MAX_LIMIT = 200;
@@ -40,24 +51,58 @@ public record QueryList(String code, String form, String action, String select, 
             throw new IllegalArgumentException("Query list " + code + ": default sort must be a sortable field");
         }
         if (sort.requiredForm() != null) {
-            throw new IllegalArgumentException("Query list " + code + ": the default sort must be open to every viewer");
+            throw new IllegalArgumentException(
+                    "Query list " + code + ": the default sort must be open to every viewer");
         }
         if (defaultLimit < 1 || defaultLimit > maxLimit) {
             throw new IllegalArgumentException("Query list " + code + ": default limit out of range");
         }
     }
 
-    public QueryList(String code, String form, String action, String select, String from, String idSql,
-                     List<QueryField> fields, String defaultSort, boolean defaultDescending, int defaultLimit,
-                     int maxLimit) {
-        this(code, form, action, select, from, idSql, fields, defaultSort, defaultDescending, defaultLimit, maxLimit,
-                null, null);
+    public QueryList(
+            String code,
+            String form,
+            String action,
+            String select,
+            String from,
+            String idSql,
+            List<QueryField> fields,
+            String defaultSort,
+            boolean defaultDescending,
+            int defaultLimit,
+            int maxLimit) {
+        this(
+                code,
+                form,
+                action,
+                select,
+                from,
+                idSql,
+                fields,
+                defaultSort,
+                defaultDescending,
+                defaultLimit,
+                maxLimit,
+                null,
+                null);
     }
 
     /** The same list with the custom fields of {@code entity}, read from {@code attributesSql}. */
     public QueryList withCustomFields(String entity, String attributesSql) {
-        return new QueryList(code, form, action, select, from, idSql, fields, defaultSort, defaultDescending,
-                defaultLimit, maxLimit, entity, attributesSql);
+        return new QueryList(
+                code,
+                form,
+                action,
+                select,
+                from,
+                idSql,
+                fields,
+                defaultSort,
+                defaultDescending,
+                defaultLimit,
+                maxLimit,
+                entity,
+                attributesSql);
     }
 
     /** The same list with more fields after its own, e.g. the custom fields read at request time. */
@@ -65,12 +110,31 @@ public record QueryList(String code, String form, String action, String select, 
         if (extra.isEmpty()) return this;
         List<QueryField> all = new ArrayList<>(fields);
         all.addAll(extra);
-        return new QueryList(code, form, action, select, from, idSql, all, defaultSort, defaultDescending,
-                defaultLimit, maxLimit, customEntity, attributesSql);
+        return new QueryList(
+                code,
+                form,
+                action,
+                select,
+                from,
+                idSql,
+                all,
+                defaultSort,
+                defaultDescending,
+                defaultLimit,
+                maxLimit,
+                customEntity,
+                attributesSql);
     }
 
-    public QueryList(String code, String form, String action, String select, String from, String idSql,
-                     List<QueryField> fields, String defaultSort) {
+    public QueryList(
+            String code,
+            String form,
+            String action,
+            String select,
+            String from,
+            String idSql,
+            List<QueryField> fields,
+            String defaultSort) {
         this(code, form, action, select, from, idSql, fields, defaultSort, false, DEFAULT_LIMIT, MAX_LIMIT);
     }
 

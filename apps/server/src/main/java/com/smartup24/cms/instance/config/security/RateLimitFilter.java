@@ -13,14 +13,13 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-
-import java.io.IOException;
-import java.util.Map;
-import java.util.Optional;
 
 /**
  * Лимиты частоты запросов (FR-SEC-2): по IP для неаутентифицированных,
@@ -47,20 +46,25 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private SearchMetrics searchMetrics = SearchMetrics.unmetered();
 
     @Autowired
-    public RateLimitFilter(RateLimitProperties props, RateLimitService service, SearchPolicyProvider policies,
-                           AuditLogService audit, ProblemDetailAuthHandlers problems,
-                           ClientIpResolver clientIpResolver,
-                           Optional<SearchMetrics> metrics) {
+    public RateLimitFilter(
+            RateLimitProperties props,
+            RateLimitService service,
+            SearchPolicyProvider policies,
+            AuditLogService audit,
+            ProblemDetailAuthHandlers problems,
+            ClientIpResolver clientIpResolver,
+            Optional<SearchMetrics> metrics) {
         this(props, service, policies, audit, problems, clientIpResolver);
         this.searchMetrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
-    public RateLimitFilter(RateLimitProperties props,
-                           RateLimitService rateLimitService,
-                           SearchPolicyProvider searchPolicyProvider,
-                           AuditLogService auditLogService,
-                           ProblemDetailAuthHandlers problemWriter,
-                           ClientIpResolver clientIpResolver) {
+    public RateLimitFilter(
+            RateLimitProperties props,
+            RateLimitService rateLimitService,
+            SearchPolicyProvider searchPolicyProvider,
+            AuditLogService auditLogService,
+            ProblemDetailAuthHandlers problemWriter,
+            ClientIpResolver clientIpResolver) {
         this.props = props;
         this.rateLimitService = rateLimitService;
         this.searchPolicyProvider = searchPolicyProvider;
@@ -69,11 +73,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         this.clientIpResolver = clientIpResolver != null ? clientIpResolver : new ClientIpResolver(null);
     }
 
-    public RateLimitFilter(RateLimitProperties props,
-                           RateLimitService rateLimitService,
-                           SearchPolicyProvider searchPolicyProvider,
-                           AuditLogService auditLogService,
-                           ProblemDetailAuthHandlers problemWriter) {
+    public RateLimitFilter(
+            RateLimitProperties props,
+            RateLimitService rateLimitService,
+            SearchPolicyProvider searchPolicyProvider,
+            AuditLogService auditLogService,
+            ProblemDetailAuthHandlers problemWriter) {
         this(props, rateLimitService, searchPolicyProvider, auditLogService, problemWriter, new ClientIpResolver(null));
     }
 
@@ -114,8 +119,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     searchBudget = searchPolicyProvider.effectiveBudget(limit);
                 } catch (ApiException unavailable) {
                     if (unavailable.getErrorCode() != ErrorCode.SERVICE_UNAVAILABLE) throw unavailable;
-                    problemWriter.writeProblem(response, ErrorCode.SERVICE_UNAVAILABLE,
-                            "Search configuration is unavailable", request.getRequestURI());
+                    problemWriter.writeProblem(
+                            response,
+                            ErrorCode.SERVICE_UNAVAILABLE,
+                            "Search configuration is unavailable",
+                            request.getRequestURI());
                     return;
                 }
                 limit = searchBudget.perMinute();
@@ -139,14 +147,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
         long retryAfterSec = Math.max(1, Math.ceilDiv(probe.getNanosToWaitForRefill(), 1_000_000_000L));
         if (isInteractiveSearch(request)) searchMetrics.rejected();
         if (rateLimitService.shouldLogRejection(key)) {
-            auditLogService.logSecurityEvent(EVENT_RATE_LIMIT_EXCEEDED,
+            auditLogService.logSecurityEvent(
+                    EVENT_RATE_LIMIT_EXCEEDED,
                     principal != null ? principal.userId() : null,
                     clientIp(request),
                     request.getHeader("User-Agent"),
                     Map.of("path", request.getRequestURI(), "key", key, "limit", limit));
         }
         response.setHeader("Retry-After", String.valueOf(retryAfterSec));
-        problemWriter.writeProblem(response, ErrorCode.RATE_LIMITED,
+        problemWriter.writeProblem(
+                response,
+                ErrorCode.RATE_LIMITED,
                 "Превышен лимит запросов, повторите через " + retryAfterSec + " с",
                 request.getRequestURI());
     }
@@ -171,8 +182,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return false;
         }
         String uri = request.getRequestURI();
-        return "/api/v1/i18n/languages".equals(uri)
-                || uri.matches("/api/v1/i18n/[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*");
+        return "/api/v1/i18n/languages".equals(uri) || uri.matches("/api/v1/i18n/[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*");
     }
 
     private String clientIp(HttpServletRequest request) {

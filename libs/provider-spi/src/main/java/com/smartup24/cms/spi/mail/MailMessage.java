@@ -8,11 +8,6 @@ public record MailMessage(
         String htmlBody,
         String textBody,
         List<MailAttachment> attachments,
-        String idempotencyKey
-) {
-    public record MailAttachment(
-            String filename,
-            String contentType,
-            byte[] content
-    ) {}
+        String idempotencyKey) {
+    public record MailAttachment(String filename, String contentType, byte[] content) {}
 }

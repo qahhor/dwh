@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.audit.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -11,6 +8,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * Обслуживание партиций {@code audit_log} (FR-AUD-2): месячных — прошлых и текущей, дневных — с V127.
@@ -147,7 +146,9 @@ public class AuditPartitionRepository {
     public List<YearMonth> attachedPartitionsBefore(YearMonth before) {
         List<YearMonth> result = new ArrayList<>();
         for (AuditPartition partition : partitions()) {
-            if (partition.attached() && !partition.daily() && YearMonth.from(partition.from()).isBefore(before)) {
+            if (partition.attached()
+                    && !partition.daily()
+                    && YearMonth.from(partition.from()).isBefore(before)) {
                 result.add(YearMonth.from(partition.from()));
             }
         }
@@ -198,7 +199,9 @@ public class AuditPartitionRepository {
 
     /** Строки в аварийном приёмнике: их наличие блокирует создание партиции за тот же период. */
     public long countDefaultRows() {
-        Long count = jdbc.sql("select count(*) from audit_log_default").query(Long.class).single();
+        Long count = jdbc.sql("select count(*) from audit_log_default")
+                .query(Long.class)
+                .single();
         return count != null ? count : 0L;
     }
 }

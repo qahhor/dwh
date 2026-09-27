@@ -21,9 +21,7 @@ public class IdempotencyCleanupWorker {
     private final int retentionDays;
 
     public IdempotencyCleanupWorker(
-            IdempotencyService idempotencyService,
-            @Value("${dwh.idempotency.retention-days:14}") int retentionDays
-    ) {
+            IdempotencyService idempotencyService, @Value("${dwh.idempotency.retention-days:14}") int retentionDays) {
         this.idempotencyService = idempotencyService;
         this.retentionDays = retentionDays;
     }

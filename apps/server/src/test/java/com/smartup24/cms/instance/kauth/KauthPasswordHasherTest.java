@@ -1,11 +1,11 @@
 package com.smartup24.cms.instance.kauth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.common.crypto.Argon2idPasswordHasher;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class KauthPasswordHasherTest {
 

@@ -6,14 +6,12 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditListService;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.md.pref.MdPref;
+import java.time.Instant;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/v1/audit")
@@ -49,7 +47,12 @@ public class AuditLogController {
             @RequestParam(name = "q", required = false) String query) {
 
         // Registry list audit.logs (ADR-0016); the flat filters are kept for existing callers.
-        return ResponseEntity.ok(auditListService.logs(limit, cursor, filter, sort, query,
+        return ResponseEntity.ok(auditListService.logs(
+                limit,
+                cursor,
+                filter,
+                sort,
+                query,
                 new AuditLogRepository.AuditLogFilters(tableName, rowPk, event, userId, from, to)));
     }
 
@@ -68,8 +71,12 @@ public class AuditLogController {
             @RequestParam(name = "q", required = false) String query) {
 
         // Registry list audit.security_events (ADR-0016); the flat filters are kept for existing callers.
-        return ResponseEntity.ok(auditListService.securityEvents(limit, cursor, filter, sort, query,
+        return ResponseEntity.ok(auditListService.securityEvents(
+                limit,
+                cursor,
+                filter,
+                sort,
+                query,
                 new AuditLogRepository.SecurityEventFilters(eventType, userId, ip, from, to)));
     }
 }
-

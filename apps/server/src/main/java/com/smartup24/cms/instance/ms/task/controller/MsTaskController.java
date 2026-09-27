@@ -17,21 +17,23 @@ import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
 public class MsTaskController {
 
-    private static final List<String> PRIORITIES = List.of(MsTaskPref.PRIORITY_LOW, MsTaskPref.PRIORITY_MEDIUM,
-            MsTaskPref.PRIORITY_HIGH, MsTaskPref.PRIORITY_CRITICAL);
+    private static final List<String> PRIORITIES = List.of(
+            MsTaskPref.PRIORITY_LOW,
+            MsTaskPref.PRIORITY_MEDIUM,
+            MsTaskPref.PRIORITY_HIGH,
+            MsTaskPref.PRIORITY_CRITICAL);
 
     private final MsTaskService taskService;
     private final MsTaskListService taskListService;
@@ -60,10 +62,15 @@ public class MsTaskController {
             @RequestParam(name = "overdue", required = false) Boolean overdue) {
 
         // Registry list ms.tasks (ADR-0016); `search` and the flat filters are kept for existing callers.
-        return ResponseEntity.ok(taskListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort,
+        return ResponseEntity.ok(taskListService.page(
+                SecurityContext.getCurrentUserId(),
+                limit,
+                cursor,
+                filter,
+                sort,
                 query != null && !query.isBlank() ? query : search,
-                new MsTaskRepository.LegacyTaskFilters(projectId, statusId, priority, hideTerminal,
-                        assignedUserId, memberRole, reporterId, overdue)));
+                new MsTaskRepository.LegacyTaskFilters(
+                        projectId, statusId, priority, hideTerminal, assignedUserId, memberRole, reporterId, overdue)));
     }
 
     // =========================================================================
@@ -77,7 +84,8 @@ public class MsTaskController {
     @PostMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
     public ResponseEntity<MsTaskStatusRepository.StatusRecord> createStatus(@Valid @RequestBody CreateStatusDto body) {
-        var status = taskService.createStatus(body.pcode(), body.name(), body.color(), body.orderNo(), body.isTerminal());
+        var status =
+                taskService.createStatus(body.pcode(), body.name(), body.color(), body.orderNo(), body.isTerminal());
         return ResponseEntity.status(HttpStatus.CREATED).body(status);
     }
 
@@ -139,7 +147,6 @@ public class MsTaskController {
         return ResponseEntity.noContent().build();
     }
 
-
     // =========================================================================
     // Project Stats API
     // =========================================================================
@@ -197,7 +204,6 @@ public class MsTaskController {
         return ResponseEntity.ok(taskService.getSubtasks(id, SecurityContext.getCurrentUserId()));
     }
 
-
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
     public ResponseEntity<MsTaskRepository.TaskRecord> createTask(@Valid @RequestBody CreateTaskDto body) {
@@ -215,8 +221,7 @@ public class MsTaskController {
                 body.attributes(),
                 body.beginTime(),
                 body.endTime(),
-                currentUserId
-        );
+                currentUserId);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(task);
     }
@@ -247,21 +252,28 @@ public class MsTaskController {
         String action = body.action() == null ? "" : body.action();
         return switch (action) {
             case "status" -> {
-                long statusId = body.params() == null ? 0 : body.params().path("statusId").asLong(0);
-                if (taskService.listStatuses().stream().noneMatch(status -> Long.valueOf(statusId).equals(status.id()))) {
+                long statusId = body.params() == null
+                        ? 0
+                        : body.params().path("statusId").asLong(0);
+                if (taskService.listStatuses().stream()
+                        .noneMatch(status -> Long.valueOf(statusId).equals(status.id()))) {
                     throw BulkRunner.invalidParam("statusId", "unknown status");
                 }
-                yield ResponseEntity.ok(BulkRunner.run(action, ids,
-                        id -> taskService.changeStatus(id, statusId, currentUserId)));
+                yield ResponseEntity.ok(
+                        BulkRunner.run(action, ids, id -> taskService.changeStatus(id, statusId, currentUserId)));
             }
             case "priority" -> {
-                String priority = body.params() == null ? "" : body.params().path("priority").asString("");
+                String priority = body.params() == null
+                        ? ""
+                        : body.params().path("priority").asString("");
                 if (!PRIORITIES.contains(priority)) {
                     throw BulkRunner.invalidParam("priority", "one of " + PRIORITIES);
                 }
-                MsTaskPatch patch = new MsTaskPatch(false, null, false, null, false, null, false, null,
-                        true, priority, false, null, false, null, false, null, false, null, false, null, false, null);
-                yield ResponseEntity.ok(BulkRunner.run(action, ids, id -> taskService.updateTask(id, patch, currentUserId)));
+                MsTaskPatch patch = new MsTaskPatch(
+                        false, null, false, null, false, null, false, null, true, priority, false, null, false, null,
+                        false, null, false, null, false, null, false, null);
+                yield ResponseEntity.ok(
+                        BulkRunner.run(action, ids, id -> taskService.updateTask(id, patch, currentUserId)));
             }
             default -> throw BulkRunner.unknownAction(action);
         };
@@ -286,8 +298,7 @@ public class MsTaskController {
             List<Long> observerUserIds,
             Map<String, Object> attributes,
             Instant beginTime,
-            Instant endTime
-    ) {}
+            Instant endTime) {}
 
     public static final class UpdateTaskDto {
         private boolean projectIdPresent;
@@ -394,55 +405,27 @@ public class MsTaskController {
         }
     }
 
-    public record ChangeStatusDto(
-            Long statusId,
-            Long expectedRevision
-    ) {
+    public record ChangeStatusDto(Long statusId, Long expectedRevision) {
         public ChangeStatusDto(Long statusId) {
             this(statusId, null);
         }
     }
 
-    public record CreateStatusDto(
-            String pcode,
-            @NotBlank String name,
-            String color,
-            int orderNo,
-            boolean isTerminal
-    ) {}
+    public record CreateStatusDto(String pcode, @NotBlank String name, String color, int orderNo, boolean isTerminal) {}
 
-    public record UpdateStatusDto(
-            String name,
-            String color,
-            Integer orderNo,
-            Boolean isTerminal
-    ) {}
+    public record UpdateStatusDto(String name, String color, Integer orderNo, Boolean isTerminal) {}
 
     public record CreateTypeDto(
-            @NotBlank String code,
-            @NotBlank String name,
-            String icon,
-            String color,
-            int orderNo
-    ) {}
+            @NotBlank String code, @NotBlank String name, String icon, String color, int orderNo) {}
 
-    public record UpdateTypeDto(
-            String name,
-            String icon,
-            String color,
-            Integer orderNo
-    ) {}
+    public record UpdateTypeDto(String name, String icon, String color, Integer orderNo) {}
 
-    public record AttachFileDto(
-            @NotNull UUID fileId
-    ) {}
+    public record AttachFileDto(@NotNull UUID fileId) {}
 
     public record TaskDetailResponse(
             MsTaskRepository.TaskRecord task,
             List<MsTaskMemberRepository.TaskMemberRecord> members,
             List<MsTaskRepository.TaskRecord> subtasks,
             List<MsTaskRepository.TaskRecord> ancestors,
-            List<MsTaskRepository.TaskFileRecord> files
-    ) {}
+            List<MsTaskRepository.TaskFileRecord> files) {}
 }
-

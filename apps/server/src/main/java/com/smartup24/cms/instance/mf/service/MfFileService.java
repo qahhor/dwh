@@ -10,22 +10,22 @@ import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 @Service
 public class MfFileService {
 
     private static final String DEFAULT_BUCKET = "instance-files";
     private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-    private static final Set<String> FORBIDDEN_EXTENSIONS = Set.of(".exe", ".sh", ".bat", ".cmd", ".vbs", ".msi", ".jar");
+    private static final Set<String> FORBIDDEN_EXTENSIONS =
+            Set.of(".exe", ".sh", ".bat", ".cmd", ".vbs", ".msi", ".jar");
 
     private final MfFileMetadataService metadataService;
     private final StorageProvider storageProvider;
@@ -38,12 +38,14 @@ public class MfFileService {
     public static final int DEFAULT_MAX_CONCURRENT_UPLOADS = 10;
 
     @Autowired
-    public MfFileService(MfFileMetadataService metadataService, StorageProvider storageProvider,
-                         FileContentInspector contentInspector,
-                         List<FileScanner> fileScanners,
-                         MfFileObjectLock objectLock,
-                         MdScopeService scopeService,
-                         @Value("${dwh.files.max-concurrent-uploads:10}") int maxConcurrentUploads) {
+    public MfFileService(
+            MfFileMetadataService metadataService,
+            StorageProvider storageProvider,
+            FileContentInspector contentInspector,
+            List<FileScanner> fileScanners,
+            MfFileObjectLock objectLock,
+            MdScopeService scopeService,
+            @Value("${dwh.files.max-concurrent-uploads:10}") int maxConcurrentUploads) {
         this.metadataService = metadataService;
         this.storageProvider = storageProvider;
         this.contentInspector = contentInspector;
@@ -54,17 +56,28 @@ public class MfFileService {
         this.uploadLimiter = new Semaphore(permits);
     }
 
-    public MfFileService(MfFileMetadataService metadataService, StorageProvider storageProvider,
-                         FileContentInspector contentInspector,
-                         List<FileScanner> fileScanners,
-                         MfFileObjectLock objectLock,
-                         MdScopeService scopeService) {
-        this(metadataService, storageProvider, contentInspector, fileScanners, objectLock, scopeService, DEFAULT_MAX_CONCURRENT_UPLOADS);
+    public MfFileService(
+            MfFileMetadataService metadataService,
+            StorageProvider storageProvider,
+            FileContentInspector contentInspector,
+            List<FileScanner> fileScanners,
+            MfFileObjectLock objectLock,
+            MdScopeService scopeService) {
+        this(
+                metadataService,
+                storageProvider,
+                contentInspector,
+                fileScanners,
+                objectLock,
+                scopeService,
+                DEFAULT_MAX_CONCURRENT_UPLOADS);
     }
 
-    public MfFileRepository.FileRecord uploadFile(String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
+    public MfFileRepository.FileRecord uploadFile(
+            String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
         if (!uploadLimiter.tryAcquire()) {
-            throw ApiException.rateLimited("Превышен лимит одновременных загрузок файлов; пожалуйста, повторите попытку позже");
+            throw ApiException.rateLimited(
+                    "Превышен лимит одновременных загрузок файлов; пожалуйста, повторите попытку позже");
         }
         try {
             if (sizeBytes > MAX_FILE_SIZE) {
@@ -78,12 +91,11 @@ public class MfFileService {
             metadataService.validateQuotaSnapshot(createdBy, sizeBytes);
 
             String tempKey = "temp_" + UUID.randomUUID();
-            StoredFileMetadata stored = storageProvider.upload(
-                    DEFAULT_BUCKET, tempKey, inspection.content(), sizeBytes, verifiedMimeType);
+            StoredFileMetadata stored =
+                    storageProvider.upload(DEFAULT_BUCKET, tempKey, inspection.content(), sizeBytes, verifiedMimeType);
             RuntimeException uploadFailure = null;
             try {
-                return publishQuarantinedFile(
-                        originalName, createdBy, tempKey, stored, verifiedMimeType);
+                return publishQuarantinedFile(originalName, createdBy, tempKey, stored, verifiedMimeType);
             } catch (RuntimeException failure) {
                 uploadFailure = failure;
                 throw failure;
@@ -96,18 +108,23 @@ public class MfFileService {
     }
 
     private MfFileRepository.FileRecord publishQuarantinedFile(
-            String originalName, Long createdBy, String tempKey,
-            StoredFileMetadata stored, String verifiedMimeType) {
+            String originalName, Long createdBy, String tempKey, StoredFileMetadata stored, String verifiedMimeType) {
         scanQuarantinedObject(tempKey, stored.sizeBytes(), verifiedMimeType);
         String sha256 = stored.sha256();
 
-        return objectLock.withLock(sha256, () -> publishQuarantinedFileUnderLock(
-                originalName, createdBy, tempKey, stored, verifiedMimeType, sha256));
+        return objectLock.withLock(
+                sha256,
+                () -> publishQuarantinedFileUnderLock(
+                        originalName, createdBy, tempKey, stored, verifiedMimeType, sha256));
     }
 
     private MfFileRepository.FileRecord publishQuarantinedFileUnderLock(
-            String originalName, Long createdBy, String tempKey,
-            StoredFileMetadata stored, String verifiedMimeType, String sha256) {
+            String originalName,
+            Long createdBy,
+            String tempKey,
+            StoredFileMetadata stored,
+            String verifiedMimeType,
+            String sha256) {
 
         // Свою же копию отдаём как есть: повторная загрузка того же файла не
         // плодит записи и не списывает квоту дважды.
@@ -143,8 +160,7 @@ public class MfFileService {
                     finalKey,
                     createdBy);
         } catch (RuntimeException failure) {
-            cleanupUnpublishedObject(
-                    sha256, DEFAULT_BUCKET, finalKey, createdPhysicalObject, failure);
+            cleanupUnpublishedObject(sha256, DEFAULT_BUCKET, finalKey, createdPhysicalObject, failure);
             throw failure;
         }
     }
@@ -154,8 +170,7 @@ public class MfFileService {
             if (quarantined == null || quarantined.inputStream() == null) {
                 throw new IllegalStateException("Quarantined object is not readable");
             }
-            storageProvider.upload(
-                    DEFAULT_BUCKET, finalKey, quarantined.inputStream(), sizeBytes, contentType);
+            storageProvider.upload(DEFAULT_BUCKET, finalKey, quarantined.inputStream(), sizeBytes, contentType);
         } catch (java.io.IOException exception) {
             throw new IllegalStateException("Failed to close quarantined object stream", exception);
         }
@@ -168,8 +183,7 @@ public class MfFileService {
     /** The file list through the registry ({@code mf.files}): filter, sort, search {@code q} and the viewer's data scope. */
     public KeysetPage<MfFileRepository.FileDetailRecord> listFiles(
             Long userId, boolean onlyMine, Integer limit, String cursor, String filter, String sort, String query) {
-        var plan = QueryCompiler.compile(
-                MfFileQuery.LIST, filter, sort, limit, cursor, query);
+        var plan = QueryCompiler.compile(MfFileQuery.LIST, filter, sort, limit, cursor, query);
         return metadataService.pageFiles(plan, scopeService.filterForFiles(userId), onlyMine ? userId : null);
     }
 
@@ -216,7 +230,9 @@ public class MfFileService {
         String lower = fileName.toLowerCase();
         for (String ext : FORBIDDEN_EXTENSIONS) {
             if (lower.endsWith(ext)) {
-                throw ApiException.badRequest(ErrorCode.FILE_TYPE_FORBIDDEN, "Загрузка исполняемых файлов (" + ext + ") запрещена правилами безопасности");
+                throw ApiException.badRequest(
+                        ErrorCode.FILE_TYPE_FORBIDDEN,
+                        "Загрузка исполняемых файлов (" + ext + ") запрещена правилами безопасности");
             }
         }
     }
@@ -227,23 +243,18 @@ public class MfFileService {
                 if (quarantined == null || quarantined.inputStream() == null) {
                     throw new IllegalStateException("Quarantined object is not readable");
                 }
-                FileScanner.ScanResult result = scanner.scan(
-                        quarantined.inputStream(), sizeBytes, contentType);
+                FileScanner.ScanResult result = scanner.scan(quarantined.inputStream(), sizeBytes, contentType);
                 if (result == null) {
-                    throw new IllegalStateException(
-                            "File scanner returned no verdict: " + scanner.getProviderCode());
+                    throw new IllegalStateException("File scanner returned no verdict: " + scanner.getProviderCode());
                 }
                 if (result.verdict() == FileScanner.Verdict.INFECTED) {
                     throw new ApiException(
-                            ErrorCode.FILE_MALWARE_DETECTED,
-                            "Файл содержит вредоносное содержимое и был отклонён");
+                            ErrorCode.FILE_MALWARE_DETECTED, "Файл содержит вредоносное содержимое и был отклонён");
                 }
             } catch (ApiException exception) {
                 throw exception;
             } catch (Exception exception) {
-                throw new ApiException(
-                        ErrorCode.FILE_SCAN_FAILED,
-                        "Проверка файла не завершена; загрузка отменена");
+                throw new ApiException(ErrorCode.FILE_SCAN_FAILED, "Проверка файла не завершена; загрузка отменена");
             }
         }
     }
@@ -288,7 +299,5 @@ public class MfFileService {
             long userUsedBytes,
             long userAvailableBytes,
             int totalFilesCount,
-            int userFilesCount
-    ) {}
+            int userFilesCount) {}
 }
-

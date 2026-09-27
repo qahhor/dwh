@@ -1,13 +1,11 @@
 package com.smartup24.cms.instance.md.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import java.util.List;
 
 public final class MdOrgUnitDtos {
 
-    private MdOrgUnitDtos() {
-    }
+    private MdOrgUnitDtos() {}
 
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record UserAssignments(Long userId, List<Long> orgUnitIds, Long legacyOrgUnitId) {
@@ -16,6 +14,5 @@ public final class MdOrgUnitDtos {
         }
     }
 
-    public record RoleRule(Long roleId, String rule) {
-    }
+    public record RoleRule(Long roleId, String rule) {}
 }

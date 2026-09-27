@@ -1,5 +1,14 @@
 package com.smartup24.cms.instance.ms.task;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -27,6 +36,12 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,29 +58,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 /** HTTP contracts backed by PostgreSQL, including transaction boundaries. */
 @Testcontainers
 class MsTaskPatchIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("task_patch_test").withUsername("test_user").withPassword("test_pass");
+            .withDatabaseName("task_patch_test")
+            .withUsername("test_user")
+            .withPassword("test_pass");
 
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
 
@@ -82,16 +83,17 @@ class MsTaskPatchIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
         jdbc = JdbcClient.create(dataSource);
         var transactions = new DataSourceTransactionManager(dataSource);
         var objectMapper = new ObjectMapper();
 
-        var audit = new AuditLogService(
-                new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
+        var audit = new AuditLogService(new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
         scopeRepository = new MdScopeRepository(jdbc);
         roles = new MdRoleRepository(jdbc);
         scopes = new MdScopeService(
@@ -120,12 +122,11 @@ class MsTaskPatchIntegrationTest {
                 mock(MfFileService.class),
                 mock(ApplicationEventPublisher.class),
                 audit);
-        MsTaskCommentService commentService = transactional(
-                commentServiceTarget, transactions, MsTaskCommentService.class);
+        MsTaskCommentService commentService =
+                transactional(commentServiceTarget, transactions, MsTaskCommentService.class);
 
         mvc = MockMvcBuilders.standaloneSetup(
-                        new MsTaskController(taskService, null),
-                        new MsTaskCommentController(commentService))
+                        new MsTaskController(taskService, null), new MsTaskCommentController(commentService))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -226,7 +227,8 @@ class MsTaskPatchIntegrationTest {
     void taskPatchPreservesAllSubtreeUnitsSelfAndNotFoundScopeSemantics() throws Exception {
         Long allActor = user("All actor", null);
         assignScope(allActor, "ALL", List.of());
-        Long allTarget = task("ALL visible", user("All outsider", siblingUnit), user("All creator", siblingUnit), null, null);
+        Long allTarget =
+                task("ALL visible", user("All outsider", siblingUnit), user("All creator", siblingUnit), null, null);
         assertPatchVisible(allActor, allTarget);
 
         Long selfActor = user("Self actor", null);
@@ -275,7 +277,8 @@ class MsTaskPatchIntegrationTest {
         Long actor = user("Comment viewer", null);
         assignScope(actor, "ALL", List.of());
         Long task = task("Orphan comment", actor, actor, null, null);
-        try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
+        try (var connection = dataSource.getConnection();
+                var statement = connection.createStatement()) {
             statement.execute("set session_replication_role = replica");
             statement.executeUpdate("""
                     insert into ms_task_comments (task_id, user_id, text_markdown)
@@ -340,7 +343,9 @@ class MsTaskPatchIntegrationTest {
 
     private static String login(Long userId) {
         return jdbc.sql("select login from md_users where id = :id")
-                .param("id", userId).query(String.class).single();
+                .param("id", userId)
+                .query(String.class)
+                .single();
     }
 
     private static Long project(Long actor) {
@@ -377,7 +382,11 @@ class MsTaskPatchIntegrationTest {
         jdbc.sql("""
                 insert into ms_task_members (task_id, user_id, involve_kind, is_viewed)
                 values (:task, :user, :kind, false)
-                """).param("task", task).param("user", user).param("kind", kind).update();
+                """)
+                .param("task", task)
+                .param("user", user)
+                .param("kind", kind)
+                .update();
     }
 
     private static Long responsible(Long task) {
@@ -391,24 +400,37 @@ class MsTaskPatchIntegrationTest {
         return jdbc.sql("""
                 select user_id from ms_task_members
                 where task_id = :task and involve_kind = :kind order by user_id
-                """).param("task", task).param("kind", kind).query(Long.class).list();
+                """)
+                .param("task", task)
+                .param("kind", kind)
+                .query(Long.class)
+                .list();
     }
 
     private static Map<String, Object> taskValues(Long task) {
         return jdbc.sql("""
                 select title, project_id, parent_task_id, begin_time, end_time
                 from ms_tasks where id = :id
-                """).param("id", task).query((rs, rowNum) -> {
-            Map<String, Object> values = new LinkedHashMap<>();
-            values.put("title", rs.getString("title"));
-            values.put("project_id", nullableLong(rs, "project_id"));
-            values.put("parent_task_id", nullableLong(rs, "parent_task_id"));
-            values.put("begin_time", rs.getTimestamp("begin_time") != null
-                    ? rs.getTimestamp("begin_time").toInstant() : null);
-            values.put("end_time", rs.getTimestamp("end_time") != null
-                    ? rs.getTimestamp("end_time").toInstant() : null);
-            return values;
-        }).single();
+                """)
+                .param("id", task)
+                .query((rs, rowNum) -> {
+                    Map<String, Object> values = new LinkedHashMap<>();
+                    values.put("title", rs.getString("title"));
+                    values.put("project_id", nullableLong(rs, "project_id"));
+                    values.put("parent_task_id", nullableLong(rs, "parent_task_id"));
+                    values.put(
+                            "begin_time",
+                            rs.getTimestamp("begin_time") != null
+                                    ? rs.getTimestamp("begin_time").toInstant()
+                                    : null);
+                    values.put(
+                            "end_time",
+                            rs.getTimestamp("end_time") != null
+                                    ? rs.getTimestamp("end_time").toInstant()
+                                    : null);
+                    return values;
+                })
+                .single();
     }
 
     private static Long nullableLong(java.sql.ResultSet rs, String column) throws java.sql.SQLException {
@@ -419,17 +441,22 @@ class MsTaskPatchIntegrationTest {
         return jdbc.sql("""
                 select count(*) from audit_log
                 where table_name = 'ms_tasks' and row_pk = :rowPk
-                """).param("rowPk", String.valueOf(task)).query(Long.class).single();
+                """)
+                .param("rowPk", String.valueOf(task))
+                .query(Long.class)
+                .single();
     }
 
     private static Long orgUnit(Long parent, String code) {
         return jdbc.sql("""
                 insert into md_org_units (parent_id, code, name, kind, state, order_no)
                 values (:parent, :code, :name, 'department', 'A', 1) returning id
-                """).param("parent", parent)
+                """)
+                .param("parent", parent)
                 .param("code", code + "-" + SEQUENCE.incrementAndGet())
                 .param("name", code)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 
     private static void assignScope(Long userId, String rule, List<Long> orgUnitIds) {
@@ -442,7 +469,15 @@ class MsTaskPatchIntegrationTest {
 
     private static void signIn(Long userId) {
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
-                userId, login(userId), login(userId) + "@example.invalid", 1000L,
-                false, Set.of("*.*"), 1L, false, 0, null));
+                userId,
+                login(userId),
+                login(userId) + "@example.invalid",
+                1000L,
+                false,
+                Set.of("*.*"),
+                1L,
+                false,
+                0,
+                null));
     }
 }

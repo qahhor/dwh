@@ -1,7 +1,6 @@
 package com.smartup24.cms.spi.storage;
 
 import com.smartup24.cms.spi.common.ProviderHealth;
-
 import java.io.InputStream;
 
 /**

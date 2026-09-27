@@ -1,8 +1,6 @@
 package com.smartup24.cms.instance.fnd;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -16,8 +14,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * AC-24 и AC-40: в ядре нет ни имён единиц покупателя, ни множителей «в коде», ни имён самих покупателей.
@@ -34,18 +33,24 @@ class FndCorePurityTest {
     private static final Path TERMS = Path.of("src/test/resources/forbidden-terms.txt");
     private static final Path ALLOWED_NUMBERS = Path.of("src/test/resources/allowed-numbers.txt");
     /** Дробь или число от 4 цифр как отдельный токен: 127.0.0.1, V100, id_2026 не считаются. */
-    private static final Pattern NUMBER = Pattern.compile("(?<![\\p{L}\\p{N}_.])(\\d+\\.\\d+|\\d{4,})(?![\\p{L}\\p{N}_.])");
+    private static final Pattern NUMBER =
+            Pattern.compile("(?<![\\p{L}\\p{N}_.])(\\d+\\.\\d+|\\d{4,})(?![\\p{L}\\p{N}_.])");
+
     private static final Pattern LINE_COMMENT = Pattern.compile("//.*$|--.*$");
 
     @Test
     @DisplayName("AC-24/AC-40: ядро и наши миграции не упоминают единиц, множителей и имён покупателей")
     void coreMentionsNoBuyer() throws IOException {
         List<String> terms = terms();
-        assertThat(terms).as("список терминов пуст — проверка была бы бессмысленной").hasSizeGreaterThan(20);
+        assertThat(terms)
+                .as("список терминов пуст — проверка была бы бессмысленной")
+                .hasSizeGreaterThan(20);
         assertThat(terms).as("имена покупателей в списке").contains("фармкомитет", "sqb", "узпромстройматериалы");
 
         List<Path> files = coreFiles();
-        assertThat(files).as("исходники ядра не найдены — проверьте рабочий каталог теста").isNotEmpty();
+        assertThat(files)
+                .as("исходники ядра не найдены — проверьте рабочий каталог теста")
+                .isNotEmpty();
         assertThat(scan(files, terms)).isEmpty();
     }
 
@@ -59,24 +64,30 @@ class FndCorePurityTest {
                     .toList();
             assertThat(leaked).isEmpty();
         }
-        assertThat(Files.exists(Path.of("src/test/resources/fixtures/dept-a.yaml"))).isTrue();
-        assertThat(Files.exists(Path.of("src/test/resources/fixtures/dept-b.yaml"))).isTrue();
+        assertThat(Files.exists(Path.of("src/test/resources/fixtures/dept-a.yaml")))
+                .isTrue();
+        assertThat(Files.exists(Path.of("src/test/resources/fixtures/dept-b.yaml")))
+                .isTrue();
     }
 
     @Test
     @DisplayName("AC-40: фикстура-нарушитель — красный с перечнем файл:строка, кириллица и латиница без учёта регистра")
     void violatorIsReportedWithFileAndLine(@TempDir Path root) throws IOException {
         Path violator = root.resolve("UplService.java");
-        Files.writeString(violator, "class UplService {\n"
-                + "  // Заказчик: ФармКомитет\n"
-                + "  String bank = \"SQB\";\n"
-                + "  long checksum = 1; // не единица: слово с префиксом\n"
-                + "  BigDecimal total = sum(values); // SQL-агрегат, не единица\n"
-                + "}\n", StandardCharsets.UTF_8);
+        Files.writeString(
+                violator,
+                "class UplService {\n"
+                        + "  // Заказчик: ФармКомитет\n"
+                        + "  String bank = \"SQB\";\n"
+                        + "  long checksum = 1; // не единица: слово с префиксом\n"
+                        + "  BigDecimal total = sum(values); // SQL-агрегат, не единица\n"
+                        + "}\n",
+                StandardCharsets.UTF_8);
 
         List<String> hits = scan(List.of(violator), terms());
 
-        assertThat(hits).hasSize(2)
+        assertThat(hits)
+                .hasSize(2)
                 .anySatisfy(hit -> assertThat(hit).startsWith(violator + ":2").contains("фармкомитет"))
                 .anySatisfy(hit -> assertThat(hit).startsWith(violator + ":3").contains("sqb"));
     }
@@ -87,7 +98,9 @@ class FndCorePurityTest {
         Set<String> allowed = allowedNumbers();
         for (String entry : allowed) {
             String path = entry.substring(0, entry.lastIndexOf(':'));
-            assertThat(Files.exists(Path.of(path))).as("устаревшая запись allowlist: %s", entry).isTrue();
+            assertThat(Files.exists(Path.of(path)))
+                    .as("устаревшая запись allowlist: %s", entry)
+                    .isTrue();
         }
         assertThat(scanNumbers(coreFiles(), allowed)).isEmpty();
     }
@@ -96,14 +109,18 @@ class FndCorePurityTest {
     @DisplayName("AC-24/M-9: нарушитель — красный с файл:строка и числом; комментарии, версии и IP не считаются")
     void numberViolatorIsReported(@TempDir Path root) throws IOException {
         Path violator = root.resolve("UplUnits.java");
-        Files.writeString(violator, "class UplUnits {\n"
-                + "  long grams = kg * 1000; // 2026 — в комментарии не считается\n"
-                + "  double toTonnes = 0.001;\n"
-                + "  String ip = \"127.0.0.1\"; String v = \"V100\"; int id_2026 = 1;\n"
-                + "}\n", StandardCharsets.UTF_8);
+        Files.writeString(
+                violator,
+                "class UplUnits {\n"
+                        + "  long grams = kg * 1000; // 2026 — в комментарии не считается\n"
+                        + "  double toTonnes = 0.001;\n"
+                        + "  String ip = \"127.0.0.1\"; String v = \"V100\"; int id_2026 = 1;\n"
+                        + "}\n",
+                StandardCharsets.UTF_8);
         String key = violator.toString().replace('\\', '/');
 
-        assertThat(scanNumbers(List.of(violator), Set.of())).hasSize(2)
+        assertThat(scanNumbers(List.of(violator), Set.of()))
+                .hasSize(2)
                 .anySatisfy(hit -> assertThat(hit).startsWith(key + ":2").endsWith("1000"))
                 .anySatisfy(hit -> assertThat(hit).startsWith(key + ":3").endsWith("0.001"));
         assertThat(scanNumbers(List.of(violator), Set.of(key + ":1000"))).hasSize(1);
@@ -153,15 +170,18 @@ class FndCorePurityTest {
     private static Set<String> allowedNumbers() throws IOException {
         try (Stream<String> lines = Files.lines(ALLOWED_NUMBERS, StandardCharsets.UTF_8)) {
             return lines.map(line -> line.contains("#") ? line.substring(0, line.indexOf('#')) : line)
-                    .map(String::trim).filter(line -> !line.isEmpty())
+                    .map(String::trim)
+                    .filter(line -> !line.isEmpty())
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
     }
 
     /** Термин как отдельное слово, без учёта регистра; {@code sum(} — SQL-агрегат, а не единица. */
     private static boolean mentions(String line, String term) {
-        Matcher matcher = Pattern.compile("(?<![\\p{L}\\p{N}_])" + Pattern.quote(term) + "(?![\\p{L}\\p{N}_])",
-                Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE).matcher(line);
+        Matcher matcher = Pattern.compile(
+                        "(?<![\\p{L}\\p{N}_])" + Pattern.quote(term) + "(?![\\p{L}\\p{N}_])",
+                        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE)
+                .matcher(line);
         while (matcher.find()) {
             int after = matcher.end();
             if (after >= line.length() || line.charAt(after) != '(') {

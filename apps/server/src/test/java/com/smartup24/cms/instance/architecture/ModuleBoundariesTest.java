@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
@@ -10,10 +14,6 @@ import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.library.freeze.FreezingArchRule;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -27,10 +27,9 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * Plan 10/10, item 1.3: module boundaries as the documents draw them, checked on every build.
@@ -43,8 +42,20 @@ class ModuleBoundariesTest {
 
     static final String ROOT = "com.smartup24.cms.instance";
     /** Business modules; {@code ms} holds three of them. {@code common} and {@code config} are infrastructure. */
-    static final List<String> MODULES = List.of("analytics", "audit", "fnd", "kauth", "kwh", "md", "mf",
-            "ms.note", "ms.notify", "ms.task", "report", "search", "upl");
+    static final List<String> MODULES = List.of(
+            "analytics",
+            "audit",
+            "fnd",
+            "kauth",
+            "kwh",
+            "md",
+            "mf",
+            "ms.note",
+            "ms.notify",
+            "ms.task",
+            "report",
+            "search",
+            "upl");
 
     private static JavaClasses classes;
 
@@ -66,9 +77,14 @@ class ModuleBoundariesTest {
     @Test
     @DisplayName("1.3: common depends on no business module")
     void commonDependsOnNoBusinessModule() {
-        String[] business = MODULES.stream().map(module -> ROOT + "." + module + "..").toArray(String[]::new);
-        ArchRule rule = noClasses().that().resideInAPackage(ROOT + ".common..")
-                .should().dependOnClassesThat().resideInAnyPackage(business)
+        String[] business =
+                MODULES.stream().map(module -> ROOT + "." + module + "..").toArray(String[]::new);
+        ArchRule rule = noClasses()
+                .that()
+                .resideInAPackage(ROOT + ".common..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(business)
                 .as("common depends on no business module");
         FreezingArchRule.freeze(rule).check(classes);
     }
@@ -76,8 +92,12 @@ class ModuleBoundariesTest {
     @Test
     @DisplayName("1.3: a controller sees no repository package, nested records included")
     void controllersSeeNoRepositoryPackage() {
-        ArchRule rule = noClasses().that().resideInAPackage("..controller..")
-                .should().dependOnClassesThat().resideInAPackage("..repository..")
+        ArchRule rule = noClasses()
+                .that()
+                .resideInAPackage("..controller..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("..repository..")
                 .as("controllers see no repository package");
         FreezingArchRule.freeze(rule).check(classes);
     }
@@ -85,7 +105,8 @@ class ModuleBoundariesTest {
     @Test
     @DisplayName("1.3: modules meet only through each other's service or api package")
     void modulesMeetThroughServiceOrApi() {
-        ArchRule rule = classes().should(onlyReachOtherModulesThroughServiceOrApi())
+        ArchRule rule = classes()
+                .should(onlyReachOtherModulesThroughServiceOrApi())
                 .as("modules meet only through each other's service or api package");
         FreezingArchRule.freeze(rule).check(classes);
     }
@@ -107,8 +128,8 @@ class ModuleBoundariesTest {
                     String prefix = ROOT + "." + to.get() + ".";
                     String pkg = target.getPackageName() + ".";
                     if (!pkg.startsWith(prefix + "service.") && !pkg.startsWith(prefix + "api.")) {
-                        events.add(SimpleConditionEvent.violated(dependency,
-                                from.get() + " -> " + to.get() + ": " + dependency.getDescription()));
+                        events.add(SimpleConditionEvent.violated(
+                                dependency, from.get() + " -> " + to.get() + ": " + dependency.getDescription()));
                     }
                 });
             }
@@ -119,8 +140,12 @@ class ModuleBoundariesTest {
     @DisplayName("1.3: the frozen rules still catch what they forbid")
     void frozenRulesCatchViolations() {
         var probe = new ClassFileImporter().importClasses(ProbeController.class);
-        ArchRule rule = noClasses().that().haveSimpleNameEndingWith("ProbeController")
-                .should().dependOnClassesThat().resideInAPackage("..repository..");
+        ArchRule rule = noClasses()
+                .that()
+                .haveSimpleNameEndingWith("ProbeController")
+                .should()
+                .dependOnClassesThat()
+                .resideInAPackage("..repository..");
         assertThat(rule.evaluate(probe).hasViolation()).isTrue();
     }
 
@@ -139,8 +164,8 @@ class ModuleBoundariesTest {
         try (var in = Files.newBufferedReader(STORE.resolve("stored.rules"), StandardCharsets.UTF_8)) {
             rules.load(in);
         }
-        StringBuilder report = new StringBuilder("### Frozen architecture violations (plan 10/10, 1.3)\n\n"
-                + "| Rule | Frozen |\n|---|---|\n");
+        StringBuilder report = new StringBuilder(
+                "### Frozen architecture violations (plan 10/10, 1.3)\n\n" + "| Rule | Frozen |\n|---|---|\n");
         long total = 0;
         for (String rule : new TreeSet<>(rules.stringPropertyNames())) {
             long count = countLines(STORE.resolve(rules.getProperty(rule)));
@@ -149,17 +174,25 @@ class ModuleBoundariesTest {
         }
         long foreignSql = countLines(FOREIGN_SQL_BASELINE);
         total += foreignSql;
-        report.append("| repositories touch only their module's tables | ").append(foreignSql).append(" |\n")
-                .append("| **total** | **").append(total).append("** |\n");
+        report.append("| repositories touch only their module's tables | ")
+                .append(foreignSql)
+                .append(" |\n")
+                .append("| **total** | **")
+                .append(total)
+                .append("** |\n");
         Files.createDirectories(REPORT.getParent());
         Files.writeString(REPORT, report.toString(), StandardCharsets.UTF_8);
-        assertThat(rules.stringPropertyNames()).as("every frozen rule has its store").hasSize(3);
+        assertThat(rules.stringPropertyNames())
+                .as("every frozen rule has its store")
+                .hasSize(3);
     }
 
     /** Violations in a store file; comments and blank lines do not count. */
     private static long countLines(Path file) throws IOException {
         try (Stream<String> lines = Files.lines(file, StandardCharsets.UTF_8)) {
-            return lines.map(String::trim).filter(line -> !line.isEmpty() && !line.startsWith("#")).count();
+            return lines.map(String::trim)
+                    .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                    .count();
         }
     }
 
@@ -170,7 +203,8 @@ class ModuleBoundariesTest {
     private static final Path SOURCES = Path.of("src/main/java/com/smartup24/cms/instance");
     private static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
     private static final Path FOREIGN_SQL_BASELINE = Path.of("src/test/resources/archunit_store/foreign-sql.txt");
-    private static final Pattern CREATE_TABLE = Pattern.compile("(?i)create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?([a-z_][a-z0-9_]*)");
+    private static final Pattern CREATE_TABLE =
+            Pattern.compile("(?i)create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?([a-z_][a-z0-9_]*)");
     private static final Pattern TABLE_USE = Pattern.compile("(?i)\\b(?:from|join|into|update)\\s+([a-z_][a-z0-9_]*)");
 
     /** The module that owns a table, by its prefix. */
@@ -202,12 +236,19 @@ class ModuleBoundariesTest {
         if (Boolean.getBoolean("archunit.freeze.store.default.allowStoreCreation")) {
             // The same switch that lets ArchUnit create its stores writes this baseline: once, when a rule is added.
             Files.createDirectories(FOREIGN_SQL_BASELINE.getParent());
-            Files.write(FOREIGN_SQL_BASELINE, Stream.concat(Stream.of(
-                    "# Frozen foreign table access from repositories (plan 10/10, item 1.3): lines only go away."),
-                    found.stream()).toList(), StandardCharsets.UTF_8);
+            Files.write(
+                    FOREIGN_SQL_BASELINE,
+                    Stream.concat(
+                                    Stream.of(
+                                            "# Frozen foreign table access from repositories (plan 10/10, item 1.3): lines only go away."),
+                                    found.stream())
+                            .toList(),
+                    StandardCharsets.UTF_8);
         }
         List<String> baseline = Files.readAllLines(FOREIGN_SQL_BASELINE, StandardCharsets.UTF_8).stream()
-                .map(String::trim).filter(line -> !line.isEmpty() && !line.startsWith("#")).toList();
+                .map(String::trim)
+                .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                .toList();
 
         assertThat(found.stream().filter(line -> !baseline.contains(line)).toList())
                 .as("new foreign table access from a repository: go through the owning module's service")
@@ -221,7 +262,8 @@ class ModuleBoundariesTest {
         String relative = SOURCES.relativize(file).toString().replace('\\', '/');
         String module = MODULES.stream()
                 .filter(candidate -> relative.startsWith(candidate.replace('.', '/') + "/"))
-                .findFirst().orElse(null);
+                .findFirst()
+                .orElse(null);
         if (module == null) {
             return List.of();
         }
@@ -233,7 +275,8 @@ class ModuleBoundariesTest {
             while (matcher.find()) {
                 String table = matcher.group(1).toLowerCase();
                 if (tables.contains(table)) {
-                    ownerOf(table).filter(owner -> !owner.equals(module))
+                    ownerOf(table)
+                            .filter(owner -> !owner.equals(module))
                             .ifPresent(owner -> result.add(module + " " + className + " -> " + table));
                 }
             }

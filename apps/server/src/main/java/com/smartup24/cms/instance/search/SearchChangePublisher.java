@@ -13,7 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class SearchChangePublisher {
     private final JdbcClient jdbc;
 
-    public SearchChangePublisher(JdbcClient jdbc) { this.jdbc = jdbc; }
+    public SearchChangePublisher(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
 
     public void changed(String entityType, long entityId) {
         barrier();
@@ -54,11 +56,15 @@ public class SearchChangePublisher {
      */
     public void lockStatusMembership(long statusId) {
         jdbc.sql("select id from ms_task_statuses where id=:id for share")
-                .param("id", statusId).query(Long.class).optional()
+                .param("id", statusId)
+                .query(Long.class)
+                .optional()
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
     }
 
     private void barrier() {
-        jdbc.sql("select id from search_index_state where id=1 for share").query(Integer.class).single();
+        jdbc.sql("select id from search_index_state where id=1 for share")
+                .query(Integer.class)
+                .single();
     }
 }

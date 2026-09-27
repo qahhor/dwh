@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.search.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Bounded PostgreSQL fallback; all user values remain bound parameters. */
 @Repository
@@ -29,7 +28,8 @@ public class SearchFallbackRepository {
         String[] patterns = activeVariants.stream()
                 .map(v -> "%" + v.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%")
                 .toArray(String[]::new);
-        String primaryPattern = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+        String primaryPattern =
+                "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
 
         List<FallbackGroup> groups = new ArrayList<>();
         for (String type : requestedTypes(entityType)) {
@@ -63,7 +63,8 @@ public class SearchFallbackRepository {
     }
 
     private List<FallbackHit> searchTasks(String[] patterns, String primaryPattern, int limit) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
                 from ms_tasks t
                 left join ms_task_statuses s on s.id = t.status_id
@@ -74,26 +75,44 @@ public class SearchFallbackRepository {
                    or p.name ilike any(:patterns)
                 order by (t.title ilike :primary) desc, t.id
                 limit :limit
-                """).param("patterns", patterns).param("primary", primaryPattern).param("limit", limit)
-                .query((rs, rowNum) -> taskHit(rs.getLong("id"), rs.getString("title"), rs.getString("priority"),
-                        rs.getString("status_name"), rs.getString("project_name"))).list();
+                """)
+                .param("patterns", patterns)
+                .param("primary", primaryPattern)
+                .param("limit", limit)
+                .query((rs, rowNum) -> taskHit(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("priority"),
+                        rs.getString("status_name"),
+                        rs.getString("project_name")))
+                .list();
     }
 
     private List<FallbackHit> searchProjects(String[] patterns, String primaryPattern, int limit) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, description
                 from ms_task_projects
                 where state = 'A'
                   and (name ilike any(:patterns) or description ilike any(:patterns))
                 order by (name ilike :primary) desc, id
                 limit :limit
-                """).param("patterns", patterns).param("primary", primaryPattern).param("limit", limit)
-                .query((rs, rowNum) -> new FallbackHit("PROJECT", Long.toString(rs.getLong("id")), rs.getString("name"),
-                        bounded(rs.getString("description")), "/tasks/projects/" + rs.getLong("id"))).list();
+                """)
+                .param("patterns", patterns)
+                .param("primary", primaryPattern)
+                .param("limit", limit)
+                .query((rs, rowNum) -> new FallbackHit(
+                        "PROJECT",
+                        Long.toString(rs.getLong("id")),
+                        rs.getString("name"),
+                        bounded(rs.getString("description")),
+                        "/tasks/projects/" + rs.getLong("id")))
+                .list();
     }
 
     private List<FallbackHit> searchUsers(String[] patterns, String primaryPattern, int limit) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, login, email
                 from md_users
                 where state = 'A'
@@ -103,75 +122,114 @@ public class SearchFallbackRepository {
                     or phone ilike any(:patterns))
                 order by (name ilike :primary or login ilike :primary) desc, id
                 limit :limit
-                """).param("patterns", patterns).param("primary", primaryPattern).param("limit", limit)
-                .query((rs, rowNum) -> userHit(rs.getLong("id"), rs.getString("name"),
-                        rs.getString("login"), rs.getString("email"))).list();
+                """)
+                .param("patterns", patterns)
+                .param("primary", primaryPattern)
+                .param("limit", limit)
+                .query((rs, rowNum) ->
+                        userHit(rs.getLong("id"), rs.getString("name"), rs.getString("login"), rs.getString("email")))
+                .list();
     }
 
     private List<FallbackHit> searchNotes(String[] patterns, String primaryPattern, int limit) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, title, content_md
                 from ms_notes
                 where title ilike any(:patterns)
                    or content_md ilike any(:patterns)
                 order by (title ilike :primary) desc, is_pinned desc, id desc
                 limit :limit
-                """).param("patterns", patterns).param("primary", primaryPattern).param("limit", limit)
-                .query((rs, rowNum) -> new FallbackHit("NOTE", Long.toString(rs.getLong("id")), rs.getString("title"),
-                        bounded(rs.getString("content_md")), "/notes?id=" + rs.getLong("id"))).list();
+                """)
+                .param("patterns", patterns)
+                .param("primary", primaryPattern)
+                .param("limit", limit)
+                .query((rs, rowNum) -> new FallbackHit(
+                        "NOTE",
+                        Long.toString(rs.getLong("id")),
+                        rs.getString("title"),
+                        bounded(rs.getString("content_md")),
+                        "/notes?id=" + rs.getLong("id")))
+                .list();
     }
 
     private List<FallbackHit> exactTask(long id) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select t.id, t.title, t.priority, s.name as status_name, p.name as project_name
                 from ms_tasks t
                 left join ms_task_statuses s on s.id = t.status_id
                 left join ms_task_projects p on p.id = t.project_id
                 where t.id = :id
                 order by t.id
-                """).param("id", id)
-                .query((rs, rowNum) -> taskHit(rs.getLong("id"), rs.getString("title"), rs.getString("priority"),
-                        rs.getString("status_name"), rs.getString("project_name"))).list();
+                """)
+                .param("id", id)
+                .query((rs, rowNum) -> taskHit(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("priority"),
+                        rs.getString("status_name"),
+                        rs.getString("project_name")))
+                .list();
     }
 
     private List<FallbackHit> exactProject(long id) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, description from ms_task_projects
                 where id = :id and state = 'A' order by id
-                """).param("id", id)
-                .query((rs, rowNum) -> new FallbackHit("PROJECT", Long.toString(rs.getLong("id")), rs.getString("name"),
-                        bounded(rs.getString("description")), "/tasks/projects/" + rs.getLong("id"))).list();
+                """)
+                .param("id", id)
+                .query((rs, rowNum) -> new FallbackHit(
+                        "PROJECT",
+                        Long.toString(rs.getLong("id")),
+                        rs.getString("name"),
+                        bounded(rs.getString("description")),
+                        "/tasks/projects/" + rs.getLong("id")))
+                .list();
     }
 
     private List<FallbackHit> exactUser(long id) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, name, login, email from md_users
                 where id = :id and state = 'A' order by id
-                """).param("id", id)
-                .query((rs, rowNum) -> userHit(rs.getLong("id"), rs.getString("name"),
-                        rs.getString("login"), rs.getString("email"))).list();
+                """)
+                .param("id", id)
+                .query((rs, rowNum) ->
+                        userHit(rs.getLong("id"), rs.getString("name"), rs.getString("login"), rs.getString("email")))
+                .list();
     }
 
     private List<FallbackHit> exactNote(long id) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, title, content_md from ms_notes
                 where id = :id order by id
-                """).param("id", id)
-                .query((rs, rowNum) -> new FallbackHit("NOTE", Long.toString(rs.getLong("id")), rs.getString("title"),
-                        bounded(rs.getString("content_md")), "/notes?id=" + rs.getLong("id"))).list();
+                """)
+                .param("id", id)
+                .query((rs, rowNum) -> new FallbackHit(
+                        "NOTE",
+                        Long.toString(rs.getLong("id")),
+                        rs.getString("title"),
+                        bounded(rs.getString("content_md")),
+                        "/notes?id=" + rs.getLong("id")))
+                .list();
     }
 
     private static FallbackHit taskHit(long id, String title, String priority, String status, String project) {
         StringBuilder description = new StringBuilder("Статус: ")
                 .append(status == null || status.isBlank() ? "Новая" : status)
-                .append(" | Приоритет: ").append(priority == null ? "medium" : priority);
-        if (project != null && !project.isBlank()) description.append(" | Проект: ").append(project);
+                .append(" | Приоритет: ")
+                .append(priority == null ? "medium" : priority);
+        if (project != null && !project.isBlank())
+            description.append(" | Проект: ").append(project);
         return new FallbackHit("TASK", Long.toString(id), title, bounded(description.toString()), "/tasks/items/" + id);
     }
 
     private static FallbackHit userHit(long id, String name, String login, String email) {
-        return new FallbackHit("USER", Long.toString(id), name,
-                bounded(email + " (@" + login + ")"), "/iam/users/" + id);
+        return new FallbackHit(
+                "USER", Long.toString(id), name, bounded(email + " (@" + login + ")"), "/iam/users/" + id);
     }
 
     private static List<String> requestedTypes(String entityType) {
@@ -182,15 +240,22 @@ public class SearchFallbackRepository {
     private static String bounded(String value) {
         if (value == null) return "";
         int count = value.codePointCount(0, value.length());
-        return count <= MAX_DESCRIPTION_CODE_POINTS ? value
+        return count <= MAX_DESCRIPTION_CODE_POINTS
+                ? value
                 : value.substring(0, value.offsetByCodePoints(0, MAX_DESCRIPTION_CODE_POINTS));
     }
 
     public record FallbackHit(String entityType, String id, String title, String description, String targetUrl) {}
+
     public record FallbackGroup(String entityType, List<FallbackHit> hits, boolean hasMore) {
-        public FallbackGroup { hits = List.copyOf(hits); }
+        public FallbackGroup {
+            hits = List.copyOf(hits);
+        }
     }
+
     public record FallbackSearch(List<FallbackGroup> groups) {
-        public FallbackSearch { groups = List.copyOf(groups); }
+        public FallbackSearch {
+            groups = List.copyOf(groups);
+        }
     }
 }

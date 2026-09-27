@@ -1,6 +1,12 @@
 package com.smartup24.cms.instance.config.db;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -12,13 +18,6 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import javax.sql.DataSource;
-import java.time.LocalDate;
-import java.time.YearMonth;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * I-02 / Finding S-02 / CWE-250 / ADR-0008:
@@ -52,15 +51,15 @@ class DatabaseLeastPrivilegeIntegrationTest {
 
     @BeforeAll
     static void setupRolesAndMigrations() {
-        adminDataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        adminDataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         adminJdbc = JdbcClient.create(adminDataSource);
 
-        // 1. РЎРѕР·РґР°РЅРёРµ СЂРѕР»РµР№ Рё СЂР°СЃС€РёСЂРµРЅРёР№ РѕС‚ РёРјРµРЅРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР° (postgres_admin)
+        // 1. РЎРѕР·РґР°РЅРёРµ СЂРѕР»РµР№ Рё СЂР°СЃС€РёСЂРµРЅРёР№ РѕС‚ РёРјРµРЅРё Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°
+        // (postgres_admin)
         bootstrapRoles(adminJdbc);
 
-        migratorDataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), MIGRATOR_USER, MIGRATOR_PASS);
+        migratorDataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), MIGRATOR_USER, MIGRATOR_PASS);
         migratorJdbc = JdbcClient.create(migratorDataSource);
 
         // 2. РџСЂРёРјРµРЅРµРЅРёРµ РјРёРіСЂР°С†РёР№ РѕС‚ РёРјРµРЅРё smartupcms_migrator (schema owner)
@@ -73,12 +72,10 @@ class DatabaseLeastPrivilegeIntegrationTest {
         // 3. РќР°СЃС‚СЂРѕР№РєР° РіСЂР°РЅСѓР»СЏСЂРЅС‹С… РїСЂР°РІ РїРѕСЃР»Рµ СЃРѕР·РґР°РЅРёСЏ С‚Р°Р±Р»РёС†
         grantPrivileges(adminJdbc);
 
-        appDataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), APP_USER, APP_PASS);
+        appDataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), APP_USER, APP_PASS);
         appJdbc = JdbcClient.create(appDataSource);
 
-        backupDataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), BACKUP_USER, BACKUP_PASS);
+        backupDataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), BACKUP_USER, BACKUP_PASS);
         backupJdbc = JdbcClient.create(backupDataSource);
     }
 
@@ -122,11 +119,13 @@ class DatabaseLeastPrivilegeIntegrationTest {
             """).update();
 
         // РџСЂР°РІР° РЅР° Р‘Р” Рё РІР»Р°РґРµРЅРёРµ СЃС…РµРјРѕР№ public РїРµСЂРµРґР°С‘С‚СЃСЏ РјРёРіСЂР°С‚РѕСЂСѓ
-        admin.sql("GRANT CONNECT, CREATE ON DATABASE smartupcms TO smartupcms_migrator").update();
+        admin.sql("GRANT CONNECT, CREATE ON DATABASE smartupcms TO smartupcms_migrator")
+                .update();
         admin.sql("ALTER SCHEMA public OWNER TO smartupcms_migrator").update();
         admin.sql("GRANT ALL ON SCHEMA public TO smartupcms_migrator").update();
 
-        // Р”РµС„РѕР»С‚РЅС‹Рµ РїСЂР°РІР° РґР»СЏ РѕР±СЉРµРєС‚РѕРІ, РєРѕС‚РѕСЂС‹Рµ Р±СѓРґРµС‚ СЃРѕР·РґР°РІР°С‚СЊ РјРёРіСЂР°С‚РѕСЂ
+        // Р”РµС„РѕР»С‚РЅС‹Рµ РїСЂР°РІР° РґР»СЏ РѕР±СЉРµРєС‚РѕРІ, РєРѕС‚РѕСЂС‹Рµ Р±СѓРґРµС‚ СЃРѕР·РґР°РІР°С‚СЊ
+        // РјРёРіСЂР°С‚РѕСЂ
         admin.sql("""
             ALTER DEFAULT PRIVILEGES FOR ROLE smartupcms_migrator IN SCHEMA public
                 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO smartupcms;
@@ -170,16 +169,15 @@ class DatabaseLeastPrivilegeIntegrationTest {
     class AppUserPrivileges {
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ СЃСѓРїРµСЂРїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Рё РЅРµ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ СЂРѕР»Рё РёР»Рё Р±Р°Р·С‹")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ СЃСѓРїРµСЂРїРѕР»СЊР·РѕРІР°С‚РµР»СЊ Рё РЅРµ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ СЂРѕР»Рё РёР»Рё Р±Р°Р·С‹")
         void appUserIsNotSuperuser() {
             var roleInfo = appJdbc.sql("""
                     select rolsuper, rolcreatedb, rolcreaterole
                     from pg_roles where rolname = 'smartupcms'
                     """)
-                    .query((rs, rowNum) -> new boolean[]{
-                            rs.getBoolean("rolsuper"),
-                            rs.getBoolean("rolcreatedb"),
-                            rs.getBoolean("rolcreaterole")
+                    .query((rs, rowNum) -> new boolean[] {
+                        rs.getBoolean("rolsuper"), rs.getBoolean("rolcreatedb"), rs.getBoolean("rolcreaterole")
                     })
                     .single();
 
@@ -189,53 +187,70 @@ class DatabaseLeastPrivilegeIntegrationTest {
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ С‚Р°Р±Р»РёС†С‹ (DDL CREATE TABLE Р·Р°РїСЂРµС‰РµРЅ)")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ СЃРѕР·РґР°РІР°С‚СЊ С‚Р°Р±Р»РёС†С‹ (DDL CREATE TABLE Р·Р°РїСЂРµС‰РµРЅ)")
         void appUserCannotCreateTable() {
-            assertThatThrownBy(() -> appJdbc.sql("create table probe_least_privilege(id int)").update())
+            assertThatThrownBy(() -> appJdbc.sql("create table probe_least_privilege(id int)")
+                            .update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("permission denied for schema public");
+                    .rootCause()
+                    .hasMessageContaining("permission denied for schema public");
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ СѓРґР°Р»СЏС‚СЊ С‚Р°Р±Р»РёС†С‹ (DDL DROP TABLE Р·Р°РїСЂРµС‰РµРЅ)")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ СѓРґР°Р»СЏС‚СЊ С‚Р°Р±Р»РёС†С‹ (DDL DROP TABLE Р·Р°РїСЂРµС‰РµРЅ)")
         void appUserCannotDropTable() {
             assertThatThrownBy(() -> appJdbc.sql("drop table md_users").update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("must be owner of table md_users");
+                    .rootCause()
+                    .hasMessageContaining("must be owner of table md_users");
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РјРµРЅСЏС‚СЊ СЃС‚СЂСѓРєС‚СѓСЂСѓ С‚Р°Р±Р»РёС† (DDL ALTER TABLE Р·Р°РїСЂРµС‰РµРЅ)")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РјРµРЅСЏС‚СЊ СЃС‚СЂСѓРєС‚СѓСЂСѓ С‚Р°Р±Р»РёС† (DDL ALTER TABLE Р·Р°РїСЂРµС‰РµРЅ)")
         void appUserCannotAlterTable() {
-            assertThatThrownBy(() -> appJdbc.sql("alter table md_users add column attacker_probe text").update())
+            assertThatThrownBy(() -> appJdbc.sql("alter table md_users add column attacker_probe text")
+                            .update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("must be owner of table md_users");
+                    .rootCause()
+                    .hasMessageContaining("must be owner of table md_users");
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РѕС‡РёС‰Р°С‚СЊ С‚Р°Р±Р»РёС†С‹ С‡РµСЂРµР· TRUNCATE")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РѕС‡РёС‰Р°С‚СЊ С‚Р°Р±Р»РёС†С‹ С‡РµСЂРµР· TRUNCATE")
         void appUserCannotTruncateTables() {
             assertThatThrownBy(() -> appJdbc.sql("truncate table md_users").update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("permission denied for table md_users");
+                    .rootCause()
+                    .hasMessageContaining("permission denied for table md_users");
 
             assertThatThrownBy(() -> appJdbc.sql("truncate table audit_log").update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("permission denied for table audit_log");
+                    .rootCause()
+                    .hasMessageContaining("permission denied for table audit_log");
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РѕС‚РєР»СЋС‡РёС‚СЊ С‚СЂРёРіРіРµСЂС‹ РЅРµРёР·РјРµРЅСЏРµРјРѕСЃС‚Рё audit_log")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РЅРµ РјРѕР¶РµС‚ РѕС‚РєР»СЋС‡РёС‚СЊ С‚СЂРёРіРіРµСЂС‹ РЅРµРёР·РјРµРЅСЏРµРјРѕСЃС‚Рё audit_log")
         void appUserCannotDisableTriggers() {
-            assertThatThrownBy(() -> appJdbc.sql("alter table audit_log disable trigger all").update())
+            assertThatThrownBy(() -> appJdbc.sql("alter table audit_log disable trigger all")
+                            .update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("must be owner of table audit_log");
+                    .rootCause()
+                    .hasMessageContaining("must be owner of table audit_log");
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕР±С‹С‡РЅС‹Р№ DML (SELECT, INSERT, UPDATE, DELETE)")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РїСЂРёР»РѕР¶РµРЅРёСЏ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕР±С‹С‡РЅС‹Р№ DML (SELECT, INSERT, UPDATE, DELETE)")
         void appUserCanPerformStandardDml() {
-            long userCount = appJdbc.sql("select count(*) from md_users").query(Long.class).single();
+            long userCount = appJdbc.sql("select count(*) from md_users")
+                    .query(Long.class)
+                    .single();
             assertThat(userCount).isGreaterThanOrEqualTo(0);
 
             // INSERT РІ audit_log СЂР°Р·СЂРµС€РµРЅ
@@ -245,12 +260,14 @@ class DatabaseLeastPrivilegeIntegrationTest {
                     """).update();
 
             long auditCount = appJdbc.sql("select count(*) from audit_log where table_name = 'least_privilege_test'")
-                    .query(Long.class).single();
+                    .query(Long.class)
+                    .single();
             assertThat(auditCount).isEqualTo(1);
         }
 
         @Test
-        @DisplayName("AuditPartitionRepository СЃРѕР·РґР°РµС‚ Рё РѕС‚С†РµРїР»СЏРµС‚ РїР°СЂС‚РёС†РёРё Р±РµР· DDL-РїСЂР°РІ РїСЂРёР»РѕР¶РµРЅРёСЏ")
+        @DisplayName(
+                "AuditPartitionRepository СЃРѕР·РґР°РµС‚ Рё РѕС‚С†РµРїР»СЏРµС‚ РїР°СЂС‚РёС†РёРё Р±РµР· DDL-РїСЂР°РІ РїСЂРёР»РѕР¶РµРЅРёСЏ")
         void auditPartitionWorkerCanManagePartitionsViaSecurityDefiner() {
             var repo = new AuditPartitionRepository(appJdbc);
 
@@ -271,8 +288,10 @@ class DatabaseLeastPrivilegeIntegrationTest {
             assertThat(archived).isEqualTo("audit_log_archived_2021_05");
 
             // Р—Р°РїРёСЃСЊ СЃРѕС…СЂР°РЅРµРЅР° РІ Р°СЂС…РёРІРЅРѕР№ С‚Р°Р±Р»РёС†Рµ
-            long archivedCount = appJdbc.sql("select count(*) from audit_log_archived_2021_05 where table_name = 'future_partition_test'")
-                    .query(Long.class).single();
+            long archivedCount = appJdbc.sql(
+                            "select count(*) from audit_log_archived_2021_05 where table_name = 'future_partition_test'")
+                    .query(Long.class)
+                    .single();
             assertThat(archivedCount).isEqualTo(1);
         }
 
@@ -288,19 +307,25 @@ class DatabaseLeastPrivilegeIntegrationTest {
                             timestamptz '2021-06-08 00:00:00+00', 0, 0, 'probe')
                     returning id
                     """).query(Long.class).single();
-            appJdbc.sql("update audit_log_archives set verified_at = now() where id = :id").param("id", id).update();
+            appJdbc.sql("update audit_log_archives set verified_at = now() where id = :id")
+                    .param("id", id)
+                    .update();
 
-            assertThatThrownBy(() -> appJdbc.sql("delete from audit_log_archives where id = :id").param("id", id).update())
+            assertThatThrownBy(() -> appJdbc.sql("delete from audit_log_archives where id = :id")
+                            .param("id", id)
+                            .update())
                     .isInstanceOf(DataAccessException.class)
                     .hasMessageContaining("permanent");
             assertThatThrownBy(() -> appJdbc.sql("select audit_log_drop_archived_partition('audit_log_2021_06_07')")
-                    .query().singleValue())
+                            .query()
+                            .singleValue())
                     .isInstanceOf(DataAccessException.class)
                     .hasMessageContaining("no verified archive");
         }
 
         @Test
-        @DisplayName("SchemaVersionGate СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґРёС‚ РїСЂРѕРІРµСЂРєСѓ СЃС…РµРјС‹ РїРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј РїСЂРёР»РѕР¶РµРЅРёСЏ")
+        @DisplayName(
+                "SchemaVersionGate СѓСЃРїРµС€РЅРѕ РїСЂРѕС…РѕРґРёС‚ РїСЂРѕРІРµСЂРєСѓ СЃС…РµРјС‹ РїРѕРґ РїРѕР»СЊР·РѕРІР°С‚РµР»РµРј РїСЂРёР»РѕР¶РµРЅРёСЏ")
         void schemaVersionGatePassesForAppUser() {
             var gate = new SchemaVersionGate(appDataSource, true);
             gate.verifySchemaMatchesApplication();
@@ -314,19 +339,24 @@ class DatabaseLeastPrivilegeIntegrationTest {
         @Test
         @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р±СЌРєР°РїР° РјРѕР¶РµС‚ С‡РёС‚Р°С‚СЊ РІСЃРµ С‚Р°Р±Р»РёС†С‹")
         void backupUserCanReadTables() {
-            long count = backupJdbc.sql("select count(*) from md_users").query(Long.class).single();
+            long count = backupJdbc
+                    .sql("select count(*) from md_users")
+                    .query(Long.class)
+                    .single();
             assertThat(count).isGreaterThanOrEqualTo(0);
         }
 
         @Test
-        @DisplayName("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р±СЌРєР°РїР° РЅРµ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕРїРµСЂР°С†РёРё Р·Р°РїРёСЃРё")
+        @DisplayName(
+                "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ Р±СЌРєР°РїР° РЅРµ РјРѕР¶РµС‚ РІС‹РїРѕР»РЅСЏС‚СЊ РѕРїРµСЂР°С†РёРё Р·Р°РїРёСЃРё")
         void backupUserCannotWrite() {
             assertThatThrownBy(() -> backupJdbc.sql("""
                     insert into audit_log (table_name, row_pk, event, changed_at)
                     values ('backup_write_probe', '1', 'I', now())
                     """).update())
                     .isInstanceOf(DataAccessException.class)
-                    .rootCause().hasMessageContaining("read-only transaction");
+                    .rootCause()
+                    .hasMessageContaining("read-only transaction");
         }
     }
 }

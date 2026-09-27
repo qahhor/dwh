@@ -6,9 +6,6 @@ import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -16,6 +13,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Every declared entity by code (ADR-0019, 2.1). An entity is handed out with its custom fields as they are now:
@@ -40,7 +39,8 @@ public class EntityRegistry {
     private final List<FormFieldExtender> extenders;
 
     @Autowired
-    public EntityRegistry(List<EntityDefinition> declared, List<FormFieldExtender> extenders, List<EntityRecords> records) {
+    public EntityRegistry(
+            List<EntityDefinition> declared, List<FormFieldExtender> extenders, List<EntityRecords> records) {
         for (EntityDefinition entity : declared) {
             if (entities.put(entity.code(), entity) != null) {
                 throw new IllegalStateException("Duplicate entity " + entity.code());
@@ -104,9 +104,22 @@ public class EntityRegistry {
         List<FormField> fields = new ArrayList<>(entity.fields());
         fields.addAll(extra);
         List<FormSection> layout = new ArrayList<>(entity.layout());
-        layout.add(new FormSection(CUSTOM_SECTION, "entity.section.custom", extra.stream().map(FormField::key).toList()));
-        return new EntityDefinition(entity.code(), entity.form(), entity.listCode(), entity.customEntity(),
-                entity.auditTable(), entity.rights(), entity.menu(), fields, layout, entity.actions(), entity.capabilities());
+        layout.add(new FormSection(
+                CUSTOM_SECTION,
+                "entity.section.custom",
+                extra.stream().map(FormField::key).toList()));
+        return new EntityDefinition(
+                entity.code(),
+                entity.form(),
+                entity.listCode(),
+                entity.customEntity(),
+                entity.auditTable(),
+                entity.rights(),
+                entity.menu(),
+                fields,
+                layout,
+                entity.actions(),
+                entity.capabilities());
     }
 
     /**
@@ -132,11 +145,25 @@ public class EntityRegistry {
         Map<String, String> labels = new TreeMap<>();
         entity.fields().forEach(field -> labels.put(field.key(), field.labelKey()));
         return new RecordHistorySource() {
-            public String key() { return entity.code(); }
-            public String tableName() { return entity.auditTable(); }
-            public String form() { return entity.form(); }
-            public String action() { return "view"; }
-            public Map<String, String> fieldLabels() { return labels; }
+            public String key() {
+                return entity.code();
+            }
+
+            public String tableName() {
+                return entity.auditTable();
+            }
+
+            public String form() {
+                return entity.form();
+            }
+
+            public String action() {
+                return "view";
+            }
+
+            public Map<String, String> fieldLabels() {
+                return labels;
+            }
 
             public void requireVisible(String recordId) {
                 long id;
@@ -152,10 +179,12 @@ public class EntityRegistry {
 
     private static QueryListExporter exporter(EntityDefinition entity, EntityRecords records) {
         return new QueryListExporter() {
-            public String code() { return entity.listCode(); }
+            public String code() {
+                return entity.listCode();
+            }
 
-            public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search,
-                                      Map<String, String> options) {
+            public KeysetPage<?> page(
+                    int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
                 return records.page(limit, cursor, filter, sort, search);
             }
         };

@@ -5,15 +5,14 @@ import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.sms.SmsProvider;
 import com.smartup24.cms.spi.storage.StorageProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * Service Provider Interface (SPI) Registry (ADR-0004, TRD-03).
@@ -63,7 +62,8 @@ public class ProviderRegistry {
         if (provider != null) {
             return provider;
         }
-        return storageProviders.values().stream().findFirst()
+        return storageProviders.values().stream()
+                .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No StorageProvider registered in application context"));
     }
 
@@ -72,7 +72,8 @@ public class ProviderRegistry {
         if (provider != null) {
             return provider;
         }
-        return mailProviders.values().stream().findFirst()
+        return mailProviders.values().stream()
+                .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No MailProvider registered in application context"));
     }
 
@@ -81,7 +82,8 @@ public class ProviderRegistry {
         if (provider != null) {
             return provider;
         }
-        return smsProviders.values().stream().findFirst()
+        return smsProviders.values().stream()
+                .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No SmsProvider registered in application context"));
     }
 
@@ -90,7 +92,8 @@ public class ProviderRegistry {
         if (provider != null) {
             return provider;
         }
-        return messengerProviders.values().stream().findFirst()
+        return messengerProviders.values().stream()
+                .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No MessengerProvider registered in application context"));
     }
 

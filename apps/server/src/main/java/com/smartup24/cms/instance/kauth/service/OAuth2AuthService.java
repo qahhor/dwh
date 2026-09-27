@@ -1,9 +1,8 @@
 package com.smartup24.cms.instance.kauth.service;
 
 import com.smartup24.cms.instance.kauth.repository.SsoProviderRepository;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import org.springframework.stereotype.Service;
 
 @Service
 public class OAuth2AuthService {
@@ -15,25 +14,12 @@ public class OAuth2AuthService {
     }
 
     public record SsoProviderPublicDto(
-            String providerId,
-            String name,
-            String icon,
-            String authorizationUrl,
-            String clientId,
-            String scopes
-    ) {}
+            String providerId, String name, String icon, String authorizationUrl, String clientId, String scopes) {}
 
     public List<SsoProviderPublicDto> getEnabledProviders() {
         return ssoProviderRepository.findEnabledProviders().stream()
                 .map(p -> new SsoProviderPublicDto(
-                        p.providerId(),
-                        p.name(),
-                        p.icon(),
-                        p.authorizationUrl(),
-                        p.clientId(),
-                        p.scopes()
-                ))
+                        p.providerId(), p.name(), p.icon(), p.authorizationUrl(), p.clientId(), p.scopes()))
                 .toList();
     }
-
 }

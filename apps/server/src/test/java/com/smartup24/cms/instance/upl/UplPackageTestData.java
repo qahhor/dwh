@@ -8,7 +8,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceData;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.format.UplSourceService.DraftData;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,8 +30,7 @@ public final class UplPackageTestData {
     private static final List<String> HEADER = List.of("№", "Ключ", "Название", "Сумма", "Дата");
     private static final List<String> HEADER_BROKEN = List.of("№", "Ключ", "Название", "Лишняя", "Дата");
 
-    private UplPackageTestData() {
-    }
+    private UplPackageTestData() {}
 
     /** Черновик анкеты: один лист, шапка во второй строке, пять колонок. */
     public static DraftData draft() {
@@ -42,14 +40,20 @@ public final class UplPackageTestData {
                 column(3, "Название", "org_name", DataType.TEXT, false),
                 column(4, "Сумма", "amount", DataType.NUMBER, false),
                 column(5, "Дата", "doc_date", DataType.DATE, false));
-        return new DraftData(null, null, null, null,
-                List.of(new Sheet(null, 0, SHEET, 2, "Итого", columns)));
+        return new DraftData(null, null, null, null, List.of(new Sheet(null, 0, SHEET, 2, "Итого", columns)));
     }
 
     /** Заводит источник, наполняет черновик и публикует его с указанной даты; возвращает id источника. */
     public static long publishedSource(UplSourceService service, long userId, LocalDate validFrom) {
-        SourceData data = new SourceData("test.pkg." + UUID.randomUUID().toString().substring(0, 8),
-                "TEST source", "TEST org", null, Periodicity.MONTH, 5, null, null);
+        SourceData data = new SourceData(
+                "test.pkg." + UUID.randomUUID().toString().substring(0, 8),
+                "TEST source",
+                "TEST org",
+                null,
+                Periodicity.MONTH,
+                5,
+                null,
+                null);
         long sourceId = service.createSource(data, userId).source().id();
         int version = service.createDraft(sourceId, null, userId).version();
         int lockVersion = service.getVersion(sourceId, version).lockVersion();
@@ -72,9 +76,7 @@ public final class UplPackageTestData {
 
     /** Файл с расхождениями анкеты: нет колонки «Сумма», зато есть лишняя. */
     public static byte[] brokenStructure() {
-        List<List<Object>> rows = List.of(
-                row(1, "900000001", 1),
-                row(2, "900000002", 2));
+        List<List<Object>> rows = List.of(row(1, "900000001", 1), row(2, "900000002", 2));
         return UplXlsxFixtures.workbook(new SheetSpec(SHEET, 2, HEADER_BROKEN, rows));
     }
 
@@ -82,14 +84,13 @@ public final class UplPackageTestData {
         return Arrays.asList(number, key, "TEST орг " + name, 10.5, "31.12.2026");
     }
 
-    private static Column column(int position, String nameInFile, String targetField, DataType type,
-                                 boolean required) {
-        return new Column(null, 0, position, nameInFile, targetField, type, required,
-                null, null, null, null, null, null);
+    private static Column column(int position, String nameInFile, String targetField, DataType type, boolean required) {
+        return new Column(
+                null, 0, position, nameInFile, targetField, type, required, null, null, null, null, null, null);
     }
 
     private static Column keyColumn(int position) {
-        return new Column(null, 0, position, "Ключ", "object_key", DataType.OBJECT_KEY, true,
-                null, null, KEY_MASK, 9, 1, null);
+        return new Column(
+                null, 0, position, "Ключ", "object_key", DataType.OBJECT_KEY, true, null, null, KEY_MASK, 9, 1, null);
     }
 }

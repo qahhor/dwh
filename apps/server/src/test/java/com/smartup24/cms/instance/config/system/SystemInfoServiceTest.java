@@ -1,21 +1,20 @@
 package com.smartup24.cms.instance.config.system;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.config.bootstrap.InstanceBootstrapProperties;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.storage.StorageProvider;
+import java.time.Duration;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import java.time.Duration;
-import java.time.Instant;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class SystemInfoServiceTest {
 
@@ -44,8 +43,7 @@ class SystemInfoServiceTest {
         when(buildProperties.getIfAvailable()).thenReturn(null);
 
         SystemInfoService service = new SystemInfoService(
-                jdbc, providers, backup, typesense, bootstrap, buildProperties,
-                Duration.ofMillis(50), Duration.ZERO);
+                jdbc, providers, backup, typesense, bootstrap, buildProperties, Duration.ofMillis(50), Duration.ZERO);
         try {
             long startedAt = System.nanoTime();
             SystemInfoResponse response = service.getInfo();
@@ -63,8 +61,7 @@ class SystemInfoServiceTest {
         JdbcClient jdbc = mock(JdbcClient.class);
         ProviderRegistry providers = mock(ProviderRegistry.class);
         BackupStatusReader backup = mock(BackupStatusReader.class);
-        when(backup.read()).thenReturn(new BackupStatus(
-                "SUCCESS", Instant.now().minus(Duration.ofDays(2)), null));
+        when(backup.read()).thenReturn(new BackupStatus("SUCCESS", Instant.now().minus(Duration.ofDays(2)), null));
         TypesenseProperties typesense = new TypesenseProperties("http://typesense:8108", "test-key", false, false);
         InstanceBootstrapProperties bootstrap = mock(InstanceBootstrapProperties.class);
         @SuppressWarnings("unchecked")
@@ -72,8 +69,14 @@ class SystemInfoServiceTest {
         when(buildProperties.getIfAvailable()).thenReturn(null);
 
         SystemInfoService service = new SystemInfoService(
-                jdbc, providers, backup, typesense, bootstrap, buildProperties,
-                Duration.ofMillis(50), Duration.ofHours(24));
+                jdbc,
+                providers,
+                backup,
+                typesense,
+                bootstrap,
+                buildProperties,
+                Duration.ofMillis(50),
+                Duration.ofHours(24));
         try {
             BackupStatus status = service.getInfo().backup();
 

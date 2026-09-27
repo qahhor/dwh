@@ -1,16 +1,15 @@
 package com.smartup24.cms.instance.md.service;
 
+import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.common.error.ApiException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MdSettingService {
@@ -24,12 +23,12 @@ public class MdSettingService {
             "security.session_lifetime_hours", "720",
             "security.idle_lock_minutes", "30",
             "storage.default_user_quota_mb", "1024",
-            "ui.theme", "dark"
-    );
+            "ui.theme", "dark");
 
     public static final String IDLE_LOCK_MINUTES = "security.idle_lock_minutes";
     /** A day at most; 0 switches the lock off. */
     static final int MAX_IDLE_LOCK_MINUTES = 1440;
+
     public static final String SETTING_INVALID = "SETTING_INVALID";
     public static final String SETTING_NOT_PERSONAL = "SETTING_NOT_PERSONAL";
     /** A person's own settings; everything else (security, system, storage) is the instance's. */
@@ -40,10 +39,11 @@ public class MdSettingService {
     private final MdI18nService i18nService;
     private final AuditLogService auditLogService;
 
-    public MdSettingService(MdSettingRepository settingRepository,
-                            MdUserRepository userRepository,
-                            MdI18nService i18nService,
-                            AuditLogService auditLogService) {
+    public MdSettingService(
+            MdSettingRepository settingRepository,
+            MdUserRepository userRepository,
+            MdI18nService i18nService,
+            AuditLogService auditLogService) {
         this.settingRepository = settingRepository;
         this.userRepository = userRepository;
         this.i18nService = i18nService;
@@ -94,7 +94,10 @@ public class MdSettingService {
                 settingRepository.setInstanceSetting(k, v);
                 String oldVal = existing.get(k);
                 if (oldVal == null || !oldVal.equals(v)) {
-                    auditLogService.logChange("md_settings", k, "U",
+                    auditLogService.logChange(
+                            "md_settings",
+                            k,
+                            "U",
                             List.of("value"),
                             Map.of("key", k, "value", oldVal != null ? oldVal : ""),
                             Map.of("key", k, "value", v != null ? v : ""));
@@ -106,8 +109,10 @@ public class MdSettingService {
     @Transactional
     public void updateUserSettings(Long userId, Map<String, String> settings) {
         if (userId != null && settings != null) {
-            List<FieldErrorItem> foreign = settings.keySet().stream().filter(key -> !isPersonal(key))
-                    .map(key -> new FieldErrorItem(key, SETTING_NOT_PERSONAL, "not a personal setting: " + key)).toList();
+            List<FieldErrorItem> foreign = settings.keySet().stream()
+                    .filter(key -> !isPersonal(key))
+                    .map(key -> new FieldErrorItem(key, SETTING_NOT_PERSONAL, "not a personal setting: " + key))
+                    .toList();
             if (!foreign.isEmpty()) {
                 throw ApiException.validation(SETTING_NOT_PERSONAL, foreign);
             }
@@ -144,8 +149,10 @@ public class MdSettingService {
             // falls through
         }
         if (strict) {
-            throw ApiException.validation(SETTING_INVALID, List.of(new FieldErrorItem(IDLE_LOCK_MINUTES, SETTING_INVALID,
-                    "minutes from 0 to " + MAX_IDLE_LOCK_MINUTES)));
+            throw ApiException.validation(
+                    SETTING_INVALID,
+                    List.of(new FieldErrorItem(
+                            IDLE_LOCK_MINUTES, SETTING_INVALID, "minutes from 0 to " + MAX_IDLE_LOCK_MINUTES)));
         }
         return Integer.parseInt(DEFAULT_INSTANCE_SETTINGS.get(IDLE_LOCK_MINUTES));
     }
@@ -161,4 +168,3 @@ public class MdSettingService {
         }
     }
 }
-

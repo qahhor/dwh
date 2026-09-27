@@ -3,16 +3,14 @@ package com.smartup24.cms.instance.ms.note.repository;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class MsNoteRepository {
@@ -35,13 +33,18 @@ public class MsNoteRepository {
             Long createdBy,
             Long modifiedBy,
             Instant createdAt,
-            Instant modifiedAt
-    ) {}
+            Instant modifiedAt) {}
 
-    public NoteRecord create(String title, String contentMd, String color, boolean isPinned,
-                             Map<String, Object> attributes, Long userId) {
+    public NoteRecord create(
+            String title,
+            String contentMd,
+            String color,
+            boolean isPinned,
+            Map<String, Object> attributes,
+            Long userId) {
         String attrsJson = toJson(attributes);
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into ms_notes(title, content_md, color, is_pinned, attributes, created_by, modified_by, created_at, modified_at)
                 values(:title, :contentMd, :color, :isPinned, cast(:attributes as jsonb), :userId, :userId, clock_timestamp(), clock_timestamp())
                 returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
@@ -61,27 +64,32 @@ public class MsNoteRepository {
                 select id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
                 from ms_notes
                 where id = :id
-                """)
-                .param("id", id)
-                .query(this::mapNote)
-                .optional();
+                """).param("id", id).query(this::mapNote).optional();
     }
 
     /**
      * A page of the owner's notes by the registry plan ({@code ms.notes}). Notes are personal (SELF scope): the
      * owner predicate goes into the same SQL, so a page and its total only ever see the owner's notes.
      */
-    public KeysetPage<NoteRecord> pageByOwner(
-            QueryPlan plan, Long ownerId) {
-        return new QueryListRepository(jdbcClient).page(plan, this::mapNote,
-                new QueryPlan.SqlFragment(
-                        " and n.created_by = :ownerId", Map.of("ownerId", ownerId)));
+    public KeysetPage<NoteRecord> pageByOwner(QueryPlan plan, Long ownerId) {
+        return new QueryListRepository(jdbcClient)
+                .page(
+                        plan,
+                        this::mapNote,
+                        new QueryPlan.SqlFragment(" and n.created_by = :ownerId", Map.of("ownerId", ownerId)));
     }
 
-    public NoteRecord update(Long id, String title, String contentMd, String color, Boolean isPinned,
-                             Map<String, Object> attributes, Long userId) {
+    public NoteRecord update(
+            Long id,
+            String title,
+            String contentMd,
+            String color,
+            Boolean isPinned,
+            Map<String, Object> attributes,
+            Long userId) {
         String attrsJson = attributes == null ? null : toJson(attributes);
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 update ms_notes
                 set title = coalesce(:title, title),
                     content_md = coalesce(:contentMd, content_md),
@@ -105,9 +113,11 @@ public class MsNoteRepository {
     }
 
     public boolean delete(Long id) {
-        return jdbcClient.sql("delete from ms_notes where id = :id")
-                .param("id", id)
-                .update() > 0;
+        return jdbcClient
+                        .sql("delete from ms_notes where id = :id")
+                        .param("id", id)
+                        .update()
+                > 0;
     }
 
     private NoteRecord mapNote(ResultSet rs, int rowNum) throws SQLException {
@@ -120,9 +130,12 @@ public class MsNoteRepository {
                 parseJson(rs.getString("attributes_str")),
                 rs.getLong("created_by"),
                 rs.getLong("modified_by"),
-                rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null,
-                rs.getTimestamp("modified_at") != null ? rs.getTimestamp("modified_at").toInstant() : null
-        );
+                rs.getTimestamp("created_at") != null
+                        ? rs.getTimestamp("created_at").toInstant()
+                        : null,
+                rs.getTimestamp("modified_at") != null
+                        ? rs.getTimestamp("modified_at").toInstant()
+                        : null);
     }
 
     private String toJson(Map<String, Object> map) {

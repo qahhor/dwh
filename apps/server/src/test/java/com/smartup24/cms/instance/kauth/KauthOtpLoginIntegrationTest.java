@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.kauth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -43,23 +47,18 @@ import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.messenger.MessengerSendResult;
 import com.smartup24.cms.spi.sms.SmsProvider;
 import com.smartup24.cms.spi.storage.StorageProvider;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import tools.jackson.databind.ObjectMapper;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * FR-AUTH-5: вход по второму фактору.
@@ -95,15 +94,20 @@ class KauthOtpLoginIntegrationTest {
 
         var mapper = new ObjectMapper();
         var userRepository = new MdUserRepository(jdbc, mapper);
-        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, mapper), null,
-                new AuditDataRedactor());
+        var auditLogService = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         channelRepository = new KauthChannelRepository(jdbc);
         otpCodeRepository = new KauthOtpCodeRepository(jdbc);
         messenger = new CapturingMessenger();
 
         var registry = new ProviderRegistry(
-                List.of(storageStub()), List.of(mailStub()), List.of(smsStub()), List.of(messenger),
-                "local", "console_mail", "console_sms", "telegram");
+                List.of(storageStub()),
+                List.of(mailStub()),
+                List.of(smsStub()),
+                List.of(messenger),
+                "local",
+                "console_mail",
+                "console_sms",
+                "telegram");
         var scopes = new MdScopeService(
                 new MdScopeRepository(jdbc),
                 new MdOrgUnitRepository(jdbc),
@@ -120,13 +124,17 @@ class KauthOtpLoginIntegrationTest {
                 auditLogService,
                 scopes);
         var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
-        var texts = new KauthChannelTexts(i18n,
-                new MdSettingService(new MdSettingRepository(jdbc), userRepository, i18n, auditLogService), userService);
+        var texts = new KauthChannelTexts(
+                i18n,
+                new MdSettingService(new MdSettingRepository(jdbc), userRepository, i18n, auditLogService),
+                userService);
         var sender = new KauthOtpSender(registry, texts);
-        channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService,
-                new KauthCredentialGuard(new KauthSessionRepository(jdbc),
-                        new KauthApiTokenRepository(jdbc)));
-
+        channelService = new KauthChannelService(
+                channelRepository,
+                otpCodeRepository,
+                sender,
+                auditLogService,
+                new KauthCredentialGuard(new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)));
 
         authService = new KauthAuthService(
                 userService,
@@ -216,7 +224,8 @@ class KauthOtpLoginIntegrationTest {
                 .hasMessageContaining("подтверждённого канала связи нет");
 
         assertThat(countOtpCodes(userId))
-                .as("код, который некуда отправить, выпускать нельзя").isEqualTo(before);
+                .as("код, который некуда отправить, выпускать нельзя")
+                .isEqualTo(before);
     }
 
     @Test
@@ -226,13 +235,21 @@ class KauthOtpLoginIntegrationTest {
         messenger.sent.clear();
 
         String verifyToken = channelService.bindChannel(principal(userId), "telegram", "chat-bind");
-        assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified())
-                .as("до подтверждения канал не считается своим").isFalse();
+        assertThat(channelRepository
+                        .findByUserIdAndChannel(userId, "telegram")
+                        .orElseThrow()
+                        .isVerified())
+                .as("до подтверждения канал не считается своим")
+                .isFalse();
 
         String code = extractCode(messenger.sent.getFirst().textMarkdown());
         channelService.confirmChannel(principal(userId), verifyToken, code);
 
-        assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified()).isTrue();
+        assertThat(channelRepository
+                        .findByUserIdAndChannel(userId, "telegram")
+                        .orElseThrow()
+                        .isVerified())
+                .isTrue();
     }
 
     @Test
@@ -245,12 +262,18 @@ class KauthOtpLoginIntegrationTest {
         assertThatThrownBy(() -> channelService.confirmChannel(principal(userId), verifyToken, "000000"))
                 .isInstanceOf(ApiException.class);
 
-        assertThat(channelRepository.findByUserIdAndChannel(userId, "telegram").orElseThrow().isVerified()).isFalse();
+        assertThat(channelRepository
+                        .findByUserIdAndChannel(userId, "telegram")
+                        .orElseThrow()
+                        .isVerified())
+                .isFalse();
     }
 
     private static SecurityContext.KauthPrincipal principal(Long userId) {
-        var session = new KauthSessionRepository(jdbc).create(userId, 0, UUID.randomUUID().toString(), "127.0.0.1", "test", "test");
-        return new SecurityContext.KauthPrincipal(userId, "test", "test", session.id(), false, Set.of(), 1, false, 0, null);
+        var session = new KauthSessionRepository(jdbc)
+                .create(userId, 0, UUID.randomUUID().toString(), "127.0.0.1", "test", "test");
+        return new SecurityContext.KauthPrincipal(
+                userId, "test", "test", session.id(), false, Set.of(), 1, false, 0, null);
     }
 
     // ------------------------------------------------------------- вспомогательное
@@ -272,7 +295,8 @@ class KauthOtpLoginIntegrationTest {
                         """)
                 .param("login", login)
                 .param("hash", hash)
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 
     private static Long createUserWith2fa(String login, String chatId) {
@@ -283,12 +307,16 @@ class KauthOtpLoginIntegrationTest {
     }
 
     private static void enable2fa(Long userId) {
-        jdbc.sql("update md_users set is_2fa_enabled = true where id = :id").param("id", userId).update();
+        jdbc.sql("update md_users set is_2fa_enabled = true where id = :id")
+                .param("id", userId)
+                .update();
     }
 
     private static long countOtpCodes(Long userId) {
         return jdbc.sql("select count(*) from kauth_otp_codes where user_id = :id")
-                .param("id", userId).query(Long.class).single();
+                .param("id", userId)
+                .query(Long.class)
+                .single();
     }
 
     /** Провайдер, который запоминает отправленное: только так видно, что код вообще уходит. */

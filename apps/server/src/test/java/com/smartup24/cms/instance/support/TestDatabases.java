@@ -3,9 +3,6 @@ package com.smartup24.cms.instance.support;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.migration.FndMigrator;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
-import org.springframework.jdbc.core.simple.JdbcClient;
-
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.Connection;
@@ -13,6 +10,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
+import javax.sql.DataSource;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * Один встроенный PostgreSQL на всю сборку и две базы в нём (решение архитектора 06.09, DoD AC-1):
@@ -29,13 +28,13 @@ public final class TestDatabases {
     private static final Set<String> created = new HashSet<>();
     private static boolean migrated;
 
-    private TestDatabases() {
-    }
+    private TestDatabases() {}
 
     public static synchronized EmbeddedPostgres instance() {
         if (postgres == null) {
             try {
-                // Test data is thrown away with the process: no durability, so no fsync on every commit (slow on Windows).
+                // Test data is thrown away with the process: no durability, so no fsync on every commit (slow on
+                // Windows).
                 postgres = EmbeddedPostgres.builder()
                         .setServerConfig("timezone", "UTC")
                         .setServerConfig("fsync", "off")
@@ -56,7 +55,8 @@ public final class TestDatabases {
         if (created.contains(name)) {
             return;
         }
-        try (Connection c = postgres.getPostgresDatabase().getConnection(); Statement st = c.createStatement()) {
+        try (Connection c = postgres.getPostgresDatabase().getConnection();
+                Statement st = c.createStatement()) {
             st.execute("create database " + name);
             created.add(name);
         } catch (SQLException e) {
@@ -96,7 +96,8 @@ public final class TestDatabases {
             templateReady = true;
         }
         String name = prefix.toLowerCase().replaceAll("[^a-z0-9_]", "_") + "_" + (++copies);
-        try (Connection c = postgres.getPostgresDatabase().getConnection(); Statement st = c.createStatement()) {
+        try (Connection c = postgres.getPostgresDatabase().getConnection();
+                Statement st = c.createStatement()) {
             st.execute("create database " + name + " template " + TEMPLATE_DB);
             created.add(name);
         } catch (SQLException e) {

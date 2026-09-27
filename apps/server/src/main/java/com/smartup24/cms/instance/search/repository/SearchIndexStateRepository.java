@@ -1,20 +1,23 @@
 package com.smartup24.cms.instance.search.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.List;
-import java.time.Instant;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class SearchIndexStateRepository {
     private final JdbcClient jdbc;
-    public SearchIndexStateRepository(JdbcClient jdbc) { this.jdbc = jdbc; }
+
+    public SearchIndexStateRepository(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
 
     public SearchExecutionSnapshot executionSnapshot() {
         return jdbc.sql("""
@@ -23,16 +26,32 @@ public class SearchIndexStateRepository {
                     p.version as settings_version,p.configuration::text
                 from search_index_state s cross join search_settings p
                 left join search_generations g on g.id=s.active_generation_id where s.id=1 and p.id=1
-                """).query((rs, row) -> {
+                """)
+                .query((rs, row) -> {
                     UUID id = rs.getObject("active_generation_id", UUID.class);
-                    IndexSnapshot index = new IndexSnapshot(id, rs.getLong("version"), id == null ? Map.of() : Map.of(
-                            "TASK",rs.getString("task_collection"),"PROJECT",rs.getString("project_collection"),
-                            "USER",rs.getString("user_collection")),rs.getString("schema_profile"),
-                            rs.getBoolean("initialized"),"LEGACY".equals(rs.getString("state")));
+                    IndexSnapshot index = new IndexSnapshot(
+                            id,
+                            rs.getLong("version"),
+                            id == null
+                                    ? Map.of()
+                                    : Map.of(
+                                            "TASK",
+                                            rs.getString("task_collection"),
+                                            "PROJECT",
+                                            rs.getString("project_collection"),
+                                            "USER",
+                                            rs.getString("user_collection")),
+                            rs.getString("schema_profile"),
+                            rs.getBoolean("initialized"),
+                            "LEGACY".equals(rs.getString("state")));
                     long version = rs.getLong("settings_version");
-                    return new SearchExecutionSnapshot(index, new SettingsSnapshot(version,
-                            SearchManagementDtos.decodeStored(rs.getString("configuration"), version)));
-                }).single();
+                    return new SearchExecutionSnapshot(
+                            index,
+                            new SettingsSnapshot(
+                                    version,
+                                    SearchManagementDtos.decodeStored(rs.getString("configuration"), version)));
+                })
+                .single();
     }
 
     public IndexSnapshot snapshot() {
@@ -40,13 +59,26 @@ public class SearchIndexStateRepository {
                 select s.active_generation_id,s.version,s.initialized,g.state,g.task_collection,
                     g.project_collection,g.user_collection,g.schema_profile
                 from search_index_state s left join search_generations g on g.id=s.active_generation_id where s.id=1
-                """).query((rs, row) -> {
+                """)
+                .query((rs, row) -> {
                     UUID id = rs.getObject("active_generation_id", UUID.class);
-                    return new IndexSnapshot(id, rs.getLong("version"), id == null ? Map.of() : Map.of(
-                            "TASK", rs.getString("task_collection"), "PROJECT", rs.getString("project_collection"),
-                            "USER", rs.getString("user_collection")), rs.getString("schema_profile"),
-                            rs.getBoolean("initialized"), "LEGACY".equals(rs.getString("state")));
-                }).single();
+                    return new IndexSnapshot(
+                            id,
+                            rs.getLong("version"),
+                            id == null
+                                    ? Map.of()
+                                    : Map.of(
+                                            "TASK",
+                                            rs.getString("task_collection"),
+                                            "PROJECT",
+                                            rs.getString("project_collection"),
+                                            "USER",
+                                            rs.getString("user_collection")),
+                            rs.getString("schema_profile"),
+                            rs.getBoolean("initialized"),
+                            "LEGACY".equals(rs.getString("state")));
+                })
+                .single();
     }
 
     public List<ObservedGeneration> observations() {
@@ -62,24 +94,47 @@ public class SearchIndexStateRepository {
                      on d.generation_id=g.id and d.entity_type=v.entity_type and d.entity_id=v.entity_id
                      where v.revision>coalesce(d.delivered_revision,0)) as oldest_pending
                 from search_generations g cross join search_index_state s where s.id=1 order by g.created_at,g.id
-                """).query((rs,row) -> new ObservedGeneration(rs.getObject("id",UUID.class),rs.getString("state"),
-                        rs.getString("schema_profile"),rs.getBoolean("active"),
-                        Map.of("TASK",rs.getString("task_collection"),"PROJECT",rs.getString("project_collection"),
-                                "USER",rs.getString("user_collection")),rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("verified_at") == null ? null : rs.getTimestamp("verified_at").toInstant(),
-                        rs.getInt("schema_version"),rs.getLong("pending"),rs.getLong("failed"),rs.getTimestamp("oldest_pending") == null ? null :
-                        rs.getTimestamp("oldest_pending").toInstant())).list();
+                """)
+                .query((rs, row) -> new ObservedGeneration(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("state"),
+                        rs.getString("schema_profile"),
+                        rs.getBoolean("active"),
+                        Map.of(
+                                "TASK",
+                                rs.getString("task_collection"),
+                                "PROJECT",
+                                rs.getString("project_collection"),
+                                "USER",
+                                rs.getString("user_collection")),
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getTimestamp("verified_at") == null
+                                ? null
+                                : rs.getTimestamp("verified_at").toInstant(),
+                        rs.getInt("schema_version"),
+                        rs.getLong("pending"),
+                        rs.getLong("failed"),
+                        rs.getTimestamp("oldest_pending") == null
+                                ? null
+                                : rs.getTimestamp("oldest_pending").toInstant()))
+                .list();
     }
 
     /** Called once at application lifecycle start, never as timeout-based recovery. Single-process topology only. */
     @Transactional
     public void recoverOwnership(UUID owner) {
-        jdbc.sql("select id from search_index_state where id=1 for update").query(Integer.class).single();
+        jdbc.sql("select id from search_index_state where id=1 for update")
+                .query(Integer.class)
+                .single();
         jdbc.sql("update search_index_state set worker_owner=:owner,worker_started_at=clock_timestamp() where id=1")
-                .param("owner", owner).update();
-        jdbc.sql("update search_generation_delivery set owner_token=null where owner_token is not null").update();
+                .param("owner", owner)
+                .update();
+        jdbc.sql("update search_generation_delivery set owner_token=null where owner_token is not null")
+                .update();
         // Temporary verification state belongs to the old process; restart from a durable catch-up checkpoint.
-        jdbc.sql("update search_jobs set owner_token=null,state=case when state in ('VERIFYING','ACTIVATING') then 'RUNNING' else state end where state in ('QUEUED','RUNNING','VERIFYING','ACTIVATING')").update();
+        jdbc.sql(
+                        "update search_jobs set owner_token=null,state=case when state in ('VERIFYING','ACTIVATING') then 'RUNNING' else state end where state in ('QUEUED','RUNNING','VERIFYING','ACTIVATING')")
+                .update();
     }
 
     public Optional<Generation> deliveryGeneration(UUID owner) {
@@ -88,18 +143,32 @@ public class SearchIndexStateRepository {
                 on g.id=s.active_generation_id
                 where s.id=1 and s.worker_owner=:owner
                 order by g.created_at,g.id limit 1
-                """).param("owner", owner).query((rs, row) -> new Generation(rs.getObject("id", UUID.class),
-                rs.getString("state"), Map.of("TASK",rs.getString("task_collection"),
-                "PROJECT",rs.getString("project_collection"),"USER",rs.getString("user_collection")),
-                rs.getString("schema_profile"),rs.getString("discovery_entity"),rs.getLong("discovery_after_id"),rs.getLong("version")))
+                """)
+                .param("owner", owner)
+                .query((rs, row) -> new Generation(
+                        rs.getObject("id", UUID.class),
+                        rs.getString("state"),
+                        Map.of(
+                                "TASK",
+                                rs.getString("task_collection"),
+                                "PROJECT",
+                                rs.getString("project_collection"),
+                                "USER",
+                                rs.getString("user_collection")),
+                        rs.getString("schema_profile"),
+                        rs.getString("discovery_entity"),
+                        rs.getLong("discovery_after_id"),
+                        rs.getLong("version")))
                 .optional();
     }
 
     @Transactional
     public void registerLegacy(UUID owner) {
         if (!lockOwner(owner, "update")) return;
-        if (snapshot().generationId() != null || jdbc.sql("select exists(select 1 from search_generations where state='BUILDING')")
-                .query(Boolean.class).single()) return;
+        if (snapshot().generationId() != null
+                || jdbc.sql("select exists(select 1 from search_generations where state='BUILDING')")
+                        .query(Boolean.class)
+                        .single()) return;
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                 insert into search_generations(id,state,task_collection,project_collection,user_collection,
@@ -108,7 +177,8 @@ public class SearchIndexStateRepository {
                 """).param("id", id).update();
         // LEGACY remains explicitly unverified and requires a rebuild. Never reinterpret its schema.
         jdbc.sql("update search_index_state set active_generation_id=:id,initialized=true,version=version+1 where id=1")
-                .param("id", id).update();
+                .param("id", id)
+                .update();
     }
 
     @Transactional
@@ -137,32 +207,68 @@ public class SearchIndexStateRepository {
                 set discovery_entity=case when (select count(*) from page)<:limit then :next else :type end,
                     discovery_after_id=case when (select count(*) from page)<:limit then 0 else (select max(id) from page) end
                 where id=:generation and discovery_entity=:type and discovery_after_id=:after
-                """.formatted(table, active)).param("after", generation.discoveryAfterId())
-                .param("type", generation.discoveryEntity()).param("next", next)
-                .param("limit", Math.max(1, Math.min(100, pageSize))).param("generation", generation.id()).update();
+                """.formatted(table, active))
+                .param("after", generation.discoveryAfterId())
+                .param("type", generation.discoveryEntity())
+                .param("next", next)
+                .param("limit", Math.max(1, Math.min(100, pageSize)))
+                .param("generation", generation.id())
+                .update();
     }
 
     private boolean lockOwner(UUID owner, String mode) {
         return jdbc.sql("select coalesce(worker_owner=:owner,false) from search_index_state where id=1 for " + mode)
-                .param("owner", owner).query(Boolean.class).single();
+                .param("owner", owner)
+                .query(Boolean.class)
+                .single();
     }
 
     public boolean owns(UUID owner) {
         return jdbc.sql("select coalesce(worker_owner=:owner,false) from search_index_state where id=1")
-                .param("owner",owner).query(Boolean.class).single();
+                .param("owner", owner)
+                .query(Boolean.class)
+                .single();
     }
 
-    public record IndexSnapshot(UUID generationId, long version, Map<String,String> collections,
-                                String schemaProfile, boolean initialized, boolean legacy) {
-        public IndexSnapshot { collections = Map.copyOf(collections); }
+    public record IndexSnapshot(
+            UUID generationId,
+            long version,
+            Map<String, String> collections,
+            String schemaProfile,
+            boolean initialized,
+            boolean legacy) {
+        public IndexSnapshot {
+            collections = Map.copyOf(collections);
+        }
     }
-    public record Generation(UUID id, String state, Map<String,String> collections, String schemaProfile,
-                             String discoveryEntity, long discoveryAfterId, long version) {
-        public Generation { collections = Map.copyOf(collections); }
+
+    public record Generation(
+            UUID id,
+            String state,
+            Map<String, String> collections,
+            String schemaProfile,
+            String discoveryEntity,
+            long discoveryAfterId,
+            long version) {
+        public Generation {
+            collections = Map.copyOf(collections);
+        }
     }
-    public record ObservedGeneration(UUID id, String state, String schemaProfile, boolean active,
-                                     Map<String,String> collections, Instant createdAt, Instant verifiedAt,
-                                     int schemaVersion,long pending, long failed, Instant oldestPending) {
-        public ObservedGeneration { collections = Map.copyOf(collections); }
+
+    public record ObservedGeneration(
+            UUID id,
+            String state,
+            String schemaProfile,
+            boolean active,
+            Map<String, String> collections,
+            Instant createdAt,
+            Instant verifiedAt,
+            int schemaVersion,
+            long pending,
+            long failed,
+            Instant oldestPending) {
+        public ObservedGeneration {
+            collections = Map.copyOf(collections);
+        }
     }
 }

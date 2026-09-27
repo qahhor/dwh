@@ -1,9 +1,17 @@
 package com.smartup24.cms.instance.config.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -12,15 +20,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.InvalidCsrfTokenException;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ProblemDetailAuthHandlersTest {
 
@@ -48,8 +47,8 @@ class ProblemDetailAuthHandlersTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         when(request.getRequestURI()).thenReturn("/api/v1/security-test");
         when(request.getHeader("X-XSRF-TOKEN")).thenReturn(csrfSentinel);
-        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[]{
-                new jakarta.servlet.http.Cookie("DWH_SESSION", cookieSentinel)
+        when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[] {
+            new jakarta.servlet.http.Cookie("DWH_SESSION", cookieSentinel)
         });
         when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
 

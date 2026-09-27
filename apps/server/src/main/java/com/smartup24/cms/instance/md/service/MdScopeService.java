@@ -8,14 +8,13 @@ import com.smartup24.cms.instance.md.dto.MdOrgUnitDtos.RoleRule;
 import com.smartup24.cms.instance.md.dto.MdOrgUnitDtos.UserAssignments;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Скоуп данных: кто какие строки видит (ADR-0013).
@@ -44,10 +43,11 @@ public class MdScopeService {
     private final MdPermissionService permissionService;
     private final AuditLogService auditLogService;
 
-    public MdScopeService(MdScopeRepository scopeRepository,
-                          MdOrgUnitRepository orgUnitRepository,
-                          MdPermissionService permissionService,
-                          AuditLogService auditLogService) {
+    public MdScopeService(
+            MdScopeRepository scopeRepository,
+            MdOrgUnitRepository orgUnitRepository,
+            MdPermissionService permissionService,
+            AuditLogService auditLogService) {
         this.scopeRepository = scopeRepository;
         this.orgUnitRepository = orgUnitRepository;
         this.permissionService = permissionService;
@@ -74,7 +74,10 @@ public class MdScopeService {
 
         // Смена правила меняет видимость данных так же радикально, как выдача
         // права, поэтому пишется в аудит наравне с матрицей прав (FR-AUD-1).
-        auditLogService.logChange("md_role_scope_rules", String.valueOf(roleId), "U",
+        auditLogService.logChange(
+                "md_role_scope_rules",
+                String.valueOf(roleId),
+                "U",
                 List.of("rule"),
                 Map.of("rule", before),
                 Map.of("rule", normalized));
@@ -105,15 +108,20 @@ public class MdScopeService {
         }
         List<Long> requested = List.copyOf(new TreeSet<>(orgUnitIds));
         for (Long unitId : requested) {
-            orgUnitRepository.findById(unitId).orElseThrow(() ->
-                    ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден: " + unitId));
+            orgUnitRepository
+                    .findById(unitId)
+                    .orElseThrow(
+                            () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден: " + unitId));
         }
 
         Set<Long> before = scopeRepository.getUserOrgUnitIds(userId);
         scopeRepository.replaceUserOrgUnits(userId, requested);
         recalculateFor(userId);
 
-        auditLogService.logChange("md_user_org_units", String.valueOf(userId), "U",
+        auditLogService.logChange(
+                "md_user_org_units",
+                String.valueOf(userId),
+                "U",
                 List.of("org_units"),
                 Map.of("org_units", List.copyOf(before)),
                 Map.of("org_units", List.copyOf(scopeRepository.getUserOrgUnitIds(userId))));
@@ -237,7 +245,8 @@ public class MdScopeService {
     private static String normalize(String rule) {
         String normalized = rule != null ? rule.trim().toUpperCase() : "";
         if (!VALID_RULES.contains(normalized)) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
+            throw ApiException.badRequest(
+                    ErrorCode.VALIDATION_FAILED,
                     "Неизвестное правило видимости: " + rule + ". Допустимо: " + VALID_RULES);
         }
         return normalized;

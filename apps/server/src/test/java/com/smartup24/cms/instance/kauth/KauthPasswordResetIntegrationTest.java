@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.kauth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -45,6 +49,12 @@ import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.messenger.MessengerSendResult;
 import com.smartup24.cms.spi.sms.SmsProvider;
 import com.smartup24.cms.spi.storage.StorageProvider;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -53,17 +63,6 @@ import org.mockito.Mockito;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.when;
 
 /**
  * Plan 10/10, item 0.1: password reset by a one-time link, on the real migrated schema.
@@ -97,8 +96,14 @@ class KauthPasswordResetIntegrationTest {
         messenger = new CapturingMessenger();
 
         var registry = new ProviderRegistry(
-                List.of(storageStub()), List.of(mail), List.of(smsStub()), List.of(messenger),
-                "local", "smtp", "console_sms", "telegram");
+                List.of(storageStub()),
+                List.of(mail),
+                List.of(smsStub()),
+                List.of(messenger),
+                "local",
+                "smtp",
+                "console_sms",
+                "telegram");
 
         var scopes = new MdScopeService(
                 new MdScopeRepository(jdbc),
@@ -116,9 +121,13 @@ class KauthPasswordResetIntegrationTest {
                 auditLogService,
                 scopes);
         var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
-        var texts = new KauthChannelTexts(i18n, new MdSettingService(new MdSettingRepository(jdbc),
-                new MdUserRepository(jdbc, mapper), i18n, auditLogService), userService);
-        var linkSender = new KauthPasswordResetLinkSender(new KauthOtpSender(registry, texts), "https://cms.example.test/");
+        var texts = new KauthChannelTexts(
+                i18n,
+                new MdSettingService(
+                        new MdSettingRepository(jdbc), new MdUserRepository(jdbc, mapper), i18n, auditLogService),
+                userService);
+        var linkSender =
+                new KauthPasswordResetLinkSender(new KauthOtpSender(registry, texts), "https://cms.example.test/");
 
         resetService = new KauthPasswordResetService(
                 userService,
@@ -152,12 +161,16 @@ class KauthPasswordResetIntegrationTest {
         assertThat(mail.sent.getFirst().recipientEmail()).isEqualTo("reset_mail@mailbox.test");
         String token = token(mail.sent.getFirst().textBody());
         assertThat(mail.sent.getFirst().subject()).isEqualTo("Сброс пароля");
-        assertThat(mail.sent.getFirst().textBody()).startsWith("Ссылка для смены пароля:\nhttps://cms.example.test/reset-password#token=");
+        assertThat(mail.sent.getFirst().textBody())
+                .startsWith("Ссылка для смены пароля:\nhttps://cms.example.test/reset-password#token=");
 
         resetService.confirmReset(token, NEW_PASSWORD, "10.1.0.1", "ua");
 
-        assertThat(new KauthPasswordHasher().verifyPassword(NEW_PASSWORD, passwordHash(userId))).isTrue();
-        assertThat(openSessions(userId)).as("a reset ends every session of the user").isZero();
+        assertThat(new KauthPasswordHasher().verifyPassword(NEW_PASSWORD, passwordHash(userId)))
+                .isTrue();
+        assertThat(openSessions(userId))
+                .as("a reset ends every session of the user")
+                .isZero();
     }
 
     @Test
@@ -175,14 +188,17 @@ class KauthPasswordResetIntegrationTest {
 
         resetService.confirmReset(token(messenger.sent.getFirst().textMarkdown()), NEW_PASSWORD, "10.1.0.2", "ua");
 
-        assertThat(new KauthPasswordHasher().verifyPassword(NEW_PASSWORD, passwordHash(userId))).isTrue();
+        assertThat(new KauthPasswordHasher().verifyPassword(NEW_PASSWORD, passwordHash(userId)))
+                .isTrue();
     }
 
     @Test
     @DisplayName("The message is in the user's language")
     void messageIsInTheUsersLanguage() {
         Long userId = createUser("reset_en");
-        jdbc.sql("update md_users set language = 'en' where id = :id").param("id", userId).update();
+        jdbc.sql("update md_users set language = 'en' where id = :id")
+                .param("id", userId)
+                .update();
         channelRepository.bindOrUpdate(userId, "email", "reset_en@mailbox.test", true);
 
         resetService.requestReset("reset_en@test.local", "10.1.0.8", "ua");
@@ -209,7 +225,8 @@ class KauthPasswordResetIntegrationTest {
         resetService.requestReset("reset_once@test.local", "10.1.0.3", "ua");
         String expired = token(mail.sent.getFirst().textBody());
         jdbc.sql("update kauth_password_reset_codes set expires_at = now() - interval '1 minute' where user_id = :id")
-                .param("id", userId).update();
+                .param("id", userId)
+                .update();
 
         assertRejected(() -> resetService.confirmReset(expired, "ResetProbe-Again26", "10.1.0.3", "ua"));
     }
@@ -238,12 +255,13 @@ class KauthPasswordResetIntegrationTest {
         String valid = token(mail.sent.getFirst().textBody());
 
         for (int i = 0; i < 5; i++) {
-            assertRejected(() -> resetService.confirmReset("guess-" + UUID.randomUUID(), NEW_PASSWORD, "10.1.0.5", "ua"));
+            assertRejected(
+                    () -> resetService.confirmReset("guess-" + UUID.randomUUID(), NEW_PASSWORD, "10.1.0.5", "ua"));
         }
 
         assertThatThrownBy(() -> resetService.confirmReset(valid, NEW_PASSWORD, "10.1.0.5", "ua"))
-                .isInstanceOfSatisfying(ApiException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.RATE_LIMITED));
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.RATE_LIMITED));
         resetService.confirmReset(valid, NEW_PASSWORD, "10.1.0.6", "ua");
     }
 
@@ -252,7 +270,7 @@ class KauthPasswordResetIntegrationTest {
     void knownAndUnknownEmailsLookTheSame() {
         Long userId = createUser("reset_timing");
         channelRepository.bindOrUpdate(userId, "email", "reset_timing@mailbox.test", true);
-        for (int i = 0; i < 5; i++) {  // warm-up
+        for (int i = 0; i < 5; i++) { // warm-up
             resetService.requestReset("reset_timing@test.local", "10.1.0.7", "ua");
             resetService.requestReset("nobody-" + i + "@test.local", "10.1.0.7", "ua");
         }
@@ -260,7 +278,9 @@ class KauthPasswordResetIntegrationTest {
         long[] known = new long[40];
         long[] unknown = new long[40];
         for (int i = 0; i < known.length; i++) {
-            jdbc.sql("delete from kauth_password_reset_codes where user_id = :id").param("id", userId).update();
+            jdbc.sql("delete from kauth_password_reset_codes where user_id = :id")
+                    .param("id", userId)
+                    .update();
             known[i] = timed(() -> resetService.requestReset("reset_timing@test.local", "10.1.0.7", "ua"));
             unknown[i] = timed(() -> resetService.requestReset("nobody@test.local", "10.1.0.7", "ua"));
         }
@@ -270,8 +290,8 @@ class KauthPasswordResetIntegrationTest {
 
     private static void assertRejected(Runnable call) {
         assertThatThrownBy(call::run)
-                .isInstanceOfSatisfying(ApiException.class,
-                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.RESET_CODE_INVALID));
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.RESET_CODE_INVALID));
     }
 
     private static String token(String text) {
@@ -303,7 +323,8 @@ class KauthPasswordResetIntegrationTest {
                         """)
                 .param("login", login)
                 .param("hash", new KauthPasswordHasher().hashPassword(PASSWORD))
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 
     private static void openSession(Long userId) {
@@ -312,12 +333,16 @@ class KauthPasswordResetIntegrationTest {
 
     private static long openSessions(Long userId) {
         return jdbc.sql("select count(*) from kauth_sessions where user_id = :id and closed_at is null")
-                .param("id", userId).query(Long.class).single();
+                .param("id", userId)
+                .query(Long.class)
+                .single();
     }
 
     private static String passwordHash(Long userId) {
         return jdbc.sql("select password_hash from md_users where id = :id")
-                .param("id", userId).query(String.class).single();
+                .param("id", userId)
+                .query(String.class)
+                .single();
     }
 
     static class CapturingMail implements MailProvider {

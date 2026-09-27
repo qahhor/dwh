@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.common.provider;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Проверка каналов доставки при старте (FR-NOTIF-3, FR-NOTIF-4, FR-NOTIF-5).
@@ -37,13 +36,15 @@ public class NotificationChannelStartupCheck {
     public void reportOnStartup() {
         var stubs = findStubChannels();
         if (stubs.isEmpty()) {
-            log.info("Каналы доставки настроены: почта={}, SMS={}, мессенджер={}",
+            log.info(
+                    "Каналы доставки настроены: почта={}, SMS={}, мессенджер={}",
                     providerRegistry.getActiveMailProvider().getProviderCode(),
                     providerRegistry.getActiveSmsProvider().getProviderCode(),
                     providerRegistry.getActiveMessengerProvider().getProviderCode());
             return;
         }
-        log.warn("КАНАЛЫ ДОСТАВКИ НЕ НАСТРОЕНЫ: {}. Восстановление пароля и OTP "
+        log.warn(
+                "КАНАЛЫ ДОСТАВКИ НЕ НАСТРОЕНЫ: {}. Восстановление пароля и OTP "
                         + "по этим каналам не дойдут до получателя — сообщения только пишутся в журнал.",
                 String.join(", ", stubs));
     }
@@ -53,7 +54,10 @@ public class NotificationChannelStartupCheck {
         List<String> stubs = new ArrayList<>();
         addIfStub(stubs, "почта", providerRegistry.getActiveMailProvider().getProviderCode());
         addIfStub(stubs, "SMS", providerRegistry.getActiveSmsProvider().getProviderCode());
-        addIfStub(stubs, "мессенджер", providerRegistry.getActiveMessengerProvider().getProviderCode());
+        addIfStub(
+                stubs,
+                "мессенджер",
+                providerRegistry.getActiveMessengerProvider().getProviderCode());
         return stubs;
     }
 

@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.instance.common.query.QueryRef;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
@@ -27,9 +26,21 @@ import java.util.regex.Pattern;
  * @param ref       where a reference field's rows come from (ADR-0019, 2.4)
  * @param attribute a custom field's code: its value lives in the record's {@code attributes}
  */
-public record FormField(String key, String labelKey, String label, FormFieldType type, boolean required,
-                        Integer minLength, Integer maxLength, BigDecimal min, BigDecimal max, String pattern,
-                        List<String> options, String optionLabelPrefix, QueryRef ref, String attribute) {
+public record FormField(
+        String key,
+        String labelKey,
+        String label,
+        FormFieldType type,
+        boolean required,
+        Integer minLength,
+        Integer maxLength,
+        BigDecimal min,
+        BigDecimal max,
+        String pattern,
+        List<String> options,
+        String optionLabelPrefix,
+        QueryRef ref,
+        String attribute) {
 
     private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9_]{0,63}$");
 
@@ -40,10 +51,12 @@ public record FormField(String key, String labelKey, String label, FormFieldType
         }
         options = options == null ? List.of() : List.copyOf(options);
         if ((type == FormFieldType.SELECT) == options.isEmpty()) {
-            throw new IllegalArgumentException("Form field " + key + ": options go with a select, and a select needs them");
+            throw new IllegalArgumentException(
+                    "Form field " + key + ": options go with a select, and a select needs them");
         }
         if ((type == FormFieldType.REF) != (ref != null)) {
-            throw new IllegalArgumentException("Form field " + key + ": a reference field names its source, and only it");
+            throw new IllegalArgumentException(
+                    "Form field " + key + ": a reference field names its source, and only it");
         }
         if (pattern != null) {
             Pattern.compile(pattern);
@@ -51,42 +64,134 @@ public record FormField(String key, String labelKey, String label, FormFieldType
     }
 
     public static FormField of(String key, String labelKey, FormFieldType type) {
-        return new FormField(key, labelKey, null, type, false, null, null, null, null, null, List.of(), null, null, null);
+        return new FormField(
+                key, labelKey, null, type, false, null, null, null, null, null, List.of(), null, null, null);
     }
 
     public static FormField select(String key, String labelKey, List<String> options, String optionLabelPrefix) {
-        return new FormField(key, labelKey, null, FormFieldType.SELECT, false, null, null, null, null, null, options,
-                optionLabelPrefix, null, null);
+        return new FormField(
+                key,
+                labelKey,
+                null,
+                FormFieldType.SELECT,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                options,
+                optionLabelPrefix,
+                null,
+                null);
     }
 
     public FormField asRequired() {
-        return new FormField(key, labelKey, label, type, true, minLength, maxLength, min, max, pattern, options,
-                optionLabelPrefix, ref, attribute);
+        return new FormField(
+                key,
+                labelKey,
+                label,
+                type,
+                true,
+                minLength,
+                maxLength,
+                min,
+                max,
+                pattern,
+                options,
+                optionLabelPrefix,
+                ref,
+                attribute);
     }
 
     public FormField length(Integer shortest, Integer longest) {
-        return new FormField(key, labelKey, label, type, required, shortest, longest, min, max, pattern, options,
-                optionLabelPrefix, ref, attribute);
+        return new FormField(
+                key,
+                labelKey,
+                label,
+                type,
+                required,
+                shortest,
+                longest,
+                min,
+                max,
+                pattern,
+                options,
+                optionLabelPrefix,
+                ref,
+                attribute);
     }
 
     public FormField range(BigDecimal smallest, BigDecimal largest) {
-        return new FormField(key, labelKey, label, type, required, minLength, maxLength, smallest, largest, pattern,
-                options, optionLabelPrefix, ref, attribute);
+        return new FormField(
+                key,
+                labelKey,
+                label,
+                type,
+                required,
+                minLength,
+                maxLength,
+                smallest,
+                largest,
+                pattern,
+                options,
+                optionLabelPrefix,
+                ref,
+                attribute);
     }
 
     public FormField matching(String regex) {
-        return new FormField(key, labelKey, label, type, required, minLength, maxLength, min, max, regex, options,
-                optionLabelPrefix, ref, attribute);
+        return new FormField(
+                key,
+                labelKey,
+                label,
+                type,
+                required,
+                minLength,
+                maxLength,
+                min,
+                max,
+                regex,
+                options,
+                optionLabelPrefix,
+                ref,
+                attribute);
     }
 
     /** A custom field of the entity: labelled by its own name, its value in the record's attributes. */
     public FormField custom(String name, String code) {
-        return new FormField(key, "", name, type, required, minLength, maxLength, min, max, pattern, options,
-                optionLabelPrefix, ref, code);
+        return new FormField(
+                key,
+                "",
+                name,
+                type,
+                required,
+                minLength,
+                maxLength,
+                min,
+                max,
+                pattern,
+                options,
+                optionLabelPrefix,
+                ref,
+                code);
     }
 
     public FormField refersTo(QueryRef source) {
-        return new FormField(key, labelKey, label, FormFieldType.REF, required, minLength, maxLength, min, max, pattern,
-                options, optionLabelPrefix, source, attribute);
+        return new FormField(
+                key,
+                labelKey,
+                label,
+                FormFieldType.REF,
+                required,
+                minLength,
+                maxLength,
+                min,
+                max,
+                pattern,
+                options,
+                optionLabelPrefix,
+                source,
+                attribute);
     }
 }

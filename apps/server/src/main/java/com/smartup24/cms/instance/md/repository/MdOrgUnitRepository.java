@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /**
  * Оргструктура экземпляра — дерево произвольной глубины (ADR-0013).
@@ -21,7 +20,8 @@ public class MdOrgUnitRepository {
     }
 
     public OrgUnitRecord create(Long parentId, String code, String name, String kind, int orderNo) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                         insert into md_org_units (parent_id, code, name, kind, state, order_no)
                         values (:parentId, :code, :name, :kind, 'A', :orderNo)
                         returning id, parent_id, code, name, kind, state, order_no, created_at, modified_at
@@ -36,7 +36,8 @@ public class MdOrgUnitRepository {
     }
 
     public void update(Long id, Long parentId, String name, String kind, String state, int orderNo) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                         update md_org_units
                         set parent_id = :parentId, name = :name, kind = :kind,
                             state = :state, order_no = :orderNo, modified_at = now()
@@ -52,17 +53,17 @@ public class MdOrgUnitRepository {
     }
 
     public void delete(Long id) {
-        jdbcClient.sql("delete from md_org_units where id = :id").param("id", id).update();
+        jdbcClient
+                .sql("delete from md_org_units where id = :id")
+                .param("id", id)
+                .update();
     }
 
     public Optional<OrgUnitRecord> findById(Long id) {
         return jdbcClient.sql("""
                         select id, parent_id, code, name, kind, state, order_no, created_at, modified_at
                         from md_org_units where id = :id
-                        """)
-                .param("id", id)
-                .query(this::map)
-                .optional();
+                        """).param("id", id).query(this::map).optional();
     }
 
     public List<OrgUnitRecord> listAll() {
@@ -70,34 +71,39 @@ public class MdOrgUnitRepository {
                         select id, parent_id, code, name, kind, state, order_no, created_at, modified_at
                         from md_org_units
                         order by coalesce(parent_id, 0), order_no, id
-                        """)
-                .query(this::map)
-                .list();
+                        """).query(this::map).list();
     }
 
     public boolean hasRoot() {
-        return jdbcClient.sql("select count(*) from md_org_units where parent_id is null")
-                .query(Long.class).single() > 0;
+        return jdbcClient
+                        .sql("select count(*) from md_org_units where parent_id is null")
+                        .query(Long.class)
+                        .single()
+                > 0;
     }
 
     public boolean existsByCode(String code) {
-        return jdbcClient.sql("select exists (select 1 from md_org_units where code = :code)")
-                .param("code", code).query(Boolean.class).single();
+        return jdbcClient
+                .sql("select exists (select 1 from md_org_units where code = :code)")
+                .param("code", code)
+                .query(Boolean.class)
+                .single();
     }
 
     public boolean hasChildren(Long id) {
-        return jdbcClient.sql("select count(*) from md_org_units where parent_id = :id")
-                .param("id", id)
-                .query(Long.class).single() > 0;
+        return jdbcClient
+                        .sql("select count(*) from md_org_units where parent_id = :id")
+                        .param("id", id)
+                        .query(Long.class)
+                        .single()
+                > 0;
     }
 
     public boolean isAssignedToUsers(Long id) {
         return jdbcClient.sql("""
                         select (select count(*) from md_user_org_units where org_unit_id = :id)
                              + (select count(*) from md_users where org_unit_id = :id)
-                        """)
-                .param("id", id)
-                .query(Long.class).single() > 0;
+                        """).param("id", id).query(Long.class).single() > 0;
     }
 
     /**
@@ -111,7 +117,8 @@ public class MdOrgUnitRepository {
         if (nodeId == null || candidateParentId == null) {
             return false;
         }
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                         with recursive subtree as (
                             select id from md_org_units where id = :nodeId
                             union
@@ -119,9 +126,11 @@ public class MdOrgUnitRepository {
                         )
                         select count(*) from subtree where id = :candidateId
                         """)
-                .param("nodeId", nodeId)
-                .param("candidateId", candidateParentId)
-                .query(Long.class).single() > 0;
+                        .param("nodeId", nodeId)
+                        .param("candidateId", candidateParentId)
+                        .query(Long.class)
+                        .single()
+                > 0;
     }
 
     private OrgUnitRecord map(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
@@ -135,8 +144,7 @@ public class MdOrgUnitRepository {
                 rs.getString("state"),
                 rs.getInt("order_no"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("modified_at").toInstant()
-        );
+                rs.getTimestamp("modified_at").toInstant());
     }
 
     public record OrgUnitRecord(
@@ -148,6 +156,5 @@ public class MdOrgUnitRepository {
             String state,
             int orderNo,
             Instant createdAt,
-            Instant modifiedAt
-    ) {}
+            Instant modifiedAt) {}
 }

@@ -2,14 +2,13 @@ package com.smartup24.cms.instance.mf.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PushbackInputStream;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
 /**
  * Inspects a bounded prefix and then pushes it back, so upload remains streaming
@@ -28,14 +27,12 @@ public class FileContentInspector {
             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             "application/vnd.oasis.opendocument.text",
             "application/vnd.oasis.opendocument.spreadsheet",
-            "application/vnd.oasis.opendocument.presentation"
-    );
+            "application/vnd.oasis.opendocument.presentation");
     private static final Map<String, String> STRICT_SIGNATURE_TYPES = Map.of(
             "application/pdf", "application/pdf",
             "image/png", "image/png",
             "image/jpeg", "image/jpeg",
-            "image/gif", "image/gif"
-    );
+            "image/gif", "image/gif");
 
     public Inspection inspect(String declaredMimeType, InputStream source) {
         if (source == null) {
@@ -53,8 +50,7 @@ public class FileContentInspector {
 
         if (isExecutable(prefix)) {
             throw ApiException.badRequest(
-                    ErrorCode.FILE_TYPE_FORBIDDEN,
-                    "Обнаружена сигнатура исполняемого файла; загрузка запрещена");
+                    ErrorCode.FILE_TYPE_FORBIDDEN, "Обнаружена сигнатура исполняемого файла; загрузка запрещена");
         }
 
         String declared = normalize(declaredMimeType);

@@ -3,34 +3,34 @@ package com.smartup24.cms.instance.report.service;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.report.repository.ReportRepository;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.nio.charset.StandardCharsets;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-
 @Service
 @Transactional(readOnly = true)
 public class ReportService {
 
-    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")
-            .withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter DATE_FMT =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.of("UTC"));
 
     private final ReportRepository reportRepository;
     private final MdScopeService scopeService;
     private final int maxExportRows;
 
     @Autowired
-    public ReportService(ReportRepository reportRepository, MdScopeService scopeService,
-                         @Value("${dwh.reports.export.max-rows:50000}") int maxExportRows) {
+    public ReportService(
+            ReportRepository reportRepository,
+            MdScopeService scopeService,
+            @Value("${dwh.reports.export.max-rows:50000}") int maxExportRows) {
         this.reportRepository = reportRepository;
         this.scopeService = scopeService;
         this.maxExportRows = maxExportRows > 0 ? maxExportRows : ReportRepository.DEFAULT_MAX_EXPORT_ROWS;
@@ -50,9 +50,10 @@ public class ReportService {
         }
         var scope = scopeService.filterForTasks(currentUserId);
         // UTF-8 BOM so Microsoft Excel automatically recognizes Russian UTF-8
-        outputStream.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
+        outputStream.write(new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
 
-        java.io.BufferedWriter writer = new java.io.BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+        java.io.BufferedWriter writer =
+                new java.io.BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
         writer.write("ID;Заголовок;Проект;Приоритет;Статус;Срок;Дата создания;Автор\n");
 
         try {
@@ -66,7 +67,8 @@ public class ReportService {
                     String createdStr = row.createdAt() != null ? DATE_FMT.format(row.createdAt()) : "—";
                     String reporter = escapeCsv(row.reporterName());
 
-                    writer.write(String.format("%d;%s;%s;%s;%s;%s;%s;%s%n",
+                    writer.write(String.format(
+                            "%d;%s;%s;%s;%s;%s;%s;%s%n",
                             row.id(), title, project, priority, status, endTimeStr, createdStr, reporter));
                 } catch (IOException e) {
                     throw new ClientAbortException(e);
@@ -83,7 +85,8 @@ public class ReportService {
             throw ApiException.unauthorized("Требуется авторизация для экспорта задач");
         }
         var scope = scopeService.filterForTasks(currentUserId);
-        java.io.BufferedWriter writer = new java.io.BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
+        java.io.BufferedWriter writer =
+                new java.io.BufferedWriter(new OutputStreamWriter(outputStream, StandardCharsets.UTF_8));
 
         try {
             writer.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -170,7 +173,11 @@ public class ReportService {
         if (value == null) return "";
         boolean unsafePrefix = hasSpreadsheetPrefix(value);
         if (unsafePrefix) value = "'" + value;
-        if (unsafePrefix || value.contains(";") || value.contains("\"") || value.contains("\n") || value.contains("\r")) {
+        if (unsafePrefix
+                || value.contains(";")
+                || value.contains("\"")
+                || value.contains("\n")
+                || value.contains("\r")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
         return value;
@@ -179,15 +186,25 @@ public class ReportService {
     private boolean hasSpreadsheetPrefix(String value) {
         // Inspect prefixes that importers may trim, but preserve the original text verbatim.
         // This protects initial CSV export, not later save/re-import transformations by spreadsheet clients.
-        for (int offset = 0; offset < value.length();) {
+        for (int offset = 0; offset < value.length(); ) {
             int ch = value.codePointAt(offset);
-            if (ch == '=' || ch == '+' || ch == '-' || ch == '@'
-                    || ch == '＝' || ch == '＋' || ch == '－' || ch == '＠'
-                    || ch == '\t' || ch == '\r' || ch == '\n') {
+            if (ch == '='
+                    || ch == '+'
+                    || ch == '-'
+                    || ch == '@'
+                    || ch == '＝'
+                    || ch == '＋'
+                    || ch == '－'
+                    || ch == '＠'
+                    || ch == '\t'
+                    || ch == '\r'
+                    || ch == '\n') {
                 return true;
             }
-            if (!Character.isWhitespace(ch) && !Character.isSpaceChar(ch)
-                    && !Character.isISOControl(ch) && Character.getType(ch) != Character.FORMAT) {
+            if (!Character.isWhitespace(ch)
+                    && !Character.isSpaceChar(ch)
+                    && !Character.isISOControl(ch)
+                    && Character.getType(ch) != Character.FORMAT) {
                 return false;
             }
             offset += Character.charCount(ch);

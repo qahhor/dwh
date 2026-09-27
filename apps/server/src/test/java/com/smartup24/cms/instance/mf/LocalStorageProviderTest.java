@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.mf;
 
-import com.smartup24.cms.instance.mf.storage.LocalStorageProvider;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.mf.storage.LocalStorageProvider;
 import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class LocalStorageProviderTest {
 
@@ -19,7 +18,7 @@ class LocalStorageProviderTest {
         var provider = new LocalStorageProvider(storagePath.toString());
 
         assertThatThrownBy(() -> provider.upload(
-                "../outside", "file.txt", new ByteArrayInputStream(new byte[]{1}), 1, "text/plain"))
+                        "../outside", "file.txt", new ByteArrayInputStream(new byte[] {1}), 1, "text/plain"))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> provider.download("../outside", "file.txt"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -34,7 +33,7 @@ class LocalStorageProviderTest {
         var provider = new LocalStorageProvider(storagePath.toString());
 
         assertThatThrownBy(() -> provider.upload(
-                "instance-files", "file.txt", new ByteArrayInputStream(new byte[]{1, 2}), 1, "text/plain"))
+                        "instance-files", "file.txt", new ByteArrayInputStream(new byte[] {1, 2}), 1, "text/plain"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("size");
     }

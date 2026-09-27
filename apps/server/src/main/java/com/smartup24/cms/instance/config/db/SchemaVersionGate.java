@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.config.db;
 
 import com.smartup24.cms.common.db.AbstractFlywaySchemaGate;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-
-import javax.sql.DataSource;
 
 /**
  * Schema-gate (FR-INST-2, ADR-0007 разд. 2.3): приложение ОТКАЗЫВАЕТСЯ стартовать,
@@ -15,8 +14,7 @@ import javax.sql.DataSource;
 @Profile("!migrate")
 public class SchemaVersionGate extends AbstractFlywaySchemaGate {
 
-    public SchemaVersionGate(DataSource dataSource,
-                             @Value("${dwh.schema-gate.enabled:true}") boolean enabled) {
+    public SchemaVersionGate(DataSource dataSource, @Value("${dwh.schema-gate.enabled:true}") boolean enabled) {
         super(dataSource, enabled, "classpath:db/migration", "Instance (md, kauth, tsk, ms, mf, audit, kwh)");
     }
 }

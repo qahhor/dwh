@@ -16,8 +16,7 @@ final class QueryValues {
 
     static final int MAX_TEXT = 500;
 
-    private QueryValues() {
-    }
+    private QueryValues() {}
 
     /** Значение для параметра запроса; {@link IllegalArgumentException} — значение не подходит полю. */
     static Object parse(QueryField field, String text) {
@@ -40,11 +39,12 @@ final class QueryValues {
             case NUMBER -> new BigDecimal(text);
             case DATE -> parseDate(text);
             case INSTANT -> parseInstant(text);
-            case BOOLEAN -> switch (text) {
-                case "true" -> Boolean.TRUE;
-                case "false" -> Boolean.FALSE;
-                default -> throw new IllegalArgumentException("not a boolean");
-            };
+            case BOOLEAN ->
+                switch (text) {
+                    case "true" -> Boolean.TRUE;
+                    case "false" -> Boolean.FALSE;
+                    default -> throw new IllegalArgumentException("not a boolean");
+                };
         };
     }
 

@@ -1,8 +1,13 @@
 package com.smartup24.cms.instance.kauth;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
-import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.service.KauthDeliveryGuard;
 import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
 import com.smartup24.cms.instance.support.TestDatabases;
@@ -10,17 +15,11 @@ import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.sms.SmsProvider;
 import com.smartup24.cms.spi.storage.StorageProvider;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /** Plan 10/10, item 0.8: the instance does not start while two-factor users depend on a stub channel. */
 class KauthDeliveryGuardTest {
@@ -35,7 +34,8 @@ class KauthDeliveryGuardTest {
     @Test
     @DisplayName("No two-factor users: the stubs do not matter")
     void noTwoFactorUsers() {
-        assertThatCode(() -> guard("console_mail", "console_messenger", true).run(null)).doesNotThrowAnyException();
+        assertThatCode(() -> guard("console_mail", "console_messenger", true).run(null))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -61,10 +61,12 @@ class KauthDeliveryGuardTest {
     @DisplayName("An unconfirmed channel is not a code channel; the switch turns the guard off")
     void unconfirmedChannelAndSwitch() {
         twoFactorUser("guard_unconfirmed", "email", false);
-        assertThatCode(() -> guard("console_mail", "console_messenger", true).run(null)).doesNotThrowAnyException();
+        assertThatCode(() -> guard("console_mail", "console_messenger", true).run(null))
+                .doesNotThrowAnyException();
 
         twoFactorUser("guard_off", "email", true);
-        assertThatCode(() -> guard("console_mail", "console_messenger", false).run(null)).doesNotThrowAnyException();
+        assertThatCode(() -> guard("console_mail", "console_messenger", false).run(null))
+                .doesNotThrowAnyException();
     }
 
     private KauthDeliveryGuard guard(String mail, String messenger, boolean enforced) {
@@ -76,8 +78,15 @@ class KauthDeliveryGuardTest {
         when(sms.getProviderCode()).thenReturn("console_sms");
         StorageProvider storage = mock(StorageProvider.class);
         when(storage.getProviderCode()).thenReturn("local");
-        var registry = new ProviderRegistry(List.of(storage), List.of(mailProvider), List.of(sms),
-                List.of(messengerProvider), "local", mail, "console_sms", messenger);
+        var registry = new ProviderRegistry(
+                List.of(storage),
+                List.of(mailProvider),
+                List.of(sms),
+                List.of(messengerProvider),
+                "local",
+                mail,
+                "console_sms",
+                messenger);
         return new KauthDeliveryGuard(new KauthOtpSender(registry, null), jdbc, enforced);
     }
 
@@ -90,8 +99,18 @@ class KauthDeliveryGuardTest {
         when(sms.getProviderCode()).thenReturn("console_sms");
         StorageProvider storage = mock(StorageProvider.class);
         when(storage.getProviderCode()).thenReturn("local");
-        return new KauthOtpSender(new ProviderRegistry(List.of(storage), List.of(mailProvider), List.of(sms),
-                List.of(messengerProvider), "local", mail, "console_sms", messenger), null, enforced);
+        return new KauthOtpSender(
+                new ProviderRegistry(
+                        List.of(storage),
+                        List.of(mailProvider),
+                        List.of(sms),
+                        List.of(messengerProvider),
+                        "local",
+                        mail,
+                        "console_sms",
+                        messenger),
+                null,
+                enforced);
     }
 
     @Test
@@ -111,8 +130,7 @@ class KauthDeliveryGuardTest {
                         insert into md_users (name, login, email, password_hash, state, is_2fa_enabled)
                         values (:login, :login, :login || '@test.local', 'hash', 'A', true)
                         returning id
-                        """)
-                .param("login", login).query(Long.class).single();
+                        """).param("login", login).query(Long.class).single();
         new KauthChannelRepository(jdbc).bindOrUpdate(id, channel, login + "-address", verified);
         return id;
     }

@@ -9,5 +9,4 @@ public record AnalyticsSummaryDto(
         long createdLast7d,
         long completedLast7d,
         long activeProjectsCount,
-        long activeUsersCount
-) {}
+        long activeUsersCount) {}

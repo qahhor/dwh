@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
@@ -16,6 +20,12 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorsView;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,17 +36,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-
 /** Задание разбора: файл из хранилища превращается в счётчики и ошибки пакета (контракт И5). */
 class UplParseJobTest extends EmbeddedPostgresTest {
 
@@ -45,20 +44,28 @@ class UplParseJobTest extends EmbeddedPostgresTest {
 
     @Autowired
     private UplPackageService packages;
+
     @Autowired
     private UplSourceService sources;
+
     @Autowired
     private MfFileService files;
+
     @Autowired
     private FndJobRunner jobs;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private TransactionTemplate tx;
+
     @Autowired
     private ObjectMapper json;
+
     @Autowired
     private PlatformTransactionManager transactions;
 
@@ -67,7 +74,9 @@ class UplParseJobTest extends EmbeddedPostgresTest {
 
     @BeforeEach
     void setUp() {
-        userId = jdbc.sql("select id from md_users where login = 'system'").query(Long.class).single();
+        userId = jdbc.sql("select id from md_users where login = 'system'")
+                .query(Long.class)
+                .single();
         tx.executeWithoutResult(status -> {
             actors.apply(actors.system());
             jdbc.sql("delete from upl_package_errors").update();
@@ -125,8 +134,8 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     void jobFailureRejectsPackage() {
         PackageRow row = register(UplPackageTestData.workbook(2, 0));
         enqueue(row.publicId());
-        FndJobRunner runner = new FndJobRunner(jdbc, json, transactions,
-                List.of(new UplParseJob(packages, sources, files, failingParser())));
+        FndJobRunner runner = new FndJobRunner(
+                jdbc, json, transactions, List.of(new UplParseJob(packages, sources, files, failingParser())));
 
         assertThat(runner.runQueued()).isZero();
 
@@ -134,7 +143,9 @@ class UplParseJobTest extends EmbeddedPostgresTest {
         assertThat(saved.status()).isEqualTo(UplPackageModel.REJECTED);
         assertThat(saved.rejectCode()).isEqualTo(UplParseJob.UPL_PKG_INTERNAL);
         assertThat(runStatuses()).containsExactly("failed");
-        assertThat(jdbc.sql("select error from fnd_job_runs").query(String.class).single())
+        assertThat(jdbc.sql("select error from fnd_job_runs")
+                        .query(String.class)
+                        .single())
                 .contains("TEST сбой разбора");
     }
 
@@ -143,7 +154,10 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     void formatReadFailureRejectsPackage() {
         PackageRow row = register(UplPackageTestData.workbook(2, 0));
         enqueue(row.publicId());
-        FndJobRunner runner = new FndJobRunner(jdbc, json, transactions,
+        FndJobRunner runner = new FndJobRunner(
+                jdbc,
+                json,
+                transactions,
                 List.of(new UplParseJob(packages, failingSources(), files, new UplXlsxParser())));
 
         assertThat(runner.runQueued()).isZero();
@@ -155,7 +169,9 @@ class UplParseJobTest extends EmbeddedPostgresTest {
         assertThat(saved.rowsAccepted()).isNull();
         assertThat(saved.rowsRejected()).isNull();
         assertThat(runStatuses()).containsExactly("failed");
-        assertThat(jdbc.sql("select error from fnd_job_runs").query(String.class).single())
+        assertThat(jdbc.sql("select error from fnd_job_runs")
+                        .query(String.class)
+                        .single())
                 .contains("TEST сбой чтения анкеты");
     }
 
@@ -177,10 +193,18 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     // ---------- помощники ----------
 
     private PackageRow register(byte[] content) {
-        FileRecord file = files.uploadFile("TEST.xlsx", UplPackageTestData.XLSX_MIME,
-                new ByteArrayInputStream(content), content.length, userId);
-        return packages.register(new NewPackage(sourceId, 1, PERIOD_FROM, PERIOD_TO, file.id(),
-                file.originalName(), file.sha256(), file.sizeBytes(), userId));
+        FileRecord file = files.uploadFile(
+                "TEST.xlsx", UplPackageTestData.XLSX_MIME, new ByteArrayInputStream(content), content.length, userId);
+        return packages.register(new NewPackage(
+                sourceId,
+                1,
+                PERIOD_FROM,
+                PERIOD_TO,
+                file.id(),
+                file.originalName(),
+                file.sha256(),
+                file.sizeBytes(),
+                userId));
     }
 
     private void enqueue(UUID publicId) {
@@ -188,7 +212,9 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     }
 
     private List<String> runStatuses() {
-        return jdbc.sql("select status from fnd_job_runs order by id").query(String.class).list();
+        return jdbc.sql("select status from fnd_job_runs order by id")
+                .query(String.class)
+                .list();
     }
 
     /** Анкеты, чтение которых падает: подменяют бин в раннере теста. */

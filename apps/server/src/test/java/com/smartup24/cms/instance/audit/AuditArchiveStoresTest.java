@@ -1,8 +1,17 @@
 package com.smartup24.cms.instance.audit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+
 import com.smartup24.cms.instance.audit.archive.AuditArchiveProperties;
 import com.smartup24.cms.instance.audit.archive.LocalAuditArchiveStore;
 import com.smartup24.cms.instance.audit.archive.S3AuditArchiveStore;
+import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -15,16 +24,6 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-
-import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 
 /** The two archive targets and their settings (decision of 2026-09-27: local or S3, chosen in the settings). */
 class AuditArchiveStoresTest {
@@ -71,15 +70,15 @@ class AuditArchiveStoresTest {
         assertThatThrownBy(() -> properties("ftp")).hasMessageContaining("local or s3");
         assertThat(properties("S3").target()).isEqualTo("s3");
 
-        var incomplete = new AuditArchiveProperties.S3(URI.create("https://s3.example.test"), "auto", "key", null,
-                "bucket", "audit/", true);
+        var incomplete = new AuditArchiveProperties.S3(
+                URI.create("https://s3.example.test"), "auto", "key", null, "bucket", "audit/", true);
         assertThatThrownBy(incomplete::validate).hasMessageContaining("SMC_AUDIT_ARCHIVE_S3_SECRET_KEY");
-        var withCredentials = new AuditArchiveProperties.S3(URI.create("https://user:pass@s3.example.test"), "auto",
-                "key", "secret", "bucket", "audit/", true);
+        var withCredentials = new AuditArchiveProperties.S3(
+                URI.create("https://user:pass@s3.example.test"), "auto", "key", "secret", "bucket", "audit/", true);
         assertThatThrownBy(withCredentials::validate).hasMessageContaining("without credentials");
 
-        var complete = new AuditArchiveProperties.S3(URI.create("https://s3.example.test"), "auto", "AKIA-probe",
-                "secret-probe", "bucket", "audit/", true);
+        var complete = new AuditArchiveProperties.S3(
+                URI.create("https://s3.example.test"), "auto", "AKIA-probe", "secret-probe", "bucket", "audit/", true);
         assertThat(complete.toString()).doesNotContain("AKIA-probe").doesNotContain("secret-probe");
     }
 
@@ -93,7 +92,9 @@ class AuditArchiveStoresTest {
                 "smc.audit.archive.size-threshold", "100MB",
                 "smc.audit.archive.s3.endpoint", ""));
 
-        var bound = new Binder(source).bind("smc.audit.archive", AuditArchiveProperties.class).get();
+        var bound = new Binder(source)
+                .bind("smc.audit.archive", AuditArchiveProperties.class)
+                .get();
 
         assertThat(bound.interval()).isEqualTo(Duration.ofDays(7));
         assertThat(bound.retention()).isEqualTo(Duration.ofDays(90));
@@ -104,7 +105,14 @@ class AuditArchiveStoresTest {
     }
 
     private static AuditArchiveProperties properties(String target) {
-        return new AuditArchiveProperties(true, target, Path.of("archive"), Duration.ofDays(7), DataSize.ofMegabytes(100),
-                Duration.ofDays(90), false, new AuditArchiveProperties.S3(null, "auto", null, null, null, "audit/", true));
+        return new AuditArchiveProperties(
+                true,
+                target,
+                Path.of("archive"),
+                Duration.ofDays(7),
+                DataSize.ofMegabytes(100),
+                Duration.ofDays(90),
+                false,
+                new AuditArchiveProperties.S3(null, "auto", null, null, null, "audit/", true));
     }
 }

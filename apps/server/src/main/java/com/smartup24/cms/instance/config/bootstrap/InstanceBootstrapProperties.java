@@ -14,8 +14,7 @@ public record InstanceBootstrapProperties(
         String resourceProfile,
         String adminLogin,
         String adminEmail,
-        String adminPassword
-) {
+        String adminPassword) {
     public InstanceBootstrapProperties {
         if (resourceProfile == null || resourceProfile.isBlank()) {
             resourceProfile = "S";

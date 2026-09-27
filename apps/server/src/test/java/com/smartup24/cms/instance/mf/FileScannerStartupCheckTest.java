@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.mf;
 
-import com.smartup24.cms.instance.mf.scan.FileScannerStartupCheck;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.smartup24.cms.instance.mf.scan.FileScannerStartupCheck;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 class FileScannerStartupCheckTest {
 

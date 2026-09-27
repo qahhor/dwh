@@ -1,8 +1,11 @@
 package com.smartup24.cms.instance.ms.notify;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
-import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -13,6 +16,8 @@ import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
 import com.smartup24.cms.instance.ms.notify.service.MsAnnouncementService;
+import java.util.Map;
+import java.util.Set;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -24,12 +29,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @Testcontainers(disabledWithoutDocker = true)
 class MsAnnouncementServiceIntegrationTest {
@@ -47,8 +46,8 @@ class MsAnnouncementServiceIntegrationTest {
 
     @BeforeAll
     static void setupDatabase() {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -60,14 +59,12 @@ class MsAnnouncementServiceIntegrationTest {
                         insert into md_users (name, login, email)
                         values ('Announcement Admin', 'announcement-admin', 'announcement-admin@example.test')
                         returning id
-                        """)
-                .query(Long.class)
-                .single();
+                        """).query(Long.class).single();
 
         ObjectMapper objectMapper = new ObjectMapper();
         repository = new MsAnnouncementRepository(jdbc, objectMapper);
-        AuditLogService audit = new AuditLogService(
-                new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
+        AuditLogService audit =
+                new AuditLogService(new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
         service = new MsAnnouncementService(repository, audit);
     }
 
@@ -80,7 +77,10 @@ class MsAnnouncementServiceIntegrationTest {
                 77L,
                 false,
                 Set.of("*.*"),
-                1L, false, 0, null));
+                1L,
+                false,
+                0,
+                null));
     }
 
     @AfterEach
@@ -90,35 +90,42 @@ class MsAnnouncementServiceIntegrationTest {
 
     @Test
     void lifecyclePreservesLocalizedContentRejectsStaleWritesAndWritesAudit() {
-        var created = service.create(draft(
-                Map.of("ru", "Плановые работы", "en", "Maintenance window"),
-                Map.of("ru", "Сегодня в 22:00", "en", "Today at 22:00"),
-                "WARNING",
-                null), authorId);
+        var created = service.create(
+                draft(
+                        Map.of("ru", "Плановые работы", "en", "Maintenance window"),
+                        Map.of("ru", "Сегодня в 22:00", "en", "Today at 22:00"),
+                        "WARNING",
+                        null),
+                authorId);
 
         assertThat(created.state()).isEqualTo(AnnouncementState.DRAFT);
-        assertThat(created.titleJson()).containsEntry("ru", "Плановые работы")
+        assertThat(created.titleJson())
+                .containsEntry("ru", "Плановые работы")
                 .containsEntry("en", "Maintenance window");
-        assertThat(created.bodyJson()).containsEntry("ru", "Сегодня в 22:00")
-                .containsEntry("en", "Today at 22:00");
+        assertThat(created.bodyJson()).containsEntry("ru", "Сегодня в 22:00").containsEntry("en", "Today at 22:00");
         assertThat(created.lockVersion()).isZero();
         assertThat(created.createdBy()).isEqualTo(authorId);
 
-        var updated = service.update(created.id(), draft(
-                Map.of("ru", "Работы перенесены", "en", "Maintenance rescheduled"),
-                Map.of("ru", "Сегодня в 23:00", "en", "Today at 23:00"),
-                "CRITICAL",
-                created.lockVersion()));
+        var updated = service.update(
+                created.id(),
+                draft(
+                        Map.of("ru", "Работы перенесены", "en", "Maintenance rescheduled"),
+                        Map.of("ru", "Сегодня в 23:00", "en", "Today at 23:00"),
+                        "CRITICAL",
+                        created.lockVersion()));
         assertThat(updated.lockVersion()).isEqualTo(1L);
         assertThat(updated.titleJson()).containsEntry("en", "Maintenance rescheduled");
 
-        assertThatThrownBy(() -> service.update(created.id(), draft(
-                Map.of("ru", "Устаревшая правка"),
-                Map.of("ru", "Не должна сохраниться"),
-                "INFO",
-                created.lockVersion())))
+        assertThatThrownBy(() -> service.update(
+                        created.id(),
+                        draft(
+                                Map.of("ru", "Устаревшая правка"),
+                                Map.of("ru", "Не должна сохраниться"),
+                                "INFO",
+                                created.lockVersion())))
                 .isInstanceOf(ApiException.class)
-                .satisfies(error -> assertThat(((ApiException) error).getErrorCode().getDefaultStatus())
+                .satisfies(error -> assertThat(
+                                ((ApiException) error).getErrorCode().getDefaultStatus())
                         .isEqualTo(409));
 
         var published = service.publish(created.id(), updated.lockVersion());
@@ -134,7 +141,8 @@ class MsAnnouncementServiceIntegrationTest {
 
         assertThatThrownBy(() -> service.publish(created.id(), published.lockVersion()))
                 .isInstanceOf(ApiException.class)
-                .satisfies(error -> assertThat(((ApiException) error).getErrorCode().getDefaultStatus())
+                .satisfies(error -> assertThat(
+                                ((ApiException) error).getErrorCode().getDefaultStatus())
                         .isEqualTo(409));
 
         var archived = service.archive(created.id(), published.lockVersion());
@@ -148,9 +156,9 @@ class MsAnnouncementServiceIntegrationTest {
                         where table_name = 'ms_announcements' and row_pk = :id
                         order by id
                         """)
-                .param("id", String.valueOf(created.id()))
-                .query(String.class)
-                .list())
+                        .param("id", String.valueOf(created.id()))
+                        .query(String.class)
+                        .list())
                 .containsExactly("I", "U", "U", "U");
         assertThat(jdbc.sql("""
                         select new_row ->> 'state'
@@ -159,35 +167,26 @@ class MsAnnouncementServiceIntegrationTest {
                         order by id desc
                         limit 1
                         """)
-                .param("id", String.valueOf(created.id()))
-                .query(String.class)
-                .single())
+                        .param("id", String.valueOf(created.id()))
+                        .query(String.class)
+                        .single())
                 .isEqualTo("ARCHIVED");
     }
 
     @Test
     void rejectsInvalidLocalizedContentAndBannerType() {
-        assertThatThrownBy(() -> service.create(draft(
-                Map.of("en", "No Russian title"),
-                Map.of("ru", "Текст"),
-                "INFO",
-                null), authorId))
+        assertThatThrownBy(() -> service.create(
+                        draft(Map.of("en", "No Russian title"), Map.of("ru", "Текст"), "INFO", null), authorId))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("RU");
 
-        assertThatThrownBy(() -> service.create(draft(
-                Map.of("ru", "Заголовок"),
-                Map.of("ru", "Текст"),
-                "HTML",
-                null), authorId))
+        assertThatThrownBy(() ->
+                        service.create(draft(Map.of("ru", "Заголовок"), Map.of("ru", "Текст"), "HTML", null), authorId))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("INFO");
 
-        assertThatThrownBy(() -> service.create(draft(
-                Map.of("ru", "Заголовок"),
-                Map.of("ru", "x".repeat(10_001)),
-                "INFO",
-                null), authorId))
+        assertThatThrownBy(() -> service.create(
+                        draft(Map.of("ru", "Заголовок"), Map.of("ru", "x".repeat(10_001)), "INFO", null), authorId))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("10000");
     }
@@ -210,19 +209,14 @@ class MsAnnouncementServiceIntegrationTest {
                             ('{"ru": null}'::jsonb, '{"ru": "Legacy body"}'::jsonb,
                              'INFO', 'DRAFT', :createdBy)
                         returning id
-                        """)
-                .param("createdBy", authorId)
-                .query(Long.class)
-                .single();
+                        """).param("createdBy", authorId).query(Long.class).single();
 
         assertThat(repository.findById(id))
                 .get()
-                .satisfies(announcement -> assertThat(announcement.titleJson())
-                        .containsEntry("ru", null));
+                .satisfies(announcement -> assertThat(announcement.titleJson()).containsEntry("ru", null));
     }
 
-    private static void assertPermission(String method, String action, Class<?>... parameterTypes)
-            throws Exception {
+    private static void assertPermission(String method, String action, Class<?>... parameterTypes) throws Exception {
         RequiresPermission permission = MsAnnouncementAdminController.class
                 .getMethod(method, parameterTypes)
                 .getAnnotation(RequiresPermission.class);
@@ -233,10 +227,7 @@ class MsAnnouncementServiceIntegrationTest {
     }
 
     private static AnnouncementDraftRequest draft(
-            Map<String, String> title,
-            Map<String, String> body,
-            String bannerType,
-            Long lockVersion) {
+            Map<String, String> title, Map<String, String> body, String bannerType, Long lockVersion) {
         return new AnnouncementDraftRequest(title, body, bannerType, lockVersion);
     }
 }

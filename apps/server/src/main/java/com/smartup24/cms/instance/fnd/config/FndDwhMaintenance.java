@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.fnd.config;
 
 import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Duration;
+import javax.sql.DataSource;
 
 /**
  * Соединение с {@code pg-dwh} для заданий обслуживания, которые проходят весь raw (очистка, сверка).
@@ -35,8 +34,8 @@ public class FndDwhMaintenance {
         try (Connection connection = dwh.getConnection()) {
             connection.setAutoCommit(false);
             try {
-                try (PreparedStatement limits = connection.prepareStatement(
-                        "select set_config('statement_timeout', ?, true),"
+                try (PreparedStatement limits =
+                        connection.prepareStatement("select set_config('statement_timeout', ?, true),"
                                 + " set_config('idle_in_transaction_session_timeout', ?, true)")) {
                     limits.setString(1, timeoutMs);
                     limits.setString(2, timeoutMs);

@@ -6,11 +6,10 @@ import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/custom-fields")
@@ -43,19 +42,17 @@ public class MdCustomFieldController {
                 body.isRequired(),
                 body.defaultValue(),
                 body.options(),
-                body.orderNo()
-        );
+                body.orderNo());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(record);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "update")
-    public ResponseEntity<Void> updateField(
-            @PathVariable("id") Long id,
-            @RequestBody UpdateCustomFieldDto body) {
+    public ResponseEntity<Void> updateField(@PathVariable("id") Long id, @RequestBody UpdateCustomFieldDto body) {
 
-        customFieldService.updateField(id, body.name(), body.isRequired(), body.defaultValue(), body.options(), body.orderNo());
+        customFieldService.updateField(
+                id, body.name(), body.isRequired(), body.defaultValue(), body.options(), body.orderNo());
         return ResponseEntity.noContent().build();
     }
 
@@ -74,14 +71,8 @@ public class MdCustomFieldController {
             boolean isRequired,
             String defaultValue,
             Object options,
-            int orderNo
-    ) {}
+            int orderNo) {}
 
     public record UpdateCustomFieldDto(
-            String name,
-            Boolean isRequired,
-            String defaultValue,
-            Object options,
-            Integer orderNo
-    ) {}
+            String name, Boolean isRequired, String defaultValue, Object options, Integer orderNo) {}
 }

@@ -25,8 +25,11 @@ public class MsTaskListService {
     private final QueryListRegistry registry;
 
     @Autowired
-    public MsTaskListService(QueryListRepository lists, MsTaskRepository taskRepository, MdScopeService scopeService,
-                             QueryListRegistry registry) {
+    public MsTaskListService(
+            QueryListRepository lists,
+            MsTaskRepository taskRepository,
+            MdScopeService scopeService,
+            QueryListRegistry registry) {
         this.lists = lists;
         this.taskRepository = taskRepository;
         this.scopeService = scopeService;
@@ -43,11 +46,19 @@ public class MsTaskListService {
      * @param legacy the old flat filters; they narrow the list and are part of the cursor's fingerprint
      */
     @Transactional(readOnly = true)
-    public KeysetPage<TaskRecord> page(Long viewerId, Integer limit, String cursor, String filter, String sort,
-                                       String search, LegacyTaskFilters legacy) {
+    public KeysetPage<TaskRecord> page(
+            Long viewerId,
+            Integer limit,
+            String cursor,
+            String filter,
+            String sort,
+            String search,
+            LegacyTaskFilters legacy) {
         var list = registry == null ? MsTaskQuery.LIST : registry.resolve(MsTaskQuery.LIST);
         var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
-        return lists.page(plan, taskRepository::mapRecord,
+        return lists.page(
+                plan,
+                taskRepository::mapRecord,
                 MsTaskRepository.listPredicate(scopeService.filterForTasks(viewerId), legacy));
     }
 }

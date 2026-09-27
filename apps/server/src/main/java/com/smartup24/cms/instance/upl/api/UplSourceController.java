@@ -5,6 +5,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.api.UplSourceDtos.CreateDraftRequest;
 import com.smartup24.cms.instance.upl.api.UplSourceDtos.FormatDraftRequest;
@@ -17,13 +18,17 @@ import com.smartup24.cms.instance.upl.api.UplSourceDtos.VersionItem;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceSummary;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.format.UplTemplateBuilder;
-import com.smartup24.cms.instance.md.service.MdI18nService;
+import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import jakarta.validation.Valid;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,12 +38,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.LocalDate;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /** API анкеты файла: источники и версии формата (контракт И3). */
 @RestController
@@ -63,11 +62,12 @@ public class UplSourceController {
 
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<KeysetPage<SourceItem>> list(@RequestParam(required = false) Integer limit,
-                                                       @RequestParam(required = false) String cursor,
-                                                       @RequestParam(required = false) String filter,
-                                                       @RequestParam(required = false) String sort,
-                                                       @RequestParam(required = false) String q) {
+    public ResponseEntity<KeysetPage<SourceItem>> list(
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String filter,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String q) {
         KeysetPage<SourceSummary> page = service.listSources(limit, cursor, filter, sort, q);
         List<SourceItem> items = page.items().stream().map(SourceItem::of).toList();
         return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
@@ -90,8 +90,8 @@ public class UplSourceController {
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
     public ResponseEntity<SourceResponse> update(@PathVariable long id, @Valid @RequestBody SourceRequest request) {
         if (request.lockVersion() == null) {
-            throw ApiException.validation(VALIDATION_FAILED, List.of(
-                    new FieldErrorItem("lockVersion", "REQUIRED", "lockVersion required")));
+            throw ApiException.validation(
+                    VALIDATION_FAILED, List.of(new FieldErrorItem("lockVersion", "REQUIRED", "lockVersion required")));
         }
         var view = service.updateSource(id, request.lockVersion(), request.toData(), userId());
         return ResponseEntity.ok(SourceResponse.of(view));
@@ -99,11 +99,12 @@ public class UplSourceController {
 
     @GetMapping("/{id}/format-versions")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<Object> versions(@PathVariable long id,
-                                           @RequestParam(required = false)
-                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate at) {
+    public ResponseEntity<Object> versions(
+            @PathVariable long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate at) {
         if (at == null) {
-            List<VersionItem> items = service.listVersions(id).stream().map(VersionItem::of).toList();
+            List<VersionItem> items =
+                    service.listVersions(id).stream().map(VersionItem::of).toList();
             return ResponseEntity.ok(items);
         }
         return ResponseEntity.ok(FormatVersionResponse.of(service.versionAt(id, at)));
@@ -111,9 +112,8 @@ public class UplSourceController {
 
     @PostMapping("/{id}/format-versions")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
-    public ResponseEntity<FormatVersionResponse> createDraft(@PathVariable long id,
-                                                             @Valid @RequestBody(required = false)
-                                                             CreateDraftRequest request) {
+    public ResponseEntity<FormatVersionResponse> createDraft(
+            @PathVariable long id, @Valid @RequestBody(required = false) CreateDraftRequest request) {
         Integer copyFrom = request == null ? null : request.copyFrom();
         var draft = service.createDraft(id, copyFrom, userId());
         return ResponseEntity.status(HttpStatus.CREATED).body(FormatVersionResponse.of(draft));
@@ -131,17 +131,21 @@ public class UplSourceController {
      */
     @GetMapping("/{id}/format-versions/{v}/template")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<byte[]> template(@PathVariable long id, @PathVariable int v,
-                                           @RequestParam(required = false) String lang) {
+    public ResponseEntity<byte[]> template(
+            @PathVariable long id, @PathVariable int v, @RequestParam(required = false) String lang) {
         var source = service.getSource(id).source();
         var version = service.getVersion(id, v);
         Map<String, String> dictionary = i18n.effectiveDictionary(lang);
-        UplTemplateBuilder.TemplateFile file = templates.build(source, version,
-                (key, params) -> fill(dictionary.getOrDefault(key, key), params));
+        UplTemplateBuilder.TemplateFile file =
+                templates.build(source, version, (key, params) -> fill(dictionary.getOrDefault(key, key), params));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(file.contentType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(file.fileName(), StandardCharsets.UTF_8).build().toString())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(file.fileName(), StandardCharsets.UTF_8)
+                                .build()
+                                .toString())
                 .body(file.content());
     }
 
@@ -156,16 +160,16 @@ public class UplSourceController {
 
     @PutMapping("/{id}/format-versions/{v}")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
-    public ResponseEntity<FormatVersionResponse> replaceDraft(@PathVariable long id, @PathVariable int v,
-                                                              @Valid @RequestBody FormatDraftRequest request) {
+    public ResponseEntity<FormatVersionResponse> replaceDraft(
+            @PathVariable long id, @PathVariable int v, @Valid @RequestBody FormatDraftRequest request) {
         var draft = service.replaceDraft(id, v, request.lockVersion(), request.toData(), userId());
         return ResponseEntity.ok(FormatVersionResponse.of(draft));
     }
 
     @PostMapping("/{id}/format-versions/{v}/publish")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_PUBLISH)
-    public ResponseEntity<Void> publish(@PathVariable long id, @PathVariable int v,
-                                        @Valid @RequestBody PublishRequest request) {
+    public ResponseEntity<Void> publish(
+            @PathVariable long id, @PathVariable int v, @Valid @RequestBody PublishRequest request) {
         service.publish(id, v, request.validFrom(), userId());
         return ResponseEntity.noContent().build();
     }

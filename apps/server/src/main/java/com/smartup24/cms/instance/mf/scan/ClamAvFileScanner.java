@@ -3,10 +3,6 @@ package com.smartup24.cms.instance.mf.scan;
 import com.smartup24.cms.spi.storage.FileScanner;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.stereotype.Component;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -16,6 +12,9 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
 
 @Component
 @ConditionalOnProperty(name = "dwh.files.scanner.clamav.enabled", havingValue = "true")
@@ -115,7 +114,8 @@ public class ClamAvFileScanner implements FileScanner {
         String prefix = "stream: ";
         String suffix = " FOUND";
         if (response.startsWith(prefix) && response.endsWith(suffix)) {
-            String threat = response.substring(prefix.length(), response.length() - suffix.length()).trim();
+            String threat = response.substring(prefix.length(), response.length() - suffix.length())
+                    .trim();
             return ScanResult.infected(threat.isBlank() ? "unknown" : threat);
         }
         throw new IllegalStateException("Unexpected ClamAV response");

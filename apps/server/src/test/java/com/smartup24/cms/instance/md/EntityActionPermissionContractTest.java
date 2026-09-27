@@ -1,18 +1,17 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Every action an entity offers (ADR-0019, 2.2) is a right an endpoint really checks: {@code form-meta} shows a
@@ -32,7 +31,8 @@ class EntityActionPermissionContractTest {
             if (!declared.contains(entity.form() + ".view")) missing.add(entity.code() + " view");
             for (EntityDefinition.EntityAction action : entity.actions()) {
                 if (!declared.contains(entity.form() + "." + action.permission())) {
-                    missing.add(entity.code() + " " + action.code() + " → " + entity.form() + "." + action.permission());
+                    missing.add(
+                            entity.code() + " " + action.code() + " → " + entity.form() + "." + action.permission());
                 }
             }
         }
@@ -47,7 +47,8 @@ class EntityActionPermissionContractTest {
         for (var definition : scanner.findCandidateComponents("com.smartup24.cms.instance")) {
             Class<?> type = Class.forName(definition.getBeanClassName());
             for (Method method : type.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(Bean.class) && method.getReturnType() == EntityDefinition.class
+                if (method.isAnnotationPresent(Bean.class)
+                        && method.getReturnType() == EntityDefinition.class
                         && method.getParameterCount() == 0) {
                     var ctor = type.getDeclaredConstructor();
                     ctor.setAccessible(true);

@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.kauth.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class SsoProviderRepository {
@@ -30,8 +29,7 @@ public class SsoProviderRepository {
             boolean isEnabled,
             boolean autoProvision,
             Instant createdAt,
-            Instant updatedAt
-    ) {}
+            Instant updatedAt) {}
 
     public List<SsoProviderRecord> findEnabledProviders() {
         return jdbcClient.sql("""
@@ -41,13 +39,12 @@ public class SsoProviderRepository {
                 from md_sso_providers
                 where is_enabled = true
                 order by id asc
-                """)
-                .query(SsoProviderRecord.class)
-                .list();
+                """).query(SsoProviderRecord.class).list();
     }
 
     public Optional<SsoProviderRecord> findByProviderId(String providerId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, provider_id, name, icon, client_id, client_secret,
                        authorization_url, token_url, userinfo_url, scopes,
                        is_enabled, auto_provision, created_at, updated_at

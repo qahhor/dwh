@@ -46,6 +46,5 @@ public final class SecurityContext {
             long permissionVersion,
             boolean forcePasswordChange,
             @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion,
-            @com.fasterxml.jackson.annotation.JsonIgnore Long apiTokenId
-    ) {}
+            @com.fasterxml.jackson.annotation.JsonIgnore Long apiTokenId) {}
 }

@@ -17,8 +17,8 @@ public class KauthUserSessionInvalidator implements UserSessionInvalidator {
     private final KauthSessionRepository sessionRepository;
     private final KauthApiTokenRepository apiTokenRepository;
 
-    public KauthUserSessionInvalidator(KauthSessionRepository sessionRepository,
-                                       KauthApiTokenRepository apiTokenRepository) {
+    public KauthUserSessionInvalidator(
+            KauthSessionRepository sessionRepository, KauthApiTokenRepository apiTokenRepository) {
         this.sessionRepository = sessionRepository;
         this.apiTokenRepository = apiTokenRepository;
     }

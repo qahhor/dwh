@@ -18,29 +18,56 @@ public final class UplPackageModel {
     /** Проверенный пакет применён загрузкой основы (следующий инкремент). */
     public static final String APPLIED = "applied";
 
-    private UplPackageModel() {
-    }
+    private UplPackageModel() {}
 
     /** Строка пакета вместе с кодом и названием источника. */
-    public record PackageRow(long id, UUID publicId, long sourceId, String sourceCode, String sourceName,
-                             int formatVersion, LocalDate periodFrom, LocalDate periodTo, UUID fileId,
-                             String fileName, String fileSha256, long fileSizeBytes, String status,
-                             Integer rowsTotal, Integer rowsAccepted, Integer rowsRejected, Integer errorsTotal,
-                             String rejectCode, Map<String, Object> rejectParams, Long loadId, Integer rawRows,
-                             Instant uploadedAt, String uploadedBy) {
-    }
+    public record PackageRow(
+            long id,
+            UUID publicId,
+            long sourceId,
+            String sourceCode,
+            String sourceName,
+            int formatVersion,
+            LocalDate periodFrom,
+            LocalDate periodTo,
+            UUID fileId,
+            String fileName,
+            String fileSha256,
+            long fileSizeBytes,
+            String status,
+            Integer rowsTotal,
+            Integer rowsAccepted,
+            Integer rowsRejected,
+            Integer errorsTotal,
+            String rejectCode,
+            Map<String, Object> rejectParams,
+            Long loadId,
+            Integer rawRows,
+            Instant uploadedAt,
+            String uploadedBy) {}
 
     /** Данные нового пакета: всё, что известно в момент приёма файла. */
-    public record NewPackage(long sourceId, int formatVersion, LocalDate periodFrom, LocalDate periodTo,
-                             UUID fileId, String fileName, String fileSha256, long fileSizeBytes, long uploadedById) {
-    }
+    public record NewPackage(
+            long sourceId,
+            int formatVersion,
+            LocalDate periodFrom,
+            LocalDate periodTo,
+            UUID fileId,
+            String fileName,
+            String fileSha256,
+            long fileSizeBytes,
+            long uploadedById) {}
 
     /** Запись об ошибке пакета: {@code rowNo == null} — расхождение с анкетой, иначе ошибка ячейки. */
-    public record ErrorRow(int ordinal, String sheet, Integer rowNo, String columnName, String cellValue,
-                           String code, Map<String, Object> params) {
-    }
+    public record ErrorRow(
+            int ordinal,
+            String sheet,
+            Integer rowNo,
+            String columnName,
+            String cellValue,
+            String code,
+            Map<String, Object> params) {}
 
     /** Ошибки пакета: сколько найдено всего и что сохранено. */
-    public record ErrorsView(int total, List<ErrorRow> items) {
-    }
+    public record ErrorsView(int total, List<ErrorRow> items) {}
 }

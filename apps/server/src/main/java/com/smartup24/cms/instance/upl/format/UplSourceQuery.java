@@ -5,11 +5,10 @@ import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Periodicity;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import java.util.Arrays;
 import java.util.List;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /** Список источников анкеты в реестре полей: {@code GET /api/v1/upl/sources} и {@code /api/v1/query-meta/upl.sources}. */
 @Configuration
@@ -32,12 +31,26 @@ public class UplSourceQuery {
             "upl_sources s",
             "s.id",
             List.of(
-                    QueryField.of("code", "upl.list.col.code", QueryFieldType.TEXT, "s.code").asSortable().asSearchable(),
-                    QueryField.of("name", "upl.list.col.name", QueryFieldType.TEXT, "s.name").asSortable().asSearchable(),
-                    QueryField.enumeration("periodicity", "upl.list.col.periodicity", "s.periodicity",
-                            Arrays.stream(Periodicity.values()).map(Periodicity::db).toList(), "upl.periodicity."),
-                    QueryField.of("lastPublishedVersion", "upl.list.col.published_version", QueryFieldType.NUMBER,
-                            LAST_PUBLISHED_VERSION).asNullable(),
+                    QueryField.of("code", "upl.list.col.code", QueryFieldType.TEXT, "s.code")
+                            .asSortable()
+                            .asSearchable(),
+                    QueryField.of("name", "upl.list.col.name", QueryFieldType.TEXT, "s.name")
+                            .asSortable()
+                            .asSearchable(),
+                    QueryField.enumeration(
+                            "periodicity",
+                            "upl.list.col.periodicity",
+                            "s.periodicity",
+                            Arrays.stream(Periodicity.values())
+                                    .map(Periodicity::db)
+                                    .toList(),
+                            "upl.periodicity."),
+                    QueryField.of(
+                                    "lastPublishedVersion",
+                                    "upl.list.col.published_version",
+                                    QueryFieldType.NUMBER,
+                                    LAST_PUBLISHED_VERSION)
+                            .asNullable(),
                     QueryField.of("hasDraft", "upl.list.col.draft", QueryFieldType.BOOLEAN, HAS_DRAFT)),
             "code");
 

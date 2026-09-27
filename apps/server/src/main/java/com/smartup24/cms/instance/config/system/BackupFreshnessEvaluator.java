@@ -38,16 +38,8 @@ final class BackupFreshnessEvaluator {
     }
 
     private static BackupStatus withFreshness(
-            BackupStatus status,
-            String freshness,
-            Long ageSeconds,
-            Long maxAgeSeconds) {
+            BackupStatus status, String freshness, Long ageSeconds, Long maxAgeSeconds) {
         return new BackupStatus(
-                status.status(),
-                status.completedAt(),
-                status.failureCode(),
-                freshness,
-                ageSeconds,
-                maxAgeSeconds);
+                status.status(), status.completedAt(), status.failureCode(), freshness, ageSeconds, maxAgeSeconds);
     }
 }

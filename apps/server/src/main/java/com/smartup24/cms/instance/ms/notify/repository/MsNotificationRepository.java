@@ -1,10 +1,9 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MsNotificationRepository {
@@ -15,8 +14,10 @@ public class MsNotificationRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public NotificationRecord create(Long userId, String type, String title, String body, String formLink, String sourceCode) {
-        return jdbcClient.sql("""
+    public NotificationRecord create(
+            Long userId, String type, String title, String body, String formLink, String sourceCode) {
+        return jdbcClient
+                .sql("""
                 insert into ms_notifications (user_id, type, title, body, form_link, source_code, is_read, created_at)
                 values (:userId, :type, :title, :body, :formLink, :sourceCode, false, now())
                 returning id, user_id, type, title, body, form_link, source_code, is_read, created_at
@@ -36,13 +37,13 @@ public class MsNotificationRepository {
                         rs.getString("form_link"),
                         rs.getString("source_code"),
                         rs.getBoolean("is_read"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .single();
     }
 
     public List<NotificationRecord> listUserNotifications(Long userId, int limit) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, user_id, type, title, body, form_link, source_code, is_read, created_at
                 from ms_notifications
                 where user_id = :userId
@@ -60,8 +61,7 @@ public class MsNotificationRepository {
                         rs.getString("form_link"),
                         rs.getString("source_code"),
                         rs.getBoolean("is_read"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .list();
     }
 
@@ -69,14 +69,12 @@ public class MsNotificationRepository {
         return jdbcClient.sql("""
                 select count(*) from ms_notifications
                 where user_id = :userId and not is_read
-                """)
-                .param("userId", userId)
-                .query(Integer.class)
-                .single();
+                """).param("userId", userId).query(Integer.class).single();
     }
 
     public void markAsRead(Long notificationId, Long userId) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update ms_notifications
                 set is_read = true
                 where id = :notificationId and user_id = :userId
@@ -91,13 +89,12 @@ public class MsNotificationRepository {
                 update ms_notifications
                 set is_read = true
                 where user_id = :userId and not is_read
-                """)
-                .param("userId", userId)
-                .update();
+                """).param("userId", userId).update();
     }
 
     public boolean hasRecentNotification(Long userId, String sourceCode, Instant since) {
-        return Boolean.TRUE.equals(jdbcClient.sql("""
+        return Boolean.TRUE.equals(jdbcClient
+                .sql("""
                 select exists(
                     select 1 from ms_notifications
                     where user_id = :userId
@@ -121,6 +118,5 @@ public class MsNotificationRepository {
             String formLink,
             String sourceCode,
             boolean isRead,
-            Instant createdAt
-    ) {}
+            Instant createdAt) {}
 }

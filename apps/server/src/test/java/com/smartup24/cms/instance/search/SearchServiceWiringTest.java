@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
@@ -13,9 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-
 class SearchServiceWiringTest {
 
     @Test
@@ -24,14 +24,20 @@ class SearchServiceWiringTest {
             context.registerBean(TypesenseClient.class, () -> mock(TypesenseClient.class));
             context.registerBean(SearchFallbackRepository.class, () -> mock(SearchFallbackRepository.class));
             context.registerBean(SearchIndexStateRepository.class, () -> mock(SearchIndexStateRepository.class));
-            context.registerBean(SearchSettingsRepository.class,
-                    () -> mock(SearchSettingsRepository.class));
+            context.registerBean(SearchSettingsRepository.class, () -> mock(SearchSettingsRepository.class));
             context.registerBean(SearchExecutionSnapshotReader.class);
             context.registerBean(SearchAccessPolicy.class, () -> mock(SearchAccessPolicy.class));
             context.registerBean(SearchResultBudget.class, SearchResultBudget::new);
             context.registerBean(SearchOwnerRateLimits.class, () -> new SearchOwnerRateLimits() {
-                @Override public int userPerMinute() { return 600; }
-                @Override public int tokenPerMinute() { return 300; }
+                @Override
+                public int userPerMinute() {
+                    return 600;
+                }
+
+                @Override
+                public int tokenPerMinute() {
+                    return 300;
+                }
             });
             context.registerBean(SearchPolicyProvider.class);
             context.registerBean(SearchService.class);
@@ -57,7 +63,9 @@ class SearchServiceWiringTest {
         assertThat(exact).isNotNull();
         assertThat(exact.readOnly()).isTrue();
         assertThat(exact.timeout()).isEqualTo(2);
-        assertThat(SearchService.class.getMethod("search", String.class, String.class, int.class)
-                .getAnnotation(Transactional.class)).isNull();
+        assertThat(SearchService.class
+                        .getMethod("search", String.class, String.class, int.class)
+                        .getAnnotation(Transactional.class))
+                .isNull();
     }
 }

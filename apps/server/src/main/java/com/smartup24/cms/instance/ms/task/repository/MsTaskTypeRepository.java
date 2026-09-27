@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MsTaskTypeRepository {
@@ -29,7 +28,8 @@ public class MsTaskTypeRepository {
     }
 
     public List<TypeRecord> listTypes() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, code, name, icon, color, order_no, is_system, created_at
                 from ms_task_types
                 order by order_no asc, id asc
@@ -42,13 +42,13 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .list();
     }
 
     public Optional<TypeRecord> findById(Long id) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, code, name, icon, color, order_no, is_system, created_at
                 from ms_task_types
                 where id = :id
@@ -62,13 +62,13 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .optional();
     }
 
     public Optional<TypeRecord> findByCode(String code) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, code, name, icon, color, order_no, is_system, created_at
                 from ms_task_types
                 where code = :code
@@ -82,13 +82,13 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .optional();
     }
 
     public TypeRecord create(String code, String name, String icon, String color, int orderNo) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into ms_task_types (code, name, icon, color, order_no, is_system, created_at)
                 values (:code, :name, :icon, :color, :orderNo, false, now())
                 returning id, code, name, icon, color, order_no, is_system, created_at
@@ -106,13 +106,13 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .single();
     }
 
     public void update(Long id, String name, String icon, String color, Integer orderNo) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 update ms_task_types
                 set name = coalesce(:name, name),
                     icon = coalesce(:icon, icon),
@@ -129,7 +129,8 @@ public class MsTaskTypeRepository {
     }
 
     public boolean delete(Long id) {
-        int rows = jdbcClient.sql("delete from ms_task_types where id = :id and is_system = false")
+        int rows = jdbcClient
+                .sql("delete from ms_task_types where id = :id and is_system = false")
                 .param("id", id)
                 .update();
         return rows > 0;
@@ -138,13 +139,13 @@ public class MsTaskTypeRepository {
     public void reorder(List<Long> orderedIds) {
         if (orderedIds == null || orderedIds.isEmpty()) return;
         for (int i = 0; i < orderedIds.size(); i++) {
-            jdbcClient.sql("update ms_task_types set order_no = :orderNo where id = :id")
+            jdbcClient
+                    .sql("update ms_task_types set order_no = :orderNo where id = :id")
                     .param("orderNo", (i + 1) * 10)
                     .param("id", orderedIds.get(i))
                     .update();
         }
     }
-
 
     public record TypeRecord(
             Long id,
@@ -154,6 +155,5 @@ public class MsTaskTypeRepository {
             String color,
             int orderNo,
             boolean isSystem,
-            Instant createdAt
-    ) {}
+            Instant createdAt) {}
 }

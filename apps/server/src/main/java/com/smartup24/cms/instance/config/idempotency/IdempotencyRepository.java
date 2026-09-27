@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.config.idempotency;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class IdempotencyRepository {
@@ -29,11 +28,11 @@ public class IdempotencyRepository {
             Integer responseStatus,
             String responseBody,
             State state,
-            Instant createdAt
-    ) {}
+            Instant createdAt) {}
 
     public Optional<IdempotencyRecord> findByKey(UUID key) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select key, user_id, request_hash, response_status, response_body::text, state, created_at
                 from idempotency_keys
                 where key = :key
@@ -46,13 +45,13 @@ public class IdempotencyRepository {
                         rs.getObject("response_status", Integer.class),
                         rs.getString("response_body"),
                         State.valueOf(rs.getString("state")),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .optional();
     }
 
     public boolean tryReserve(UUID key, Long userId, String requestHash, UUID reservationToken, Instant expiredCutoff) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 insert into idempotency_keys
                     (key, user_id, request_hash, response_status, response_body, state, reservation_token, created_at)
                 values (:key, :userId, :requestHash, null, null, 'PENDING', :reservationToken, now())
@@ -64,21 +63,24 @@ public class IdempotencyRepository {
                 where idempotency_keys.state = 'PENDING'
                   and idempotency_keys.created_at < :expiredCutoff
                 """)
-                .param("key", key)
-                .param("userId", userId)
-                .param("requestHash", requestHash)
-                .param("reservationToken", reservationToken)
-                .param("expiredCutoff", Timestamp.from(expiredCutoff))
-                .update() == 1;
+                        .param("key", key)
+                        .param("userId", userId)
+                        .param("requestHash", requestHash)
+                        .param("reservationToken", reservationToken)
+                        .param("expiredCutoff", Timestamp.from(expiredCutoff))
+                        .update()
+                == 1;
     }
 
     public boolean tryReserve(UUID key, Long userId, String requestHash, UUID reservationToken) {
-        return tryReserve(key, userId, requestHash, reservationToken, Instant.now().minusSeconds(120));
+        return tryReserve(
+                key, userId, requestHash, reservationToken, Instant.now().minusSeconds(120));
     }
 
     public boolean complete(UUID key, UUID reservationToken, int responseStatus, String responseBodyJson) {
         String safeBody = (responseBodyJson == null || responseBodyJson.isBlank()) ? "{}" : responseBodyJson;
-        return jdbcClient.sql("""
+        return jdbcClient
+                        .sql("""
                 update idempotency_keys
                 set response_status = :responseStatus,
                     response_body = :responseBody::jsonb,
@@ -88,15 +90,17 @@ public class IdempotencyRepository {
                   and state = 'PENDING'
                   and reservation_token = :reservationToken
                 """)
-                .param("key", key)
-                .param("responseStatus", responseStatus)
-                .param("responseBody", safeBody)
-                .param("reservationToken", reservationToken)
-                .update() == 1;
+                        .param("key", key)
+                        .param("responseStatus", responseStatus)
+                        .param("responseBody", safeBody)
+                        .param("reservationToken", reservationToken)
+                        .update()
+                == 1;
     }
 
     public void release(UUID key, UUID reservationToken) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 delete from idempotency_keys
                 where key = :key
                   and state = 'PENDING'
@@ -108,7 +112,8 @@ public class IdempotencyRepository {
     }
 
     public int deleteOlderThan(Instant cutoff) {
-        return jdbcClient.sql("delete from idempotency_keys where created_at < :cutoff")
+        return jdbcClient
+                .sql("delete from idempotency_keys where created_at < :cutoff")
                 .param("cutoff", Timestamp.from(cutoff))
                 .update();
     }

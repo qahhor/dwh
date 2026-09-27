@@ -1,10 +1,10 @@
 package com.smartup24.cms.instance.config.idempotency;
 
+import static org.mockito.Mockito.*;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import static org.mockito.Mockito.*;
 
 class IdempotencyCleanupWorkerTest {
 

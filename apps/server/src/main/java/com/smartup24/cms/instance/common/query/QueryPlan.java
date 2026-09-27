@@ -10,8 +10,16 @@ import java.util.Set;
  * Проверенный запрос к списку: условия с типизированными значениями, сортировка, размер страницы и курсор.
  * Строится только {@link QueryCompiler}; SQL собирается из выражений реестра, значения идут параметрами.
  */
-public record QueryPlan(QueryList list, List<Condition> conditions, QueryField sort, boolean descending, int limit,
-                        QueryCursor cursor, String fingerprint, String search, Set<String> hiddenFields) {
+public record QueryPlan(
+        QueryList list,
+        List<Condition> conditions,
+        QueryField sort,
+        boolean descending,
+        int limit,
+        QueryCursor cursor,
+        String fingerprint,
+        String search,
+        Set<String> hiddenFields) {
 
     /**
      * Условие фильтра; {@code values} уже приведены к типу поля. {@code group} — номер группы «или»
@@ -29,8 +37,7 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
     }
 
     /** Кусок SQL с его параметрами. Параметры реестра начинаются с {@code q_}, чтобы не спорить с параметрами модуля. */
-    public record SqlFragment(String sql, Map<String, Object> params) {
-    }
+    public record SqlFragment(String sql, Map<String, Object> params) {}
 
     public QueryPlan {
         conditions = List.copyOf(conditions);
@@ -56,7 +63,8 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
             if (condition.group() < 0) {
                 sql.append(" and ").append(test);
             } else {
-                groups.computeIfAbsent(condition.group(), g -> new ArrayList<>()).add(test);
+                groups.computeIfAbsent(condition.group(), g -> new ArrayList<>())
+                        .add(test);
             }
         }
         for (List<String> tests : groups.values()) {
@@ -81,13 +89,18 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
             case GTE -> sql.append(expr).append(" >= :").append(p);
             case LT -> sql.append(expr).append(" < :").append(p);
             case LTE -> sql.append(expr).append(" <= :").append(p);
-            case BETWEEN -> sql.append(expr).append(" between :").append(p).append("_a and :").append(p).append("_b");
+            case BETWEEN ->
+                sql.append(expr)
+                        .append(" between :")
+                        .append(p)
+                        .append("_a and :")
+                        .append(p)
+                        .append("_b");
             case EMPTY -> sql.append(emptyTest(condition.field(), true));
             case NOT_EMPTY -> sql.append(emptyTest(condition.field(), false));
         }
         switch (condition.op()) {
-            case EMPTY, NOT_EMPTY -> {
-            }
+            case EMPTY, NOT_EMPTY -> {}
             case IN -> params.put(p, values);
             case BETWEEN -> {
                 params.put(p + "_a", values.get(0));
@@ -102,7 +115,8 @@ public record QueryPlan(QueryList list, List<Condition> conditions, QueryField s
 
     private void appendSearch(StringBuilder sql, Map<String, Object> params) {
         List<QueryField> searchable = list.fields().stream()
-                .filter(field -> field.searchable() && !hiddenFields.contains(field.key())).toList();
+                .filter(field -> field.searchable() && !hiddenFields.contains(field.key()))
+                .toList();
         if (search != null && !searchable.isEmpty()) {
             sql.append(" and (");
             for (int i = 0; i < searchable.size(); i++) {

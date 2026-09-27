@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class MsTaskCommentRepository {
@@ -17,7 +16,8 @@ public class MsTaskCommentRepository {
     }
 
     public CommentRecord create(Long taskId, Long userId, String textMarkdown, List<UUID> fileIds) {
-        var comment = jdbcClient.sql("""
+        var comment = jdbcClient
+                .sql("""
                 with inserted as (
                     insert into ms_task_comments (task_id, user_id, text_markdown, created_at)
                     values (:taskId, :userId, :textMarkdown, now())
@@ -39,13 +39,13 @@ public class MsTaskCommentRepository {
                         List.of(),
                         rs.getTimestamp("created_at").toInstant(),
                         rs.getString("user_name"),
-                        rs.getString("user_login")
-                ))
+                        rs.getString("user_login")))
                 .single();
 
         if (fileIds != null && !fileIds.isEmpty()) {
             for (UUID fileId : fileIds) {
-                jdbcClient.sql("""
+                jdbcClient
+                        .sql("""
                         insert into ms_task_comment_files (comment_id, file_id)
                         values (:commentId, :fileId)
                         """)
@@ -59,7 +59,8 @@ public class MsTaskCommentRepository {
     }
 
     public List<CommentRecord> listComments(Long taskId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select c.id, c.task_id, c.user_id, c.text_markdown, c.created_at,
                        u.name as user_name, u.login as user_login,
                        coalesce(array_agg(cf.file_id) filter (where cf.file_id is not null), '{}') as file_ids_arr
@@ -82,8 +83,7 @@ public class MsTaskCommentRepository {
                             fileIds,
                             rs.getTimestamp("created_at").toInstant(),
                             rs.getString("user_name"),
-                            rs.getString("user_login")
-                    );
+                            rs.getString("user_login"));
                 })
                 .list();
     }
@@ -96,6 +96,5 @@ public class MsTaskCommentRepository {
             List<UUID> fileIds,
             Instant createdAt,
             String userName,
-            String userLogin
-    ) {}
+            String userLogin) {}
 }

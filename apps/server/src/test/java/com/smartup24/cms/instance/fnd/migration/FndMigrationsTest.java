@@ -1,13 +1,9 @@
 package com.smartup24.cms.instance.fnd.migration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.support.TestDatabases;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -16,8 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * AC-1 (две БД, два набора миграций) и AC-3 (повторный прогон, схема каркаса не изменена).
@@ -32,6 +31,7 @@ class FndMigrationsTest {
      * The columns of audit_log itself are still compared.
      */
     private static final Pattern AUDIT_PARTITION = Pattern.compile("^audit_log_(archived_)?\\d{4}_\\d{2}(_\\d{2})?$");
+
     private static final String COLUMNS_SQL = """
             select table_name, column_name, data_type, is_nullable
               from information_schema.columns
@@ -54,26 +54,48 @@ class FndMigrationsTest {
     void twoDatabasesTwoMigrationSets() {
         // AC-1/M-7: одна история OLTP — и миграции каркаса (V0xx), и наши (V1xx)
         String versionNumber = "split_part(version, '.', 1)::int";
-        Integer oltpMin = oltp.sql("select min(" + versionNumber + ") from flyway_schema_history where version is not null")
-                .query(Integer.class).single();
-        Integer oltpMax = oltp.sql("select max(" + versionNumber + ") from flyway_schema_history where version is not null")
-                .query(Integer.class).single();
+        Integer oltpMin = oltp.sql(
+                        "select min(" + versionNumber + ") from flyway_schema_history where version is not null")
+                .query(Integer.class)
+                .single();
+        Integer oltpMax = oltp.sql(
+                        "select max(" + versionNumber + ") from flyway_schema_history where version is not null")
+                .query(Integer.class)
+                .single();
         assertThat(oltpMin).as("миграции каркаса V0xx").isLessThan(100);
         assertThat(oltpMax).as("наши миграции V1xx").isGreaterThanOrEqualTo(100);
-        assertThat(dwh.sql("select count(*) from flyway_schema_history").query(Long.class).single()).isPositive();
+        assertThat(dwh.sql("select count(*) from flyway_schema_history")
+                        .query(Long.class)
+                        .single())
+                .isPositive();
 
-        List<String> oltpTables = oltp.sql("select table_name from information_schema.tables where table_schema='public'")
-                .query(String.class).list();
+        List<String> oltpTables = oltp.sql(
+                        "select table_name from information_schema.tables where table_schema='public'")
+                .query(String.class)
+                .list();
         assertThat(oltpTables).contains("md_users", "kauth_sessions", "audit_log", "mf_files", "md_settings");
         // Наши таблицы (V100 и далее); список расширяется вместе с миграциями fnd
-        assertThat(oltpTables).contains("fnd_audit_tables", "fnd_job_schedule", "fnd_job_queue", "fnd_job_runs",
-                "fnd_versioned_tables", "fnd_units", "fnd_unit_coefficients", "fnd_unit_coefficient_versions",
-                "fnd_loads", "fnd_load_log");
+        assertThat(oltpTables)
+                .contains(
+                        "fnd_audit_tables",
+                        "fnd_job_schedule",
+                        "fnd_job_queue",
+                        "fnd_job_runs",
+                        "fnd_versioned_tables",
+                        "fnd_units",
+                        "fnd_unit_coefficients",
+                        "fnd_unit_coefficient_versions",
+                        "fnd_loads",
+                        "fnd_load_log");
 
-        List<String> schemas = dwh.sql("select schema_name from information_schema.schemata").query(String.class).list();
+        List<String> schemas = dwh.sql("select schema_name from information_schema.schemata")
+                .query(String.class)
+                .list();
         assertThat(schemas).contains("raw", "core", "mart", "cache");
         List<String> dwhTables = dwh.sql("select table_schema || '.' || table_name from information_schema.tables "
-                        + "where table_schema in ('raw','core','mart','cache')").query(String.class).list();
+                        + "where table_schema in ('raw','core','mart','cache')")
+                .query(String.class)
+                .list();
         assertThat(dwhTables).contains("cache.items", "cache.generations");
         assertThat(dwhTables).noneMatch(t -> t.matches("^[a-z]+\\.(fnd|upl|ref|reg|vit|md|kauth|ms|mf)_.*"));
     }
@@ -97,11 +119,13 @@ class FndMigrationsTest {
             }
             boolean present = current.stream().anyMatch(c -> sameColumn(c, row));
             if (!present) {
-                missingOrChanged.add(row.get("table_name") + "." + row.get("column_name")
-                        + " " + row.get("data_type") + " nullable=" + row.get("is_nullable"));
+                missingOrChanged.add(row.get("table_name") + "." + row.get("column_name") + " " + row.get("data_type")
+                        + " nullable=" + row.get("is_nullable"));
             }
         }
-        assertThat(missingOrChanged).as("колонки каркаса, изменённые или удалённые нашими миграциями").isEmpty();
+        assertThat(missingOrChanged)
+                .as("колонки каркаса, изменённые или удалённые нашими миграциями")
+                .isEmpty();
     }
 
     /** Последняя миграция каркаса: наши файлы нумеруются с V100, всё ниже — upstream. */
@@ -135,15 +159,20 @@ class FndMigrationsTest {
                     .initSql(FndMigrator.UTC_INIT_SQL)
                     .locations("classpath:" + FndPref.OLTP_MIGRATIONS)
                     .target(frameworkBaselineVersion())
-                    .load().migrate();
+                    .load()
+                    .migrate();
             List<Map<String, Object>> rows = JdbcClient.create(TestDatabases.database("cms_snapshot"))
-                    .sql(COLUMNS_SQL).query().listOfRows();
+                    .sql(COLUMNS_SQL)
+                    .query()
+                    .listOfRows();
             Path target = Path.of("src/test/resources", SNAPSHOT);
             Files.writeString(target, json.writerWithDefaultPrettyPrinter().writeValueAsString(rows));
             return rows;
         }
         try (InputStream in = FndMigrationsTest.class.getResourceAsStream("/" + SNAPSHOT)) {
-            assertThat(in).as("тест-ресурс %s отсутствует — снять по инструкции в javadoc", SNAPSHOT).isNotNull();
+            assertThat(in)
+                    .as("тест-ресурс %s отсутствует — снять по инструкции в javadoc", SNAPSHOT)
+                    .isNotNull();
             return json.readValue(in, json.getTypeFactory().constructCollectionType(List.class, Map.class));
         }
     }

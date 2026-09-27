@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.config.security;
 
+import java.util.concurrent.Callable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.concurrent.Callable;
 
 /** Тестовый эндпоинт для проверки CSRF/аутентификации/заголовков (только test-classpath). */
 @RestController

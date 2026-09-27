@@ -1,5 +1,12 @@
 package com.smartup24.cms.instance.capacity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -14,8 +21,18 @@ import com.smartup24.cms.instance.mf.service.MfFileObjectLock;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.report.repository.ReportRepository;
 import com.smartup24.cms.instance.report.service.ReportService;
-import com.smartup24.cms.spi.storage.FileScanner;
 import com.smartup24.cms.spi.storage.StorageProvider;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -26,27 +43,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @Testcontainers
 class CapacityGuardsIntegrationTest {
@@ -172,8 +168,7 @@ class CapacityGuardsIntegrationTest {
 
         // Limit concurrent uploads to 1 permit
         var fileService = new MfFileService(
-                metadataService, storageProvider, contentInspector,
-                List.of(), objectLock, scopeService, 1);
+                metadataService, storageProvider, contentInspector, List.of(), objectLock, scopeService, 1);
 
         CountDownLatch uploadStarted = new CountDownLatch(1);
         CountDownLatch uploadCanFinish = new CountDownLatch(1);
@@ -189,9 +184,14 @@ class CapacityGuardsIntegrationTest {
         // Thread 1 holds the upload permit
         Thread t1 = new Thread(() -> {
             try {
-                fileService.uploadFile("doc1.pdf", "application/pdf",
-                        new ByteArrayInputStream("data".getBytes(StandardCharsets.UTF_8)), 4, 9001L);
-            } catch (Exception ignored) {}
+                fileService.uploadFile(
+                        "doc1.pdf",
+                        "application/pdf",
+                        new ByteArrayInputStream("data".getBytes(StandardCharsets.UTF_8)),
+                        4,
+                        9001L);
+            } catch (Exception ignored) {
+            }
         });
         t1.start();
 
@@ -200,8 +200,12 @@ class CapacityGuardsIntegrationTest {
         // Thread 2 attempts upload while Thread 1 is holding the permit -> Must be rejected with RATE_LIMITED
         Thread t2 = new Thread(() -> {
             try {
-                fileService.uploadFile("doc2.pdf", "application/pdf",
-                        new ByteArrayInputStream("data".getBytes(StandardCharsets.UTF_8)), 4, 9001L);
+                fileService.uploadFile(
+                        "doc2.pdf",
+                        "application/pdf",
+                        new ByteArrayInputStream("data".getBytes(StandardCharsets.UTF_8)),
+                        4,
+                        9001L);
             } catch (Exception e) {
                 secondUploadError.set(e);
             }

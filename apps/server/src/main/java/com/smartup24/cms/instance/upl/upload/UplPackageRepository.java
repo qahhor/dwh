@@ -1,15 +1,11 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
-import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
-import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
-
+import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
+import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
+import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -19,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Чтение и запись пакетов загрузки (таблицы V114). Транзакции и актор аудита ставит сервис.
@@ -168,10 +167,7 @@ public class UplPackageRepository {
                            set load_id = :load,
                                modified_at = now()
                          where id = :id and status = 'verified' and load_id is null
-                        """)
-                .param("load", loadId)
-                .param("id", id)
-                .update();
+                        """).param("load", loadId).param("id", id).update();
     }
 
     /** Переводит пакет «проверен» в «применён»; 0 — пакет уже не «проверен». */
@@ -182,10 +178,7 @@ public class UplPackageRepository {
                                raw_rows = :raw,
                                modified_at = now()
                          where id = :id and status = 'verified'
-                        """)
-                .param("raw", rawRows)
-                .param("id", id)
-                .update();
+                        """).param("raw", rawRows).param("id", id).update();
     }
 
     /** Закрывает пакет «проверен» причиной «отклонён системой» при применении; 0 — пакет уже не «проверен». */

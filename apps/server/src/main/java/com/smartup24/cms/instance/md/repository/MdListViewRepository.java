@@ -1,23 +1,28 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 /** Сохранённые представления списков (V117). Все запросы — только в пределах своего пользователя и списка. */
 @Repository
 public class MdListViewRepository {
 
-    private static final String COLUMNS = "id, list_code, name, state::text as state, is_default, lock_version, modified_at";
+    private static final String COLUMNS =
+            "id, list_code, name, state::text as state, is_default, lock_version, modified_at";
 
-    public record ListView(long id, String listCode, String name, String stateJson, boolean isDefault,
-                           int lockVersion, Instant modifiedAt) {
-    }
+    public record ListView(
+            long id,
+            String listCode,
+            String name,
+            String stateJson,
+            boolean isDefault,
+            int lockVersion,
+            Instant modifiedAt) {}
 
     private final JdbcClient jdbc;
 
@@ -67,8 +72,8 @@ public class MdListViewRepository {
     }
 
     /** @return 0 — представления нет или его уже изменили (другой {@code lock_version}) */
-    public int update(long userId, String listCode, long id, int lockVersion, String name, String stateJson,
-                      boolean isDefault) {
+    public int update(
+            long userId, String listCode, long id, int lockVersion, String name, String stateJson, boolean isDefault) {
         return jdbc.sql("""
                         update md_list_views
                         set name = :name, state = cast(:state as jsonb), is_default = :def,

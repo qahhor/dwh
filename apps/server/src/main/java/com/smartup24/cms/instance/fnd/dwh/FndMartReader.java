@@ -3,10 +3,6 @@ package com.smartup24.cms.instance.fnd.dwh;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
-
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,6 +17,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
+import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 /**
  * Чтение витрин и кеша второй базы (11 п.10–11; 02 п.11; AC-35, AC-36).
@@ -45,14 +44,17 @@ public class FndMartReader {
     public Optional<FndGeneration> currentGeneration() {
         List<Map<String, Object>> rows = query(
                 "select generation_id, load_versions::text as load_versions, switched_at"
-                        + " from cache.generations where state = 'current'", List.of());
+                        + " from cache.generations where state = 'current'",
+                List.of());
         if (rows.isEmpty()) {
             return Optional.empty();
         }
         Map<String, Object> row = rows.getFirst();
         Timestamp switchedAt = (Timestamp) row.get("switched_at");
-        return Optional.of(new FndGeneration(((Number) row.get("generation_id")).longValue(),
-                (String) row.get("load_versions"), switchedAt == null ? null : switchedAt.toInstant()));
+        return Optional.of(new FndGeneration(
+                ((Number) row.get("generation_id")).longValue(),
+                (String) row.get("load_versions"),
+                switchedAt == null ? null : switchedAt.toInstant()));
     }
 
     /**
@@ -66,7 +68,8 @@ public class FndMartReader {
         if (!ALLOWED_SCHEMAS.contains(schema) || !NAME.matcher(table).matches()) {
             throw new ConstraintViolationException(ConstraintErrorCode.DWH_READ_FORBIDDEN);
         }
-        StringBuilder sql = new StringBuilder("select * from ").append(schema).append('.').append(table);
+        StringBuilder sql =
+                new StringBuilder("select * from ").append(schema).append('.').append(table);
         List<Object> values = new ArrayList<>();
         if (filters != null && !filters.isEmpty()) {
             List<String> conditions = new ArrayList<>();
@@ -84,7 +87,7 @@ public class FndMartReader {
 
     private List<Map<String, Object>> query(String sql, List<Object> values) {
         try (Connection connection = dwh.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < values.size(); i++) {
                 statement.setObject(i + 1, values.get(i));
             }
@@ -110,6 +113,5 @@ public class FndMartReader {
     }
 
     /** Поколение кеша: номер, карта версий загрузок и момент переключения (11 п.10–11). */
-    public record FndGeneration(long generationId, String loadVersions, Instant switchedAt) {
-    }
+    public record FndGeneration(long generationId, String loadVersions, Instant switchedAt) {}
 }

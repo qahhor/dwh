@@ -1,19 +1,18 @@
 package com.smartup24.cms.instance.config.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.TrustedProxyProperties;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-
 class ClientIpResolverTest {
 
-    private final ClientIpResolver defaultResolver = new ClientIpResolver(
-            new TrustedProxyProperties(TrustedProxyProperties.DEFAULT_TRUSTED_PROXIES));
+    private final ClientIpResolver defaultResolver =
+            new ClientIpResolver(new TrustedProxyProperties(TrustedProxyProperties.DEFAULT_TRUSTED_PROXIES));
 
     @Test
     @DisplayName("Direct connection from untrusted IP ignores spoofed X-Forwarded-For")
@@ -115,8 +114,7 @@ class ClientIpResolverTest {
     @Test
     @DisplayName("Custom trusted proxy subnet configuration works as expected")
     void customTrustedSubnet() {
-        ClientIpResolver customResolver = new ClientIpResolver(
-                new TrustedProxyProperties(List.of("198.51.100.0/24")));
+        ClientIpResolver customResolver = new ClientIpResolver(new TrustedProxyProperties(List.of("198.51.100.0/24")));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setRemoteAddr("198.51.100.5");

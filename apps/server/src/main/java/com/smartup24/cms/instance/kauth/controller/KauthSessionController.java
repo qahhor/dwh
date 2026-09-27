@@ -9,11 +9,10 @@ import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.kauth.service.UserSecuritySummary;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.time.Instant;
 import java.util.List;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/iam")
@@ -22,8 +21,7 @@ public class KauthSessionController {
     private final KauthSessionService sessionService;
     private final MdUserService userService;
 
-    public KauthSessionController(KauthSessionService sessionService,
-                                  MdUserService userService) {
+    public KauthSessionController(KauthSessionService sessionService, MdUserService userService) {
         this.sessionService = sessionService;
         this.userService = userService;
     }
@@ -66,7 +64,8 @@ public class KauthSessionController {
 
     @GetMapping({"/users/{userId}/sessions", "/profile/sessions/users/{userId}"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
-    public ResponseEntity<List<KauthSessionRepository.SessionRecord>> listUserSessions(@PathVariable("userId") Long userId) {
+    public ResponseEntity<List<KauthSessionRepository.SessionRecord>> listUserSessions(
+            @PathVariable("userId") Long userId) {
         return ResponseEntity.ok(sessionService.getUserActiveSessions(userId));
     }
 
@@ -86,9 +85,9 @@ public class KauthSessionController {
 
     @GetMapping({"/users/{userId}/security", "/profile/sessions/users/{userId}/security"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
-    public ResponseEntity<UserSecuritySummary> getUserSecuritySummary(
-            @PathVariable("userId") Long userId) {
-        var user = userService.findAuthUserById(userId)
+    public ResponseEntity<UserSecuritySummary> getUserSecuritySummary(@PathVariable("userId") Long userId) {
+        var user = userService
+                .findAuthUserById(userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
         return ResponseEntity.ok(sessionService.getUserSecuritySummary(userId, user));
     }
@@ -118,8 +117,7 @@ public class KauthSessionController {
             Instant createdAt,
             Instant lastSeenAt,
             Instant closedAt,
-            boolean current
-    ) {
+            boolean current) {
         public static ActiveSessionDto from(KauthSessionRepository.SessionRecord record, Long currentSessionId) {
             return new ActiveSessionDto(
                     record.id(),
@@ -130,9 +128,7 @@ public class KauthSessionController {
                     record.createdAt(),
                     record.lastSeenAt(),
                     record.closedAt(),
-                    currentSessionId != null && currentSessionId.equals(record.id())
-            );
+                    currentSessionId != null && currentSessionId.equals(record.id()));
         }
     }
 }
-

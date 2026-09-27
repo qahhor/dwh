@@ -2,11 +2,6 @@ package com.smartup24.cms.instance.fnd.jobs;
 
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.config.FndDwhMaintenance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Component;
-
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -15,6 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Component;
 
 /**
  * Сверка двух баз (AC-31): FK между OLTP и pg-dwh нет (02 п.18), поэтому «сироты» ищутся заданием.
@@ -84,7 +83,9 @@ public class FndXdbCheckJob implements FndJobHandler {
             return Set.of();
         }
         return new HashSet<>(oltp.sql("select id from fnd_loads where id = any(:ids)")
-                .param("ids", ids.toArray(Long[]::new)).query(Long.class).list());
+                .param("ids", ids.toArray(Long[]::new))
+                .query(Long.class)
+                .list());
     }
 
     private Set<UUID> knownFileIds(List<UUID> ids) {
@@ -93,7 +94,8 @@ public class FndXdbCheckJob implements FndJobHandler {
         }
         return new HashSet<>(oltp.sql("select id from mf_files where id = any(cast(:ids as uuid[]))")
                 .param("ids", ids.stream().map(UUID::toString).toArray(String[]::new))
-                .query(UUID.class).list());
+                .query(UUID.class)
+                .list());
     }
 
     private static <T> List<T> orphans(List<T> all, Set<T> known) {
@@ -102,13 +104,20 @@ public class FndXdbCheckJob implements FndJobHandler {
 
     private Long systemUserId() {
         return oltp.sql("select id from md_users where login = :login")
-                .param("login", FndPref.SYSTEM_ACTOR).query(Long.class).optional().orElse(null);
+                .param("login", FndPref.SYSTEM_ACTOR)
+                .query(Long.class)
+                .optional()
+                .orElse(null);
     }
 
     private void report(Long systemUserId, String details) {
         oltp.sql("insert into security_events (event_type, user_id, ip, user_agent, details)"
                         + " values (:event, :user, cast(:ip as inet), :agent, cast(:details as jsonb))")
-                .param("event", EVENT).param("user", systemUserId).param("ip", LOCAL_IP)
-                .param("agent", CODE).param("details", details).update();
+                .param("event", EVENT)
+                .param("user", systemUserId)
+                .param("ip", LOCAL_IP)
+                .param("agent", CODE)
+                .param("details", details)
+                .update();
     }
 }

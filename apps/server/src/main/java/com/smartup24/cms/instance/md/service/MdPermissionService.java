@@ -3,15 +3,14 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.md.pref.MdFormCatalog;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MdPermissionService {
@@ -71,10 +70,13 @@ public class MdPermissionService {
             String action = pair.substring(dot + 1);
 
             Optional<EntityRights> rights = entities == null ? Optional.empty() : entities.rights(formCode);
-            permissionRepository.registerForm(formCode,
+            permissionRepository.registerForm(
+                    formCode,
                     rights.map(EntityRights::module).orElseGet(() -> MdFormCatalog.moduleOf(formCode)),
                     rights.map(EntityRights::name).orElseGet(() -> MdFormCatalog.formNameOf(formCode)));
-            permissionRepository.registerFormAction(formCode, action,
+            permissionRepository.registerFormAction(
+                    formCode,
+                    action,
                     rights.map(named -> named.actionNames().get(action))
                             .orElseGet(() -> MdFormCatalog.actionNameOf(formCode, action)));
         }

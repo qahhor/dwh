@@ -1,8 +1,18 @@
 package com.smartup24.cms.instance.config.idempotency;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,17 +26,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers(disabledWithoutDocker = true)
 class IdempotencyFilterIntegrationTest {
@@ -42,8 +41,8 @@ class IdempotencyFilterIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -100,8 +99,7 @@ class IdempotencyFilterIntegrationTest {
                     .as("конкурентный дубликат не достигает бизнес-операции")
                     .isEqualTo(1);
             assertThat(duplicateResponse.getStatus()).isEqualTo(HttpServletResponse.SC_CONFLICT);
-            assertThat(duplicateResponse.getContentAsString())
-                    .contains("idempotency_request_in_progress");
+            assertThat(duplicateResponse.getContentAsString()).contains("idempotency_request_in_progress");
 
             releaseFirstExecution.countDown();
             MockHttpServletResponse firstResponse = first.get(5, TimeUnit.SECONDS);
@@ -122,10 +120,7 @@ class IdempotencyFilterIntegrationTest {
                     (key, user_id, request_hash, state, reservation_token, created_at)
                 values
                     (:key, null, 'oldhash', 'PENDING', :token, now() - interval '5 minutes')
-                """)
-                .param("key", key)
-                .param("token", UUID.randomUUID())
-                .update();
+                """).param("key", key).param("token", UUID.randomUUID()).update();
 
         AtomicInteger executions = new AtomicInteger();
         FilterChain businessOperation = (request, response) -> {

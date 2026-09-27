@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.ms.notify;
 
-import com.smartup24.cms.instance.ms.notify.sse.MsSseRegistry;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.ms.notify.sse.MsSseRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
  * F1 (FR-NOTIF-2): реестр SSE-соединений — доставка, изоляция пользователей,

@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.kauth;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -26,6 +28,8 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,11 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Decision of 2026-09-27: a code or a link reaches the user in the user's language; when that language is not active,
@@ -57,13 +56,21 @@ class KauthChannelTextsTest {
         var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), audit);
         var userRepository = new MdUserRepository(jdbc, mapper);
         settings = new MdSettingService(new MdSettingRepository(jdbc), userRepository, i18n, audit);
-        var scopes = new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc),
-                new MdPermissionService(new MdPermissionRepository(jdbc)), audit);
-        var users = new MdUserService(userRepository, new MdRoleRepository(jdbc),
+        var scopes = new MdScopeService(
+                new MdScopeRepository(jdbc),
+                new MdOrgUnitRepository(jdbc),
+                new MdPermissionService(new MdPermissionRepository(jdbc)),
+                audit);
+        var users = new MdUserService(
+                userRepository,
+                new MdRoleRepository(jdbc),
                 new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
-                new KauthPasswordHasher(), new PasswordValidator(),
+                new KauthPasswordHasher(),
+                new PasswordValidator(),
                 new KauthUserSessionInvalidator(new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
-                Mockito.mock(SearchChangePublisher.class), audit, scopes);
+                Mockito.mock(SearchChangePublisher.class),
+                audit,
+                scopes);
         texts = new KauthChannelTexts(i18n, settings, users);
     }
 
@@ -78,8 +85,9 @@ class KauthChannelTextsTest {
         var text = texts.render(user("en"), "login_code", Map.of("code", "123456", "minutes", "5"));
 
         assertThat(text.subject()).isEqualTo("Sign-in code");
-        assertThat(text.body()).isEqualTo(
-                "Sign-in code: 123456. Valid for 5 min. If you did not try to sign in, change your password.");
+        assertThat(text.body())
+                .isEqualTo(
+                        "Sign-in code: 123456. Valid for 5 min. If you did not try to sign in, change your password.");
     }
 
     @Test
@@ -101,7 +109,9 @@ class KauthChannelTextsTest {
         var text = texts.render(user("kk"), "password_reset", Map.of("link", "https://cms.test/x", "minutes", "15"));
 
         assertThat(text.subject()).isEqualTo("Сброс пароля");
-        assertThat(text.body()).startsWith("Ссылка для смены пароля:\nhttps://cms.test/x").contains("15 мин.");
+        assertThat(text.body())
+                .startsWith("Ссылка для смены пароля:\nhttps://cms.test/x")
+                .contains("15 мин.");
     }
 
     private static Long user(String language) {
@@ -111,6 +121,9 @@ class KauthChannelTextsTest {
                         values (:login, :login, :login || '@test.local', 'hash', 'A', :language)
                         returning id
                         """)
-                .param("login", login).param("language", language).query(Long.class).single();
+                .param("login", login)
+                .param("language", language)
+                .query(Long.class)
+                .single();
     }
 }

@@ -22,7 +22,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -32,60 +31,102 @@ import java.util.function.Function;
 /** Запросы и ответы API анкеты файла (контракт И3). Перечисления — строки в нижнем регистре, как в БД. */
 public final class UplSourceDtos {
 
-    private UplSourceDtos() {
-    }
+    private UplSourceDtos() {}
 
     private static <E, R> R mapOrNull(E value, Function<E, R> mapper) {
         return value == null ? null : mapper.apply(value);
     }
 
     public record SourceRequest(
-            @NotBlank @Size(max = 63) @Pattern(regexp = "[a-z][a-z0-9._-]{1,62}") String code,
+            @NotBlank @Size(max = 63) @Pattern(regexp = "[a-z][a-z0-9._-]{1,62}")
+            String code,
+
             @NotBlank @Size(max = 200) String name,
             @NotBlank @Size(max = 200) String ownerOrg,
             @Size(max = 200) String ownerContact,
-            @NotNull @Pattern(regexp = "month|quarter|year|adhoc") String periodicity,
+
+            @NotNull @Pattern(regexp = "month|quarter|year|adhoc")
+            String periodicity,
+
             @Min(0) @Max(366) int slaDays,
             @Pattern(regexp = "file") String sourceType,
             @Pattern(regexp = "error|warning") String reconciliationStrictness,
             @PositiveOrZero Integer lockVersion) {
 
         public SourceData toData() {
-            return new SourceData(code, name, ownerOrg, ownerContact, Periodicity.fromDb(periodicity), slaDays,
+            return new SourceData(
+                    code,
+                    name,
+                    ownerOrg,
+                    ownerContact,
+                    Periodicity.fromDb(periodicity),
+                    slaDays,
                     mapOrNull(sourceType, SourceType::fromDb),
                     mapOrNull(reconciliationStrictness, Strictness::fromDb));
         }
     }
 
-    public record SourceItem(long id, String code, String name, String periodicity,
-                             Integer lastPublishedVersion, boolean hasDraft) {
+    public record SourceItem(
+            long id, String code, String name, String periodicity, Integer lastPublishedVersion, boolean hasDraft) {
 
         public static SourceItem of(SourceSummary s) {
-            return new SourceItem(s.id(), s.code(), s.name(), mapOrNull(s.periodicity(), Periodicity::db),
-                    s.lastPublishedVersion(), s.hasDraft());
+            return new SourceItem(
+                    s.id(),
+                    s.code(),
+                    s.name(),
+                    mapOrNull(s.periodicity(), Periodicity::db),
+                    s.lastPublishedVersion(),
+                    s.hasDraft());
         }
     }
 
-    public record SourceResponse(long id, String code, String name, String ownerOrg, String ownerContact,
-                                 String periodicity, int slaDays, String sourceType, String reconciliationStrictness,
-                                 int lockVersion, Integer lastPublishedVersion, boolean hasDraft,
-                                 Instant createdAt, Instant modifiedAt) {
+    public record SourceResponse(
+            long id,
+            String code,
+            String name,
+            String ownerOrg,
+            String ownerContact,
+            String periodicity,
+            int slaDays,
+            String sourceType,
+            String reconciliationStrictness,
+            int lockVersion,
+            Integer lastPublishedVersion,
+            boolean hasDraft,
+            Instant createdAt,
+            Instant modifiedAt) {
 
         public static SourceResponse of(SourceView v) {
             var s = v.source();
-            return new SourceResponse(s.id(), s.code(), s.name(), s.ownerOrg(), s.ownerContact(),
-                    mapOrNull(s.periodicity(), Periodicity::db), s.slaDays(),
-                    mapOrNull(s.sourceType(), SourceType::db), mapOrNull(s.strictness(), Strictness::db),
-                    s.lockVersion(), v.lastPublishedVersion(), v.hasDraft(), s.createdAt(), s.modifiedAt());
+            return new SourceResponse(
+                    s.id(),
+                    s.code(),
+                    s.name(),
+                    s.ownerOrg(),
+                    s.ownerContact(),
+                    mapOrNull(s.periodicity(), Periodicity::db),
+                    s.slaDays(),
+                    mapOrNull(s.sourceType(), SourceType::db),
+                    mapOrNull(s.strictness(), Strictness::db),
+                    s.lockVersion(),
+                    v.lastPublishedVersion(),
+                    v.hasDraft(),
+                    s.createdAt(),
+                    s.modifiedAt());
         }
     }
 
-    public record VersionItem(int version, String status, LocalDate validFrom, LocalDate validTo,
-                              Instant publishedAt, String publishedBy) {
+    public record VersionItem(
+            int version,
+            String status,
+            LocalDate validFrom,
+            LocalDate validTo,
+            Instant publishedAt,
+            String publishedBy) {
 
         public static VersionItem of(FormatVersion v) {
-            return new VersionItem(v.version(), v.status(), v.validFrom(), v.validTo(),
-                    v.publishedAt(), v.publishedBy());
+            return new VersionItem(
+                    v.version(), v.status(), v.validFrom(), v.validTo(), v.publishedAt(), v.publishedBy());
         }
     }
 
@@ -94,8 +135,13 @@ public final class UplSourceDtos {
             Integer ordinal,
             @Positive Integer filePosition,
             @NotBlank @Size(max = 200) String nameInFile,
-            @NotNull @Pattern(regexp = "[a-z][a-z0-9_]{0,62}") String targetField,
-            @NotNull @Pattern(regexp = "text|integer|number|date|object_key|ref_code") String dataType,
+
+            @NotNull @Pattern(regexp = "[a-z][a-z0-9_]{0,62}")
+            String targetField,
+
+            @NotNull @Pattern(regexp = "text|integer|number|date|object_key|ref_code")
+            String dataType,
+
             boolean required,
             String sourceUnit,
             String baseUnit,
@@ -107,15 +153,41 @@ public final class UplSourceDtos {
 
         /** Порядок колонки берётся из позиции в списке (контракт: {@code ordinal} = позиция), id назначает БД. */
         public Column toModel(int position) {
-            return new Column(null, position, filePosition, nameInFile, targetField, DataType.fromDb(dataType),
-                    required, sourceUnit, baseUnit, keyMask, keyPadLength, keyPadMax, refBookCode,
-                    headerSynonyms == null ? List.of() : headerSynonyms.stream().map(String::strip).toList());
+            return new Column(
+                    null,
+                    position,
+                    filePosition,
+                    nameInFile,
+                    targetField,
+                    DataType.fromDb(dataType),
+                    required,
+                    sourceUnit,
+                    baseUnit,
+                    keyMask,
+                    keyPadLength,
+                    keyPadMax,
+                    refBookCode,
+                    headerSynonyms == null
+                            ? List.of()
+                            : headerSynonyms.stream().map(String::strip).toList());
         }
 
         public static ColumnDto of(Column c) {
-            return new ColumnDto(c.id(), c.ordinal(), c.filePosition(), c.nameInFile(), c.targetField(),
-                    mapOrNull(c.dataType(), DataType::db), c.required(), c.sourceUnit(), c.baseUnit(),
-                    c.keyMask(), c.keyPadLength(), c.keyPadMax(), c.refBookCode(), c.headerSynonyms());
+            return new ColumnDto(
+                    c.id(),
+                    c.ordinal(),
+                    c.filePosition(),
+                    c.nameInFile(),
+                    c.targetField(),
+                    mapOrNull(c.dataType(), DataType::db),
+                    c.required(),
+                    c.sourceUnit(),
+                    c.baseUnit(),
+                    c.keyMask(),
+                    c.keyPadLength(),
+                    c.keyPadMax(),
+                    c.refBookCode(),
+                    c.headerSynonyms());
         }
     }
 
@@ -137,8 +209,15 @@ public final class UplSourceDtos {
         }
 
         public static SheetDto of(Sheet s) {
-            return new SheetDto(s.id(), s.ordinal(), s.sheetName(), s.headerRow(), s.totalRowMarker(),
-                    s.columns() == null ? List.of() : s.columns().stream().map(ColumnDto::of).toList());
+            return new SheetDto(
+                    s.id(),
+                    s.ordinal(),
+                    s.sheetName(),
+                    s.headerRow(),
+                    s.totalRowMarker(),
+                    s.columns() == null
+                            ? List.of()
+                            : s.columns().stream().map(ColumnDto::of).toList());
         }
     }
 
@@ -155,27 +234,51 @@ public final class UplSourceDtos {
             for (int i = 0; i < sheets.size(); i++) {
                 models.add(sheets.get(i).toModel(i + 1));
             }
-            return new DraftData(mapOrNull(fileKind, FileKind::fromDb), encoding, delimiter,
-                    mapOrNull(matchColumnsBy, MatchBy::fromDb), List.copyOf(models));
+            return new DraftData(
+                    mapOrNull(fileKind, FileKind::fromDb),
+                    encoding,
+                    delimiter,
+                    mapOrNull(matchColumnsBy, MatchBy::fromDb),
+                    List.copyOf(models));
         }
     }
 
-    public record FormatVersionResponse(long sourceId, int version, String status, LocalDate validFrom,
-                                        LocalDate validTo, Instant publishedAt, String publishedBy, int lockVersion,
-                                        String fileKind, String encoding, String delimiter, String matchColumnsBy,
-                                        List<SheetDto> sheets) {
+    public record FormatVersionResponse(
+            long sourceId,
+            int version,
+            String status,
+            LocalDate validFrom,
+            LocalDate validTo,
+            Instant publishedAt,
+            String publishedBy,
+            int lockVersion,
+            String fileKind,
+            String encoding,
+            String delimiter,
+            String matchColumnsBy,
+            List<SheetDto> sheets) {
 
         public static FormatVersionResponse of(FormatVersion v) {
-            return new FormatVersionResponse(v.sourceId(), v.version(), v.status(), v.validFrom(), v.validTo(),
-                    v.publishedAt(), v.publishedBy(), v.lockVersion(), mapOrNull(v.fileKind(), FileKind::db),
-                    v.encoding(), v.delimiter(), mapOrNull(v.matchColumnsBy(), MatchBy::db),
-                    v.sheets() == null ? List.of() : v.sheets().stream().map(SheetDto::of).toList());
+            return new FormatVersionResponse(
+                    v.sourceId(),
+                    v.version(),
+                    v.status(),
+                    v.validFrom(),
+                    v.validTo(),
+                    v.publishedAt(),
+                    v.publishedBy(),
+                    v.lockVersion(),
+                    mapOrNull(v.fileKind(), FileKind::db),
+                    v.encoding(),
+                    v.delimiter(),
+                    mapOrNull(v.matchColumnsBy(), MatchBy::db),
+                    v.sheets() == null
+                            ? List.of()
+                            : v.sheets().stream().map(SheetDto::of).toList());
         }
     }
 
-    public record CreateDraftRequest(@Positive Integer copyFrom) {
-    }
+    public record CreateDraftRequest(@Positive Integer copyFrom) {}
 
-    public record PublishRequest(@NotNull LocalDate validFrom) {
-    }
+    public record PublishRequest(@NotNull LocalDate validFrom) {}
 }

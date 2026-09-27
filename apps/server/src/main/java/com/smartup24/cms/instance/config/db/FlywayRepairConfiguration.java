@@ -34,8 +34,11 @@ public class FlywayRepairConfiguration {
 
     static void repairThenMigrate(Flyway flyway) {
         RepairResult repair = flyway.repair();
-        log.warn("migration_history_repaired aligned={} deleted={} removed={}",
-                repair.migrationsAligned.size(), repair.migrationsDeleted.size(), repair.migrationsRemoved.size());
+        log.warn(
+                "migration_history_repaired aligned={} deleted={} removed={}",
+                repair.migrationsAligned.size(),
+                repair.migrationsDeleted.size(),
+                repair.migrationsRemoved.size());
         flyway.migrate();
     }
 }

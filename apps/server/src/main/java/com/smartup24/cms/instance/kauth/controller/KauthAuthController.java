@@ -12,15 +12,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -43,9 +42,7 @@ public class KauthAuthController {
         this.sessionService = sessionService;
         this.userService = userService;
         this.csrfTokenRepository = csrfTokenRepository;
-        this.clientIpResolver = clientIpResolver != null
-                ? clientIpResolver
-                : new ClientIpResolver(null);
+        this.clientIpResolver = clientIpResolver != null ? clientIpResolver : new ClientIpResolver(null);
     }
 
     public KauthAuthController(
@@ -58,9 +55,7 @@ public class KauthAuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(
-            @Valid @RequestBody LoginDto body,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            @Valid @RequestBody LoginDto body, HttpServletRequest request, HttpServletResponse response) {
 
         String ip = clientIpResolver.resolveClientIp(request);
         String userAgent = request.getHeader("User-Agent") != null ? request.getHeader("User-Agent") : "Unknown";
@@ -68,25 +63,17 @@ public class KauthAuthController {
         var result = authService.login(body.login(), body.password(), ip, userAgent, body.deviceInfo());
 
         if (result.isOtpRequired()) {
-            return ResponseEntity.ok(Map.of(
-                    "step", "otp",
-                    "otp_token", result.otpToken()
-            ));
+            return ResponseEntity.ok(Map.of("step", "otp", "otp_token", result.otpToken()));
         }
 
         setSessionCookie(request, response, result.rawSessionCookie());
 
-        return ResponseEntity.ok(Map.of(
-                "step", "success",
-                "user", MdUserView.from(result.user())
-        ));
+        return ResponseEntity.ok(Map.of("step", "success", "user", MdUserView.from(result.user())));
     }
 
     @PostMapping("/otp")
     public ResponseEntity<?> verifyOtp(
-            @Valid @RequestBody OtpVerifyDto body,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            @Valid @RequestBody OtpVerifyDto body, HttpServletRequest request, HttpServletResponse response) {
 
         String ip = clientIpResolver.resolveClientIp(request);
         String userAgent = request.getHeader("User-Agent") != null ? request.getHeader("User-Agent") : "Unknown";
@@ -94,10 +81,7 @@ public class KauthAuthController {
         var result = authService.verifyOtp(body.otpToken(), body.code(), ip, userAgent, body.deviceInfo());
         setSessionCookie(request, response, result.rawSessionCookie());
 
-        return ResponseEntity.ok(Map.of(
-                "step", "success",
-                "user", MdUserView.from(result.user())
-        ));
+        return ResponseEntity.ok(Map.of("step", "success", "user", MdUserView.from(result.user())));
     }
 
     @PostMapping("/logout")
@@ -151,21 +135,10 @@ public class KauthAuthController {
         csrfTokenRepository.saveToken(csrfTokenRepository.generateToken(request), request, response);
     }
 
-    public record LoginDto(
-            @NotBlank String login,
-            @NotBlank String password,
-            String deviceInfo
-    ) {}
+    public record LoginDto(@NotBlank String login, @NotBlank String password, String deviceInfo) {}
 
     public record OtpVerifyDto(
-            @NotBlank String otpToken,
-            @NotBlank String code,
-            String deviceInfo
-    ) {}
+            @NotBlank String otpToken, @NotBlank String code, String deviceInfo) {}
 
-    public record MeResponse(
-            MdUserView user,
-            Set<String> permissions,
-            long permissionsVersion
-    ) {}
+    public record MeResponse(MdUserView user, Set<String> permissions, long permissionsVersion) {}
 }

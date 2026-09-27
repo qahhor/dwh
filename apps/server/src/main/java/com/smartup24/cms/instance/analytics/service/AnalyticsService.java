@@ -5,10 +5,9 @@ import com.smartup24.cms.instance.analytics.dto.ProjectDistributionDto;
 import com.smartup24.cms.instance.analytics.dto.TrendDataPointDto;
 import com.smartup24.cms.instance.analytics.dto.UserWorkloadDto;
 import com.smartup24.cms.instance.analytics.repository.AnalyticsRepository;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @Transactional(readOnly = true)

@@ -7,11 +7,10 @@ import com.smartup24.cms.instance.common.entity.FormFieldType;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
 /**
  * The custom fields of an entity as fields of its form (ADR-0019, 2.3), with the same key as in its list
@@ -55,7 +54,8 @@ public class MdCustomFieldFormFields implements FormFieldExtender {
                         ? FormField.of(key, "", FormFieldType.TEXT).length(null, MAX_TEXT)
                         : FormField.select(key, "", options, null);
             }
-            case "user_ref" -> FormField.of(key, "", FormFieldType.NUMBER).refersTo(QueryRef.paged("/iam/users", "name"));
+            case "user_ref" ->
+                FormField.of(key, "", FormFieldType.NUMBER).refersTo(QueryRef.paged("/iam/users", "name"));
             default -> null;
         };
         if (field == null) return null;

@@ -1,8 +1,5 @@
 package com.smartup24.cms.instance.audit.service;
 
-import org.springframework.stereotype.Component;
-import tools.jackson.databind.ObjectMapper;
-
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,6 +7,8 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Removes credential material before audit data crosses either the persistence
@@ -37,8 +36,8 @@ public class AuditDataRedactor {
                 .map(String.class::cast)
                 .anyMatch(this::isCredentialKey);
         source.forEach((key, value) -> {
-            boolean sensitiveValue = isCredentialKey(key)
-                    || (semanticValueIsCredential && "value".equals(normalizeKey(key)));
+            boolean sensitiveValue =
+                    isCredentialKey(key) || (semanticValueIsCredential && "value".equals(normalizeKey(key)));
             result.put(key, sensitiveValue ? REDACTED : redactValue(value));
         });
         return Collections.unmodifiableMap(result);
@@ -47,8 +46,7 @@ public class AuditDataRedactor {
     private Object redactValue(Object value) {
         if (value instanceof Map<?, ?> nested) {
             Map<String, Object> stringKeyed = new LinkedHashMap<>();
-            nested.forEach((key, nestedValue) ->
-                    stringKeyed.put(String.valueOf(key), nestedValue));
+            nested.forEach((key, nestedValue) -> stringKeyed.put(String.valueOf(key), nestedValue));
             return redact(stringKeyed);
         }
         if (value instanceof Iterable<?> iterable) {
@@ -64,8 +62,12 @@ public class AuditDataRedactor {
             }
             return Collections.unmodifiableList(result);
         }
-        if (value == null || value instanceof String || value instanceof Number
-                || value instanceof Boolean || value instanceof Character || value instanceof Enum<?>) {
+        if (value == null
+                || value instanceof String
+                || value instanceof Number
+                || value instanceof Boolean
+                || value instanceof Character
+                || value instanceof Enum<?>) {
             return value;
         }
 
@@ -129,8 +131,6 @@ public class AuditDataRedactor {
     }
 
     private String normalizeKey(String key) {
-        return key == null
-                ? ""
-                : key.replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
+        return key == null ? "" : key.replaceAll("[^A-Za-z0-9]", "").toLowerCase(Locale.ROOT);
     }
 }

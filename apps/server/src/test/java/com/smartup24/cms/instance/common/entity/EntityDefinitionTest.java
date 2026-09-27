@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.common.entity;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
@@ -8,17 +11,13 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
-
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /** ADR-0019, roadmap item 54: the entity declaration, its validation and {@code form-meta}. */
 class EntityDefinitionTest {
@@ -39,21 +38,38 @@ class EntityDefinitionTest {
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> entity(List.of(title, title), List.of(new FormSection("main", "m", List.of("title")))))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> entity(List.of(title), List.of(
-                new FormSection("a", "a", List.of("title")), new FormSection("b", "b", List.of("title")))))
+        assertThatThrownBy(() -> entity(
+                        List.of(title),
+                        List.of(
+                                new FormSection("a", "a", List.of("title")),
+                                new FormSection("b", "b", List.of("title")))))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new EntityDefinition("x", "x", null, null, null, null, null, List.of(title),
-                List.of(new FormSection("main", "m", List.of("title"))), List.of(),
-                Set.of(EntityCapability.CUSTOM_FIELDS)))
+        assertThatThrownBy(() -> new EntityDefinition(
+                        "x",
+                        "x",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of(title),
+                        List.of(new FormSection("main", "m", List.of("title"))),
+                        List.of(),
+                        Set.of(EntityCapability.CUSTOM_FIELDS)))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void fieldRejectsABadKeyAndMismatchedOptionsOrRef() {
-        assertThatThrownBy(() -> FormField.of("Bad-key", "l", FormFieldType.TEXT)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> FormField.of("state", "l", FormFieldType.SELECT)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> FormField.of("owner", "l", FormFieldType.REF)).isInstanceOf(IllegalArgumentException.class);
-        assertThat(FormField.of("owner", "l", FormFieldType.NUMBER).refersTo(QueryRef.paged("/iam/users", "name")).type())
+        assertThatThrownBy(() -> FormField.of("Bad-key", "l", FormFieldType.TEXT))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> FormField.of("state", "l", FormFieldType.SELECT))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> FormField.of("owner", "l", FormFieldType.REF))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThat(FormField.of("owner", "l", FormFieldType.NUMBER)
+                        .refersTo(QueryRef.paged("/iam/users", "name"))
+                        .type())
                 .isEqualTo(FormFieldType.REF);
     }
 
@@ -66,10 +82,12 @@ class EntityDefinitionTest {
 
         List<FieldErrorItem> problems = EntityValidator.problems(NOTES, values, false);
 
-        assertThat(problems).extracting(FieldErrorItem::field, FieldErrorItem::code).containsExactly(
-                org.assertj.core.groups.Tuple.tuple("title", EntityValidator.TOO_LONG),
-                org.assertj.core.groups.Tuple.tuple("color", EntityValidator.INVALID),
-                org.assertj.core.groups.Tuple.tuple("isPinned", EntityValidator.INVALID));
+        assertThat(problems)
+                .extracting(FieldErrorItem::field, FieldErrorItem::code)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("title", EntityValidator.TOO_LONG),
+                        org.assertj.core.groups.Tuple.tuple("color", EntityValidator.INVALID),
+                        org.assertj.core.groups.Tuple.tuple("isPinned", EntityValidator.INVALID));
     }
 
     @Test
@@ -79,12 +97,15 @@ class EntityDefinitionTest {
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("title", EntityValidator.REQUIRED));
         assertThat(EntityValidator.problems(NOTES, Map.of(), true)).isEmpty();
         assertThat(EntityValidator.problems(NOTES, Map.of("title", "  "), true))
-                .extracting(FieldErrorItem::code).containsExactly(EntityValidator.REQUIRED);
+                .extracting(FieldErrorItem::code)
+                .containsExactly(EntityValidator.REQUIRED);
 
         assertThatThrownBy(() -> EntityValidator.check(NOTES, Map.of("color", "blue"), false))
                 .isInstanceOfSatisfying(ApiException.class, e -> {
                     assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-                    assertThat(e.getFieldErrors()).extracting(FieldErrorItem::field).containsExactly("title");
+                    assertThat(e.getFieldErrors())
+                            .extracting(FieldErrorItem::field)
+                            .containsExactly("title");
                 });
     }
 
@@ -93,15 +114,17 @@ class EntityDefinitionTest {
         FormField amount = FormField.of("amount", "a", FormFieldType.NUMBER).range(BigDecimal.ZERO, BigDecimal.TEN);
         FormField due = FormField.of("due", "d", FormFieldType.DATE);
         FormField code = FormField.of("code", "c", FormFieldType.TEXT).matching("[A-Z]{3}");
-        EntityDefinition entity = entity(List.of(amount, due, code),
-                List.of(new FormSection("main", "m", List.of("amount", "due", "code"))));
+        EntityDefinition entity = entity(
+                List.of(amount, due, code), List.of(new FormSection("main", "m", List.of("amount", "due", "code"))));
 
         assertThat(EntityValidator.problems(entity, Map.of("amount", "11", "due", "2026-13-01", "code", "ab"), false))
                 .extracting(FieldErrorItem::code)
                 .containsExactly(EntityValidator.OUT_OF_RANGE, EntityValidator.INVALID, EntityValidator.INVALID);
         assertThat(EntityValidator.problems(entity, Map.of("amount", "x"), false))
-                .extracting(FieldErrorItem::code).containsExactly(EntityValidator.INVALID);
-        assertThat(EntityValidator.problems(entity, Map.of("amount", 5, "due", "2026-09-26", "code", "ABC"), false)).isEmpty();
+                .extracting(FieldErrorItem::code)
+                .containsExactly(EntityValidator.INVALID);
+        assertThat(EntityValidator.problems(entity, Map.of("amount", 5, "due", "2026-09-26", "code", "ABC"), false))
+                .isEmpty();
     }
 
     @Test
@@ -109,7 +132,8 @@ class EntityDefinitionTest {
         FormFieldExtender extender = entity -> List.of(
                 FormField.of("cfBudget", "", FormFieldType.NUMBER).custom("Бюджет", "budget"),
                 FormField.of("title", "", FormFieldType.TEXT).custom("Дубль", "title"));
-        EntityRegistry registry = new EntityRegistry(List.of(NOTES), List.of(extender), List.of(EntityFeaturesTest.records(NOTES.code())));
+        EntityRegistry registry = new EntityRegistry(
+                List.of(NOTES), List.of(extender), List.of(EntityFeaturesTest.records(NOTES.code())));
 
         EntityDefinition resolved = registry.find(NOTES.code()).orElseThrow();
 
@@ -118,7 +142,8 @@ class EntityDefinitionTest {
         assertThat(resolved.layout().getLast().key()).isEqualTo(EntityRegistry.CUSTOM_SECTION);
         assertThat(resolved.layout().getLast().fields()).containsExactly("cfBudget");
         // A custom field is the custom field service's to check, not the declared validator's.
-        assertThat(EntityValidator.problems(resolved, Map.of("title", "ok", "cfBudget", "x"), false)).isEmpty();
+        assertThat(EntityValidator.problems(resolved, Map.of("title", "ok", "cfBudget", "x"), false))
+                .isEmpty();
         assertThat(registry.find("unknown")).isEmpty();
         assertThatThrownBy(() -> new EntityRegistry(List.of(NOTES, NOTES))).isInstanceOf(IllegalStateException.class);
     }
@@ -138,7 +163,9 @@ class EntityDefinitionTest {
         assertThat(title.required()).isTrue();
         assertThat(title.maxLength()).isEqualTo(255);
         assertThat(meta.fields().get(2).options()).contains("default", "red");
-        assertThat(meta.layout()).extracting(FormMetaController.SectionMeta::key).containsExactly("main", "settings");
+        assertThat(meta.layout())
+                .extracting(FormMetaController.SectionMeta::key)
+                .containsExactly("main", "settings");
     }
 
     @Test
@@ -147,17 +174,26 @@ class EntityDefinitionTest {
         FormMetaController controller = new FormMetaController(EntityFeaturesTest.notesRegistry());
 
         for (String code : List.of(NOTES.code(), "nope")) {
-            assertThatThrownBy(() -> controller.get(code))
-                    .isInstanceOfSatisfying(ApiException.class, e -> {
-                        assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
-                        assertThat(e.getMessage()).isEqualTo("ENTITY_NOT_FOUND");
-                    });
+            assertThatThrownBy(() -> controller.get(code)).isInstanceOfSatisfying(ApiException.class, e -> {
+                assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
+                assertThat(e.getMessage()).isEqualTo("ENTITY_NOT_FOUND");
+            });
         }
     }
 
     private static EntityDefinition entity(List<FormField> fields, List<FormSection> layout) {
-        return new EntityDefinition("x.items", "x", null, null, null, null, null, fields, layout,
-                List.of(new EntityAction("create", "create")), Set.of());
+        return new EntityDefinition(
+                "x.items",
+                "x",
+                null,
+                null,
+                null,
+                null,
+                null,
+                fields,
+                layout,
+                List.of(new EntityAction("create", "create")),
+                Set.of());
     }
 
     private static SecurityContext.KauthPrincipal principal(Set<String> permissions) {

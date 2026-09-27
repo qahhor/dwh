@@ -36,8 +36,8 @@ public class KauthPasswordResetController {
 
     @PostMapping("/confirm")
     public ResponseEntity<Void> confirm(@Valid @RequestBody ConfirmDto body, HttpServletRequest request) {
-        resetService.confirmReset(body.token(), body.newPassword(),
-                clientIpResolver.resolveClientIp(request), userAgent(request));
+        resetService.confirmReset(
+                body.token(), body.newPassword(), clientIpResolver.resolveClientIp(request), userAgent(request));
         return ResponseEntity.noContent().build();
     }
 
@@ -48,5 +48,6 @@ public class KauthPasswordResetController {
 
     public record RequestDto(@NotBlank String email) {}
 
-    public record ConfirmDto(@NotBlank String token, @NotBlank String newPassword) {}
+    public record ConfirmDto(
+            @NotBlank String token, @NotBlank String newPassword) {}
 }

@@ -8,11 +8,10 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository.LegacyUserFilters;
 import com.smartup24.cms.instance.md.repository.MdUserRepository.UserRecord;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 /**
  * Pages of the user list through the registry ({@code iam.users}): filter, sort and search {@code q}, narrowed by
@@ -28,9 +27,12 @@ public class MdUserListService {
     private final QueryListRegistry registry;
 
     @Autowired
-    public MdUserListService(QueryListRepository lists, MdUserRepository userRepository, MdScopeService scopeService,
-                             MdRoleRepository roleRepository,
-                             QueryListRegistry registry) {
+    public MdUserListService(
+            QueryListRepository lists,
+            MdUserRepository userRepository,
+            MdScopeService scopeService,
+            MdRoleRepository roleRepository,
+            QueryListRegistry registry) {
         this.lists = lists;
         this.userRepository = userRepository;
         this.scopeService = scopeService;
@@ -39,20 +41,34 @@ public class MdUserListService {
     }
 
     /** Without the registry: the declared fields only, no custom fields. */
-    public MdUserListService(QueryListRepository lists, MdUserRepository userRepository, MdScopeService scopeService,
-                             MdRoleRepository roleRepository) {
+    public MdUserListService(
+            QueryListRepository lists,
+            MdUserRepository userRepository,
+            MdScopeService scopeService,
+            MdRoleRepository roleRepository) {
         this(lists, userRepository, scopeService, roleRepository, null);
     }
 
     /** The page as the API answers it: safe views with each user's roles. The screen and the export share it. */
     @Transactional(readOnly = true)
-    public KeysetPage<MdUserView> pageViews(Long viewerId, Integer limit, String cursor, String filter, String sort,
-                                            String search, LegacyUserFilters legacy) {
+    public KeysetPage<MdUserView> pageViews(
+            Long viewerId,
+            Integer limit,
+            String cursor,
+            String filter,
+            String sort,
+            String search,
+            LegacyUserFilters legacy) {
         KeysetPage<UserRecord> page = page(viewerId, limit, cursor, filter, sort, search, legacy);
-        var roles = roleRepository.getUsersRoleIds(page.items().stream().map(UserRecord::id).toList());
+        var roles = roleRepository.getUsersRoleIds(
+                page.items().stream().map(UserRecord::id).toList());
         return new KeysetPage<>(
-                page.items().stream().map(u -> MdUserView.from(u, roles.getOrDefault(u.id(), List.of()))).toList(),
-                page.nextCursor(), page.hasMore(), page.totalEstimated());
+                page.items().stream()
+                        .map(u -> MdUserView.from(u, roles.getOrDefault(u.id(), List.of())))
+                        .toList(),
+                page.nextCursor(),
+                page.hasMore(),
+                page.totalEstimated());
     }
 
     /**
@@ -60,8 +76,14 @@ public class MdUserListService {
      * @param legacy the old flat filters; they narrow the list and are part of the cursor's fingerprint
      */
     @Transactional(readOnly = true)
-    public KeysetPage<UserRecord> page(Long viewerId, Integer limit, String cursor, String filter, String sort,
-                                       String search, LegacyUserFilters legacy) {
+    public KeysetPage<UserRecord> page(
+            Long viewerId,
+            Integer limit,
+            String cursor,
+            String filter,
+            String sort,
+            String search,
+            LegacyUserFilters legacy) {
         var list = registry == null ? MdUserQuery.LIST : registry.resolve(MdUserQuery.LIST);
         var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
         var scope = scopeService.filterFor(viewerId, "md_users.org_unit_id", "md_users.id");

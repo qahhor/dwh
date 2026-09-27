@@ -1,19 +1,18 @@
 package com.smartup24.cms.instance.audit;
 
-import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository;
-import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository.AuditPartition;
-import com.smartup24.cms.instance.audit.worker.AuditPartitionWorker;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+
+import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository;
+import com.smartup24.cms.instance.audit.repository.AuditPartitionRepository.AuditPartition;
+import com.smartup24.cms.instance.audit.worker.AuditPartitionWorker;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 class AuditPartitionWorkerTest {
 
@@ -23,13 +22,17 @@ class AuditPartitionWorkerTest {
     @Test
     @DisplayName("Имена партиций строятся из месяца и дня с ведущими нулями и разбираются обратно")
     void shouldBuildAndParsePartitionNames() {
-        assertThat(AuditPartitionRepository.partitionName(YearMonth.of(2026, 9))).isEqualTo("audit_log_2026_09");
-        assertThat(AuditPartitionRepository.dayPartitionName(LocalDate.of(2026, 10, 3))).isEqualTo("audit_log_2026_10_03");
+        assertThat(AuditPartitionRepository.partitionName(YearMonth.of(2026, 9)))
+                .isEqualTo("audit_log_2026_09");
+        assertThat(AuditPartitionRepository.dayPartitionName(LocalDate.of(2026, 10, 3)))
+                .isEqualTo("audit_log_2026_10_03");
 
-        assertThat(AuditPartitionRepository.parse("audit_log_2026_10_03", true)).contains(
-                new AuditPartition("audit_log_2026_10_03", LocalDate.of(2026, 10, 3), LocalDate.of(2026, 10, 4), true));
-        assertThat(AuditPartitionRepository.parse("audit_log_archived_2025_08", false)).contains(
-                new AuditPartition("audit_log_archived_2025_08", LocalDate.of(2025, 8, 1), LocalDate.of(2025, 9, 1), false));
+        assertThat(AuditPartitionRepository.parse("audit_log_2026_10_03", true))
+                .contains(new AuditPartition(
+                        "audit_log_2026_10_03", LocalDate.of(2026, 10, 3), LocalDate.of(2026, 10, 4), true));
+        assertThat(AuditPartitionRepository.parse("audit_log_archived_2025_08", false))
+                .contains(new AuditPartition(
+                        "audit_log_archived_2025_08", LocalDate.of(2025, 8, 1), LocalDate.of(2025, 9, 1), false));
         assertThat(AuditPartitionRepository.parse("audit_log_default", true)).isEmpty();
     }
 
@@ -62,7 +65,8 @@ class AuditPartitionWorkerTest {
     void shouldContinueAfterFailureOnSingleDay() {
         when(repository.covers(any())).thenReturn(false);
         Mockito.doThrow(new RuntimeException("конфликт со строками в default"))
-                .when(repository).createDay(LocalDate.of(2026, 11, 2));
+                .when(repository)
+                .createDay(LocalDate.of(2026, 11, 2));
 
         worker.ensureRunwayFrom(LocalDate.of(2026, 11, 1));
 
@@ -77,12 +81,13 @@ class AuditPartitionWorkerTest {
     @Test
     @DisplayName("Партиции старше срока хранения отцепляются — месячные и дневные, свежие и отцеплённые остаются")
     void shouldDetachPartitionsOlderThanRetention() {
-        when(repository.partitions()).thenReturn(List.of(
-                month("audit_log_2025_08", 2025, 8, true),
-                month("audit_log_archived_2025_07", 2025, 7, false),
-                day("audit_log_2025_12_31", LocalDate.of(2025, 12, 31)),
-                day("audit_log_2026_01_01", LocalDate.of(2026, 1, 1)),
-                month("audit_log_2026_09", 2026, 9, true)));
+        when(repository.partitions())
+                .thenReturn(List.of(
+                        month("audit_log_2025_08", 2025, 8, true),
+                        month("audit_log_archived_2025_07", 2025, 7, false),
+                        day("audit_log_2025_12_31", LocalDate.of(2025, 12, 31)),
+                        day("audit_log_2026_01_01", LocalDate.of(2026, 1, 1)),
+                        month("audit_log_2026_09", 2026, 9, true)));
 
         worker.applyRetentionFrom(LocalDate.of(2027, 1, 15));
 
@@ -96,10 +101,12 @@ class AuditPartitionWorkerTest {
     @Test
     @DisplayName("Отказ на одной партиции не мешает отцепить остальные")
     void shouldContinueRetentionAfterFailure() {
-        when(repository.partitions()).thenReturn(List.of(
-                month("audit_log_2025_08", 2025, 8, true), month("audit_log_2025_09", 2025, 9, true)));
+        when(repository.partitions())
+                .thenReturn(
+                        List.of(month("audit_log_2025_08", 2025, 8, true), month("audit_log_2025_09", 2025, 9, true)));
         Mockito.doThrow(new RuntimeException("партиция занята"))
-                .when(repository).detachAndArchive(YearMonth.of(2025, 8));
+                .when(repository)
+                .detachAndArchive(YearMonth.of(2025, 8));
 
         worker.applyRetentionFrom(LocalDate.of(2027, 1, 1));
 

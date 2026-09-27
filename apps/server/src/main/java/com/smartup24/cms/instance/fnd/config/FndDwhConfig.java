@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.fnd.config;
 import com.smartup24.cms.instance.common.health.ReadinessChecks;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.zaxxer.hikari.HikariDataSource;
+import java.time.Duration;
+import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -12,9 +14,6 @@ import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import javax.sql.DataSource;
-import java.time.Duration;
 
 /**
  * Второй {@link DataSource} — {@code pg-dwh}. Единственное место, где он создаётся; за пределы пакета
@@ -48,11 +47,13 @@ public class FndDwhConfig {
         // P0 DWH: без предела один тяжёлый запрос или брошенная транзакция занимали соединение
         // навсегда, а в пуле их четыре. Сервер обрывает запрос и простой в транзакции сам...
         long statementMs = props.statementTimeout().toMillis();
-        ds.addDataSourceProperty("options", "-c statement_timeout=" + statementMs
-                + " -c idle_in_transaction_session_timeout=" + statementMs);
+        ds.addDataSourceProperty(
+                "options",
+                "-c statement_timeout=" + statementMs + " -c idle_in_transaction_session_timeout=" + statementMs);
         // ...а socketTimeout (в секундах) — последняя страховка от мёртвой сети: он длиннее любого
         // серверного предела, включая задания обслуживания, и срабатывает, только если сервер молчит.
-        long longestMs = Math.max(statementMs, props.maintenanceStatementTimeout().toMillis());
+        long longestMs =
+                Math.max(statementMs, props.maintenanceStatementTimeout().toMillis());
         ds.addDataSourceProperty("socketTimeout", String.valueOf((longestMs + 999) / 1000 + 60));
         return ds;
     }
@@ -62,8 +63,9 @@ public class FndDwhConfig {
      * Declared here: the pg-dwh data source does not leave this package (AC-5).
      */
     @Bean
-    public HealthIndicator dwhHealthIndicator(@Qualifier(FndPref.DWH) DataSource dwhDataSource,
-                                              @Value("${dwh.system.health-timeout:2s}") String timeout) {
+    public HealthIndicator dwhHealthIndicator(
+            @Qualifier(FndPref.DWH) DataSource dwhDataSource,
+            @Value("${dwh.system.health-timeout:2s}") String timeout) {
         // Parsed here: the context of the pg-dwh configuration test has no conversion service.
         Duration deadline = DurationStyle.detectAndParse(timeout);
         JdbcClient jdbc = JdbcClient.create(dwhDataSource);
@@ -74,8 +76,8 @@ public class FndDwhConfig {
     }
 
     @Bean
-    public FndDwhMaintenance fndDwhMaintenance(@Qualifier(FndPref.DWH) DataSource dwhDataSource,
-                                               DwhDataSourceProperties props) {
+    public FndDwhMaintenance fndDwhMaintenance(
+            @Qualifier(FndPref.DWH) DataSource dwhDataSource, DwhDataSourceProperties props) {
         return new FndDwhMaintenance(dwhDataSource, props.maintenanceStatementTimeout());
     }
 

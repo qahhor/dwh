@@ -21,15 +21,14 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceData;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceSummary;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Strictness;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /** Анкета файла: источник, черновик, публикация с проверками, чтение версий (контракт И3). */
 @Service
@@ -54,27 +53,31 @@ public class UplSourceService {
     private final FndVersioning versioning;
     private final FndActors actors;
 
-    public UplSourceService(UplFormatRepository repo, UplFormatValidator validator,
-                            FndVersioning versioning, FndActors actors) {
+    public UplSourceService(
+            UplFormatRepository repo, UplFormatValidator validator, FndVersioning versioning, FndActors actors) {
         this.repo = repo;
         this.validator = validator;
         this.versioning = versioning;
         this.actors = actors;
     }
 
-    public record SourceView(Source source, Integer lastPublishedVersion, boolean hasDraft) {
-    }
+    public record SourceView(Source source, Integer lastPublishedVersion, boolean hasDraft) {}
 
-    public record DraftData(FileKind fileKind, String encoding, String delimiter, MatchBy matchColumnsBy,
-                            List<Sheet> sheets) {
-    }
+    public record DraftData(
+            FileKind fileKind, String encoding, String delimiter, MatchBy matchColumnsBy, List<Sheet> sheets) {}
 
     @Transactional
     public SourceView createSource(SourceData d, long userId) {
         FndActor actor = actors.user(userId);
         actors.apply(actor);
-        SourceData data = new SourceData(d.code(), d.name(), d.ownerOrg(), d.ownerContact(), d.periodicity(),
-                d.slaDays(), d.sourceType() == null ? SourceType.FILE : d.sourceType(),
+        SourceData data = new SourceData(
+                d.code(),
+                d.name(),
+                d.ownerOrg(),
+                d.ownerContact(),
+                d.periodicity(),
+                d.slaDays(),
+                d.sourceType() == null ? SourceType.FILE : d.sourceType(),
                 d.strictness() == null ? Strictness.ERROR : d.strictness());
         long id;
         try {
@@ -94,11 +97,17 @@ public class UplSourceService {
         actors.apply(actor);
         Source current = requireSource(id);
         if (d.code() != null && !d.code().equals(current.code())) {
-            throw ApiException.validation(UPL_SOURCE_CODE_IMMUTABLE, List.of(
-                    new FieldErrorItem("code", UPL_SOURCE_CODE_IMMUTABLE, UPL_SOURCE_CODE_IMMUTABLE)));
+            throw ApiException.validation(
+                    UPL_SOURCE_CODE_IMMUTABLE,
+                    List.of(new FieldErrorItem("code", UPL_SOURCE_CODE_IMMUTABLE, UPL_SOURCE_CODE_IMMUTABLE)));
         }
-        SourceData data = new SourceData(current.code(), d.name(), d.ownerOrg(), d.ownerContact(),
-                d.periodicity(), d.slaDays(),
+        SourceData data = new SourceData(
+                current.code(),
+                d.name(),
+                d.ownerOrg(),
+                d.ownerContact(),
+                d.periodicity(),
+                d.slaDays(),
                 d.sourceType() == null ? current.sourceType() : d.sourceType(),
                 d.strictness() == null ? current.strictness() : d.strictness());
         int updated;
@@ -125,8 +134,8 @@ public class UplSourceService {
 
     /** Список по реестру: фильтр — DSL {@link QueryCompiler}, сортировка — ключ поля с минусом для убывания. */
     @Transactional(readOnly = true)
-    public KeysetPage<SourceSummary> listSources(Integer limit, String cursor, String filter, String sort,
-                                                 String search) {
+    public KeysetPage<SourceSummary> listSources(
+            Integer limit, String cursor, String filter, String sort, String search) {
         return repo.pageSources(QueryCompiler.compile(UplSourceQuery.LIST, filter, sort, limit, cursor, search));
     }
 
@@ -146,7 +155,8 @@ public class UplSourceService {
     @Transactional(readOnly = true)
     public FormatVersion versionAt(long sourceId, LocalDate at) {
         requireSource(sourceId);
-        int version = versioning.versionAt(TABLE, sourceId, at)
+        int version = versioning
+                .versionAt(TABLE, sourceId, at)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, FND_VERSION_UNKNOWN));
         return getVersion(sourceId, version);
     }
@@ -162,8 +172,13 @@ public class UplSourceService {
             version = FndSqlErrors.translatingVersions(TABLE, () -> versioning.createDraft(TABLE, sourceId, actor));
             if (copy != null) {
                 int lock = getVersion(sourceId, version).lockVersion();
-                versioning.updateDraft(TABLE, sourceId, version, lock, fileColumns(copy.fileKind(),
-                        copy.encoding(), copy.delimiter(), copy.matchColumnsBy()), actor);
+                versioning.updateDraft(
+                        TABLE,
+                        sourceId,
+                        version,
+                        lock,
+                        fileColumns(copy.fileKind(), copy.encoding(), copy.delimiter(), copy.matchColumnsBy()),
+                        actor);
                 repo.replaceSheets(sourceId, version, copy.sheets());
             }
         } catch (ConstraintViolationException | DataAccessException e) {
@@ -181,8 +196,13 @@ public class UplSourceService {
         FileKind kind = d.fileKind() == null ? FileKind.XLSX : d.fileKind();
         MatchBy match = d.matchColumnsBy() == null ? MatchBy.HEADER : d.matchColumnsBy();
         try {
-            versioning.updateDraft(TABLE, sourceId, version, lockVersion,
-                    fileColumns(kind, d.encoding(), d.delimiter(), match), actor);
+            versioning.updateDraft(
+                    TABLE,
+                    sourceId,
+                    version,
+                    lockVersion,
+                    fileColumns(kind, d.encoding(), d.delimiter(), match),
+                    actor);
             repo.replaceSheets(sourceId, version, d.sheets() == null ? List.of() : d.sheets());
         } catch (ConstraintViolationException | DataAccessException e) {
             throw UplErrors.toApi(e);
@@ -219,8 +239,7 @@ public class UplSourceService {
     }
 
     private Source requireSource(long id) {
-        return repo.findSource(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_SOURCE_NOT_FOUND));
+        return repo.findSource(id).orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_SOURCE_NOT_FOUND));
     }
 
     /** Блокирует строку версии до конца транзакции: параллельные правка и публикация идут по очереди. */

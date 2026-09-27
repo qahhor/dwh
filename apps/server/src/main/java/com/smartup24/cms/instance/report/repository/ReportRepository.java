@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.report.repository;
 
 import com.smartup24.cms.instance.common.security.ScopeFilter;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.function.Consumer;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class ReportRepository {
@@ -24,8 +23,7 @@ public class ReportRepository {
             String statusName,
             Instant endTime,
             Instant createdAt,
-            String reporterName
-    ) {}
+            String reporterName) {}
 
     public static final int DEFAULT_MAX_EXPORT_ROWS = 50_000;
 
@@ -68,8 +66,7 @@ public class ReportRepository {
                     rs.getString("status_name"),
                     endTime != null ? endTime.toInstant() : null,
                     createdAt != null ? createdAt.toInstant() : null,
-                    rs.getString("reporter_name")
-            ));
+                    rs.getString("reporter_name")));
         });
     }
 }

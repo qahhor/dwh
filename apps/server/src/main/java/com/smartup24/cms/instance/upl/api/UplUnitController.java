@@ -3,15 +3,14 @@ package com.smartup24.cms.instance.upl.api;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.upl.UplPref;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-import java.util.Map;
 
 /** Единицы экземпляра для экрана анкеты (К-1, И4): имя — ru, иначе uz, иначе код. */
 @RestController
@@ -55,10 +54,9 @@ public class UplUnitController {
         if (nameI18n == null || nameI18n.isBlank()) {
             return Map.of();
         }
-        return json.readValue(nameI18n, new TypeReference<Map<String, String>>() { });
+        return json.readValue(nameI18n, new TypeReference<Map<String, String>>() {});
     }
 
     /** Единица для выпадающего списка: код, имя на языке пользователя и код базовой единицы. */
-    public record UnitItem(String code, String name, String baseUnitCode) {
-    }
+    public record UnitItem(String code, String name, String baseUnitCode) {}
 }

@@ -23,8 +23,8 @@ public class SearchAccessPolicy {
             throw ApiException.permissionDenied(SearchPref.FORM_SEARCH, "view");
         }
         boolean hasLegacyWildcard = principal.effectivePermissions().contains("*.*");
-        boolean hasAdministratorRole = !hasLegacyWildcard
-                && roleMembershipAuthorizer.hasActiveRole(principal.userId(), ADMINISTRATOR_ROLE);
+        boolean hasAdministratorRole =
+                !hasLegacyWildcard && roleMembershipAuthorizer.hasActiveRole(principal.userId(), ADMINISTRATOR_ROLE);
         if (!hasLegacyWildcard && !hasAdministratorRole) {
             throw ApiException.forbidden(
                     "Глобальный поиск доступен только администраторам до внедрения scope-фильтрации");

@@ -25,7 +25,8 @@ public record ScopeFilter(String sql, boolean bindsUserId, Long userId) {
         return new ScopeFilter(
                 " and " + orgUnitColumn + " in ("
                         + "select org_unit_id from md_effective_scope where user_id = :scopeUserId)",
-                true, userId);
+                true,
+                userId);
     }
 
     /** Правило SELF: видны только собственные строки. */

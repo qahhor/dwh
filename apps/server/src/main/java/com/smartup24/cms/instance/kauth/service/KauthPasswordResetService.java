@@ -10,11 +10,6 @@ import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,6 +17,10 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Password reset by a one-time link (plan 10/10, item 0.1).
@@ -63,15 +62,16 @@ public class KauthPasswordResetService {
     private final TransactionTemplate transaction;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public KauthPasswordResetService(MdUserService userService,
-                                     KauthChannelRepository channelRepository,
-                                     KauthPasswordResetRepository resetRepository,
-                                     KauthLoginAttemptRepository attemptRepository,
-                                     KauthPasswordHasher passwordHasher,
-                                     PasswordValidator passwordValidator,
-                                     AuditLogService auditLogService,
-                                     ApplicationEventPublisher events,
-                                     PlatformTransactionManager transactionManager) {
+    public KauthPasswordResetService(
+            MdUserService userService,
+            KauthChannelRepository channelRepository,
+            KauthPasswordResetRepository resetRepository,
+            KauthLoginAttemptRepository attemptRepository,
+            KauthPasswordHasher passwordHasher,
+            PasswordValidator passwordValidator,
+            AuditLogService auditLogService,
+            ApplicationEventPublisher events,
+            PlatformTransactionManager transactionManager) {
         this.userService = userService;
         this.channelRepository = channelRepository;
         this.resetRepository = resetRepository;
@@ -86,36 +86,43 @@ public class KauthPasswordResetService {
     /** Issues a link when the email belongs to an active user with a confirmed channel; says nothing either way. */
     public void requestReset(String email, String ip, String userAgent) {
         transaction.executeWithoutResult(status -> {
-            var user = userService.findAuthUserByEmail(email)
-                    .filter(u -> MdPref.STATE_ACTIVE.equals(u.state()));
+            var user = userService.findAuthUserByEmail(email).filter(u -> MdPref.STATE_ACTIVE.equals(u.state()));
             if (user.isEmpty()) {
-                auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", null, ip, userAgent,
-                        Map.of("result", "unknown_or_inactive"));
+                auditLogService.logSecurityEvent(
+                        "PASSWORD_RESET_REQUESTED", null, ip, userAgent, Map.of("result", "unknown_or_inactive"));
                 return;
             }
             Long userId = user.get().id();
             var channel = confirmedChannel(userId);
             if (channel.isEmpty()) {
-                auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", userId, ip, userAgent,
-                        Map.of("result", "no_confirmed_channel"));
+                auditLogService.logSecurityEvent(
+                        "PASSWORD_RESET_REQUESTED", userId, ip, userAgent, Map.of("result", "no_confirmed_channel"));
                 return;
             }
             // Two requests at once would each revoke nothing and both issue a link: one at a time per user.
             resetRepository.lockUser(userId);
             Instant now = Instant.now();
             if (resetRepository.countIssuedSince(userId, now.minus(Duration.ofHours(1))) >= MAX_LINKS_PER_HOUR) {
-                auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", userId, ip, userAgent,
-                        Map.of("result", "throttled"));
+                auditLogService.logSecurityEvent(
+                        "PASSWORD_RESET_REQUESTED", userId, ip, userAgent, Map.of("result", "throttled"));
                 return;
             }
 
             String token = randomToken();
             Instant expiresAt = now.plus(LINK_TTL);
             resetRepository.revokeActive(userId);
-            resetRepository.create(userId, user.get().authenticationVersion(), channel.get().channel(),
-                    KauthPasswordHasher.sha256(token), expiresAt);
+            resetRepository.create(
+                    userId,
+                    user.get().authenticationVersion(),
+                    channel.get().channel(),
+                    KauthPasswordHasher.sha256(token),
+                    expiresAt);
             events.publishEvent(new KauthPasswordResetLinkIssued(channel.get(), token, expiresAt));
-            auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", userId, ip, userAgent,
+            auditLogService.logSecurityEvent(
+                    "PASSWORD_RESET_REQUESTED",
+                    userId,
+                    ip,
+                    userAgent,
                     Map.of("result", "link_issued", "channel", channel.get().channel()));
         });
     }
@@ -130,8 +137,8 @@ public class KauthPasswordResetService {
         Instant windowStart = Instant.now().minus(FAILURE_WINDOW);
         if (attemptRepository.countFailedAttemptsForIpSince(ip, ATTEMPT_REJECTED, windowStart) >= MAX_FAILED_CONFIRMS) {
             auditLogService.logSecurityEvent("PASSWORD_RESET_LOCKED", null, ip, userAgent, Map.of());
-            throw ApiException.locked(ErrorCode.RATE_LIMITED,
-                    "Слишком много неверных ссылок сброса пароля. Повторите позже");
+            throw ApiException.locked(
+                    ErrorCode.RATE_LIMITED, "Слишком много неверных ссылок сброса пароля. Повторите позже");
         }
 
         var reset = token == null || token.isBlank()
@@ -150,17 +157,25 @@ public class KauthPasswordResetService {
 
         transaction.executeWithoutResult(status -> {
             if (!resetRepository.consume(reset.get().id())
-                    || !userService.resetPassword(user.get().id(), user.get().authenticationVersion(),
-                    user.get().passwordHash(), newHash)) {
+                    || !userService.resetPassword(
+                            user.get().id(),
+                            user.get().authenticationVersion(),
+                            user.get().passwordHash(),
+                            newHash)) {
                 throw rejectedLink();
             }
-            auditLogService.logSecurityEvent("PASSWORD_RESET_COMPLETED", user.get().id(), ip, userAgent,
+            auditLogService.logSecurityEvent(
+                    "PASSWORD_RESET_COMPLETED",
+                    user.get().id(),
+                    ip,
+                    userAgent,
                     Map.of("channel", reset.get().channel()));
         });
     }
 
     private static ApiException rejectedLink() {
-        return ApiException.badRequest(ErrorCode.RESET_CODE_INVALID,
+        return ApiException.badRequest(
+                ErrorCode.RESET_CODE_INVALID,
                 "Ссылка недействительна: она устарела или уже использована. Запросите новую");
     }
 

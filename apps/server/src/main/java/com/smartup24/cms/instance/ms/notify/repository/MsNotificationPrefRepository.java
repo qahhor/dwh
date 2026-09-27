@@ -1,9 +1,8 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
+import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 public class MsNotificationPrefRepository {
@@ -15,7 +14,8 @@ public class MsNotificationPrefRepository {
     }
 
     public List<NotificationPrefRecord> findByUserId(Long userId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select user_id, event_type, channel, is_enabled
                 from ms_notification_prefs
                 where user_id = :userId
@@ -26,13 +26,13 @@ public class MsNotificationPrefRepository {
                         rs.getLong("user_id"),
                         rs.getString("event_type"),
                         rs.getString("channel"),
-                        rs.getBoolean("is_enabled")
-                ))
+                        rs.getBoolean("is_enabled")))
                 .list();
     }
 
     public void upsert(Long userId, String eventType, String channel, boolean isEnabled) {
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into ms_notification_prefs (user_id, event_type, channel, is_enabled)
                 values (:userId, :eventType, :channel, :isEnabled)
                 on conflict (user_id, event_type, channel)
@@ -46,7 +46,8 @@ public class MsNotificationPrefRepository {
     }
 
     public boolean isEnabled(Long userId, String eventType, String channel, boolean defaultValue) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select is_enabled
                 from ms_notification_prefs
                 where user_id = :userId and event_type = :eventType and channel = :channel
@@ -59,10 +60,5 @@ public class MsNotificationPrefRepository {
                 .orElse(defaultValue);
     }
 
-    public record NotificationPrefRecord(
-            Long userId,
-            String eventType,
-            String channel,
-            boolean isEnabled
-    ) {}
+    public record NotificationPrefRecord(Long userId, String eventType, String channel, boolean isEnabled) {}
 }

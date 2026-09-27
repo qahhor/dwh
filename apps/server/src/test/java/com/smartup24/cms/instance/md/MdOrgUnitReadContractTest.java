@@ -1,5 +1,14 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -12,6 +21,10 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,20 +35,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 @Testcontainers
 class MdOrgUnitReadContractTest {
@@ -60,8 +59,8 @@ class MdOrgUnitReadContractTest {
 
     @BeforeAll
     static void setUpDatabase() {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -72,8 +71,8 @@ class MdOrgUnitReadContractTest {
         databaseScopeRepository = new MdScopeRepository(jdbc);
         databaseRoleRepository = new MdRoleRepository(jdbc);
         databasePermissionService = new MdPermissionService(new MdPermissionRepository(jdbc));
-        var databaseAuditService = new AuditLogService(
-                new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
+        var databaseAuditService =
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         databaseService = new MdScopeService(
                 databaseScopeRepository,
                 new MdOrgUnitRepository(jdbc),
@@ -103,8 +102,8 @@ class MdOrgUnitReadContractTest {
         assertThat(result.orgUnitIds()).containsExactly(3L, 7L);
         assertThat(result.legacyOrgUnitId()).isEqualTo(9L);
         verify(scopeRepository, never()).getEffectiveScope(42L);
-        verify(scopeRepository, never()).replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyList());
+        verify(scopeRepository, never())
+                .replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyList());
         verifyNoInteractions(orgUnitRepository, permissionService, auditLogService);
     }
 
@@ -117,8 +116,8 @@ class MdOrgUnitReadContractTest {
 
         assertThat(result.roleId()).isEqualTo(55L);
         assertThat(result.rule()).isEqualTo(MdScopeService.RULE_ALL);
-        verify(scopeRepository, never()).setRoleRule(org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyString());
+        verify(scopeRepository, never())
+                .setRoleRule(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
         verifyNoInteractions(orgUnitRepository, permissionService, auditLogService);
     }
 
@@ -138,7 +137,7 @@ class MdOrgUnitReadContractTest {
 
     @Test
     void readIdentifiersMustBePositiveBeforeRepositoryLookup() {
-        for (Long invalid : new Long[]{null, 0L, -1L}) {
+        for (Long invalid : new Long[] {null, 0L, -1L}) {
             assertValidation(() -> service.getUserAssignments(invalid));
             assertValidation(() -> service.getUserScope(invalid));
             assertValidation(() -> service.getRoleScopeRule(invalid));
@@ -153,8 +152,8 @@ class MdOrgUnitReadContractTest {
 
         assertValidation(() -> service.assignUserOrgUnits(42L, null));
 
-        verify(scopeRepository, never()).replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyList());
+        verify(scopeRepository, never())
+                .replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyList());
         verifyNoInteractions(orgUnitRepository, permissionService, auditLogService);
     }
 
@@ -162,23 +161,20 @@ class MdOrgUnitReadContractTest {
     void nullZeroAndNegativeAssignmentIdentifiersAreRejectedBeforeReplacement() {
         when(scopeRepository.userExists(42L)).thenReturn(true);
 
-        for (List<Long> invalid : List.of(
-                Arrays.asList(7L, null),
-                List.of(0L),
-                List.of(-1L))) {
+        for (List<Long> invalid : List.of(Arrays.asList(7L, null), List.of(0L), List.of(-1L))) {
             assertValidation(() -> service.assignUserOrgUnits(42L, invalid));
         }
 
-        verify(scopeRepository, never()).replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyList());
+        verify(scopeRepository, never())
+                .replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyList());
         verifyNoInteractions(orgUnitRepository, permissionService, auditLogService);
     }
 
     @Test
     void duplicateAssignmentsAreNormalizedAndSortedBeforeReplacement() {
         when(scopeRepository.userExists(42L)).thenReturn(true);
-        when(orgUnitRepository.findById(anyLong())).thenReturn(
-                Optional.of(mock(MdOrgUnitRepository.OrgUnitRecord.class)));
+        when(orgUnitRepository.findById(anyLong()))
+                .thenReturn(Optional.of(mock(MdOrgUnitRepository.OrgUnitRecord.class)));
         when(scopeRepository.getUserOrgUnitIds(42L)).thenReturn(Set.of());
 
         service.assignUserOrgUnits(42L, List.of(7L, 3L, 7L));
@@ -202,8 +198,8 @@ class MdOrgUnitReadContractTest {
 
         assertNotFound(() -> service.assignUserOrgUnits(42L, List.of()));
 
-        verify(scopeRepository, never()).replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyList());
+        verify(scopeRepository, never())
+                .replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyList());
         verifyNoInteractions(orgUnitRepository, permissionService, auditLogService);
     }
 
@@ -214,8 +210,8 @@ class MdOrgUnitReadContractTest {
         assertNotFound(() -> service.setRoleRule(55L, MdScopeService.RULE_UNITS));
 
         verify(scopeRepository, never()).getRoleRule(55L);
-        verify(scopeRepository, never()).setRoleRule(org.mockito.ArgumentMatchers.anyLong(),
-                org.mockito.ArgumentMatchers.anyString());
+        verify(scopeRepository, never())
+                .setRoleRule(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyString());
         verifyNoInteractions(orgUnitRepository, permissionService, auditLogService);
     }
 
@@ -226,7 +222,9 @@ class MdOrgUnitReadContractTest {
         Long descendantId = insertOrgUnit(assignedId, "READ-BRANCH", "Read branch");
         Long legacyId = insertOrgUnit(rootId, "READ-LEGACY", "Read legacy unit");
         Long userId = insertUser("org_read_contract", legacyId);
-        Long roleId = databaseRoleRepository.create("Read contract subtree role", null, "A", 100).id();
+        Long roleId = databaseRoleRepository
+                .create("Read contract subtree role", null, "A", 100)
+                .id();
         databaseScopeRepository.setRoleRule(roleId, MdScopeService.RULE_SUBTREE);
         databaseRoleRepository.assignRolesToUser(userId, List.of(roleId));
         databaseService.assignUserOrgUnits(userId, List.of(assignedId));
@@ -303,13 +301,15 @@ class MdOrgUnitReadContractTest {
 
     private static void assertNotFound(org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
         assertThatThrownBy(call)
-                .isInstanceOfSatisfying(ApiException.class, error ->
-                        assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
     }
 
     private static void assertValidation(org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
         assertThatThrownBy(call)
-                .isInstanceOfSatisfying(ApiException.class, error ->
-                        assertThat(error.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
     }
 }

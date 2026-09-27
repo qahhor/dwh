@@ -1,17 +1,16 @@
 package com.smartup24.cms.instance.mf;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.mf.storage.LocalStorageProvider;
 import com.smartup24.cms.instance.mf.storage.S3StorageConfiguration;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-
-import java.nio.file.Path;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class StorageProviderSelectionTest {
 
@@ -24,14 +23,13 @@ class StorageProviderSelectionTest {
 
     @Test
     void selectsExactlyOneLocalProviderByDefault() {
-        runner.withPropertyValues("dwh.storage.local-path=" + storagePath)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context.getBeansOfType(StorageProvider.class))
-                            .hasSize(1)
-                            .allSatisfy((name, provider) -> assertThat(provider.getProviderCode())
-                                    .isEqualTo("local_disk"));
-                });
+        runner.withPropertyValues("dwh.storage.local-path=" + storagePath).run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context.getBeansOfType(StorageProvider.class))
+                    .hasSize(1)
+                    .allSatisfy((name, provider) ->
+                            assertThat(provider.getProviderCode()).isEqualTo("local_disk"));
+        });
     }
 
     @Test
@@ -47,8 +45,8 @@ class StorageProviderSelectionTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBeansOfType(StorageProvider.class))
                             .hasSize(1)
-                            .allSatisfy((name, provider) -> assertThat(provider.getProviderCode())
-                                    .isEqualTo("s3"));
+                            .allSatisfy((name, provider) ->
+                                    assertThat(provider.getProviderCode()).isEqualTo("s3"));
                 });
     }
 

@@ -1,10 +1,10 @@
 package com.smartup24.cms.common.crypto;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 class Argon2idPasswordHasherTest {
 
@@ -24,10 +24,8 @@ class Argon2idPasswordHasherTest {
     @Test
     @DisplayName("Пустой пароль вызывает исключение")
     void shouldRejectEmptyPassword() {
-        assertThatThrownBy(() -> hasher.hashPassword(""))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> hasher.hashPassword(null))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> hasher.hashPassword("")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> hasher.hashPassword(null)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

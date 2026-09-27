@@ -1,5 +1,11 @@
 package com.smartup24.cms.instance.ms.notify;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.common.provider.NotificationChannelStartupCheck;
 import com.smartup24.cms.instance.common.provider.ProviderRegistry;
 import com.smartup24.cms.instance.ms.notify.provider.ConsoleMailProvider;
@@ -13,20 +19,13 @@ import com.smartup24.cms.spi.mail.MailSendResult;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import java.util.List;
+import java.util.Properties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
-
-import java.util.List;
-import java.util.Properties;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Каналы доставки (FR-NOTIF-3/4/5).
@@ -39,8 +38,8 @@ import static org.mockito.Mockito.when;
  */
 class NotificationChannelTest {
 
-    private static final MailMessage LETTER = new MailMessage(
-            "user@example.com", "Восстановление пароля", "<p>код</p>", "код", List.of(), "idem-1");
+    private static final MailMessage LETTER =
+            new MailMessage("user@example.com", "Восстановление пароля", "<p>код</p>", "код", List.of(), "idem-1");
 
     @Test
     @DisplayName("Заглушки каналов объявляют себя нездоровыми, а не исправными")
@@ -67,8 +66,7 @@ class NotificationChannelTest {
     void startupCheckIgnoresConfiguredChannel() {
         var check = new NotificationChannelStartupCheck(registryWith(new StubRealMailProvider()));
 
-        assertThat(check.findStubChannels())
-                .noneSatisfy(s -> assertThat(s).contains("почта"));
+        assertThat(check.findStubChannels()).noneSatisfy(s -> assertThat(s).contains("почта"));
     }
 
     @Test
@@ -109,7 +107,10 @@ class NotificationChannelTest {
                 List.of(mailProvider),
                 List.of(new ConsoleSmsProvider()),
                 List.of(new ConsoleMessengerProvider()),
-                "local", mailProvider.getProviderCode(), "console_sms", "console_messenger");
+                "local",
+                mailProvider.getProviderCode(),
+                "console_sms",
+                "console_messenger");
     }
 
     /** Провайдер с «настоящим» кодом: проверяем, что признак заглушки — код, а не класс. */

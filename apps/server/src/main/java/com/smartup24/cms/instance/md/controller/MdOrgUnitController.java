@@ -10,19 +10,18 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * Оргструктура и скоуп данных (ADR-0013).
@@ -78,8 +77,7 @@ public class MdOrgUnitController {
     /** Явные назначения сотрудника и отдельная legacy-привязка. */
     @GetMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
-    public ResponseEntity<MdOrgUnitDtos.UserAssignments> getUserAssignments(
-            @PathVariable("userId") Long userId) {
+    public ResponseEntity<MdOrgUnitDtos.UserAssignments> getUserAssignments(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok(scopeService.getUserAssignments(userId));
     }
 
@@ -93,8 +91,8 @@ public class MdOrgUnitController {
     /** Позиция сотрудника в дереве — полная замена набора узлов. */
     @PutMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
-    public ResponseEntity<Void> assignUser(@PathVariable("userId") Long userId,
-                                           @Valid @RequestBody AssignUnitsDto body) {
+    public ResponseEntity<Void> assignUser(
+            @PathVariable("userId") Long userId, @Valid @RequestBody AssignUnitsDto body) {
         scopeService.assignUserOrgUnits(userId, body.orgUnitIds());
         return ResponseEntity.noContent().build();
     }
@@ -102,8 +100,8 @@ public class MdOrgUnitController {
     /** Правило видимости у роли: ALL, SUBTREE, UNITS или SELF. */
     @PutMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
-    public ResponseEntity<Void> setRoleRule(@PathVariable("roleId") Long roleId,
-                                            @Valid @RequestBody ScopeRuleDto body) {
+    public ResponseEntity<Void> setRoleRule(
+            @PathVariable("roleId") Long roleId, @Valid @RequestBody ScopeRuleDto body) {
         scopeService.setRoleRule(roleId, body.rule());
         return ResponseEntity.noContent().build();
     }
@@ -116,12 +114,7 @@ public class MdOrgUnitController {
     }
 
     public record CreateOrgUnitDto(
-            Long parentId,
-            @NotBlank String code,
-            @NotBlank String name,
-            String kind,
-            int orderNo
-    ) {}
+            Long parentId, @NotBlank String code, @NotBlank String name, String kind, int orderNo) {}
 
     public static class UpdateOrgUnitDto {
         private boolean parentIdPresent;
@@ -136,15 +129,24 @@ public class MdOrgUnitController {
             this.parentId = parentId;
         }
 
-        public void setName(String name) { this.name = name; }
-        public void setKind(String kind) { this.kind = kind; }
-        public void setState(String state) { this.state = state; }
-        public void setOrderNo(Integer orderNo) { this.orderNo = orderNo; }
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setKind(String kind) {
+            this.kind = kind;
+        }
+
+        public void setState(String state) {
+            this.state = state;
+        }
+
+        public void setOrderNo(Integer orderNo) {
+            this.orderNo = orderNo;
+        }
     }
 
-    public record AssignUnitsDto(
-            @NotNull List<@NotNull @Positive Long> orgUnitIds
-    ) {}
+    public record AssignUnitsDto(@NotNull List<@NotNull @Positive Long> orgUnitIds) {}
 
     public record ScopeRuleDto(@NotBlank String rule) {}
 }

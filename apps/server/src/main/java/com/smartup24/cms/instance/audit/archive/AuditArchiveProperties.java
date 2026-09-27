@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.audit.archive;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.bind.DefaultValue;
-import org.springframework.util.unit.DataSize;
-
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Locale;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.util.unit.DataSize;
 
 /**
  * Archiving of the audit log (decision of 2026-09-27): closed partitions go into one gzip file every
@@ -26,8 +25,7 @@ public record AuditArchiveProperties(
         @DefaultValue("100MB") DataSize sizeThreshold,
         @DefaultValue("90d") Duration retention,
         @DefaultValue("false") boolean deleteAfterArchive,
-        @DefaultValue S3 s3
-) {
+        @DefaultValue S3 s3) {
 
     public static final String LOCAL = "local";
     public static final String S3_TARGET = "s3";
@@ -62,8 +60,7 @@ public record AuditArchiveProperties(
             String secretKey,
             String bucket,
             @DefaultValue("audit/") String prefix,
-            @DefaultValue("true") boolean pathStyleAccess
-    ) {
+            @DefaultValue("true") boolean pathStyleAccess) {
         /** The keys stay out of logs and error messages. */
         @Override
         public String toString() {
@@ -72,13 +69,20 @@ public record AuditArchiveProperties(
 
         /** Checked only when the target is S3, so a local installation needs none of it. */
         public void validate() {
-            if (endpoint == null || !endpoint.isAbsolute() || endpoint.getUserInfo() != null
-                    || !("http".equalsIgnoreCase(endpoint.getScheme()) || "https".equalsIgnoreCase(endpoint.getScheme()))) {
-                throw new IllegalStateException("SMC_AUDIT_ARCHIVE_S3_ENDPOINT must be an absolute HTTP(S) URI without credentials");
+            if (endpoint == null
+                    || !endpoint.isAbsolute()
+                    || endpoint.getUserInfo() != null
+                    || !("http".equalsIgnoreCase(endpoint.getScheme())
+                            || "https".equalsIgnoreCase(endpoint.getScheme()))) {
+                throw new IllegalStateException(
+                        "SMC_AUDIT_ARCHIVE_S3_ENDPOINT must be an absolute HTTP(S) URI without credentials");
             }
-            for (var required : new String[][]{{region, "SMC_AUDIT_ARCHIVE_S3_REGION"},
-                    {accessKey, "SMC_AUDIT_ARCHIVE_S3_ACCESS_KEY"}, {secretKey, "SMC_AUDIT_ARCHIVE_S3_SECRET_KEY"},
-                    {bucket, "SMC_AUDIT_ARCHIVE_S3_BUCKET"}}) {
+            for (var required : new String[][] {
+                {region, "SMC_AUDIT_ARCHIVE_S3_REGION"},
+                {accessKey, "SMC_AUDIT_ARCHIVE_S3_ACCESS_KEY"},
+                {secretKey, "SMC_AUDIT_ARCHIVE_S3_SECRET_KEY"},
+                {bucket, "SMC_AUDIT_ARCHIVE_S3_BUCKET"}
+            }) {
                 if (required[0] == null || required[0].isBlank()) {
                     throw new IllegalStateException(required[1] + " is required when SMC_AUDIT_ARCHIVE_TARGET=s3");
                 }

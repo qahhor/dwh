@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.fnd.load;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
@@ -10,17 +14,6 @@ import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.transaction.support.TransactionTemplate;
-
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -38,10 +31,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Блок E основы: версии загрузок и журнал (AC-25…AC-32), плюс состав колонок fnd_loads (AC-44).
@@ -52,6 +51,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
 
     /** Основная загрузка текущей конфигурации: источник, период, версия формата. */
     private String SOURCE;
+
     private LocalDate PERIOD_FROM;
     private LocalDate PERIOD_TO;
     private String FORMAT;
@@ -71,15 +71,20 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
 
     @Autowired
     private FndLoadService loads;
+
     @Autowired
     private FndRawWriter rawWriter;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     @Qualifier(FndPref.DWH)
     private JdbcClient dwhJdbc;
+
     @Autowired
     private TransactionTemplate tx;
 
@@ -92,11 +97,14 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         user = FndActor.user(userId());
         tx.executeWithoutResult(status -> {
             actors.apply(actor);
-            jdbc.sql("select set_config('dwh.maintenance', 'on', true)").query(String.class).single();
+            jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
+                    .query(String.class)
+                    .single();
             jdbc.sql("delete from fnd_load_log").update();
             jdbc.sql("update fnd_loads set superseded_by = null").update();
             jdbc.sql("delete from fnd_loads").update();
-            jdbc.sql("delete from security_events where event_type = 'xdb_mismatch'").update();
+            jdbc.sql("delete from security_events where event_type = 'xdb_mismatch'")
+                    .update();
         });
         dwhJdbc.sql("delete from raw.rows").update();
     }
@@ -123,8 +131,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         assertThat(loads.appliedLoadIds(SOURCE)).containsExactly(loadId);
 
         long another = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
-        assertThat(codeOf(() -> loads.apply(another, 10, 2, 1, user)))
-                .isEqualTo(ConstraintErrorCode.FND_LOADS_CK_ROWS);
+        assertThat(codeOf(() -> loads.apply(another, 10, 2, 1, user))).isEqualTo(ConstraintErrorCode.FND_LOADS_CK_ROWS);
     }
 
     @ParameterizedTest(name = "конфигурация {0}")
@@ -136,14 +143,15 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         long loadId = loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user);
 
         FndRawWriter broken = new BrokenRawWriter();
-        assertThatThrownBy(() -> broken.write(loadId, null, rows(1)))
-                .isInstanceOf(DwhUnavailableException.class);
+        assertThatThrownBy(() -> broken.write(loadId, null, rows(1))).isInstanceOf(DwhUnavailableException.class);
 
         loads.fail(loadId, "источник вернул ошибку TEST", user);
         assertThat(loads.find(loadId).orElseThrow().status()).isEqualTo(FndLoad.FAILED);
         assertThat(loads.appliedLoadIds(SOURCE)).doesNotContain(loadId);
         Map<String, Object> logRow = jdbc.sql("select event, note from fnd_load_log where package_ref = :p")
-                .param("p", packageRef).query().singleRow();
+                .param("p", packageRef)
+                .query()
+                .singleRow();
         assertThat(logRow).containsEntry("event", "failed").containsEntry("note", "источник вернул ошибку TEST");
 
         long other = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
@@ -168,7 +176,8 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         assertThat(codeOf(() -> loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user)))
                 .isEqualTo(ConstraintErrorCode.FND_LOADS_UK_PACKAGE_REF);
         assertThatThrownBy(() -> jdbc.sql("update fnd_loads set status = 'unknown' where id = :id")
-                .param("id", loadId).update())
+                        .param("id", loadId)
+                        .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("fnd_loads_ck_status");
     }
@@ -185,8 +194,8 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         DepartmentFixture.Load other = dept.otherPeriodLoad();
         long otherPeriod = loads.begin(SOURCE, UUID.randomUUID(), other.periodFrom(), other.periodTo(), FORMAT, user);
         loads.apply(otherPeriod, 1, 1, 0, user);
-        long otherSource = loads.begin(dept.otherSourceLoad().source(), UUID.randomUUID(), PERIOD_FROM, PERIOD_TO,
-                FORMAT, user);
+        long otherSource =
+                loads.begin(dept.otherSourceLoad().source(), UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
         loads.apply(otherSource, 1, 1, 0, user);
 
         long second = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
@@ -210,15 +219,21 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         loads.log(packageRef, "получен", null, null, user, "файл принят TEST", sha);
         loads.log(packageRef, "проверен", null, null, user, "проверка пройдена TEST", null);
         assertThat(jdbc.sql("select count(*) from fnd_load_log where package_ref = :p and load_id is null")
-                .param("p", packageRef).query(Long.class).single()).isEqualTo(2L);
+                        .param("p", packageRef)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(2L);
 
         long loadId = loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user);
         loads.apply(loadId, 1, 1, 0, user);
         String longNote = "ў".repeat(4000);
         loads.log(packageRef, "применён", FndLoad.PENDING, FndLoad.APPLIED, user, longNote, null);
 
-        List<Map<String, Object>> journal = jdbc.sql("select event, load_id, note from fnd_load_log"
-                        + " where package_ref = :p order by at, id").param("p", packageRef).query().listOfRows();
+        List<Map<String, Object>> journal = jdbc.sql(
+                        "select event, load_id, note from fnd_load_log" + " where package_ref = :p order by at, id")
+                .param("p", packageRef)
+                .query()
+                .listOfRows();
         assertThat(journal).hasSize(3);
         assertThat(journal.get(2)).containsEntry("event", "применён").containsEntry("load_id", loadId);
         assertThat((String) journal.get(2).get("note")).hasSize(4000).startsWith("ў");
@@ -227,21 +242,32 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_LOG_CK_FILE_SHA);
         assertThat(codeOf(() -> loads.log(packageRef, "получен", null, null, null, null, null)))
                 .isEqualTo(ConstraintErrorCode.AUDIT_ACTOR_MISSING);
-        assertThatThrownBy(() -> jdbc.sql("insert into fnd_load_log (package_ref, event, actor)"
-                        + " values (:p, 'получен', ' ')").param("p", packageRef).update())
-                .isInstanceOf(DataAccessException.class).hasMessageContaining("fnd_load_log_ck_actor");
+        assertThatThrownBy(() -> jdbc.sql(
+                                "insert into fnd_load_log (package_ref, event, actor)" + " values (:p, 'получен', ' ')")
+                        .param("p", packageRef)
+                        .update())
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("fnd_load_log_ck_actor");
 
         assertThatThrownBy(() -> jdbc.sql("update fnd_load_log set note = 'правка' where package_ref = :p")
-                .param("p", packageRef).update())
-                .isInstanceOf(DataAccessException.class).hasMessageContaining("fnd_load_log_append_only");
+                        .param("p", packageRef)
+                        .update())
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("fnd_load_log_append_only");
         assertThatThrownBy(() -> jdbc.sql("delete from fnd_load_log where package_ref = :p")
-                .param("p", packageRef).update())
-                .isInstanceOf(DataAccessException.class).hasMessageContaining("fnd_load_log_append_only");
+                        .param("p", packageRef)
+                        .update())
+                .isInstanceOf(DataAccessException.class)
+                .hasMessageContaining("fnd_load_log_append_only");
         // Сессия обслуживания — единственное исключение (как для audit_log каркаса)
         tx.executeWithoutResult(status -> {
             actors.apply(user); // журнал под аудитом (V106): и обслуживание идёт с актором
-            jdbc.sql("select set_config('dwh.maintenance', 'on', true)").query(String.class).single();
-            assertThat(jdbc.sql("delete from fnd_load_log where package_ref = :p").param("p", packageRef).update())
+            jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
+                    .query(String.class)
+                    .single();
+            assertThat(jdbc.sql("delete from fnd_load_log where package_ref = :p")
+                            .param("p", packageRef)
+                            .update())
                     .isEqualTo(3);
         });
     }
@@ -257,9 +283,12 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
             loads.log(packageRef, "проверен", null, null, user, "вторая строка TEST", null);
         });
         List<OffsetDateTime> times = jdbc.sql("select at from fnd_load_log where package_ref = :p order by id")
-                .param("p", packageRef).query(OffsetDateTime.class).list();
+                .param("p", packageRef)
+                .query(OffsetDateTime.class)
+                .list();
         assertThat(times).hasSize(2);
-        assertThat(times.get(1)).as("at второй строки строго позже первой (clock_timestamp, не now())")
+        assertThat(times.get(1))
+                .as("at второй строки строго позже первой (clock_timestamp, не now())")
                 .isAfter(times.get(0));
     }
 
@@ -276,11 +305,18 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         dwhJdbc.sql("delete from cache.generations").update();
         long generation = dwhJdbc.sql("insert into cache.generations (state, load_versions, switched_at)"
                         + " values ('current', cast(:versions as jsonb), now()) returning generation_id")
-                .param("versions", "{\"" + SOURCE + "\": " + loadId + "}").query(Long.class).single();
+                .param("versions", "{\"" + SOURCE + "\": " + loadId + "}")
+                .query(Long.class)
+                .single();
 
-        List<Long> rawLoadIds = dwhJdbc.sql("select distinct load_id from raw.rows").query(Long.class).list();
-        String cacheVersions = dwhJdbc.sql("select load_versions::text from cache.generations"
-                        + " where generation_id = :id").param("id", generation).query(String.class).single();
+        List<Long> rawLoadIds = dwhJdbc.sql("select distinct load_id from raw.rows")
+                .query(Long.class)
+                .list();
+        String cacheVersions = dwhJdbc.sql(
+                        "select load_versions::text from cache.generations" + " where generation_id = :id")
+                .param("id", generation)
+                .query(String.class)
+                .single();
         assertThat(rawLoadIds).containsExactly(loadId);
         assertThat(cacheVersions).contains(String.valueOf(loadId));
     }
@@ -292,35 +328,64 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         use(fixture);
         long byUser = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
         loads.apply(byUser, 1, 1, 0, user);
-        long byJob = loads.begin(SOURCE, UUID.randomUUID(), dept.otherPeriodLoad().periodFrom(),
-                dept.otherPeriodLoad().periodTo(), FORMAT, actor);
+        long byJob = loads.begin(
+                SOURCE,
+                UUID.randomUUID(),
+                dept.otherPeriodLoad().periodFrom(),
+                dept.otherPeriodLoad().periodTo(),
+                FORMAT,
+                actor);
         loads.apply(byJob, 1, 1, 0, actor);
 
         assertThat(loads.find(byUser).orElseThrow().appliedBy()).isEqualTo(String.valueOf(user.userId()));
         assertThat(loads.find(byJob).orElseThrow().appliedBy()).isEqualTo(FndPref.SYSTEM_ACTOR);
         assertThat(jdbc.sql("select distinct changed_by from audit_log where table_name = 'fnd_loads'"
-                        + " and row_pk = :id").param("id", String.valueOf(byUser))
-                .query(Long.class).list()).containsExactly(user.userId());
+                                + " and row_pk = :id")
+                        .param("id", String.valueOf(byUser))
+                        .query(Long.class)
+                        .list())
+                .containsExactly(user.userId());
         assertThat(jdbc.sql("select distinct changed_by from audit_log where table_name = 'fnd_loads'"
-                        + " and row_pk = :id").param("id", String.valueOf(byJob))
-                .query(Long.class).list()).containsExactly(actor.userId());
+                                + " and row_pk = :id")
+                        .param("id", String.valueOf(byJob))
+                        .query(Long.class)
+                        .list())
+                .containsExactly(actor.userId());
 
         List<String> timestampColumns = jdbc.sql("select data_type from information_schema.columns"
                         + " where table_name in ('fnd_loads', 'fnd_load_log')"
-                        + " and column_name in ('applied_at', 'at')").query(String.class).list();
+                        + " and column_name in ('applied_at', 'at')")
+                .query(String.class)
+                .list();
         assertThat(timestampColumns).isNotEmpty().allMatch("timestamp with time zone"::equals);
     }
 
     @Test
     @DisplayName("AC-44: колонки fnd_loads — ровно список 18 п.14, без канальной специфики")
     void loadsSchemaHasNoChannelColumns() {
-        List<String> columns = jdbc.sql("select column_name from information_schema.columns"
-                + " where table_name = 'fnd_loads'").query(String.class).list();
-        assertThat(columns).containsExactlyInAnyOrder("id", "source_code", "package_ref", "period_from",
-                "period_to", "format_version", "applied_at", "applied_by", "rows_total", "rows_accepted",
-                "rows_rejected", "status", "superseded_by");
+        List<String> columns = jdbc.sql(
+                        "select column_name from information_schema.columns" + " where table_name = 'fnd_loads'")
+                .query(String.class)
+                .list();
+        assertThat(columns)
+                .containsExactlyInAnyOrder(
+                        "id",
+                        "source_code",
+                        "package_ref",
+                        "period_from",
+                        "period_to",
+                        "format_version",
+                        "applied_at",
+                        "applied_by",
+                        "rows_total",
+                        "rows_accepted",
+                        "rows_rejected",
+                        "status",
+                        "superseded_by");
         assertThat(jdbc.sql("select data_type from information_schema.columns where table_name = 'fnd_loads'"
-                        + " and column_name = 'source_code'").query(String.class).single())
+                                + " and column_name = 'source_code'")
+                        .query(String.class)
+                        .single())
                 .isEqualTo("text");
     }
 
@@ -345,8 +410,11 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                 errors.add(outcome.get(30, TimeUnit.SECONDS));
             }
             assertThat(errors).filteredOn(Objects::isNull).hasSize(1);
-            assertThat(errors).filteredOn(Objects::nonNull).singleElement()
-                    .isInstanceOfSatisfying(ConstraintViolationException.class,
+            assertThat(errors)
+                    .filteredOn(Objects::nonNull)
+                    .singleElement()
+                    .isInstanceOfSatisfying(
+                            ConstraintViolationException.class,
                             e -> assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION));
         } finally {
             pool.shutdownNow();
@@ -415,14 +483,16 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                         on conflict (login) do update set name = excluded.name
                         returning id
                         """)
-                .param("login", "loader-test").param("email", "loader-test@localhost")
-                .query(Long.class).single());
+                .param("login", "loader-test")
+                .param("email", "loader-test@localhost")
+                .query(Long.class)
+                .single());
     }
 
     private static List<FndRawRow> rows(int count) {
         return IntStream.rangeClosed(1, count)
-                .mapToObj(number -> new FndRawRow(number, "Лист1", number,
-                        Map.of("code", "TEST-" + number, "value", number)))
+                .mapToObj(number ->
+                        new FndRawRow(number, "Лист1", number, Map.of("code", "TEST-" + number, "value", number)))
                 .toList();
     }
 
@@ -436,14 +506,12 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     private static final class BrokenRawWriter implements FndRawWriter {
         @Override
         public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
-            throw new DwhUnavailableException(
-                    new java.sql.SQLException("pg-dwh недоступен TEST"));
+            throw new DwhUnavailableException(new java.sql.SQLException("pg-dwh недоступен TEST"));
         }
 
         @Override
         public List<FndRawRow> read(long loadId) {
-            throw new DwhUnavailableException(
-                    new java.sql.SQLException("pg-dwh недоступен TEST"));
+            throw new DwhUnavailableException(new java.sql.SQLException("pg-dwh недоступен TEST"));
         }
     }
 }

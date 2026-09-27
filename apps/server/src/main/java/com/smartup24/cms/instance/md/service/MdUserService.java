@@ -7,14 +7,13 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MdUserService {
@@ -50,14 +49,22 @@ public class MdUserService {
         this.auditLogService = auditLogService;
     }
 
-
-
     @Transactional
     public MdUserRepository.UserRecord createUser(
-            String name, String login, String email, String phone, String rawPassword,
-            Long managerId, String language, String timezone, UUID avatarFileId,
-            Map<String, Object> attributes, boolean is2faEnabled, boolean forcePasswordChange,
-            List<Long> roleIds, Long createdBy) {
+            String name,
+            String login,
+            String email,
+            String phone,
+            String rawPassword,
+            Long managerId,
+            String language,
+            String timezone,
+            UUID avatarFileId,
+            Map<String, Object> attributes,
+            boolean is2faEnabled,
+            boolean forcePasswordChange,
+            List<Long> roleIds,
+            Long createdBy) {
 
         scopeService.acquireMutationLock();
         if (userRepository.existsByLogin(login)) {
@@ -68,7 +75,8 @@ public class MdUserService {
         }
         String normalizedPhone = (phone != null && !phone.isBlank()) ? phone.trim() : null;
         if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
-            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
+            throw ApiException.conflict(
+                    ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
         }
 
         // FR-USR-2: Password complexity & dictionary check
@@ -79,29 +87,43 @@ public class MdUserService {
         // Validate custom dynamic fields
         customFieldService.validateAttributes("USER", attributes);
 
-        String passwordHash = rawPassword != null && !rawPassword.isBlank()
-                ? passwordHasher.hashPassword(rawPassword)
-                : null;
+        String passwordHash =
+                rawPassword != null && !rawPassword.isBlank() ? passwordHasher.hashPassword(rawPassword) : null;
 
-        var user = userRepository.create(new MdUserRepository.UserCreateData(
-                name, login, email, normalizedPhone, passwordHash, MdPref.STATE_ACTIVE,
-                managerId, language, timezone, avatarFileId, attributes, is2faEnabled, forcePasswordChange
-        ), createdBy);
+        var user = userRepository.create(
+                new MdUserRepository.UserCreateData(
+                        name,
+                        login,
+                        email,
+                        normalizedPhone,
+                        passwordHash,
+                        MdPref.STATE_ACTIVE,
+                        managerId,
+                        language,
+                        timezone,
+                        avatarFileId,
+                        attributes,
+                        is2faEnabled,
+                        forcePasswordChange),
+                createdBy);
 
         if (roleIds != null && !roleIds.isEmpty()) {
             roleRepository.assignRolesToUser(user.id(), roleIds);
         } else {
             // Assign default 'user' role
-            roleRepository.findByPcode(MdPref.ROLE_USER).ifPresent(r ->
-                    roleRepository.assignRolesToUser(user.id(), List.of(r.id()))
-            );
+            roleRepository
+                    .findByPcode(MdPref.ROLE_USER)
+                    .ifPresent(r -> roleRepository.assignRolesToUser(user.id(), List.of(r.id())));
         }
 
         scopeService.recalculateFor(user.id());
 
         searchChangePublisher.changed("USER", user.id());
 
-        auditLogService.logChange("md_users", String.valueOf(user.id()), "I",
+        auditLogService.logChange(
+                "md_users",
+                String.valueOf(user.id()),
+                "I",
                 List.of("name", "login", "email", "phone"),
                 null,
                 Map.of("id", user.id(), "name", name, "login", login, "email", email));
@@ -111,19 +133,42 @@ public class MdUserService {
 
     @Transactional
     public MdUserRepository.UserRecord createUser(
-            String name, String login, String email, String phone, String rawPassword,
-            Long managerId, String language, String timezone, UUID avatarFileId,
-            Map<String, Object> attributes, boolean is2faEnabled, List<Long> roleIds, Long createdBy) {
-        return createUser(name, login, email, phone, rawPassword, managerId, language, timezone,
-                avatarFileId, attributes, is2faEnabled, false, roleIds, createdBy);
+            String name,
+            String login,
+            String email,
+            String phone,
+            String rawPassword,
+            Long managerId,
+            String language,
+            String timezone,
+            UUID avatarFileId,
+            Map<String, Object> attributes,
+            boolean is2faEnabled,
+            List<Long> roleIds,
+            Long createdBy) {
+        return createUser(
+                name,
+                login,
+                email,
+                phone,
+                rawPassword,
+                managerId,
+                language,
+                timezone,
+                avatarFileId,
+                attributes,
+                is2faEnabled,
+                false,
+                roleIds,
+                createdBy);
     }
 
     @Transactional(readOnly = true)
     public MdUserRepository.UserRecord getUserById(Long userId) {
-        return userRepository.findById(userId)
+        return userRepository
+                .findById(userId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
     }
-
 
     @Transactional(readOnly = true)
     public List<Long> getUserRoleIds(Long userId) {
@@ -136,10 +181,18 @@ public class MdUserService {
     }
 
     @Transactional
-    public void updateUser(Long userId, String name, String phone, Long managerId,
-                           String language, String timezone, UUID avatarFileId,
-                           Map<String, Object> attributes, Boolean is2faEnabled,
-                           List<Long> roleIds, Long modifiedBy) {
+    public void updateUser(
+            Long userId,
+            String name,
+            String phone,
+            Long managerId,
+            String language,
+            String timezone,
+            UUID avatarFileId,
+            Map<String, Object> attributes,
+            Boolean is2faEnabled,
+            List<Long> roleIds,
+            Long modifiedBy) {
 
         if (roleIds != null) {
             scopeService.acquireMutationLock();
@@ -149,7 +202,8 @@ public class MdUserService {
         String normalizedPhone = (phone != null && !phone.isBlank()) ? phone.trim() : null;
         if (normalizedPhone != null && !normalizedPhone.equals(existingUser.phone())) {
             if (userRepository.existsByPhone(normalizedPhone)) {
-                throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
+                throw ApiException.conflict(
+                        ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
             }
         }
 
@@ -157,16 +211,20 @@ public class MdUserService {
             customFieldService.validateAttributes("USER", attributes);
         }
 
-        userRepository.update(userId, new MdUserRepository.UserUpdateData(
-                name, normalizedPhone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled
-        ), modifiedBy);
+        userRepository.update(
+                userId,
+                new MdUserRepository.UserUpdateData(
+                        name, normalizedPhone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled),
+                modifiedBy);
 
         if (roleIds != null) {
             // I-IAM-1: Нельзя снять роль администратора с системного администратора admin
             if (existingUser.login().equalsIgnoreCase("admin")) {
                 roleRepository.findByPcode(MdPref.ROLE_ADMIN).ifPresent(adminRole -> {
                     if (!roleIds.contains(adminRole.id())) {
-                        throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть снята с системного администратора");
+                        throw ApiException.conflict(
+                                ErrorCode.SUPERADMIN_IMMUTABLE,
+                                "Роль администратора не может быть снята с системного администратора");
                     }
                 });
             }
@@ -176,12 +234,14 @@ public class MdUserService {
 
         searchChangePublisher.changed("USER", userId);
 
-        auditLogService.logChange("md_users", String.valueOf(userId), "U",
+        auditLogService.logChange(
+                "md_users",
+                String.valueOf(userId),
+                "U",
                 List.of("name", "phone", "language", "timezone"),
                 Map.of("name", existingUser.name(), "phone", existingUser.phone() != null ? existingUser.phone() : ""),
                 Map.of("name", name != null ? name : existingUser.name(), "phone", phone != null ? phone : ""));
     }
-
 
     @Transactional
     public void changePassword(Long userId, long authenticatedVersion, String oldPassword, String newPassword) {
@@ -207,14 +267,14 @@ public class MdUserService {
         auditLogService.logSecurityEvent("PASSWORD_CHANGED", userId, null, null, Map.of("login", user.login()));
     }
 
-
     @Transactional
     public void setUserState(Long targetUserId, String newState, Long currentUserId) {
         var targetUser = getUserById(targetUserId);
 
         // Immutable Superadmin Protection: Admin user cannot be blocked (TRD-01 / I-IAM-1)
         if (targetUser.login().equalsIgnoreCase("admin") && MdPref.STATE_PASSIVE.equals(newState)) {
-            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "Системный администратор не может быть заблокирован");
+            throw ApiException.conflict(
+                    ErrorCode.SUPERADMIN_IMMUTABLE, "Системный администратор не может быть заблокирован");
         }
 
         userRepository.setState(targetUserId, newState, currentUserId);
@@ -228,7 +288,10 @@ public class MdUserService {
 
         searchChangePublisher.changed("USER", targetUserId);
 
-        auditLogService.logChange("md_users", String.valueOf(targetUserId), "U",
+        auditLogService.logChange(
+                "md_users",
+                String.valueOf(targetUserId),
+                "U",
                 List.of("state"),
                 Map.of("state", targetUser.state()),
                 Map.of("state", newState));
@@ -243,7 +306,10 @@ public class MdUserService {
             sessionInvalidator.invalidateAllAccess(targetUserId);
         }
         searchChangePublisher.changed("USER", targetUserId);
-        auditLogService.logChange("md_users", String.valueOf(targetUserId), "U",
+        auditLogService.logChange(
+                "md_users",
+                String.valueOf(targetUserId),
+                "U",
                 List.of("force_password_change"),
                 Map.of("force_password_change", targetUser.forcePasswordChange()),
                 Map.of("force_password_change", force));
@@ -256,7 +322,10 @@ public class MdUserService {
         userRepository.incrementAuthenticationVersion(targetUserId);
         sessionInvalidator.invalidateAllAccess(targetUserId);
         searchChangePublisher.changed("USER", targetUserId);
-        auditLogService.logChange("md_users", String.valueOf(targetUserId), "U",
+        auditLogService.logChange(
+                "md_users",
+                String.valueOf(targetUserId),
+                "U",
                 List.of("is_2fa_enabled"),
                 Map.of("is_2fa_enabled", targetUser.is2faEnabled()),
                 Map.of("is_2fa_enabled", false));
@@ -280,7 +349,10 @@ public class MdUserService {
 
         searchChangePublisher.changed("USER", targetUserId);
 
-        auditLogService.logChange("md_users", String.valueOf(targetUserId), "D",
+        auditLogService.logChange(
+                "md_users",
+                String.valueOf(targetUserId),
+                "D",
                 List.of("state", "name", "email", "phone"),
                 Map.of("name", targetUser.name(), "login", targetUser.login()),
                 Map.of("name", "Deleted User " + targetUserId, "state", "P"));
@@ -303,23 +375,46 @@ public class MdUserService {
             boolean forcePasswordChange,
             long authenticationVersion,
             Instant createdAt,
-            Instant modifiedAt
-    ) {
+            Instant modifiedAt) {
         public static AuthUser from(MdUserRepository.UserRecord u) {
             return new AuthUser(
-                    u.id(), u.name(), u.login(), u.email(), u.phone(), u.passwordHash(),
-                    u.state(), u.managerId(), u.language(), u.timezone(), u.avatarFileId(),
-                    u.attributes(), u.is2faEnabled(), u.forcePasswordChange(),
-                    u.authenticationVersion(), u.createdAt(), u.modifiedAt()
-            );
+                    u.id(),
+                    u.name(),
+                    u.login(),
+                    u.email(),
+                    u.phone(),
+                    u.passwordHash(),
+                    u.state(),
+                    u.managerId(),
+                    u.language(),
+                    u.timezone(),
+                    u.avatarFileId(),
+                    u.attributes(),
+                    u.is2faEnabled(),
+                    u.forcePasswordChange(),
+                    u.authenticationVersion(),
+                    u.createdAt(),
+                    u.modifiedAt());
         }
 
         public MdUserView toView(List<Long> roleIds) {
             return new MdUserView(
-                    id, name, login, email, phone, state, managerId, language,
-                    timezone, avatarFileId, attributes, is2faEnabled, forcePasswordChange,
-                    roleIds != null ? roleIds : List.of(), createdAt, modifiedAt
-            );
+                    id,
+                    name,
+                    login,
+                    email,
+                    phone,
+                    state,
+                    managerId,
+                    language,
+                    timezone,
+                    avatarFileId,
+                    attributes,
+                    is2faEnabled,
+                    forcePasswordChange,
+                    roleIds != null ? roleIds : List.of(),
+                    createdAt,
+                    modifiedAt);
         }
 
         public MdUserView toView() {
@@ -349,8 +444,8 @@ public class MdUserService {
      * @return {@code false} when the user changed in the meantime: password, generation or state
      */
     @Transactional
-    public boolean resetPassword(Long userId, long expectedAuthVersion, String expectedPasswordHash,
-                                 String newPasswordHash) {
+    public boolean resetPassword(
+            Long userId, long expectedAuthVersion, String expectedPasswordHash, String newPasswordHash) {
         if (!userRepository.compareAndSetPassword(userId, expectedAuthVersion, expectedPasswordHash, newPasswordHash)) {
             return false;
         }

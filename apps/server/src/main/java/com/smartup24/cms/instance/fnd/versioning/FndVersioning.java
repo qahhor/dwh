@@ -6,10 +6,6 @@ import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
 import com.smartup24.cms.instance.fnd.error.StaleVersionException;
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -21,6 +17,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Единственный механизм версий с датой действия для всех модулей DW (02 п.17; 18 п.14; AC-10…AC-17).
@@ -38,8 +37,8 @@ public class FndVersioning {
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-z][a-z0-9_]{0,62}$");
 
     /** Колонки, которыми управляет стандарт версионности (02 п.12, AC-13/AC-16): правятся только через фасад. */
-    private static final Set<String> RESERVED_COLUMNS = Set.of(
-            "id", "status", "version", "valid_from", "valid_to", "lock_version", "published_at", "published_by");
+    private static final Set<String> RESERVED_COLUMNS =
+            Set.of("id", "status", "version", "valid_from", "valid_to", "lock_version", "published_at", "published_by");
 
     private final JdbcClient jdbc;
     private final FndActors actors;
@@ -62,15 +61,22 @@ public class FndVersioning {
     public int createDraft(String versionsTable, long headerId, FndActor actor) {
         String header = headerColumn(versionsTable);
         actors.apply(actor);
-        Integer existing = jdbc.sql("select version from " + versionsTable
-                        + " where " + header + " = :h and status = 'draft'")
-                .param("h", headerId).query(Integer.class).optional().orElse(null);
+        Integer existing = jdbc.sql(
+                        "select version from " + versionsTable + " where " + header + " = :h and status = 'draft'")
+                .param("h", headerId)
+                .query(Integer.class)
+                .optional()
+                .orElse(null);
         if (existing != null) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS);
         }
-        return FndSqlErrors.translatingVersions(versionsTable, () -> jdbc.sql("insert into " + versionsTable
-                        + " (" + header + ", valid_from, status) values (:h, current_date, 'draft') returning version")
-                .param("h", headerId).query(Integer.class).single());
+        return FndSqlErrors.translatingVersions(
+                versionsTable,
+                () -> jdbc.sql("insert into " + versionsTable + " (" + header
+                                + ", valid_from, status) values (:h, current_date, 'draft') returning version")
+                        .param("h", headerId)
+                        .query(Integer.class)
+                        .single());
     }
 
     /**
@@ -81,15 +87,19 @@ public class FndVersioning {
      *                                      {@code fnd_version_not_after_previous} — дата не позже предыдущей версии
      */
     @Transactional
-    public void publish(String versionsTable, long headerId, int version,
-                        LocalDate validFrom, LocalDate validTo, FndActor actor) {
+    public void publish(
+            String versionsTable, long headerId, int version, LocalDate validFrom, LocalDate validTo, FndActor actor) {
         String header = headerColumn(versionsTable);
         actors.apply(actor);
         // Строка черновика берётся под блокировку: параллельный publish той же версии ждёт коммита
         // и видит уже published — отказ, а не «успех» с нулём обновлённых строк
-        String status = jdbc.sql("select status from " + versionsTable
-                        + " where " + header + " = :h and version = :v for update")
-                .param("h", headerId).param("v", version).query(String.class).optional().orElse(null);
+        String status = jdbc.sql("select status from " + versionsTable + " where " + header
+                        + " = :h and version = :v for update")
+                .param("h", headerId)
+                .param("v", version)
+                .query(String.class)
+                .optional()
+                .orElse(null);
         if (!FndVersion.DRAFT.equals(status)) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_UNKNOWN);
         }
@@ -98,7 +108,9 @@ public class FndVersioning {
         Optional<FndVersion> previous = jdbc.sql("select " + header + " as header_id, version, valid_from, valid_to,"
                         + " status, published_at, published_by, lock_version from " + versionsTable
                         + " where " + header + " = :h and status = 'published' order by valid_from desc limit 1")
-                .param("h", headerId).query(FndVersioning::mapVersion).optional();
+                .param("h", headerId)
+                .query(FndVersioning::mapVersion)
+                .optional();
         if (previous.isPresent() && !validFrom.isAfter(previous.get().validFrom())) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_NOT_AFTER_PREVIOUS);
         }
@@ -106,13 +118,19 @@ public class FndVersioning {
             if (previous.isPresent() && previous.get().validTo() == null) {
                 jdbc.sql("update " + versionsTable + " set valid_to = :to where " + header + " = :h and version = :v")
                         .param("to", validFrom.minusDays(1))
-                        .param("h", headerId).param("v", previous.get().version()).update();
+                        .param("h", headerId)
+                        .param("v", previous.get().version())
+                        .update();
             }
             return jdbc.sql("update " + versionsTable + " set status = 'published', valid_from = :from,"
                             + " valid_to = :to, published_at = now(), published_by = :by"
                             + " where " + header + " = :h and version = :v and status = 'draft'")
-                    .param("from", validFrom).param("to", validTo).param("by", actor.name())
-                    .param("h", headerId).param("v", version).update();
+                    .param("from", validFrom)
+                    .param("to", validTo)
+                    .param("by", actor.name())
+                    .param("h", headerId)
+                    .param("v", version)
+                    .update();
         });
         if (published != 1) {
             // Черновик исчез между проверкой и обновлением: транзакция откатывается вместе с закрытием предыдущей
@@ -128,7 +146,9 @@ public class FndVersioning {
         int updated = FndSqlErrors.translating(() -> jdbc.sql("update " + versionsTable
                         + " set status = 'superseded' where " + header + " = :h and version = :v"
                         + " and status = 'published'")
-                .param("h", headerId).param("v", version).update());
+                .param("h", headerId)
+                .param("v", version)
+                .update());
         if (updated == 0) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_UNKNOWN);
         }
@@ -139,8 +159,13 @@ public class FndVersioning {
      * увеличивает триггер, поэтому клиент со старым значением получает {@link StaleVersionException}.
      */
     @Transactional
-    public void updateDraft(String versionsTable, long headerId, int version, int expectedLockVersion,
-                            Map<String, Object> columns, FndActor actor) {
+    public void updateDraft(
+            String versionsTable,
+            long headerId,
+            int version,
+            int expectedLockVersion,
+            Map<String, Object> columns,
+            FndActor actor) {
         String header = headerColumn(versionsTable);
         if (columns.isEmpty()) {
             throw new IllegalArgumentException("Нечего обновлять: список колонок пуст");
@@ -158,11 +183,14 @@ public class FndVersioning {
             checked.put(column, value);
         });
         actors.apply(actor);
-        String assignments = String.join(", ", checked.keySet().stream().map(c -> c + " = :" + c).toList());
+        String assignments = String.join(
+                ", ", checked.keySet().stream().map(c -> c + " = :" + c).toList());
         JdbcClient.StatementSpec statement = jdbc.sql("update " + versionsTable + " set " + assignments
                         + " where " + header + " = :fnd_header and version = :fnd_version"
                         + " and lock_version = :fnd_lock and status = 'draft'")
-                .param("fnd_header", headerId).param("fnd_version", version).param("fnd_lock", expectedLockVersion);
+                .param("fnd_header", headerId)
+                .param("fnd_version", version)
+                .param("fnd_lock", expectedLockVersion);
         for (Map.Entry<String, Object> column : checked.entrySet()) {
             statement = statement.param(column.getKey(), column.getValue());
         }
@@ -181,8 +209,11 @@ public class FndVersioning {
     public Optional<Integer> versionAt(String versionsTable, long headerId, LocalDate date) {
         headerColumn(versionsTable);
         return jdbc.sql("select fnd_version_at(cast(:t as regclass), :h, :d)")
-                .param("t", versionsTable).param("h", headerId).param("d", date)
-                .query(Integer.class).optional();
+                .param("t", versionsTable)
+                .param("h", headerId)
+                .param("d", date)
+                .query(Integer.class)
+                .optional();
     }
 
     /** Строка версии как есть — для модулей и проверок. */
@@ -192,7 +223,10 @@ public class FndVersioning {
         return jdbc.sql("select " + header + " as header_id, version, valid_from, valid_to, status,"
                         + " published_at, published_by, lock_version from " + versionsTable
                         + " where " + header + " = :h and version = :v")
-                .param("h", headerId).param("v", version).query(FndVersioning::mapVersion).optional();
+                .param("h", headerId)
+                .param("v", version)
+                .query(FndVersioning::mapVersion)
+                .optional();
     }
 
     /** Колонка заголовка из реестра; заодно проверяет, что таблица объявлена стандартом (AC-10). */
@@ -200,19 +234,27 @@ public class FndVersioning {
         if (!IDENTIFIER.matcher(versionsTable).matches()) {
             throw new IllegalArgumentException("Недопустимое имя таблицы версий: " + versionsTable);
         }
-        return headerColumns.computeIfAbsent(versionsTable, table -> jdbc
-                .sql("select header_column from fnd_versioned_tables where table_name = :t")
-                .param("t", table).query(String.class).optional()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Таблица " + table + " не объявлена через fnd_versioning_enable")));
+        return headerColumns.computeIfAbsent(
+                versionsTable,
+                table -> jdbc.sql("select header_column from fnd_versioned_tables where table_name = :t")
+                        .param("t", table)
+                        .query(String.class)
+                        .optional()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Таблица " + table + " не объявлена через fnd_versioning_enable")));
     }
 
     private static FndVersion mapVersion(ResultSet rs, int rowNum) throws SQLException {
         Timestamp publishedAt = rs.getTimestamp("published_at");
         java.sql.Date validTo = rs.getDate("valid_to");
-        return new FndVersion(rs.getLong("header_id"), rs.getInt("version"),
-                rs.getDate("valid_from").toLocalDate(), validTo == null ? null : validTo.toLocalDate(),
-                rs.getString("status"), publishedAt == null ? null : publishedAt.toInstant(),
-                rs.getString("published_by"), rs.getInt("lock_version"));
+        return new FndVersion(
+                rs.getLong("header_id"),
+                rs.getInt("version"),
+                rs.getDate("valid_from").toLocalDate(),
+                validTo == null ? null : validTo.toLocalDate(),
+                rs.getString("status"),
+                publishedAt == null ? null : publishedAt.toInstant(),
+                rs.getString("published_by"),
+                rs.getInt("lock_version"));
     }
 }

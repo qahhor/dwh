@@ -2,13 +2,12 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import java.util.Comparator;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Comparator;
-import java.util.List;
 
 /**
  * {@code GET /api/v1/entities/menu} (roadmap item 57): the side-menu items the declared entities bring, only those
@@ -25,9 +24,15 @@ public class EntityMenuController {
         this.registry = registry;
     }
 
-    public record MenuItem(String code, String form, String route, String labelKey, String icon, String section,
-                           int order, String module) {
-    }
+    public record MenuItem(
+            String code,
+            String form,
+            String route,
+            String labelKey,
+            String icon,
+            String section,
+            int order,
+            String module) {}
 
     /** Anyone signed in may ask; each item is filtered by its entity's own right. */
     @GetMapping("/menu")
@@ -36,9 +41,18 @@ public class EntityMenuController {
         return ResponseEntity.ok(registry.all().stream()
                 .filter(entity -> entity.menu() != null)
                 .filter(entity -> SecurityContext.hasPermission(entity.form(), "view"))
-                .map(entity -> new MenuItem(entity.code(), entity.form(), entity.menu().route(), entity.menu().labelKey(),
-                        entity.menu().icon(), entity.menu().section(), entity.menu().order(), entity.menu().module()))
-                .sorted(Comparator.comparing(MenuItem::section).thenComparingInt(MenuItem::order).thenComparing(MenuItem::code))
+                .map(entity -> new MenuItem(
+                        entity.code(),
+                        entity.form(),
+                        entity.menu().route(),
+                        entity.menu().labelKey(),
+                        entity.menu().icon(),
+                        entity.menu().section(),
+                        entity.menu().order(),
+                        entity.menu().module()))
+                .sorted(Comparator.comparing(MenuItem::section)
+                        .thenComparingInt(MenuItem::order)
+                        .thenComparing(MenuItem::code))
                 .toList());
     }
 }

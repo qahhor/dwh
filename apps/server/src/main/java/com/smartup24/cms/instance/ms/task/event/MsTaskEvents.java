@@ -17,12 +17,7 @@ public final class MsTaskEvents {
 
     /** Пользователь назначен на задачу с указанием роли (R, E, O, etc.). */
     public record TaskAssigned(
-            Long taskId,
-            String taskTitle,
-            List<Long> recipientUserIds,
-            String involveKind,
-            Long actorUserId
-    ) {
+            Long taskId, String taskTitle, List<Long> recipientUserIds, String involveKind, Long actorUserId) {
         public TaskAssigned(Long taskId, String taskTitle, List<Long> recipientUserIds, Long actorUserId) {
             this(taskId, taskTitle, recipientUserIds, null, actorUserId);
         }
@@ -35,16 +30,10 @@ public final class MsTaskEvents {
             String newStatusName,
             boolean terminal,
             List<Long> recipientUserIds,
-            Long actorUserId
-    ) {}
+            Long actorUserId) {}
 
     /** Добавлен комментарий к задаче. */
-    public record TaskCommented(
-            Long taskId,
-            String taskTitle,
-            List<Long> recipientUserIds,
-            Long actorUserId
-    ) {}
+    public record TaskCommented(Long taskId, String taskTitle, List<Long> recipientUserIds, Long actorUserId) {}
 
     /** Изменён дедлайн задачи. */
     public record TaskDeadlineChanged(
@@ -53,16 +42,9 @@ public final class MsTaskEvents {
             Instant oldDeadline,
             Instant newDeadline,
             List<Long> recipientUserIds,
-            Long actorUserId
-    ) {}
+            Long actorUserId) {}
 
     /** Пользователь снят с задачи. */
     public record TaskMemberRemoved(
-            Long taskId,
-            String taskTitle,
-            List<Long> recipientUserIds,
-            String involveKind,
-            Long actorUserId
-    ) {}
+            Long taskId, String taskTitle, List<Long> recipientUserIds, String involveKind, Long actorUserId) {}
 }
-

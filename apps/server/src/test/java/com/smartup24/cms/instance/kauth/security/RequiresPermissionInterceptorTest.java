@@ -1,5 +1,10 @@
 package com.smartup24.cms.instance.kauth.security;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -9,11 +14,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.method.HandlerMethod;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class RequiresPermissionInterceptorTest {
 
@@ -47,7 +47,6 @@ class RequiresPermissionInterceptorTest {
 
     static class SecuredController {
         @RequiresPermission(form = "test.form", action = "view")
-        void secured() {
-        }
+        void secured() {}
     }
 }

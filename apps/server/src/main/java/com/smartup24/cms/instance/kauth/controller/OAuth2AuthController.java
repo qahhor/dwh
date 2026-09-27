@@ -3,10 +3,9 @@ package com.smartup24.cms.instance.kauth.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.kauth.service.OAuth2AuthService;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/auth/oauth2")

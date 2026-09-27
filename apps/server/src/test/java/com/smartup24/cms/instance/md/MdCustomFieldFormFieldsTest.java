@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.FormFieldType;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
@@ -7,14 +11,9 @@ import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFi
 import com.smartup24.cms.instance.md.service.MdCustomFieldFormFields;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
-import org.junit.jupiter.api.Test;
-
 import java.time.Instant;
 import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Test;
 
 class MdCustomFieldFormFieldsTest {
 
@@ -22,11 +21,12 @@ class MdCustomFieldFormFieldsTest {
     void customFieldsBecomeFormFieldsWithTheirRules() {
         MdCustomFieldRepository repository = mock(MdCustomFieldRepository.class);
         MdCustomFieldService service = mock(MdCustomFieldService.class);
-        when(repository.findByEntityType("NOTE")).thenReturn(List.of(
-                record("topic", "Тема", "string", true, null),
-                record("stage", "Этап", "select", false, "[\"a\",\"b\"]"),
-                record("owner_id", "Ответственный", "user_ref", false, null),
-                record("blob", "Нечто", "json", false, null)));
+        when(repository.findByEntityType("NOTE"))
+                .thenReturn(List.of(
+                        record("topic", "Тема", "string", true, null),
+                        record("stage", "Этап", "select", false, "[\"a\",\"b\"]"),
+                        record("owner_id", "Ответственный", "user_ref", false, null),
+                        record("blob", "Нечто", "json", false, null)));
         when(service.parseSelectOptions("[\"a\",\"b\"]")).thenReturn(List.of("a", "b"));
 
         List<FormField> fields = new MdCustomFieldFormFields(repository, service).extraFields(MsNoteEntity.DEFINITION);

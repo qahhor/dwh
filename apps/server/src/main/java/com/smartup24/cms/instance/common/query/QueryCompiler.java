@@ -2,10 +2,6 @@ package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -15,6 +11,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Разбор и проверка запроса к списку по реестру. DSL фильтра — JSON-массив условий, соединённых «и»:
@@ -37,14 +36,14 @@ public final class QueryCompiler {
 
     /** Больше условий человек в фильтре не собирает; ограничение защищает базу от гигантских запросов. */
     public static final int MAX_CONDITIONS = 20;
+
     public static final int MAX_IN_VALUES = 100;
     private static final int MAX_FILTER_CHARS = 16_384;
     public static final int MAX_SEARCH_CHARS = 200;
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
-    private QueryCompiler() {
-    }
+    private QueryCompiler() {}
 
     public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor) {
         return compile(list, filter, sort, limit, cursor, null);
@@ -54,8 +53,8 @@ public final class QueryCompiler {
      * @param search свободный поиск {@code q}: подстрока в любом поле с {@code searchable}, без учёта регистра;
      *               пустой — без поиска
      */
-    public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor,
-                                    String search) {
+    public static QueryPlan compile(
+            QueryList list, String filter, String sort, Integer limit, String cursor, String search) {
         return compile(list, filter, sort, limit, cursor, search, null);
     }
 
@@ -64,12 +63,14 @@ public final class QueryCompiler {
      *                  канонической строке. Они входят в отпечаток курсора: курсор от другого набора
      *                  параметров отвергается так же, как от другого фильтра. {@code null} — таких параметров нет
      */
-    public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor,
-                                    String search, String narrowing) {
+    public static QueryPlan compile(
+            QueryList list, String filter, String sort, Integer limit, String cursor, String search, String narrowing) {
         int pageSize = limit == null ? list.defaultLimit() : limit;
         if (pageSize < 1 || pageSize > list.maxLimit()) {
-            throw ApiException.validation(INVALID_LIMIT, List.of(new FieldErrorItem("limit", INVALID_LIMIT,
-                    "limit must be between 1 and " + list.maxLimit())));
+            throw ApiException.validation(
+                    INVALID_LIMIT,
+                    List.of(new FieldErrorItem(
+                            "limit", INVALID_LIMIT, "limit must be between 1 and " + list.maxLimit())));
         }
 
         List<FieldErrorItem> errors = new ArrayList<>();
@@ -87,9 +88,11 @@ public final class QueryCompiler {
             }
         }
         String term = search == null || search.isBlank() ? null : search.strip();
-        if (term != null && (term.length() > MAX_SEARCH_CHARS
-                || list.viewerFields().stream().noneMatch(QueryField::searchable))) {
-            errors.add(new FieldErrorItem("q", SEARCH_INVALID, "search is too long or the list has no searchable field"));
+        if (term != null
+                && (term.length() > MAX_SEARCH_CHARS
+                        || list.viewerFields().stream().noneMatch(QueryField::searchable))) {
+            errors.add(
+                    new FieldErrorItem("q", SEARCH_INVALID, "search is too long or the list has no searchable field"));
         }
         if (!errors.isEmpty()) {
             throw ApiException.validation(QUERY_INVALID, errors);
@@ -100,12 +103,16 @@ public final class QueryCompiler {
         if (cursor != null && !cursor.isBlank()) {
             decoded = QueryCursor.decode(cursor, fingerprint, sortField);
             if (decoded == null) {
-                throw ApiException.validation(INVALID_CURSOR, List.of(new FieldErrorItem("cursor", INVALID_CURSOR,
-                        "cursor is malformed or belongs to another filter or sort")));
+                throw ApiException.validation(
+                        INVALID_CURSOR,
+                        List.of(new FieldErrorItem(
+                                "cursor", INVALID_CURSOR, "cursor is malformed or belongs to another filter or sort")));
             }
         }
-        Set<String> hidden = list.fields().stream().filter(field -> !field.visibleToViewer())
-                .map(QueryField::key).collect(Collectors.toUnmodifiableSet());
+        Set<String> hidden = list.fields().stream()
+                .filter(field -> !field.visibleToViewer())
+                .map(QueryField::key)
+                .collect(Collectors.toUnmodifiableSet());
         return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint, term, hidden);
     }
 
@@ -131,7 +138,9 @@ public final class QueryCompiler {
         }
         int total = 0;
         for (JsonNode node : root) {
-            total += node.isObject() && node.has("any") && node.get("any").isArray() ? node.get("any").size() : 1;
+            total += node.isObject() && node.has("any") && node.get("any").isArray()
+                    ? node.get("any").size()
+                    : 1;
         }
         if (total > MAX_CONDITIONS) {
             errors.add(new FieldErrorItem("filter", FILTER_TOO_LONG, "at most " + MAX_CONDITIONS + " conditions"));
@@ -145,7 +154,8 @@ public final class QueryCompiler {
                 // {"any": [...]} — the conditions inside hold when any of them does (ADR-0016, 2.3; roadmap item 53).
                 JsonNode any = node.get("any");
                 if (!any.isArray() || any.size() < 2 || node.size() != 1) {
-                    errors.add(new FieldErrorItem(at, FILTER_INVALID, "a group is {\"any\": [two or more conditions]}"));
+                    errors.add(
+                            new FieldErrorItem(at, FILTER_INVALID, "a group is {\"any\": [two or more conditions]}"));
                     continue;
                 }
                 int group = groups++;
@@ -166,8 +176,8 @@ public final class QueryCompiler {
         return conditions;
     }
 
-    private static Optional<QueryPlan.Condition> parseCondition(QueryList list, JsonNode node, String at,
-                                                                List<FieldErrorItem> errors) {
+    private static Optional<QueryPlan.Condition> parseCondition(
+            QueryList list, JsonNode node, String at, List<FieldErrorItem> errors) {
         if (!node.isObject()) {
             errors.add(new FieldErrorItem(at, FILTER_INVALID, "condition must be an object"));
             return Optional.empty();
@@ -231,10 +241,20 @@ public final class QueryCompiler {
         return true;
     }
 
-    private static String fingerprint(QueryList list, List<QueryPlan.Condition> conditions, QueryField sort,
-                                      boolean descending, String search, String narrowing) {
-        StringBuilder canonical = new StringBuilder(list.code()).append('|').append(descending ? '-' : '+')
-                .append(sort.key()).append("|q").append(search == null ? -1 : search.length()).append('=')
+    private static String fingerprint(
+            QueryList list,
+            List<QueryPlan.Condition> conditions,
+            QueryField sort,
+            boolean descending,
+            String search,
+            String narrowing) {
+        StringBuilder canonical = new StringBuilder(list.code())
+                .append('|')
+                .append(descending ? '-' : '+')
+                .append(sort.key())
+                .append("|q")
+                .append(search == null ? -1 : search.length())
+                .append('=')
                 .append(search == null ? "" : search);
         if (narrowing != null) {
             canonical.append("|m").append(narrowing.length()).append('=').append(narrowing);
@@ -244,10 +264,17 @@ public final class QueryCompiler {
             if (condition.group() >= 0) {
                 canonical.append("g").append(condition.group()).append('/');
             }
-            canonical.append(condition.field().key()).append(':').append(condition.op().wire());
+            canonical
+                    .append(condition.field().key())
+                    .append(':')
+                    .append(condition.op().wire());
             for (Object value : condition.values()) {
-                canonical.append(':').append(QueryValues.format(condition.field().type(), value).length())
-                        .append('=').append(QueryValues.format(condition.field().type(), value));
+                canonical
+                        .append(':')
+                        .append(QueryValues.format(condition.field().type(), value)
+                                .length())
+                        .append('=')
+                        .append(QueryValues.format(condition.field().type(), value));
             }
         }
         try {

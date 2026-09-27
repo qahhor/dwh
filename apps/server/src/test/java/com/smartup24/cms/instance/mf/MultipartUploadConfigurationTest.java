@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.mf;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -7,8 +9,6 @@ import org.springframework.boot.servlet.autoconfigure.MultipartAutoConfiguration
 import org.springframework.boot.servlet.autoconfigure.MultipartProperties;
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class MultipartUploadConfigurationTest {
 

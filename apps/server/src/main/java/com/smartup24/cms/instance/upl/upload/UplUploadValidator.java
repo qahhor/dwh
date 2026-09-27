@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -36,15 +35,14 @@ public final class UplUploadValidator {
 
     private static final String XLSX_SUFFIX = ".xlsx";
 
-    private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("uuuu-MM-dd")
-            .withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter DATE =
+            DateTimeFormatter.ofPattern("uuuu-MM-dd").withResolverStyle(ResolverStyle.STRICT);
 
-    private UplUploadValidator() {
-    }
+    private UplUploadValidator() {}
 
     /** Все ошибки полей запроса приёма; пустой список — запрос можно принимать. */
-    public static List<FieldErrorItem> validate(String sourceId, String periodFrom, String periodTo,
-                                                boolean filePresent, String fileName, long fileSize) {
+    public static List<FieldErrorItem> validate(
+            String sourceId, String periodFrom, String periodTo, boolean filePresent, String fileName, long fileSize) {
         List<FieldErrorItem> errors = new ArrayList<>();
         if (!isPositiveNumber(sourceId)) {
             errors.add(new FieldErrorItem(FIELD_SOURCE, UPL_PKG_SOURCE_REQUIRED, "Выберите источник"));
@@ -64,8 +62,7 @@ public final class UplUploadValidator {
         return List.copyOf(errors);
     }
 
-    private static void addFileError(List<FieldErrorItem> errors, boolean filePresent, String fileName,
-                                     long fileSize) {
+    private static void addFileError(List<FieldErrorItem> errors, boolean filePresent, String fileName, long fileSize) {
         if (!filePresent) {
             errors.add(new FieldErrorItem(FIELD_FILE, UPL_PKG_FILE_REQUIRED, "Выберите файл"));
             return;
@@ -75,8 +72,7 @@ public final class UplUploadValidator {
             return;
         }
         if (!isXlsxName(fileName)) {
-            errors.add(new FieldErrorItem(FIELD_FILE, UPL_PKG_FILE_NOT_XLSX,
-                    "Нужен файл Excel с расширением .xlsx"));
+            errors.add(new FieldErrorItem(FIELD_FILE, UPL_PKG_FILE_NOT_XLSX, "Нужен файл Excel с расширением .xlsx"));
         }
     }
 

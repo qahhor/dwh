@@ -4,11 +4,10 @@ import com.smartup24.cms.spi.common.ProviderHealth;
 import com.smartup24.cms.spi.mail.MailMessage;
 import com.smartup24.cms.spi.mail.MailProvider;
 import com.smartup24.cms.spi.mail.MailSendResult;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-
-import java.util.UUID;
 
 /**
  * Заглушка канала почты для разработки: пишет письмо в журнал и никуда его не шлёт.
@@ -27,7 +26,8 @@ public class ConsoleMailProvider implements MailProvider {
 
     @Override
     public MailSendResult send(MailMessage message) {
-        log.warn("[ЗАГЛУШКА ПОЧТЫ — НЕ ДОСТАВЛЕНО] Тема: {}, тело: {}",
+        log.warn(
+                "[ЗАГЛУШКА ПОЧТЫ — НЕ ДОСТАВЛЕНО] Тема: {}, тело: {}",
                 message.subject(),
                 message.htmlBody() != null ? message.htmlBody() : message.textBody());
 
@@ -36,7 +36,9 @@ public class ConsoleMailProvider implements MailProvider {
 
     @Override
     public ProviderHealth checkHealth() {
-        return ProviderHealth.unhealthy(getProviderCode(),
-                "Заглушка: письма не доставляются. Задайте spring.mail.host и dwh.providers.mail=smtp", 0);
+        return ProviderHealth.unhealthy(
+                getProviderCode(),
+                "Заглушка: письма не доставляются. Задайте spring.mail.host и dwh.providers.mail=smtp",
+                0);
     }
 }

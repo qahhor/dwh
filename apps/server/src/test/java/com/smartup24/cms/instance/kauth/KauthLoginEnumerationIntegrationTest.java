@@ -1,13 +1,12 @@
 package com.smartup24.cms.instance.kauth;
 
+import static com.smartup24.cms.instance.kauth.AuthenticationGenerationFixture.OLD_PASSWORD;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.support.TestDatabases;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -17,10 +16,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
-import static com.smartup24.cms.instance.kauth.AuthenticationGenerationFixture.OLD_PASSWORD;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /**
  * Plan 10/10, item 0.6: a login attempt must not tell which accounts exist, and a refused attempt must leave its
@@ -49,12 +48,13 @@ class KauthLoginEnumerationIntegrationTest {
 
         for (int i = 0; i < 5; i++) {
             String wrong = "Wrong-Password-" + i;
-            assertRefused(() -> f.auth.login(login, wrong, "10.2.0.1", "ua", "web"),
-                    ErrorCode.INVALID_CREDENTIALS);
+            assertRefused(() -> f.auth.login(login, wrong, "10.2.0.1", "ua", "web"), ErrorCode.INVALID_CREDENTIALS);
         }
 
         assertRefused(() -> f.auth.login(login, OLD_PASSWORD, "10.2.0.1", "ua", "web"), ErrorCode.LOGIN_LOCKED);
-        assertThat(securityEvents(id, "LOGIN_FAILED")).as("every refusal is in the security log").isEqualTo(5);
+        assertThat(securityEvents(id, "LOGIN_FAILED"))
+                .as("every refusal is in the security log")
+                .isEqualTo(5);
     }
 
     @Test
@@ -71,7 +71,9 @@ class KauthLoginEnumerationIntegrationTest {
         }
 
         assertThat(f.jdbc.sql("select count(*) from kauth_login_attempts where login = :login and not is_success")
-                .param("login", login).query(Long.class).single())
+                        .param("login", login)
+                        .query(Long.class)
+                        .single())
                 .as("the lock ends ten minutes after the fifth wrong password, whatever happens meanwhile")
                 .isEqualTo(5);
         assertThat(lockEvents(login)).isEqualTo(3);
@@ -122,9 +124,12 @@ class KauthLoginEnumerationIntegrationTest {
     @DisplayName("A blocked account shows its state only to someone who knows the password")
     void blockedStateNeedsThePassword() {
         Long id = f.user(false, false);
-        f.jdbc.sql("update md_users set state = 'P' where id = :id").param("id", id).update();
+        f.jdbc.sql("update md_users set state = 'P' where id = :id")
+                .param("id", id)
+                .update();
 
-        assertRefused(() -> f.auth.login(login(id), "Wrong-Password-1", "10.2.0.2", "ua", "web"),
+        assertRefused(
+                () -> f.auth.login(login(id), "Wrong-Password-1", "10.2.0.2", "ua", "web"),
                 ErrorCode.INVALID_CREDENTIALS);
         assertRefused(() -> f.auth.login(login(id), OLD_PASSWORD, "10.2.0.3", "ua", "web"), ErrorCode.USER_BLOCKED);
     }
@@ -137,10 +142,14 @@ class KauthLoginEnumerationIntegrationTest {
         String code = f.deliveredCodes.get(id);
         String wrong = code.equals("000000") ? "111111" : "000000";
 
-        assertRefused(() -> f.auth.verifyOtp(started.otpToken(), wrong, "10.2.0.4", "ua", "web"), ErrorCode.OTP_INVALID);
+        assertRefused(
+                () -> f.auth.verifyOtp(started.otpToken(), wrong, "10.2.0.4", "ua", "web"), ErrorCode.OTP_INVALID);
 
         assertThat(f.jdbc.sql("select attempts_left from kauth_otp_codes where user_id = :id and purpose = 'login'")
-                .param("id", id).query(Integer.class).single()).isEqualTo(2);
+                        .param("id", id)
+                        .query(Integer.class)
+                        .single())
+                .isEqualTo(2);
     }
 
     @Test
@@ -148,7 +157,7 @@ class KauthLoginEnumerationIntegrationTest {
     void unknownLoginLooksLikeWrongPassword() {
         Long id = f.user(false, false);
         String known = login(id);
-        for (int i = 0; i < 3; i++) {  // warm-up
+        for (int i = 0; i < 3; i++) { // warm-up
             attempt(known, "10.2.1." + i);
             attempt("nobody-" + UUID.randomUUID(), "10.2.1." + i);
         }
@@ -173,24 +182,30 @@ class KauthLoginEnumerationIntegrationTest {
 
     private static void assertRefused(Runnable call, ErrorCode expected) {
         assertThatThrownBy(call::run)
-                .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(expected));
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(expected));
     }
 
     private static String login(Long id) {
-        return f.jdbc.sql("select login from md_users where id = :id").param("id", id).query(String.class).single();
+        return f.jdbc.sql("select login from md_users where id = :id")
+                .param("id", id)
+                .query(String.class)
+                .single();
     }
 
     private static long securityEvents(Long userId, String eventType) {
         return f.jdbc.sql("select count(*) from security_events where user_id = :id and event_type = :type")
-                .param("id", userId).param("type", eventType).query(Long.class).single();
+                .param("id", userId)
+                .param("type", eventType)
+                .query(Long.class)
+                .single();
     }
 
     private static long lockEvents(String login) {
         return f.jdbc.sql("""
                         select count(*) from security_events
                         where user_id is null and event_type = 'LOGIN_LOCKED' and details ->> 'login' = :login
-                        """)
-                .param("login", login).query(Long.class).single();
+                        """).param("login", login).query(Long.class).single();
     }
 
     private static long p95(long[] samples) {

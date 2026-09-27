@@ -14,6 +14,5 @@ public final class FndPref {
     /** Код выхода процесса при расхождении схемы (AC-4). */
     public static final int EXIT_SCHEMA_MISMATCH = 3;
 
-    private FndPref() {
-    }
+    private FndPref() {}
 }

@@ -8,6 +8,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class SearchExecutionSnapshotReader {
     private final SearchIndexStateRepository repository;
-    public SearchExecutionSnapshotReader(SearchIndexStateRepository repository) { this.repository = repository; }
-    public SearchExecutionSnapshot read() { return repository.executionSnapshot(); }
+
+    public SearchExecutionSnapshotReader(SearchIndexStateRepository repository) {
+        this.repository = repository;
+    }
+
+    public SearchExecutionSnapshot read() {
+        return repository.executionSnapshot();
+    }
 }

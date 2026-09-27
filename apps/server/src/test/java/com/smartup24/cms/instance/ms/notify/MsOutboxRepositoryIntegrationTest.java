@@ -1,7 +1,11 @@
 package com.smartup24.cms.instance.ms.notify;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.ms.notify.repository.MsOutboxRepository;
+import java.util.Map;
+import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,11 +17,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers(disabledWithoutDocker = true)
 class MsOutboxRepositoryIntegrationTest {
@@ -34,8 +33,8 @@ class MsOutboxRepositoryIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        var dataSource =
+                new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(dataSource)
                 .locations("classpath:db/migration")
@@ -69,8 +68,8 @@ class MsOutboxRepositoryIntegrationTest {
                 .as("вторая реплика не получает уже заявленную запись")
                 .isEmpty();
         assertThat(jdbc.sql("select status from ms_notification_outbox")
-                .query(String.class)
-                .single())
+                        .query(String.class)
+                        .single())
                 .isEqualTo("PROCESSING");
     }
 
@@ -78,29 +77,27 @@ class MsOutboxRepositoryIntegrationTest {
     @DisplayName("Завершить доставку может только worker с актуальным claim token")
     void staleWorkerCannotFinalizeAnotherWorkersClaim() {
         firstWorkerRepository.enqueue(
-                "email", "release@example.test", "release-ready",
-                Map.of("subject", "Release"), UUID.randomUUID());
+                "email", "release@example.test", "release-ready", Map.of("subject", "Release"), UUID.randomUUID());
 
         var claim = firstWorkerRepository.fetchPending(1).getFirst();
 
-        assertThat(firstWorkerRepository.markSuccess(claim.id(), UUID.randomUUID())).isFalse();
-        assertThat(firstWorkerRepository.markSuccess(claim.id(), claim.claimToken())).isTrue();
+        assertThat(firstWorkerRepository.markSuccess(claim.id(), UUID.randomUUID()))
+                .isFalse();
+        assertThat(firstWorkerRepository.markSuccess(claim.id(), claim.claimToken()))
+                .isTrue();
     }
 
     @Test
     @DisplayName("Зависшая claim-запись возвращается в обработку с новым owner token")
     void staleClaimIsRecoveredWithANewOwnerToken() {
         firstWorkerRepository.enqueue(
-                "email", "release@example.test", "release-ready",
-                Map.of("subject", "Release"), UUID.randomUUID());
+                "email", "release@example.test", "release-ready", Map.of("subject", "Release"), UUID.randomUUID());
         var firstClaim = firstWorkerRepository.fetchPending(1).getFirst();
         jdbc.sql("""
                         update ms_notification_outbox
                         set claimed_at = now() - interval '6 minutes'
                         where id = :id
-                        """)
-                .param("id", firstClaim.id())
-                .update();
+                        """).param("id", firstClaim.id()).update();
 
         var recovered = secondWorkerRepository.fetchPending(1).getFirst();
 

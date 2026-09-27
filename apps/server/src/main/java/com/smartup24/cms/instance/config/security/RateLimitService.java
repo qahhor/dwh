@@ -9,11 +9,10 @@ import io.github.bucket4j.ConsumptionProbe;
 import io.github.bucket4j.Refill;
 import io.github.bucket4j.TimeMeter;
 import io.github.bucket4j.TokensInheritanceStrategy;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
  * In-memory bucket'ы Bucket4j по ключу (ip:/user:/api:). Достаточно для одного
@@ -107,8 +106,7 @@ public class RateLimitService {
     }
 
     private static Bandwidth bandwidth(Budget budget) {
-        return Bandwidth.classic(budget.capacity,
-                Refill.greedy(budget.perMinute, Duration.ofMinutes(1)));
+        return Bandwidth.classic(budget.capacity, Refill.greedy(budget.perMinute, Duration.ofMinutes(1)));
     }
 
     private static final class Entry {

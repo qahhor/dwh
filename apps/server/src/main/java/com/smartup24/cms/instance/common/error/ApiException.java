@@ -2,7 +2,6 @@ package com.smartup24.cms.instance.common.error;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
-
 import java.util.List;
 
 /**
@@ -42,7 +41,8 @@ public class ApiException extends RuntimeException {
     }
 
     public static ApiException permissionDenied(String form, String action) {
-        return new ApiException(ErrorCode.PERMISSION_DENIED, "Недостаточно прав для выполнения действия " + form + "." + action);
+        return new ApiException(
+                ErrorCode.PERMISSION_DENIED, "Недостаточно прав для выполнения действия " + form + "." + action);
     }
 
     public static ApiException notFound(ErrorCode code, String message) {

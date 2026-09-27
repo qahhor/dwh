@@ -4,12 +4,11 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.report.service.ReportService;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1/reports")
@@ -24,8 +23,8 @@ public class ReportController {
     @GetMapping("/tasks/export")
     @RequiresPermission(form = "tasks.items", action = "view")
     public void exportTasks(
-            @RequestParam(name = "format", defaultValue = "csv") String format,
-            HttpServletResponse response) throws IOException {
+            @RequestParam(name = "format", defaultValue = "csv") String format, HttpServletResponse response)
+            throws IOException {
 
         if ("xlsx".equalsIgnoreCase(format) || "excel".equalsIgnoreCase(format)) {
             response.setContentType("application/vnd.ms-excel; charset=UTF-8");

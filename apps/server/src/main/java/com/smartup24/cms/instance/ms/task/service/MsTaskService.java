@@ -15,11 +15,6 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -29,6 +24,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MsTaskService {
@@ -86,22 +85,39 @@ public class MsTaskService {
             ApplicationEventPublisher eventPublisher,
             SearchChangePublisher searchChangePublisher,
             AuditLogService auditLogService) {
-        this(taskRepository, statusRepository, typeRepository, memberRepository, projectRepository,
-             customFieldService, scopeService, fileService, eventPublisher, searchChangePublisher,
-             auditLogService, new MsTaskStatusService(statusRepository, typeRepository, searchChangePublisher, auditLogService));
+        this(
+                taskRepository,
+                statusRepository,
+                typeRepository,
+                memberRepository,
+                projectRepository,
+                customFieldService,
+                scopeService,
+                fileService,
+                eventPublisher,
+                searchChangePublisher,
+                auditLogService,
+                new MsTaskStatusService(statusRepository, typeRepository, searchChangePublisher, auditLogService));
     }
-
-
 
     @Transactional
     public MsTaskRepository.TaskRecord createTask(
-            Long projectId, Long parentTaskId, String title, String descriptionMarkdown,
-            String priority, Long responsibleUserId, List<Long> executorUserIds,
-            List<Long> observerUserIds, Map<String, Object> attributes,
-            Instant beginTime, Instant endTime, Long reporterId) {
+            Long projectId,
+            Long parentTaskId,
+            String title,
+            String descriptionMarkdown,
+            String priority,
+            Long responsibleUserId,
+            List<Long> executorUserIds,
+            List<Long> observerUserIds,
+            Map<String, Object> attributes,
+            Instant beginTime,
+            Instant endTime,
+            Long reporterId) {
 
         if (projectId != null) {
-            projectRepository.findById(projectId)
+            projectRepository
+                    .findById(projectId)
                     .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
         }
 
@@ -120,17 +136,29 @@ public class MsTaskService {
         statusRepository.initDefaultStatusesIfEmpty();
         typeRepository.initDefaultTypesIfEmpty();
 
-        var defaultStatus = statusRepository.findByPcode(MsTaskPref.STATUS_NEW)
-                .orElseGet(() -> statusRepository.listStatuses().stream().findFirst()
-                        .orElseThrow(() -> ApiException.badRequest(ErrorCode.INTERNAL_ERROR, "Базовый статус задачи не найден")));
+        var defaultStatus = statusRepository
+                .findByPcode(MsTaskPref.STATUS_NEW)
+                .orElseGet(() -> statusRepository.listStatuses().stream()
+                        .findFirst()
+                        .orElseThrow(() ->
+                                ApiException.badRequest(ErrorCode.INTERNAL_ERROR, "Базовый статус задачи не найден")));
 
         String safePriority = normalizePriority(priority);
 
         searchChangePublisher.lockStatusMembership(defaultStatus.id());
-        var task = taskRepository.create(new MsTaskRepository.TaskCreateData(
-                projectId, parentTaskId, title, descriptionMarkdown,
-                defaultStatus.id(), safePriority, reporterId, attributes, beginTime, endTime
-        ), reporterId);
+        var task = taskRepository.create(
+                new MsTaskRepository.TaskCreateData(
+                        projectId,
+                        parentTaskId,
+                        title,
+                        descriptionMarkdown,
+                        defaultStatus.id(),
+                        safePriority,
+                        reporterId,
+                        attributes,
+                        beginTime,
+                        endTime),
+                reporterId);
 
         // Assign Author
         memberRepository.addOrUpdateMember(task.id(), reporterId, MsTaskPref.INVOLVE_AUTHOR, true);
@@ -164,14 +192,16 @@ public class MsTaskService {
                     task.id(), task.title(), List.of(responsibleUserId), MsTaskPref.INVOLVE_RESPONSIBLE, reporterId));
         }
         if (executorUserIds != null && !executorUserIds.isEmpty()) {
-            List<Long> execs = executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
+            List<Long> execs =
+                    executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
             if (!execs.isEmpty()) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                         task.id(), task.title(), execs, MsTaskPref.INVOLVE_EXECUTOR, reporterId));
             }
         }
         if (observerUserIds != null && !observerUserIds.isEmpty()) {
-            List<Long> obs = observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
+            List<Long> obs =
+                    observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
             if (!obs.isEmpty()) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                         task.id(), task.title(), obs, MsTaskPref.INVOLVE_OBSERVER, reporterId));
@@ -180,14 +210,24 @@ public class MsTaskService {
 
         searchChangePublisher.changed("TASK", task.id());
 
-        auditLogService.logChange("ms_tasks", String.valueOf(task.id()), "I",
+        auditLogService.logChange(
+                "ms_tasks",
+                String.valueOf(task.id()),
+                "I",
                 List.of("title", "project_id", "priority", "status_id"),
                 null,
-                Map.of("id", task.id(), "title", title, "projectId", projectId != null ? projectId : 0, "priority", safePriority));
+                Map.of(
+                        "id",
+                        task.id(),
+                        "title",
+                        title,
+                        "projectId",
+                        projectId != null ? projectId : 0,
+                        "priority",
+                        safePriority));
 
         return task;
     }
-
 
     @Transactional
     public void attachFile(Long taskId, UUID fileId, Long currentUserId) {
@@ -216,43 +256,62 @@ public class MsTaskService {
     // Overload for backwards compatibility
     @Transactional
     public MsTaskRepository.TaskRecord createTask(
-
-            Long projectId, Long parentTaskId, String title, String descriptionMarkdown,
-            String priority, Long responsibleUserId, List<Long> executorUserIds,
-            Map<String, Object> attributes, Instant beginTime, Instant endTime, Long reporterId) {
-        return createTask(projectId, parentTaskId, title, descriptionMarkdown, priority,
-                responsibleUserId, executorUserIds, null, attributes, beginTime, endTime, reporterId);
+            Long projectId,
+            Long parentTaskId,
+            String title,
+            String descriptionMarkdown,
+            String priority,
+            Long responsibleUserId,
+            List<Long> executorUserIds,
+            Map<String, Object> attributes,
+            Instant beginTime,
+            Instant endTime,
+            Long reporterId) {
+        return createTask(
+                projectId,
+                parentTaskId,
+                title,
+                descriptionMarkdown,
+                priority,
+                responsibleUserId,
+                executorUserIds,
+                null,
+                attributes,
+                beginTime,
+                endTime,
+                reporterId);
     }
 
     @Transactional(readOnly = true)
     public MsTaskRepository.TaskRecord getTaskById(Long taskId) {
-        return taskRepository.findById(taskId)
+        return taskRepository
+                .findById(taskId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
     }
 
     @Transactional(readOnly = true)
     public MsTaskRepository.TaskRecord getTaskById(Long taskId, Long currentUserId) {
-        return taskRepository.findById(taskId, scopeService.filterForTasks(currentUserId))
+        return taskRepository
+                .findById(taskId, scopeService.filterForTasks(currentUserId))
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
     }
-
-
 
     @Transactional
     public void updateTask(Long taskId, MsTaskPatch requested, Long currentUserId) {
         var existing = getTaskById(taskId, currentUserId);
 
         if (requested.projectIdPresent() && requested.projectId() != null) {
-            projectRepository.findById(requested.projectId())
-                    .orElseThrow(() -> ApiException.notFound(
-                            ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+            projectRepository
+                    .findById(requested.projectId())
+                    .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
         }
 
         if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
             getTaskById(requested.parentTaskId(), currentUserId);
             if (requested.parentTaskId().equals(taskId)
                     || taskRepository.isDescendantOf(requested.parentTaskId(), taskId)) {
-                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE,
+                throw ApiException.conflict(
+                        ErrorCode.TASK_PARENT_CYCLE,
                         "Нельзя установить дочернюю задачу в качестве родительской (цикл)");
             }
         }
@@ -291,7 +350,8 @@ public class MsTaskService {
             Long oldResp = oldMembers.stream()
                     .filter(m -> MsTaskPref.INVOLVE_RESPONSIBLE.equals(m.involveKind()))
                     .map(MsTaskMemberRepository.TaskMemberRecord::userId)
-                    .findFirst().orElse(null);
+                    .findFirst()
+                    .orElse(null);
             Long newResp = requested.responsibleUserId();
             if (newResp != null && !newResp.equals(oldResp)) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
@@ -307,9 +367,13 @@ public class MsTaskService {
                     .filter(m -> MsTaskPref.INVOLVE_EXECUTOR.equals(m.involveKind()))
                     .map(MsTaskMemberRepository.TaskMemberRecord::userId)
                     .collect(Collectors.toSet());
-            Set<Long> newExecs = requested.executorUserIds().stream().filter(Objects::nonNull).collect(Collectors.toSet());
-            List<Long> addedExecs = newExecs.stream().filter(uid -> !oldExecs.contains(uid)).toList();
-            List<Long> removedExecs = oldExecs.stream().filter(uid -> !newExecs.contains(uid)).toList();
+            Set<Long> newExecs = requested.executorUserIds().stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            List<Long> addedExecs =
+                    newExecs.stream().filter(uid -> !oldExecs.contains(uid)).toList();
+            List<Long> removedExecs =
+                    oldExecs.stream().filter(uid -> !newExecs.contains(uid)).toList();
             if (!addedExecs.isEmpty()) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                         taskId, taskTitle, addedExecs, MsTaskPref.INVOLVE_EXECUTOR, currentUserId));
@@ -324,9 +388,13 @@ public class MsTaskService {
                     .filter(m -> MsTaskPref.INVOLVE_OBSERVER.equals(m.involveKind()))
                     .map(MsTaskMemberRepository.TaskMemberRecord::userId)
                     .collect(Collectors.toSet());
-            Set<Long> newObs = requested.observerUserIds().stream().filter(Objects::nonNull).collect(Collectors.toSet());
-            List<Long> addedObs = newObs.stream().filter(uid -> !oldObs.contains(uid)).toList();
-            List<Long> removedObs = oldObs.stream().filter(uid -> !newObs.contains(uid)).toList();
+            Set<Long> newObs = requested.observerUserIds().stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            List<Long> addedObs =
+                    newObs.stream().filter(uid -> !oldObs.contains(uid)).toList();
+            List<Long> removedObs =
+                    oldObs.stream().filter(uid -> !newObs.contains(uid)).toList();
             if (!addedObs.isEmpty()) {
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                         taskId, taskTitle, addedObs, MsTaskPref.INVOLVE_OBSERVER, currentUserId));
@@ -347,14 +415,23 @@ public class MsTaskService {
     }
 
     @Transactional
-    public void updateTask(Long taskId, Long projectId, String title, String descriptionMarkdown, String priority,
-                           Long parentTaskId, Map<String, Object> attributes, Instant beginTime,
-                           Instant endTime, Long currentUserId) {
+    public void updateTask(
+            Long taskId,
+            Long projectId,
+            String title,
+            String descriptionMarkdown,
+            String priority,
+            Long parentTaskId,
+            Map<String, Object> attributes,
+            Instant beginTime,
+            Instant endTime,
+            Long currentUserId) {
 
         getTaskById(taskId, currentUserId);
 
         if (projectId != null) {
-            projectRepository.findById(projectId)
+            projectRepository
+                    .findById(projectId)
                     .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
         }
 
@@ -362,7 +439,9 @@ public class MsTaskService {
         if (parentTaskId != null) {
             getTaskById(parentTaskId, currentUserId);
             if (parentTaskId.equals(taskId) || taskRepository.isDescendantOf(parentTaskId, taskId)) {
-                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE, "Нельзя установить дочернюю задачу в качестве родительской (цикл)");
+                throw ApiException.conflict(
+                        ErrorCode.TASK_PARENT_CYCLE,
+                        "Нельзя установить дочернюю задачу в качестве родительской (цикл)");
             }
         }
 
@@ -373,24 +452,54 @@ public class MsTaskService {
         var existing = getTaskById(taskId, currentUserId);
         String safePriority = normalizePriority(priority != null ? priority : existing.priority());
 
-        taskRepository.update(taskId, new MsTaskRepository.TaskUpdateData(
-                projectId, title, descriptionMarkdown, null, safePriority, parentTaskId, attributes, beginTime, endTime, null
-        ), currentUserId);
-
+        taskRepository.update(
+                taskId,
+                new MsTaskRepository.TaskUpdateData(
+                        projectId,
+                        title,
+                        descriptionMarkdown,
+                        null,
+                        safePriority,
+                        parentTaskId,
+                        attributes,
+                        beginTime,
+                        endTime,
+                        null),
+                currentUserId);
 
         searchChangePublisher.changed("TASK", taskId);
 
-        auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
+        auditLogService.logChange(
+                "ms_tasks",
+                String.valueOf(taskId),
+                "U",
                 List.of("title", "priority", "project_id"),
                 Map.of("title", existing.title(), "priority", existing.priority()),
                 Map.of("title", title != null ? title : existing.title(), "priority", safePriority));
     }
 
     @Transactional
-    public void updateTask(Long taskId, String title, String descriptionMarkdown, String priority,
-                           Long parentTaskId, Map<String, Object> attributes, Instant beginTime,
-                           Instant endTime, Long currentUserId) {
-        updateTask(taskId, null, title, descriptionMarkdown, priority, parentTaskId, attributes, beginTime, endTime, currentUserId);
+    public void updateTask(
+            Long taskId,
+            String title,
+            String descriptionMarkdown,
+            String priority,
+            Long parentTaskId,
+            Map<String, Object> attributes,
+            Instant beginTime,
+            Instant endTime,
+            Long currentUserId) {
+        updateTask(
+                taskId,
+                null,
+                title,
+                descriptionMarkdown,
+                priority,
+                parentTaskId,
+                attributes,
+                beginTime,
+                endTime,
+                currentUserId);
     }
 
     @Transactional
@@ -402,7 +511,8 @@ public class MsTaskService {
     public void changeStatus(Long taskId, Long newStatusId, Long expectedRevision, Long currentUserId) {
         var existing = getTaskById(taskId, currentUserId);
         searchChangePublisher.lockStatusMembership(newStatusId);
-        var newStatus = statusRepository.findById(newStatusId)
+        var newStatus = statusRepository
+                .findById(newStatusId)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
 
         Instant resolvedTime = newStatus.isTerminal() ? Instant.now() : null;
@@ -410,18 +520,18 @@ public class MsTaskService {
 
         var task = getTaskById(taskId, currentUserId);
         eventPublisher.publishEvent(new MsTaskEvents.TaskStatusChanged(
-                taskId, task.title(), newStatus.name(), newStatus.isTerminal(),
-                memberUserIds(taskId), currentUserId));
+                taskId, task.title(), newStatus.name(), newStatus.isTerminal(), memberUserIds(taskId), currentUserId));
 
         searchChangePublisher.changed("TASK", taskId);
 
-        auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
+        auditLogService.logChange(
+                "ms_tasks",
+                String.valueOf(taskId),
+                "U",
                 List.of("status_id"),
                 Map.of("statusId", existing.statusId()),
                 Map.of("statusId", newStatusId, "statusName", newStatus.name()));
     }
-
-
 
     @Transactional
     public void setResponsible(Long taskId, Long responsibleUserId) {
@@ -468,7 +578,8 @@ public class MsTaskService {
                     memberRepository.addOrUpdateMember(taskId, uid, MsTaskPref.INVOLVE_EXECUTOR, false);
                 }
             }
-            List<Long> execs = executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
+            List<Long> execs =
+                    executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
             if (!execs.isEmpty()) {
                 var task = currentUserId != null ? getTaskById(taskId, currentUserId) : getTaskById(taskId);
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
@@ -497,7 +608,8 @@ public class MsTaskService {
                     memberRepository.addOrUpdateMember(taskId, uid, MsTaskPref.INVOLVE_OBSERVER, false);
                 }
             }
-            List<Long> obs = observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
+            List<Long> obs =
+                    observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
             if (!obs.isEmpty()) {
                 var task = currentUserId != null ? getTaskById(taskId, currentUserId) : getTaskById(taskId);
                 eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
@@ -572,7 +684,8 @@ public class MsTaskService {
     }
 
     @Transactional
-    public MsTaskStatusRepository.StatusRecord createStatus(String pcode, String name, String color, int orderNo, boolean isTerminal) {
+    public MsTaskStatusRepository.StatusRecord createStatus(
+            String pcode, String name, String color, int orderNo, boolean isTerminal) {
         return statusService.createStatus(pcode, name, color, orderNo, isTerminal);
     }
 
@@ -592,7 +705,8 @@ public class MsTaskService {
     }
 
     @Transactional
-    public MsTaskTypeRepository.TypeRecord createType(String code, String name, String icon, String color, int orderNo) {
+    public MsTaskTypeRepository.TypeRecord createType(
+            String code, String name, String icon, String color, int orderNo) {
         return statusService.createType(code, name, icon, color, orderNo);
     }
 
@@ -616,7 +730,6 @@ public class MsTaskService {
         statusService.reorderTypes(orderedIds);
     }
 
-
     private String normalizePriority(String priority) {
         if (priority == null || priority.isBlank()) {
             return "medium";
@@ -632,53 +745,65 @@ public class MsTaskService {
     }
 
     private MsTaskPatch rowPatch(MsTaskPatch requested) {
-        if (requested.titlePresent() && requested.title() != null && requested.title().isBlank()) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
-                    "Заголовок задачи не может быть пустым");
+        if (requested.titlePresent()
+                && requested.title() != null
+                && requested.title().isBlank()) {
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Заголовок задачи не может быть пустым");
         }
 
         boolean titlePresent = requested.titlePresent() && requested.title() != null;
-        boolean descriptionPresent = requested.descriptionMarkdownPresent()
-                && requested.descriptionMarkdown() != null;
+        boolean descriptionPresent = requested.descriptionMarkdownPresent() && requested.descriptionMarkdown() != null;
         boolean priorityPresent = requested.priorityPresent() && requested.priority() != null;
         boolean attributesPresent = requested.attributesPresent() && requested.attributes() != null;
         return new MsTaskPatch(
-                requested.projectIdPresent(), requested.projectId(),
-                titlePresent, requested.title(),
-                descriptionPresent, requested.descriptionMarkdown(),
-                requested.parentTaskIdPresent(), requested.parentTaskId(),
+                requested.projectIdPresent(),
+                requested.projectId(),
+                titlePresent,
+                requested.title(),
+                descriptionPresent,
+                requested.descriptionMarkdown(),
+                requested.parentTaskIdPresent(),
+                requested.parentTaskId(),
                 priorityPresent,
                 priorityPresent ? normalizePriority(requested.priority()) : requested.priority(),
-                requested.responsibleUserIdPresent(), requested.responsibleUserId(),
-                requested.executorUserIdsPresent(), requested.executorUserIds(),
-                requested.observerUserIdsPresent(), requested.observerUserIds(),
-                attributesPresent, requested.attributes(),
-                requested.beginTimePresent(), requested.beginTime(),
-                requested.endTimePresent(), requested.endTime(),
-                requested.expectedRevisionPresent(), requested.expectedRevision());
+                requested.responsibleUserIdPresent(),
+                requested.responsibleUserId(),
+                requested.executorUserIdsPresent(),
+                requested.executorUserIds(),
+                requested.observerUserIdsPresent(),
+                requested.observerUserIds(),
+                attributesPresent,
+                requested.attributes(),
+                requested.beginTimePresent(),
+                requested.beginTime(),
+                requested.endTimePresent(),
+                requested.endTime(),
+                requested.expectedRevisionPresent(),
+                requested.expectedRevision());
     }
 
     private void validateDeadline(MsTaskRepository.TaskRecord existing, MsTaskPatch patch) {
         Instant begin = patch.beginTimePresent() ? patch.beginTime() : existing.beginTime();
         Instant end = patch.endTimePresent() ? patch.endTime() : existing.endTime();
         if (begin != null && end != null && begin.isAfter(end)) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED,
-                    "Дата начала задачи не может быть позже срока окончания");
+            throw ApiException.badRequest(
+                    ErrorCode.VALIDATION_FAILED, "Дата начала задачи не может быть позже срока окончания");
         }
     }
 
     private void replaceResponsible(Long taskId, Long responsibleUserId) {
         memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
         if (responsibleUserId != null) {
-            memberRepository.addOrUpdateMember(
-                    taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
+            memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
         }
     }
 
     private void replaceMembers(Long taskId, String involveKind, List<Long> userIds) {
         memberRepository.removeMembersByKind(taskId, involveKind);
-        userIds.stream().filter(Objects::nonNull).distinct().forEach(userId ->
-                memberRepository.addOrUpdateMember(taskId, userId, involveKind, false));
+        userIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(userId -> memberRepository.addOrUpdateMember(taskId, userId, involveKind, false));
     }
 
     private void logTaskPatch(
@@ -692,59 +817,80 @@ public class MsTaskService {
         Map<String, Object> newRow = new LinkedHashMap<>();
 
         if (rowPatch.titlePresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "title", existing.title(), rowPatch.title());
+            addAuditChange(changedColumns, oldRow, newRow, "title", existing.title(), rowPatch.title());
         }
         if (rowPatch.descriptionMarkdownPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "description_markdown", existing.descriptionMarkdown(), rowPatch.descriptionMarkdown());
+            addAuditChange(
+                    changedColumns,
+                    oldRow,
+                    newRow,
+                    "description_markdown",
+                    existing.descriptionMarkdown(),
+                    rowPatch.descriptionMarkdown());
         }
         if (rowPatch.priorityPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "priority", existing.priority(), rowPatch.priority());
+            addAuditChange(changedColumns, oldRow, newRow, "priority", existing.priority(), rowPatch.priority());
         }
         if (rowPatch.projectIdPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "project_id", existing.projectId(), rowPatch.projectId());
+            addAuditChange(changedColumns, oldRow, newRow, "project_id", existing.projectId(), rowPatch.projectId());
         }
         if (rowPatch.parentTaskIdPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "parent_task_id", existing.parentTaskId(), rowPatch.parentTaskId());
+            addAuditChange(
+                    changedColumns, oldRow, newRow, "parent_task_id", existing.parentTaskId(), rowPatch.parentTaskId());
         }
         if (rowPatch.attributesPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "attributes", existing.attributes(), rowPatch.attributes());
+            addAuditChange(changedColumns, oldRow, newRow, "attributes", existing.attributes(), rowPatch.attributes());
         }
         if (rowPatch.beginTimePresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "begin_time", auditTime(existing.beginTime()), auditTime(rowPatch.beginTime()));
+            addAuditChange(
+                    changedColumns,
+                    oldRow,
+                    newRow,
+                    "begin_time",
+                    auditTime(existing.beginTime()),
+                    auditTime(rowPatch.beginTime()));
         }
         if (rowPatch.endTimePresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
-                    "end_time", auditTime(existing.endTime()), auditTime(rowPatch.endTime()));
+            addAuditChange(
+                    changedColumns,
+                    oldRow,
+                    newRow,
+                    "end_time",
+                    auditTime(existing.endTime()),
+                    auditTime(rowPatch.endTime()));
         }
         if (requested.responsibleUserIdPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow,
+            addAuditChange(
+                    changedColumns,
+                    oldRow,
+                    newRow,
                     "responsible_user_id",
-                    memberIds(oldMembers, MsTaskPref.INVOLVE_RESPONSIBLE).stream().findFirst().orElse(null),
+                    memberIds(oldMembers, MsTaskPref.INVOLVE_RESPONSIBLE).stream()
+                            .findFirst()
+                            .orElse(null),
                     requested.responsibleUserId());
         }
         if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
-            addAuditChange(changedColumns, oldRow, newRow,
+            addAuditChange(
+                    changedColumns,
+                    oldRow,
+                    newRow,
                     "executor_user_ids",
                     memberIds(oldMembers, MsTaskPref.INVOLVE_EXECUTOR),
                     normalizedIds(requested.executorUserIds()));
         }
         if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
-            addAuditChange(changedColumns, oldRow, newRow,
+            addAuditChange(
+                    changedColumns,
+                    oldRow,
+                    newRow,
                     "observer_user_ids",
                     memberIds(oldMembers, MsTaskPref.INVOLVE_OBSERVER),
                     normalizedIds(requested.observerUserIds()));
         }
 
         if (!changedColumns.isEmpty()) {
-            auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U",
-                    changedColumns, oldRow, newRow);
+            auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U", changedColumns, oldRow, newRow);
         }
     }
 
@@ -760,8 +906,7 @@ public class MsTaskService {
         newRow.put(column, newValue);
     }
 
-    private static List<Long> memberIds(
-            List<MsTaskMemberRepository.TaskMemberRecord> members, String involveKind) {
+    private static List<Long> memberIds(List<MsTaskMemberRepository.TaskMemberRecord> members, String involveKind) {
         return members.stream()
                 .filter(member -> involveKind.equals(member.involveKind()))
                 .map(MsTaskMemberRepository.TaskMemberRecord::userId)

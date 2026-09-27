@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.fnd.dwh;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
@@ -9,6 +13,14 @@ import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.zaxxer.hikari.HikariDataSource;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,19 +31,6 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
-
 /** Блок F основы: фасады второй базы — запись raw и чтение витрин (AC-33…AC-36). */
 class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
@@ -39,19 +38,26 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
     @Autowired
     private FndRawWriter rawWriter;
+
     @Autowired
     private FndMartReader martReader;
+
     @Autowired
     private FndLoadService loads;
+
     @Autowired
     private FndActors actors;
+
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     @Qualifier(FndPref.DWH)
     private JdbcClient dwhJdbc;
+
     @Autowired
     private ObjectMapper json;
+
     @Autowired
     private TransactionTemplate tx;
 
@@ -62,7 +68,9 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         actor = actors.system();
         tx.executeWithoutResult(status -> {
             actors.apply(actor);
-            jdbc.sql("select set_config('dwh.maintenance', 'on', true)").query(String.class).single();
+            jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
+                    .query(String.class)
+                    .single();
             jdbc.sql("delete from fnd_load_log").update();
             jdbc.sql("update fnd_loads set superseded_by = null").update();
             jdbc.sql("delete from fnd_loads").update();
@@ -77,10 +85,13 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
     void writeAndRead() {
         long loadId = newLoad();
         UUID fileId = newFile();
-        rawWriter.write(loadId, fileId, List.of(
-                new FndRawRow(1, "Лист1", 10, Map.of("code", "TEST-1")),
-                new FndRawRow(2, "Лист1", 11, Map.of("code", "TEST-2")),
-                new FndRawRow(3, null, null, Map.of("code", "TEST-3"))));
+        rawWriter.write(
+                loadId,
+                fileId,
+                List.of(
+                        new FndRawRow(1, "Лист1", 10, Map.of("code", "TEST-1")),
+                        new FndRawRow(2, "Лист1", 11, Map.of("code", "TEST-2")),
+                        new FndRawRow(3, null, null, Map.of("code", "TEST-3"))));
 
         List<FndRawRow> rows = rawWriter.read(loadId);
         assertThat(rows).hasSize(3);
@@ -89,8 +100,12 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         assertThat(rows.getFirst().fields()).containsEntry("code", "TEST-1");
         assertThat(rows.get(2).sheet()).isNull();
         assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id and source_file_id = :file"
-                        + " and loaded_at is not null")
-                .param("id", loadId).param("file", fileId).query(Long.class).single()).isEqualTo(3L);
+                                + " and loaded_at is not null")
+                        .param("id", loadId)
+                        .param("file", fileId)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(3L);
 
         loads.apply(loadId, 3, 3, 0, actor);
         assertThat(codeOf(() -> rawWriter.write(loadId, fileId, List.of(new FndRawRow(4, null, null, Map.of())))))
@@ -104,7 +119,8 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
 
         // Фасад умеет только писать и читать: правки и удаления в контракте нет
-        assertThat(FndRawWriter.class.getDeclaredMethods()).extracting(java.lang.reflect.Method::getName)
+        assertThat(FndRawWriter.class.getDeclaredMethods())
+                .extracting(java.lang.reflect.Method::getName)
                 .containsExactlyInAnyOrder("write", "read");
     }
 
@@ -123,7 +139,10 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         }
         rawWriter.write(loadId, null, thousand);
         assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
-                .param("id", loadId).query(Long.class).single()).isEqualTo(1000L);
+                        .param("id", loadId)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(1000L);
     }
 
     @Test
@@ -133,24 +152,29 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
         long generation = dwhJdbc.sql("insert into cache.generations (state, load_versions, switched_at)"
                         + " values ('current', cast(:versions as jsonb), now()) returning generation_id")
-                .param("versions", "{\"" + SOURCE + "\": 1}").query(Long.class).single();
+                .param("versions", "{\"" + SOURCE + "\": 1}")
+                .query(Long.class)
+                .single();
         FndMartReader.FndGeneration current = martReader.currentGeneration().orElseThrow();
         assertThat(current.generationId()).isEqualTo(generation);
         assertThat(current.loadVersions()).contains(SOURCE);
         assertThat(current.switchedAt()).isBefore(Instant.now().plusSeconds(1));
 
         assertThatThrownBy(() -> dwhJdbc.sql("insert into cache.generations (state, load_versions)"
-                        + " values ('current', '{}'::jsonb)").update())
+                                + " values ('current', '{}'::jsonb)")
+                        .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("cache_generations_uk_current");
 
         dwhJdbc.sql("insert into cache.items (generation_id, item_key, load_versions, payload)"
                         + " values (:g, 'TEST-key', '{}'::jsonb, '{\"value\": 1}'::jsonb)")
-                .param("g", generation).update();
+                .param("g", generation)
+                .update();
         List<Map<String, Object>> items = martReader.read("cache", "items", Map.of("item_key", "TEST-key"));
         assertThat(items).hasSize(1);
         assertThat(items.getFirst()).containsEntry("item_key", "TEST-key");
-        assertThat(martReader.read("cache", "items", Map.of("item_key", "нет такого"))).isEmpty();
+        assertThat(martReader.read("cache", "items", Map.of("item_key", "нет такого")))
+                .isEmpty();
 
         for (String forbidden : List.of("raw", "core", "public", "MART")) {
             assertThat(codeOf(() -> martReader.read(forbidden, "rows", Map.of())))
@@ -178,13 +202,17 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
             UUID packageRef = UUID.randomUUID();
             assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-                actors.apply(actor);
-                loads.log(packageRef, "получен", null, null, actor, "до записи TEST", null);
-                writer.write(loadId, null, List.of(new FndRawRow(1, null, null, Map.of("n", 1))));
-            })).isInstanceOf(DwhUnavailableException.class);
+                        actors.apply(actor);
+                        loads.log(packageRef, "получен", null, null, actor, "до записи TEST", null);
+                        writer.write(loadId, null, List.of(new FndRawRow(1, null, null, Map.of("n", 1))));
+                    }))
+                    .isInstanceOf(DwhUnavailableException.class);
             // Транзакция OLTP откатана: строки журнала, вставленной до обращения к pg-dwh, нет
             assertThat(jdbc.sql("select count(*) from fnd_load_log where package_ref = :p")
-                    .param("p", packageRef).query(Long.class).single()).isZero();
+                            .param("p", packageRef)
+                            .query(Long.class)
+                            .single())
+                    .isZero();
         }
     }
 
@@ -203,8 +231,8 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
     }
 
     private long newLoad() {
-        return loads.begin(SOURCE, UUID.randomUUID(), LocalDate.parse("2026-01-01"),
-                LocalDate.parse("2026-01-31"), "v1", actor);
+        return loads.begin(
+                SOURCE, UUID.randomUUID(), LocalDate.parse("2026-01-01"), LocalDate.parse("2026-01-31"), "v1", actor);
     }
 
     private UUID newFile() {
@@ -214,9 +242,12 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
                         values (:sha, 'TEST.xlsx', 10, 'application/vnd.ms-excel', 'test', :key)
                         returning id
                         """)
-                .param("sha", UUID.randomUUID().toString().repeat(2).replace("-", "").substring(0, 64))
+                .param(
+                        "sha",
+                        UUID.randomUUID().toString().repeat(2).replace("-", "").substring(0, 64))
                 .param("key", "test/" + UUID.randomUUID())
-                .query(UUID.class).single());
+                .query(UUID.class)
+                .single());
     }
 
     /** Источник строк, который ломается на заданной строке: имитирует сбой разбора файла (AC-34). */

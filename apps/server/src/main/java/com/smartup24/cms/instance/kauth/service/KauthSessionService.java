@@ -3,13 +3,12 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.service.MdUserService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class KauthSessionService {
@@ -22,8 +21,8 @@ public class KauthSessionService {
     }
 
     @Autowired
-    public KauthSessionService(KauthSessionRepository sessionRepository,
-                               KauthLoginAttemptRepository loginAttemptRepository) {
+    public KauthSessionService(
+            KauthSessionRepository sessionRepository, KauthLoginAttemptRepository loginAttemptRepository) {
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
     }
@@ -44,8 +43,7 @@ public class KauthSessionService {
                 user.authenticationVersion(),
                 activeSessions.size(),
                 activeSessions,
-                recentAttempts
-        );
+                recentAttempts);
     }
 
     @Transactional(readOnly = true)
@@ -84,4 +82,3 @@ public class KauthSessionService {
         return sessionRepository.closeInactiveSessions(cutoff);
     }
 }
-

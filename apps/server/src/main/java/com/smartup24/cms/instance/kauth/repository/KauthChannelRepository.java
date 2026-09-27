@@ -1,11 +1,10 @@
 package com.smartup24.cms.instance.kauth.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class KauthChannelRepository {
@@ -17,7 +16,8 @@ public class KauthChannelRepository {
     }
 
     public ChannelRecord bindOrUpdate(Long userId, String channel, String address, boolean isVerified) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 insert into kauth_user_channels (user_id, channel, address, is_verified, created_at)
                 values (:userId, :channel, :address, :isVerified, now())
                 on conflict (user_id, channel) do update
@@ -34,13 +34,13 @@ public class KauthChannelRepository {
                         rs.getString("channel"),
                         rs.getString("address"),
                         rs.getBoolean("is_verified"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .single();
     }
 
     public Optional<ChannelRecord> findByUserIdAndChannel(Long userId, String channel) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, user_id, channel, address, is_verified, created_at
                 from kauth_user_channels
                 where user_id = :userId and channel = :channel
@@ -53,13 +53,13 @@ public class KauthChannelRepository {
                         rs.getString("channel"),
                         rs.getString("address"),
                         rs.getBoolean("is_verified"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .optional();
     }
 
     public List<ChannelRecord> findByUserId(Long userId) {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select id, user_id, channel, address, is_verified, created_at
                 from kauth_user_channels
                 where user_id = :userId
@@ -72,24 +72,18 @@ public class KauthChannelRepository {
                         rs.getString("channel"),
                         rs.getString("address"),
                         rs.getBoolean("is_verified"),
-                        rs.getTimestamp("created_at").toInstant()
-                ))
+                        rs.getTimestamp("created_at").toInstant()))
                 .list();
     }
 
     public void delete(Long userId, String channel) {
-        jdbcClient.sql("delete from kauth_user_channels where user_id = :userId and channel = :channel")
+        jdbcClient
+                .sql("delete from kauth_user_channels where user_id = :userId and channel = :channel")
                 .param("userId", userId)
                 .param("channel", channel)
                 .update();
     }
 
     public record ChannelRecord(
-            Long id,
-            Long userId,
-            String channel,
-            String address,
-            boolean isVerified,
-            Instant createdAt
-    ) {}
+            Long id, Long userId, String channel, String address, boolean isVerified, Instant createdAt) {}
 }

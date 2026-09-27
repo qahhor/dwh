@@ -18,6 +18,5 @@ public final class UplLimits {
     /** До скольких знаков обрезается значение ячейки в записи об ошибке: предел загрузки, не норматив. */
     public static final int MAX_VALUE_LENGTH = 200;
 
-    private UplLimits() {
-    }
+    private UplLimits() {}
 }

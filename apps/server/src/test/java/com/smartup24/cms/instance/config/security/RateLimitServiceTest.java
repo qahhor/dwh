@@ -1,12 +1,11 @@
 package com.smartup24.cms.instance.config.security;
 
-import io.github.bucket4j.TimeMeter;
-import org.junit.jupiter.api.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.bucket4j.TimeMeter;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 class RateLimitServiceTest {
 
@@ -16,7 +15,8 @@ class RateLimitServiceTest {
         var service = new RateLimitService(time);
 
         for (int request = 0; request < 20; request++) {
-            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();
+            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed())
+                    .isTrue();
         }
 
         var rejected = service.tryConsume("user:42:search", 120, 20);
@@ -30,11 +30,14 @@ class RateLimitServiceTest {
         var service = new RateLimitService(time);
 
         for (int request = 0; request < 20; request++) {
-            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();
+            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed())
+                    .isTrue();
         }
         for (int replacement = 0; replacement < 10; replacement++) {
-            assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse();
-            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isFalse();
+            assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed())
+                    .isFalse();
+            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed())
+                    .isFalse();
         }
     }
 
@@ -44,7 +47,8 @@ class RateLimitServiceTest {
         var service = new RateLimitService(time);
 
         for (int request = 0; request < 20; request++) {
-            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();
+            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed())
+                    .isTrue();
         }
         assertThat(service.tryConsume("user:42:search", 119, 20).isConsumed()).isFalse();
 
@@ -60,7 +64,8 @@ class RateLimitServiceTest {
         var service = new RateLimitService(time);
 
         for (int request = 0; request < 20; request++) {
-            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();
+            assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed())
+                    .isTrue();
         }
         time.advance(Duration.ofMillis(500));
         assertThat(service.tryConsume("user:42:search", 120, 20).isConsumed()).isTrue();

@@ -1,5 +1,17 @@
 package com.smartup24.cms.instance.search;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
@@ -23,29 +35,16 @@ import com.smartup24.cms.instance.search.service.SearchService.SearchResult;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataAccessResourceFailureException;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataAccessResourceFailureException;
 
 class SearchServiceTest {
 
@@ -53,17 +52,27 @@ class SearchServiceTest {
     private final SearchFallbackRepository fallbackRepository = mock(SearchFallbackRepository.class);
     private final RoleMembershipAuthorizer roleMembershipAuthorizer = mock(RoleMembershipAuthorizer.class);
     private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
-    private final SearchService service = new SearchService(typesenseClient, fallbackRepository,
-            new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(),
+    private final SearchService service = new SearchService(
+            typesenseClient,
+            fallbackRepository,
+            new SearchAccessPolicy(roleMembershipAuthorizer),
+            new SearchResultBudget(),
+            defaultProvider(),
             new SearchExecutionSnapshotReader(indexState));
 
     @BeforeEach
     void authenticateWithLegacyWildcard() {
         SecurityContext.setPrincipal(principalWithPermissions(Set.of("*.*")));
-        when(indexState.executionSnapshot()).thenReturn(new SearchManagementDtos.SearchExecutionSnapshot(
-                new IndexSnapshot(UUID.randomUUID(), 1,
-                Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"), "MIXED", true, false),
-                new SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults())));
+        when(indexState.executionSnapshot())
+                .thenReturn(new SearchManagementDtos.SearchExecutionSnapshot(
+                        new IndexSnapshot(
+                                UUID.randomUUID(),
+                                1,
+                                Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"),
+                                "MIXED",
+                                true,
+                                false),
+                        new SearchManagementDtos.SettingsSnapshot(1, SearchQueryPolicy.defaults())));
     }
 
     @AfterEach
@@ -84,9 +93,7 @@ class SearchServiceTest {
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(typesenseClient.multiSearch(eq("Kafka"), eq("ALL"), eq(4), anyMap(), any()))
                 .thenReturn(List.of(
-                        group("TASK", 7, "11", "12", "13"),
-                        group("PROJECT", 4, "21", "22"),
-                        group("USER", 1, "31")));
+                        group("TASK", 7, "11", "12", "13"), group("PROJECT", 4, "21", "22"), group("USER", 1, "31")));
 
         SearchResult result = service.search("  Kafka  ", null, 4);
 
@@ -121,11 +128,17 @@ class SearchServiceTest {
                 1, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
         var reads = new AtomicInteger();
         var index = indexState.executionSnapshot().index();
-        when(indexState.executionSnapshot()).thenAnswer(invocation -> new SearchManagementDtos.SearchExecutionSnapshot(
-                index, new SearchManagementDtos.SettingsSnapshot(1,
-                reads.getAndIncrement() == 0 ? twoResults : oneResult)));
-        var dynamic = new SearchService(typesenseClient, fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), defaultProvider(),
+        when(indexState.executionSnapshot())
+                .thenAnswer(invocation -> new SearchManagementDtos.SearchExecutionSnapshot(
+                        index,
+                        new SearchManagementDtos.SettingsSnapshot(
+                                1, reads.getAndIncrement() == 0 ? twoResults : oneResult)));
+        var dynamic = new SearchService(
+                typesenseClient,
+                fallbackRepository,
+                new SearchAccessPolicy(roleMembershipAuthorizer),
+                new SearchResultBudget(),
+                defaultProvider(),
                 new SearchExecutionSnapshotReader(indexState));
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(typesenseClient.multiSearch(eq("first"), eq("TASK"), eq(2), anyMap(), eq(twoResults)))
@@ -146,8 +159,7 @@ class SearchServiceTest {
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(typesenseClient.multiSearch(eq("Kafka"), eq("ALL"), eq(10), anyMap(), any()))
                 .thenThrow(TypesenseException.unavailable());
-        when(fallbackRepository.search("Kafka", "ALL", 10)).thenReturn(fallback(
-                fallbackGroup("TASK", false, "11")));
+        when(fallbackRepository.search("Kafka", "ALL", 10)).thenReturn(fallback(fallbackGroup("TASK", false, "11")));
 
         SearchResult result = service.search("Kafka", "ALL", 10);
 
@@ -171,9 +183,13 @@ class SearchServiceTest {
 
     @Test
     void uninitializedCollectionResolutionUsesTheSameMarkedFallback() {
-        SearchService uninitialized = new SearchServiceWithSeams(typesenseClient, fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(),
-                SearchQueryPolicy.defaults(), Map.of());
+        SearchService uninitialized = new SearchServiceWithSeams(
+                typesenseClient,
+                fallbackRepository,
+                new SearchAccessPolicy(roleMembershipAuthorizer),
+                new SearchResultBudget(),
+                SearchQueryPolicy.defaults(),
+                Map.of());
         when(typesenseClient.isEnabled()).thenReturn(true);
         when(fallbackRepository.search("Kafka", "ALL", 10)).thenReturn(fallback());
 
@@ -198,8 +214,7 @@ class SearchServiceTest {
 
     @Test
     void exactPositiveIdUsesParameterizedRepositoryLookupWithoutTypesense() {
-        when(fallbackRepository.searchExact(123L, "TASK")).thenReturn(fallback(
-                fallbackGroup("TASK", false, "123")));
+        when(fallbackRepository.searchExact(123L, "TASK")).thenReturn(fallback(fallbackGroup("TASK", false, "123")));
 
         SearchResult result = service.search("#123", "TASK", 10);
 
@@ -215,13 +230,18 @@ class SearchServiceTest {
     void exactLookupReportsKnownCountAndHasMoreWhenPolicyCapsMultipleEntityMatches() {
         SearchQueryPolicy oneResultPolicy = new SearchQueryPolicy(
                 1, 120, 20, "MIXED", SearchQueryPolicy.defaults().fields());
-        SearchService capped = new SearchServiceWithSeams(typesenseClient, fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer), new SearchResultBudget(), oneResultPolicy,
+        SearchService capped = new SearchServiceWithSeams(
+                typesenseClient,
+                fallbackRepository,
+                new SearchAccessPolicy(roleMembershipAuthorizer),
+                new SearchResultBudget(),
+                oneResultPolicy,
                 Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"));
-        when(fallbackRepository.searchExact(123L, "ALL")).thenReturn(fallback(
-                fallbackGroup("TASK", false, "123"),
-                fallbackGroup("PROJECT", false, "123"),
-                fallbackGroup("USER", false, "123")));
+        when(fallbackRepository.searchExact(123L, "ALL"))
+                .thenReturn(fallback(
+                        fallbackGroup("TASK", false, "123"),
+                        fallbackGroup("PROJECT", false, "123"),
+                        fallbackGroup("USER", false, "123")));
 
         SearchResult result = capped.search("#123", "ALL", 10);
 
@@ -236,13 +256,13 @@ class SearchServiceTest {
     @Test
     void rejectsInvalidInputBeforeAnySearchIo() {
         for (Object[] invalid : List.of(
-                new Object[]{"a", "ALL", 10},
-                new Object[]{"x".repeat(201), "ALL", 10},
-                new Object[]{"valid", "OTHER", 10},
-                new Object[]{"valid", "ALL", 0},
-                new Object[]{"valid", "ALL", 51},
-                new Object[]{"#0", "ALL", 10},
-                new Object[]{"#999999999999999999999999999", "ALL", 10})) {
+                new Object[] {"a", "ALL", 10},
+                new Object[] {"x".repeat(201), "ALL", 10},
+                new Object[] {"valid", "OTHER", 10},
+                new Object[] {"valid", "ALL", 0},
+                new Object[] {"valid", "ALL", 51},
+                new Object[] {"#0", "ALL", 10},
+                new Object[] {"#999999999999999999999999999", "ALL", 10})) {
             assertThatThrownBy(() -> service.search((String) invalid[0], (String) invalid[1], (int) invalid[2]))
                     .isInstanceOf(ApiException.class);
         }
@@ -254,7 +274,8 @@ class SearchServiceTest {
         SecurityContext.clear();
 
         assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
-                .isInstanceOfSatisfying(ApiException.class,
+                .isInstanceOfSatisfying(
+                        ApiException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
         verifyNoInteractions(roleMembershipAuthorizer, typesenseClient, fallbackRepository);
     }
@@ -265,7 +286,8 @@ class SearchServiceTest {
         when(roleMembershipAuthorizer.hasActiveRole(42L, "admin")).thenReturn(false);
 
         assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
-                .isInstanceOfSatisfying(ApiException.class,
+                .isInstanceOfSatisfying(
+                        ApiException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN));
         verifyNoInteractions(typesenseClient, fallbackRepository);
     }
@@ -289,19 +311,29 @@ class SearchServiceTest {
         SecurityContext.setPrincipal(principalWithPermissions(Set.of("tasks.items.view")));
 
         assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
-                .isInstanceOfSatisfying(ApiException.class,
+                .isInstanceOfSatisfying(
+                        ApiException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED));
         verifyNoInteractions(roleMembershipAuthorizer, typesenseClient, fallbackRepository);
     }
 
     private static CollectionSearch group(String type, long found, String... ids) {
-        return new CollectionSearch(type, Arrays.stream(ids)
-                .map(id -> new SearchHit(type, id, type + " " + id, "", "/" + id)).toList(), found, 1);
+        return new CollectionSearch(
+                type,
+                Arrays.stream(ids)
+                        .map(id -> new SearchHit(type, id, type + " " + id, "", "/" + id))
+                        .toList(),
+                found,
+                1);
     }
 
     private static FallbackGroup fallbackGroup(String type, boolean hasMore, String... ids) {
-        return new FallbackGroup(type, Arrays.stream(ids)
-                .map(id -> new FallbackHit(type, id, type + " " + id, "", "/" + id)).toList(), hasMore);
+        return new FallbackGroup(
+                type,
+                Arrays.stream(ids)
+                        .map(id -> new FallbackHit(type, id, type + " " + id, "", "/" + id))
+                        .toList(),
+                hasMore);
     }
 
     private static FallbackSearch fallback(FallbackGroup... groups) {
@@ -310,24 +342,41 @@ class SearchServiceTest {
 
     private static SecurityContext.KauthPrincipal principalWithPermissions(Set<String> permissions) {
         return new SecurityContext.KauthPrincipal(
-                42L, "tester", "tester@example.com", 100L, false, permissions,
-                1L, false, 0, null);
+                42L, "tester", "tester@example.com", 100L, false, permissions, 1L, false, 0, null);
     }
 
     private static SearchPolicyProvider defaultProvider() {
-        var provider = new SearchPolicyProvider(new SearchOwnerRateLimits() {
-            @Override public int userPerMinute() { return 600; }
-            @Override public int tokenPerMinute() { return 300; }
-        }, mock(SearchSettingsRepository.class));
-        provider.publishCommitted(new SearchManagementDtos.SettingsSnapshot(1,SearchQueryPolicy.defaults()));
+        var provider = new SearchPolicyProvider(
+                new SearchOwnerRateLimits() {
+                    @Override
+                    public int userPerMinute() {
+                        return 600;
+                    }
+
+                    @Override
+                    public int tokenPerMinute() {
+                        return 300;
+                    }
+                },
+                mock(SearchSettingsRepository.class));
+        provider.publishCommitted(new SearchManagementDtos.SettingsSnapshot(1, SearchQueryPolicy.defaults()));
         return provider;
     }
 
     private static final class SearchServiceWithSeams extends SearchService {
-        private SearchServiceWithSeams(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
-                                       SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
-                                       SearchQueryPolicy queryPolicy, Map<String, String> collections) {
-            super(typesenseClient, fallbackRepository, accessPolicy, resultBudget, queryPolicy,
+        private SearchServiceWithSeams(
+                TypesenseClient typesenseClient,
+                SearchFallbackRepository fallbackRepository,
+                SearchAccessPolicy accessPolicy,
+                SearchResultBudget resultBudget,
+                SearchQueryPolicy queryPolicy,
+                Map<String, String> collections) {
+            super(
+                    typesenseClient,
+                    fallbackRepository,
+                    accessPolicy,
+                    resultBudget,
+                    queryPolicy,
                     () -> new IndexSnapshot(UUID.randomUUID(), 1, collections, "MIXED", !collections.isEmpty(), false));
         }
     }

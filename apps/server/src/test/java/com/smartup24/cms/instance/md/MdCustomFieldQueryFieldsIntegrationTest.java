@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
@@ -26,16 +27,13 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.md.service.MdUserQuery;
 import com.smartup24.cms.instance.md.service.MdUserView;
+import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Custom fields as registry fields (ADR-0019 2.3, roadmap item 52), on the user list. */
 class MdCustomFieldQueryFieldsIntegrationTest {
@@ -54,12 +52,16 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var repository = new MdCustomFieldRepository(jdbc, mapper);
         fields = new MdCustomFieldService(repository, audit);
-        registry = new QueryListRegistry(List.of(MdUserQuery.LIST), List.of(new MdCustomFieldQueryFields(repository, fields)));
+        registry = new QueryListRegistry(
+                List.of(MdUserQuery.LIST), List.of(new MdCustomFieldQueryFields(repository, fields)));
         var roles = new MdRoleRepository(jdbc);
-        var scope = new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc),
-                new MdPermissionService(new MdPermissionRepository(jdbc)), audit);
-        users = new MdUserListService(new QueryListRepository(jdbc), new MdUserRepository(jdbc, mapper), scope, roles,
-                registry);
+        var scope = new MdScopeService(
+                new MdScopeRepository(jdbc),
+                new MdOrgUnitRepository(jdbc),
+                new MdPermissionService(new MdPermissionRepository(jdbc)),
+                audit);
+        users = new MdUserListService(
+                new QueryListRepository(jdbc), new MdUserRepository(jdbc, mapper), scope, roles, registry);
 
         fields.createField("USER", "cfr_region", "Регион", "string", false, null, null, 1);
         fields.createField("USER", "cfr_grade", "Грейд", "number", false, null, null, 2);
@@ -68,10 +70,15 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         fields.createField("USER", "cfr_hired", "Принят", "date", false, null, null, 5);
 
         viewer = user("cfr_viewer", "{}");
-        roles.assignRolesToUser(viewer, List.of(roles.findByPcode("admin").orElseThrow().id()));
+        roles.assignRolesToUser(
+                viewer, List.of(roles.findByPcode("admin").orElseThrow().id()));
         scope.recalculateFor(viewer);
-        user("cfr_anna", "{\"cfr_region\":\"Tashkent\",\"cfr_grade\":5,\"cfr_shift\":\"day\",\"cfr_remote\":true,\"cfr_hired\":\"2024-03-01\"}");
-        user("cfr_bek", "{\"cfr_region\":\"Samarkand\",\"cfr_grade\":\"12\",\"cfr_shift\":\"night\",\"cfr_remote\":false,\"cfr_hired\":\"2026-01-15\"}");
+        user(
+                "cfr_anna",
+                "{\"cfr_region\":\"Tashkent\",\"cfr_grade\":5,\"cfr_shift\":\"day\",\"cfr_remote\":true,\"cfr_hired\":\"2024-03-01\"}");
+        user(
+                "cfr_bek",
+                "{\"cfr_region\":\"Samarkand\",\"cfr_grade\":\"12\",\"cfr_shift\":\"night\",\"cfr_remote\":false,\"cfr_hired\":\"2026-01-15\"}");
         // Written before validation existed: shapes the fields do not accept.
         user("cfr_old", "{\"cfr_grade\":\"a lot\",\"cfr_remote\":\"maybe\",\"cfr_hired\":\"soon\"}");
     }
@@ -88,29 +95,42 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         assertThat(list.field("cfCfrGrade").orElseThrow().type()).isEqualTo(QueryFieldType.NUMBER);
         assertThat(list.field("cfCfrShift").orElseThrow().enumValues()).containsExactly("day", "night");
         assertThat(list.fields()).filteredOn(field -> field.attribute() != null).noneMatch(QueryField::sortable);
-        assertThat(MdUserQuery.LIST.field("cfCfrRegion")).as("the declared list stays as the code wrote it").isEmpty();
+        assertThat(MdUserQuery.LIST.field("cfCfrRegion"))
+                .as("the declared list stays as the code wrote it")
+                .isEmpty();
     }
 
     @Test
     @DisplayName("Custom fields filter by type; values of the wrong shape read as empty instead of failing")
     void filtersByType() {
-        assertThat(logins("[{\"field\":\"cfCfrRegion\",\"op\":\"eq\",\"value\":\"Tashkent\"}]")).containsExactly("cfr_anna");
-        assertThat(logins("[{\"field\":\"cfCfrGrade\",\"op\":\"gt\",\"value\":10}]")).containsExactly("cfr_bek");
-        assertThat(logins("[{\"field\":\"cfCfrShift\",\"op\":\"in\",\"value\":[\"night\"]}]")).containsExactly("cfr_bek");
-        assertThat(logins("[{\"field\":\"cfCfrRemote\",\"op\":\"eq\",\"value\":true}]")).containsExactly("cfr_anna");
-        assertThat(logins("[{\"field\":\"cfCfrHired\",\"op\":\"gte\",\"value\":\"2025-01-01\"}]")).containsExactly("cfr_bek");
-        assertThat(logins("[{\"field\":\"cfCfrGrade\",\"op\":\"empty\"}]")).contains("cfr_old", "cfr_viewer")
+        assertThat(logins("[{\"field\":\"cfCfrRegion\",\"op\":\"eq\",\"value\":\"Tashkent\"}]"))
+                .containsExactly("cfr_anna");
+        assertThat(logins("[{\"field\":\"cfCfrGrade\",\"op\":\"gt\",\"value\":10}]"))
+                .containsExactly("cfr_bek");
+        assertThat(logins("[{\"field\":\"cfCfrShift\",\"op\":\"in\",\"value\":[\"night\"]}]"))
+                .containsExactly("cfr_bek");
+        assertThat(logins("[{\"field\":\"cfCfrRemote\",\"op\":\"eq\",\"value\":true}]"))
+                .containsExactly("cfr_anna");
+        assertThat(logins("[{\"field\":\"cfCfrHired\",\"op\":\"gte\",\"value\":\"2025-01-01\"}]"))
+                .containsExactly("cfr_bek");
+        assertThat(logins("[{\"field\":\"cfCfrGrade\",\"op\":\"empty\"}]"))
+                .contains("cfr_old", "cfr_viewer")
                 .doesNotContain("cfr_anna", "cfr_bek");
     }
 
     @Test
     @DisplayName("Free search looks in text custom fields; sorting by a custom field is refused")
     void searchAndSort() {
-        assertThat(users.pageViews(viewer, null, null, null, null, "samark", LegacyUserFilters.none()).items())
-                .extracting(MdUserView::login).containsExactly("cfr_bek");
+        assertThat(users.pageViews(viewer, null, null, null, null, "samark", LegacyUserFilters.none())
+                        .items())
+                .extracting(MdUserView::login)
+                .containsExactly("cfr_bek");
         assertThatThrownBy(() -> users.page(viewer, null, null, null, "cfCfrGrade", null, LegacyUserFilters.none()))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.SORT_INVALID));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::code)
+                                .containsExactly(QueryCompiler.SORT_INVALID));
     }
 
     @Test
@@ -133,14 +153,16 @@ class MdCustomFieldQueryFieldsIntegrationTest {
                         order by id desc limit 1
                         """)
                 .param("id", String.valueOf(field.id()))
-                .query((rs, n) -> List.of(rs.getString("old_row"), rs.getString("new_row"))).single();
+                .query((rs, n) -> List.of(rs.getString("old_row"), rs.getString("new_row")))
+                .single();
         assertThat(row.get(0)).contains("\"options_json\"").doesNotContain("\\\"c\\\"");
         assertThat(row.get(1)).contains("\"default_value\": \"b\"").contains("\\\"c\\\"");
     }
 
     private static List<String> logins(String filter) {
         return users.pageViews(viewer, null, null, filter, "login", "cfr_", LegacyUserFilters.none()).items().stream()
-                .map(MdUserView::login).toList();
+                .map(MdUserView::login)
+                .toList();
     }
 
     private static Long user(String login, String attributes) {
@@ -151,6 +173,9 @@ class MdCustomFieldQueryFieldsIntegrationTest {
                                 false, false)
                         returning id
                         """)
-                .param("login", login).param("attributes", attributes).query(Long.class).single();
+                .param("login", login)
+                .param("attributes", attributes)
+                .query(Long.class)
+                .single();
     }
 }

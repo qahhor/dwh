@@ -2,10 +2,11 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,9 +14,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Назначение ролей и персональных прав (ТЗ-04 разд. 4.4, форма rbac.assignments).
@@ -41,8 +39,8 @@ public class MdAssignmentController {
 
     @PutMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
-    public ResponseEntity<Map<String, Object>> assignRoles(@PathVariable("userId") Long userId,
-                                                           @RequestBody AssignRolesDto body) {
+    public ResponseEntity<Map<String, Object>> assignRoles(
+            @PathVariable("userId") Long userId, @RequestBody AssignRolesDto body) {
         long version = assignmentService.assignRoles(userId, body.roleIds());
         return ResponseEntity.ok(Map.of("permissionsVersion", version));
     }
@@ -60,10 +58,10 @@ public class MdAssignmentController {
     @PutMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<Map<String, Object>> replacePersonalPermissions(
-            @PathVariable("userId") Long userId,
-            @RequestBody ReplacePermissionsDto body) {
+            @PathVariable("userId") Long userId, @RequestBody ReplacePermissionsDto body) {
 
-        List<MdRoleRepository.PermissionPair> pairs = body.grants() == null ? List.of()
+        List<MdRoleRepository.PermissionPair> pairs = body.grants() == null
+                ? List.of()
                 : body.grants().stream()
                         .map(g -> new MdRoleRepository.PermissionPair(g.form(), g.action()))
                         .toList();

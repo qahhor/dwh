@@ -1,16 +1,14 @@
 package com.smartup24.cms.instance.config.web;
 
-import jakarta.servlet.FilterChain;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import jakarta.servlet.ServletException;
+import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import java.io.IOException;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class TraceparentFilterTest {
 

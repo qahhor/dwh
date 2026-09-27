@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.upl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
+
 import com.smartup24.cms.instance.upl.UplXlsxFixtures.SheetSpec;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
@@ -10,18 +13,14 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.Sheet;
 import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.parse.UplParseResult.ErrorRecord;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 /** Разбор xlsx по анкете: структура, значения, счётчики и пределы. */
 class UplXlsxParserTest {
@@ -61,15 +60,13 @@ class UplXlsxParserTest {
         assertThat(result.rowsTotal()).isEqualTo(5);
         assertThat(result.rowsAccepted()).isEqualTo(2);
         assertThat(result.rowsRejected()).isEqualTo(3);
-        assertThat(result.errors()).hasSize(3)
-                .allSatisfy(error -> {
-                    assertThat(error.code()).isEqualTo(UplXlsxParser.UPL_CELL_KEY_MASK);
-                    assertThat(error.sheet()).isEqualTo(SHEET);
-                    assertThat(error.columnName()).isEqualTo("Ключ");
-                });
+        assertThat(result.errors()).hasSize(3).allSatisfy(error -> {
+            assertThat(error.code()).isEqualTo(UplXlsxParser.UPL_CELL_KEY_MASK);
+            assertThat(error.sheet()).isEqualTo(SHEET);
+            assertThat(error.columnName()).isEqualTo("Ключ");
+        });
         assertThat(result.errors()).extracting(ErrorRecord::rowNo).containsExactly(3, 4, 5);
-        assertThat(result.errors()).extracting(ErrorRecord::cellValue)
-                .containsExactly("12345", "1234567", "12345678X");
+        assertThat(result.errors()).extracting(ErrorRecord::cellValue).containsExactly("12345", "1234567", "12345678X");
     }
 
     @Test
@@ -90,7 +87,8 @@ class UplXlsxParserTest {
         assertThat(result.rowsRejected()).isEqualTo(7);
         assertThat(result.rowsAccepted()).isZero();
         assertThat(result.errorsTotal()).isEqualTo(8);
-        assertThat(result.errors()).extracting(ErrorRecord::rowNo, ErrorRecord::columnName, ErrorRecord::code)
+        assertThat(result.errors())
+                .extracting(ErrorRecord::rowNo, ErrorRecord::columnName, ErrorRecord::code)
                 .containsExactly(
                         tuple(3, "№", UplXlsxParser.UPL_CELL_REQUIRED),
                         tuple(4, "№", UplXlsxParser.UPL_CELL_NOT_INTEGER),
@@ -155,8 +153,23 @@ class UplXlsxParserTest {
     void headerSynonymMatchesTheColumn() {
         List<Column> columns = new ArrayList<>(format().sheets().getFirst().columns());
         Column amount = columns.get(3);
-        columns.set(3, new Column(amount.id(), amount.ordinal(), amount.filePosition(), amount.nameInFile(), amount.targetField(),
-                amount.dataType(), amount.required(), null, null, null, null, null, null, List.of("Сумма, руб")));
+        columns.set(
+                3,
+                new Column(
+                        amount.id(),
+                        amount.ordinal(),
+                        amount.filePosition(),
+                        amount.nameInFile(),
+                        amount.targetField(),
+                        amount.dataType(),
+                        amount.required(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        List.of("Сумма, руб")));
         List<String> header = List.of("№", "Ключ", "Название", "сумма,  руб", "Дата");
 
         UplParseResult result = parse(file(header, cleanRows(2)), format(MatchBy.HEADER, columns));
@@ -179,8 +192,11 @@ class UplXlsxParserTest {
         assertThat(result.rowsTotal()).isNull();
         assertThat(result.rowsAccepted()).isNull();
         assertThat(result.rowsRejected()).isNull();
-        assertThat(result.errors()).hasSize(2).allSatisfy(error -> assertThat(error.rowNo()).isNull());
-        assertThat(result.errors()).extracting(ErrorRecord::code, ErrorRecord::columnName)
+        assertThat(result.errors())
+                .hasSize(2)
+                .allSatisfy(error -> assertThat(error.rowNo()).isNull());
+        assertThat(result.errors())
+                .extracting(ErrorRecord::code, ErrorRecord::columnName)
                 .containsExactlyInAnyOrder(
                         tuple(UplXlsxParser.UPL_STRUCT_COLUMN_MISSING, "Сумма"),
                         tuple(UplXlsxParser.UPL_STRUCT_COLUMN_UNKNOWN, "Лишняя"));
@@ -218,8 +234,7 @@ class UplXlsxParserTest {
         FormatVersion format = format(MatchBy.POSITION, columns);
         List<List<Object>> rows = List.of(row(1, "900000001", null, 10.5));
 
-        UplParseResult byPosition = parse(
-                file(Arrays.asList("TEST a", "TEST b", null, "TEST d"), rows), format);
+        UplParseResult byPosition = parse(file(Arrays.asList("TEST a", "TEST b", null, "TEST d"), rows), format);
 
         assertThat(byPosition.outcome()).isEqualTo(UplParseResult.Outcome.VERIFIED);
         assertThat(byPosition.rowsTotal()).isEqualTo(1);
@@ -228,7 +243,8 @@ class UplXlsxParserTest {
         UplParseResult broken = parse(file(Arrays.asList("TEST a", "TEST b", "TEST c"), rows), format);
 
         assertThat(broken.rejectCode()).isEqualTo(UplXlsxParser.UPL_PKG_STRUCTURE);
-        assertThat(broken.errors()).extracting(ErrorRecord::code, ErrorRecord::columnName)
+        assertThat(broken.errors())
+                .extracting(ErrorRecord::code, ErrorRecord::columnName)
                 .containsExactlyInAnyOrder(
                         tuple(UplXlsxParser.UPL_STRUCT_COLUMN_MISSING, "Сумма"),
                         tuple(UplXlsxParser.UPL_STRUCT_COLUMN_UNKNOWN, "TEST c"));
@@ -274,8 +290,8 @@ class UplXlsxParserTest {
         assertThat(limited.rejectParams()).isEqualTo(Map.of("limit", 10L));
 
         String longValue = "T".repeat(300);
-        UplParseResult result = parse(
-                file(HEADER, List.of(row(longValue, "900000001", "TEST орг", 10.5, "31.12.2026"))), format());
+        UplParseResult result =
+                parse(file(HEADER, List.of(row(longValue, "900000001", "TEST орг", 10.5, "31.12.2026"))), format());
 
         assertThat(result.errors()).hasSize(1);
         assertThat(result.errors().getFirst().code()).isEqualTo(UplXlsxParser.UPL_CELL_NOT_INTEGER);
@@ -303,28 +319,66 @@ class UplXlsxParserTest {
     }
 
     private static FormatVersion format() {
-        return format(MatchBy.HEADER, List.of(
-                column(1, 1, "№", "row_no", DataType.INTEGER, true),
-                keyColumn(2, 2),
-                column(3, 3, "Название", "org_name", DataType.TEXT, false),
-                column(4, 4, "Сумма", "amount", DataType.NUMBER, false),
-                column(5, 5, "Дата", "doc_date", DataType.DATE, false)));
+        return format(
+                MatchBy.HEADER,
+                List.of(
+                        column(1, 1, "№", "row_no", DataType.INTEGER, true),
+                        keyColumn(2, 2),
+                        column(3, 3, "Название", "org_name", DataType.TEXT, false),
+                        column(4, 4, "Сумма", "amount", DataType.NUMBER, false),
+                        column(5, 5, "Дата", "doc_date", DataType.DATE, false)));
     }
 
     private static FormatVersion format(MatchBy matchBy, List<Column> columns) {
         Sheet sheet = new Sheet(null, 1, SHEET, 2, "Итого", columns);
-        return new FormatVersion(1L, 1, LocalDate.of(2026, 1, 1), null, "published", null, null, 1,
-                FileKind.XLSX, null, null, matchBy, List.of(sheet));
+        return new FormatVersion(
+                1L,
+                1,
+                LocalDate.of(2026, 1, 1),
+                null,
+                "published",
+                null,
+                null,
+                1,
+                FileKind.XLSX,
+                null,
+                null,
+                matchBy,
+                List.of(sheet));
     }
 
-    private static Column column(int ordinal, int filePosition, String nameInFile, String targetField,
-                                 DataType dataType, boolean required) {
-        return new Column(null, ordinal, filePosition, nameInFile, targetField, dataType, required,
-                null, null, null, null, null, null);
+    private static Column column(
+            int ordinal, int filePosition, String nameInFile, String targetField, DataType dataType, boolean required) {
+        return new Column(
+                null,
+                ordinal,
+                filePosition,
+                nameInFile,
+                targetField,
+                dataType,
+                required,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     private static Column keyColumn(int ordinal, int filePosition) {
-        return new Column(null, ordinal, filePosition, "Ключ", "object_key", DataType.OBJECT_KEY, true,
-                null, null, KEY_MASK, 9, 1, null);
+        return new Column(
+                null,
+                ordinal,
+                filePosition,
+                "Ключ",
+                "object_key",
+                DataType.OBJECT_KEY,
+                true,
+                null,
+                null,
+                KEY_MASK,
+                9,
+                1,
+                null);
     }
 }

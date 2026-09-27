@@ -1,10 +1,20 @@
 package com.smartup24.cms.instance.config.system;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.common.health.ReadinessChecks;
 import com.smartup24.cms.instance.mf.scan.ClamAvFileScanner;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.smartup24.cms.instance.support.TestDatabases;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -13,17 +23,6 @@ import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /** Plan 10/10, item 0.7: each readiness member reports a dead dependency as DOWN, and fast. */
 class ReadinessHealthTest {
@@ -52,7 +51,8 @@ class ReadinessHealthTest {
     @DisplayName("Database: UP on a live database, DOWN on an unreachable one")
     void database() {
         JdbcClient live = JdbcClient.create(TestDatabases.migratedCopy("dwh_readiness"));
-        JdbcClient dead = JdbcClient.create(new DriverManagerDataSource("jdbc:postgresql://127.0.0.1:1/none", "none", ""));
+        JdbcClient dead =
+                JdbcClient.create(new DriverManagerDataSource("jdbc:postgresql://127.0.0.1:1/none", "none", ""));
 
         assertThat(config.databaseHealthIndicator(live).health().getStatus()).isEqualTo(Status.UP);
         assertThat(config.databaseHealthIndicator(dead).health().getStatus()).isEqualTo(Status.DOWN);
@@ -64,8 +64,12 @@ class ReadinessHealthTest {
         var off = new TypesenseProperties("http://127.0.0.1:1", "key", false, false);
         var unreachable = new TypesenseProperties("http://127.0.0.1:1", "key", true, false);
 
-        assertThat(config.typesenseHealthIndicator(provider(off)).health().getStatus()).isEqualTo(Status.UP);
-        assertThat(config.typesenseHealthIndicator(provider(unreachable)).health().getStatus()).isEqualTo(Status.DOWN);
+        assertThat(config.typesenseHealthIndicator(provider(off)).health().getStatus())
+                .isEqualTo(Status.UP);
+        assertThat(config.typesenseHealthIndicator(provider(unreachable))
+                        .health()
+                        .getStatus())
+                .isEqualTo(Status.DOWN);
     }
 
     @Test
@@ -76,8 +80,12 @@ class ReadinessHealthTest {
 
         try (ServerSocket daemon = new ServerSocket(0)) {
             Thread.ofVirtual().start(() -> answerPong(daemon));
-            var scanner = new ClamAvFileScanner(new SimpleMeterRegistry(), "127.0.0.1", daemon.getLocalPort(),
-                    Duration.ofSeconds(1), Duration.ofSeconds(1));
+            var scanner = new ClamAvFileScanner(
+                    new SimpleMeterRegistry(),
+                    "127.0.0.1",
+                    daemon.getLocalPort(),
+                    Duration.ofSeconds(1),
+                    Duration.ofSeconds(1));
 
             assertThat(clamav(scanner, true).health().getStatus()).isEqualTo(Status.UP);
         }

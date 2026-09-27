@@ -4,10 +4,9 @@ import com.smartup24.cms.instance.analytics.dto.AnalyticsSummaryDto;
 import com.smartup24.cms.instance.analytics.dto.ProjectDistributionDto;
 import com.smartup24.cms.instance.analytics.dto.TrendDataPointDto;
 import com.smartup24.cms.instance.analytics.dto.UserWorkloadDto;
+import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-
-import java.util.List;
 
 @Repository
 public class AnalyticsRepository {
@@ -19,7 +18,8 @@ public class AnalyticsRepository {
     }
 
     public AnalyticsSummaryDto getSummary() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 with task_metrics as (
                     select
                         count(*) as total_tasks,
@@ -63,15 +63,15 @@ public class AnalyticsRepository {
                         rs.getLong("created_7d"),
                         rs.getLong("completed_7d"),
                         rs.getLong("active_projects"),
-                        rs.getLong("active_users")
-                ))
+                        rs.getLong("active_users")))
                 .single();
     }
 
     public List<TrendDataPointDto> getTrends(int days) {
         int safeDays = Math.max(1, Math.min(days, 365));
 
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 with calendar as (
                     select generate_series(
                         date_trunc('day', now()) - (:days - 1) * interval '1 day',
@@ -103,15 +103,13 @@ public class AnalyticsRepository {
                 """)
                 .param("days", safeDays)
                 .query((rs, rowNum) -> new TrendDataPointDto(
-                        rs.getString("date_str"),
-                        rs.getLong("created_count"),
-                        rs.getLong("completed_count")
-                ))
+                        rs.getString("date_str"), rs.getLong("created_count"), rs.getLong("completed_count")))
                 .list();
     }
 
     public List<ProjectDistributionDto> getProjectDistribution() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select
                     p.id as project_id,
                     p.name as project_name,
@@ -136,13 +134,13 @@ public class AnalyticsRepository {
                         rs.getLong("total_tasks"),
                         rs.getLong("active_tasks"),
                         rs.getLong("completed_tasks"),
-                        rs.getDouble("progress_percent")
-                ))
+                        rs.getDouble("progress_percent")))
                 .list();
     }
 
     public List<UserWorkloadDto> getUserWorkload() {
-        return jdbcClient.sql("""
+        return jdbcClient
+                .sql("""
                 select
                     u.id as user_id,
                     u.name as user_name,
@@ -163,8 +161,7 @@ public class AnalyticsRepository {
                         rs.getString("user_name"),
                         rs.getString("user_login"),
                         rs.getLong("assigned_tasks"),
-                        rs.getLong("completed_tasks")
-                ))
+                        rs.getLong("completed_tasks")))
                 .list();
     }
 }

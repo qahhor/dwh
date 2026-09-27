@@ -5,5 +5,4 @@ public record MessengerMessage(
         String textMarkdown,
         String inlineButtonText,
         String inlineButtonUrl,
-        String idempotencyKey
-) {}
+        String idempotencyKey) {}

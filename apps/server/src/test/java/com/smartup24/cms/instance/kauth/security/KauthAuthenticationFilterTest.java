@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.kauth.security;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
@@ -9,20 +13,14 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.Cookie;
+import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.QueryTimeoutException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-
-import java.time.Instant;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class KauthAuthenticationFilterTest {
 
@@ -49,8 +47,7 @@ class KauthAuthenticationFilterTest {
         var chain = mock(FilterChain.class);
 
         var tokenRecord = new KauthApiTokenRepository.ApiTokenRecord(
-                1L, 10L, "token", "dwh_", "hash", null, Instant.now(), null, null, 0L
-        );
+                1L, 10L, "token", "dwh_", "hash", null, Instant.now(), null, null, 0L);
         when(apiTokenService.validateToken("dwh_test_token")).thenReturn(Optional.of(tokenRecord));
         when(userService.getUserById(10L)).thenThrow(new QueryTimeoutException("DB connection failure"));
 
@@ -67,8 +64,7 @@ class KauthAuthenticationFilterTest {
         var chain = mock(FilterChain.class);
 
         var sessionRecord = new KauthSessionRepository.SessionRecord(
-                1L, 10L, "hash", "127.0.0.1", "agent", "desktop", Instant.now(), Instant.now(), null, 0L
-        );
+                1L, 10L, "hash", "127.0.0.1", "agent", "desktop", Instant.now(), Instant.now(), null, 0L);
         when(sessionService.getActiveSession("test_session_token")).thenReturn(Optional.of(sessionRecord));
         when(userService.getUserById(10L)).thenThrow(new QueryTimeoutException("DB connection timeout"));
 

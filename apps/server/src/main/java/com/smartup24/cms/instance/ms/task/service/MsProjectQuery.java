@@ -8,10 +8,9 @@ import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 /**
  * The project list in the field registry (roadmap item 51): {@code GET /api/v1/tasks/projects/page} and
@@ -28,24 +27,39 @@ public class MsProjectQuery {
             p.id, p.name, p.description, p.state, p.attributes::text as attributes_str, p.created_at, p.created_by""";
 
     public static final QueryList LIST = new QueryList(
-            "ms.projects",
-            MsTaskPref.FORM_PROJECTS,
-            "view",
-            COLUMNS,
-            "ms_task_projects p",
-            "p.id",
-            List.of(
-                    QueryField.of("id", "projects.col.id", QueryFieldType.NUMBER, "p.id").asSortable(),
-                    QueryField.of("name", "projects.col.name", QueryFieldType.TEXT, "p.name").asSortable().asSearchable(),
-                    QueryField.of("description", "projects.col.description", QueryFieldType.TEXT, "p.description")
-                            .asNullable().asSearchable().asHidden(),
-                    QueryField.enumeration("state", "projects.col.state", "p.state", List.of("A", "P"), "projects.state."),
-                    QueryField.of("createdAt", "projects.col.created_at", QueryFieldType.INSTANT, "p.created_at")
-                            .asSortable()),
-            "name",
-            false,
-            QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT).withCustomFields("PROJECT", "p.attributes");
+                    "ms.projects",
+                    MsTaskPref.FORM_PROJECTS,
+                    "view",
+                    COLUMNS,
+                    "ms_task_projects p",
+                    "p.id",
+                    List.of(
+                            QueryField.of("id", "projects.col.id", QueryFieldType.NUMBER, "p.id")
+                                    .asSortable(),
+                            QueryField.of("name", "projects.col.name", QueryFieldType.TEXT, "p.name")
+                                    .asSortable()
+                                    .asSearchable(),
+                            QueryField.of(
+                                            "description",
+                                            "projects.col.description",
+                                            QueryFieldType.TEXT,
+                                            "p.description")
+                                    .asNullable()
+                                    .asSearchable()
+                                    .asHidden(),
+                            QueryField.enumeration(
+                                    "state", "projects.col.state", "p.state", List.of("A", "P"), "projects.state."),
+                            QueryField.of(
+                                            "createdAt",
+                                            "projects.col.created_at",
+                                            QueryFieldType.INSTANT,
+                                            "p.created_at")
+                                    .asSortable()),
+                    "name",
+                    false,
+                    QueryList.DEFAULT_LIMIT,
+                    QueryList.MAX_LIMIT)
+            .withCustomFields("PROJECT", "p.attributes");
 
     @Bean
     public QueryList msProjectsQueryList() {
@@ -67,14 +81,18 @@ public class MsProjectQuery {
             String total = "(select count(*) " + tasks + ")";
             String done = "(select count(*) " + tasks
                     + " and t.status_id in (select s.id from ms_task_statuses s where s.is_terminal))";
-            String progress = "(case when " + total + " = 0 then 0 else round(" + done + " * 100.0 / " + total + ") end)";
+            String progress =
+                    "(case when " + total + " = 0 then 0 else round(" + done + " * 100.0 / " + total + ") end)";
             return List.of(
                     QueryField.of("totalTasks", "projects.col.total_tasks", QueryFieldType.NUMBER, total)
-                            .asHidden().requires(MsTaskPref.FORM_TASKS, "view"),
+                            .asHidden()
+                            .requires(MsTaskPref.FORM_TASKS, "view"),
                     QueryField.of("doneTasks", "projects.col.done_tasks", QueryFieldType.NUMBER, done)
-                            .asHidden().requires(MsTaskPref.FORM_TASKS, "view"),
+                            .asHidden()
+                            .requires(MsTaskPref.FORM_TASKS, "view"),
                     QueryField.of("progress", "projects.col.progress", QueryFieldType.NUMBER, progress)
-                            .asSortable().requires(MsTaskPref.FORM_TASKS, "view"));
+                            .asSortable()
+                            .requires(MsTaskPref.FORM_TASKS, "view"));
         };
     }
 }

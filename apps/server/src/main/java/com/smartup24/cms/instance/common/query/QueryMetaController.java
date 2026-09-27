@@ -4,13 +4,12 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * Метаданные списка для клиента: поля, их типы и операции фильтра, сортировка и размер страницы.
@@ -27,22 +26,48 @@ public class QueryMetaController {
         this.registry = registry;
     }
 
-    public record FieldMeta(String key, String labelKey, String type, List<String> ops, boolean sortable,
-                            boolean nullable, boolean defaultVisible, List<String> enumValues,
-                            String enumLabelPrefix, boolean searchable, String label, String attribute,
-                            QueryRef ref) {
+    public record FieldMeta(
+            String key,
+            String labelKey,
+            String type,
+            List<String> ops,
+            boolean sortable,
+            boolean nullable,
+            boolean defaultVisible,
+            List<String> enumValues,
+            String enumLabelPrefix,
+            boolean searchable,
+            String label,
+            String attribute,
+            QueryRef ref) {
 
         static FieldMeta of(QueryField field) {
             List<String> ops = field.ops().stream().map(QueryOp::wire).toList();
-            return new FieldMeta(field.key(), field.labelKey(), field.type().wire(), ops, field.sortable(),
-                    field.nullable(), field.defaultVisible(), field.enumValues(), field.enumLabelPrefix(),
-                    field.searchable(), field.label(), field.attribute(), field.ref());
+            return new FieldMeta(
+                    field.key(),
+                    field.labelKey(),
+                    field.type().wire(),
+                    ops,
+                    field.sortable(),
+                    field.nullable(),
+                    field.defaultVisible(),
+                    field.enumValues(),
+                    field.enumLabelPrefix(),
+                    field.searchable(),
+                    field.label(),
+                    field.attribute(),
+                    field.ref());
         }
     }
 
-    public record ListMeta(String code, List<FieldMeta> fields, String defaultSort, int defaultLimit, int maxLimit,
-                           int maxConditions, int maxInValues) {
-    }
+    public record ListMeta(
+            String code,
+            List<FieldMeta> fields,
+            String defaultSort,
+            int defaultLimit,
+            int maxLimit,
+            int maxConditions,
+            int maxInValues) {}
 
     /**
      * Любой вошедший пользователь (у всех ролей есть {@code iam.profile:view}); право на сам список

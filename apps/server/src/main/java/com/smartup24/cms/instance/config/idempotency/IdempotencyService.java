@@ -1,19 +1,18 @@
 package com.smartup24.cms.instance.config.idempotency;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
-import java.util.Optional;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class IdempotencyService {
@@ -27,18 +26,15 @@ public class IdempotencyService {
         PAYLOAD_MISMATCH
     }
 
-    public record Claim(
-            ClaimState state,
-            UUID reservationToken,
-            IdempotencyRepository.IdempotencyRecord existing
-    ) {}
+    public record Claim(ClaimState state, UUID reservationToken, IdempotencyRepository.IdempotencyRecord existing) {}
 
     private final IdempotencyRepository idempotencyRepository;
     private final Duration leaseDuration;
 
     @Autowired
-    public IdempotencyService(IdempotencyRepository idempotencyRepository,
-                              @Value("${dwh.idempotency.lease-seconds:120}") int leaseSeconds) {
+    public IdempotencyService(
+            IdempotencyRepository idempotencyRepository,
+            @Value("${dwh.idempotency.lease-seconds:120}") int leaseSeconds) {
         this(idempotencyRepository, Duration.ofSeconds(leaseSeconds));
     }
 

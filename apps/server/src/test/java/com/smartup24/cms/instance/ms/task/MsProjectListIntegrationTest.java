@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task;
 
-import com.smartup24.cms.instance.support.TestDatabases;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
@@ -22,18 +23,15 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectListService.ProjectListItem;
 import com.smartup24.cms.instance.ms.task.service.MsProjectQuery;
+import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.List;
-import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** The project list on the field registry (roadmap item 51), with task counts over the viewer's scope. */
 class MsProjectListIntegrationTest {
@@ -49,17 +47,26 @@ class MsProjectListIntegrationTest {
     static void setup() {
         var ds = TestDatabases.migratedCopy("project_list_test");
         jdbc = JdbcClient.create(ds);
-        var audit = new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
+        var audit =
+                new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());
         roles = new MdRoleRepository(jdbc);
-        scopes = new MdScopeService(new MdScopeRepository(jdbc), new MdOrgUnitRepository(jdbc),
-                new MdPermissionService(new MdPermissionRepository(jdbc)), audit);
+        scopes = new MdScopeService(
+                new MdScopeRepository(jdbc),
+                new MdOrgUnitRepository(jdbc),
+                new MdPermissionService(new MdPermissionRepository(jdbc)),
+                audit);
         var config = new MsProjectQuery();
         var registry = new QueryListRegistry(List.of(MsProjectQuery.LIST), List.of(config.progressFields(scopes)));
-        projects = new MsProjectListService(new QueryListRepository(jdbc), registry, new MsProjectRepository(jdbc, new ObjectMapper()),
-                new MsTaskRepository(jdbc, new ObjectMapper()), scopes);
+        projects = new MsProjectListService(
+                new QueryListRepository(jdbc),
+                registry,
+                new MsProjectRepository(jdbc, new ObjectMapper()),
+                new MsTaskRepository(jdbc, new ObjectMapper()),
+                scopes);
 
         admin = user("pl_admin");
-        roles.assignRolesToUser(admin, List.of(roles.findByPcode("admin").orElseThrow().id()));
+        roles.assignRolesToUser(
+                admin, List.of(roles.findByPcode("admin").orElseThrow().id()));
         scopes.recalculateFor(admin);
         outsider = user("pl_outsider");
 
@@ -86,8 +93,12 @@ class MsProjectListIntegrationTest {
         var page = projects.page(admin, null, null, null, null, "pl ", null);
         assertThat(names(page.items())).containsExactly("pl Alpha", "pl Beta", "pl Gamma");
         assertThat(page.totalEstimated()).isEqualTo(3);
-        assertThat(names(projects.page(admin, null, null, null, null, "needle", null).items())).containsExactly("pl Beta");
-        assertThat(names(projects.page(admin, null, null, null, null, "pl ", "P").items())).containsExactly("pl Gamma");
+        assertThat(names(projects.page(admin, null, null, null, null, "needle", null)
+                        .items()))
+                .containsExactly("pl Beta");
+        assertThat(names(
+                        projects.page(admin, null, null, null, null, "pl ", "P").items()))
+                .containsExactly("pl Gamma");
     }
 
     @Test
@@ -98,8 +109,16 @@ class MsProjectListIntegrationTest {
         assertThat(names(page.items())).containsExactly("pl Beta", "pl Alpha", "pl Gamma");
         assertThat(page.items()).extracting(ProjectListItem::progress).containsExactly(100, 50, 0);
         assertThat(page.items()).extracting(ProjectListItem::totalTasks).containsExactly(2, 2, 0);
-        assertThat(names(projects.page(admin, null, null, "[{\"field\":\"progress\",\"op\":\"gte\",\"value\":50}]",
-                null, "pl ", null).items())).containsExactly("pl Alpha", "pl Beta");
+        assertThat(names(projects.page(
+                                admin,
+                                null,
+                                null,
+                                "[{\"field\":\"progress\",\"op\":\"gte\",\"value\":50}]",
+                                null,
+                                "pl ",
+                                null)
+                        .items()))
+                .containsExactly("pl Alpha", "pl Beta");
     }
 
     @Test
@@ -109,8 +128,11 @@ class MsProjectListIntegrationTest {
         var page = projects.page(outsider, null, null, null, null, "pl ", null);
         assertThat(page.items()).extracting(ProjectListItem::progress).containsOnlyNulls();
         assertThatThrownBy(() -> projects.page(outsider, null, null, null, "progress", "pl ", null))
-                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getFieldErrors())
-                        .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.SORT_INVALID));
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::code)
+                                .containsExactly(QueryCompiler.SORT_INVALID));
     }
 
     @Test
@@ -123,7 +145,8 @@ class MsProjectListIntegrationTest {
         scopes.recalculateFor(self);
         signIn(self, "tasks.projects.view", "tasks.items.view");
         assertThat(projects.page(self, null, null, null, null, "pl ", null).items())
-                .extracting(ProjectListItem::totalTasks).containsOnly(0);
+                .extracting(ProjectListItem::totalTasks)
+                .containsOnly(0);
     }
 
     private static List<String> names(List<ProjectListItem> items) {
@@ -141,18 +164,23 @@ class MsProjectListIntegrationTest {
                                               attributes, is_2fa_enabled, force_password_change)
                         values (:login, :login, :login || '@test.local', 'x', 'A', 'ru', 'UTC', '{}'::jsonb, false, false)
                         returning id
-                        """)
-                .param("login", login).query(Long.class).single();
+                        """).param("login", login).query(Long.class).single();
     }
 
     private static Long status(boolean terminal) {
         return jdbc.sql("select id from ms_task_statuses where is_terminal = :t order by id limit 1")
-                .param("t", terminal).query(Long.class).single();
+                .param("t", terminal)
+                .query(Long.class)
+                .single();
     }
 
     private static long project(String name, String state, String description) {
         return jdbc.sql("insert into ms_task_projects (name, state, description) values (:n, :s, :d) returning id")
-                .param("n", name).param("s", state).param("d", description).query(Long.class).single();
+                .param("n", name)
+                .param("s", state)
+                .param("d", description)
+                .query(Long.class)
+                .single();
     }
 
     private static void task(long projectId, Long statusId, Long reporter) {
@@ -161,6 +189,9 @@ class MsProjectListIntegrationTest {
                                               attributes, created_by, modified_by)
                         values (:p, 'pl task', '', :s, 'medium', :r, '{}'::jsonb, :r, :r)
                         """)
-                .param("p", projectId).param("s", statusId).param("r", reporter).update();
+                .param("p", projectId)
+                .param("s", statusId)
+                .param("r", reporter)
+                .update();
     }
 }

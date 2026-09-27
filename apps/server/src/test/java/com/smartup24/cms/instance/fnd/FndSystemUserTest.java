@@ -1,16 +1,15 @@
 package com.smartup24.cms.instance.fnd;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import com.smartup24.cms.instance.fnd.migration.FndMigrator;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
-import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Техническая учётка {@code system} создаётся кодом основы, а не миграцией: после миграций
@@ -20,6 +19,7 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
 
     @Autowired
     private JdbcClient jdbc;
+
     @Autowired
     private FndActors actors;
 
@@ -29,7 +29,8 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
         FndMigrator.migrateOltp(TestDatabases.database("fnd_no_user_seed"));
 
         JdbcClient fresh = JdbcClient.create(TestDatabases.database("fnd_no_user_seed"));
-        Long users = fresh.sql("select count(*) from md_users").query(Long.class).single();
+        Long users =
+                fresh.sql("select count(*) from md_users").query(Long.class).single();
 
         assertThat(users).isZero();
     }
@@ -45,7 +46,8 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
         assertThatThrownBy(freshActors::system)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("первичной настройки");
-        assertThat(fresh.sql("select count(*) from md_users").query(Long.class).single()).isZero();
+        assertThat(fresh.sql("select count(*) from md_users").query(Long.class).single())
+                .isZero();
     }
 
     @Test
@@ -57,20 +59,33 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
 
             assertThat(second).isEqualTo(first);
             assertThat(jdbc.sql("select count(*) from md_users where login = :login")
-                    .param("login", login).query(Long.class).single()).isEqualTo(1L);
+                            .param("login", login)
+                            .query(Long.class)
+                            .single())
+                    .isEqualTo(1L);
             assertThat(jdbc.sql("select state from md_users where login = :login")
-                    .param("login", login).query(String.class).single()).isEqualTo("P");
+                            .param("login", login)
+                            .query(String.class)
+                            .single())
+                    .isEqualTo("P");
             assertThat(jdbc.sql("select password_hash is null from md_users where login = :login")
-                    .param("login", login).query(Boolean.class).single()).isTrue();
+                            .param("login", login)
+                            .query(Boolean.class)
+                            .single())
+                    .isTrue();
         } finally {
-            jdbc.sql("delete from md_users where login = :login").param("login", login).update();
+            jdbc.sql("delete from md_users where login = :login")
+                    .param("login", login)
+                    .update();
         }
     }
 
     @Test
     void systemActorResolvesToSystemLogin() {
         long expected = jdbc.sql("select id from md_users where login = :login")
-                .param("login", FndPref.SYSTEM_ACTOR).query(Long.class).single();
+                .param("login", FndPref.SYSTEM_ACTOR)
+                .query(Long.class)
+                .single();
 
         assertThat(actors.system().userId()).isEqualTo(expected);
         assertThat(actors.system().userId()).isEqualTo(expected);

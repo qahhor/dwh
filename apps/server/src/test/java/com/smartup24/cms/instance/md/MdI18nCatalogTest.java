@@ -1,14 +1,13 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.smartup24.cms.instance.md.service.MdI18nCatalog;
+import java.util.Set;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.ObjectMapper;
-
-import java.util.Set;
-import java.util.regex.Pattern;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 class MdI18nCatalogTest {
 
@@ -26,18 +25,15 @@ class MdI18nCatalogTest {
         for (String code : SUPPORTED) {
             var dictionary = catalog.bundled(code);
             assertThat(dictionary).as("каталог %s", code).isNotEmpty();
-            assertThat(catalog.russianKeys())
-                    .as("набор ключей %s", code)
-                    .containsAll(dictionary.keySet());
-            assertThat(dictionary)
-                    .allSatisfy((key, value) -> {
-                        assertThat(key).isNotBlank();
-                        assertThat(value).isNotBlank();
-                        assertThat(value.length()).isLessThanOrEqualTo(4000);
-                        assertThat(HTML_TAG.matcher(value).find())
-                                .as("HTML запрещён в %s:%s", code, key)
-                                .isFalse();
-                    });
+            assertThat(catalog.russianKeys()).as("набор ключей %s", code).containsAll(dictionary.keySet());
+            assertThat(dictionary).allSatisfy((key, value) -> {
+                assertThat(key).isNotBlank();
+                assertThat(value).isNotBlank();
+                assertThat(value.length()).isLessThanOrEqualTo(4000);
+                assertThat(HTML_TAG.matcher(value).find())
+                        .as("HTML запрещён в %s:%s", code, key)
+                        .isFalse();
+            });
         }
     }
 }

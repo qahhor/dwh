@@ -3,14 +3,13 @@ package com.smartup24.cms.instance.audit.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.RecordHistoryService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 /**
  * The history tab of a record card (ADR-0017). Any signed-in person may ask;

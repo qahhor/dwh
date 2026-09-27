@@ -1,8 +1,7 @@
 package com.smartup24.cms.instance.search.service;
 
-import org.springframework.stereotype.Component;
-
 import java.util.*;
+import org.springframework.stereotype.Component;
 
 /**
  * Intelligent query transformation providing:
@@ -34,11 +33,7 @@ public class QueryLanguageConverter {
         EN_TO_RU.put('$', ';');
     }
 
-    public record QueryExpansion(
-            String original,
-            List<String> variants,
-            String suggestedCorrection
-    ) {}
+    public record QueryExpansion(String original, List<String> variants, String suggestedCorrection) {}
 
     /**
      * Expands a user query into search variants (layout conversion, transliteration, phonetic correction)
@@ -193,8 +188,12 @@ public class QueryLanguageConverter {
         if (text == null || text.length() < 2) return false;
         // Check for typical Russian consonant clusters typed on English keyboard (e.g. ghj, pfl, ghb)
         String lower = text.toLowerCase(Locale.ROOT);
-        if (lower.startsWith("ghj") || lower.startsWith("pfl") || lower.startsWith("ghb") ||
-                lower.startsWith("vjl") || lower.startsWith("еуы") || lower.startsWith("ntc")) {
+        if (lower.startsWith("ghj")
+                || lower.startsWith("pfl")
+                || lower.startsWith("ghb")
+                || lower.startsWith("vjl")
+                || lower.startsWith("еуы")
+                || lower.startsWith("ntc")) {
             return true;
         }
         // If string consists only of Latin consonants in rare English combinations
@@ -243,32 +242,33 @@ public class QueryLanguageConverter {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            sb.append(switch (c) {
-                case 'a' -> 'а';
-                case 'b' -> 'б';
-                case 'v', 'w' -> 'в';
-                case 'g' -> 'г';
-                case 'd' -> 'д';
-                case 'e' -> 'е';
-                case 'z' -> 'з';
-                case 'i' -> 'и';
-                case 'j', 'y' -> 'й';
-                case 'k' -> 'к';
-                case 'l' -> 'л';
-                case 'm' -> 'м';
-                case 'n' -> 'н';
-                case 'o' -> 'о';
-                case 'p' -> 'п';
-                case 'r' -> 'р';
-                case 's' -> 'с';
-                case 't' -> 'т';
-                case 'u' -> 'у';
-                case 'f' -> 'ф';
-                case 'h' -> 'х';
-                case 'c' -> 'к';
-                case 'x' -> "кс";
-                default -> c;
-            });
+            sb.append(
+                    switch (c) {
+                        case 'a' -> 'а';
+                        case 'b' -> 'б';
+                        case 'v', 'w' -> 'в';
+                        case 'g' -> 'г';
+                        case 'd' -> 'д';
+                        case 'e' -> 'е';
+                        case 'z' -> 'з';
+                        case 'i' -> 'и';
+                        case 'j', 'y' -> 'й';
+                        case 'k' -> 'к';
+                        case 'l' -> 'л';
+                        case 'm' -> 'м';
+                        case 'n' -> 'н';
+                        case 'o' -> 'о';
+                        case 'p' -> 'п';
+                        case 'r' -> 'р';
+                        case 's' -> 'с';
+                        case 't' -> 'т';
+                        case 'u' -> 'у';
+                        case 'f' -> 'ф';
+                        case 'h' -> 'х';
+                        case 'c' -> 'к';
+                        case 'x' -> "кс";
+                        default -> c;
+                    });
         }
         return sb.toString();
     }
@@ -278,40 +278,41 @@ public class QueryLanguageConverter {
         String s = text.toLowerCase(Locale.ROOT);
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
-            sb.append(switch (c) {
-                case 'а' -> "a";
-                case 'б' -> "b";
-                case 'в' -> "v";
-                case 'г' -> "g";
-                case 'д' -> "d";
-                case 'е', 'э' -> "e";
-                case 'ё' -> "yo";
-                case 'ж' -> "zh";
-                case 'з' -> "z";
-                case 'и' -> "i";
-                case 'й' -> "y";
-                case 'к' -> "k";
-                case 'л' -> "l";
-                case 'м' -> "m";
-                case 'н' -> "n";
-                case 'о' -> "o";
-                case 'п' -> "p";
-                case 'р' -> "r";
-                case 'с' -> "s";
-                case 'т' -> "t";
-                case 'у' -> "u";
-                case 'ф' -> "f";
-                case 'х' -> "kh";
-                case 'ц' -> "ts";
-                case 'ч' -> "ch";
-                case 'ш' -> "sh";
-                case 'щ' -> "shch";
-                case 'ъ', 'ь' -> "";
-                case 'ы' -> "y";
-                case 'ю' -> "yu";
-                case 'я' -> "ya";
-                default -> c;
-            });
+            sb.append(
+                    switch (c) {
+                        case 'а' -> "a";
+                        case 'б' -> "b";
+                        case 'в' -> "v";
+                        case 'г' -> "g";
+                        case 'д' -> "d";
+                        case 'е', 'э' -> "e";
+                        case 'ё' -> "yo";
+                        case 'ж' -> "zh";
+                        case 'з' -> "z";
+                        case 'и' -> "i";
+                        case 'й' -> "y";
+                        case 'к' -> "k";
+                        case 'л' -> "l";
+                        case 'м' -> "m";
+                        case 'н' -> "n";
+                        case 'о' -> "o";
+                        case 'п' -> "p";
+                        case 'р' -> "r";
+                        case 'с' -> "s";
+                        case 'т' -> "t";
+                        case 'у' -> "u";
+                        case 'ф' -> "f";
+                        case 'х' -> "kh";
+                        case 'ц' -> "ts";
+                        case 'ч' -> "ch";
+                        case 'ш' -> "sh";
+                        case 'щ' -> "shch";
+                        case 'ъ', 'ь' -> "";
+                        case 'ы' -> "y";
+                        case 'ю' -> "yu";
+                        case 'я' -> "ya";
+                        default -> c;
+                    });
         }
         return sb.toString();
     }

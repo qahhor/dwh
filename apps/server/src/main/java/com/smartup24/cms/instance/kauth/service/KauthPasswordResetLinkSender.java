@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,9 +10,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.time.Duration;
-import java.time.Instant;
 
 /**
  * Delivers a password reset link to the user's confirmed channel (plan 10/10, item 0.1).
@@ -43,7 +42,9 @@ public class KauthPasswordResetLinkSender {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onLinkIssued(KauthPasswordResetLinkIssued event) {
         if (publicUrl.isEmpty()) {
-            log.error("password_reset_link_not_sent reason=smc.public-url_not_set channel={}", event.channel().channel());
+            log.error(
+                    "password_reset_link_not_sent reason=smc.public-url_not_set channel={}",
+                    event.channel().channel());
             return;
         }
         // Rounded up: a link issued a moment ago has 14:59 left and must still read "15 min".

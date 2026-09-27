@@ -1,11 +1,5 @@
 package com.smartup24.cms.instance.md.service;
 
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
-import tools.jackson.core.StreamReadFeature;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -14,6 +8,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.stereotype.Component;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 public class MdI18nCatalog {
@@ -25,7 +24,8 @@ public class MdI18nCatalog {
     private final Set<String> russianKeys;
 
     public MdI18nCatalog(ObjectMapper objectMapper) {
-        ObjectMapper strictMapper = objectMapper.rebuild()
+        ObjectMapper strictMapper = objectMapper
+                .rebuild()
                 .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
                 .build();
         Map<String, Map<String, String>> loaded = new LinkedHashMap<>();
@@ -69,8 +69,8 @@ public class MdI18nCatalog {
     private Map<String, String> load(ObjectMapper objectMapper, String code) {
         var resource = new ClassPathResource("i18n/" + code + ".json");
         try (InputStream input = resource.getInputStream()) {
-            Map<String, String> values = objectMapper.readValue(
-                    input, new TypeReference<LinkedHashMap<String, String>>() { });
+            Map<String, String> values =
+                    objectMapper.readValue(input, new TypeReference<LinkedHashMap<String, String>>() {});
             return Collections.unmodifiableMap(new LinkedHashMap<>(values));
         } catch (IOException exception) {
             throw new IllegalStateException("Не удалось загрузить каталог i18n/" + code + ".json", exception);
@@ -81,8 +81,7 @@ public class MdI18nCatalog {
         if (!"ru".equals(code) && !canonicalKeys.containsAll(dictionary.keySet())) {
             Set<String> unknown = new LinkedHashSet<>(dictionary.keySet());
             unknown.removeAll(canonicalKeys);
-            throw new IllegalStateException(
-                    "Каталог " + code + " содержит неизвестные ключи: " + unknown);
+            throw new IllegalStateException("Каталог " + code + " содержит неизвестные ключи: " + unknown);
         }
         dictionary.forEach((key, value) -> {
             if (key == null || key.isBlank() || value == null || value.isBlank()) {

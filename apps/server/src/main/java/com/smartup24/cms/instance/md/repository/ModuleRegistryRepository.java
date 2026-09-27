@@ -1,15 +1,14 @@
 package com.smartup24.cms.instance.md.repository;
 
-import org.springframework.jdbc.core.simple.JdbcClient;
-import org.springframework.stereotype.Repository;
-import tools.jackson.databind.ObjectMapper;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class ModuleRegistryRepository {
@@ -34,8 +33,7 @@ public class ModuleRegistryRepository {
             int sortOrder,
             Map<String, Object> attributes,
             Instant createdAt,
-            Instant modifiedAt
-    ) {}
+            Instant modifiedAt) {}
 
     public List<InstalledModuleRecord> findAll() {
         return jdbcClient.sql("""
@@ -43,9 +41,7 @@ public class ModuleRegistryRepository {
                        attributes::text as attributes_str, created_at, modified_at
                 from md_installed_modules
                 order by sort_order asc, code asc
-                """)
-                .query(this::mapModule)
-                .list();
+                """).query(this::mapModule).list();
     }
 
     public List<InstalledModuleRecord> findActive() {
@@ -55,9 +51,7 @@ public class ModuleRegistryRepository {
                 from md_installed_modules
                 where status = 'ACTIVE'
                 order by sort_order asc, code asc
-                """)
-                .query(this::mapModule)
-                .list();
+                """).query(this::mapModule).list();
     }
 
     public Optional<InstalledModuleRecord> findByCode(String code) {
@@ -66,10 +60,7 @@ public class ModuleRegistryRepository {
                        attributes::text as attributes_str, created_at, modified_at
                 from md_installed_modules
                 where code = :code
-                """)
-                .param("code", code)
-                .query(this::mapModule)
-                .optional();
+                """).param("code", code).query(this::mapModule).optional();
     }
 
     public int updateStatus(String code, String status) {
@@ -77,15 +68,13 @@ public class ModuleRegistryRepository {
                 update md_installed_modules
                 set status = :status, modified_at = clock_timestamp()
                 where code = :code
-                """)
-                .param("code", code)
-                .param("status", status)
-                .update();
+                """).param("code", code).param("status", status).update();
     }
 
     public void upsertModule(InstalledModuleRecord module) {
         String attrsJson = toJson(module.attributes());
-        jdbcClient.sql("""
+        jdbcClient
+                .sql("""
                 insert into md_installed_modules(code, name, description, version, icon, route, is_system, status, sort_order, attributes, created_at, modified_at)
                 values(:code, :name, :description, :version, :icon, :route, :isSystem, :status, :sortOrder, cast(:attributes as jsonb), clock_timestamp(), clock_timestamp())
                 on conflict (code) do update
@@ -124,9 +113,12 @@ public class ModuleRegistryRepository {
                 rs.getString("status"),
                 rs.getInt("sort_order"),
                 attributes,
-                rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toInstant() : null,
-                rs.getTimestamp("modified_at") != null ? rs.getTimestamp("modified_at").toInstant() : null
-        );
+                rs.getTimestamp("created_at") != null
+                        ? rs.getTimestamp("created_at").toInstant()
+                        : null,
+                rs.getTimestamp("modified_at") != null
+                        ? rs.getTimestamp("modified_at").toInstant()
+                        : null);
     }
 
     private String toJson(Map<String, Object> map) {

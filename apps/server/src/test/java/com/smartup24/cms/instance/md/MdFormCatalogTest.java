@@ -1,9 +1,17 @@
 package com.smartup24.cms.instance.md;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.md.pref.MdFormCatalog;
 import com.smartup24.cms.instance.md.service.MdFormCatalogSynchronizer;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -13,15 +21,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 /**
  * FR-PERM-1: каталог форм — производная от кода, а не наоборот.
@@ -51,10 +50,8 @@ class MdFormCatalogTest {
     void migrationProfileDoesNotCreateWebCatalogSynchronizer() {
         try (var context = new AnnotationConfigApplicationContext()) {
             context.getEnvironment().setActiveProfiles("migrate");
-            context.registerBean(RequestMappingHandlerMapping.class,
-                    () -> mock(RequestMappingHandlerMapping.class));
-            context.registerBean(MdPermissionService.class,
-                    () -> mock(MdPermissionService.class));
+            context.registerBean(RequestMappingHandlerMapping.class, () -> mock(RequestMappingHandlerMapping.class));
+            context.registerBean(MdPermissionService.class, () -> mock(MdPermissionService.class));
             context.register(MdFormCatalogSynchronizer.class);
             context.refresh();
 
@@ -69,7 +66,10 @@ class MdFormCatalogTest {
         Set<String> namedByEntities = new TreeSet<>();
         for (var entity : EntityActionPermissionContractTest.declaredEntities()) {
             if (entity.rights() != null) {
-                entity.rights().actionNames().keySet().forEach(action -> namedByEntities.add(entity.form() + "." + action));
+                entity.rights()
+                        .actionNames()
+                        .keySet()
+                        .forEach(action -> namedByEntities.add(entity.form() + "." + action));
             }
         }
         List<String> withoutName = new ArrayList<>();

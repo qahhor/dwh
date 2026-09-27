@@ -1,5 +1,15 @@
 package com.smartup24.cms.instance.ms.task;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
@@ -16,6 +26,15 @@ import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -36,39 +55,18 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.clearInvocations;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 /** Project write contracts backed by PostgreSQL and real transaction boundaries. */
 @Testcontainers
 class MsProjectWriteIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
-            .withDatabaseName("project_write_test").withUsername("test_user").withPassword("test_pass");
+            .withDatabaseName("project_write_test")
+            .withUsername("test_user")
+            .withPassword("test_pass");
 
     private static final AtomicInteger SEQUENCE = new AtomicInteger();
-    private static final Map<String, Object> FIXTURE_ATTRIBUTES = Map.of(
-            "fixture", "kept",
-            "rank", 1);
+    private static final Map<String, Object> FIXTURE_ATTRIBUTES = Map.of("fixture", "kept", "rank", 1);
 
     static JdbcClient jdbc;
     static DriverManagerDataSource dataSource;
@@ -83,22 +81,21 @@ class MsProjectWriteIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        dataSource = new DriverManagerDataSource(
-                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
         FlywayUtcConfiguration.configure(Flyway.configure())
-                .dataSource(dataSource).locations("classpath:db/migration").load().migrate();
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
         jdbc = JdbcClient.create(dataSource);
         objectMapper = new ObjectMapper();
         projects = new MsProjectRepository(jdbc, objectMapper);
         searchChangePublisher = mock(SearchChangePublisher.class);
 
-        auditLogService = new AuditLogService(
-                new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
+        auditLogService =
+                new AuditLogService(new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
         var serviceTarget = new MsProjectService(
-                projects,
-                mock(MdCustomFieldService.class),
-                searchChangePublisher,
-                auditLogService);
+                projects, mock(MdCustomFieldService.class), searchChangePublisher, auditLogService);
         transactions = new DataSourceTransactionManager(dataSource);
         projectService = transactional(serviceTarget, transactions, MsProjectService.class);
         transactionTemplate = new TransactionTemplate(transactions);
@@ -130,9 +127,7 @@ class MsProjectWriteIntegrationTest {
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
                         .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", invalidName,
-                                "description", "must not persist"))))
+                        .content(json(Map.of("name", invalidName, "description", "must not persist"))))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("validation_failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("name"))
@@ -153,9 +148,7 @@ class MsProjectWriteIntegrationTest {
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
                         .contentType("application/json")
-                        .content(json(Map.of(
-                                "state", invalidState,
-                                "description", "must not persist"))))
+                        .content(json(Map.of("state", invalidState, "description", "must not persist"))))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.code").value("validation_failed"))
                 .andExpect(jsonPath("$.errors[0].field").value("state"))
@@ -208,8 +201,8 @@ class MsProjectWriteIntegrationTest {
         assertThat(failure).isInstanceOf(ApiException.class);
         ApiException exception = (ApiException) failure;
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-        assertThat(exception.getFieldErrors()).containsExactly(
-                new FieldErrorItem("name", "required", "Название проекта обязательно"));
+        assertThat(exception.getFieldErrors())
+                .containsExactly(new FieldErrorItem("name", "required", "Название проекта обязательно"));
         assertThat(projectCount()).isEqualTo(projectsBefore);
         assertThat(projectAuditCount()).isEqualTo(auditBefore);
         verifyNoInteractions(searchChangePublisher);
@@ -223,13 +216,13 @@ class MsProjectWriteIntegrationTest {
 
         String response = mvc.perform(post("/api/v1/tasks/projects")
                         .contentType("application/json")
-                        .content(json(Map.of(
-                                "name", "  " + normalizedName + "  ",
-                                "description", "Description"))))
+                        .content(json(Map.of("name", "  " + normalizedName + "  ", "description", "Description"))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value(normalizedName))
                 .andExpect(jsonPath("$.state").value("A"))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
 
         Long projectId = objectMapper.readTree(response).get("id").asLong();
         var created = projects.findById(projectId).orElseThrow();
@@ -281,41 +274,36 @@ class MsProjectWriteIntegrationTest {
                         .contentType("application/json")
                         .content("{\"description\":\"\"}"))
                 .andExpect(status().isNoContent());
-        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(
-                new MsProjectRepository.ProjectRecord(
-                        before.id(), before.name(), "", before.state(), before.attributes(),
-                        before.createdAt(), before.createdBy()));
+        assertThat(projects.findById(projectId).orElseThrow())
+                .isEqualTo(new MsProjectRepository.ProjectRecord(
+                        before.id(),
+                        before.name(),
+                        "",
+                        before.state(),
+                        before.attributes(),
+                        before.createdAt(),
+                        before.createdBy()));
     }
 
     @Test
     void overlappingNameOnlyUpdateKeepsNewlyCommittedAttributes() throws Exception {
         Long actor = user("Overlapping-update actor");
-        Long projectId = project(
-                actor,
-                "Concurrent project",
-                "Original description",
-                "A",
-                Map.of("owner", "original"));
+        Long projectId = project(actor, "Concurrent project", "Original description", "A", Map.of("owner", "original"));
         var readComplete = new CountDownLatch(1);
         var continueUpdate = new CountDownLatch(1);
-        var pausingProjects = new PausingProjectRepository(
-                jdbc, objectMapper, readComplete, continueUpdate);
+        var pausingProjects = new PausingProjectRepository(jdbc, objectMapper, readComplete, continueUpdate);
         var localIndexer = mock(SearchChangePublisher.class);
-        var serviceTarget = new MsProjectService(
-                pausingProjects,
-                mock(MdCustomFieldService.class),
-                localIndexer,
-                auditLogService);
+        var serviceTarget =
+                new MsProjectService(pausingProjects, mock(MdCustomFieldService.class), localIndexer, auditLogService);
         var overlappingService = transactional(serviceTarget, transactions, MsProjectService.class);
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
         try {
-            var nameUpdate = executor.submit(() -> overlappingService.updateProject(
-                    projectId, "  Concurrent rename  ", null, null, null));
+            var nameUpdate = executor.submit(
+                    () -> overlappingService.updateProject(projectId, "  Concurrent rename  ", null, null, null));
             assertThat(readComplete.await(10, TimeUnit.SECONDS)).isTrue();
 
-            projectService.updateProject(
-                    projectId, null, null, null, Map.of("owner", "concurrent"));
+            projectService.updateProject(projectId, null, null, null, Map.of("owner", "concurrent"));
             continueUpdate.countDown();
             nameUpdate.get(10, TimeUnit.SECONDS);
         } finally {
@@ -420,10 +408,11 @@ class MsProjectWriteIntegrationTest {
 
     private static void signIn(Long userId, Set<String> permissions) {
         String login = jdbc.sql("select login from md_users where id = :id")
-                .param("id", userId).query(String.class).single();
+                .param("id", userId)
+                .query(String.class)
+                .single();
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
-                userId, login, login + "@example.invalid", 1000L,
-                false, permissions, 1L, false, 0, null));
+                userId, login, login + "@example.invalid", 1000L, false, permissions, 1L, false, 0, null));
     }
 
     private static String json(Map<String, ?> body) throws Exception {
@@ -442,19 +431,21 @@ class MsProjectWriteIntegrationTest {
         return prefix + " " + SEQUENCE.incrementAndGet();
     }
 
-    private static void assertUnchanged(
-            Long projectId, MsProjectRepository.ProjectRecord before, long auditBefore) {
+    private static void assertUnchanged(Long projectId, MsProjectRepository.ProjectRecord before, long auditBefore) {
         assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
         assertThat(auditCount(projectId)).isEqualTo(auditBefore);
     }
 
     private static long projectCount() {
-        return jdbc.sql("select count(*) from ms_task_projects").query(Long.class).single();
+        return jdbc.sql("select count(*) from ms_task_projects")
+                .query(Long.class)
+                .single();
     }
 
     private static long projectAuditCount() {
         return jdbc.sql("select count(*) from audit_log where table_name = 'ms_task_projects'")
-                .query(Long.class).single();
+                .query(Long.class)
+                .single();
     }
 
     private static long auditCount(Long projectId) {

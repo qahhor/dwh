@@ -9,11 +9,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
-import org.springframework.core.io.ByteArrayResource;
 
 /**
  * FR-NOTIF-3: доставка писем по SMTP.
@@ -35,9 +35,10 @@ public class SmtpMailProvider implements MailProvider {
     private final String from;
     private final String fromName;
 
-    public SmtpMailProvider(JavaMailSender mailSender,
-                            @Value("${dwh.mail.from:no-reply@localhost}") String from,
-                            @Value("${dwh.mail.from-name:DWH Platform}") String fromName) {
+    public SmtpMailProvider(
+            JavaMailSender mailSender,
+            @Value("${dwh.mail.from:no-reply@localhost}") String from,
+            @Value("${dwh.mail.from-name:DWH Platform}") String fromName) {
         this.mailSender = mailSender;
         this.from = from;
         this.fromName = fromName;
@@ -53,7 +54,8 @@ public class SmtpMailProvider implements MailProvider {
         long startedAt = System.nanoTime();
         try {
             MimeMessage mime = mailSender.createMimeMessage();
-            boolean hasAttachments = message.attachments() != null && !message.attachments().isEmpty();
+            boolean hasAttachments =
+                    message.attachments() != null && !message.attachments().isEmpty();
             boolean hasAlternativeBodies = message.htmlBody() != null && message.textBody() != null;
             // Два представления письма или вложения существуют только в multipart:
             // без этого флага setText(text, html) бросает IllegalStateException.
@@ -75,16 +77,18 @@ public class SmtpMailProvider implements MailProvider {
 
             if (hasAttachments) {
                 for (var attachment : message.attachments()) {
-                    helper.addAttachment(attachment.filename(),
-                            new ByteArrayResource(attachment.content()), attachment.contentType());
+                    helper.addAttachment(
+                            attachment.filename(),
+                            new ByteArrayResource(attachment.content()),
+                            attachment.contentType());
                 }
             }
 
             mailSender.send(mime);
 
             String messageId = mime.getMessageID();
-            return MailSendResult.success(messageId != null ? messageId : message.idempotencyKey(),
-                    elapsedMs(startedAt));
+            return MailSendResult.success(
+                    messageId != null ? messageId : message.idempotencyKey(), elapsedMs(startedAt));
 
         } catch (Exception ex) {
             // Адрес получателя — персональные данные, в журнал не пишем (CODE_STYLE, логи без ПДн).
@@ -103,8 +107,8 @@ public class SmtpMailProvider implements MailProvider {
             impl.testConnection();
             return ProviderHealth.healthy(getProviderCode(), elapsedMs(startedAt));
         } catch (Exception ex) {
-            return ProviderHealth.unhealthy(getProviderCode(),
-                    "SMTP недоступен: " + ex.getMessage(), elapsedMs(startedAt));
+            return ProviderHealth.unhealthy(
+                    getProviderCode(), "SMTP недоступен: " + ex.getMessage(), elapsedMs(startedAt));
         }
     }
 

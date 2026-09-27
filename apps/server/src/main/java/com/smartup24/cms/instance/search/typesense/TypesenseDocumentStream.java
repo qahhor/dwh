@@ -1,13 +1,11 @@
 package com.smartup24.cms.instance.search.typesense;
 
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
-import org.springframework.http.client.ClientHttpResponse;
-import tools.jackson.databind.ObjectMapper;
-
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import org.springframework.http.client.ClientHttpResponse;
+import tools.jackson.databind.ObjectMapper;
 
 /** A bounded cursor owned by the single coordinator; no transaction or complete export stays in memory. */
 public final class TypesenseDocumentStream implements AutoCloseable {
@@ -25,21 +23,25 @@ public final class TypesenseDocumentStream implements AutoCloseable {
     }
 
     public record DocumentMetadata(String id, long revision, String fingerprint, String contentFingerprint) {}
+
     public List<DocumentMetadata> readPage(int maxRows, int maxBytes) {
-        if (maxRows < 1 || maxRows > 100 || maxBytes < 1 || maxBytes > 1_048_576) throw new IllegalArgumentException("Invalid stream budget");
+        if (maxRows < 1 || maxRows > 100 || maxBytes < 1 || maxBytes > 1_048_576)
+            throw new IllegalArgumentException("Invalid stream budget");
         if (exhausted) return List.of();
         if (closed) throw TypesenseException.unavailable();
         var page = new ArrayList<DocumentMetadata>();
-        long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(1);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
         try {
             for (int consumed = 0; consumed < maxBytes && page.size() < maxRows; consumed++) {
                 if (Thread.currentThread().isInterrupted()) throw TypesenseException.unavailable();
                 // Socket read timeout bounds a stall; elapsed unit time also bounds a slow but non-stalled stream.
-                if (consumed>0 && System.nanoTime()>=deadline) break;
+                if (consumed > 0 && System.nanoTime() >= deadline) break;
                 int value = input.read();
                 if (value == -1) {
                     if (partial.size() != 0) page.add(parseLine());
-                    exhausted = true; close(); break;
+                    exhausted = true;
+                    close();
+                    break;
                 }
                 if (value == '\n') page.add(parseLine());
                 else {
@@ -58,21 +60,35 @@ public final class TypesenseDocumentStream implements AutoCloseable {
     private DocumentMetadata parseLine() {
         var document = mapper.readTree(partial.toByteArray());
         partial.reset();
-        if (document == null || !document.isObject() || !document.path("id").isString()
+        if (document == null
+                || !document.isObject()
+                || !document.path("id").isString()
                 || document.path("id").asString().isBlank()) throw TypesenseException.invalidResponse();
         var revision = document.path("_projection_revision");
         var fingerprint = document.path("_projection_fingerprint");
-        return new DocumentMetadata(document.path("id").asString(),
-                revision.isIntegralNumber() && revision.canConvertToLong() && revision.asLong() > 0 ? revision.asLong() : 0,
+        return new DocumentMetadata(
+                document.path("id").asString(),
+                revision.isIntegralNumber() && revision.canConvertToLong() && revision.asLong() > 0
+                        ? revision.asLong()
+                        : 0,
                 fingerprint.isString() ? fingerprint.asString() : null,
                 SearchProjectionReader.contentFingerprint(mapper, mapper.convertValue(document, Map.class)));
     }
 
-    public boolean exhausted() { return exhausted; }
-    @Override public void close() {
+    public boolean exhausted() {
+        return exhausted;
+    }
+
+    @Override
+    public void close() {
         if (closed) return;
-        closed = true; partial.reset();
-        try { input.close(); } catch (IOException ignored) { /* best-effort resource closure */ }
+        closed = true;
+        partial.reset();
+        try {
+            input.close();
+        } catch (IOException ignored) {
+            /* best-effort resource closure */
+        }
         response.close();
     }
 }
