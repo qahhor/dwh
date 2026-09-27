@@ -4,7 +4,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -156,19 +160,19 @@ public class MdRoleRepository {
     }
 
 
-    public java.util.Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
-        if (userIds == null || userIds.isEmpty()) return java.util.Map.of();
-        java.util.Map<Long, List<Long>> map = new java.util.HashMap<>();
+    public Map<Long, List<Long>> getUsersRoleIds(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return Map.of();
+        Map<Long, List<Long>> map = new HashMap<>();
         for (Long id : userIds) {
-            map.put(id, new java.util.ArrayList<>());
+            map.put(id, new ArrayList<>());
         }
-        String inSql = String.join(",", java.util.Collections.nCopies(userIds.size(), "?"));
+        String inSql = String.join(",", Collections.nCopies(userIds.size(), "?"));
         jdbcClient.sql("select user_id, role_id from md_user_roles where user_id in (" + inSql + ")")
                 .params(userIds.toArray())
                 .query((rs, rowNum) -> {
                     Long uid = rs.getLong("user_id");
                     Long rid = rs.getLong("role_id");
-                    map.computeIfAbsent(uid, k -> new java.util.ArrayList<>()).add(rid);
+                    map.computeIfAbsent(uid, k -> new ArrayList<>()).add(rid);
                     return rid;
                 })
                 .list(); // without a terminal call the query never runs and every user had no roles
@@ -190,17 +194,17 @@ public class MdRoleRepository {
         }
     }
 
-    public java.util.Map<Long, Integer> countUsersPerRole() {
+    public Map<Long, Integer> countUsersPerRole() {
         return jdbcClient.sql("""
                 select role_id, count(*) as cnt
                 from md_user_roles ur
                 join md_users u on u.id = ur.user_id and u.state = 'A'
                 group by role_id
                 """)
-                .query((rs, rowNum) -> java.util.Map.entry(rs.getLong("role_id"), rs.getInt("cnt")))
+                .query((rs, rowNum) -> Map.entry(rs.getLong("role_id"), rs.getInt("cnt")))
                 .list()
                 .stream()
-                .collect(Collectors.toMap(java.util.Map.Entry::getKey, java.util.Map.Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public record RoleRecord(

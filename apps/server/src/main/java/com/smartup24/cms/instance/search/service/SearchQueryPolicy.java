@@ -1,9 +1,12 @@
 package com.smartup24.cms.instance.search.service;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Immutable search behavior policy; never exposes raw Typesense request parameters. */
 public record SearchQueryPolicy(
@@ -30,13 +33,13 @@ public record SearchQueryPolicy(
                 case "NOTE" -> Set.of("title", "content_md", "color");
                 default -> throw new IllegalArgumentException("Unknown search entity");
             };
-            if (policies == null || policies.size() != permitted.size() || policies.stream().anyMatch(java.util.Objects::isNull)
-                    || !policies.stream().map(FieldPolicy::field).collect(java.util.stream.Collectors.toSet()).equals(permitted)
+            if (policies == null || policies.size() != permitted.size() || policies.stream().anyMatch(Objects::isNull)
+                    || !policies.stream().map(FieldPolicy::field).collect(Collectors.toSet()).equals(permitted)
                     || policies.stream().noneMatch(field -> field.weight() > 0))
                 throw new IllegalArgumentException("Each searchable field is required exactly once with at least one positive weight");
             copy.put(entityType, List.copyOf(policies));
         });
-        fields = java.util.Collections.unmodifiableMap(copy);
+        fields = Collections.unmodifiableMap(copy);
     }
 
     public static SearchQueryPolicy defaults() {

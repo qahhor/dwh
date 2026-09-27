@@ -1,13 +1,17 @@
 package com.smartup24.cms.instance.ms.notify.service;
 
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
+import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsOutboxRepository;
 import com.smartup24.cms.instance.ms.notify.sse.MsNotificationCreatedEvent;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -18,15 +22,15 @@ public class MsNotificationService {
     private final MsNotificationRepository notificationRepository;
     private final MsOutboxRepository outboxRepository;
     private final MsAnnouncementRepository announcementRepository;
-    private final com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository prefRepository;
+    private final MsNotificationPrefRepository prefRepository;
     private final ApplicationEventPublisher eventPublisher;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MsNotificationService(
             MsNotificationRepository notificationRepository,
             MsOutboxRepository outboxRepository,
             MsAnnouncementRepository announcementRepository,
-            @org.springframework.beans.factory.annotation.Autowired(required = false) com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository prefRepository,
+            @Autowired(required = false) MsNotificationPrefRepository prefRepository,
             ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
         this.notificationRepository = notificationRepository;
@@ -44,7 +48,7 @@ public class MsNotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository.NotificationPrefRecord> getUserPreferences(Long userId) {
+    public List<MsNotificationPrefRepository.NotificationPrefRecord> getUserPreferences(Long userId) {
         if (prefRepository == null) return List.of();
         return prefRepository.findByUserId(userId);
     }
@@ -109,7 +113,7 @@ public class MsNotificationService {
     }
 
     @Transactional(readOnly = true)
-    public boolean hasRecentNotification(Long userId, String sourceCode, java.time.Duration window) {
-        return notificationRepository.hasRecentNotification(userId, sourceCode, java.time.Instant.now().minus(window));
+    public boolean hasRecentNotification(Long userId, String sourceCode, Duration window) {
+        return notificationRepository.hasRecentNotification(userId, sourceCode, Instant.now().minus(window));
     }
 }

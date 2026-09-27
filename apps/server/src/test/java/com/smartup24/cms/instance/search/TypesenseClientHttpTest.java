@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.search;
 
-import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -23,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +35,7 @@ class TypesenseClientHttpTest {
     private HttpServer server;
     private final List<CapturedRequest> requests = Collections.synchronizedList(new ArrayList<>());
     private final AtomicReference<Response> configuredResponse = new AtomicReference<>();
-    private java.util.function.Function<CapturedRequest,Response> responseByRequest;
+    private Function<CapturedRequest,Response> responseByRequest;
 
     @BeforeEach
     void startServer() throws IOException {
@@ -256,7 +258,7 @@ class TypesenseClientHttpTest {
         return Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users");
     }
 
-    private static void assertSearch(tools.jackson.databind.JsonNode search, String collection, String query,
+    private static void assertSearch(JsonNode search, String collection, String query,
                                      String fields, String weights, String typos, String prefixes, String filterBy) {
         assertThat(search.path("collection").asText()).isEqualTo(collection);
         assertThat(search.path("q").asText()).isEqualTo(query);

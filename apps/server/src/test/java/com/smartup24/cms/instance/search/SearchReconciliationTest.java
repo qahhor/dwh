@@ -2,15 +2,19 @@ package com.smartup24.cms.instance.search;
 
 import com.smartup24.cms.instance.search.service.SearchReconciliationService;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+
 import java.util.*;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class SearchReconciliationTest extends SearchDeliveryTestSupport {
     @Test void failedProofConstructionCannotDropTemporaryObjectsItDidNotCreate() throws Exception {
         activeGeneration();
         try (var connection=database.getConnection()) {
-            var existing=new org.springframework.jdbc.datasource.SingleConnectionDataSource(connection,true);
-            var session=org.springframework.jdbc.core.simple.JdbcClient.create(existing);
+            var existing=new SingleConnectionDataSource(connection,true);
+            var session=JdbcClient.create(existing);
             session.sql("create temporary table search_reconcile_index(id integer)").update();
             session.sql("insert into search_reconcile_index values(7)").update();
             org.assertj.core.api.Assertions.assertThatThrownBy(() -> new SearchReconciliationService(existing,reader,client)

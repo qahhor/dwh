@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.service;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
@@ -83,10 +84,10 @@ public class ModuleRegistryService {
     })
     public InstalledModuleView toggleModuleStatus(String code, boolean enable) {
         var existing = moduleRepository.findByCode(code)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND, "Модуль с кодом '" + code + "' не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Модуль с кодом '" + code + "' не найден"));
 
         if (existing.isSystem()) {
-            throw ApiException.badRequest(com.smartup24.cms.core.error.ErrorCode.BAD_REQUEST, "Системный модуль '" + code + "' не может быть отключен");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Системный модуль '" + code + "' не может быть отключен");
         }
 
         String newStatus = enable ? "ACTIVE" : "DISABLED";
@@ -102,7 +103,7 @@ public class ModuleRegistryService {
                 Map.of("status", newStatus));
 
         var updated = moduleRepository.findByCode(code)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND, "Модуль с кодом '" + code + "' не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Модуль с кодом '" + code + "' не найден"));
         return InstalledModuleView.from(updated);
     }
 

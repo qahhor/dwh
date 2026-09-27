@@ -1,5 +1,8 @@
 package com.smartup24.cms.instance.upl.format;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.query.QueryListRepository;
+import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
@@ -12,9 +15,6 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceData;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceSummary;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Strictness;
-import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.query.QueryListRepository;
-import com.smartup24.cms.instance.common.query.QueryPlan;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -24,6 +24,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -321,7 +322,7 @@ public class UplFormatRepository {
 
     private static List<String> synonyms(java.sql.Array array) throws SQLException {
         if (array == null) return List.of();
-        return java.util.Arrays.asList((String[]) array.getArray());
+        return Arrays.asList((String[]) array.getArray());
     }
 
     private static Instant toInstant(Timestamp ts) {

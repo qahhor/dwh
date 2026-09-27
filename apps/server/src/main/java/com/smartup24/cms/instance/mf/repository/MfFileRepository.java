@@ -8,6 +8,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -202,7 +204,7 @@ public class MfFileRepository {
      */
     public KeysetPage<FileDetailRecord> pageFiles(QueryPlan plan, ScopeFilter scope, Long onlyOwnerId) {
         StringBuilder sql = new StringBuilder(scope.sql());
-        java.util.Map<String, Object> params = new java.util.LinkedHashMap<>();
+        Map<String, Object> params = new LinkedHashMap<>();
         if (scope.bindsUserId()) {
             params.put("scopeUserId", scope.userId());
         }

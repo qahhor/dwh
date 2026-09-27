@@ -2,11 +2,13 @@ package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
+import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +22,11 @@ public class MsTaskListService {
     private final QueryListRepository lists;
     private final MsTaskRepository taskRepository;
     private final MdScopeService scopeService;
-    private final com.smartup24.cms.instance.common.query.QueryListRegistry registry;
+    private final QueryListRegistry registry;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MsTaskListService(QueryListRepository lists, MsTaskRepository taskRepository, MdScopeService scopeService,
-                             com.smartup24.cms.instance.common.query.QueryListRegistry registry) {
+                             QueryListRegistry registry) {
         this.lists = lists;
         this.taskRepository = taskRepository;
         this.scopeService = scopeService;

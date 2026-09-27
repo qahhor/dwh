@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -191,8 +193,8 @@ public record DepartmentFixture(String name, List<Unit> units, List<Coefficient>
 
     private static LocalDate date(Map<String, Object> map, String key) {
         Object value = map.get(key);
-        if (value instanceof java.util.Date d) {
-            return d.toInstant().atZone(java.time.ZoneOffset.UTC).toLocalDate();
+        if (value instanceof Date d) {
+            return d.toInstant().atZone(ZoneOffset.UTC).toLocalDate();
         }
         return LocalDate.parse(text(map, key));
     }

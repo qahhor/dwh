@@ -2,7 +2,12 @@ package com.smartup24.cms.instance.search;
 
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.*;
+import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyService;
 import com.smartup24.cms.instance.config.security.*;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
@@ -10,12 +15,16 @@ import com.smartup24.cms.instance.kauth.service.*;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
 import com.smartup24.cms.instance.search.controller.SearchController;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.service.*;
+import com.smartup24.cms.instance.search.service.SearchSettingsService;
 import com.smartup24.cms.instance.search.typesense.*;
 import com.sun.net.httpserver.HttpServer;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -23,15 +32,36 @@ import org.springframework.jdbc.datasource.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 import org.testcontainers.containers.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
-import javax.sql.DataSource;
+import tools.jackson.databind.node.ObjectNode;
+
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+import javax.sql.DataSource;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,14 +70,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport {
-    @Autowired com.smartup24.cms.instance.search.service.SearchSettingsService settings;
-    @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
+    @Autowired SearchSettingsService settings;
+    @Autowired PlatformTransactionManager transactions;
 
     @Test void savedLimitAboveTenReachesTheRealControllerAndEngineConsumer() throws Exception {
         authenticate(Set.of("*.*"), false);
         var current = readSettings();
         var policy = mapper.valueToTree(SearchQueryPolicy.defaults()).deepCopy();
-        ((tools.jackson.databind.node.ObjectNode) policy).put("globalLimit", 14);
+        ((ObjectNode) policy).put("globalLimit", 14);
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(current.path("version").asLong(), policy)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.policy.globalLimit").value(14));
         mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("entity", "TASK"))
@@ -76,10 +106,10 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     @Test void zeroWeightsAreOmittedWhileLiveWeightTypoAndPrefixChangesReachTheEngine() throws Exception {
         authenticate(Set.of("*.*"),false);
         var current=readSettings();
-        var policy=(tools.jackson.databind.node.ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
+        var policy=(ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
         var fields=policy.path("fields").path("TASK");
-        ((tools.jackson.databind.node.ObjectNode)fields.get(0)).put("weight",5).put("numTypos",1).put("prefix",false);
-        ((tools.jackson.databind.node.ObjectNode)fields.get(1)).put("weight",0);
+        ((ObjectNode)fields.get(0)).put("weight",5).put("numTypos",1).put("prefix",false);
+        ((ObjectNode)fields.get(1)).put("weight",0);
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(current.path("version").asLong(),policy)))
                 .andExpect(status().isOk());
         mvc.perform(auth(get("/api/v1/search")).param("q","delivery").param("entity","TASK"))
@@ -95,15 +125,15 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         principal();
         try {
             var before=settings.current();
-            new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(tx -> {
-                settings.save(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SaveSettingsRequest(before.version(),withLimit(4)));
+            new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+                settings.save(new SearchManagementDtos.SaveSettingsRequest(before.version(),withLimit(4)));
                 assertThat(provider.current().globalLimit()).isEqualTo(10);
                 tx.setRollbackOnly();
             });
             assertThat(settings.current()).isEqualTo(before);
             assertThat(provider.current().globalLimit()).isEqualTo(10);
             assertThat(auditCount()).isZero();
-        } finally { com.smartup24.cms.instance.common.security.SecurityContext.clear(); }
+        } finally { SecurityContext.clear(); }
     }
 
     @Test void databaseCommitFailureAfterTheSaveBodyDoesNotPublishThePolicy() {
@@ -113,15 +143,15 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         jdbc.sql("create constraint trigger fixture_settings_commit after update on search_settings deferrable initially deferred for each row execute function fixture_reject_settings_commit()").update();
         try {
             org.assertj.core.api.Assertions.assertThatThrownBy(() -> settings.save(
-                    new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SaveSettingsRequest(before.version(),withLimit(4))))
-                    .isInstanceOf(org.springframework.transaction.TransactionException.class);
+                    new SearchManagementDtos.SaveSettingsRequest(before.version(),withLimit(4))))
+                    .isInstanceOf(TransactionException.class);
             assertThat(settings.current()).isEqualTo(before);
             assertThat(provider.current().globalLimit()).isEqualTo(10);
             assertThat(auditCount()).isZero();
         } finally {
             jdbc.sql("drop trigger fixture_settings_commit on search_settings").update();
             jdbc.sql("drop function fixture_reject_settings_commit()").update();
-            com.smartup24.cms.instance.common.security.SecurityContext.clear();
+            SecurityContext.clear();
         }
     }
 
@@ -137,7 +167,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         assertThat(paths).isEmpty();
     }
 
-    static java.util.stream.Stream<String> invalidPolicies() {
+    static Stream<String> invalidPolicies() {
         String policy=mapper.writeValueAsString(SearchQueryPolicy.defaults());
         var invalid=new ArrayList<String>();
         for (String replacement : List.of("\"requestsPerMinute\":29", "\"requestsPerMinute\":601"))
@@ -210,30 +240,30 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     @Test void delayedEarlierCommitCannotReplaceTheNewerCommittedPolicy() throws Exception {
         principal();
         long version=settings.current().version();
-        com.smartup24.cms.instance.common.security.SecurityContext.clear();
-        var committed=new java.util.concurrent.CountDownLatch(1);
-        var release=new java.util.concurrent.CountDownLatch(1);
-        try (var executor=java.util.concurrent.Executors.newSingleThreadExecutor()) {
+        SecurityContext.clear();
+        var committed=new CountDownLatch(1);
+        var release=new CountDownLatch(1);
+        try (var executor=Executors.newSingleThreadExecutor()) {
             var first=executor.submit(() -> {
                 principal();
                 try {
-                    new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(tx -> {
-                        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                                new org.springframework.transaction.support.TransactionSynchronization() {
+                    new TransactionTemplate(transactions).executeWithoutResult(tx -> {
+                        TransactionSynchronizationManager.registerSynchronization(
+                                new TransactionSynchronization() {
                             public void afterCommit() { committed.countDown(); await(release); }
                         });
-                        settings.save(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SaveSettingsRequest(version,withLimit(4)));
+                        settings.save(new SearchManagementDtos.SaveSettingsRequest(version,withLimit(4)));
                     });
-                } finally { com.smartup24.cms.instance.common.security.SecurityContext.clear(); }
+                } finally { SecurityContext.clear(); }
             });
             try {
-                assertThat(committed.await(10,java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                assertThat(committed.await(10,TimeUnit.SECONDS)).isTrue();
                 principal();
-                var saved=settings.save(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SaveSettingsRequest(version+1,withLimit(5)));
+                var saved=settings.save(new SearchManagementDtos.SaveSettingsRequest(version+1,withLimit(5)));
                 assertThat(saved.version()).isEqualTo(version+2);
                 assertThat(provider.current().globalLimit()).isEqualTo(5);
-            } finally { release.countDown(); com.smartup24.cms.instance.common.security.SecurityContext.clear(); }
-            first.get(10,java.util.concurrent.TimeUnit.SECONDS);
+            } finally { release.countDown(); SecurityContext.clear(); }
+            first.get(10,TimeUnit.SECONDS);
             assertThat(provider.current().globalLimit()).isEqualTo(5);
             assertThat(provider.snapshot().version()).isEqualTo(version+2);
         }
@@ -245,9 +275,9 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version,withLimit(14)))).andExpect(status().isOk());
         var source=(ObservingDataSource)contextSource;
         Thread caller=Thread.currentThread();
-        var networkConnections=new java.util.concurrent.atomic.AtomicInteger(-1);
+        var networkConnections=new AtomicInteger(-1);
         beforeEngine=() -> networkConnections.set(source.openConnections(caller));
-        source.observe(caller, () -> new org.springframework.transaction.support.TransactionTemplate(transactions).executeWithoutResult(tx -> {
+        source.observe(caller, () -> new TransactionTemplate(transactions).executeWithoutResult(tx -> {
             jdbc.sql("update search_settings set version=version+1,configuration=cast(:policy as jsonb) where id=1")
                     .param("policy",mapper.writeValueAsString(withLimit(5))).update();
             jdbc.sql("update search_generations set task_collection='next_tasks'").update();
@@ -287,13 +317,13 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         assertThat(paths).isEmpty();
     }
 
-    private static void await(java.util.concurrent.CountDownLatch latch) {
-        try { if (!latch.await(10,java.util.concurrent.TimeUnit.SECONDS)) throw new AssertionError("fixture latch timeout"); }
+    private static void await(CountDownLatch latch) {
+        try { if (!latch.await(10,TimeUnit.SECONDS)) throw new AssertionError("fixture latch timeout"); }
         catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new AssertionError(interrupted); }
     }
 
     private void principal() {
-        com.smartup24.cms.instance.common.security.SecurityContext.setPrincipal(new com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal(
+        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 actorId,"fixture","fixture@example.invalid",actorId,false,Set.of("*.*"),1,false,0,null));
     }
     private long auditCount() { return jdbc.sql("select count(*) from audit_log where table_name='search_settings' and changed_by=:actor")
@@ -301,7 +331,7 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     private static SearchQueryPolicy withLimit(int limit) { return new SearchQueryPolicy(limit,120,20,"MIXED",SearchQueryPolicy.defaults().fields()); }
 }
 
-@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(print=org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
+@AutoConfigureMockMvc(print=MockMvcPrint.NONE)
 @WebMvcTest(controllers = SearchController.class, properties = {
         "logging.level.org.springframework.boot.security.autoconfigure=ERROR",
         "dwh.typesense.enabled=false", "dwh.typesense.url=http://127.0.0.1:1",
@@ -309,16 +339,16 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
         "spring.datasource.url=jdbc:postgresql://127.0.0.1:1/unused", "server.port=0", "management.server.port=0"})
 @Import({SearchSettingsIntegrationTestSupport.Fixture.class, SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, RateLimitService.class,
-        com.smartup24.cms.instance.config.idempotency.IdempotencyFilter.class})
+        IdempotencyFilter.class})
 abstract class SearchSettingsIntegrationTestSupport {
     static final ObjectMapper mapper = new ObjectMapper();
     static final List<String> requests = new CopyOnWriteArrayList<>();
     static final List<String> paths = new CopyOnWriteArrayList<>();
-    static final Map<String,String> responses = new java.util.concurrent.ConcurrentHashMap<>();
-    static final Map<String,Integer> responseStatuses = new java.util.concurrent.ConcurrentHashMap<>();
+    static final Map<String,String> responses = new ConcurrentHashMap<>();
+    static final Map<String,Integer> responseStatuses = new ConcurrentHashMap<>();
     static volatile int healthStatus = 200;
     static volatile Runnable beforeEngine=() -> {};
-    static final java.util.concurrent.atomic.AtomicLong actorSequence = new java.util.concurrent.atomic.AtomicLong(1000);
+    static final AtomicLong actorSequence = new AtomicLong(1000);
     long actorId;
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
             .withDatabaseName("search_management_test").withUsername("fixture").withPassword("fixture-only");
@@ -361,8 +391,8 @@ abstract class SearchSettingsIntegrationTestSupport {
     @MockitoBean MdUserService users;
     @MockitoBean MdPermissionService permissions;
     @MockitoBean RoleMembershipAuthorizer roles;
-    @MockitoBean com.smartup24.cms.instance.common.metrics.PlatformMetrics metrics;
-    @MockitoBean com.smartup24.cms.instance.config.idempotency.IdempotencyService idempotency;
+    @MockitoBean PlatformMetrics metrics;
+    @MockitoBean IdempotencyService idempotency;
 
     @BeforeEach void resetData() {
         actorId=actorSequence.incrementAndGet();
@@ -405,7 +435,7 @@ abstract class SearchSettingsIntegrationTestSupport {
         return request.cookie(new Cookie("DWH_SESSION", "fixture-session"), new Cookie("XSRF-TOKEN", "fixture-csrf"))
                 .header("X-XSRF-TOKEN", "fixture-csrf").contentType("application/json");
     }
-    tools.jackson.databind.JsonNode readSettings() throws Exception {
+    JsonNode readSettings() throws Exception {
         return mapper.readTree(mvc.perform(auth(get("/api/v1/search/settings"))).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
     }
@@ -419,7 +449,7 @@ abstract class SearchSettingsIntegrationTestSupport {
     static class Fixture {
         @Bean DataSource dataSource() {
             var dataSource = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-            com.smartup24.cms.instance.config.db.FlywayUtcConfiguration.configure(org.flywaydb.core.Flyway.configure())
+            FlywayUtcConfiguration.configure(org.flywaydb.core.Flyway.configure())
                     .dataSource(dataSource).locations("classpath:db/migration").load().migrate();
             return new ObservingDataSource(dataSource);
         }
@@ -429,29 +459,29 @@ abstract class SearchSettingsIntegrationTestSupport {
         @Bean(destroyMethod="close") AutoCloseable ownedResources() { return () -> { engine.stop(0); postgres.stop(); }; }
     }
 
-    @org.springframework.web.bind.annotation.RestController
+    @RestController
     static class LegacyController {
-        @org.springframework.web.bind.annotation.PostMapping("/api/v1/search-test/legacy")
-        public LegacyOptional legacy(@org.springframework.web.bind.annotation.RequestBody LegacyOptional request) { return request; }
+        @PostMapping("/api/v1/search-test/legacy")
+        public LegacyOptional legacy(@RequestBody LegacyOptional request) { return request; }
     }
     record LegacyOptional(int optional) {}
 
     static final class ObservingDataSource extends AbstractDataSource {
         private final DataSource delegate;
-        private final Map<Thread,java.util.concurrent.atomic.AtomicInteger> open=new java.util.concurrent.ConcurrentHashMap<>();
-        private final java.util.concurrent.atomic.AtomicReference<Runnable> afterRead=new java.util.concurrent.atomic.AtomicReference<>();
-        final java.util.concurrent.atomic.AtomicInteger snapshotReads=new java.util.concurrent.atomic.AtomicInteger();
+        private final Map<Thread,AtomicInteger> open=new ConcurrentHashMap<>();
+        private final AtomicReference<Runnable> afterRead=new AtomicReference<>();
+        final AtomicInteger snapshotReads=new AtomicInteger();
         private volatile Thread observedThread;
         ObservingDataSource(DataSource delegate) { this.delegate=delegate; }
         void observe(Thread thread,Runnable callback) { snapshotReads.set(0); afterRead.set(callback); observedThread=thread; }
         void stopObserving() { observedThread=null; afterRead.set(null); }
-        int openConnections(Thread thread) { return open.getOrDefault(thread,new java.util.concurrent.atomic.AtomicInteger()).get(); }
+        int openConnections(Thread thread) { return open.getOrDefault(thread,new AtomicInteger()).get(); }
         public java.sql.Connection getConnection() throws java.sql.SQLException { return track(delegate.getConnection()); }
         public java.sql.Connection getConnection(String user,String password) throws java.sql.SQLException { return track(delegate.getConnection(user,password)); }
         private java.sql.Connection track(java.sql.Connection connection) {
             Thread owner=Thread.currentThread();
-            var count=open.computeIfAbsent(owner,ignored -> new java.util.concurrent.atomic.AtomicInteger()); count.incrementAndGet();
-            var closed=new java.util.concurrent.atomic.AtomicBoolean();
+            var count=open.computeIfAbsent(owner,ignored -> new AtomicInteger()); count.incrementAndGet();
+            var closed=new AtomicBoolean();
             return (java.sql.Connection)java.lang.reflect.Proxy.newProxyInstance(java.sql.Connection.class.getClassLoader(),new Class<?>[]{java.sql.Connection.class},
                     (proxy,method,args) -> {
                         if (method.getName().equals("close") && closed.compareAndSet(false,true)) count.decrementAndGet();

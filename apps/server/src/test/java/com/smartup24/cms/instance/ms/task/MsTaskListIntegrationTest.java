@@ -1,7 +1,5 @@
 package com.smartup24.cms.instance.ms.task;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -21,12 +19,14 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord
 import com.smartup24.cms.instance.ms.task.service.MsTaskListExporters;
 import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskQuery;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -126,7 +126,7 @@ class MsTaskListIntegrationTest {
     @Test
     @DisplayName("Every registry field is a property of the row the client receives")
     void everyFieldIsARowProperty() {
-        var properties = java.util.Arrays.stream(TaskRecord.class.getRecordComponents())
+        var properties = Arrays.stream(TaskRecord.class.getRecordComponents())
                 .map(java.lang.reflect.RecordComponent::getName).toList();
         assertThat(MsTaskQuery.LIST.fields()).allSatisfy(field -> assertThat(properties).contains(field.key()));
     }

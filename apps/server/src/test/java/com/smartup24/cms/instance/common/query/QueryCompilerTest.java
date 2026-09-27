@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -116,7 +117,7 @@ class QueryCompilerTest {
                 .containsExactly(QueryCompiler.FILTER_INVALID);
         assertThat(errors("{\"field\":\"code\"}", null)).extracting(FieldErrorItem::code)
                 .containsExactly(QueryCompiler.FILTER_INVALID);
-        String many = "[" + String.join(",", java.util.Collections.nCopies(QueryCompiler.MAX_CONDITIONS + 1,
+        String many = "[" + String.join(",", Collections.nCopies(QueryCompiler.MAX_CONDITIONS + 1,
                 "{\"field\":\"active\",\"op\":\"eq\",\"value\":true}")) + "]";
         assertThat(errors(many, null)).extracting(FieldErrorItem::code)
                 .containsExactly(QueryCompiler.FILTER_TOO_LONG);
@@ -279,7 +280,7 @@ class QueryCompilerTest {
                 [{"any":[{"field":"code","op":"eq","value":"a"},{"field":"secret","op":"eq","value":"b"}]}]""", null))
                 .extracting(FieldErrorItem::field, FieldErrorItem::code)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple("filter[0].any[1].field", QueryCompiler.UNKNOWN_FIELD));
-        String many = String.join(",", java.util.Collections.nCopies(QueryCompiler.MAX_CONDITIONS, "{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}"));
+        String many = String.join(",", Collections.nCopies(QueryCompiler.MAX_CONDITIONS, "{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"}"));
         assertThat(errors("[{\"field\":\"code\",\"op\":\"eq\",\"value\":\"a\"},{\"any\":[" + many + "]}]", null))
                 .extracting(FieldErrorItem::code).containsExactly(QueryCompiler.FILTER_TOO_LONG);
     }

@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.config.security;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyService;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
@@ -10,14 +12,20 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import io.github.bucket4j.TimeMeter;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
@@ -50,11 +58,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * + событие rate_limit_exceeded в security-журнале (ровно одно на окно, анти-флуд).
  */
 @WebMvcTest(controllers = SecurityTestController.class)
-@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc(print=org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint.NONE)
+@AutoConfigureMockMvc(print=MockMvcPrint.NONE)
 @Import({SecurityConfig.class, ProblemDetailAuthHandlers.class,
         KauthAuthenticationFilter.class, RateLimitFilter.class, SearchPolicyProvider.class,
         RateLimitFilterTest.FixedClockRateLimitConfiguration.class,
-        com.smartup24.cms.instance.config.idempotency.IdempotencyFilter.class,
+        IdempotencyFilter.class,
         SecurityTestController.class})
 @TestPropertySource(properties = {
         "logging.level.org.springframework.boot.security.autoconfigure=ERROR",
@@ -70,10 +78,10 @@ class RateLimitFilterTest {
     MockMvc mvc;
     @Autowired io.micrometer.core.instrument.simple.SimpleMeterRegistry searchMetricRegistry;
 
-    @MockitoBean com.smartup24.cms.instance.search.repository.SearchSettingsRepository searchSettings;
+    @MockitoBean SearchSettingsRepository searchSettings;
     @org.junit.jupiter.api.BeforeEach void initializeSearchPolicy() {
-        searchPolicyProvider.publishCommitted(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot(
-                1, com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults()));
+        searchPolicyProvider.publishCommitted(new SearchManagementDtos.SettingsSnapshot(
+                1, SearchQueryPolicy.defaults()));
     }
 
     @MockitoBean
@@ -87,7 +95,7 @@ class RateLimitFilterTest {
     @MockitoBean
     AuditLogService auditLogService;
     @MockitoBean
-    com.smartup24.cms.instance.config.idempotency.IdempotencyService idempotencyService;
+    IdempotencyService idempotencyService;
     @Autowired
     MutableTimeMeter timeMeter;
     @Autowired
@@ -364,8 +372,8 @@ class RateLimitFilterTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class FixedClockRateLimitConfiguration {
         @Bean io.micrometer.core.instrument.simple.SimpleMeterRegistry searchMetricRegistry() { return new io.micrometer.core.instrument.simple.SimpleMeterRegistry(); }
-        @Bean com.smartup24.cms.instance.search.service.SearchMetrics searchMetrics(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry) {
-            return new com.smartup24.cms.instance.search.service.SearchMetrics(registry);
+        @Bean SearchMetrics searchMetrics(io.micrometer.core.instrument.simple.SimpleMeterRegistry registry) {
+            return new SearchMetrics(registry);
         }
         @Bean
         MutableTimeMeter mutableTimeMeter() {

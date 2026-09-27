@@ -1,10 +1,22 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.search.repository.SearchDeliveryRepository;
+import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.AbstractDataSource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -13,22 +25,22 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         var generation = activeGeneration();
         long id = user("Checkpoint retry");
         long otherId = user("Other owner");
-        var otherOwner = java.util.UUID.randomUUID();
+        var otherOwner = UUID.randomUUID();
         jdbc.sql("""
                 insert into search_generation_delivery(generation_id,entity_type,entity_id,attempted_revision,owner_token)
                 values (:generation,'USER',:id,1,:owner)
                 """).param("generation", generation).param("id", otherId).param("owner", otherOwner).update();
         var failedDatabase = new FailingCheckpointDataSource(database);
-        var failedManager = new org.springframework.jdbc.datasource.DataSourceTransactionManager(failedDatabase);
-        delivery = SearchRevisionIntegrationTest.proxied(new com.smartup24.cms.instance.search.repository.SearchDeliveryRepository(
-                org.springframework.jdbc.core.simple.JdbcClient.create(failedDatabase)), failedManager);
-        worker = new com.smartup24.cms.instance.search.service.SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5);
+        var failedManager = new DataSourceTransactionManager(failedDatabase);
+        delivery = SearchRevisionIntegrationTest.proxied(new SearchDeliveryRepository(
+                JdbcClient.create(failedDatabase)), failedManager);
+        worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5);
         worker.startLifecycle(owner);
         // Restore the foreign claim after lifecycle recovery; no next-cycle cleanup may release it.
         jdbc.sql("update search_generation_delivery set owner_token=:owner where entity_id=:id and entity_type='USER'")
                 .param("owner", otherOwner).param("id", otherId).update();
         beforeWrite = exchange -> failedDatabase.fail.set(true);
-        assertThatThrownBy(worker::runOnce).isInstanceOf(org.springframework.dao.DataAccessException.class);
+        assertThatThrownBy(worker::runOnce).isInstanceOf(DataAccessException.class);
         assertThat(failedDatabase.rejected.get()).isEqualTo(3);
         assertThat(documents).containsKey("users/" + id);
         assertThat(delivered("USER", id)).isZero();
@@ -37,15 +49,15 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         worker.runOnce();
         assertThat(delivered("USER", id)).isOne();
         assertThat(documents.get("users/" + id)).containsEntry("name", "Checkpoint retry");
-        assertThat(jdbc.sql("select worker_owner from search_index_state where id=1").query(java.util.UUID.class).single()).isEqualTo(owner);
+        assertThat(jdbc.sql("select worker_owner from search_index_state where id=1").query(UUID.class).single()).isEqualTo(owner);
         assertThat(jdbc.sql("select owner_token from search_generation_delivery where entity_type='USER' and entity_id=:id")
-                .param("id", otherId).query(java.util.UUID.class).single()).isEqualTo(otherOwner);
+                .param("id", otherId).query(UUID.class).single()).isEqualTo(otherOwner);
     }
 
-    private static final class FailingCheckpointDataSource extends org.springframework.jdbc.datasource.AbstractDataSource {
+    private static final class FailingCheckpointDataSource extends AbstractDataSource {
         final javax.sql.DataSource delegate;
-        final java.util.concurrent.atomic.AtomicBoolean fail = new java.util.concurrent.atomic.AtomicBoolean();
-        final java.util.concurrent.atomic.AtomicInteger rejected = new java.util.concurrent.atomic.AtomicInteger();
+        final AtomicBoolean fail = new AtomicBoolean();
+        final AtomicInteger rejected = new AtomicInteger();
         FailingCheckpointDataSource(javax.sql.DataSource delegate) { this.delegate = delegate; }
         @Override public java.sql.Connection getConnection() throws java.sql.SQLException { return wrap(delegate.getConnection()); }
         @Override public java.sql.Connection getConnection(String user, String password) throws java.sql.SQLException {
@@ -126,7 +138,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         worker.runOnce();
         var created = new CountDownLatch(1);
         var commit = new CountDownLatch(1);
-        var id = new java.util.concurrent.atomic.AtomicLong();
+        var id = new AtomicLong();
         try (var executor = Executors.newSingleThreadExecutor()) {
             var future = executor.submit(() -> tx.executeWithoutResult(status -> {
                 id.set(task(reporter, "Committed only")); created.countDown(); SearchRevisionIntegrationTest.await(commit);

@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.report.service;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.report.repository.ReportRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,9 +28,9 @@ public class ReportService {
     private final MdScopeService scopeService;
     private final int maxExportRows;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public ReportService(ReportRepository reportRepository, MdScopeService scopeService,
-                         @org.springframework.beans.factory.annotation.Value("${dwh.reports.export.max-rows:50000}") int maxExportRows) {
+                         @Value("${dwh.reports.export.max-rows:50000}") int maxExportRows) {
         this.reportRepository = reportRepository;
         this.scopeService = scopeService;
         this.maxExportRows = maxExportRows > 0 ? maxExportRows : ReportRepository.DEFAULT_MAX_EXPORT_ROWS;

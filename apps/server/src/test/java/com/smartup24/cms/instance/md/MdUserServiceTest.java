@@ -1,14 +1,17 @@
 package com.smartup24.cms.instance.md;
 
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordHasher;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,16 +30,16 @@ class MdUserServiceTest {
     private final MdCustomFieldService customFieldService = Mockito.mock(MdCustomFieldService.class);
     private final PasswordHasher passwordHasher = Mockito.mock(PasswordHasher.class);
     private final UserSessionInvalidator sessionInvalidator = Mockito.mock(UserSessionInvalidator.class);
-    private final com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher =
-            Mockito.mock(com.smartup24.cms.instance.search.SearchChangePublisher.class);
-    private final com.smartup24.cms.instance.audit.service.AuditLogService auditLogService =
-            Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class);
+    private final SearchChangePublisher searchChangePublisher =
+            Mockito.mock(SearchChangePublisher.class);
+    private final AuditLogService auditLogService =
+            Mockito.mock(AuditLogService.class);
 
 
     private final PasswordValidator passwordValidator = new PasswordValidator();
 
-    private final com.smartup24.cms.instance.md.service.MdScopeService scopeService =
-            Mockito.mock(com.smartup24.cms.instance.md.service.MdScopeService.class);
+    private final MdScopeService scopeService =
+            Mockito.mock(MdScopeService.class);
 
     private final MdUserService userService = new MdUserService(
             userRepository, roleRepository, customFieldService, passwordHasher,

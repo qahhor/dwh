@@ -9,6 +9,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
@@ -55,7 +56,7 @@ public final class EntityValidator {
         return errors;
     }
 
-    private static java.util.Optional<FieldErrorItem> problem(FormField field, Object value) {
+    private static Optional<FieldErrorItem> problem(FormField field, Object value) {
         String key = field.key();
         switch (field.type()) {
             case TEXT, TEXTAREA, MARKDOWN -> {
@@ -104,10 +105,10 @@ public final class EntityValidator {
                 // The referenced row's existence and visibility are the module's to check with its own scope.
             }
         }
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 
-    private static java.util.Optional<FieldErrorItem> error(String key, String code, String message) {
-        return java.util.Optional.of(new FieldErrorItem(key, code, message));
+    private static Optional<FieldErrorItem> error(String key, String code, String message) {
+        return Optional.of(new FieldErrorItem(key, code, message));
     }
 }

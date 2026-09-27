@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -242,7 +243,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
 
     // ---------- вспомогательное ----------
 
-    private void registerUnits(java.util.List<DepartmentFixture.Unit> fixtureUnits) {
+    private void registerUnits(List<DepartmentFixture.Unit> fixtureUnits) {
         for (DepartmentFixture.Unit unit : fixtureUnits) {
             units.registerUnit(unit.code(), Map.of("uz", unit.nameUz()), unit.base(), actor);
         }

@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.entity;
 
+import java.util.Locale;
+
 /** What the platform provides for an entity once it is declared (ADR-0019, 2.1). */
 public enum EntityCapability {
     /** Administrator-defined fields in its attributes. */
@@ -14,6 +16,6 @@ public enum EntityCapability {
     BULK;
 
     public String wire() {
-        return name().toLowerCase(java.util.Locale.ROOT);
+        return name().toLowerCase(Locale.ROOT);
     }
 }

@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,13 +18,13 @@ public class MsProjectService {
 
     private final MsProjectRepository projectRepository;
     private final MdCustomFieldService customFieldService;
-    private final com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher;
+    private final SearchChangePublisher searchChangePublisher;
     private final AuditLogService auditLogService;
 
     public MsProjectService(
             MsProjectRepository projectRepository,
             MdCustomFieldService customFieldService,
-            com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher,
+            SearchChangePublisher searchChangePublisher,
             AuditLogService auditLogService) {
         this.projectRepository = projectRepository;
         this.customFieldService = customFieldService;

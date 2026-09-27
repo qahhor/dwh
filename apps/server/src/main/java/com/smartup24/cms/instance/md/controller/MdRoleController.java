@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @RestController
@@ -36,7 +37,7 @@ public class MdRoleController {
 
     @GetMapping("/roles/user-counts")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
-    public ResponseEntity<java.util.Map<Long, Integer>> getRoleUserCounts() {
+    public ResponseEntity<Map<Long, Integer>> getRoleUserCounts() {
         return ResponseEntity.ok(roleService.countUsersPerRole());
     }
 

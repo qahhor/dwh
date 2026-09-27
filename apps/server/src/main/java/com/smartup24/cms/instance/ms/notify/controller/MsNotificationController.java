@@ -1,9 +1,10 @@
 package com.smartup24.cms.instance.ms.notify.controller;
 
+import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
+import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import org.springframework.http.ResponseEntity;
@@ -66,7 +67,7 @@ public class MsNotificationController {
 
     @GetMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
-    public ResponseEntity<List<com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository.NotificationPrefRecord>> getPreferences() {
+    public ResponseEntity<List<MsNotificationPrefRepository.NotificationPrefRecord>> getPreferences() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
 

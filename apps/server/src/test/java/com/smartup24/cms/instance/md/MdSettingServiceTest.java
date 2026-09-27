@@ -1,14 +1,16 @@
 package com.smartup24.cms.instance.md;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdI18nService;
-import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.service.MdSettingService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -71,7 +73,7 @@ class MdSettingServiceTest {
         verify(repository, times(1)).setInstanceSetting("system.company_name", "New Company Name");
         verify(auditLogService, times(1)).logChange(
                 eq("md_settings"), eq("system.company_name"), eq("U"),
-                eq(java.util.List.of("value")),
+                eq(List.of("value")),
                 eq(Map.of("key", "system.company_name", "value", "Old Company Name")),
                 eq(Map.of("key", "system.company_name", "value", "New Company Name"))
         );
@@ -97,7 +99,7 @@ class MdSettingServiceTest {
     void personalSettingsCannotShadowInstanceOnes() {
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                         service.updateUserSettings(10L, Map.of("security.idle_lock_minutes", "0")))
-                .isInstanceOf(com.smartup24.cms.instance.common.error.ApiException.class);
+                .isInstanceOf(ApiException.class);
         verifyNoInteractions(repository, userRepository);
 
         when(repository.getAllInstanceSettings()).thenReturn(Map.of());
@@ -114,10 +116,10 @@ class MdSettingServiceTest {
     void idleLockMinutesAreBounded() {
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                         service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "2000")))
-                .isInstanceOf(com.smartup24.cms.instance.common.error.ApiException.class);
+                .isInstanceOf(ApiException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() ->
                         service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "soon")))
-                .isInstanceOf(com.smartup24.cms.instance.common.error.ApiException.class);
+                .isInstanceOf(ApiException.class);
 
         when(repository.getAllInstanceSettings()).thenReturn(Map.of("security.idle_lock_minutes", "15"));
         org.assertj.core.api.Assertions.assertThat(service.idleLockMinutes()).isEqualTo(15);

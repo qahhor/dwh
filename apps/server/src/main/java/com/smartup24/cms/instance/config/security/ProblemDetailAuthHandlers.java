@@ -14,6 +14,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * 401/403 из security-цепочки в формате RFC 9457 (FR-API-2) —
@@ -59,8 +61,8 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
                 code, request.getRequestURI(), accessDeniedException.getClass().getSimpleName(),
                 request.getHeader("X-XSRF-TOKEN") != null,
                 request.getCookies() != null
-                        ? java.util.Arrays.stream(request.getCookies()).map(jakarta.servlet.http.Cookie::getName).toList()
-                        : java.util.List.of());
+                        ? Arrays.stream(request.getCookies()).map(jakarta.servlet.http.Cookie::getName).toList()
+                        : List.of());
         writeProblem(response, code, detail, request.getRequestURI());
     }
 

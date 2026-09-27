@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.architecture;
 
+import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -8,6 +9,7 @@ import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.RestController;
@@ -191,8 +193,8 @@ class ModularArchitectureTest {
     }
 
     private static class FakeRepositoryConsumer {
-        private final com.smartup24.cms.instance.md.repository.MdUserRepository users;
-        FakeRepositoryConsumer(com.smartup24.cms.instance.md.repository.MdUserRepository users) {
+        private final MdUserRepository users;
+        FakeRepositoryConsumer(MdUserRepository users) {
             this.users = users;
         }
     }
@@ -205,8 +207,8 @@ class ModularArchitectureTest {
     }
 
     private static class DataAccessController {
-        private final com.smartup24.cms.instance.md.repository.MdUserRepository users;
-        DataAccessController(com.smartup24.cms.instance.md.repository.MdUserRepository users) {
+        private final MdUserRepository users;
+        DataAccessController(MdUserRepository users) {
             this.users = users;
         }
     }
@@ -221,8 +223,8 @@ class ModularArchitectureTest {
     }
 
     private static class OtherSpringCsrfController {
-        private final org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository repository;
-        OtherSpringCsrfController(org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository repository) {
+        private final HttpSessionCsrfTokenRepository repository;
+        OtherSpringCsrfController(HttpSessionCsrfTokenRepository repository) {
             this.repository = repository;
         }
     }

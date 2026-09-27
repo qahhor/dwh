@@ -3,14 +3,16 @@ package com.smartup24.cms.instance.config.error;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.concurrent.Callable;
@@ -112,12 +114,12 @@ class GlobalExceptionHandlerTest {
 
         @GetMapping("/duplicate")
         String duplicate() {
-            throw new org.springframework.dao.DuplicateKeyException("unique constraint violated");
+            throw new DuplicateKeyException("unique constraint violated");
         }
 
         @GetMapping("/integrity")
         String integrity() {
-            throw new org.springframework.dao.DataIntegrityViolationException("not-null constraint violated");
+            throw new DataIntegrityViolationException("not-null constraint violated");
         }
 
         @GetMapping("/oversized-upload")

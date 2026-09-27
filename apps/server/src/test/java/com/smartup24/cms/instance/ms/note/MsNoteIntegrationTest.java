@@ -1,13 +1,17 @@
 package com.smartup24.cms.instance.ms.note;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
+import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
+import com.smartup24.cms.instance.ms.note.service.MsNoteRecords;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,6 +19,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -110,8 +115,8 @@ class MsNoteIntegrationTest {
     @Test
     @DisplayName("3. Отключенный модуль блокирует операции над заметками")
     void disabledModuleBlocksNoteOperations() {
-        var modRepo = new com.smartup24.cms.instance.md.repository.ModuleRegistryRepository(jdbc, new ObjectMapper());
-        var modService = new com.smartup24.cms.instance.md.service.ModuleRegistryService(modRepo, null);
+        var modRepo = new ModuleRegistryRepository(jdbc, new ObjectMapper());
+        var modService = new ModuleRegistryService(modRepo, null);
         var restrictedNoteService = new MsNoteService(
                 new MsNoteRepository(jdbc, new ObjectMapper()),
                 new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor()),
@@ -179,24 +184,24 @@ class MsNoteIntegrationTest {
     @Test
     @DisplayName("6. Записи для истории, экспорта и массового удаления: чужая заметка — как несуществующая")
     void recordsHideOtherPeoplesNotes() {
-        var records = new com.smartup24.cms.instance.ms.note.service.MsNoteRecords(noteService);
+        var records = new MsNoteRecords(noteService);
         var mine = noteService.createNote("rec моя", "", "default", false, null, user1Id);
         var theirs = noteService.createNote("rec чужая", "", "default", false, null, user2Id);
-        com.smartup24.cms.instance.common.security.SecurityContext.setPrincipal(
-                new com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal(
-                        user1Id, "user1", "user1@example.com", 1L, false, java.util.Set.of(), 1L, false, 0, null));
+        SecurityContext.setPrincipal(
+                new SecurityContext.KauthPrincipal(
+                        user1Id, "user1", "user1@example.com", 1L, false, Set.of(), 1L, false, 0, null));
         try {
             records.requireVisible(mine.id());
             assertThatThrownBy(() -> records.requireVisible(theirs.id()))
                     .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.getErrorCode())
-                            .isEqualTo(com.smartup24.cms.core.error.ErrorCode.NOT_FOUND));
+                            .isEqualTo(ErrorCode.NOT_FOUND));
             assertThat(records.page(50, null, null, null, "rec ").items()).hasSize(1);
 
             records.delete(mine.id());
             assertThatThrownBy(() -> records.delete(theirs.id())).isInstanceOf(ApiException.class);
             assertThat(noteService.getNote(theirs.id(), user2Id).title()).isEqualTo("rec чужая");
         } finally {
-            com.smartup24.cms.instance.common.security.SecurityContext.clear();
+            SecurityContext.clear();
         }
     }
 }

@@ -1,15 +1,20 @@
 package com.smartup24.cms.instance.search.service;
 
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus;
 import com.smartup24.cms.instance.search.repository.*;
+import com.smartup24.cms.instance.search.repository.SearchGenerationRepository.FrozenGeneration;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import java.util.UUID;
+
+import java.time.Duration;
 import java.util.List;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus;
-import com.smartup24.cms.instance.search.repository.SearchGenerationRepository.FrozenGeneration;
-import com.smartup24.cms.instance.search.typesense.TypesenseException;
+import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class SearchJobWorker implements AutoCloseable {
@@ -28,11 +33,11 @@ public class SearchJobWorker implements AutoCloseable {
     private long expectedVersion;
     private boolean closed;
     private SearchMetrics metrics=SearchMetrics.unmetered();
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public SearchJobWorker(TypesenseClient client,SearchDeliveryWorker delivery,SearchIndexStateRepository state,
             SearchJobRepository jobs,SearchGenerationRepository generations,SearchGenerationService generationService,
             SearchJobService service,SearchReconciliationService reconciliation,SearchStoragePreflight storage,
-            java.util.Optional<SearchMetrics> metrics) {
+            Optional<SearchMetrics> metrics) {
         this(client,delivery,state,jobs,generations,generationService,service,reconciliation,storage);
         this.metrics=metrics.orElseGet(SearchMetrics::unmetered);
     }
@@ -112,14 +117,14 @@ public class SearchJobWorker implements AutoCloseable {
         } finally {
             if (state.owns(owner)) jobs.find(job.id()).filter(updated -> !updated.state().equals(job.state())).ifPresent(updated -> {
                 if (List.of("SUCCEEDED","FAILED","CANCELLED").contains(updated.state())) discardProof();
-                metrics.job(updated.action(),updated.state(),updated.finishedAt()==null ? null : java.time.Duration.between(updated.createdAt(),updated.finishedAt()));
+                metrics.job(updated.action(),updated.state(),updated.finishedAt()==null ? null : Duration.between(updated.createdAt(),updated.finishedAt()));
                 if (updated.state().equals("SUCCEEDED") && !updated.action().equals("CHECK")) metrics.switched(updated.action());
             });
         }
     }
     private static String safeFailure(RuntimeException failure) {
         if (failure instanceof SearchProjectionReader.DocumentTooLargeException) return "DOCUMENT_TOO_LARGE";
-        if (failure instanceof com.smartup24.cms.instance.common.error.ApiException && failure.getMessage()!=null
+        if (failure instanceof ApiException && failure.getMessage()!=null
                 && List.of("INSUFFICIENT_SEARCH_STORAGE","SEARCH_STORAGE_UNAVAILABLE").contains(failure.getMessage())) return failure.getMessage();
         return failure instanceof TypesenseException ? "SEARCH_DEPENDENCY_FAILED" : "SEARCH_JOB_FAILED";
     }

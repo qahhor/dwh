@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task;
 
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
@@ -7,9 +8,11 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.repository.*;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.Map;
@@ -30,12 +33,12 @@ class MsTaskServiceTest {
     private final MdScopeService scopeService = Mockito.mock(MdScopeService.class);
     private final MfFileService fileService = Mockito.mock(MfFileService.class);
 
-    private final org.springframework.context.ApplicationEventPublisher eventPublisher =
-            Mockito.mock(org.springframework.context.ApplicationEventPublisher.class);
-    private final com.smartup24.cms.instance.search.SearchChangePublisher searchChangePublisher =
-            Mockito.mock(com.smartup24.cms.instance.search.SearchChangePublisher.class);
-    private final com.smartup24.cms.instance.audit.service.AuditLogService auditLogService =
-            Mockito.mock(com.smartup24.cms.instance.audit.service.AuditLogService.class);
+    private final ApplicationEventPublisher eventPublisher =
+            Mockito.mock(ApplicationEventPublisher.class);
+    private final SearchChangePublisher searchChangePublisher =
+            Mockito.mock(SearchChangePublisher.class);
+    private final AuditLogService auditLogService =
+            Mockito.mock(AuditLogService.class);
 
     private final MsTaskService service = new MsTaskService(
             taskRepository, statusRepository, typeRepository, memberRepository, projectRepository, customFieldService,

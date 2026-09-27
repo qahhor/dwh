@@ -1,16 +1,19 @@
 package com.smartup24.cms.instance.search.service;
 
-import org.springframework.stereotype.Service;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
+import com.smartup24.cms.instance.search.repository.SearchJobRepository;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient.DependencyMetadata;
-import java.time.Instant;
+import org.springframework.stereotype.Service;
+
 import java.time.Duration;
-import java.util.List;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -19,10 +22,10 @@ public class SearchStatusService {
     private final SearchIndexStateRepository repository;
     private final SearchPolicyProvider policies;
     private final TypesenseClient client;
-    private final com.smartup24.cms.instance.search.repository.SearchJobRepository jobs;
+    private final SearchJobRepository jobs;
     public SearchStatusService(SearchAccessPolicy access, SearchIndexStateRepository repository,
                                SearchPolicyProvider policies, TypesenseClient client,
-                               com.smartup24.cms.instance.search.repository.SearchJobRepository jobs) {
+                               SearchJobRepository jobs) {
         this.access=access; this.repository=repository; this.policies=policies; this.client=client;
         this.jobs=jobs;
     }
@@ -81,7 +84,7 @@ public class SearchStatusService {
     public record Status(DependencyMetadata dependency, boolean initialized, String activeProfile, String configuredProfile,
                          Boolean rebuildRequired, boolean settingsDegraded, Instant lastSuccessfulReconciliation,
                          List<GenerationStatus> generations, Budgets budgets,
-                         List<com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus> jobs,List<RollbackTarget> rollbackTargets) {}
+                         List<SearchManagementDtos.JobStatus> jobs,List<RollbackTarget> rollbackTargets) {}
     /** A retained supported schema is eligible for catch-up and fresh verification, not an already-authorized cutover. */
     public record RollbackTarget(UUID id,String schemaProfile,Instant lastVerifiedAt) {}
     public record GenerationStatus(UUID id, String state, boolean active, String registeredProfile, Long documentCount,

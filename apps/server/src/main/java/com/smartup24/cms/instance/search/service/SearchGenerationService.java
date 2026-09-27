@@ -2,10 +2,12 @@ package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchGenerationRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
 import java.util.UUID;
 
 @Service
@@ -36,7 +38,7 @@ public class SearchGenerationService {
         generations.resetRetries(generation);
     }
     public boolean finish(SearchReconciliationService.Proof proof,SearchGenerationRepository.FrozenGeneration generation,
-                          com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus job,UUID owner,long expectedVersion) {
+                          SearchManagementDtos.JobStatus job,UUID owner,long expectedVersion) {
         return proof.transaction(connection -> {
             boolean check=job.action().equals("CHECK");
             var barrier=generations.lockBarrier(connection,owner,job.id(),check ? "VERIFYING" : "ACTIVATING",generation);

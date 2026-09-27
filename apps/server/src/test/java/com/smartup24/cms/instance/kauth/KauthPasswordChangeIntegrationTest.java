@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
+import com.smartup24.cms.instance.kauth.service.KauthCredentialGuard;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
@@ -45,6 +46,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -54,12 +56,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
 
-import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -106,13 +108,13 @@ class KauthPasswordChangeIntegrationTest {
         context = serviceContext(invalidator);
         var userService = context.getBean(MdUserService.class);
         var sessionService = new KauthSessionService(sessions);
-        var tokenService = new KauthApiTokenService(tokens, new com.smartup24.cms.instance.kauth.service.KauthCredentialGuard(sessions, tokens));
+        var tokenService = new KauthApiTokenService(tokens, new KauthCredentialGuard(sessions, tokens));
         var permissions = new MdPermissionService(new MdPermissionRepository(jdbc));
         mvc = MockMvcBuilders.standaloneSetup(
                         new KauthPasswordController(userService),
                         // Only /me is exercised here; login/OTP delivery has its own integration suite.
                         new KauthAuthController(mock(KauthAuthService.class), sessionService, userService,
-                                org.springframework.security.web.csrf.CookieCsrfTokenRepository.withHttpOnlyFalse()))
+                                CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilters(new KauthAuthenticationFilter(sessionService, tokenService, userService, permissions))
                 .setControllerAdvice(new GlobalExceptionHandler()).build();
     }

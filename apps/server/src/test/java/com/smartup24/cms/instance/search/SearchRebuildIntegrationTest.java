@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.search;
 
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
+import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
+import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.typesense.*;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.GenericContainer;
@@ -7,7 +11,9 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.ObjectMapper;
+
 import java.util.*;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
@@ -24,7 +30,7 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
     }
 
     @BeforeEach void ownRealEngine() { client=client();recreateWorker(); }
-    @AfterEach void clearPrincipal() { com.smartup24.cms.instance.common.security.SecurityContext.clear(); }
+    @AfterEach void clearPrincipal() { SecurityContext.clear(); }
 
     @Test void rebuildCatchesConcurrentSourceChangesAndReplacesStaleHitsWithoutDeletingOldCollections() {
         UUID old=activeGeneration();
@@ -37,9 +43,9 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
         client.deleteDocument(prefix+"tasks",Long.toString(missing));
         client.importDocuments(prefix+"tasks",List.of(Map.of("id","999999","task_id",999999,"title","Stale extra",
                 "_projection_revision",1,"_projection_fingerprint","stale")));
-        com.smartup24.cms.instance.common.security.SecurityContext.setPrincipal(new com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal(
+        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 reporter,"fixture","fixture@example.invalid",1L,false,Set.of("*.*"),1L,false,0,null));
-        UUID job=jobService.start(new com.smartup24.cms.instance.search.dto.SearchManagementDtos.StartJobRequest(UUID.randomUUID(),"REBUILD",null)).id();
+        UUID job=jobService.start(new SearchManagementDtos.StartJobRequest(UUID.randomUUID(),"REBUILD",null)).id();
         UUID candidate=jobRepository.find(job).orElseThrow().generationId();
         boolean updated=false,removed=false;
         for (int cycle=0;cycle<80 && !Set.of("SUCCEEDED","FAILED").contains(jobRepository.find(job).orElseThrow().state());cycle++) {
@@ -67,8 +73,8 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(exported.getFirst().revision()).isEqualTo(authoritative.revision());
         assertThat(exported.getFirst().fingerprint()).isEqualTo(authoritative.fingerprint());
         assertThat(exported.getFirst().contentFingerprint()).isEqualTo(authoritative.fingerprint());
-        assertThat(client.multiSearch("Changed","TASK",10,state.snapshot().collections(),com.smartup24.cms.instance.search.service.SearchQueryPolicy.defaults())
-                .getFirst().hits()).extracting(com.smartup24.cms.instance.search.service.SearchService.SearchHit::id).containsExactly(Long.toString(missing));
+        assertThat(client.multiSearch("Changed","TASK",10,state.snapshot().collections(),SearchQueryPolicy.defaults())
+                .getFirst().hits()).extracting(SearchService.SearchHit::id).containsExactly(Long.toString(missing));
         for (String type:List.of("tasks","projects","users")) assertThat(client.collectionExists(prefix+type)).isTrue();
         assertThat(jdbc.sql("select state from search_generations where id=:id").param("id",old).query(String.class).single()).isEqualTo("RETAINED");
         assertThat(jdbc.sql("select count(*) from audit_log where table_name='search_index_state' and new_row->>'job_id'=:job and changed_by=:actor")

@@ -5,14 +5,18 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
+import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
+import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
+import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
+import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,7 +36,6 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.sql.DataSource;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -46,6 +49,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.sql.DataSource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -154,13 +158,13 @@ class SearchFallbackIntegrationTest {
                 999L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1, false, 0, null));
         SearchService service = new SearchService(typesense, repository,
                 new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)), new SearchResultBudget(),
-                new com.smartup24.cms.instance.search.service.SearchPolicyProvider(
-                        new com.smartup24.cms.instance.search.SearchOwnerRateLimits() {
+                new SearchPolicyProvider(
+                        new SearchOwnerRateLimits() {
                             @Override public int userPerMinute() { return 600; }
                             @Override public int tokenPerMinute() { return 300; }
-                        }, new com.smartup24.cms.instance.search.repository.SearchSettingsRepository(jdbc)),
-                new com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader(
-                new com.smartup24.cms.instance.search.repository.SearchIndexStateRepository(jdbc)));
+                        }, new SearchSettingsRepository(jdbc)),
+                new SearchExecutionSnapshotReader(
+                new SearchIndexStateRepository(jdbc)));
 
         var result = service.search("budget-token", "ALL", 4);
 

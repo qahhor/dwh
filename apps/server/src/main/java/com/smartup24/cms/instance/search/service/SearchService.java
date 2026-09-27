@@ -2,17 +2,18 @@ package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
-import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -20,7 +21,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Service
 public class SearchService {
@@ -38,8 +42,8 @@ public class SearchService {
     public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                          SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                          SearchPolicyProvider policyProvider, SearchExecutionSnapshotReader snapshotReader,
-                         java.util.Optional<QueryLanguageConverter> queryConverter,
-                         java.util.Optional<SearchMetrics> metrics) {
+                         Optional<QueryLanguageConverter> queryConverter,
+                         Optional<SearchMetrics> metrics) {
         this(typesenseClient, fallbackRepository, accessPolicy, resultBudget, policyProvider, snapshotReader,
                 queryConverter.orElseGet(QueryLanguageConverter::new));
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
@@ -48,7 +52,7 @@ public class SearchService {
     public SearchService(TypesenseClient typesenseClient, SearchFallbackRepository fallbackRepository,
                          SearchAccessPolicy accessPolicy, SearchResultBudget resultBudget,
                          SearchPolicyProvider policyProvider, SearchExecutionSnapshotReader snapshotReader,
-                         java.util.Optional<SearchMetrics> metrics) {
+                         Optional<SearchMetrics> metrics) {
         this(typesenseClient, fallbackRepository, accessPolicy, resultBudget, policyProvider, snapshotReader,
                 new QueryLanguageConverter());
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
@@ -132,7 +136,7 @@ public class SearchService {
 
     private SearchExecutionSnapshot readSnapshot() {
         try { return executionSnapshot.get(); }
-        catch (org.springframework.dao.DataAccessException unavailable) {
+        catch (DataAccessException unavailable) {
             return new SearchExecutionSnapshot(new IndexSnapshot(null, 0, Map.of(), null, false, false), fallbackPolicy.get());
         }
     }
@@ -197,7 +201,7 @@ public class SearchService {
                 long found = sumFound(groups);
                 return new SearchResult(cleanQuery, hits.size(), hits, found,
                         found > hits.size(), "TYPESENSE", false, suggestedQuery);
-            } catch (TypesenseException | org.springframework.dao.DataAccessException unavailableOrInvalid) {
+            } catch (TypesenseException | DataAccessException unavailableOrInvalid) {
                 log.warn("Typesense search failed; using PostgreSQL fallback");
             }
         }
@@ -224,8 +228,8 @@ public class SearchService {
             if (prim == null) {
                 map.put(sec.entityType(), sec);
             } else {
-                java.util.Set<String> existingIds = prim.hits().stream().map(SearchHit::id).collect(java.util.stream.Collectors.toSet());
-                List<SearchHit> mergedHits = new java.util.ArrayList<>(prim.hits());
+                Set<String> existingIds = prim.hits().stream().map(SearchHit::id).collect(Collectors.toSet());
+                List<SearchHit> mergedHits = new ArrayList<>(prim.hits());
                 for (SearchHit hit : sec.hits()) {
                     if (existingIds.add(hit.id())) {
                         mergedHits.add(hit);

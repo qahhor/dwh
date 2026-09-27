@@ -1,21 +1,22 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
+import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
+import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
+import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
-
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
@@ -38,7 +39,7 @@ class MdAssignmentServiceIntegrationTest {
     static MdScopeService scopeService;
     static MdScopeRepository scopeRepository;
     static Long scopeUnitId;
-    static com.smartup24.cms.instance.audit.service.AuditLogService auditLogService;
+    static AuditLogService auditLogService;
 
     @BeforeAll
     static void setup() {
@@ -49,9 +50,9 @@ class MdAssignmentServiceIntegrationTest {
         roleRepository = new MdRoleRepository(jdbc);
         var permissionRepository = new MdPermissionRepository(jdbc);
         permissionService = new MdPermissionService(permissionRepository);
-        auditLogService = new com.smartup24.cms.instance.audit.service.AuditLogService(
-                new com.smartup24.cms.instance.audit.repository.AuditLogRepository(jdbc, new ObjectMapper()), null,
-                new com.smartup24.cms.instance.audit.service.AuditDataRedactor());
+        auditLogService = new AuditLogService(
+                new AuditLogRepository(jdbc, new ObjectMapper()), null,
+                new AuditDataRedactor());
         scopeRepository = new MdScopeRepository(jdbc);
         scopeService = new MdScopeService(scopeRepository, new MdOrgUnitRepository(jdbc),
                 permissionService, auditLogService);

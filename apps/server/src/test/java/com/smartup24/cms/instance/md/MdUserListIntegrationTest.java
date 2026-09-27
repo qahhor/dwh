@@ -1,7 +1,5 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
@@ -21,12 +19,14 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.md.service.MdUserQuery;
 import com.smartup24.cms.instance.md.service.MdUserView;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -127,7 +127,7 @@ class MdUserListIntegrationTest {
         var page = users.pageViews(viewer, null, null, null, null, "lst_dave", LegacyUserFilters.none());
         assertThat(page.items()).singleElement().satisfies(view -> assertThat(view.roleIds()).containsExactly(roleId));
 
-        var properties = java.util.Arrays.stream(MdUserView.class.getRecordComponents())
+        var properties = Arrays.stream(MdUserView.class.getRecordComponents())
                 .map(java.lang.reflect.RecordComponent::getName).toList();
         assertThat(MdUserQuery.LIST.fields()).allSatisfy(field -> assertThat(properties).contains(field.key()));
     }

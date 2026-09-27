@@ -1,16 +1,15 @@
 package com.smartup24.cms.instance.md;
 
-import com.smartup24.cms.instance.support.TestDatabases;
-
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
-import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
+import com.smartup24.cms.instance.support.TestDatabases;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,6 +18,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -121,7 +121,7 @@ class MdFormCatalogIntegrationTest {
     }
 
     private static Set<String> withRealPairs(String extra) {
-        var pairs = new java.util.TreeSet<>(realPairs());
+        var pairs = new TreeSet<>(realPairs());
         pairs.add(extra);
         return pairs;
     }

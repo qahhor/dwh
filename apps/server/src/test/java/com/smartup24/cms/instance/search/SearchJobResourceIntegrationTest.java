@@ -7,9 +7,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+import org.springframework.transaction.IllegalTransactionStateException;
+
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
+
 import static org.assertj.core.api.Assertions.*;
 
 class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
@@ -21,7 +24,7 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
         activeGeneration();UUID job=jobService.start(new StartJobRequest(UUID.randomUUID(),"CHECK",null)).id();
         int before=requests.get();
         assertThatThrownBy(() -> tx.executeWithoutResult(transaction -> jobWorker.runOnce()))
-                .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
+                .isInstanceOf(IllegalTransactionStateException.class);
         assertThat(requests.get()).isEqualTo(before);
         assertThat(jobRepository.find(job).orElseThrow().state()).isEqualTo("QUEUED");
     }

@@ -14,6 +14,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Разбор и проверка запроса к списку по реестру. DSL фильтра — JSON-массив условий, соединённых «и»:
@@ -104,7 +105,7 @@ public final class QueryCompiler {
             }
         }
         Set<String> hidden = list.fields().stream().filter(field -> !field.visibleToViewer())
-                .map(QueryField::key).collect(java.util.stream.Collectors.toUnmodifiableSet());
+                .map(QueryField::key).collect(Collectors.toUnmodifiableSet());
         return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint, term, hidden);
     }
 

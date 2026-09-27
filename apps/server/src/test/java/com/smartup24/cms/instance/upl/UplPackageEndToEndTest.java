@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.upl;
 
+import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
@@ -18,7 +19,6 @@ import com.smartup24.cms.instance.upl.UplXlsxFixtures.SheetSpec;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel;
-import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +35,7 @@ import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -483,6 +484,6 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     }
 
     private static String json(Object value) {
-        return new tools.jackson.databind.ObjectMapper().writeValueAsString(value);
+        return new ObjectMapper().writeValueAsString(value);
     }
 }

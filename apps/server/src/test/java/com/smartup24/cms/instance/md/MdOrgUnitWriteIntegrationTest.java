@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.repository.*;
 import com.smartup24.cms.instance.md.service.*;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -29,13 +30,14 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -235,7 +237,7 @@ class MdOrgUnitWriteIntegrationTest {
                 permissions, scopeService, audit));
         var userService = proxy(new MdUserService(users, roles, mock(MdCustomFieldService.class),
                 mock(PasswordHasher.class), mock(PasswordValidator.class), mock(UserSessionInvalidator.class),
-                mock(com.smartup24.cms.instance.search.SearchChangePublisher.class), audit, scopeService));
+                mock(SearchChangePublisher.class), audit, scopeService));
         Long emptyNode = unit(root);
         var started = new CountDownLatch(1);
         var backendPid = new AtomicInteger();
@@ -259,7 +261,7 @@ class MdOrgUnitWriteIntegrationTest {
                         case "user-create" -> {
                             String login = "new-user-" + sequence.incrementAndGet();
                             userService.createUser(login, login, login + "@test.invalid", null, null, null,
-                                    "ru", "UTC", null, java.util.Map.of(), false, List.of(role), null);
+                                    "ru", "UTC", null, Map.of(), false, List.of(role), null);
                         }
                         case "user-update" -> userService.updateUser(user, "Updated", null, null, null, null,
                                 null, null, null, List.of(unusedRole), null);

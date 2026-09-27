@@ -1,12 +1,12 @@
 package com.smartup24.cms.instance.upl;
 
+import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.api.UplUnitController;
-import com.jayway.jsonpath.JsonPath;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 import java.util.Map;
@@ -146,7 +147,7 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
     }
 
     private static String json(Object value) {
-        return new tools.jackson.databind.ObjectMapper().writeValueAsString(value);
+        return new ObjectMapper().writeValueAsString(value);
     }
 
     private static String rnd() {

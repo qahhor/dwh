@@ -1,7 +1,6 @@
-package com.smartup24.cms.instance.upl;
+package com.smartup24.cms.instance.config.jobs;
 
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.upl.worker.UplJobQueueWorker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -12,14 +11,14 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
 /** Запускатель очереди: порядок вызовов и живучесть при сбое задания. */
-class UplJobQueueWorkerTest {
+class JobQueueWorkerTest {
 
     @Test
     @DisplayName("такт сначала ставит задания расписания, затем выполняет очередь")
     void tickEnqueuesThenRuns() {
         FndJobRunner runner = mock(FndJobRunner.class);
 
-        new UplJobQueueWorker(runner).tick();
+        new JobQueueWorker(runner).tick();
 
         InOrder order = inOrder(runner);
         order.verify(runner).enqueueDue();
@@ -33,6 +32,6 @@ class UplJobQueueWorkerTest {
         FndJobRunner runner = mock(FndJobRunner.class);
         doThrow(new IllegalStateException("TEST сбой очереди")).when(runner).enqueueDue();
 
-        assertThatCode(() -> new UplJobQueueWorker(runner).tick()).doesNotThrowAnyException();
+        assertThatCode(() -> new JobQueueWorker(runner).tick()).doesNotThrowAnyException();
     }
 }

@@ -1,11 +1,14 @@
 package com.smartup24.cms.instance.kauth.controller;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
+import com.smartup24.cms.instance.kauth.service.UserSecuritySummary;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.service.MdUserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,10 +20,10 @@ import java.util.List;
 public class KauthSessionController {
 
     private final KauthSessionService sessionService;
-    private final com.smartup24.cms.instance.md.service.MdUserService userService;
+    private final MdUserService userService;
 
     public KauthSessionController(KauthSessionService sessionService,
-                                  com.smartup24.cms.instance.md.service.MdUserService userService) {
+                                  MdUserService userService) {
         this.sessionService = sessionService;
         this.userService = userService;
     }
@@ -83,10 +86,10 @@ public class KauthSessionController {
 
     @GetMapping({"/users/{userId}/security", "/profile/sessions/users/{userId}/security"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
-    public ResponseEntity<com.smartup24.cms.instance.kauth.service.UserSecuritySummary> getUserSecuritySummary(
+    public ResponseEntity<UserSecuritySummary> getUserSecuritySummary(
             @PathVariable("userId") Long userId) {
         var user = userService.findAuthUserById(userId)
-                .orElseThrow(() -> ApiException.notFound(com.smartup24.cms.core.error.ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
         return ResponseEntity.ok(sessionService.getUserSecuritySummary(userId, user));
     }
 

@@ -1,11 +1,15 @@
 package com.smartup24.cms.instance.md.repository;
 
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.QueryPlan;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -169,10 +173,10 @@ public class MdUserRepository {
      * The data scope (ADR-0013) and the flat filters as one predicate for the registry page. They go into the
      * same SQL, so a page and its total only ever see visible users.
      */
-    public static com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment listPredicate(
-            com.smartup24.cms.instance.common.security.ScopeFilter scope, LegacyUserFilters filters) {
+    public static QueryPlan.SqlFragment listPredicate(
+            ScopeFilter scope, LegacyUserFilters filters) {
         StringBuilder sql = new StringBuilder();
-        Map<String, Object> params = new java.util.LinkedHashMap<>();
+        Map<String, Object> params = new LinkedHashMap<>();
         if (!scope.isUnrestricted()) {
             sql.append(scope.sql());
             if (scope.bindsUserId()) {
@@ -195,7 +199,7 @@ public class MdUserRepository {
             sql.append(" and md_users.is_2fa_enabled = :is2faEnabled");
             params.put("is2faEnabled", filters.is2faEnabled());
         }
-        return new com.smartup24.cms.instance.common.query.QueryPlan.SqlFragment(sql.toString(), params);
+        return new QueryPlan.SqlFragment(sql.toString(), params);
     }
 
 
@@ -219,7 +223,7 @@ public class MdUserRepository {
     public void incrementAuthenticationVersion(Long userId) {
         int changed = jdbcClient.sql("update md_users set auth_version = auth_version + 1 where id = :userId")
                 .param("userId", userId).update();
-        if (changed != 1) throw com.smartup24.cms.instance.common.error.ApiException.invalidCredentials();
+        if (changed != 1) throw ApiException.invalidCredentials();
     }
 
     public void updatePassword(Long userId, String newPasswordHash) {

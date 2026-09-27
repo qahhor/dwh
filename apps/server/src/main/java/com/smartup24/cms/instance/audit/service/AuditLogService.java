@@ -1,16 +1,20 @@
 package com.smartup24.cms.instance.audit.service;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.CursorUtils;
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 public class AuditLogService {
@@ -19,11 +23,11 @@ public class AuditLogService {
     private static final int MAX_PAGE_SIZE = 200;
 
     private final AuditLogRepository auditLogRepository;
-    private final com.smartup24.cms.instance.common.metrics.PlatformMetrics platformMetrics;
+    private final PlatformMetrics platformMetrics;
     private final AuditDataRedactor auditDataRedactor;
 
     public AuditLogService(AuditLogRepository auditLogRepository,
-                           com.smartup24.cms.instance.common.metrics.PlatformMetrics platformMetrics,
+                           PlatformMetrics platformMetrics,
                            AuditDataRedactor auditDataRedactor) {
         this.auditLogRepository = auditLogRepository;
         this.platformMetrics = platformMetrics;
@@ -58,7 +62,7 @@ public class AuditLogService {
     @Transactional(readOnly = true)
     public KeysetPage<AuditLogRepository.AuditRecord> listAuditLogs(
             String tableName, String rowPk, String event, Long userId,
-            java.time.Instant from, java.time.Instant to, int limit, String cursor) {
+            Instant from, Instant to, int limit, String cursor) {
         int pageSize = normalizePageSize(limit);
         AuditCursor decodedCursor = decodeCursor(cursor);
         List<AuditLogRepository.AuditRecord> rows = auditLogRepository.listAuditLogs(
@@ -79,13 +83,13 @@ public class AuditLogService {
         return KeysetPage.of(safeRows, nextCursor, hasMore, total);
     }
 
-    private final java.util.concurrent.atomic.AtomicReference<CachedStats> cachedStats = new java.util.concurrent.atomic.AtomicReference<>();
+    private final AtomicReference<CachedStats> cachedStats = new AtomicReference<>();
 
-    private record CachedStats(AuditLogRepository.AuditStats stats, java.time.Instant expiresAt) {}
+    private record CachedStats(AuditLogRepository.AuditStats stats, Instant expiresAt) {}
 
     @Transactional(readOnly = true)
     public AuditLogRepository.AuditStats getAuditStats() {
-        var now = java.time.Instant.now();
+        var now = Instant.now();
         var current = cachedStats.get();
         if (current != null && now.isBefore(current.expiresAt())) {
             return current.stats();
@@ -117,7 +121,7 @@ public class AuditLogService {
         return requested <= 0 ? DEFAULT_PAGE_SIZE : Math.min(requested, MAX_PAGE_SIZE);
     }
 
-    private String encodeCursor(java.time.Instant timestamp, Long id, long totalEstimated) {
+    private String encodeCursor(Instant timestamp, Long id, long totalEstimated) {
         return timestamp == null || id == null
                 ? null
                 : CursorUtils.encode(timestamp + "|" + id + "|" + totalEstimated);
@@ -130,12 +134,12 @@ public class AuditLogService {
         String[] parts = decoded.split("\\|", -1);
         if (parts.length != 3) throw invalidCursor();
         try {
-            java.time.Instant timestamp = java.time.Instant.parse(parts[0]);
+            Instant timestamp = Instant.parse(parts[0]);
             long id = Long.parseLong(parts[1]);
             long totalEstimated = Long.parseLong(parts[2]);
             if (id <= 0 || totalEstimated < 0) throw invalidCursor();
             return new AuditCursor(timestamp, id, totalEstimated);
-        } catch (java.time.format.DateTimeParseException | NumberFormatException ignored) {
+        } catch (DateTimeParseException | NumberFormatException ignored) {
             throw invalidCursor();
         }
     }
@@ -144,6 +148,6 @@ public class AuditLogService {
         return ApiException.badRequest(ErrorCode.BAD_REQUEST, "Некорректный cursor журнала аудита");
     }
 
-    private record AuditCursor(java.time.Instant timestamp, Long id, long totalEstimated) {}
+    private record AuditCursor(Instant timestamp, Long id, long totalEstimated) {}
 }
 

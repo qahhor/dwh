@@ -9,10 +9,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -152,7 +154,7 @@ class FndCorePurityTest {
         try (Stream<String> lines = Files.lines(ALLOWED_NUMBERS, StandardCharsets.UTF_8)) {
             return lines.map(line -> line.contains("#") ? line.substring(0, line.indexOf('#')) : line)
                     .map(String::trim).filter(line -> !line.isEmpty())
-                    .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
         }
     }
 

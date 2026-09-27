@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -25,12 +26,12 @@ public class MsTaskStatusService {
     private final SearchChangePublisher searchChangePublisher;
     private final AuditLogService auditLogService;
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public MsTaskStatusService(
             MsTaskStatusRepository statusRepository,
             MsTaskTypeRepository typeRepository,
             SearchChangePublisher searchChangePublisher,
-            @org.springframework.beans.factory.annotation.Autowired(required = false) AuditLogService auditLogService) {
+            @Autowired(required = false) AuditLogService auditLogService) {
         this.statusRepository = statusRepository;
         this.typeRepository = typeRepository;
         this.searchChangePublisher = searchChangePublisher;

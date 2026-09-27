@@ -5,6 +5,8 @@ import org.springframework.stereotype.Repository;
 
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Обслуживание месячных партиций {@code audit_log} (FR-AUD-2).
@@ -55,7 +57,7 @@ public class AuditPartitionRepository {
      * строго раньше {@code before}. Аварийный приёмник {@code audit_log_default}
      * не возвращается никогда: отцепить его нельзя, у него нет границ.
      */
-    public java.util.List<YearMonth> attachedPartitionsBefore(YearMonth before) {
+    public List<YearMonth> attachedPartitionsBefore(YearMonth before) {
         var names = jdbc.sql("""
                         select c.relname
                         from pg_inherits i
@@ -67,7 +69,7 @@ public class AuditPartitionRepository {
                 .query(String.class)
                 .list();
 
-        java.util.List<YearMonth> result = new java.util.ArrayList<>();
+        List<YearMonth> result = new ArrayList<>();
         for (String name : names) {
             YearMonth month = YearMonth.parse(name.substring("audit_log_".length()), SUFFIX);
             if (month.isBefore(before)) {

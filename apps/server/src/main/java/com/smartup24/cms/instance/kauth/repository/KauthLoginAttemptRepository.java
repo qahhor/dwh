@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 
 @Repository
 public class KauthLoginAttemptRepository {
@@ -58,7 +59,7 @@ public class KauthLoginAttemptRepository {
             Instant attemptAt
     ) {}
 
-    public java.util.List<LoginAttemptRecord> findRecentAttemptsForLogin(String login, int limit) {
+    public List<LoginAttemptRecord> findRecentAttemptsForLogin(String login, int limit) {
         return jdbcClient.sql("""
                 select id, login, host(ip) as ip, is_success, failure_reason, attempt_at
                 from kauth_login_attempts

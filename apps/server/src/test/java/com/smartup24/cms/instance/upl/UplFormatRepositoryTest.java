@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.upl;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -14,11 +16,9 @@ import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceSummary;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Strictness;
 import com.smartup24.cms.instance.upl.format.UplFormatRepository;
+import com.smartup24.cms.instance.upl.format.UplSourceQuery;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.upl.format.UplSourceQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -26,6 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -215,7 +216,7 @@ class UplFormatRepositoryTest extends EmbeddedPostgresTest {
             actors.apply(actors.system());
             return publishedWithDraft(PREFIX + "guard." + UUID.randomUUID().toString().substring(0, 8));
         });
-        long id = java.util.Objects.requireNonNull(created);
+        long id = Objects.requireNonNull(created);
         long publishedSheet = sheetId(id, 1);
         long draftSheet = sheetId(id, 2);
         long publishedColumn = columnId(publishedSheet);

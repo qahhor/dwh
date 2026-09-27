@@ -9,6 +9,7 @@ import java.io.OutputStream;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -99,7 +100,7 @@ final class ExportWorkbookWriter implements AutoCloseable {
                 try {
                     sheet.value(row, c, LocalDate.parse(raw.length() >= 10 ? raw.substring(0, 10) : raw));
                     sheet.style(row, c).format(DATE_FORMAT).set();
-                } catch (java.time.format.DateTimeParseException e) {
+                } catch (DateTimeParseException e) {
                     sheet.value(row, c, raw);
                 }
             }

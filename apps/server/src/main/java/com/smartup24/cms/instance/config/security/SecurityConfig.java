@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.config.security;
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.security.TrustedProxyProperties;
+import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
 import jakarta.servlet.DispatcherType;
@@ -18,8 +19,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
@@ -59,7 +60,7 @@ public class SecurityConfig {
             HttpSecurity http,
             KauthAuthenticationFilter kauthAuthenticationFilter,
             RateLimitFilter rateLimitFilter,
-            com.smartup24.cms.instance.config.idempotency.IdempotencyFilter idempotencyFilter,
+            IdempotencyFilter idempotencyFilter,
             CookieCsrfTokenRepository tokenRepository,
             ProblemDetailAuthHandlers problemHandlers) throws Exception {
 
@@ -130,9 +131,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    FilterRegistrationBean<com.smartup24.cms.instance.config.idempotency.IdempotencyFilter> idempotencyFilterAutoRegistrationDisabled(
-            com.smartup24.cms.instance.config.idempotency.IdempotencyFilter filter) {
-        FilterRegistrationBean<com.smartup24.cms.instance.config.idempotency.IdempotencyFilter> registration = new FilterRegistrationBean<>(filter);
+    FilterRegistrationBean<IdempotencyFilter> idempotencyFilterAutoRegistrationDisabled(
+            IdempotencyFilter filter) {
+        FilterRegistrationBean<IdempotencyFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
     }

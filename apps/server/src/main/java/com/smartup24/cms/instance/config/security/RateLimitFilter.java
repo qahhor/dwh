@@ -2,8 +2,10 @@ package com.smartup24.cms.instance.config.security;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.search.service.SearchMetrics;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchRateBudget;
 import io.github.bucket4j.ConsumptionProbe;
@@ -11,12 +13,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Лимиты частоты запросов (FR-SEC-2): по IP для неаутентифицированных,
@@ -40,15 +44,15 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private final ProblemDetailAuthHandlers problemWriter;
     private final ClientIpResolver clientIpResolver;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
-    private com.smartup24.cms.instance.search.service.SearchMetrics searchMetrics = com.smartup24.cms.instance.search.service.SearchMetrics.unmetered();
+    private SearchMetrics searchMetrics = SearchMetrics.unmetered();
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public RateLimitFilter(RateLimitProperties props, RateLimitService service, SearchPolicyProvider policies,
                            AuditLogService audit, ProblemDetailAuthHandlers problems,
                            ClientIpResolver clientIpResolver,
-                           java.util.Optional<com.smartup24.cms.instance.search.service.SearchMetrics> metrics) {
+                           Optional<SearchMetrics> metrics) {
         this(props, service, policies, audit, problems, clientIpResolver);
-        this.searchMetrics = metrics.orElseGet(com.smartup24.cms.instance.search.service.SearchMetrics::unmetered);
+        this.searchMetrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
     public RateLimitFilter(RateLimitProperties props,
@@ -108,7 +112,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 key = key + ":search";
                 try {
                     searchBudget = searchPolicyProvider.effectiveBudget(limit);
-                } catch (com.smartup24.cms.instance.common.error.ApiException unavailable) {
+                } catch (ApiException unavailable) {
                     if (unavailable.getErrorCode() != ErrorCode.SERVICE_UNAVAILABLE) throw unavailable;
                     problemWriter.writeProblem(response, ErrorCode.SERVICE_UNAVAILABLE,
                             "Search configuration is unavailable", request.getRequestURI());

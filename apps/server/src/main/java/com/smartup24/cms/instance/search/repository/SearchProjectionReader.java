@@ -2,14 +2,16 @@ package com.smartup24.cms.instance.search.repository;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class SearchProjectionReader {
@@ -31,7 +33,7 @@ public class SearchProjectionReader {
         return readSnapshot(entityType,entityId,true);
     }
 
-    public java.util.List<Long> reconciliationIds(String type,long after,int limit) {
+    public List<Long> reconciliationIds(String type,long after,int limit) {
         return jdbc.sql("select entity_id from search_projection_versions where entity_type=:type and entity_id>:after "
                 + "union select id from "+sourceTable(type)+" where id>:after"+(type.equals("TASK") ? "" : " and state='A'")
                 + " order by 1 limit :limit").param("type",type).param("after",after).param("limit",Math.max(1,Math.min(100,limit)))
@@ -66,7 +68,7 @@ public class SearchProjectionReader {
     /** Bounded sample; observed maximum serialized row size plus metadata, scaled by authoritative counts. */
     public long estimateSerializedBytes() {
         long total=0;
-        for (String type : java.util.List.of("TASK","PROJECT","USER")) {
+        for (String type : List.of("TASK","PROJECT","USER")) {
             String table=sourceTable(type);
             String filter=type.equals("TASK") ? "" : " where state='A'";
             long estimate=jdbc.sql("select (select count(*) from "+table+filter+") * "

@@ -3,8 +3,8 @@ package com.smartup24.cms.instance.fnd.versioning;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
 import com.smartup24.cms.instance.fnd.error.StaleVersionException;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +15,15 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -266,10 +273,10 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     @DisplayName("AC-12: два параллельных publish одного черновика — один успех, второй fnd_version_unknown")
     void concurrentPublishIsRejected() throws Exception {
         int version = versioning.createDraft(VERSIONS, thing, actor);
-        java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(2);
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        CyclicBarrier barrier = new CyclicBarrier(2);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
-            List<java.util.concurrent.Future<Throwable>> outcomes = new java.util.ArrayList<>();
+            List<Future<Throwable>> outcomes = new ArrayList<>();
             for (int i = 0; i < 2; i++) {
                 outcomes.add(pool.submit(() -> {
                     barrier.await();
@@ -277,12 +284,12 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                             LocalDate.parse("2026-01-01"), null, actor));
                 }));
             }
-            List<Throwable> errors = new java.util.ArrayList<>();
+            List<Throwable> errors = new ArrayList<>();
             for (var outcome : outcomes) {
-                errors.add(outcome.get(30, java.util.concurrent.TimeUnit.SECONDS));
+                errors.add(outcome.get(30, TimeUnit.SECONDS));
             }
-            assertThat(errors).filteredOn(java.util.Objects::isNull).hasSize(1);
-            assertThat(errors).filteredOn(java.util.Objects::nonNull).singleElement()
+            assertThat(errors).filteredOn(Objects::isNull).hasSize(1);
+            assertThat(errors).filteredOn(Objects::nonNull).singleElement()
                     .isInstanceOfSatisfying(ConstraintViolationException.class,
                             e -> assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_VERSION_UNKNOWN));
         } finally {
@@ -305,28 +312,28 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("S-5/доп.14: 30 × два параллельных createDraft одного заголовка — черновик один, второй поток получает fnd_version_draft_exists или fnd_version_conflict")
     void concurrentCreateDraftLeavesSingleDraft() throws Exception {
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             for (int attempt = 0; attempt < 30; attempt++) {
                 long header = insertThing("TEST-RACE-" + attempt);
-                java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(2);
-                List<java.util.concurrent.Future<Throwable>> outcomes = new java.util.ArrayList<>();
+                CyclicBarrier barrier = new CyclicBarrier(2);
+                List<Future<Throwable>> outcomes = new ArrayList<>();
                 for (int i = 0; i < 2; i++) {
                     outcomes.add(pool.submit(() -> {
                         barrier.await();
                         return catchThrowable(() -> versioning.createDraft(VERSIONS, header, actor));
                     }));
                 }
-                List<Throwable> errors = new java.util.ArrayList<>();
+                List<Throwable> errors = new ArrayList<>();
                 for (var outcome : outcomes) {
-                    errors.add(outcome.get(30, java.util.concurrent.TimeUnit.SECONDS));
+                    errors.add(outcome.get(30, TimeUnit.SECONDS));
                 }
                 long drafts = jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h and status = 'draft'")
                         .param("h", header).query(Long.class).single();
                 assertThat(drafts).as("попытка %d: черновиков у заголовка", attempt).isLessThanOrEqualTo(1L);
                 assertThat(errors).as("попытка %d: ровно один успех", attempt)
-                        .filteredOn(java.util.Objects::isNull).hasSize(1);
-                assertThat(errors).filteredOn(java.util.Objects::nonNull).singleElement()
+                        .filteredOn(Objects::isNull).hasSize(1);
+                assertThat(errors).filteredOn(Objects::nonNull).singleElement()
                         .as("попытка %d: код второго потока", attempt)
                         .isInstanceOfSatisfying(ConstraintViolationException.class, e -> assertThat(e.code())
                                 .isIn(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS, ConstraintErrorCode.FND_VERSION_CONFLICT));

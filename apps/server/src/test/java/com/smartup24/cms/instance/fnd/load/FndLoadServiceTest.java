@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.fnd.load;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
+import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
 import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
 import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
@@ -21,9 +22,21 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -124,7 +137,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
 
         FndRawWriter broken = new BrokenRawWriter();
         assertThatThrownBy(() -> broken.write(loadId, null, rows(1)))
-                .isInstanceOf(com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException.class);
+                .isInstanceOf(DwhUnavailableException.class);
 
         loads.fail(loadId, "источник вернул ошибку TEST", user);
         assertThat(loads.find(loadId).orElseThrow().status()).isEqualTo(FndLoad.FAILED);
@@ -243,8 +256,8 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
             loads.log(packageRef, "получен", null, null, user, "первая строка TEST", null);
             loads.log(packageRef, "проверен", null, null, user, "вторая строка TEST", null);
         });
-        List<java.time.OffsetDateTime> times = jdbc.sql("select at from fnd_load_log where package_ref = :p order by id")
-                .param("p", packageRef).query(java.time.OffsetDateTime.class).list();
+        List<OffsetDateTime> times = jdbc.sql("select at from fnd_load_log where package_ref = :p order by id")
+                .param("p", packageRef).query(OffsetDateTime.class).list();
         assertThat(times).hasSize(2);
         assertThat(times.get(1)).as("at второй строки строго позже первой (clock_timestamp, не now())")
                 .isAfter(times.get(0));
@@ -317,22 +330,22 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         use(DepartmentFixture.departments().findFirst().orElseThrow());
         long loadId = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
         rawWriter.write(loadId, null, rows(3));
-        java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(2);
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        CyclicBarrier barrier = new CyclicBarrier(2);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
-            List<java.util.concurrent.Future<Throwable>> outcomes = new java.util.ArrayList<>();
+            List<Future<Throwable>> outcomes = new ArrayList<>();
             for (int i = 0; i < 2; i++) {
                 outcomes.add(pool.submit(() -> {
                     barrier.await();
                     return catchThrowable(() -> loads.apply(loadId, 3, 3, 0, user));
                 }));
             }
-            List<Throwable> errors = new java.util.ArrayList<>();
+            List<Throwable> errors = new ArrayList<>();
             for (var outcome : outcomes) {
-                errors.add(outcome.get(30, java.util.concurrent.TimeUnit.SECONDS));
+                errors.add(outcome.get(30, TimeUnit.SECONDS));
             }
-            assertThat(errors).filteredOn(java.util.Objects::isNull).hasSize(1);
-            assertThat(errors).filteredOn(java.util.Objects::nonNull).singleElement()
+            assertThat(errors).filteredOn(Objects::isNull).hasSize(1);
+            assertThat(errors).filteredOn(Objects::nonNull).singleElement()
                     .isInstanceOfSatisfying(ConstraintViolationException.class,
                             e -> assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION));
         } finally {
@@ -346,10 +359,10 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     void applyWaitsForRunningWrite() throws Exception {
         use(DepartmentFixture.departments().findFirst().orElseThrow());
         long loadId = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
-        java.util.concurrent.CountDownLatch writeStarted = new java.util.concurrent.CountDownLatch(1);
-        java.util.concurrent.CountDownLatch gate = new java.util.concurrent.CountDownLatch(1);
-        Iterable<FndRawRow> slowRows = () -> new java.util.Iterator<>() {
-            private final java.util.Iterator<FndRawRow> delegate = rows(3).iterator();
+        CountDownLatch writeStarted = new CountDownLatch(1);
+        CountDownLatch gate = new CountDownLatch(1);
+        Iterable<FndRawRow> slowRows = () -> new Iterator<>() {
+            private final Iterator<FndRawRow> delegate = rows(3).iterator();
             private int served;
 
             @Override
@@ -362,7 +375,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                 if (++served == 2) {
                     writeStarted.countDown();
                     try {
-                        assertThat(gate.await(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+                        assertThat(gate.await(30, TimeUnit.SECONDS)).isTrue();
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new IllegalStateException(e);
@@ -371,17 +384,17 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                 return delegate.next();
             }
         };
-        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
-            java.util.concurrent.Future<?> write = pool.submit(() -> rawWriter.write(loadId, null, slowRows));
-            assertThat(writeStarted.await(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
-            java.util.concurrent.Future<?> apply = pool.submit(() -> loads.apply(loadId, 3, 3, 0, user));
-            assertThatThrownBy(() -> apply.get(700, java.util.concurrent.TimeUnit.MILLISECONDS))
+            Future<?> write = pool.submit(() -> rawWriter.write(loadId, null, slowRows));
+            assertThat(writeStarted.await(30, TimeUnit.SECONDS)).isTrue();
+            Future<?> apply = pool.submit(() -> loads.apply(loadId, 3, 3, 0, user));
+            assertThatThrownBy(() -> apply.get(700, TimeUnit.MILLISECONDS))
                     .as("apply не должен завершиться, пока запись строк держит загрузку")
-                    .isInstanceOf(java.util.concurrent.TimeoutException.class);
+                    .isInstanceOf(TimeoutException.class);
             gate.countDown();
-            write.get(30, java.util.concurrent.TimeUnit.SECONDS);
-            apply.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            write.get(30, TimeUnit.SECONDS);
+            apply.get(30, TimeUnit.SECONDS);
         } finally {
             gate.countDown();
             pool.shutdownNow();
@@ -407,7 +420,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     }
 
     private static List<FndRawRow> rows(int count) {
-        return java.util.stream.IntStream.rangeClosed(1, count)
+        return IntStream.rangeClosed(1, count)
                 .mapToObj(number -> new FndRawRow(number, "Лист1", number,
                         Map.of("code", "TEST-" + number, "value", number)))
                 .toList();
@@ -423,13 +436,13 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     private static final class BrokenRawWriter implements FndRawWriter {
         @Override
         public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
-            throw new com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException(
+            throw new DwhUnavailableException(
                     new java.sql.SQLException("pg-dwh недоступен TEST"));
         }
 
         @Override
         public List<FndRawRow> read(long loadId) {
-            throw new com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException(
+            throw new DwhUnavailableException(
                     new java.sql.SQLException("pg-dwh недоступен TEST"));
         }
     }

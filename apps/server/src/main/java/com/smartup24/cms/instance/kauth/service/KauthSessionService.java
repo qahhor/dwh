@@ -1,9 +1,13 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
+import com.smartup24.cms.instance.md.service.MdUserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,25 +15,25 @@ import java.util.Optional;
 public class KauthSessionService {
 
     private final KauthSessionRepository sessionRepository;
-    private final com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository loginAttemptRepository;
+    private final KauthLoginAttemptRepository loginAttemptRepository;
 
     public KauthSessionService(KauthSessionRepository sessionRepository) {
         this(sessionRepository, null);
     }
 
-    @org.springframework.beans.factory.annotation.Autowired
+    @Autowired
     public KauthSessionService(KauthSessionRepository sessionRepository,
-                               com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository loginAttemptRepository) {
+                               KauthLoginAttemptRepository loginAttemptRepository) {
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
     }
 
     @Transactional(readOnly = true)
-    public UserSecuritySummary getUserSecuritySummary(Long userId, com.smartup24.cms.instance.md.service.MdUserService.AuthUser user) {
+    public UserSecuritySummary getUserSecuritySummary(Long userId, MdUserService.AuthUser user) {
         var activeSessions = sessionRepository.findActiveByUserId(userId);
         var recentAttempts = loginAttemptRepository != null
                 ? loginAttemptRepository.findRecentAttemptsForLogin(user.login(), 10)
-                : java.util.List.<com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository.LoginAttemptRecord>of();
+                : List.<KauthLoginAttemptRepository.LoginAttemptRecord>of();
         return new UserSecuritySummary(
                 user.id(),
                 user.login(),
@@ -76,7 +80,7 @@ public class KauthSessionService {
     }
 
     @Transactional
-    public int closeInactiveSessions(java.time.Instant cutoff) {
+    public int closeInactiveSessions(Instant cutoff) {
         return sessionRepository.closeInactiveSessions(cutoff);
     }
 }

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.note.controller;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -39,7 +40,7 @@ public class MsNoteController {
 
     @GetMapping
     @RequiresPermission(form = "notes", action = "view")
-    public ResponseEntity<com.smartup24.cms.core.pagination.KeysetPage<NoteView>> getNotes(
+    public ResponseEntity<KeysetPage<NoteView>> getNotes(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Integer limit,
             @RequestParam(required = false) String cursor,

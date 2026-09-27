@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.upl.format;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -129,7 +130,7 @@ public final class UplFormatModel {
 
         /** Every header this column accepts: its name first, then the synonyms. */
         public List<String> acceptedHeaders() {
-            List<String> all = new java.util.ArrayList<>();
+            List<String> all = new ArrayList<>();
             all.add(nameInFile);
             all.addAll(headerSynonyms);
             return all;

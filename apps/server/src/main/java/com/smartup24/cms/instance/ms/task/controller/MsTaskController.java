@@ -1,24 +1,22 @@
 package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.ms.task.MsTaskPatch;
+import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.ms.task.MsTaskPatch;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
@@ -186,7 +185,7 @@ public class MsTaskController {
 
     @DeleteMapping("/{id}/files/{fileId}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> detachFile(@PathVariable("id") Long id, @PathVariable("fileId") java.util.UUID fileId) {
+    public ResponseEntity<Void> detachFile(@PathVariable("id") Long id, @PathVariable("fileId") UUID fileId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         taskService.detachFile(id, fileId, currentUserId);
         return ResponseEntity.noContent().build();
@@ -435,7 +434,7 @@ public class MsTaskController {
     ) {}
 
     public record AttachFileDto(
-            @NotNull java.util.UUID fileId
+            @NotNull UUID fileId
     ) {}
 
     public record TaskDetailResponse(

@@ -26,6 +26,7 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
+import com.smartup24.cms.instance.search.SearchChangePublisher;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -49,8 +50,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.Matchers.nullValue;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -109,7 +110,7 @@ class MsTaskPatchIntegrationTest {
                 scopes,
                 mock(MfFileService.class),
                 mock(ApplicationEventPublisher.class),
-                mock(com.smartup24.cms.instance.search.SearchChangePublisher.class),
+                mock(SearchChangePublisher.class),
                 audit);
         MsTaskService taskService = transactional(taskServiceTarget, transactions, MsTaskService.class);
 
