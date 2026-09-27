@@ -38,7 +38,7 @@ class TaskDeadlineReminderWorkerTest {
 
         verify(notificationService).sendInAppNotification(
                 eq(10L),
-                eq("deadline_warning"),
+                eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
                 eq("Приближается дедлайн по задаче #101"),
                 eq("Срок выполнения задачи 'Сдать финансовый отчёт' истекает в ближайшие 24 часа."),
                 eq("/tasks"),
@@ -78,5 +78,20 @@ class TaskDeadlineReminderWorkerTest {
         worker.scanAndNotifyDeadlines();
 
         verify(notificationService, never()).sendInAppNotification(anyLong(), anyString(), anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Сбой на одной задаче не останавливает напоминания по остальным")
+    void failureOnOneTaskDoesNotStopTheScan() {
+        var broken = new MsTaskRepository.TaskDeadlineCandidate(104L, "Сломанная", 40L);
+        var fine = new MsTaskRepository.TaskDeadlineCandidate(105L, "Рабочая", 50L);
+        when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(broken, fine));
+        when(notificationService.hasRecentNotification(eq(40L), anyString(), any(Duration.class)))
+                .thenThrow(new IllegalStateException("db down"));
+
+        worker.scanAndNotifyDeadlines();
+
+        verify(notificationService).sendInAppNotification(eq(50L), eq(TaskDeadlineReminderWorker.REMINDER_TYPE),
+                anyString(), anyString(), eq("/tasks"), eq("task_deadline_105"));
     }
 }

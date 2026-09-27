@@ -5,8 +5,17 @@ export const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 /** The server keeps bodies up to 64 KB with a key (IdempotencyFilter); larger ones go without. */
 const MAX_BODY_BYTES = 60 * 1024;
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-/** Where the server refuses a key: sign-in and secrets must never be replayed. */
-const UNSUPPORTED = ['/api/v1/auth/', '/api/v1/iam/profile/api-tokens', '/api/v1/iam/profile/channels'];
+/**
+ * Where a key is useless or refused: sign-in and channels are refused by the server; creating an API token
+ * or a webhook returns a secret the server never stores for replay (@ReturnsSecret), so a key there only
+ * pretends to protect the retry.
+ */
+const UNSUPPORTED = [
+  '/api/v1/auth/',
+  '/api/v1/iam/profile/channels',
+  '/api/v1/iam/profile/tokens',
+  '/api/v1/webhooks/subscriptions',
+];
 /** Statuses after which the change may or may not have happened — safe to repeat only under the same key. */
 const RETRYABLE = new Set([0, 502, 503, 504]);
 const RETRY_DELAYS_MS = [1_000, 3_000];

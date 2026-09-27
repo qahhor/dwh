@@ -2,14 +2,23 @@ package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
+import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import tools.jackson.databind.ObjectMapper;
 
@@ -29,19 +38,49 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
     private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
 
+    private static final Logger log = LoggerFactory.getLogger(IdempotencyFilter.class);
+
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
+    /** Finds the handler of a request, to honour {@link ReturnsSecret}; absent in slice tests. */
+    private final ObjectProvider<RequestMappingHandlerMapping> handlerMapping;
 
-    public IdempotencyFilter(IdempotencyService idempotencyService, ObjectMapper objectMapper) {
+    @Autowired
+    public IdempotencyFilter(IdempotencyService idempotencyService, ObjectMapper objectMapper,
+                             @Qualifier("requestMappingHandlerMapping")
+                             ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
         this.idempotencyService = idempotencyService;
         this.objectMapper = objectMapper;
+        this.handlerMapping = handlerMapping;
+    }
+
+    public IdempotencyFilter(IdempotencyService idempotencyService, ObjectMapper objectMapper) {
+        this(idempotencyService, objectMapper, null);
     }
 
     private boolean isUnsupportedPath(String uri) {
         return uri.startsWith("/api/v1/auth/")
                 || uri.equals("/api/v1/auth")
-                || uri.startsWith("/api/v1/iam/profile/api-tokens")
                 || uri.startsWith("/api/v1/iam/profile/channels");
+    }
+
+    /**
+     * Whether the handler returns a secret ({@link ReturnsSecret}). When the handler cannot be resolved the
+     * answer is yes: a response that is not stored costs a replay, a stored secret costs a leak.
+     */
+    private boolean returnsSecret(HttpServletRequest request) {
+        RequestMappingHandlerMapping mapping = handlerMapping == null ? null : handlerMapping.getIfAvailable();
+        if (mapping == null) {
+            return false;
+        }
+        try {
+            HandlerExecutionChain chain = mapping.getHandler(request);
+            return chain != null && chain.getHandler() instanceof HandlerMethod method
+                    && method.hasMethodAnnotation(ReturnsSecret.class);
+        } catch (Exception e) {
+            log.warn("idempotency_handler_lookup_failed uri={}", request.getRequestURI(), e);
+            return true;
+        }
     }
 
     @Override
@@ -62,6 +101,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             writeProblemDetail(response, HttpServletResponse.SC_BAD_REQUEST, ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
                     "Идемпотентность не поддерживается для эндпоинтов авторизации и генерации секретов.",
                     request.getRequestURI());
+            return;
+        }
+
+        // A response carrying a secret is never stored for replay: run it without a reservation.
+        if (returnsSecret(request)) {
+            filterChain.doFilter(request, response);
             return;
         }
 

@@ -42,7 +42,8 @@ describe('idempotencyKeyInterceptor', () => {
   it.each([
     ['a read', () => TestBed.inject(HttpClient).get('/api/v1/ms/tasks'), '/api/v1/ms/tasks'],
     ['sign-in', () => TestBed.inject(HttpClient).post('/api/v1/auth/login', {}), '/api/v1/auth/login'],
-    ['a new API token', () => TestBed.inject(HttpClient).post('/api/v1/iam/profile/api-tokens', {}), '/api/v1/iam/profile/api-tokens'],
+    ['a new API token', () => TestBed.inject(HttpClient).post('/api/v1/iam/profile/tokens', {}), '/api/v1/iam/profile/tokens'],
+    ['a new webhook', () => TestBed.inject(HttpClient).post('/api/v1/webhooks/subscriptions', {}), '/api/v1/webhooks/subscriptions'],
     ['a file upload', () => TestBed.inject(HttpClient).post('/api/v1/upl/packages', new FormData()), '/api/v1/upl/packages'],
     ['a large body', () => TestBed.inject(HttpClient).post('/api/v1/md/lists', { text: 'x'.repeat(70_000) }), '/api/v1/md/lists'],
     ['a download', () => TestBed.inject(HttpClient).post('/api/v1/exports/file', {}, { responseType: 'blob' }), '/api/v1/exports/file'],

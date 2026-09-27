@@ -35,19 +35,21 @@ class AuditPartitionRepositoryIntegrationTest {
     @Test
     @DisplayName("Отцепление уносит партицию из журнала, но сохраняет её строки в базе")
     void detachKeepsRowsButRemovesThemFromTheLog() {
-        YearMonth month = YearMonth.of(2026, 8);
+        // A month well past the detach guard (V125 keeps the current and the previous month attached).
+        YearMonth month = YearMonth.of(2021, 3);
+        repository.create(month);
         assertThat(repository.exists(month)).isTrue();
 
         jdbc.sql("""
                         insert into audit_log (table_name, row_pk, event, changed_at, changed_columns)
-                        values ('probe_table', '1', 'I', timestamptz '2026-08-15 10:00:00+00', array['x'])
+                        values ('probe_table', '1', 'I', timestamptz '2021-03-15 10:00:00+00', array['x'])
                         """)
                 .update();
         assertThat(countInLog("probe_table")).isEqualTo(1);
 
         String archived = repository.detachAndArchive(month);
 
-        assertThat(archived).isEqualTo("audit_log_archived_2026_08");
+        assertThat(archived).isEqualTo("audit_log_archived_2021_03");
         assertThat(countInLog("probe_table"))
                 .as("после отцепления записи уходят из оперативного журнала").isZero();
         assertThat(countInTable(archived, "probe_table"))
@@ -106,10 +108,11 @@ class AuditPartitionRepositoryIntegrationTest {
     @Test
     @DisplayName("Запрет не мешает отцеплению партиций: срок хранения продолжает работать")
     void immutabilityDoesNotBlockRetention() {
-        YearMonth month = YearMonth.of(2026, 9);
+        YearMonth month = YearMonth.of(2021, 4);
+        repository.create(month);
         jdbc.sql("""
                         insert into audit_log (table_name, row_pk, event, changed_at)
-                        values ('retention_probe', '1', 'I', timestamptz '2026-09-10 10:00:00+00')
+                        values ('retention_probe', '1', 'I', timestamptz '2021-04-10 10:00:00+00')
                         """)
                 .update();
 

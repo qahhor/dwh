@@ -254,7 +254,7 @@ class DatabaseLeastPrivilegeIntegrationTest {
             var repo = new AuditPartitionRepository(appJdbc);
 
             // РЎРѕР·РґР°РЅРёРµ РїР°СЂС‚РёС†РёРё Р·Р° Р±СѓРґСѓС‰РёР№ РјРµСЃСЏС†
-            YearMonth targetMonth = YearMonth.of(2028, 8);
+            YearMonth targetMonth = YearMonth.of(2021, 5);
             assertThat(repo.exists(targetMonth)).isFalse();
             repo.create(targetMonth);
             assertThat(repo.exists(targetMonth)).isTrue();
@@ -262,15 +262,15 @@ class DatabaseLeastPrivilegeIntegrationTest {
             // Р—Р°РїРёСЃСЊ РІ СЃРѕР·РґР°РЅРЅСѓСЋ РїР°СЂС‚РёС†РёСЋ
             appJdbc.sql("""
                     insert into audit_log (table_name, row_pk, event, changed_at)
-                    values ('future_partition_test', '100', 'I', timestamptz '2028-08-10 10:00:00+00')
+                    values ('future_partition_test', '100', 'I', timestamptz '2021-05-10 10:00:00+00')
                     """).update();
 
             // РћС‚С†РµРїР»РµРЅРёРµ РїР°СЂС‚РёС†РёРё
             String archived = repo.detachAndArchive(targetMonth);
-            assertThat(archived).isEqualTo("audit_log_archived_2028_08");
+            assertThat(archived).isEqualTo("audit_log_archived_2021_05");
 
             // Р—Р°РїРёСЃСЊ СЃРѕС…СЂР°РЅРµРЅР° РІ Р°СЂС…РёРІРЅРѕР№ С‚Р°Р±Р»РёС†Рµ
-            long archivedCount = appJdbc.sql("select count(*) from audit_log_archived_2028_08 where table_name = 'future_partition_test'")
+            long archivedCount = appJdbc.sql("select count(*) from audit_log_archived_2021_05 where table_name = 'future_partition_test'")
                     .query(Long.class).single();
             assertThat(archivedCount).isEqualTo(1);
         }

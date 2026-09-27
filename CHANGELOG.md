@@ -687,6 +687,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Task deadline reminders are saved again (item 0.4): the worker used the
+  notification type `deadline_warning`, which the `ms_notifications` check
+  constraint rejects, so no reminder was ever created. It now uses `warning`,
+  and a failure on one task no longer stops the scan.
 - The search job resource test no longer fails intermittently in the full
   server build (processed 158 or 204 of 205). It delivered the fixture in
   exactly three cycles of at most 100 rows, so one transient import or
@@ -937,6 +941,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- One-time secrets are no longer stored for idempotent replay (plan 10/10,
+  item 0.2). A new API token and a new webhook signing key were saved in
+  `idempotency_keys` because the filter excluded a path that no longer exists.
+  Handlers that return a secret are marked `@ReturnsSecret` and run without
+  a reservation, the web client sends no `Idempotency-Key` to them, and
+  migration V124 deletes what was stored.
+- The audit partition functions are no longer executable by PUBLIC (item 0.3).
+  V125 grants them only to roles that write `audit_log` (the backup bootstrap
+  grants them to `app_user`), and `audit_log_detach_partition` refuses the
+  current, the previous and future months whatever retention is configured.
 - `qs` 6.15.3 → 6.16.0 in the web lockfile (moderate: array-limit bypass and a
   denial of service through `isBuffer`). It came only through the Angular CLI
   toolchain (MCP SDK → express), never into the bundle; `npm audit` is clean in
