@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Branch and tag protection as code, and a release that cannot tag an
+  unscanned image (plan 10/10, item 1.9). `.github/rulesets` holds the main
+  ruleset (reviewed pull requests with code owners, merge commits only, the
+  required checks, CodeQL without high alerts) and two tag rulesets (only
+  administrators create `v*`, nobody moves or deletes one);
+  `scripts/github/apply-rulesets.ps1` applies them and CI checks that every
+  required check is produced by a job. `.github/CODEOWNERS` names the owners.
+  The release runs `ci.yml` itself on the tagged commit (`workflow_call`)
+  instead of a reduced copy, pushes each image by digest without a tag, and
+  tags the digest only after the Trivy scan, the attestation and the
+  signature; `verify-release.ps1` enforces that order.
 - CI is faster and hides nothing (plan 10/10, item 1.8). A new push to a pull
   request cancels the previous run, every job has a timeout, Maven builds
   modules in parallel, Playwright browsers come from a cache, and the E2E

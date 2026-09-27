@@ -85,10 +85,23 @@ foreach ($image in @('server', 'web', 'backup', 'postgres', 'typesense')) {
 }
 
 Assert-Matches $workflow 'linux/amd64,linux/arm64' 'Release images must target linux/amd64 and linux/arm64.'
-Assert-Matches $workflow '(?m)^\s*push:\s*true\s*$' 'Release build must push immutable image manifests.'
+# Plan 10/10, item 1.9: build -> scan -> tag by digest. The image is pushed by digest without a tag, and only a
+# scanned, attested and signed digest receives the version tag, so a failed scan leaves no tag in the registry.
+Assert-Matches $workflow 'push-by-digest=true' 'Release build must push the image by digest, without a tag.'
+Assert-DoesNotMatch $workflow '(?m)^\s*tags:\s*\$\{\{\s*steps\.reference' 'Release build must not tag the image before it is scanned.'
 Assert-Matches $workflow '(?i)scan-type:\s*image' 'Release workflow must scan published image digests with Trivy.'
 Assert-Matches $workflow 'aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8' 'Release workflow must use pinned Trivy action.'
-Assert-Matches $workflow 'test-secret-scan\.ps1' 'Release workflow verify job must include secret scanning.'
+$scanAt = $workflow.IndexOf('scan-type: image')
+$signAt = $workflow.IndexOf('cosign sign --yes')
+$tagAt = $workflow.IndexOf('imagetools create --tag')
+if ($tagAt -lt 0 -or $scanAt -lt 0 -or $signAt -lt 0 -or $tagAt -lt $scanAt -or $tagAt -lt $signAt) {
+    Add-ContractError 'Release workflow must tag the digest (imagetools create --tag) only after the Trivy scan and the Cosign signature.'
+}
+# The release runs the same jobs as CI (secret scanning included) instead of a reduced copy of them.
+Assert-Matches $workflow '(?m)^\s*uses:\s*\./\.github/workflows/ci\.yml\s*$' 'Release workflow must run ci.yml on the release commit (workflow_call).'
+$ciWorkflow = Get-Content -LiteralPath (Join-Path $repoRoot '.github/workflows/ci.yml') -Raw
+Assert-Matches $ciWorkflow '(?m)^\s*workflow_call:' 'ci.yml must be callable by the release workflow.'
+Assert-Matches $ciWorkflow 'gitleaks/gitleaks-action@' 'ci.yml must scan the Git history for secrets.'
 Assert-Matches $workflow 'rollback\.ps1' 'Release bundle must contain rollback automation.'
 Assert-Matches $workflow 'test-recovery\.ps1' 'Release bundle must contain recovery drill test.'
 Assert-Matches (Get-Content -LiteralPath (Join-Path $repoRoot 'scripts/security/scan-runtime-images.ps1') -Raw) 'clamav' 'Runtime image scanner must include ClamAV.'

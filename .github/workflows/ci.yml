@@ -6,6 +6,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The release workflow runs this very set of jobs on the tagged commit (plan 10/10, item 1.9).
+  workflow_call:
 
 permissions:
   contents: read
@@ -195,6 +197,10 @@ jobs:
       - name: Validate repository hygiene contract
         shell: pwsh
         run: ./scripts/docs/test-repository-hygiene.ps1
+
+      - name: Validate branch and tag rulesets
+        shell: pwsh
+        run: ./scripts/github/test-rulesets.ps1
 
       - name: Validate release supply-chain contract
         shell: pwsh

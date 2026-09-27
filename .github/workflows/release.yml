@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify:
-    name: Verify release source
+  gate:
+    name: Release tag gate
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -40,45 +40,19 @@ jobs:
             exit 1
           }
 
-      - name: Set up Java
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-
-      - name: Set up Node.js
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
-        with:
-          node-version-file: '.node-version'
-          cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-
-      - name: Verify backend
-        run: mvn -B verify
-
-      - name: Verify web application
-        working-directory: apps/web
-        run: |
-          npm ci
-          npm test
-          npm run typecheck
-          npm run build
-
-      - name: Verify public and release contracts
-        shell: pwsh
-        run: |
-          ./scripts/docs/test-public-docs.ps1
-          ./scripts/architecture/test-unified-boundaries.ps1
-          ./scripts/release/verify-release.ps1
-          ./scripts/prod/test-release-config.ps1
-          ./scripts/prod/test-backup-status.ps1
-          ./scripts/security/test-secret-scan.ps1
-          ./scripts/acceptance/test-managed-acceptance.ps1
+  # The release is checked by the same jobs as every pull request: no reduced copy of CI to drift apart from it.
+  # The Gitleaks secret scan runs in its security job.
+  ci:
+    name: CI on the release commit
+    needs: gate
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/ci.yml
 
   build:
-    name: Build, attest, and sign ${{ matrix.image }}
-    needs: verify
+    name: Build, scan, sign, and tag ${{ matrix.image }}
+    needs: [gate, ci]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -136,15 +110,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Build and push immutable multi-architecture image
+      # Pushed by digest and without a tag: nobody can pull it by version before it passed the scan below.
+      - name: Build and push the multi-architecture image by digest, untagged
         id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.reference.outputs.image_ref }}:${{ github.ref_name }}
+          outputs: type=image,name=${{ steps.reference.outputs.image_ref }},push-by-digest=true,name-canonical=true,push=true
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -153,7 +127,7 @@ jobs:
           provenance: mode=max
           sbom: true
 
-      - name: Scan published image digest with Trivy
+      - name: Scan the untagged image digest with Trivy
         uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: v0.70.0
@@ -216,6 +190,14 @@ jobs:
             > "dist/smartupcms-${{ matrix.image }}-${GITHUB_REF_NAME}.image.txt"
           cp "${PROVENANCE_BUNDLE}" \
             "dist/smartupcms-${{ matrix.image }}-${GITHUB_REF_NAME}.provenance.json"
+
+      # Only a scanned, attested and signed digest receives the version tag (plan 10/10, item 1.9).
+      - name: Tag the scanned and signed digest
+        env:
+          IMAGE_REF: ${{ steps.reference.outputs.image_ref }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        shell: bash
+        run: docker buildx imagetools create --tag "${IMAGE_REF}:${GITHUB_REF_NAME}" "${IMAGE_REF}@${DIGEST}"
 
       - name: Upload signed image metadata
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0

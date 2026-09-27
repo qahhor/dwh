@@ -66,3 +66,69 @@ OpenSSF Scorecard.
 
 **Проверка.** Security → Code scanning показывает инструменты CodeQL и
 Scorecard с последним анализом main.
+
+## 3. Защита веток и тегов, CODEOWNERS (пункт 1.9)
+
+Файлы: [`.github/rulesets/`](../../.github/rulesets/main.json),
+[`.github/CODEOWNERS`](../../.github/CODEOWNERS),
+[`scripts/github/apply-rulesets.ps1`](../../scripts/github/apply-rulesets.ps1),
+[`scripts/github/test-rulesets.ps1`](../../scripts/github/test-rulesets.ps1).
+
+Правила защиты хранятся в репозитории и применяются администратором:
+
+```powershell
+gh auth login
+./scripts/github/apply-rulesets.ps1          # показывает план, ничего не меняет
+./scripts/github/apply-rulesets.ps1 -Apply   # создаёт или заменяет rulesets
+```
+
+| Ruleset | Что требует |
+|---|---|
+| `main` | Изменения только через PR: одно одобрение, ревью владельца кода (CODEOWNERS), повторное одобрение после нового push, закрытые обсуждения; только merge-коммит; зелёные обязательные проверки; CodeQL без предупреждений уровня high и выше; удаление и force-push запрещены. |
+| `release tags: created by administrators only` | Тег `v*` создаёт только администратор. |
+| `release tags: never moved or deleted` | Тег `v*` нельзя передвинуть или удалить никому, исключений нет. |
+
+**Только merge-коммит.** Squash и rebase переписывают коммиты, а
+[`.git-blame-ignore-revs`](../../.git-blame-ignore-revs) ссылается на коммиты
+переформатирования по SHA.
+
+**Обязательные проверки** — имена джобов: `backend (mvn verify + ArchUnit + SBOM)`,
+`frontend (unit + typecheck + build)`,
+`release config (Compose + NGINX + fail-closed deploy)`,
+`e2e (clean deploy + Playwright Chromium, shard 1/2)` и `… shard 2/2`,
+`security (gitleaks + trivy)`, `Verify commit sign-offs`,
+`codeql (java-kotlin)`, `codeql (javascript-typescript)`, `codeql (actions)`.
+`test-rulesets.ps1` в CI падает, если обязательной проверке не соответствует ни
+один джоб: переименование джоба без правки `main.json` не пройдёт. Прежняя
+проверка `e2e (clean deploy + Playwright Chromium)` после разбиения на шарды
+больше не существует: если она указана в старой защите ветки, её нужно
+заменить применением rulesets.
+
+**Обход.** Администратор репозитория может влить PR в обход правил (режим
+`pull_request`); прямой push в main после применения rulesets не проходит ни у
+кого.
+
+**CODEOWNERS.** Пока команд на GitHub нет, владелец всех путей — владелец
+репозитория. Когда команды созданы, строки файла заменяются командами
+соответствующих областей.
+
+**Проверка.** Settings → Rules → Rulesets показывает три активных ruleset;
+PR без одобрения или с красной проверкой не вливается.
+
+## 4. Порядок релиза (пункт 1.9)
+
+Файл: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+1. **Gate:** тег — стабильный SemVer, коммит достижим из main.
+2. **CI:** тот же `ci.yml`, что и на каждом PR, вызванный через
+   `workflow_call`, — набор проверок релиза равен CI, включая Gitleaks.
+3. **Build:** образ собирается для `linux/amd64` и `linux/arm64` и
+   публикуется по digest, **без тега**.
+4. **Scan → attest → sign:** Trivy проверяет этот digest; затем provenance,
+   подпись Cosign и SBOM.
+5. **Tag:** только проверенный и подписанный digest получает тег версии
+   (`docker buildx imagetools create --tag`). Упавший Trivy оставляет в GHCR
+   лишь непомеченный digest, который нельзя получить по версии.
+6. **Publish:** GitHub Release с бандлом Compose и контрольными суммами.
+
+Порядок закреплён контрактом [`scripts/release/verify-release.ps1`](../../scripts/release/verify-release.ps1).
