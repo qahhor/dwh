@@ -92,6 +92,22 @@ public class ClamAvFileScanner implements FileScanner {
         }
     }
 
+    /**
+     * Whether the daemon answers: PING must come back as PONG within the connect timeout. Used by the readiness
+     * group (plan 10/10, item 0.7).
+     */
+    public boolean ping() {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeoutMillis(connectTimeout));
+            socket.setSoTimeout(timeoutMillis(connectTimeout));
+            socket.getOutputStream().write("zPING\0".getBytes(StandardCharsets.US_ASCII));
+            socket.getOutputStream().flush();
+            return "PONG".equals(readResponse(socket.getInputStream()));
+        } catch (IOException exception) {
+            return false;
+        }
+    }
+
     private static ScanResult parseResponse(String response) {
         if (response.endsWith(" OK")) {
             return ScanResult.clean();

@@ -608,6 +608,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Readiness waits for the dependencies (plan 10/10, item 0.7). It used to be
+  the application state alone: with PostgreSQL stopped the container stayed
+  healthy and kept receiving traffic. The readiness group now includes the
+  main database, pg-dwh, Typesense when enabled and ClamAV when scanning is
+  required; each check answers DOWN within `DWH_SYSTEM_HEALTH_TIMEOUT`
+  instead of waiting 20 s for the pool. Liveness is unchanged.
 - Code cleanup: 725 fully qualified class names in server and library code
   became imports; the job queue worker moved from the `upl` module to
   `config/jobs` (it runs every module's jobs, and `fnd` itself does not

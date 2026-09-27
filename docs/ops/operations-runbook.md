@@ -51,6 +51,11 @@ Check in order:
 
 1. `web` health and host reverse-proxy/TLS routing.
 2. `server` readiness and its PostgreSQL/Typesense connection errors.
+   Readiness (`/actuator/health/readiness` on the management port) is DOWN
+   within the health timeout (`DWH_SYSTEM_HEALTH_TIMEOUT`, 2 s by default)
+   when the main database or pg-dwh stops answering, and when Typesense
+   (if enabled) or ClamAV (if scanning is required) does. Liveness ignores
+   them, so the container is taken out of traffic, not restarted.
 3. PostgreSQL health, disk capacity, and filesystem errors.
 4. Whether a migration failed or the release tag changed unexpectedly.
 

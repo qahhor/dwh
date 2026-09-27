@@ -87,6 +87,11 @@ management:
       show-details: when_authorized
       probes:
         enabled: true
+      group:
+        readiness:
+          # Plan 10/10, item 0.7: traffic waits for the databases, and for Typesense and ClamAV when they are
+          # switched on. Liveness stays the process alone: a dead database must stop traffic, not restart the server.
+          include: readinessState,database,dwh,typesense,clamav
   health:
     mail:
       # Недоступность почтового шлюза не должна ронять экземпляр: healthcheck
