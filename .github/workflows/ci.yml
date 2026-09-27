@@ -26,6 +26,14 @@ jobs:
       - name: Build & test
         run: mvn -B verify
 
+      - name: Report frozen architecture violations
+        if: always()
+        shell: bash
+        run: |
+          if [ -f apps/server/target/architecture/frozen-violations.md ]; then
+            cat apps/server/target/architecture/frozen-violations.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: SBOM (CycloneDX)
         run: mvn -B org.cyclonedx:cyclonedx-maven-plugin:2.9.1:makeAggregateBom -DoutputFormat=json
 

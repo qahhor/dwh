@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Module boundaries are checked on every build (plan 10/10, item 1.3).
+  `ModuleBoundariesTest` forbids `common` to depend on business modules, a
+  controller to see a repository package (nested records included), modules
+  to meet outside each other's `service`/`api` package, and a repository to
+  query another module's tables. The violations of today are frozen
+  (`archunit_store`: 0, 100, 187 and 32): a new one fails the build, a fixed
+  one leaves the store, and CI publishes the count in the build summary.
+  ADR-0006 describes the rules.
 - Released migrations are immutable (plan 10/10, item 0.5).
   `MigrationManifestTest` keeps the SHA-256 of every file in `db/migration`
   and `db/dwh` (`migration-manifest.sha256`) and fails the build on any edit
