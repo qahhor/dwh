@@ -5,17 +5,14 @@ export const IDEMPOTENCY_HEADER = 'Idempotency-Key';
 /** The server keeps bodies up to 64 KB with a key (IdempotencyFilter); larger ones go without. */
 const MAX_BODY_BYTES = 60 * 1024;
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+/** Where the server refuses a key: sign-in and channels. */
+const UNSUPPORTED = ['/api/v1/auth/', '/api/v1/iam/profile/channels'];
 /**
- * Where a key is useless or refused: sign-in and channels are refused by the server; creating an API token
- * or a webhook returns a secret the server never stores for replay (@ReturnsSecret), so a key there only
- * pretends to protect the retry.
+ * Creations that return a one-time secret (@ReturnsSecret on the server): the answer is never stored for
+ * replay, so a key would only pretend to protect a retry that would create a second secret. Only these
+ * exact POSTs: revoking a token or editing a webhook keeps its key.
  */
-const UNSUPPORTED = [
-  '/api/v1/auth/',
-  '/api/v1/iam/profile/channels',
-  '/api/v1/iam/profile/tokens',
-  '/api/v1/webhooks/subscriptions',
-];
+const RETURNS_SECRET = new Set(['POST /api/v1/iam/profile/tokens', 'POST /api/v1/webhooks/subscriptions']);
 /** Statuses after which the change may or may not have happened — safe to repeat only under the same key. */
 const RETRYABLE = new Set([0, 502, 503, 504]);
 const RETRY_DELAYS_MS = [1_000, 3_000];
@@ -47,6 +44,7 @@ function wantsKey(request: HttpRequest<unknown>): boolean {
   if (!MUTATING.has(request.method) || request.headers.has(IDEMPOTENCY_HEADER)) return false;
   const path = pathOf(request.url).split('?')[0];
   if (!path.startsWith('/api/v1/') || path === '/api/v1/auth' || UNSUPPORTED.some(prefix => path.startsWith(prefix))) return false;
+  if (RETURNS_SECRET.has(`${request.method} ${path.replace(/\/+$/, '')}`)) return false;
   // A stored answer is replayed as JSON: downloads keep their own handling.
   if (request.responseType !== 'json' && request.responseType !== 'text') return false;
   return fitsBody(request.body);

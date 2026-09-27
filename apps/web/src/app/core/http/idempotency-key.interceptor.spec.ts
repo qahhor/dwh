@@ -55,6 +55,17 @@ describe('idempotencyKeyInterceptor', () => {
     request.flush(request.request.responseType === 'blob' ? new Blob() : {});
   });
 
+  it.each([
+    ['DELETE', '/api/v1/iam/profile/tokens/7'],
+    ['PATCH', '/api/v1/webhooks/subscriptions/3'],
+    ['DELETE', '/api/v1/webhooks/subscriptions/3']
+  ])('keeps the key of %s %s: only creating a secret goes without', (method, url) => {
+    http.request(method, url, { body: {} }).subscribe();
+    const request = backend.expectOne(url);
+    expect(request.request.headers.get(IDEMPOTENCY_HEADER)).toMatch(UUID);
+    request.flush({});
+  });
+
   it('keeps a key the caller chose', () => {
     http.post('/api/v1/ms/tasks', {}, { headers: { [IDEMPOTENCY_HEADER]: 'mine' } }).subscribe();
     const request = backend.expectOne('/api/v1/ms/tasks');

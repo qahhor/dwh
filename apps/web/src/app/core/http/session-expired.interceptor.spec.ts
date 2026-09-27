@@ -123,7 +123,7 @@ describe('sessionExpiredInterceptor', () => {
   });
 
   it('only remembers pages inside the app', () => {
-    for (const url of ['https://evil.test/', '//evil.test/', '/login?x=1', null]) {
+    for (const url of ['https://evil.test/', '//evil.test/', '/login?x=1', '/reset-password', null]) {
       auth.rememberReturnUrl(url);
       auth.login('session-qa', 'secret').subscribe();
       http.expectOne('/api/v1/auth/login').flush({ step: 'success', user });
