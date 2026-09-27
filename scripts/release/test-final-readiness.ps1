@@ -7,7 +7,8 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 # The wrapper on Windows; the runner's Maven on Linux (the nightly workflow), as in ci.yml.
 $mvnCmd = if ($env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { 'mvn' }
-$pomPath = Join-Path $repoRoot 'apps/server/pom.xml'
+# The reactor root: the server is built with the libs it depends on (-pl apps/server -am).
+$pomPath = Join-Path $repoRoot 'pom.xml'
 
 Write-Host "=================================================================" -ForegroundColor Cyan
 Write-Host " Running Master Final Release Readiness Quality Gates Drill (I-10)" -ForegroundColor Cyan
@@ -61,7 +62,7 @@ try {
 
     # 6. OpenAPI Specification & Branding Contract (M17)
     Run-Step "OpenAPI 3.1.0 Contract & Core Route Catalog" {
-        $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -B -q `"-Dtest=OpenApiControllerTest`""
+        $cmd = "& `"$mvnCmd`" test -f `"$pomPath`" -pl apps/server -am -B -q `"-Dtest=OpenApiControllerTest`" `"-Dsurefire.failIfNoSpecifiedTests=false`""
         $output = Invoke-Expression $cmd 2>&1
         if ($LASTEXITCODE -ne 0) {
             $output | ForEach-Object { Write-Host "  $_" -ForegroundColor DarkRed }
