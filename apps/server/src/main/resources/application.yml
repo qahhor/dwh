@@ -103,6 +103,10 @@ smc:
   # Public address of the web application, e.g. https://cms.example.com. Password reset links are built from it and
   # never from the request's Host header. Empty -> no reset link is sent (the log says why).
   public-url: ${SMC_PUBLIC_URL:}
+  delivery:
+    # Refuse to start while users with two-factor sign-in depend on a stub channel (console_*): their login codes
+    # would go nowhere. Off in development, where the log is the intended channel.
+    enforce: ${SMC_DELIVERY_ENFORCE:true}
 
 dwh:
   providers:

@@ -35,7 +35,7 @@ import java.util.Set;
 public class KauthChannelService {
 
     /** Порядок предпочтения канала для кода входа. */
-    private static final List<String> OTP_CHANNEL_PRIORITY =
+    static final List<String> OTP_CHANNEL_PRIORITY =
             List.of(KauthPref.CHANNEL_TELEGRAM, KauthPref.CHANNEL_SMS, KauthPref.CHANNEL_EMAIL);
 
     private static final Set<String> SUPPORTED_CHANNELS =

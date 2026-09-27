@@ -2,6 +2,8 @@
 # В прод-развёртывании эти значения приходят из конфигурации job'а (фаза P: Vault).
 smc:
   public-url: http://localhost:4200
+  delivery:
+    enforce: false
 
 dwh:
   schema-gate:

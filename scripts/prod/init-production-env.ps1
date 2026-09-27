@@ -196,6 +196,23 @@ DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
 DWH_WEBHOOKS_CONNECT_TIMEOUT=3s
 DWH_WEBHOOKS_READ_TIMEOUT=10s
 
+# Delivery channels: password reset links and two-factor codes. console_* only
+# writes to the log; the server refuses to start while two-factor users depend
+# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + DWH_PROVIDER_MAIL=smtp.
+# Telegram: TELEGRAM_BOT_TOKEN + DWH_PROVIDER_MESSENGER=telegram.
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_STARTTLS=true
+DWH_MAIL_FROM=no-reply@localhost
+DWH_MAIL_FROM_NAME=SmartupCMS
+DWH_PROVIDER_MAIL=console_mail
+TELEGRAM_BOT_TOKEN=
+DWH_PROVIDER_MESSENGER=console_messenger
+DWH_PROVIDER_SMS=console_sms
+SMC_DELIVERY_ENFORCE=true
+
 # Network & Reverse Proxy
 HTTP_BIND=$HttpBind
 HTTP_PORT=$HttpPort

@@ -54,6 +54,12 @@ Assert-Matches $composeSource '/run/nginx:rw,nosuid,nodev,noexec,uid=10001,gid=1
 Assert-Matches $composeSource 'DWH_WEBHOOKS_ENABLED:\s*\$\{DWH_WEBHOOKS_ENABLED:-false\}' 'Outbound webhooks must be disabled by default.'
 Assert-Matches $composeSource 'DWH_WEBHOOKS_ALLOWED_HOSTS:\s*\$\{DWH_WEBHOOKS_ALLOWED_HOSTS:-\}' 'Outbound webhooks must require an explicit host allow-list.'
 Assert-Matches $composeSource 'DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:\s*\$\{DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES:-false\}' 'Private webhook destinations must require an explicit opt-in.'
+foreach ($variable in @('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'SMTP_STARTTLS', 'DWH_MAIL_FROM',
+        'TELEGRAM_BOT_TOKEN', 'DWH_PROVIDER_MAIL', 'DWH_PROVIDER_MESSENGER', 'SMC_PUBLIC_URL')) {
+    Assert-Matches $composeSource ([regex]::Escape($variable) + ':\s*\$\{' + [regex]::Escape($variable) + ':-')
+        "Production Compose must pass $variable to the server (password reset and two-factor delivery)."
+}
+Assert-Matches $composeSource 'SMC_DELIVERY_ENFORCE:\s*\$\{SMC_DELIVERY_ENFORCE:-true\}' 'Production must refuse to start while two-factor users depend on a stub channel.'
 Assert-Matches $webNginx 'server:8080' 'The single web origin must proxy API traffic to server:8080.'
 Assert-DoesNotMatch $webNginx 'control-plane|web-cp|app:8080' 'The web origin still references a retired runtime.'
 

@@ -75,6 +75,11 @@ owner. A commercial SLA cannot override a failed safety gate.
       and task export streaming bounds (`LIMIT :maxExportRows`) are enforced.
 - [ ] Session revocation, password recovery, CSRF, rate limits, and audit events
       pass the release test suite.
+- [ ] Mail (`SMTP_HOST`, `DWH_PROVIDER_MAIL=smtp`) or Telegram
+      (`TELEGRAM_BOT_TOKEN`, `DWH_PROVIDER_MESSENGER=telegram`) is configured:
+      password reset and two-factor codes travel only through them, and the
+      server refuses to start while two-factor users depend on a `console_*`
+      stub (`SMC_DELIVERY_ENFORCE`).
 - [ ] `SMC_PUBLIC_URL` is the public HTTPS address of the web application:
       password reset links are built from it (never from the request's Host
       header), and with it empty no reset link is sent.

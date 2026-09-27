@@ -51,6 +51,8 @@ x-server-environment: &server-environment
   DWH_PROVIDER_MAIL: ${DWH_PROVIDER_MAIL:-console_mail}
   DWH_PROVIDER_SMS: ${DWH_PROVIDER_SMS:-console_sms}
   DWH_PROVIDER_MESSENGER: ${DWH_PROVIDER_MESSENGER:-console_messenger}
+  # Local stand: the log is the channel, so two-factor users on stubs do not stop the start.
+  SMC_DELIVERY_ENFORCE: ${SMC_DELIVERY_ENFORCE:-false}
   DWH_TYPESENSE_URL: http://typesense:8108
   DWH_TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-smartupcms_typesense_local_dev}
   DWH_TYPESENSE_ENABLED: ${DWH_TYPESENSE_ENABLED:-true}

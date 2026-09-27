@@ -56,6 +56,8 @@ public abstract class EmbeddedPostgresTest {
         registry.add("app.dwh.url", () -> TestDatabases.jdbcUrl(TestDatabases.DWH_DB));
         registry.add("app.dwh.username", () -> TestDatabases.USER);
         registry.add("app.dwh.password", () -> "");
+        // Test contexts run on stub channels; KauthDeliveryGuardTest covers the guard itself.
+        registry.add("smc.delivery.enforce", () -> "false");
         registry.add("app.dwh.connect-timeout", () -> "2s");
         // OneID в тестах — mock-провайдер без сети (AC [допущение 10]); включается каждым тестом явно
         registry.add("platform.oneid.mock", () -> true);

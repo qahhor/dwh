@@ -608,6 +608,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Production delivers mail and Telegram (plan 10/10, item 0.8). The production
+  Compose file did not pass `SMTP_*`, `TELEGRAM_BOT_TOKEN` or the provider
+  choice to the server, so password reset and two-factor codes could only go
+  to the log. They are passed now, the init scripts write them, and
+  `test-release-config.ps1` checks them. `KauthDeliveryGuard` refuses to start
+  while active two-factor users have a code channel (resolved as at sign-in)
+  served by a `console_*` stub; `SMC_DELIVERY_ENFORCE=false` turns it off, as
+  the dev profile and the local Compose file do.
 - Readiness waits for the dependencies (plan 10/10, item 0.7). It used to be
   the application state alone: with PostgreSQL stopped the container stayed
   healthy and kept receiving traffic. The readiness group now includes the
