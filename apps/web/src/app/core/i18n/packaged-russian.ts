@@ -1025,6 +1025,8 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "auth.reset.invalid_link": "Ссылка недействительна: она устарела или уже использована. Запросите новую на странице входа.",
   "auth.reset.failed": "Не удалось сменить пароль. Повторите попытку.",
   "auth.reset.to_login": "Перейти ко входу",
+  "channel.password_reset.subject": "Сброс пароля",
+  "channel.password_reset.body": "Ссылка для смены пароля:\n{link}\n\nДействует {minutes} мин. и открывается один раз. Если вы не запрашивали сброс, ничего не делайте: пароль останется прежним.",
   "files.ne_udalos_udalit_fayl": "Не удалось удалить файл",
   "iam.oshibka_zagruzki_dinamicheskih_poley": "Ошибка загрузки динамических полей",
   "iam.vse_suschnosti": "Все сущности",

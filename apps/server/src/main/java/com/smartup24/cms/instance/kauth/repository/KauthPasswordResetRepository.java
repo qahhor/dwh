@@ -84,6 +84,14 @@ public class KauthPasswordResetRepository {
                 .update();
     }
 
+    /** Serialises link issuing for one user until the end of the transaction. */
+    public void lockUser(Long userId) {
+        jdbcClient.sql("select pg_advisory_xact_lock(hashtext('kauth_password_reset'), cast(mod(:userId, 2147483647) as int))")
+                .param("userId", userId)
+                .query()
+                .singleValue();
+    }
+
     public int countIssuedSince(Long userId, Instant since) {
         return jdbcClient.sql("""
                 select count(*) from kauth_password_reset_codes

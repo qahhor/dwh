@@ -1023,6 +1023,8 @@
   "auth.reset.invalid_link": "Havola yaroqsiz: muddati o‘tgan yoki allaqachon ishlatilgan. Kirish sahifasida yangisini so‘rang.",
   "auth.reset.failed": "Parolni o‘zgartirib bo‘lmadi. Qayta urinib ko‘ring.",
   "auth.reset.to_login": "Kirish sahifasiga o‘tish",
+  "channel.password_reset.subject": "Parolni tiklash",
+  "channel.password_reset.body": "Yangi parol o‘rnatish havolasi:\n{link}\n\n{minutes} daqiqa amal qiladi va bir marta ochiladi. Agar tiklashni so‘ramagan bo‘lsangiz, hech narsa qilmang: parolingiz o‘zgarmaydi.",
   "files.ne_udalos_udalit_fayl": "Faylni oʻchirib boʻlmadi",
   "iam.oshibka_zagruzki_dinamicheskih_poley": "Dinamik maydonlarni yuklashda xatolik yuz berdi",
   "iam.vse_suschnosti": "Barcha ob'ektlar",

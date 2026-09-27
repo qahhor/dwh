@@ -100,6 +100,8 @@ public class KauthPasswordResetService {
                         Map.of("result", "no_confirmed_channel"));
                 return;
             }
+            // Two requests at once would each revoke nothing and both issue a link: one at a time per user.
+            resetRepository.lockUser(userId);
             Instant now = Instant.now();
             if (resetRepository.countIssuedSince(userId, now.minus(Duration.ofHours(1))) >= MAX_LINKS_PER_HOUR) {
                 auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", userId, ip, userAgent,
@@ -112,7 +114,8 @@ public class KauthPasswordResetService {
             resetRepository.revokeActive(userId);
             resetRepository.create(userId, user.get().authenticationVersion(), channel.get().channel(),
                     KauthPasswordHasher.sha256(token), expiresAt);
-            events.publishEvent(new KauthPasswordResetLinkIssued(channel.get(), token, expiresAt));
+            events.publishEvent(new KauthPasswordResetLinkIssued(channel.get(), token, expiresAt,
+                    user.get().language()));
             auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", userId, ip, userAgent,
                     Map.of("result", "link_issued", "channel", channel.get().channel()));
         });

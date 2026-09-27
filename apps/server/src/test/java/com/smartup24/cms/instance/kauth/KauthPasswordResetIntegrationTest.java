@@ -18,12 +18,15 @@ import com.smartup24.cms.instance.kauth.service.KauthPasswordResetLinkSender;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordResetService;
 import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
+import com.smartup24.cms.instance.md.repository.MdI18nRepository;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.MdI18nCatalog;
+import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserService;
@@ -93,7 +96,8 @@ class KauthPasswordResetIntegrationTest {
         var registry = new ProviderRegistry(
                 List.of(storageStub()), List.of(mail), List.of(smsStub()), List.of(messenger),
                 "local", "smtp", "console_sms", "telegram");
-        var linkSender = new KauthPasswordResetLinkSender(new KauthOtpSender(registry), "https://cms.example.test/");
+        var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
+        var linkSender = new KauthPasswordResetLinkSender(new KauthOtpSender(registry), i18n, "https://cms.example.test/");
 
         var scopes = new MdScopeService(
                 new MdScopeRepository(jdbc),
@@ -142,6 +146,7 @@ class KauthPasswordResetIntegrationTest {
         assertThat(mail.sent).hasSize(1);
         assertThat(mail.sent.getFirst().recipientEmail()).isEqualTo("reset_mail@mailbox.test");
         String token = token(mail.sent.getFirst().textBody());
+        assertThat(mail.sent.getFirst().subject()).isEqualTo("Сброс пароля");
         assertThat(mail.sent.getFirst().textBody()).startsWith("Ссылка для смены пароля:\nhttps://cms.example.test/reset-password#token=");
 
         resetService.confirmReset(token, NEW_PASSWORD, "10.1.0.1", "ua");
@@ -166,6 +171,21 @@ class KauthPasswordResetIntegrationTest {
         resetService.confirmReset(token(messenger.sent.getFirst().textMarkdown()), NEW_PASSWORD, "10.1.0.2", "ua");
 
         assertThat(new KauthPasswordHasher().verifyPassword(NEW_PASSWORD, passwordHash(userId))).isTrue();
+    }
+
+    @Test
+    @DisplayName("The message is in the user's language")
+    void messageIsInTheUsersLanguage() {
+        Long userId = createUser("reset_en");
+        jdbc.sql("update md_users set language = 'en' where id = :id").param("id", userId).update();
+        channelRepository.bindOrUpdate(userId, "email", "reset_en@mailbox.test", true);
+
+        resetService.requestReset("reset_en@test.local", "10.1.0.8", "ua");
+
+        assertThat(mail.sent.getFirst().subject()).isEqualTo("Password reset");
+        assertThat(mail.sent.getFirst().textBody())
+                .startsWith("Link to set a new password:\nhttps://cms.example.test/reset-password#token=")
+                .contains("15 min");
     }
 
     @Test

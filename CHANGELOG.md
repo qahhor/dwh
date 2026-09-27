@@ -615,7 +615,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `test-release-config.ps1` checks them. `KauthDeliveryGuard` refuses to start
   while active two-factor users have a code channel (resolved as at sign-in)
   served by a `console_*` stub; `SMC_DELIVERY_ENFORCE=false` turns it off, as
-  the dev profile and the local Compose file do.
+  the dev profile and the local Compose file do. With enforcement on, binding a
+  channel served by a stub is refused (`delivery_channel_not_configured`, 409),
+  so only a configuration change, never a user action, can stop a restart.
 - Readiness waits for the main database (plan 10/10, item 0.7). It used to be
   the application state alone: with PostgreSQL stopped the container stayed
   healthy and kept receiving traffic. The check answers DOWN within
@@ -990,8 +992,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the password, starts a new generation and closes every session and API token.
   Five rejected links from one address lock it for 15 minutes; a user gets at
   most three links an hour. Links are built from the new `SMC_PUBLIC_URL`
-  setting, never from the Host header. V126 binds the table to the generation
-  and the channel; the web app has a reset screen (ru, uz, en).
+  setting, never from the Host header, and the message is in the user's
+  language (`channel.password_reset.*`). Link issuing is serialised per user,
+  so two requests at once cannot leave two working links. V126 binds the table
+  to the generation and the channel; the web app has a reset screen (ru, uz,
+  en).
 - One-time secrets are no longer stored for idempotent replay (plan 10/10,
   item 0.2). A new API token and a new webhook signing key were saved in
   `idempotency_keys` because the filter excluded a path that no longer exists.

@@ -1023,6 +1023,8 @@
   "auth.reset.invalid_link": "The link is not valid: it has expired or was already used. Request a new one on the sign-in page.",
   "auth.reset.failed": "Could not change the password. Try again.",
   "auth.reset.to_login": "Go to sign in",
+  "channel.password_reset.subject": "Password reset",
+  "channel.password_reset.body": "Link to set a new password:\n{link}\n\nValid for {minutes} min and opens once. If you did not ask for a reset, do nothing: your password stays the same.",
   "files.ne_udalos_udalit_fayl": "Failed to delete file",
   "iam.oshibka_zagruzki_dinamicheskih_poley": "Error loading dynamic fields",
   "iam.vse_suschnosti": "All entities",
