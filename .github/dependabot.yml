@@ -1,0 +1,111 @@
+# Dependency updates (plan 10/10, item 1.5): Maven, npm, GitHub Actions and Docker base images, weekly and grouped
+# so that a week brings a few pull requests, not dozens. Security updates come on top of these, as soon as an
+# advisory appears (the repository setting "Dependabot security updates"). Patch updates merge by themselves when
+# the required checks pass (.github/workflows/dependabot-auto-merge.yml); minor and major ones wait for review.
+version: 2
+
+updates:
+  - package-ecosystem: maven
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build(deps)
+    groups:
+      spring:
+        patterns: ["org.springframework*"]
+      build-plugins:
+        patterns:
+          - "org.apache.maven.plugins:*"
+          - "org.jacoco:*"
+          - "com.diffplug.spotless:*"
+          - "com.palantir.javaformat:*"
+          - "com.puppycrawl.tools:*"
+          - "com.google.errorprone:*"
+          - "com.uber.nullaway:*"
+      test:
+        patterns:
+          - "org.testcontainers:*"
+          - "com.tngtech.archunit:*"
+          - "io.zonky.test*"
+      patch:
+        update-types: [patch]
+
+  - package-ecosystem: npm
+    directory: /apps/web
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build(deps)
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "@schematics/angular", "angular-eslint", "@angular-eslint/*"]
+      lint:
+        patterns: ["eslint", "@eslint/*", "typescript-eslint", "stylelint*", "prettier"]
+      patch:
+        update-types: [patch]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build(deps)
+    groups:
+      playwright:
+        patterns: ["@playwright/*", "playwright*", "@axe-core/*", "axe-core"]
+      patch:
+        update-types: [patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      actions:
+        patterns: ["*"]
+    # scripts/release/verify-release.ps1 approves exact commits of these (Node 24 releases, the Trivy action);
+    # they are raised by hand together with that contract.
+    ignore:
+      - dependency-name: actions/checkout
+      - dependency-name: actions/setup-node
+      - dependency-name: actions/setup-java
+      - dependency-name: actions/upload-artifact
+      - dependency-name: actions/download-artifact
+      - dependency-name: aquasecurity/trivy-action
+
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /apps/web
+      - /deploy/images/backup
+      - /deploy/images/nginx-proxy
+      - /deploy/images/postgres
+      - /deploy/images/typesense
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    commit-message:
+      prefix: build(deps)
+    groups:
+      base-images:
+        update-types: [minor, patch]

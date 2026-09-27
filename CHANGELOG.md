@@ -9,6 +9,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Dependencies are updated by Dependabot (plan 10/10, item 1.5): Maven, npm
+  (web and E2E), GitHub Actions and Docker base images, weekly and grouped;
+  patch updates merge by themselves once the checks that main requires pass,
+  and never when main requires none. The settings an administrator must turn
+  on are listed in `docs/ops/repository-settings.md`.
 - The Java code is formatted and analysed on every build (plan 10/10, item
   1.2). Spotless 3.10 with palantir-java-format 2.99 (4 spaces, 120 columns)
   formats it, Checkstyle 14.3 checks naming, imports and defect-prone

@@ -1,0 +1,36 @@
+# Patch updates from Dependabot merge by themselves once the required checks pass (plan 10/10, item 1.5).
+# GitHub's auto-merge waits for the checks that the main ruleset requires; without such a rule it would merge at
+# once, so the job refuses to arm it unless main requires status checks (.github/rulesets/main.json).
+name: dependabot auto-merge
+
+on: pull_request
+
+permissions: {}
+
+jobs:
+  auto-merge:
+    name: arm auto-merge for a patch update
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'qahhor/dwh'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Read the update
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+
+      - name: Arm auto-merge (patch only, main must require checks)
+        if: steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          required=$(gh api "repos/$REPO/rules/branches/main" --jq '[.[] | select(.type == "required_status_checks")] | length')
+          if [ "$required" = "0" ]; then
+            echo "::warning::main requires no status checks: auto-merge would skip CI, so it stays off. Apply .github/rulesets/main.json."
+            exit 0
+          fi
+          gh pr merge --auto --merge "$PR_URL"
