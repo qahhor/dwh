@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kauth.controller;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.service.MdUserService;
+import com.smartup24.cms.instance.md.service.PasswordValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -54,5 +55,7 @@ public class KauthPasswordController {
 
     public record ChangePasswordDto(
             @NotBlank String oldPassword,
-            @NotBlank @Size(min = 10, max = 100) String newPassword) {}
+
+            @NotBlank @Size(min = PasswordValidator.MIN_PASSWORD_LENGTH, max = PasswordValidator.MAX_PASSWORD_LENGTH)
+            String newPassword) {}
 }
