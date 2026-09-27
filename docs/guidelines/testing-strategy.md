@@ -20,7 +20,7 @@
 mvn -B verify
 ./scripts/quality/test-no-skipped-tests.ps1
 ./scripts/quality/test-coverage-floors.ps1
-Push-Location apps/web; npm test; npm run typecheck; npm run build; Pop-Location
+Push-Location apps/web; npm run lint; npm test; npm run typecheck; npm run build; Pop-Location
 ./scripts/architecture/test-unified-boundaries.ps1
 ./scripts/docs/test-public-docs.ps1
 ./scripts/docs/test-repository-hygiene.ps1
@@ -80,8 +80,8 @@ CI выполняет следующие независимые jobs:
   покрытия JaCoCo, затем проверки «ни один тест не пропущен», пороги покрытия
   бизнес-модулей, покрытие изменённых строк PR (не ниже 80 %) и формирование
   CycloneDX SBOM;
-- **frontend:** `npm ci`, unit tests, typecheck и production build из
-  `apps/web`;
+- **frontend:** `npm ci`, lint (ESLint с базовой линией подавлений, Stylelint,
+  Prettier), unit tests, typecheck и production build из `apps/web`;
 - **release config:** unified architecture, public docs, repository hygiene,
   release supply-chain, production Compose, encrypted-backup и managed
   acceptance contracts, а также fail-closed deploy test;

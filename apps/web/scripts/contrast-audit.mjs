@@ -32,18 +32,24 @@ const NAMED = { white: '#ffffff', black: '#000000' };
  * value is not styling:
  */
 const LITERAL_ALLOWED = new Map([
-  ['src/app/features/tasks/components/task-dictionaries-modal.component.ts',
-   'the default colour of a task type or status the operator creates'],
-  ['src/app/shared/ui-kit/components/forms/color-input/color-input.component.ts',
-   'the palette a person picks a status or task type colour from; the chosen colour is stored data'],
-  ['src/app/features/notes/notes.component.css',
-   'the note card palette the author picks from, each class named for its colour'],
+  [
+    'src/app/features/tasks/components/task-dictionaries-modal.component.ts',
+    'the default colour of a task type or status the operator creates',
+  ],
+  [
+    'src/app/shared/ui-kit/components/forms/color-input/color-input.component.ts',
+    'the palette a person picks a status or task type colour from; the chosen colour is stored data',
+  ],
+  [
+    'src/app/features/notes/notes.component.css',
+    'the note card palette the author picks from, each class named for its colour',
+  ],
 ]);
 
 function expandHex(value) {
   const hex = value.trim().toLowerCase();
   if (/^#[0-9a-f]{6}$/.test(hex)) return hex;
-  if (/^#[0-9a-f]{3}$/.test(hex)) return `#${[...hex.slice(1)].map(c => c + c).join('')}`;
+  if (/^#[0-9a-f]{3}$/.test(hex)) return `#${[...hex.slice(1)].map((c) => c + c).join('')}`;
   return NAMED[hex] ?? null;
 }
 
@@ -53,7 +59,7 @@ function channelLuminance(byte) {
 }
 
 function luminance(hex) {
-  const [r, g, b] = [1, 3, 5].map(i => channelLuminance(parseInt(hex.slice(i, i + 2), 16)));
+  const [r, g, b] = [1, 3, 5].map((i) => channelLuminance(parseInt(hex.slice(i, i + 2), 16)));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
@@ -63,19 +69,24 @@ function contrast(foreground, background) {
 }
 
 function declarations(block) {
-  return [...block.matchAll(/(?:^|[;{\s])(--[a-z0-9-]+|[a-z-]+)\s*:\s*([^;}]+)/gi)]
-    .map(match => [match[1].trim().toLowerCase(), match[2].trim(), match.index ?? 0]);
+  return [...block.matchAll(/(?:^|[;{\s])(--[a-z0-9-]+|[a-z-]+)\s*:\s*([^;}]+)/gi)].map((match) => [
+    match[1].trim().toLowerCase(),
+    match[2].trim(),
+    match.index ?? 0,
+  ]);
 }
 
 /** Token tables per theme: `:root` declarations, then `[data-theme="dark"]` overrides. */
 async function readTokens() {
   const css = await readFile(tokenFile, 'utf8');
-  const blockFor = selector => [...css.matchAll(new RegExp(`${selector}\\s*\\{([^{}]*)\\}`, 'g'))]
-    .flatMap(match => declarations(match[1]))
-    .filter(([name]) => name.startsWith('--'));
+  const blockFor = (selector) =>
+    [...css.matchAll(new RegExp(`${selector}\\s*\\{([^{}]*)\\}`, 'g'))]
+      .flatMap((match) => declarations(match[1]))
+      .filter(([name]) => name.startsWith('--'));
 
   const base = Object.fromEntries(blockFor(':root'));
-  const dark = Object.fromEntries(blockFor('\\[data-theme="dark"\\]'));
+  // Either quote: Prettier writes single quotes in style sheets.
+  const dark = Object.fromEntries(blockFor(`\\[data-theme=["']dark["']\\]`));
   if (!Object.keys(base).length || !Object.keys(dark).length) {
     throw new Error(`No design tokens found in ${path.relative(webRoot, tokenFile)}`);
   }
@@ -104,14 +115,14 @@ function resolveColour(value, tokens, seen = new Set()) {
 
 /** Every `--token` a value refers to, so undefined ones can be reported. */
 function referencedTokens(value) {
-  return [...value.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)].map(match => match[1]);
+  return [...value.matchAll(/var\(\s*(--[a-z0-9-]+)/gi)].map((match) => match[1]);
 }
 
 async function sourceFiles(directory) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) found.push(...await sourceFiles(absolute));
+    if (entry.isDirectory()) found.push(...(await sourceFiles(absolute)));
     else if (/\.(s?css|ts)$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) found.push(absolute);
   }
   return found;
@@ -123,7 +134,7 @@ function withoutComments(source) {
 
 /** Innermost brace blocks — a CSS rule body never nests another rule. */
 function ruleBlocks(source) {
-  return [...withoutComments(source).matchAll(/\{([^{}]*)\}/g)].map(match => ({
+  return [...withoutComments(source).matchAll(/\{([^{}]*)\}/g)].map((match) => ({
     body: match[1],
     // Offset of the body, so a finding can name the declaration's own line.
     offset: (match.index ?? 0) + 1,
@@ -134,7 +145,8 @@ function lineAt(source, offset) {
   return source.slice(0, offset).split('\n').length;
 }
 
-const COLOUR_PROPERTY = /^(background-color|background|border-color|border-top-color|border-right-color|border-bottom-color|border-left-color|color|outline-color|fill|stroke)$/;
+const COLOUR_PROPERTY =
+  /^(background-color|background|border-color|border-top-color|border-right-color|border-bottom-color|border-left-color|color|outline-color|fill|stroke)$/;
 
 function largeText(pairs) {
   const size = parseFloat(pairs.find(([property]) => property === 'font-size')?.[1] ?? '');
@@ -159,9 +171,11 @@ for (const file of await sourceFiles(srcRoot)) {
       for (const [property, value, at] of declarations(body)) {
         if (!COLOUR_PROPERTY.test(property)) continue;
         // A literal inside a var() fallback is reported as an undefined token instead.
-        const outside = value.replace(/var\([^)]*\)/g, m => ' '.repeat(m.length));
+        const outside = value.replace(/var\([^)]*\)/g, (m) => ' '.repeat(m.length));
         for (const literal of outside.matchAll(/#[0-9a-fA-F]{3,8}/g)) {
-          literals.push(`${relative}:${lineAt(source, offset + at)} ${property}: ${literal[0]} is a literal; name a token so the theme can move it`);
+          literals.push(
+            `${relative}:${lineAt(source, offset + at)} ${property}: ${literal[0]} is a literal; name a token so the theme can move it`,
+          );
         }
       }
     }
@@ -176,7 +190,9 @@ for (const file of await sourceFiles(srcRoot)) {
     for (const [property, value, at] of [background, foreground]) {
       for (const name of referencedTokens(value)) {
         if (!(name in tokens.light) && !(name in tokens.dark)) {
-          undefinedTokens.push(`${path.relative(webRoot, file)}:${lineAt(source, offset + at)} ${property}: ${name} is not defined, so its fallback paints in both themes`);
+          undefinedTokens.push(
+            `${path.relative(webRoot, file)}:${lineAt(source, offset + at)} ${property}: ${name} is not defined, so its fallback paints in both themes`,
+          );
         }
       }
     }
@@ -195,8 +211,8 @@ for (const file of await sourceFiles(srcRoot)) {
       if (ratio < threshold) {
         failures.push(
           `${path.relative(webRoot, file)}:${line} [${theme}] ${fg} on ${bg} ` +
-          `= ${ratio.toFixed(2)}:1, below ${threshold.toFixed(1)}:1 ` +
-          `(${foreground[1]} on ${background[1]})`
+            `= ${ratio.toFixed(2)}:1, below ${threshold.toFixed(1)}:1 ` +
+            `(${foreground[1]} on ${background[1]})`,
         );
       }
     }
@@ -211,24 +227,24 @@ if (!checked) {
 if (undefinedTokens.length) {
   process.stderr.write(
     `Colour properties referencing an undefined design token:\n${[...new Set(undefinedTokens)].join('\n')}\n\n` +
-    'Point these at a token defined in styles.css. A `var()` fallback is not a theme: ' +
-    'it paints the same colour in light and dark.\n\n'
+      'Point these at a token defined in styles.css. A `var()` fallback is not a theme: ' +
+      'it paints the same colour in light and dark.\n\n',
   );
 }
 
 if (failures.length) {
   process.stderr.write(
     `Colour pairs below WCAG AA contrast:\n${failures.join('\n')}\n\n` +
-    'Use the per-theme ink token for the fill (--on-primary, --on-danger, ...) ' +
-    'or a lighter scale step for text on a subtle background.\n'
+      'Use the per-theme ink token for the fill (--on-primary, --on-danger, ...) ' +
+      'or a lighter scale step for text on a subtle background.\n',
   );
 }
 
 if (literals.length) {
   process.stderr.write(
     `Colour properties written as a literal instead of a token:\n${literals.join('\n')}\n\n` +
-    'If the value is data rather than styling, add the file to LITERAL_ALLOWED ' +
-    'in this script with the reason.\n\n'
+      'If the value is data rather than styling, add the file to LITERAL_ALLOWED ' +
+      'in this script with the reason.\n\n',
   );
 }
 
@@ -253,7 +269,8 @@ const COLOUR_UTILITY = new RegExp(
 
 // An arbitrary value (`text-[#9ca3af]`, `bg-(--x,#fff)`, `hover:bg-[rgba(...)]`)
 // names its colour inline, so it bypasses the bridge and ignores the theme.
-const ARBITRARY_COLOUR = /(?<![\w-])(?:[^\s'"`]*:)?(?:bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|divide|outline|fill|stroke|placeholder|from|via|to|accent|caret|decoration)-[\[(][^\])\s]*(?:#[0-9a-f]{3,8}|rgba?\(|hsla?\(|oklch\(|--)[^\])\s]*[\])]/gi;
+const ARBITRARY_COLOUR =
+  /(?<![\w-])(?:[^\s'"`]*:)?(?:bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|divide|outline|fill|stroke|placeholder|from|via|to|accent|caret|decoration)-[\[(][^\])\s]*(?:#[0-9a-f]{3,8}|rgba?\(|hsla?\(|oklch\(|--)[^\])\s]*[\])]/gi;
 // A colour literal anywhere else in a kit template, such as a style binding.
 const TEMPLATE_LITERAL = /(?<![\w&])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b|\b(?:rgba?|hsla?)\(\s*\d[^)]*\)/gi;
 
@@ -266,8 +283,9 @@ async function readBridge() {
     const match = /^--(background-color|text-color|border-color|ring-color)-(.+)$/.exec(name);
     if (match) mapping.set(`${match[1]}:${match[2]}`, value);
   }
-  const sources = [...css.matchAll(/@source\s+['"]([^'"]+)['"]/g)]
-    .map(match => path.join(srcRoot, match[1].split('*')[0]));
+  const sources = [...css.matchAll(/@source\s+['"]([^'"]+)['"]/g)].map((match) =>
+    path.join(srcRoot, match[1].split('*')[0]),
+  );
   return { inline: Boolean(theme[1]), mapping, sources };
 }
 
@@ -275,7 +293,7 @@ async function templateFiles(directory) {
   const found = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
-    if (entry.isDirectory()) found.push(...await templateFiles(absolute));
+    if (entry.isDirectory()) found.push(...(await templateFiles(absolute)));
     else if (/\.(html|ts)$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) found.push(absolute);
   }
   return found;
@@ -289,8 +307,8 @@ let bridgeChecked = 0;
 if (!bridge.inline) {
   bridgeProblems.push(
     `${path.relative(webRoot, bridgeFile)}: the bridge must be \`@theme inline\`. A plain \`@theme\` ` +
-    'declares its variables in `@layer theme`, where an unlayered token of the same name ' +
-    '(--color-white) overrides it and the utility stops following the theme.'
+      'declares its variables in `@layer theme`, where an unlayered token of the same name ' +
+      '(--color-white) overrides it and the utility stops following the theme.',
   );
 }
 if (!bridge.sources.length) {
@@ -298,9 +316,11 @@ if (!bridge.sources.length) {
 }
 
 for (const [key, value] of bridge.mapping) {
-  const colour = THEMES.map(theme => resolveColour(value, tokens[theme]));
-  if (colour.some(hex => !hex)) {
-    bridgeProblems.push(`${path.relative(webRoot, bridgeFile)} --${key.replace(':', '-')}: ${value} does not resolve to a colour in both themes`);
+  const colour = THEMES.map((theme) => resolveColour(value, tokens[theme]));
+  if (colour.some((hex) => !hex)) {
+    bridgeProblems.push(
+      `${path.relative(webRoot, bridgeFile)} --${key.replace(':', '-')}: ${value} does not resolve to a colour in both themes`,
+    );
   }
 }
 
@@ -311,13 +331,17 @@ for (const root of bridge.sources) {
     if (LITERAL_ALLOWED.has(relative.split(path.sep).join('/'))) continue;
     const lines = (await readFile(file, 'utf8')).split('\n');
     lines.forEach((text, index) => {
-      const arbitrary = [...text.matchAll(ARBITRARY_COLOUR)].map(match => match[0]);
+      const arbitrary = [...text.matchAll(ARBITRARY_COLOUR)].map((match) => match[0]);
       for (const utility of arbitrary) {
-        bridgeProblems.push(`${relative}:${index + 1} ${utility}: an arbitrary colour bypasses the bridge and ignores the theme; use a bridged utility`);
+        bridgeProblems.push(
+          `${relative}:${index + 1} ${utility}: an arbitrary colour bypasses the bridge and ignores the theme; use a bridged utility`,
+        );
       }
       const rest = arbitrary.reduce((line, utility) => line.replace(utility, ''), text);
       for (const literal of rest.matchAll(TEMPLATE_LITERAL)) {
-        bridgeProblems.push(`${relative}:${index + 1} ${literal[0]}: a colour literal in a kit template ignores the theme; name a token from styles.css`);
+        bridgeProblems.push(
+          `${relative}:${index + 1} ${literal[0]}: a colour literal in a kit template ignores the theme; name a token from styles.css`,
+        );
       }
 
       const used = [];
@@ -325,12 +349,16 @@ for (const root of bridge.sources) {
         const utility = `${variants}${prefix}-${name}${alpha ?? ''}`;
         const namespace = UTILITY_NAMESPACE[prefix];
         if (!namespace) {
-          bridgeProblems.push(`${relative}:${index + 1} ${utility}: the bridge maps no \`${prefix}-\` colours, so this renders uncoloured`);
+          bridgeProblems.push(
+            `${relative}:${index + 1} ${utility}: the bridge maps no \`${prefix}-\` colours, so this renders uncoloured`,
+          );
           continue;
         }
         const value = bridge.mapping.get(`${namespace}:${name}`);
         if (!value) {
-          bridgeProblems.push(`${relative}:${index + 1} ${utility}: --${namespace}-${name} is not in the bridge, so this renders uncoloured`);
+          bridgeProblems.push(
+            `${relative}:${index + 1} ${utility}: --${namespace}-${name} is not in the bridge, so this renders uncoloured`,
+          );
           continue;
         }
         used.push({ utility, variants, prefix, value, alpha });
@@ -339,12 +367,12 @@ for (const root of bridge.sources) {
       // Opacity makes the result depend on what renders behind it, the same
       // reason the rule audit skips alpha.
       if (/(?<![\w-])opacity-(?!100\b)\d+/.test(text)) return;
-      const opaque = used.filter(entry => !entry.alpha);
-      for (const background of opaque.filter(entry => entry.prefix === 'bg')) {
+      const opaque = used.filter((entry) => !entry.alpha);
+      for (const background of opaque.filter((entry) => entry.prefix === 'bg')) {
         // A `hover:` background is read against the `hover:` text if there is
         // one, and against the resting text otherwise.
-        const texts = opaque.filter(entry => entry.prefix === 'text' && entry.variants === background.variants);
-        const inks = texts.length ? texts : opaque.filter(entry => entry.prefix === 'text' && entry.variants === '');
+        const texts = opaque.filter((entry) => entry.prefix === 'text' && entry.variants === background.variants);
+        const inks = texts.length ? texts : opaque.filter((entry) => entry.prefix === 'text' && entry.variants === '');
         for (const ink of inks) {
           for (const theme of THEMES) {
             const bg = resolveColour(background.value, tokens[theme]);
@@ -355,7 +383,7 @@ for (const root of bridge.sources) {
             if (ratio < AA_NORMAL) {
               bridgeFailures.push(
                 `${relative}:${index + 1} [${theme}] ${ink.utility} on ${background.utility} = ` +
-                `${fg} on ${bg} = ${ratio.toFixed(2)}:1, below ${AA_NORMAL.toFixed(1)}:1`
+                  `${fg} on ${bg} = ${ratio.toFixed(2)}:1, below ${AA_NORMAL.toFixed(1)}:1`,
               );
             }
           }
@@ -372,15 +400,15 @@ if (!bridgeChecked && !bridgeProblems.length) {
 if (bridgeProblems.length) {
   process.stderr.write(
     `Tailwind bridge problems:\n${[...new Set(bridgeProblems)].join('\n')}\n\n` +
-    'Map the colour in the @theme block of tailwind.css to a token from styles.css, ' +
-    'under the namespace of the utility that uses it.\n\n'
+      'Map the colour in the @theme block of tailwind.css to a token from styles.css, ' +
+      'under the namespace of the utility that uses it.\n\n',
   );
 }
 
 if (bridgeFailures.length) {
   process.stderr.write(
     `Tailwind colour pairs below WCAG AA contrast:\n${[...new Set(bridgeFailures)].join('\n')}\n\n` +
-    'Change the mapping in tailwind.css, not the vendored template.\n\n'
+      'Change the mapping in tailwind.css, not the vendored template.\n\n',
   );
 }
 
@@ -390,7 +418,7 @@ if (failures.length || undefinedTokens.length || literals.length || bridgeProble
 
 process.stdout.write(
   `Design token audit passed: ${checked} colour pairs at or above WCAG AA in ` +
-  `light and dark themes, every colour property naming a token outside the ` +
-  `${LITERAL_ALLOWED.size} files where the value is data; ${bridge.mapping.size} bridged ` +
-  `Tailwind colours resolving in both themes, ${bridgeChecked} utility pairs at or above AA.\n`
+    `light and dark themes, every colour property naming a token outside the ` +
+    `${LITERAL_ALLOWED.size} files where the value is data; ${bridge.mapping.size} bridged ` +
+    `Tailwind colours resolving in both themes, ${bridgeChecked} utility pairs at or above AA.\n`,
 );

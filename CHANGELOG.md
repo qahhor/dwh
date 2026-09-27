@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The web application is linted and formatted (plan 10/10, item 1.1).
+  `npm run lint` runs ESLint 10 with typescript-eslint and angular-eslint
+  (OnPush, signal inputs, outputs and queries, built-in control flow, template
+  accessibility, no `any`), Stylelint 17 (unknown properties and at-rules,
+  duplicates, colours outside the design tokens) and a Prettier check; CI runs
+  it in the frontend job. The 1,893 ESLint violations of 2026-09-28 are kept
+  in `eslint-suppressions.json`: a new one fails, a fixed one must be pruned.
+  The web sources were formatted once with Prettier 3.9; that commit is listed
+  in `.git-blame-ignore-revs`.
 - Test coverage is measured and cannot drop (plan 10/10, item 1.4). JaCoCo
   0.8.15 reports every Maven module and checks its floor in `verify` (server:
   83 % lines, 69 % branches); the business modules of the server keep their

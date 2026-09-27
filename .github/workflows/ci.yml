@@ -92,6 +92,12 @@ jobs:
         working-directory: apps/web
         run: npm ci
 
+      # Plan 10/10, item 1.1. The ESLint violations of 2026-09-28 live in eslint-suppressions.json:
+      # a new one fails here, and so does a fixed one that is still listed (npm run lint:prune).
+      - name: Lint (ESLint, Stylelint, Prettier)
+        working-directory: apps/web
+        run: npm run lint
+
       - name: Validate design token contrast contract
         working-directory: apps/web
         run: npm run contrast:audit

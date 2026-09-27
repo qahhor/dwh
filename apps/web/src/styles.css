@@ -131,6 +131,7 @@
 /* ============================================================
    Layer 2 — semantic tokens. Components reference only these.
    ============================================================ */
+/* stylelint-disable-next-line no-duplicate-selectors -- the two token layers are kept apart on purpose. */
 :root {
   /* Colors - Light Theme (Default) */
   --bg-app: var(--color-slate-50);
@@ -222,7 +223,7 @@
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --bg-app: var(--color-navy-950);
   --bg-surface: var(--color-navy-800);
   --bg-sidebar: var(--color-navy-900);
@@ -289,7 +290,8 @@
   }
 }
 
-html, body {
+html,
+body {
   height: 100%;
   width: 100%;
   font-family: var(--font-family);
@@ -319,6 +321,7 @@ html, body {
 
 /* Material Symbols */
 .material-symbols-outlined {
+  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword -- a fallback font would print the ligature names. */
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
@@ -341,14 +344,6 @@ html, body {
 .mono {
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 }
-
-
-
-
-
-
-
-
 
 /* Status Badges */
 .badge {
@@ -386,7 +381,8 @@ html, body {
   color: var(--warning-text);
 }
 
-.badge-info, .badge-primary {
+.badge-info,
+.badge-primary {
   background-color: var(--primary-subtle);
   color: var(--primary-text);
 }
@@ -476,11 +472,6 @@ html, body {
 .search-input:focus {
   border-color: var(--primary);
 }
-
-
-
-
-
 
 /* Card & Table Standard */
 .table-card {
