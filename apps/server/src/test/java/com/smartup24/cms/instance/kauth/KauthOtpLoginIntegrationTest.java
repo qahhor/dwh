@@ -14,7 +14,6 @@ import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
 import com.smartup24.cms.instance.kauth.service.KauthCredentialGuard;
-import com.smartup24.cms.instance.kauth.service.KauthFailureRecorder;
 import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
@@ -100,10 +99,9 @@ class KauthOtpLoginIntegrationTest {
                 List.of(storageStub()), List.of(mailStub()), List.of(smsStub()), List.of(messenger),
                 "local", "console_mail", "console_sms", "telegram");
         var sender = new KauthOtpSender(registry);
-        var failures = new KauthFailureRecorder(new KauthLoginAttemptRepository(jdbc), otpCodeRepository, auditLogService);
         channelService = new KauthChannelService(channelRepository, otpCodeRepository, sender, auditLogService,
                 new KauthCredentialGuard(new KauthSessionRepository(jdbc),
-                        new KauthApiTokenRepository(jdbc)), failures);
+                        new KauthApiTokenRepository(jdbc)));
 
         var scopes = new MdScopeService(
                 new MdScopeRepository(jdbc),
@@ -130,8 +128,7 @@ class KauthOtpLoginIntegrationTest {
                 new PasswordValidator(),
                 auditLogService,
                 channelService,
-                sender,
-                failures);
+                sender);
     }
 
     @Test

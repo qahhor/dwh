@@ -32,7 +32,6 @@ public class KauthAuthService {
     private final AuditLogService auditLogService;
     private final KauthChannelService channelService;
     private final KauthOtpSender otpSender;
-    private final KauthFailureRecorder failures;
     private final SecureRandom secureRandom = new SecureRandom();
     /** Hash an unknown login is checked against, so that it costs one Argon2 verification like a known one. */
     private volatile String dummyPasswordHash;
@@ -46,8 +45,7 @@ public class KauthAuthService {
             PasswordValidator passwordValidator,
             AuditLogService auditLogService,
             KauthChannelService channelService,
-            KauthOtpSender otpSender,
-            KauthFailureRecorder failures) {
+            KauthOtpSender otpSender) {
         this.userService = userService;
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
@@ -57,29 +55,32 @@ public class KauthAuthService {
         this.auditLogService = auditLogService;
         this.channelService = channelService;
         this.otpSender = otpSender;
-        this.failures = failures;
     }
 
 
     /**
      * The answer does not tell which logins exist (plan 10/10, item 0.6): an unknown login costs one Argon2
      * verification like a wrong password, both answer "invalid credentials", and a blocked account shows its state
-     * only after the right password. Refusals are recorded by {@link KauthFailureRecorder} in a transaction of their
-     * own: the rollback of this one used to erase them, so the lockout never counted a failure.
+     * only after the right password.
+     *
+     * <p>A refusal ({@link ApiException}) commits: the rollback it used to cause erased the attempt the lockout counts
+     * and the security event, so five wrong passwords never locked anything. Only refused credentials are counted;
+     * a refusal by the lockout itself is logged, not counted, otherwise every try during the lock would renew it.
+     * Other exceptions still roll everything back.
      */
-    @Transactional
+    @Transactional(noRollbackFor = ApiException.class)
     public LoginResult login(String login, String password, String ip, String userAgent, String deviceInfo) {
         Instant tenMinutesAgo = Instant.now().minusSeconds(600);
 
         int failedIp = loginAttemptRepository.countFailedAttemptsForIpSince(ip, tenMinutesAgo);
         if (failedIp >= MAX_FAILED_ATTEMPTS_PER_IP) {
-            failures.loginRefused("IP_RATE_LIMITED", login, ip, userAgent, null, "IP_RATE_LIMITED");
+            auditLogService.logSecurityEvent("IP_RATE_LIMITED", null, ip, userAgent, Map.of("login", login));
             throw ApiException.locked(ErrorCode.RATE_LIMITED, "Слишком много неудачных попыток входа с вашего IP");
         }
 
         int failedUser = loginAttemptRepository.countFailedAttemptsForLoginSince(login, tenMinutesAgo);
         if (failedUser >= MAX_FAILED_ATTEMPTS_PER_USER) {
-            failures.loginRefused("LOGIN_LOCKED", login, ip, userAgent, null, "USER_LOCKED");
+            auditLogService.logSecurityEvent("LOGIN_LOCKED", null, ip, userAgent, Map.of("login", login));
             throw ApiException.locked(ErrorCode.LOGIN_LOCKED, "Учётная запись временно заблокирована из-за частых ошибок ввода пароля");
         }
 
@@ -88,15 +89,14 @@ public class KauthAuthService {
         boolean passwordMatches = passwordHasher.verifyPassword(password,
                 storedHash != null ? storedHash : dummyPasswordHash());
         if (userOpt.isEmpty() || storedHash == null || !passwordMatches) {
-            failures.loginRefused("LOGIN_FAILED", login, ip, userAgent,
-                    userOpt.map(MdUserService.AuthUser::id).orElse(null),
+            refuse(login, ip, userAgent, userOpt.map(MdUserService.AuthUser::id).orElse(null),
                     userOpt.isEmpty() ? "USER_NOT_FOUND" : "INVALID_PASSWORD");
             throw ApiException.invalidCredentials();
         }
 
         var user = userOpt.get();
         if (MdPref.STATE_PASSIVE.equals(user.state())) {
-            failures.loginRefused("LOGIN_FAILED", login, ip, userAgent, user.id(), "USER_BLOCKED");
+            refuse(login, ip, userAgent, user.id(), "USER_BLOCKED");
             throw ApiException.conflict(ErrorCode.USER_BLOCKED, "Учётная запись заблокирована");
         }
 
@@ -138,7 +138,12 @@ public class KauthAuthService {
         return LoginResult.success(sessionToken, user, session);
     }
 
-    @Transactional
+    /**
+     * Like {@link #login}, a refusal commits: the attempt a wrong code used stays used. The attempt is taken before
+     * the comparison ({@link KauthOtpCodeRepository#claimAttempt}); its row lock makes parallel guesses of one code
+     * wait for each other, so a code gets exactly as many comparisons as it has attempts.
+     */
+    @Transactional(noRollbackFor = ApiException.class)
     public LoginResult verifyOtp(String otpToken, String code, String ip, String userAgent, String deviceInfo) {
         if (otpToken == null || otpToken.isBlank()) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
@@ -154,9 +159,12 @@ public class KauthAuthService {
             throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия OTP-кода истёк");
         }
 
+        // No attempt to claim: another request used the code, or took its last attempt, while this one waited.
+        if (!otpCodeRepository.claimAttempt(otp.id())) {
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+        }
         String inputHash = KauthPasswordHasher.sha256(code);
         if (!inputHash.equals(otp.codeHash())) {
-            failures.otpAttemptSpent(otp.id());
             if (otp.attemptsLeft() <= 1) {
                 throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "Превышено количество попыток ввода OTP");
             }
@@ -183,6 +191,11 @@ public class KauthAuthService {
         }
 
         return LoginResult.success(sessionToken, user, session);
+    }
+
+    private void refuse(String login, String ip, String userAgent, Long userId, String reason) {
+        loginAttemptRepository.recordAttempt(login, ip, false, reason);
+        auditLogService.logSecurityEvent("LOGIN_FAILED", userId, ip, userAgent, Map.of("login", login, "reason", reason));
     }
 
     private String dummyPasswordHash() {

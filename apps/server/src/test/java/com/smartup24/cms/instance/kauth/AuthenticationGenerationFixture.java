@@ -86,12 +86,10 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
                 context.getBean(UserSessionInvalidator.class),mock(SearchChangePublisher.class),audit,scopes));
         var guard=new KauthCredentialGuard(sessions,tokens);
         context.registerBean(KauthApiTokenService.class,() -> new KauthApiTokenService(tokens,guard));
-        context.registerBean(KauthFailureRecorder.class,() -> new KauthFailureRecorder(new KauthLoginAttemptRepository(jdbc),otps,audit));
-        context.registerBean(KauthChannelService.class,() -> new KauthChannelService(channels,otps,sender,audit,guard,
-                context.getBean(KauthFailureRecorder.class)));
+        context.registerBean(KauthChannelService.class,() -> new KauthChannelService(channels,otps,sender,audit,guard));
         context.registerBean(KauthAuthService.class,() -> new KauthAuthService(context.getBean(MdUserService.class),sessions,new KauthLoginAttemptRepository(jdbc),
                 otps,hasher,new PasswordValidator(),audit,
-                context.getBean(KauthChannelService.class),sender,context.getBean(KauthFailureRecorder.class)));
+                context.getBean(KauthChannelService.class),sender));
         context.refresh();
         userService=context.getBean(MdUserService.class);
         invalidator=context.getBean(UserSessionInvalidator.class);

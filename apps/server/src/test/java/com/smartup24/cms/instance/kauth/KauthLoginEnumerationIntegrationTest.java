@@ -8,8 +8,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import static com.smartup24.cms.instance.kauth.AuthenticationGenerationFixture.OLD_PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,7 +24,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Plan 10/10, item 0.6: a login attempt must not tell which accounts exist, and a refused attempt must leave its
- * trace. Runs through the real Spring transaction proxy: without one the rollback that erased the trace is invisible.
+ * trace. Runs through the real Spring transaction proxy: without one the rollback that erased the trace is invisible,
+ * and so is a second connection taken per request (parallel refusals must not exhaust the pool).
  */
 class KauthLoginEnumerationIntegrationTest {
 
@@ -47,6 +55,67 @@ class KauthLoginEnumerationIntegrationTest {
 
         assertRefused(() -> f.auth.login(login, OLD_PASSWORD, "10.2.0.1", "ua", "web"), ErrorCode.LOGIN_LOCKED);
         assertThat(securityEvents(id, "LOGIN_FAILED")).as("every refusal is in the security log").isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("Attempts during the lock do not renew it: only refused credentials count")
+    void attemptsDuringTheLockDoNotRenewIt() {
+        Long id = f.user(false, false);
+        String login = login(id);
+        for (int i = 0; i < 5; i++) {
+            String wrong = "Wrong-Password-" + i;
+            assertRefused(() -> f.auth.login(login, wrong, "10.2.0.9", "ua", "web"), ErrorCode.INVALID_CREDENTIALS);
+        }
+        for (int i = 0; i < 3; i++) {
+            assertRefused(() -> f.auth.login(login, OLD_PASSWORD, "10.2.0.9", "ua", "web"), ErrorCode.LOGIN_LOCKED);
+        }
+
+        assertThat(f.jdbc.sql("select count(*) from kauth_login_attempts where login = :login and not is_success")
+                .param("login", login).query(Long.class).single())
+                .as("the lock ends ten minutes after the fifth wrong password, whatever happens meanwhile")
+                .isEqualTo(5);
+        assertThat(lockEvents(login)).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("Parallel guesses of a one-time code get no more comparisons than the code has attempts")
+    void parallelGuessesAreLimited() throws Exception {
+        Long id = f.user(false, true);
+        var started = f.auth.login(login(id), OLD_PASSWORD, "10.2.0.10", "ua", "web");
+        String code = f.deliveredCodes.get(id);
+        String wrong = code.equals("000000") ? "111111" : "000000";
+
+        int guesses = 12;
+        CountDownLatch start = new CountDownLatch(1);
+        List<Callable<String>> calls = new ArrayList<>();
+        for (int i = 0; i < guesses; i++) {
+            calls.add(() -> {
+                start.await();
+                try {
+                    f.auth.verifyOtp(started.otpToken(), wrong, "10.2.0.10", "ua", "web");
+                    return "accepted";
+                } catch (ApiException e) {
+                    return e.getMessage();
+                }
+            });
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(guesses);
+        try {
+            List<Future<String>> results = new ArrayList<>();
+            for (var call : calls) {
+                results.add(pool.submit(call));
+            }
+            start.countDown();
+            long compared = 0;
+            for (var result : results) {
+                if (result.get().contains("Неверный код")) {
+                    compared++;
+                }
+            }
+            assertThat(compared).as("comparisons of a code with three attempts").isLessThanOrEqualTo(3);
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test
@@ -114,6 +183,14 @@ class KauthLoginEnumerationIntegrationTest {
     private static long securityEvents(Long userId, String eventType) {
         return f.jdbc.sql("select count(*) from security_events where user_id = :id and event_type = :type")
                 .param("id", userId).param("type", eventType).query(Long.class).single();
+    }
+
+    private static long lockEvents(String login) {
+        return f.jdbc.sql("""
+                        select count(*) from security_events
+                        where user_id is null and event_type = 'LOGIN_LOCKED' and details ->> 'login' = :login
+                        """)
+                .param("login", login).query(Long.class).single();
     }
 
     private static long p95(long[] samples) {

@@ -48,21 +48,18 @@ public class KauthChannelService {
     private final KauthOtpSender otpSender;
     private final AuditLogService auditLogService;
     private final KauthCredentialGuard credentialGuard;
-    private final KauthFailureRecorder failures;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public KauthChannelService(KauthChannelRepository channelRepository,
                                KauthOtpCodeRepository otpCodeRepository,
                                KauthOtpSender otpSender,
                                AuditLogService auditLogService,
-                               KauthCredentialGuard credentialGuard,
-                               KauthFailureRecorder failures) {
+                               KauthCredentialGuard credentialGuard) {
         this.channelRepository = channelRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.otpSender = otpSender;
         this.auditLogService = auditLogService;
         this.credentialGuard = credentialGuard;
-        this.failures = failures;
     }
 
     @Transactional(readOnly = true)
@@ -103,8 +100,12 @@ public class KauthChannelService {
         return verifyToken;
     }
 
-    /** Подтверждение владения адресом. Пока не подтверждён — код входа туда не уйдёт. */
-    @Transactional
+    /**
+     * Подтверждение владения адресом. Пока не подтверждён — код входа туда не уйдёт.
+     *
+     * <p>Отказ ({@link ApiException}) фиксирует транзакцию: откат возвращал списанную попытку (план 10/10, 0.6).
+     */
+    @Transactional(noRollbackFor = ApiException.class)
     public void confirmChannel(KauthPrincipal principal, String verifyToken, String code) {
         credentialGuard.requireCurrent(principal);
         Long userId = principal.userId();
@@ -118,9 +119,11 @@ public class KauthChannelService {
         if (otp.expiresAt().isBefore(Instant.now())) {
             throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия кода подтверждения истёк");
         }
+        // Попытка берётся до сравнения: сравнение до списания пропускало параллельные подборы.
+        if (!otpCodeRepository.claimAttempt(otp.id())) {
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
+        }
         if (!KauthPasswordHasher.sha256(code).equals(otp.codeHash())) {
-            // Committed apart: the rollback on the refusal below used to give the attempt back (plan 10/10, 0.6).
-            failures.otpAttemptSpent(otp.id());
             if (otp.attemptsLeft() <= 1) {
                 throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "Превышено количество попыток");
             }
@@ -156,7 +159,7 @@ public class KauthChannelService {
      * Отсутствие такого канала — отказ входа с внятной причиной, а не код,
      * отправленный в никуда.
      */
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, noRollbackFor = ApiException.class)
     public KauthChannelRepository.ChannelRecord resolveOtpChannel(Long userId) {
         var channels = channelRepository.findByUserId(userId);
         for (String preferred : OTP_CHANNEL_PRIORITY) {

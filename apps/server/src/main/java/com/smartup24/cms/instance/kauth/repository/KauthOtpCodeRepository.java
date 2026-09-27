@@ -77,14 +77,21 @@ public class KauthOtpCodeRepository {
                 .optional();
     }
 
-    public void decrementAttempts(Long otpId) {
-        jdbcClient.sql("""
+    /**
+     * Takes one attempt of the code before the code is compared (plan 10/10, item 0.6). Comparing first and counting
+     * afterwards let parallel guesses through: every request read the same number of attempts left, and only the
+     * ones that came later were stopped. One conditional update per guess makes the limit exact.
+     *
+     * @return {@code false} when no attempt is left or the code is used or expired
+     */
+    public boolean claimAttempt(Long otpId) {
+        return jdbcClient.sql("""
                 update kauth_otp_codes
                 set attempts_left = attempts_left - 1
-                where id = :otpId
+                where id = :otpId and attempts_left > 0 and not is_used and expires_at > now()
                 """)
                 .param("otpId", otpId)
-                .update();
+                .update() == 1;
     }
 
     public boolean consume(Long otpId, Long userId, long authenticationVersion, String purpose) {
@@ -92,7 +99,7 @@ public class KauthOtpCodeRepository {
                 update kauth_otp_codes o set is_used = true
                 where o.id = :otpId and o.user_id = :userId and o.purpose = :purpose
                   and o.auth_version = :authenticationVersion and not o.is_used
-                  and o.attempts_left > 0 and o.expires_at > now()
+                  and o.attempts_left >= 0 and o.expires_at > now()
                   and exists (select 1 from md_users u where u.id = o.user_id
                               and u.state = 'A' and u.auth_version = o.auth_version)
                 """)

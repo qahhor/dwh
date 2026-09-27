@@ -968,8 +968,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   attempt and security event inside the login transaction, and the exception
   rolled both back: five wrong passwords never locked anything, the security
   log never saw a refusal, and a wrong one-time code never lost an attempt.
-  `KauthFailureRecorder` now commits these apart (`REQUIRES_NEW`) while login
-  and code checks stay atomic. Login no longer tells which accounts exist: an
+  A refusal (`ApiException`) now commits with the login transaction
+  (`noRollbackFor`), on the one connection the request already holds; any
+  other exception still rolls everything back. Only refused credentials feed
+  the lockout: a refusal by the lock itself is logged, not counted, so trying
+  during the lock does not renew it. A one-time code (login or channel
+  confirmation) takes its attempt before the comparison, under a row lock:
+  parallel guesses get no more comparisons than the code has attempts. Login no longer tells which accounts exist: an
   unknown login costs one Argon2 check like a wrong password, both answer
   "invalid credentials", and a blocked account shows its state only after the
   right password.
