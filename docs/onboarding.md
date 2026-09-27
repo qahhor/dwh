@@ -6,7 +6,7 @@ without requiring historical audit documents.
 ## 1. Product and operating model
 
 Read [README](../README.md), the
-[unified open-source design](superpowers/specs/2026-09-02-smartupcms-unified-open-source-design.md),
+[ADR-0014](adr/ADR-0014-unified-open-source-runtime.md),
 and [ADR-0006](adr/ADR-0006-modular-monolith.md). The essential constraints are:
 
 - one installation belongs to one organization and serves many users;
@@ -51,8 +51,7 @@ Read these documents before changing their area:
 - [Database migrations](guidelines/database-migrations.md) and
   [testing strategy](guidelines/testing-strategy.md).
 
-Treat `docs/audit`, `docs/superpowers/plans`, and superseded ADRs as historical
-evidence. Check current code and active operations docs before acting on them.
+Treat superseded ADRs as historical evidence. Check current code and active operations docs before acting on them.
 
 ## 4. Verify the workspace
 

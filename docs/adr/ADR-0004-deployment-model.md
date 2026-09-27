@@ -4,7 +4,7 @@
 **Дата:** 2026-08-27
 **Заменяет:** ADR-0003 разд. 2.1 (изоляция через общие таблицы + company_id + RLS)
 **Зависит от:** ADR-0001, ADR-0002
-**Заменено решением:** [SmartupCMS unified open-source design](../superpowers/specs/2026-09-02-smartupcms-unified-open-source-design.md)
+**Заменено решением:** [ADR-0014](ADR-0014-unified-open-source-runtime.md)
 
 > Историческая запись. Активная модель: одна самостоятельная установка
 > SmartupCMS для одной организации и многих пользователей, без центрального

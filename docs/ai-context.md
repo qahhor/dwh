@@ -48,7 +48,7 @@ per-installation: примерно 100 установок, 500 зарегист�
    ADR согласно [индексу документации](README.md);
 4. код, миграции, Compose и автоматические проверки;
 5. активные engineering/operations/security документы;
-6. `audit/` и `docs/superpowers/` только как датированная история и evidence.
+6. Датированные аудиты и планы удалены из дерева; история — в git.
 
 Неподтверждённые локальные audit-черновики не являются требованиями и не должны
 попадать в committed-документацию или Graphify до отдельной сверки.
@@ -418,7 +418,7 @@ serious/critical нарушений. Реальная смена пароля и
 ### Текущая локальная работа — Authentication generation, 2026-09-06
 
 Реализован согласованный механизм монотонной версии доступа из
-[дизайна authentication generation](superpowers/specs/2026-09-06-authentication-generation-design.md):
+дизайна authentication generation:
 смена пароля, блокировка и анонимизация увеличивают версию; разблокировка
 версию не меняет. Cookie-сессии, API-токены и login/channel OTP принимаются
 только при совпадении сохранённой версии с активным пользователем. Публичные
@@ -452,7 +452,7 @@ review; `localhost:4200`, production, push и deploy не изменялись. 
 
 ### Текущая локальная работа — Projects interaction и E2E, 2026-09-06
 
-По подтверждённому пользователем [плану трёх follow-up задач](superpowers/plans/2026-09-06-projects-interaction-e2e-quality.md)
+По подтверждённому пользователем плану трёх follow-up задач
 реализованы правдивые подписи закрытых задач, native form/keyboard interaction
 и постоянные браузерные регрессии Projects. Source commits: `96ac5d5`,
 `adcb531`, `e3e0627`; E2E commits — `b958a58`, `4a5f764`.
@@ -527,7 +527,7 @@ PostgreSQL и Typesense не пересоздавались; именованн�
 Предыдущие server/web images сохранены локальными тегами `before-41ec91d`.
 Это обновление локальной dev-установки, не production deploy или release gate.
 
-Затем по [плану Projects editor](superpowers/plans/2026-09-06-projects-editor-quality.md)
+Затем по плану Projects editor
 реализованы `b321599` и `8912e00`: защита create/edit-черновиков подтверждением,
 fresh GET перед редактированием с retry, блокировка полей и закрытия во время
 сохранения, защита повторной отправки и устаревших callbacks. PATCH содержит
@@ -599,7 +599,7 @@ Push не выполнялся.
 
 ### Предыдущий локальный пакет — Projects list, 2026-09-06
 
-По подтверждённому пользователем [первому пакету Projects](superpowers/plans/2026-09-06-projects-list-quality.md)
+По подтверждённому пользователем первому пакету Projects
 реализован локальный commit `9ad7997`: фильтры сбрасывают страницу, reload
 ограничивает её доступным диапазоном и сохраняет фокус на созданном проекте.
 Список и статистика имеют независимые loading/error/retry-состояния и отмену
@@ -644,7 +644,7 @@ IAB-вкладки отсутствовали; viewport override сброшен.
 ### Текущая локальная работа — 2026-09-05
 
 Локально реализованы четырнадцать принятых исправлений качества Tasks по
-[плану Tasks Quality](superpowers/plans/2026-09-05-tasks-quality.md): PATCH
+плану Tasks Quality: PATCH
 различает отсутствие и явный `null`, изменения задачи и участников атомарны,
 комментарии содержат отображаемого автора, а UI защищает fresh edit/detail,
 точность времени, pending-формы и dirty-dismissal. Список задач и селекторы
@@ -700,7 +700,7 @@ Graphify повторно обновлён AST-only, но generated output ос�
 
 ### Ранее выполненный пакет I-01
 
-Начата последовательная реализация [release-hardening плана](superpowers/plans/2026-09-05-release-hardening.md).
+Начата последовательная реализация release-hardening плана.
 Разработка I-01 начиналась в `codex/release-hardening` от
 `710efeb55c03c2d444cfc8fd22dcefa01635e99c`. По прямому указанию пользователя
 работа перенесена в `main`; дальнейшую подготовку релиза вести в основной
@@ -723,7 +723,7 @@ Maven 3.9.16, Testcontainers с Docker Desktop) завершился успеш�
 не готовы для публикации из этой рабочей копии.
 
 Команды, ограничения и локальные log paths — в
-[плане I-01](superpowers/plans/2026-09-05-task-export-security.md).
+плане I-01.
 Перед публикацией на `main` повторно прошли: backend 334/334, frontend 107/107,
 typecheck/build, i18n audit 1009/1022, все семь configuration/docs gates,
 fail-closed deploy test, E2E config/typecheck/artifact-security и Chromium

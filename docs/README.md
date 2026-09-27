@@ -62,7 +62,6 @@ Historical, fully superseded decisions are retained for traceability only:
 - [Database migration guidelines](guidelines/database-migrations.md)
 - [Module development guide](guidelines/module-development-guide.md)
 - [Testing strategy](guidelines/testing-strategy.md)
-- [Centralized localization design](superpowers/specs/2026-09-04-centralized-localization-design.md)
 
 Engineering guidance explains how to implement the current requirements and
 decisions. It does not redefine either of them.
@@ -99,6 +98,5 @@ legal and ownership decisions.
   subordinate to this authority model and the canonical specification.
 - [Contribution guide](../CONTRIBUTING.md)
 
-`audit/` contains dated evidence and findings. `docs/superpowers/` contains
-implementation and design history. Neither location overrides the canonical ТЗ
-or a current ADR; consult them for traceability, not present-tense authority.
+Dated audit reports and agent plans were removed from the tree; git history
+keeps them. The canonical ТЗ and current ADRs are the only authority.
