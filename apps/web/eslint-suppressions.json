@@ -1552,9 +1552,6 @@
     },
     "@angular-eslint/no-output-rename": {
       "count": 1
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 10
     }
   },
   "src/app/shared/ui-kit/components/table/column-resize.directive.ts": {

@@ -831,6 +831,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Two accessibility defects that failed the axe gate (`npm run test:a11y`) on
+  main: the list of a select was named "Выбор значения" instead of its field
+  (the manager picker, for one), and a sortable header with the select-all
+  checkbox was a button with a checkbox inside it (nested controls). The list
+  now takes the label of its field, and in such a header the label is the
+  sort button beside the checkbox; Space on the checkbox no longer sorts.
 - A new password of 8 or 9 characters is accepted, as the password policy of
   2026-09-27 says (8..20): the change-password and create-user requests still
   required at least 10 characters (and allowed up to 100). Their limits now

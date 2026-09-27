@@ -43,8 +43,11 @@ import { SMTI18nService } from '../../../i18n';
     '[class.has-sorting]': `hasSorting()`,
     // A sortable header is a control: reachable by Tab and operable by Enter
     // and Space, not only by a pointer. `aria-sort` sits on the columnheader.
-    '[attr.role]': `hasSorting() ? 'button' : null`,
-    '[attr.tabindex]': `hasSorting() ? 0 : null`,
+    // With a select-all checkbox the header would nest one control in another
+    // (WCAG 4.1.2, axe nested-interactive): the label and its arrow are then the
+    // sort button, beside the checkbox.
+    '[attr.role]': `hasSorting() && !hasSelection() ? 'button' : null`,
+    '[attr.tabindex]': `hasSorting() && !hasSelection() ? 0 : null`,
     // Regular header cells keep min-h-9; checkbox-only column must not — it stacks with the cell wrapper.
     '[class.min-h-9]': '!selectionOnly()',
     // Dedicated checkbox column: same padding as body checkbox cells (Biruni ~9px).
@@ -67,31 +70,36 @@ export class SMTCellHeaderComponent implements OnInit, OnDestroy {
 
   private locale = inject(LOCALE_ID);
 
-  data = input.required<ColumnHeaderType>({ alias: 'smtData' });
+  readonly data = input.required<ColumnHeaderType>({ alias: 'smtData' });
 
-  hasSorting = input(false, { alias: 'smtHasSorting' });
+  readonly hasSorting = input(false, { alias: 'smtHasSorting' });
 
-  hasSelection = input(false, { alias: 'smtHasSelection' });
+  readonly hasSelection = input(false, { alias: 'smtHasSelection' });
 
   /** Biruni column `align` — header mirrors body. */
-  align = input<'left' | 'center' | 'right'>('left', { alias: 'smtAlign' });
+  readonly align = input<'left' | 'center' | 'right'>('left', { alias: 'smtAlign' });
 
-  selectedType = input<'all-selected' | 'not-selected' | 'partial-selected'>('not-selected', {
+  readonly selectedType = input<'all-selected' | 'not-selected' | 'partial-selected'>('not-selected', {
     alias: 'smtSelectedType',
   });
 
   checkboxClick = output<boolean>({ alias: 'smtCheckboxClick' });
 
-  sort = model<OrderBy | undefined>(undefined, { alias: 'smtSort' });
+  readonly sort = model<OrderBy | undefined>(undefined, { alias: 'smtSort' });
 
-  protected headerTextRef = viewChild<ElementRef<HTMLElement>>('headerText');
+  protected readonly headerTextRef = viewChild<ElementRef<HTMLElement>>('headerText');
 
-  protected isHeaderOverflowing = signal(false);
+  private readonly sortControlRef = viewChild<ElementRef<HTMLElement>>('sortControl');
 
-  protected tooltipText = computed(() => this.getHeaderTooltipText(this.data()));
+  protected readonly isHeaderOverflowing = signal(false);
+
+  protected readonly tooltipText = computed(() => this.getHeaderTooltipText(this.data()));
+
+  /** The sort button is the label, not the whole header, when the header also holds the select-all checkbox. */
+  protected readonly sortOnLabel = computed(() => this.hasSorting() && this.hasSelection());
 
   /** Dedicated Biruni checkbox column: selection UI only, no header label. */
-  protected selectionOnly = computed(() => {
+  protected readonly selectionOnly = computed(() => {
     if (!this.hasSelection()) return false;
     const data = this.data();
     if (data.type !== 'primitive') return false;
@@ -120,6 +128,9 @@ export class SMTCellHeaderComponent implements OnInit, OnDestroy {
       const disposeClick = this.renderer.listen(host, 'click', () => this.changeSorting());
       const disposeKey = this.renderer.listen(host, 'keydown', (event: KeyboardEvent) => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
+        // Only the sort button sorts: Space on the select-all checkbox toggles the checkbox.
+        const control = this.sortOnLabel() ? this.sortControlRef()?.nativeElement : host;
+        if (event.target !== control) return;
         event.preventDefault();
         this.changeSorting();
       });

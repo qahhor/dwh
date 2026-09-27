@@ -152,6 +152,9 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
 
   readonly open = signal(false);
 
+  /** The label of the field (a `<label for>` of the trigger), read on open: the list is named like its field. */
+  readonly listboxName = signal('');
+
   readonly query = signal('');
 
   /** Highlighted row: an index into `visibleOptions`, or NONE for the clearing row. */
@@ -267,6 +270,7 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     if (this.remoteSearch()) this.searchChange.emit(initialQuery);
     const selectedIndex = this.visibleOptions().findIndex((option) => this.isSelected(option));
     this.activeIndex.set(selectedIndex >= 0 ? selectedIndex : this.firstIndex());
+    this.listboxName.set(this.fieldLabel());
     this.open.set(true);
   }
 
@@ -426,6 +430,17 @@ export class SMTSelectComponent<T = unknown> implements FormValueControl<T | nul
     const owned = (modal.getAttribute('aria-owns') ?? '').split(/\s+/).filter((token) => token && token !== popupId);
     if (owned.length) modal.setAttribute('aria-owns', owned.join(' '));
     else modal.removeAttribute('aria-owns');
+  }
+
+  /** Text of the `<label for>` that names the trigger, without the required-field mark; empty when there is none. */
+  private fieldLabel(): string {
+    const id = this.fieldId();
+    const selectorId = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id;
+    const label = this.host.nativeElement.ownerDocument.querySelector(`label[for="${selectorId}"]`);
+    return (label?.textContent ?? '')
+      .replace(/\s+/g, ' ')
+      .replace(/\s*\*$/, '')
+      .trim();
   }
 
   private firstIndex(): number | null {

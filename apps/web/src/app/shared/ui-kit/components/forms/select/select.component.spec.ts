@@ -165,6 +165,14 @@ describe('SMTSelectComponent', () => {
     expect(trigger.getAttribute('aria-required')).toBe('true');
   });
 
+  it('names the open list like its field, without the required mark', async () => {
+    const { trigger, key } = await render(Host);
+
+    await key(trigger, 'Enter');
+
+    expect(document.querySelector('[role="listbox"]')!.getAttribute('aria-label')).toBe('Responsible');
+  });
+
   it('opens from the keyboard, focuses the search and highlights the chosen option', async () => {
     const { trigger, search, options, key } = await render(Host);
 
