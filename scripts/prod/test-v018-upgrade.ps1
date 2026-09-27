@@ -56,7 +56,12 @@ try {
         "compose", "-f", "docker-compose.yml", "--profile", "tools", "--profile", "backup",
         "build", "server", "web", "postgres", "typesense", "backup"
     )
-    $ageOutput = @(& docker run --rm --entrypoint age-keygen "smartupcms/backup:dev" 2>&1)
+    # age-keygen prints the public key on stderr; Windows PowerShell 5.1 turns a redirected stderr line into a
+    # terminating error under "Stop", so the call runs under "Continue" and is judged by its exit code.
+    $previousPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $ageOutput = @(& docker run --rm --entrypoint age-keygen "smartupcms/backup:dev" 2>&1 | ForEach-Object { "$_" })
+    $ErrorActionPreference = $previousPreference
     if ($LASTEXITCODE -ne 0) {
         throw "Could not generate the disposable age recipient."
     }
@@ -109,17 +114,23 @@ try {
 
     Invoke-Compose -Arguments @("run", "--rm", "backup-bootstrap")
     Invoke-Compose -Arguments @("run", "--rm", "--no-deps", "-e", "BACKUP_RUN_ONCE=true", "backup")
+    # No double quotes: Windows PowerShell 5.1 mangles them in a native command's argument.
     $backupAssertion = @'
-test -n "$(find /backups -maxdepth 1 -type f -name '*.dump.age' -size +0c -print -quit)" && grep -q '"status":"SUCCESS"' /status/status.json
+find /backups -maxdepth 1 -type f -name '*.dump.age' -size +0c | grep -q . && grep -q 'status.:.SUCCESS' /status/status.json
 '@
     Invoke-Compose -Arguments @(
         "run", "--rm", "--no-deps", "--entrypoint", "sh", "backup", "-ec", $backupAssertion
     )
 
     Invoke-Compose -Arguments @("run", "--rm", "migrate")
+    # The upgrade reaches the newest migration of this checkout, whatever its number.
+    $latest = Get-ChildItem -LiteralPath (Join-Path $repositoryRoot "apps/server/src/main/resources/db/migration") -Filter "V*__*.sql" |
+        ForEach-Object { [int]($_.Name -replace '^V(\d+)__.*$', '$1') } |
+        Measure-Object -Maximum
+    $expected = "{0:D3}" -f [int]$latest.Maximum
     $after = Get-SchemaVersion
-    if ($after -ne "019") {
-        throw "Expected V019 after the upgrade, found '$after'."
+    if ($after -ne $expected) {
+        throw "Expected V$expected after the upgrade, found '$after'."
     }
 
     Invoke-Compose -Arguments @("up", "-d", "--remove-orphans", "--wait")
@@ -138,10 +149,14 @@ test -n "$(find /backups -maxdepth 1 -type f -name '*.dump.age' -size +0c -print
         throw "Expected HTTP 200 from the unified origin, received $($response.StatusCode)."
     }
 
-    Write-Host "V018 backup, V019 migration, production health checks, and unified-origin HTTP 200 passed." -ForegroundColor Green
+    Write-Host "V018 backup, upgrade to V$expected, production health checks, and unified-origin HTTP 200 passed." -ForegroundColor Green
 }
 finally {
-    & docker @composeArguments down --volumes --remove-orphans *> $null
+    # Cleanup never replaces the error that brought us here.
+    if (Test-Path -LiteralPath $envFile) {
+        $ErrorActionPreference = "Continue"
+        & docker @composeArguments down --volumes --remove-orphans *> $null
+    }
     if (Test-Path -LiteralPath $temporaryDirectory) {
         Remove-Item -LiteralPath $temporaryDirectory -Recurse -Force
     }

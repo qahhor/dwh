@@ -9,6 +9,21 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- CI is faster and hides nothing (plan 10/10, item 1.8). A new push to a pull
+  request cancels the previous run, every job has a timeout, Maven builds
+  modules in parallel, Playwright browsers come from a cache, and the E2E
+  suite runs in two shards through `scripts/dev/test-e2e.ps1`. Browser tests
+  run without retries; a known unstable test goes to `e2e/quarantine.json`
+  and runs in a separate non-blocking step. A nightly workflow runs the
+  readiness drills, the production upgrade drill, the no-default-egress
+  observation, a live API smoke on a clean stack and Trivy against newly
+  published advisories; the repository hygiene contract fails when a check
+  script is run by no workflow. The upgrade drill now expects the newest
+  migration instead of V019 and runs under Windows PowerShell too; the API
+  smoke (`scripts/dev/test-api.ps1`) follows today's API: management on 9090,
+  the mandatory change of the first administrator's password, sessions ended
+  by a password change, allow-listed webhook hosts, the module registry, and
+  no longer prints a raw API token or a webhook secret prefix.
 - Static analysis and supply-chain scoring (plan 10/10, item 1.6). CodeQL
   analyses the Java server, the TypeScript of the web application and E2E
   suite, and the workflows (`security-extended`, no build needed) on every
@@ -805,6 +820,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A new password of 8 or 9 characters is accepted, as the password policy of
+  2026-09-27 says (8..20): the change-password and create-user requests still
+  required at least 10 characters (and allowed up to 100). Their limits now
+  come from `PasswordValidator`.
 - Task deadline reminders are saved again (item 0.4): the worker used the
   notification type `deadline_warning`, which the `ms_notifications` check
   constraint rejects, so no reminder was ever created. It now uses `warning`,

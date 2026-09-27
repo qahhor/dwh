@@ -1,9 +1,28 @@
 # ============================================================================
 # DWH Platform - End-to-End Live API Verification Script
 # ============================================================================
+# The nightly workflow runs it against a disposable Compose stack whose server ports are published on 127.0.0.1
+# (scripts/dev/api-smoke.compose.yml); locally it targets a server started from the sources.
+param(
+    [string]$BaseUrl = "http://localhost:8080",
+    # management.server.port in application.yml.
+    [string]$MgmtUrl = "http://localhost:9090"
+)
+
 $ErrorActionPreference = "Stop"
-$BaseUrl = "http://localhost:8080"
-$MgmtUrl = "http://localhost:9190"
+
+# A failed call prints the problem detail the API returned: the status line alone does not say which rule refused.
+trap {
+    $body = if ($_.ErrorDetails) { $_.ErrorDetails.Message } else { $null }
+    if (-not $body -and $_.Exception.Response) {
+        # Windows PowerShell 5.1 leaves the body in the response stream.
+        try {
+            $body = (New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())).ReadToEnd()
+        } catch {}
+    }
+    if ($body) { Write-Host "   API response: $body" -ForegroundColor Red }
+    break
+}
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  DWH Platform - Live Smoke Test Suite                      " -ForegroundColor Cyan
@@ -70,6 +89,21 @@ function Get-CsrfHeaders {
         }
     } catch {}
     return @{ "X-XSRF-TOKEN" = $token }
+}
+
+# 3a. The first administrator of a clean installation must replace the temporary password before any other call
+# (RequiresPermissionInterceptor answers 403 MUST_CHANGE_PASSWORD). The change ends every session, so sign in again.
+if ($meResponse.user.forcePasswordChange) {
+    Write-Host "`n3a. Mandatory password change (POST /api/v1/auth/password)..." -ForegroundColor Yellow
+    # 20 characters, the longest the policy accepts; hex never contains the login.
+    $rotatedPassword = "Api!" + [Guid]::NewGuid().ToString("N").Substring(0, 16)
+    $changeBody = @{ oldPassword = $adminPassword; newPassword = $rotatedPassword } | ConvertTo-Json
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/password" -Method Post -Body $changeBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
+    $adminPassword = $rotatedPassword
+    $loginBody = @{ login = "admin"; password = $adminPassword; deviceInfo = "PowerShell Smoke Tester" } | ConvertTo-Json
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body $loginBody -ContentType "application/json" -SessionVariable session -UseBasicParsing | Out-Null
+    $meResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSession $session
+    Write-Host "   Temporary password replaced; signed in again." -ForegroundColor Green
 }
 
 # 4. GET /api/v1/iam/users
@@ -212,7 +246,8 @@ $tokenBody = @{
 $tokenResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/profile/tokens" -Method Post -Body $tokenBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   API Token created: $($tokenResponse.record.name)" -ForegroundColor Green
 Write-Host "   Prefix: $($tokenResponse.record.tokenPrefix)..." -ForegroundColor Green
-Write-Host "   Raw Secret Token: $($tokenResponse.rawSecretToken)" -ForegroundColor Yellow
+# The raw token is shown once to its owner and never logged here: nightly logs of a public repository are public.
+if ([string]::IsNullOrEmpty($tokenResponse.rawSecretToken)) { throw "The API token was issued without its secret." }
 
 # 11. Test Bearer Token Authentication
 Write-Host "`n11. Verify Bearer Token Auth (GET /api/v1/auth/me with Authorization header)..." -ForegroundColor Yellow
@@ -393,13 +428,16 @@ Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18 KWH
 $randWh = Get-Random -Minimum 1000 -Maximum 9999
 $whBody = @{
     name = "Integration Webhook $randWh"
-    targetUrl = "http://instance:8080/actuator/health"
+    # The server itself, allowed by scripts/dev/api-smoke.compose.yml (DWH_WEBHOOKS_ALLOWED_HOSTS=server).
+    targetUrl = "http://server:9090/actuator/health"
     subscribedEvents = @("task.created", "user.created", "file.uploaded")
 } | ConvertTo-Json
 
 # 20.1 Create Subscription
 $newSub = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Post -Body $whBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Webhook Subscription created: ID=$($newSub.id), Name='$($newSub.name)', Secret Token=$($newSub.secretToken.Substring(0, 10))..." -ForegroundColor Green
+# The signing secret is never printed, not even a prefix: nightly logs of a public repository are public.
+if ([string]::IsNullOrEmpty($newSub.secretToken)) { throw "The subscription was created without a signing secret." }
+Write-Host "   Webhook Subscription created: ID=$($newSub.id), Name='$($newSub.name)', signing secret issued" -ForegroundColor Green
 
 # 20.2 List Subscriptions
 $subsList = Invoke-RestMethod -Uri "$BaseUrl/api/v1/webhooks/subscriptions" -Method Get -WebSession $session
@@ -408,7 +446,7 @@ Write-Host "   Active Webhook Subscriptions count: $($subsList.Count)" -Foregrou
 # 20.3 Update Subscription
 $updateWhBody = @{
     name = "Integration Webhook $randWh (Updated)"
-    targetUrl = "http://instance:8080/actuator/health"
+    targetUrl = "http://server:9090/actuator/health/liveness"
     subscribedEvents = @("task.created", "task.status_changed")
     state = "A"
 } | ConvertTo-Json
@@ -499,11 +537,7 @@ try {
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdRbacUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Test user $($createdRbacUser.id) cleaned up by admin" -ForegroundColor Green
 
-# 22. System & License Information (GET /api/v1/system/license-info)
-Write-Host "`n22. System & License Status Verification (GET /api/v1/system/license-info)..." -ForegroundColor Yellow
-$licInfo = Invoke-RestMethod -Uri "$BaseUrl/api/v1/system/license-info" -Method Get -WebSession $session
-Write-Host "   Client Code: $($licInfo.clientCode), License Status: $($licInfo.licenseStatus), Profile: $($licInfo.resourceProfile)" -ForegroundColor Green
-Write-Host "   App Version: $($licInfo.appVersion), Schema Version: $($licInfo.schemaVersion), Write Allowed: $($licInfo.writeAllowed)" -ForegroundColor Green
+# 22. (removed) The licence endpoint left with the single-organization product: there is no licence to report.
 
 # 23. Dynamic PostgreSQL 18 Analytics Engine (GET /api/v1/analytics/...)
 Write-Host "`n23. Dynamic PostgreSQL 18 Analytics & Dashboard Metrics..." -ForegroundColor Yellow
@@ -564,7 +598,8 @@ try {
 }
 
 # Change password via POST /api/v1/auth/password
-$newPass = "PermanentSecurePass456!"
+# 8..20 characters (PasswordValidator).
+$newPass = "Permanent-Pass456!"
 $changePassPayload = @{
     oldPassword = $tempInitialPass
     newPassword = $newPass
@@ -578,7 +613,19 @@ if ($tempXsrf) { $tempHeaders["X-XSRF-TOKEN"] = $tempXsrf }
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/password" -Method Post -Body $changePassPayload -ContentType "application/json" -WebSession $tempSession -Headers $tempHeaders
 Write-Host "   Password changed successfully via POST /api/v1/auth/password" -ForegroundColor Green
 
-# Now access tasks (Must succeed)
+# A password change ends every session of the user, the one that made the change included
+$revoked = $false
+try {
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession | Out-Null
+} catch {
+    if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) { $revoked = $true } else { throw }
+}
+if (-not $revoked) { throw "Security Failure: the session survived the password change." }
+Write-Host "   Session revoked by the password change (HTTP 401)" -ForegroundColor Green
+
+# Sign in with the new password: full access (Must succeed)
+$tempSession = $null
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body (@{ login = $tempUserLogin; password = $newPass } | ConvertTo-Json) -ContentType "application/json" -SessionVariable tempSession | Out-Null
 $tasksAfter = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession
 Write-Host "   Full access UNLOCKED: Temp user successfully queried tasks (Count: $($tasksAfter.items.Count))" -ForegroundColor Green
 
@@ -586,76 +633,55 @@ Write-Host "   Full access UNLOCKED: Temp user successfully queried tasks (Count
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/iam/users/$($createdTempUser.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Temporary test user $($createdTempUser.id) cleaned up" -ForegroundColor Green
 
-# 26. OAuth2 / SSO Providers & Token Exchange (SSO Flow)
-Write-Host "`n26. OAuth2 / SSO Providers & Token Exchange..." -ForegroundColor Yellow
+# 26. OAuth2 / SSO providers configured for sign-in
+Write-Host "`n26. OAuth2 / SSO Providers (GET /api/v1/auth/oauth2/providers)..." -ForegroundColor Yellow
 
-$providers = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/oauth2/providers" -Method Get
+$providers = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/oauth2/providers" -Method Get -WebSession $session
 Write-Host "   Active SSO Providers count: $($providers.Count)" -ForegroundColor Green
 foreach ($p in $providers) {
     Write-Host "     - Provider: $($p.name) (ID: $($p.providerId), AuthURL: $($p.authorizationUrl))" -ForegroundColor Green
 }
 
-# 26.2 Test SSO Token Exchange (Auto-provisioning mock user)
-$ssoAuthCode = "sso_auth_code_$(Get-Random -Minimum 1000 -Maximum 9999)"
-$ssoExchangePayload = @{
-    provider = "google"
-    code = $ssoAuthCode
-    email = "test.sso.user$randUser@company.corp"
-    name = "Enterprise SSO Tester"
-} | ConvertTo-Json
+# 26.2 (removed) The mock token exchange that provisioned any e-mail it was given is gone on purpose: a sign-in
+# through a provider now goes through its real authorization flow only.
 
-$ssoExchangeResp = Invoke-WebRequest -Uri "$BaseUrl/api/v1/auth/oauth2/exchange" -Method Post -Body $ssoExchangePayload -ContentType "application/json" -SessionVariable ssoSession -UseBasicParsing
-$ssoUserJson = $ssoExchangeResp.Content | ConvertFrom-Json
-Write-Host "   SSO Exchange Success: User='$($ssoUserJson.user.name)' (Email: $($ssoUserJson.user.email))" -ForegroundColor Green
+# 27. Module registry: register, enable, find among the active ones, disable (ModuleRegistryController)
+Write-Host "`n27. Module Registry Lifecycle (POST /api/v1/modules, toggle, active list)..." -ForegroundColor Yellow
 
-# Verify SSO user session
-$ssoMeResp = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSession $ssoSession
-Write-Host "   SSO Session Authenticated: Login='$($ssoMeResp.user.login)'" -ForegroundColor Green
-
-# 27. Client Custom Modules SDK Lifecycle & CP Moderation Workflow
-Write-Host "`n27. Client Custom Modules SDK Lifecycle & Moderation Workflow..." -ForegroundColor Yellow
-
-$modCode = "hr_onboarding_$(Get-Random -Minimum 100 -Maximum 999)"
-$createModPayload = @{
+$modCode = "smoke_module_$(Get-Random -Minimum 100 -Maximum 999)"
+$registerModPayload = @{
     code = $modCode
-    name = "HR Onboarding Extension"
-    version = "1.2.0"
-    description = "Enterprise HR Onboarding Workflow & Document Signing Module"
-    category = "hr"
-    icon = "badge"
-    routePath = "/custom/$modCode"
-    entrypointUrl = "https://cdn.company.internal/modules/$modCode/main.js"
-    permissionsJson = '[{"action": "view", "name": "VIEW_HR"}, {"action": "manage", "name": "MANAGE_HR"}]'
+    name = "Smoke Test Module"
+    description = "Registered by the nightly API smoke"
+    version = "1.0.0"
+    icon = "extension"
+    route = "/custom/$modCode"
+    sortOrder = 900
+    attributes = @{}
 } | ConvertTo-Json
 
-# 27.1 Instance: Create Custom Module Manifest (DRAFT)
-$createdMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules" -Method Post -Body $createModPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Custom Module Manifest created in Instance: ID=$($createdMod.id), Code='$($createdMod.code)', Status='$($createdMod.status)'" -ForegroundColor Green
+# 27.1 Register (registered modules start disabled)
+$createdMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules" -Method Post -Body $registerModPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+Write-Host "   Module registered: Code='$($createdMod.code)'" -ForegroundColor Green
 
-# 27.2 Instance: Submit for CP Approval (PENDING_APPROVAL)
-$submittedMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$($createdMod.id)/submit" -Method Post -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Module submitted for Approval: Status='$($submittedMod.status)', TicketId='$($submittedMod.cpTicketId)'" -ForegroundColor Green
+# 27.2 Read it back by code
+$readMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode" -Method Get -WebSession $session
+if ($readMod.code -ne $modCode) { throw "Registered module $modCode is not returned by its code." }
 
-# 27.3 Instance: Apply CP Approval Callback (APPROVED) -> Triggers dynamic md_forms, md_actions & md_permissions
-$approvalCallbackPayload = @{
-    status = "APPROVED"
-    rejectionReason = $null
-} | ConvertTo-Json
-
-$approvedMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$($createdMod.id)/moderation-callback" -Method Post -Body $approvalCallbackPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Module Approved and Activated: Status='$($approvedMod.status)', ApprovedAt='$($approvedMod.approvedAt)'" -ForegroundColor Green
-
-# 27.4 Instance: Verify Active Custom Modules List
+# 27.3 Enable, then it is listed among the active modules
+$enableBody = @{ enabled = $true } | ConvertTo-Json
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode/toggle" -Method Post -Body $enableBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
 $activeMods = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/active" -Method Get -WebSession $session
-$foundActive = $activeMods | Where-Object { $_.code -eq $modCode }
-Write-Host "   Active Custom Modules verified: Found '$($foundActive.name)' ($($foundActive.code))" -ForegroundColor Green
+if (-not ($activeMods | Where-Object { $_.code -eq $modCode })) { throw "Enabled module $modCode is missing from the active list." }
+Write-Host "   Module enabled and listed as active" -ForegroundColor Green
 
-# 27.5 Cleanup test module
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$($createdMod.id)" -Method Delete -WebSession $session -Headers (Get-CsrfHeaders)
-Write-Host "   Test custom module $($createdMod.id) cleaned up" -ForegroundColor Green
+# 27.4 Disable again: the registry has no delete, the stack is disposable
+$disableBody = @{ enabled = $false } | ConvertTo-Json
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode/toggle" -Method Post -Body $disableBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
+Write-Host "   Module disabled" -ForegroundColor Green
 
 Write-Host "`n============================================================" -ForegroundColor Cyan
-Write-Host "  All 27 End-to-End Scenarios Passed Successfully!           " -ForegroundColor Cyan
+Write-Host "  All API smoke scenarios passed.                           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 

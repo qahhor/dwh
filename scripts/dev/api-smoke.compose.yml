@@ -1,0 +1,14 @@
+# Publishes the server's API and management ports on the loopback address only, for scripts/dev/test-api.ps1 in
+# the nightly workflow. Never part of a deployment: an installation reaches the API through the web origin and
+# keeps management on the monitoring network. Other host ports: API_SMOKE_HTTP_PORT, API_SMOKE_MANAGEMENT_PORT.
+services:
+  server:
+    ports:
+      - "127.0.0.1:${API_SMOKE_HTTP_PORT:-8080}:8080"
+      - "127.0.0.1:${API_SMOKE_MANAGEMENT_PORT:-9090}:9090"
+    environment:
+      # The smoke subscribes a webhook to the server itself: the operator allow-list names that one host, and the
+      # disposable network is private.
+      DWH_WEBHOOKS_ENABLED: "true"
+      DWH_WEBHOOKS_ALLOWED_HOSTS: server
+      DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES: "true"

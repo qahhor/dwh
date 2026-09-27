@@ -5,7 +5,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$mvnCmd = Join-Path $repoRoot 'mvnw.cmd'
+# The wrapper on Windows; the runner's Maven on Linux (the nightly workflow), as in ci.yml.
+$mvnCmd = if ($env:OS -eq 'Windows_NT') { Join-Path $repoRoot 'mvnw.cmd' } else { 'mvn' }
 $pomPath = Join-Path $repoRoot 'apps/server/pom.xml'
 
 Write-Host "=================================================================" -ForegroundColor Cyan

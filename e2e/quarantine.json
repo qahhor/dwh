@@ -1,0 +1,4 @@
+{
+  "$comment": "Browser tests known to be unstable (plan 10/10, item 1.8). The main suite runs without retries and skips these; CI runs them in a separate, non-blocking step so their state stays visible. An entry names the test title exactly, why it is here, an owner and the date by which it is fixed or deleted.",
+  "tests": []
+}

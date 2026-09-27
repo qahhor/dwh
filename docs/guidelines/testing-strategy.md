@@ -86,18 +86,36 @@ CI выполняет следующие независимые jobs:
 - **release config:** unified architecture, public docs, repository hygiene,
   release supply-chain, production Compose, encrypted-backup и managed
   acceptance contracts, а также fail-closed deploy test;
-- **E2E:** ephemeral credentials, Compose build, runtime-image scan, отдельный
-  migrate, healthy startup, public smoke и Playwright Chromium;
+- **E2E:** два шарда на двух одноразовых стендах: ephemeral credentials,
+  Compose build, runtime-image scan (в первом шарде), отдельный migrate,
+  healthy startup, public smoke и Playwright Chromium через
+  `scripts/dev/test-e2e.ps1 -Shard N/2`;
 - **security:** Gitleaks по истории Git и Trivy по зависимостям.
+
+Новый push в PR отменяет прогон предыдущего; у каждого job есть
+`timeout-minutes`.
 
 Required job с ошибкой должен блокировать merge. Исключение теста, понижение
 severity или обновление snapshot требует review с явным обоснованием и ссылкой
 на затронутый критерий ТЗ.
 
-Текущий `.github/workflows/ci.yml` не запускает no-default-egress observation,
-изолированный restore drill или lifecycle/recovery на целевом S3/R2. Наличие
-unit/integration/config contract для этих функций не является evidence их
-production-приёмки.
+**Нестабильные тесты (план 10/10, пункт 1.8).** Повторов нет ни в Playwright,
+ни в surefire: повтор прячет нестабильность. Тест, который падает то так, то
+так, заносится в `e2e/quarantine.json` с причиной, владельцем и сроком;
+основной набор его пропускает, а отдельный неблокирующий шаг CI запускает только
+тесты из карантина, чтобы их состояние оставалось видно.
+
+**Nightly** (`.github/workflows/nightly.yml`, 03:30 по Ташкенту): учения
+готовности релиза (`scripts/release/test-final-readiness.ps1`: поиск,
+конкурентный доступ к БД, ограничения нагрузки, контракты репозитория),
+обновление production Compose с резервной копией на V018, наблюдение
+no-default-egress, live API smoke на чистом стенде и Trivy по свежим
+advisory. `scripts/docs/test-repository-hygiene.ps1` падает, если какой-то
+`scripts/**/test-*` не запускает ни один workflow.
+
+`.github/workflows/ci.yml` и nightly не запускают изолированный restore drill
+или lifecycle/recovery на целевом S3/R2. Наличие unit/integration/config
+contract для этих функций не является evidence их production-приёмки.
 
 ## Release/operator evidence сверх текущего CI
 
