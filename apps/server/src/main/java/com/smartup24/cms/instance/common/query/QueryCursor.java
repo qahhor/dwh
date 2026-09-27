@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.pagination.CursorUtils;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -24,7 +25,7 @@ public record QueryCursor(String fingerprint, Object sortValue, String lastId, l
     }
 
     /** Разбирает курсор; {@code null} — курсор битый или от другого запроса. */
-    static QueryCursor decode(String cursor, String fingerprint, QueryField sort) {
+    static @Nullable QueryCursor decode(String cursor, String fingerprint, QueryField sort) {
         String raw = CursorUtils.decode(cursor);
         if (raw == null) {
             return null;

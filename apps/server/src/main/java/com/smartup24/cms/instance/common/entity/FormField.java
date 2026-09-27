@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A field of an entity's form (ADR-0019, 2.1): what it holds and the rules a value must meet. The screen draws
@@ -29,18 +30,18 @@ import java.util.regex.Pattern;
 public record FormField(
         String key,
         String labelKey,
-        String label,
+        @Nullable String label,
         FormFieldType type,
         boolean required,
-        Integer minLength,
-        Integer maxLength,
-        BigDecimal min,
-        BigDecimal max,
-        String pattern,
+        @Nullable Integer minLength,
+        @Nullable Integer maxLength,
+        @Nullable BigDecimal min,
+        @Nullable BigDecimal max,
+        @Nullable String pattern,
         List<String> options,
-        String optionLabelPrefix,
-        QueryRef ref,
-        String attribute) {
+        @Nullable String optionLabelPrefix,
+        @Nullable QueryRef ref,
+        @Nullable String attribute) {
 
     private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9_]{0,63}$");
 
@@ -68,7 +69,8 @@ public record FormField(
                 key, labelKey, null, type, false, null, null, null, null, null, List.of(), null, null, null);
     }
 
-    public static FormField select(String key, String labelKey, List<String> options, String optionLabelPrefix) {
+    public static FormField select(
+            String key, String labelKey, List<String> options, @Nullable String optionLabelPrefix) {
         return new FormField(
                 key,
                 labelKey,

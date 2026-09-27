@@ -3,6 +3,9 @@ package com.smartup24.cms.instance.common.error;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Base domain exception holding a typed ErrorCode.
@@ -10,7 +13,7 @@ import java.util.List;
 public class ApiException extends RuntimeException {
 
     private final ErrorCode errorCode;
-    private final List<FieldErrorItem> fieldErrors;
+    private final @Nullable List<FieldErrorItem> fieldErrors;
 
     public ApiException(ErrorCode errorCode, String message) {
         super(message);
@@ -28,8 +31,15 @@ public class ApiException extends RuntimeException {
         return errorCode;
     }
 
-    public List<FieldErrorItem> getFieldErrors() {
+    public @Nullable List<FieldErrorItem> getFieldErrors() {
         return fieldErrors;
+    }
+
+    /** Refuses when a lookup found nothing: an existence check that keeps the "not found" of the caller. */
+    public static void requirePresent(Optional<?> lookup, Supplier<ApiException> error) {
+        if (lookup.isEmpty()) {
+            throw error.get();
+        }
     }
 
     public static ApiException unauthorized(String message) {

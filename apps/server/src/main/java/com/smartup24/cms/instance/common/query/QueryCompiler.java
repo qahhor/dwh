@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -45,7 +46,12 @@ public final class QueryCompiler {
 
     private QueryCompiler() {}
 
-    public static QueryPlan compile(QueryList list, String filter, String sort, Integer limit, String cursor) {
+    public static QueryPlan compile(
+            QueryList list,
+            @Nullable String filter,
+            @Nullable String sort,
+            @Nullable Integer limit,
+            @Nullable String cursor) {
         return compile(list, filter, sort, limit, cursor, null);
     }
 
@@ -54,7 +60,12 @@ public final class QueryCompiler {
      *               пустой — без поиска
      */
     public static QueryPlan compile(
-            QueryList list, String filter, String sort, Integer limit, String cursor, String search) {
+            QueryList list,
+            @Nullable String filter,
+            @Nullable String sort,
+            @Nullable Integer limit,
+            @Nullable String cursor,
+            @Nullable String search) {
         return compile(list, filter, sort, limit, cursor, search, null);
     }
 
@@ -64,7 +75,13 @@ public final class QueryCompiler {
      *                  параметров отвергается так же, как от другого фильтра. {@code null} — таких параметров нет
      */
     public static QueryPlan compile(
-            QueryList list, String filter, String sort, Integer limit, String cursor, String search, String narrowing) {
+            QueryList list,
+            @Nullable String filter,
+            @Nullable String sort,
+            @Nullable Integer limit,
+            @Nullable String cursor,
+            @Nullable String search,
+            @Nullable String narrowing) {
         int pageSize = limit == null ? list.defaultLimit() : limit;
         if (pageSize < 1 || pageSize > list.maxLimit()) {
             throw ApiException.validation(
@@ -116,7 +133,8 @@ public final class QueryCompiler {
         return new QueryPlan(list, conditions, sortField, descending, pageSize, decoded, fingerprint, term, hidden);
     }
 
-    private static List<QueryPlan.Condition> parseFilter(QueryList list, String filter, List<FieldErrorItem> errors) {
+    private static List<QueryPlan.Condition> parseFilter(
+            QueryList list, @Nullable String filter, List<FieldErrorItem> errors) {
         List<QueryPlan.Condition> conditions = new ArrayList<>();
         if (filter == null || filter.isBlank()) {
             return conditions;
@@ -246,8 +264,8 @@ public final class QueryCompiler {
             List<QueryPlan.Condition> conditions,
             QueryField sort,
             boolean descending,
-            String search,
-            String narrowing) {
+            @Nullable String search,
+            @Nullable String narrowing) {
         StringBuilder canonical = new StringBuilder(list.code())
                 .append('|')
                 .append(descending ? '-' : '+')

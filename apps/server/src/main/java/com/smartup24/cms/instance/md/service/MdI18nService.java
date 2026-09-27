@@ -91,10 +91,9 @@ public class MdI18nService {
     @Transactional(readOnly = true)
     public String requireActiveLanguageCode(String requestedCode) {
         String code = normalizeRequiredCode(requestedCode);
-        repository
-                .findLanguage(code)
-                .filter(LanguageRecord::active)
-                .orElseThrow(() -> ApiException.notFound(
+        ApiException.requirePresent(
+                repository.findLanguage(code).filter(LanguageRecord::active),
+                () -> ApiException.notFound(
                         ErrorCode.I18N_LANGUAGE_NOT_FOUND, "Язык " + code + " не найден или отключён"));
         return code;
     }

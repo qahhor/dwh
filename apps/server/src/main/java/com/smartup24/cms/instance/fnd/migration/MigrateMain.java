@@ -23,7 +23,10 @@ public final class MigrateMain {
     private MigrateMain() {}
 
     public static void main(String[] args) {
+        // The migration container reports on stdout before any logging is configured.
+        // CHECKSTYLE.OFF: Regexp
         System.out.println(run(System.getenv()));
+        // CHECKSTYLE.ON: Regexp
     }
 
     static String run(Map<String, String> env) {

@@ -22,6 +22,12 @@
     </properties>
 
     <dependencies>
+        <!-- @NullMarked / @Nullable, checked by NullAway (plan 10/10, item 1.2); version from the Boot BOM. -->
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+
         <!-- Internal Platform Libraries -->
         <dependency>
             <groupId>com.smartup24.cms</groupId>

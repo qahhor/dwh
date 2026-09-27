@@ -116,9 +116,9 @@ public class MsTaskService {
             Long reporterId) {
 
         if (projectId != null) {
-            projectRepository
-                    .findById(projectId)
-                    .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+            ApiException.requirePresent(
+                    projectRepository.findById(projectId),
+                    () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
         }
 
         if (parentTaskId != null) {
@@ -301,9 +301,9 @@ public class MsTaskService {
         var existing = getTaskById(taskId, currentUserId);
 
         if (requested.projectIdPresent() && requested.projectId() != null) {
-            projectRepository
-                    .findById(requested.projectId())
-                    .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+            ApiException.requirePresent(
+                    projectRepository.findById(requested.projectId()),
+                    () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
         }
 
         if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
@@ -430,9 +430,9 @@ public class MsTaskService {
         getTaskById(taskId, currentUserId);
 
         if (projectId != null) {
-            projectRepository
-                    .findById(projectId)
-                    .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+            ApiException.requirePresent(
+                    projectRepository.findById(projectId),
+                    () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
         }
 
         // Cycle check

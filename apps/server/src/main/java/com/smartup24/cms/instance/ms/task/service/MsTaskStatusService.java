@@ -77,7 +77,8 @@ public class MsTaskStatusService {
     @Transactional
     @CacheEvict(value = "taskStatuses", allEntries = true)
     public void updateStatusRecord(Long id, String name, String color, Integer orderNo, Boolean isTerminal) {
-        statusRepository.findById(id).orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
+        ApiException.requirePresent(
+                statusRepository.findById(id), () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
         statusRepository.update(id, name, color, orderNo, isTerminal);
         if (name != null) searchChangePublisher.statusChanged(id);
         if (auditLogService != null) {
@@ -153,9 +154,8 @@ public class MsTaskStatusService {
     @Transactional
     @CacheEvict(value = "taskTypes", allEntries = true)
     public void updateType(Long id, String name, String icon, String color, Integer orderNo) {
-        typeRepository
-                .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Тип задачи не найден"));
+        ApiException.requirePresent(
+                typeRepository.findById(id), () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Тип задачи не найден"));
         typeRepository.update(id, name, icon, color, orderNo);
         if (auditLogService != null) {
             auditLogService.logChange(

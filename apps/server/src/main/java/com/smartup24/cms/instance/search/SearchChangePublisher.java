@@ -55,11 +55,12 @@ public class SearchChangePublisher {
      * conflict with a non-key name update; SHARE closes the phantom fan-out race.
      */
     public void lockStatusMembership(long statusId) {
-        jdbc.sql("select id from ms_task_statuses where id=:id for share")
-                .param("id", statusId)
-                .query(Long.class)
-                .optional()
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
+        ApiException.requirePresent(
+                jdbc.sql("select id from ms_task_statuses where id=:id for share")
+                        .param("id", statusId)
+                        .query(Long.class)
+                        .optional(),
+                () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
     }
 
     private void barrier() {

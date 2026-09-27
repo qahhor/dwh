@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The Java code is formatted and analysed on every build (plan 10/10, item
+  1.2). Spotless 3.10 with palantir-java-format 2.99 (4 spaces, 120 columns)
+  formats it, Checkstyle 14.3 checks naming, imports and defect-prone
+  constructs, and Error Prone 2.50 runs in every compilation: its ten findings
+  (a lookup whose `orElseThrow` result was dropped) now call one tested
+  existence check, `ApiException.requirePresent`. NullAway 0.14 checks the
+  production code of `@NullMarked` packages, `common` first, with JSpecify
+  `@Nullable` where a value may be null. CI checks format and style before the
+  tests. The one-time reformat is listed in `.git-blame-ignore-revs`.
 - The web application is linted and formatted (plan 10/10, item 1.1).
   `npm run lint` runs ESLint 10 with typescript-eslint and angular-eslint
   (OnPush, signal inputs, outputs and queries, built-in control flow, template

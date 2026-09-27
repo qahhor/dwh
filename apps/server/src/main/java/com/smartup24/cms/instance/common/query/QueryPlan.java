@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Проверенный запрос к списку: условия с типизированными значениями, сортировка, размер страницы и курсор.
@@ -16,9 +17,9 @@ public record QueryPlan(
         QueryField sort,
         boolean descending,
         int limit,
-        QueryCursor cursor,
+        @Nullable QueryCursor cursor,
         String fingerprint,
-        String search,
+        @Nullable String search,
         Set<String> hiddenFields) {
 
     /**

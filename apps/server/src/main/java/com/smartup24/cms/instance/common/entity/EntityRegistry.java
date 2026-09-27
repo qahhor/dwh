@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
@@ -129,7 +130,7 @@ public class EntityRegistry {
     public List<RecordHistorySource> historySources() {
         return entities.values().stream()
                 .filter(entity -> entity.capabilities().contains(EntityCapability.HISTORY))
-                .map(entity -> historySource(entity, records.get(entity.code())))
+                .map(entity -> historySource(entity, recordsOf(entity)))
                 .toList();
     }
 
@@ -137,8 +138,13 @@ public class EntityRegistry {
     public List<QueryListExporter> exporters() {
         return entities.values().stream()
                 .filter(entity -> entity.capabilities().contains(EntityCapability.EXPORT))
-                .map(entity -> exporter(entity, records.get(entity.code())))
+                .map(entity -> exporter(entity, recordsOf(entity)))
                 .toList();
+    }
+
+    /** The constructor refused an entity with history, export or bulk actions and no records. */
+    private EntityRecords recordsOf(EntityDefinition entity) {
+        return Objects.requireNonNull(records.get(entity.code()), entity.code());
     }
 
     private static RecordHistorySource historySource(EntityDefinition entity, EntityRecords records) {

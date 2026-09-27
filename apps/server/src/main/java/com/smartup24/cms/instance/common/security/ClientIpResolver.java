@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
 /**
@@ -129,7 +130,7 @@ public class ClientIpResolver {
         return false;
     }
 
-    private static String normalize(String ip) {
+    private static @Nullable String normalize(@Nullable String ip) {
         if (ip == null) {
             return null;
         }

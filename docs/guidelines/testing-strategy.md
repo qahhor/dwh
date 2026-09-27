@@ -76,7 +76,8 @@ digest; часть критериев закрывается только releas
 
 CI выполняет следующие независимые jobs:
 
-- **backend:** `mvn -B verify`, включая unit/integration/ArchUnit и пороги
+- **backend:** сначала формат и стиль (`spotless:check`, `checkstyle:check`), затем
+  `mvn -B verify` с Error Prone и NullAway в компиляции, включая unit/integration/ArchUnit и пороги
   покрытия JaCoCo, затем проверки «ни один тест не пропущен», пороги покрытия
   бизнес-модулей, покрытие изменённых строк PR (не ниже 80 %) и формирование
   CycloneDX SBOM;

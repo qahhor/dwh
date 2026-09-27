@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,11 +36,11 @@ public class QueryMetaController {
             boolean nullable,
             boolean defaultVisible,
             List<String> enumValues,
-            String enumLabelPrefix,
+            @Nullable String enumLabelPrefix,
             boolean searchable,
-            String label,
-            String attribute,
-            QueryRef ref) {
+            @Nullable String label,
+            @Nullable String attribute,
+            @Nullable QueryRef ref) {
 
         static FieldMeta of(QueryField field) {
             List<String> ops = field.ops().stream().map(QueryOp::wire).toList();

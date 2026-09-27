@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.math.BigDecimal;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,18 +32,18 @@ public class FormMetaController {
     public record FieldMeta(
             String key,
             String labelKey,
-            String label,
+            @Nullable String label,
             String type,
             boolean required,
-            Integer minLength,
-            Integer maxLength,
-            BigDecimal min,
-            BigDecimal max,
-            String pattern,
+            @Nullable Integer minLength,
+            @Nullable Integer maxLength,
+            @Nullable BigDecimal min,
+            @Nullable BigDecimal max,
+            @Nullable String pattern,
             List<String> options,
-            String optionLabelPrefix,
-            QueryRef ref,
-            String attribute) {
+            @Nullable String optionLabelPrefix,
+            @Nullable QueryRef ref,
+            @Nullable String attribute) {
 
         static FieldMeta of(FormField field) {
             return new FieldMeta(

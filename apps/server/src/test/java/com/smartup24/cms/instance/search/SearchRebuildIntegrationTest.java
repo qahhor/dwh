@@ -217,7 +217,5 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
                 assertThat(row.revision()).isOne();
             });
         }
-        System.out.println("Owned engine fixture: Typesense27.1 container=" + engine.getContainerId() + " image="
-                + engine.getDockerImageName());
     }
 }

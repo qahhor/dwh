@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Поле списка в реестре. {@code sql} — выражение над {@code from} списка; оно пишется в коде модуля
@@ -32,13 +33,13 @@ public record QueryField(
         boolean nullable,
         boolean defaultVisible,
         List<String> enumValues,
-        String enumLabelPrefix,
+        @Nullable String enumLabelPrefix,
         boolean searchable,
-        String requiredForm,
-        String requiredAction,
-        String label,
-        String attribute,
-        QueryRef ref) {
+        @Nullable String requiredForm,
+        @Nullable String requiredAction,
+        @Nullable String label,
+        @Nullable String attribute,
+        @Nullable QueryRef ref) {
 
     private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9]{0,63}$");
 
@@ -72,7 +73,7 @@ public record QueryField(
     }
 
     public static QueryField enumeration(
-            String key, String labelKey, String sql, List<String> values, String labelPrefix) {
+            String key, String labelKey, String sql, List<String> values, @Nullable String labelPrefix) {
         return new QueryField(
                 key,
                 labelKey,
@@ -270,7 +271,9 @@ public record QueryField(
 
     /** Видит ли поле тот, кто сейчас спрашивает. */
     public boolean visibleToViewer() {
-        return requiredForm == null || SecurityContext.hasPermission(requiredForm, requiredAction);
+        // The constructor keeps form and action together.
+        return requiredForm == null
+                || SecurityContext.hasPermission(requiredForm, Objects.requireNonNull(requiredAction));
     }
 
     /** Операции, которые поле принимает в фильтре; пусто — поле не фильтруется. */

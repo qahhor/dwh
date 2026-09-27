@@ -50,11 +50,11 @@ import org.springframework.transaction.support.TransactionTemplate;
 class FndLoadServiceTest extends EmbeddedPostgresTest {
 
     /** Основная загрузка текущей конфигурации: источник, период, версия формата. */
-    private String SOURCE;
+    private String source;
 
-    private LocalDate PERIOD_FROM;
-    private LocalDate PERIOD_TO;
-    private String FORMAT;
+    private LocalDate periodFrom;
+    private LocalDate periodTo;
+    private String format;
     private DepartmentFixture dept;
 
     static Stream<DepartmentFixture> departments() {
@@ -63,10 +63,10 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
 
     private void use(DepartmentFixture fixture) {
         dept = fixture;
-        SOURCE = fixture.mainLoad().source();
-        PERIOD_FROM = fixture.mainLoad().periodFrom();
-        PERIOD_TO = fixture.mainLoad().periodTo();
-        FORMAT = fixture.mainLoad().format();
+        source = fixture.mainLoad().source();
+        periodFrom = fixture.mainLoad().periodFrom();
+        periodTo = fixture.mainLoad().periodTo();
+        format = fixture.mainLoad().format();
     }
 
     @Autowired
@@ -115,7 +115,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     void applyProtocol(DepartmentFixture fixture) {
         use(fixture);
         UUID packageRef = UUID.randomUUID();
-        long loadId = loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, packageRef, periodFrom, periodTo, format, user);
         assertThat(loads.find(loadId).orElseThrow().status()).isEqualTo(FndLoad.PENDING);
 
         rawWriter.write(loadId, null, rows(3));
@@ -128,9 +128,9 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         assertThat(applied.rowsTotal()).isEqualTo(3);
         assertThat(applied.rowsAccepted()).isEqualTo(2);
         assertThat(applied.rowsRejected()).isEqualTo(1);
-        assertThat(loads.appliedLoadIds(SOURCE)).containsExactly(loadId);
+        assertThat(loads.appliedLoadIds(source)).containsExactly(loadId);
 
-        long another = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long another = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         assertThat(codeOf(() -> loads.apply(another, 10, 2, 1, user))).isEqualTo(ConstraintErrorCode.FND_LOADS_CK_ROWS);
     }
 
@@ -140,21 +140,21 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     void failedLoad(DepartmentFixture fixture) {
         use(fixture);
         UUID packageRef = UUID.randomUUID();
-        long loadId = loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, packageRef, periodFrom, periodTo, format, user);
 
         FndRawWriter broken = new BrokenRawWriter();
         assertThatThrownBy(() -> broken.write(loadId, null, rows(1))).isInstanceOf(DwhUnavailableException.class);
 
         loads.fail(loadId, "источник вернул ошибку TEST", user);
         assertThat(loads.find(loadId).orElseThrow().status()).isEqualTo(FndLoad.FAILED);
-        assertThat(loads.appliedLoadIds(SOURCE)).doesNotContain(loadId);
+        assertThat(loads.appliedLoadIds(source)).doesNotContain(loadId);
         Map<String, Object> logRow = jdbc.sql("select event, note from fnd_load_log where package_ref = :p")
                 .param("p", packageRef)
                 .query()
                 .singleRow();
         assertThat(logRow).containsEntry("event", "failed").containsEntry("note", "источник вернул ошибку TEST");
 
-        long other = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long other = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         assertThatThrownBy(() -> loads.fail(other, "  ", user)).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -164,7 +164,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     void statusTransitions(DepartmentFixture fixture) {
         use(fixture);
         UUID packageRef = UUID.randomUUID();
-        long loadId = loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, packageRef, periodFrom, periodTo, format, user);
         loads.apply(loadId, 1, 1, 0, user);
 
         assertThat(codeOf(() -> loads.apply(loadId, 1, 1, 0, user)))
@@ -173,7 +173,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
         assertThat(codeOf(() -> loads.apply(-1, 1, 1, 0, user)))
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
-        assertThat(codeOf(() -> loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user)))
+        assertThat(codeOf(() -> loads.begin(source, packageRef, periodFrom, periodTo, format, user)))
                 .isEqualTo(ConstraintErrorCode.FND_LOADS_UK_PACKAGE_REF);
         assertThatThrownBy(() -> jdbc.sql("update fnd_loads set status = 'unknown' where id = :id")
                         .param("id", loadId)
@@ -187,25 +187,25 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-28: повторная загрузка периода снимает предыдущую, её строки raw остаются")
     void repeatedPeriodSupersedes(DepartmentFixture fixture) {
         use(fixture);
-        long first = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long first = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         rawWriter.write(first, null, rows(2));
         loads.apply(first, 2, 2, 0, user);
 
         DepartmentFixture.Load other = dept.otherPeriodLoad();
-        long otherPeriod = loads.begin(SOURCE, UUID.randomUUID(), other.periodFrom(), other.periodTo(), FORMAT, user);
+        long otherPeriod = loads.begin(source, UUID.randomUUID(), other.periodFrom(), other.periodTo(), format, user);
         loads.apply(otherPeriod, 1, 1, 0, user);
         long otherSource =
-                loads.begin(dept.otherSourceLoad().source(), UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+                loads.begin(dept.otherSourceLoad().source(), UUID.randomUUID(), periodFrom, periodTo, format, user);
         loads.apply(otherSource, 1, 1, 0, user);
 
-        long second = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long second = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         loads.apply(second, 2, 2, 0, user);
 
         FndLoad superseded = loads.find(first).orElseThrow();
         assertThat(superseded.status()).isEqualTo(FndLoad.SUPERSEDED);
         assertThat(superseded.supersededBy()).isEqualTo(second);
         assertThat(rawWriter.read(first)).hasSize(2);
-        assertThat(loads.appliedLoadIds(SOURCE)).containsExactlyInAnyOrder(second, otherPeriod);
+        assertThat(loads.appliedLoadIds(source)).containsExactlyInAnyOrder(second, otherPeriod);
         assertThat(loads.find(otherSource).orElseThrow().status()).isEqualTo(FndLoad.APPLIED);
     }
 
@@ -224,7 +224,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                         .single())
                 .isEqualTo(2L);
 
-        long loadId = loads.begin(SOURCE, packageRef, PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, packageRef, periodFrom, periodTo, format, user);
         loads.apply(loadId, 1, 1, 0, user);
         String longNote = "ў".repeat(4000);
         loads.log(packageRef, "применён", FndLoad.PENDING, FndLoad.APPLIED, user, longNote, null);
@@ -297,7 +297,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-30: строки raw и поколение кеша ссылаются на один и тот же load_id")
     void singleLoadId(DepartmentFixture fixture) {
         use(fixture);
-        long loadId = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         rawWriter.write(loadId, null, rows(2));
         loads.apply(loadId, 2, 2, 0, user);
 
@@ -305,7 +305,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         dwhJdbc.sql("delete from cache.generations").update();
         long generation = dwhJdbc.sql("insert into cache.generations (state, load_versions, switched_at)"
                         + " values ('current', cast(:versions as jsonb), now()) returning generation_id")
-                .param("versions", "{\"" + SOURCE + "\": " + loadId + "}")
+                .param("versions", "{\"" + source + "\": " + loadId + "}")
                 .query(Long.class)
                 .single();
 
@@ -326,14 +326,14 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-32: в журналах — id пользователя или system, в audit_log — тот же актор; метки timestamptz")
     void actorAndTime(DepartmentFixture fixture) {
         use(fixture);
-        long byUser = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long byUser = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         loads.apply(byUser, 1, 1, 0, user);
         long byJob = loads.begin(
-                SOURCE,
+                source,
                 UUID.randomUUID(),
                 dept.otherPeriodLoad().periodFrom(),
                 dept.otherPeriodLoad().periodTo(),
-                FORMAT,
+                format,
                 actor);
         loads.apply(byJob, 1, 1, 0, actor);
 
@@ -393,7 +393,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-27: два параллельных apply одной загрузки — один успех, второй fnd_load_status_transition")
     void concurrentApplyIsRejected() throws Exception {
         use(DepartmentFixture.departments().findFirst().orElseThrow());
-        long loadId = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         rawWriter.write(loadId, null, rows(3));
         CyclicBarrier barrier = new CyclicBarrier(2);
         ExecutorService pool = Executors.newFixedThreadPool(2);
@@ -426,7 +426,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-33: apply ждёт конца незавершённой записи строк — строки не попадают в применённую загрузку")
     void applyWaitsForRunningWrite() throws Exception {
         use(DepartmentFixture.departments().findFirst().orElseThrow());
-        long loadId = loads.begin(SOURCE, UUID.randomUUID(), PERIOD_FROM, PERIOD_TO, FORMAT, user);
+        long loadId = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         CountDownLatch writeStarted = new CountDownLatch(1);
         CountDownLatch gate = new CountDownLatch(1);
         Iterable<FndRawRow> slowRows = () -> new Iterator<>() {

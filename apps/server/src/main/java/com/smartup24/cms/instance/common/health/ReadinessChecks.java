@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.health;
 
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,7 +35,11 @@ public final class ReadinessChecks {
                     .build();
         } catch (ExecutionException e) {
             return Health.down()
-                    .withDetail("reason", e.getCause().getClass().getSimpleName())
+                    .withDetail(
+                            "reason",
+                            Objects.requireNonNullElse(e.getCause(), e)
+                                    .getClass()
+                                    .getSimpleName())
                     .build();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -26,6 +26,10 @@ jobs:
           java-version: '25'
           cache: maven
 
+      # Plan 10/10, item 1.2: format and style fail in a minute, before the tests.
+      - name: Format and style (Spotless, Checkstyle)
+        run: mvn -B spotless:check checkstyle:check
+
       - name: Build & test
         run: mvn -B verify
 

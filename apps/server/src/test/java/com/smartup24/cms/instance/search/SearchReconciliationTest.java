@@ -111,7 +111,9 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
 
     private void finish(SearchReconciliationService.Proof proof) {
         int cycles = 0;
-        while (!proof.advance() && cycles++ < 100) {}
+        while (!proof.advance() && cycles++ < 100) {
+            // advance() does the work; the loop only bounds it.
+        }
         assertThat(cycles).isLessThan(100);
     }
 }

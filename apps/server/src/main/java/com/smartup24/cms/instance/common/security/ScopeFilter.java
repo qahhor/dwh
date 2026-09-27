@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.security;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Ограничение выборки строк по скоупу данных (ADR-0013).
  *
@@ -11,7 +13,8 @@ package com.smartup24.cms.instance.common.security;
  * начинается с {@code and}. Пустой фрагмент означает «ограничений нет»
  * (правило ALL) — это самый частый случай, и он не стоит ничего.
  */
-public record ScopeFilter(String sql, boolean bindsUserId, Long userId) {
+public record ScopeFilter(
+        String sql, boolean bindsUserId, @Nullable Long userId) {
 
     private static final ScopeFilter UNRESTRICTED = new ScopeFilter("", false, null);
 

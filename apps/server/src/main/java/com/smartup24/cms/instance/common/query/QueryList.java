@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Описание списка для реестра: откуда читать, какие поля есть и кто их видит.
@@ -32,8 +33,8 @@ public record QueryList(
         boolean defaultDescending,
         int defaultLimit,
         int maxLimit,
-        String customEntity,
-        String attributesSql) {
+        @Nullable String customEntity,
+        @Nullable String attributesSql) {
 
     public static final int DEFAULT_LIMIT = 50;
     public static final int MAX_LIMIT = 200;

@@ -64,9 +64,9 @@ public class MdAssignmentService {
         List<Long> requested = roleIds != null ? roleIds : List.of();
 
         for (Long roleId : requested) {
-            roleRepository
-                    .findById(roleId)
-                    .orElseThrow(() -> ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена: " + roleId));
+            ApiException.requirePresent(
+                    roleRepository.findById(roleId),
+                    () -> ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена: " + roleId));
         }
 
         Set<Long> before = new TreeSet<>(roleRepository.getUserRoleIds(userId));
@@ -159,9 +159,9 @@ public class MdAssignmentService {
     }
 
     private void requireUser(Long userId) {
-        userRepository
-                .findById(userId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+        ApiException.requirePresent(
+                userRepository.findById(userId),
+                () -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
     }
 
     /** Одним запросом: идентификатор в имя. В журнале аудита имя роли читается, а идентификатор нет. */

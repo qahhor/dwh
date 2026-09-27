@@ -353,6 +353,8 @@ class ReportExportIntegrationTest {
         List<String> row = new ArrayList<>();
         var cell = new StringBuilder();
         boolean quoted = false;
+        // A CSV parser steps over an escaped quote and a CRLF pair by moving the index itself.
+        // CHECKSTYLE.OFF: ModifiedControlVariable
         for (int i = 0; i < csv.length(); i++) {
             char ch = csv.charAt(i);
             if (ch == '"') {
@@ -371,6 +373,7 @@ class ReportExportIntegrationTest {
                 cell.setLength(0);
             } else cell.append(ch);
         }
+        // CHECKSTYLE.ON: ModifiedControlVariable
         assertThat(quoted).isFalse();
         assertThat(row).isEmpty();
         assertThat(cell).isEmpty();

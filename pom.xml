@@ -35,6 +35,12 @@
         <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
         <jacoco.version>0.8.15</jacoco.version>
+        <spotless.version>3.10.3</spotless.version>
+        <palantir-java-format.version>2.99.0</palantir-java-format.version>
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+        <checkstyle.version>14.3.0</checkstyle.version>
+        <errorprone.version>2.50.0</errorprone.version>
+        <nullaway.version>0.14.2</nullaway.version>
 
         <!-- Coverage floors (plan 10/10, item 1.4): each module starts at what it has and the floor only rises,
              towards 80 %. A module sets its own values; 0 here means "not measured yet". -->
@@ -149,7 +155,69 @@
                     <configuration>
                         <release>${maven.compiler.release}</release>
                         <parameters>true</parameters>
+                        <!-- Error Prone and NullAway (plan 10/10, item 1.2). Error Prone's ERROR checks fail the build.
+                             NullAway checks only @NullMarked packages (package-info.java), so a module joins by
+                             marking its packages; common is the first. The forked javac gets the exports Error Prone
+                             needs, so no .mvn/jvm.config is required (the Docker build compiles too). -->
+                        <fork>true</fork>
+                        <!-- Error Prone warnings stay visible: they are the backlog of phase 2. -->
+                        <showWarnings>true</showWarnings>
+                        <compilerArgs>
+                            <arg>-XDcompilePolicy=simple</arg>
+                            <arg>--should-stop=ifError=FLOW</arg>
+                            <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                            <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                            <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                        </compilerArgs>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>com.google.errorprone</groupId>
+                                <artifactId>error_prone_core</artifactId>
+                                <version>${errorprone.version}</version>
+                            </path>
+                            <path>
+                                <groupId>com.uber.nullaway</groupId>
+                                <artifactId>nullaway</artifactId>
+                                <version>${nullaway.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
+                    <executions>
+                        <!-- Tests share the packages of the code they test, so they are @NullMarked too; a test
+                             passes null on purpose to prove a refusal. NullAway checks production code only. -->
+                        <execution>
+                            <id>default-testCompile</id>
+                            <configuration>
+                                <compilerArgs combine.self="override">
+                                    <arg>-XDcompilePolicy=simple</arg>
+                                    <arg>--should-stop=ifError=FLOW</arg>
+                                    <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode -Xep:NullAway:OFF</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                                    <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                                    <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
+                                    <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
+                                </compilerArgs>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -177,6 +245,61 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <!-- Formatting (plan 10/10, item 1.2): palantir-java-format, 4 spaces, 120 columns. verify checks it
+                 (CI checks it first, before the tests); mvn spotless:apply formats. -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <palantirJavaFormat>
+                            <version>${palantir-java-format.version}</version>
+                            <style>PALANTIR</style>
+                        </palantirJavaFormat>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>check-format</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Naming, imports and defect-prone constructs (config/checkstyle/checkstyle.xml), main and test code. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${maven-checkstyle-plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>${maven.multiModuleProjectDirectory}/config/checkstyle/checkstyle.xml</configLocation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <consoleOutput>true</consoleOutput>
+                    <failOnViolation>true</failOnViolation>
+                    <violationSeverity>warning</violationSeverity>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>check-style</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Coverage of every module (plan 10/10, item 1.4): report in target/site/jacoco, floors checked in verify. -->
             <plugin>
                 <groupId>org.jacoco</groupId>

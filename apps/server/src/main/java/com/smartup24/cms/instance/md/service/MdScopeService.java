@@ -108,10 +108,9 @@ public class MdScopeService {
         }
         List<Long> requested = List.copyOf(new TreeSet<>(orgUnitIds));
         for (Long unitId : requested) {
-            orgUnitRepository
-                    .findById(unitId)
-                    .orElseThrow(
-                            () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден: " + unitId));
+            ApiException.requirePresent(
+                    orgUnitRepository.findById(unitId),
+                    () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден: " + unitId));
         }
 
         Set<Long> before = scopeRepository.getUserOrgUnitIds(userId);

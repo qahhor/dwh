@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.LongConsumer;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
@@ -32,7 +33,11 @@ public final class BulkRunner {
     public record BulkRequest(String action, List<Long> ids, JsonNode params) {}
 
     /** Итог по одной записи; {@code code} и {@code message} — только у неудачи. */
-    public record BulkItemResult(long id, boolean ok, String code, String message) {}
+    public record BulkItemResult(
+            long id,
+            boolean ok,
+            @Nullable String code,
+            @Nullable String message) {}
 
     public record BulkResult(String action, int succeeded, int failed, List<BulkItemResult> results) {}
 
