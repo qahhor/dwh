@@ -48,18 +48,21 @@ public class KauthChannelService {
     private final KauthOtpSender otpSender;
     private final AuditLogService auditLogService;
     private final KauthCredentialGuard credentialGuard;
+    private final KauthFailureRecorder failures;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public KauthChannelService(KauthChannelRepository channelRepository,
                                KauthOtpCodeRepository otpCodeRepository,
                                KauthOtpSender otpSender,
                                AuditLogService auditLogService,
-                               KauthCredentialGuard credentialGuard) {
+                               KauthCredentialGuard credentialGuard,
+                               KauthFailureRecorder failures) {
         this.channelRepository = channelRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.otpSender = otpSender;
         this.auditLogService = auditLogService;
         this.credentialGuard = credentialGuard;
+        this.failures = failures;
     }
 
     @Transactional(readOnly = true)
@@ -116,7 +119,8 @@ public class KauthChannelService {
             throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия кода подтверждения истёк");
         }
         if (!KauthPasswordHasher.sha256(code).equals(otp.codeHash())) {
-            otpCodeRepository.decrementAttempts(otp.id());
+            // Committed apart: the rollback on the refusal below used to give the attempt back (plan 10/10, 0.6).
+            failures.otpAttemptSpent(otp.id());
             if (otp.attemptsLeft() <= 1) {
                 throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "Превышено количество попыток");
             }

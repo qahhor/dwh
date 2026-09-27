@@ -941,6 +941,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- The login lockout works (plan 10/10, item 0.6). A refused login recorded its
+  attempt and security event inside the login transaction, and the exception
+  rolled both back: five wrong passwords never locked anything, the security
+  log never saw a refusal, and a wrong one-time code never lost an attempt.
+  `KauthFailureRecorder` now commits these apart (`REQUIRES_NEW`) while login
+  and code checks stay atomic. Login no longer tells which accounts exist: an
+  unknown login costs one Argon2 check like a wrong password, both answer
+  "invalid credentials", and a blocked account shows its state only after the
+  right password.
 - Password reset works, by a one-time link (plan 10/10, item 0.1). The old code
   wrote to a table that does not exist and delivered nothing: a known email
   answered 5xx and an unknown one 204, which listed the accounts. Now
