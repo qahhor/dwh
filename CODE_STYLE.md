@@ -14,7 +14,9 @@
    - **`ms` (Messaging & Services):** `com.smartup24.cms.instance.ms` — задачи, проекты, комментарии, оповещения, outbox, объявления.
    - **`mf` (Media & Files):** `com.smartup24.cms.instance.mf` — файловое хранилище (Garage S3).
    - **`audit` (Audit & Security):** `com.smartup24.cms.instance.audit` — журнал изменений (JSONB) и security-события.
-   - **`cp` (Control Plane):** `com.smartup24.cms.cp` — реестр клиентов, лицензии, телеметрия флота.
+   - **`common` (Platform):** `com.smartup24.cms.instance.common` — модель сущности (`entity`), реестр полей (`query`), массовые действия, история, провайдеры.
+   - **`fnd` (Foundation):** `com.smartup24.cms.instance.fnd` — очередь фоновых заданий, основа загрузок данных.
+   - **`upl`, `report`, `search`, `kwh`:** загрузки данных, экспорт списков, поиск, вебхуки.
 2. **Именование классов с модульным префиксом:**
    - **Контроллеры:** `{Prefix}{Entity}Controller` (например, `MdUserController`, `KauthAuthController`, `MsTaskController`, `MfFileController`).
    - **Сервисы и Фасады:** `{Prefix}{Entity}Service` / `{Prefix}{Entity}Facade` (например, `MdUserService`, `KauthSessionService`, `MsTaskService`, `MsNotificationService`).

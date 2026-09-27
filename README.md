@@ -1,13 +1,48 @@
 # SmartupCMS
 
-SmartupCMS is a self-hosted content and operations platform for one
-organization and many users. It combines user and role administration, tasks,
-notifications, audited administrative actions, file storage, search, and
-dashboard-oriented workflows in one modular product.
+SmartupCMS is a self-hosted **low-code CMS for developers**. You declare an
+entity once on the server — its fields, rules, actions and the right each action
+needs — and the platform builds the rest: the list with filters, sorting,
+search, saved views and Excel export, the form and its validation, the record
+card with its change history, bulk actions, the menu item and the permission
+names. A module stays a handful of files; everything else comes from the
+platform.
+
+It ships as one product for one organization and many users: identity and
+roles, tasks and projects, notes, files, search, notifications, audit and a
+data-upload module, all built on the same platform. The interface speaks
+Russian, Uzbek and English; an administrator adds more languages in the
+language editor.
 
 The project is pre-1.0. Use an immutable release tag and complete the
 [production launch checklist](docs/ops/production-launch-checklist.md) before a
 production rollout.
+
+## What a developer writes
+
+```text
+scripts/dev/create-module.ps1 -ModuleName inventory -ModuleTitle "Склад"
+
+V1xx__inventory_module.sql     table, module switch, role grants
+MsInventoryQuery.java          the list: fields, filters, sort, search
+MsInventoryEntity.java         the declaration: form, rules, actions, rights,
+                               menu item, capabilities, and the records bean
+MsInventoryService.java        saves checked by the declaration, audit
+MsInventoryRepository.java     SQL
+MsInventoryController.java     REST endpoints with @RequiresPermission
+```
+
+From the declaration the platform serves `GET /api/v1/form-meta/{code}`,
+`GET /api/v1/query-meta/{code}` and `GET /api/v1/entities/menu`, and builds the
+record history, the export and `POST /api/v1/entities/{code}/bulk`. The web
+screen draws itself with `smt-entity-form`, `smt-entity-card`,
+`smt-entity-toolbar` and `ui-server-table`.
+
+Start with the [module development guide](docs/guidelines/module-development-guide.md)
+and the [extension points](docs/architecture/extension-points.md). The notes
+module is the reference implementation:
+`apps/server/src/main/java/com/smartup24/cms/instance/ms/note` and
+`apps/web/src/app/features/notes`.
 
 ## Product model
 
@@ -29,10 +64,35 @@ SmartupCMS is a modular monolith with separately deployable runtime containers:
 | Component | Implementation | Responsibility |
 |---|---|---|
 | `web` | Angular 22 | Browser UI and the only public application origin |
-| `server` | Java 25, Spring Boot 4.1 | APIs, authorization, business modules, audit |
-| `postgres` | PostgreSQL 18 | Transactional data and Flyway schema history |
+| `server` | Java 25, Spring Boot 4.1, package `com.smartup24.cms` | APIs, authorization, platform and business modules, audit |
+| `postgres` | PostgreSQL 18 | Transactional data and Flyway schema history; a second database keeps uploaded data |
 | `typesense` | Typesense 27.1 | Full-text search |
 | `backup` | PostgreSQL client, `age`, AWS CLI | Encrypted database backups and local status |
+
+```mermaid
+flowchart LR
+  subgraph Module["Your module: five files"]
+    D["EntityDefinition + EntityRecords"]
+    Q["QueryList"]
+    S["Service, Repository, Controller"]
+  end
+  subgraph Platform["Platform"]
+    FM["form-meta and validation"]
+    QM["query-meta, filter DSL, saved views, export"]
+    CAP["history, bulk actions"]
+    NAV["menu item, permission names"]
+  end
+  subgraph Web["Web"]
+    F["smt-entity-form, card, toolbar"]
+    T["ui-server-table"]
+  end
+  D --> FM
+  D --> CAP
+  D --> NAV
+  Q --> QM
+  FM --> F
+  QM --> T
+```
 
 The web container proxies API traffic to the server. PostgreSQL, Typesense, and
 management endpoints are not published by the production Compose topology.

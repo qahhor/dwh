@@ -62,7 +62,7 @@ SmartupCMS расширяется **модулями в коде**: модуль
 
 | Точка | Где | Что даёт |
 |---|---|---|
-| `FndJobHandler` (`@Bean`) | `S/fnd/jobs/FndJobHandler.java` | Задание по расписанию: `code()` и `run(args)`; расписание — строка в `fnd_job_schedule` (пример — `V121__upl_apply_recovery_job.sql`), разовый запуск — `FndJobRunner.enqueueOnce`. Очередь выполняет `S/fnd/jobs/FndJobQueueWorker.java`. |
+| `FndJobHandler` (`@Bean`) | `S/fnd/jobs/FndJobHandler.java` | Задание по расписанию: `code()` и `run(args)`; расписание — строка в `fnd_job_schedule` (пример — `V121__upl_apply_recovery_job.sql`), разовый запуск — `FndJobRunner.enqueueOnce`. Очередь выполняет `S/config/jobs/JobQueueWorker.java`. |
 | События Spring | например, `S/ms/task/service/MsTaskService.java` → `S/ms/notify/listener/MsTaskNotificationListener.java` | Модули общаются событиями, а не вызовами соседних сервисов. |
 | Поиск | `S/search/SearchChangePublisher.java` | `changed(entityType, id)` в транзакции владельца ставит запись на переиндексацию. |
 | Вебхуки | `S/kwh/service/KwhWebhookService.java` | `publishEvent(type, payload)` доставляет событие подписчикам с подписью HMAC-SHA256. |

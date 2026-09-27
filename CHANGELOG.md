@@ -9,6 +9,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Developer documentation for the low-code platform: the README presents
+  SmartupCMS as a low-code CMS for developers with the five-file module and an
+  architecture diagram, `docs/architecture/extension-points.md` lists every
+  extension point with its known gaps, the module guide has a screen example,
+  and the documentation index starts with a developer path. `docs/ai-context.md`
+  is a short current handoff instead of a session log.
 - Menu items and permission names come from entity declarations (roadmap
   item 57): an entity declares its right's names (`EntityRights`) and its
   menu item (`EntityMenu`); the permission catalog takes the names from it,
@@ -593,6 +599,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Code cleanup: 725 fully qualified class names in server and library code
+  became imports; the job queue worker moved from the `upl` module to
+  `config/jobs` (it runs every module's jobs, and `fnd` itself does not
+  schedule); a module whose entity declares a menu item is no longer listed
+  again under Modules; migration V123 removes the untouched demo menu item that
+  embedded an external Superset site.
 - The Java base package and Maven group are `com.smartup24.cms` (were
   `com.greenwhite.dwh`): every server and library class moved, and the
   Compose migration entry point, scripts and documentation follow. The

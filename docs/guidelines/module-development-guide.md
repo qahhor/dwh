@@ -80,6 +80,61 @@ Problem Details формате, описанном в
 Не нужно: записи в `MdFormCatalog`, свой источник истории, свой экспортёр,
 свой endpoint массовых действий, пункт меню в `app-shell.models.ts`.
 
+### Экран сущности: пример
+
+Форма целиком приходит с сервера; экран только загружает `form-meta`, держит
+значения и сохраняет. Полный образец — `apps/web/src/app/features/notes`.
+
+```ts
+@Component({
+  selector: 'app-inventory',
+  standalone: true,
+  imports: [SMTEntityFormComponent, SMTEntityToolbarComponent, SMTButtonComponent, TranslatePipe],
+  template: `
+    @if (meta(); as form) {
+      <smt-entity-toolbar [meta]="form" />
+      <smt-entity-form [meta]="form" [(value)]="values" [problems]="problems()" />
+      @if (canDo(form, 'create')) {
+        <button smt-button smtVariant="primary" (click)="save(form)">{{ 'common.save' | t }}</button>
+      }
+    }
+  `,
+})
+export class InventoryComponent {
+  private readonly api = inject(ApiService);
+  private readonly i18n = inject(I18nService);
+  readonly meta = toSignal(inject(FormMetaService).get('ms.inventory'));
+  readonly values = signal<FormValues>({});
+  readonly problems = signal<FormProblems>({});
+  readonly canDo = canDo;
+
+  save(meta: FormMeta): void {
+    const t = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
+    const problems = formProblems(meta, this.values(), t);   // те же правила, что на сервере
+    this.problems.set(problems);
+    if (Object.keys(problems).length) return;
+    this.api.post('/inventory', recordPayload(meta, this.values()), { notifyError: false }).subscribe({
+      error: problem => this.problems.set(serverProblems(meta, problem?.errors, t)),  // 422 — на поля
+    });
+  }
+}
+```
+
+Кнопки показываются по `actions` из `form-meta`, а не по своим проверкам прав:
+сервер уже отфильтровал действия по правам зрителя. Отдельное поле можно
+заменить своим шаблоном, не переписывая форму:
+
+```html
+<smt-entity-form [meta]="form" [(value)]="values">
+  <ng-template smtEntityField="color" let-field let-set="set">
+    <my-color-picker (picked)="set($event)" />
+  </ng-template>
+</smt-entity-form>
+```
+
+Полный список точек расширения — в
+[extension-points.md](../architecture/extension-points.md).
+
 ## Angular feature
 
 Новая пользовательская функция создаётся под `apps/web/src/app/features`.

@@ -1,7 +1,9 @@
 # SmartupCMS contributor onboarding
 
-This path gives a new contributor a current, evidence-based view of the project
-without requiring historical audit documents.
+This path gives a new contributor a current, evidence-based view of the project.
+SmartupCMS is a low-code CMS for developers; read the
+[module development guide](guidelines/module-development-guide.md) and the
+[extension points](architecture/extension-points.md) before writing a module.
 
 ## 1. Product and operating model
 
@@ -22,8 +24,8 @@ Historical ADRs remain in the repository as decision records. An ADR marked
 
 | Path | Purpose |
 |---|---|
-| `apps/server` | Spring Boot application, business modules, APIs, migrations |
-| `apps/web` | Angular application and design system |
+| `apps/server` | Spring Boot application (`com.smartup24.cms`), platform and business modules, APIs, migrations |
+| `apps/web` | Angular application, UI kit and the entity components in `shared/entity` |
 | `libs/core-types` | Shared domain primitives |
 | `libs/platform-common` | Cross-module technical support |
 | `libs/provider-spi` | Storage and delivery provider contracts |
@@ -33,8 +35,15 @@ Historical ADRs remain in the repository as decision records. An ADR marked
 | `e2e` | Playwright configuration and critical-flow tests |
 | `docs/ops` | Active deployment and operations guidance |
 
-For a focused code question, use the repository knowledge graph described in
-`AGENTS.md`; generated `graphify-out` files are not product source.
+The server packages follow the module prefixes: `common` (platform: entity
+model, field registry, bulk, history), `md` (users, roles, rights, settings,
+languages, menu), `kauth` (authentication), `ms` (tasks, projects, notes,
+notifications), `mf` (files), `audit`, `search`, `kwh` (webhooks), `fnd`
+(jobs and the data-upload foundation), `upl` (data uploads), `report`
+(exports).
+
+For a focused code question, build the local knowledge graph with
+`graphify update .` (see `AGENTS.md`); it is not committed.
 
 ## 3. Architecture and security
 
