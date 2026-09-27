@@ -608,6 +608,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Messages sent to a channel (sign-in code, channel confirmation, password
+  reset link) are in the user's language; when that language is not active,
+  in the system language (`system.default_language` in the settings); when
+  neither is, in Russian (decision of 2026-09-27). They were Russian for
+  everyone. `KauthChannelTexts` renders them from the catalogs
+  (`channel.<name>.subject/body`, ru/uz/en), so the language editor
+  translates them into any language the system adds.
 - A new password has 8 to 20 characters (decision of 2026-09-27; it was at
   least 10). `PasswordValidator` checks both bounds on every set, change and
   reset; signing in with an older, longer password keeps working. The web

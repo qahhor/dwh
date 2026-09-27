@@ -81,6 +81,17 @@ public class MdI18nService {
         return merged;
     }
 
+    /** Whether the code names an active language; {@code false} for null or a malformed code. */
+    @Transactional(readOnly = true)
+    public boolean isActiveLanguage(String code) {
+        if (code == null || code.isBlank()) {
+            return false;
+        }
+        String normalized = code.trim().toLowerCase();
+        return LANGUAGE_CODE.matcher(normalized).matches()
+                && repository.findLanguage(normalized).filter(LanguageRecord::active).isPresent();
+    }
+
     @Transactional(readOnly = true)
     public String requireActiveLanguageCode(String requestedCode) {
         String code = normalizeRequiredCode(requestedCode);

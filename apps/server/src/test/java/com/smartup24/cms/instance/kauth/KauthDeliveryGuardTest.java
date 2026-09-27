@@ -78,7 +78,7 @@ class KauthDeliveryGuardTest {
         when(storage.getProviderCode()).thenReturn("local");
         var registry = new ProviderRegistry(List.of(storage), List.of(mailProvider), List.of(sms),
                 List.of(messengerProvider), "local", mail, "console_sms", messenger);
-        return new KauthDeliveryGuard(new KauthOtpSender(registry), jdbc, enforced);
+        return new KauthDeliveryGuard(new KauthOtpSender(registry, null), jdbc, enforced);
     }
 
     private KauthOtpSender sender(String mail, String messenger, boolean enforced) {
@@ -91,7 +91,7 @@ class KauthDeliveryGuardTest {
         StorageProvider storage = mock(StorageProvider.class);
         when(storage.getProviderCode()).thenReturn("local");
         return new KauthOtpSender(new ProviderRegistry(List.of(storage), List.of(mailProvider), List.of(sms),
-                List.of(messengerProvider), "local", mail, "console_sms", messenger), enforced);
+                List.of(messengerProvider), "local", mail, "console_sms", messenger), null, enforced);
     }
 
     @Test

@@ -68,7 +68,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
         };
         permissions = new MdPermissionService(new MdPermissionRepository(jdbc));
         var scopes = new MdScopeService(new MdScopeRepository(jdbc),new MdOrgUnitRepository(jdbc),permissions,audit);
-        var sender = new KauthOtpSender(null) {
+        var sender = new KauthOtpSender(null, null) {
             @Override public void sendLoginCode(KauthChannelRepository.ChannelRecord c,String code) { deliveredCodes.put(c.userId(),code); }
             @Override public void sendVerificationCode(KauthChannelRepository.ChannelRecord c,String code) { deliveredCodes.put(c.userId(),code); }
         };

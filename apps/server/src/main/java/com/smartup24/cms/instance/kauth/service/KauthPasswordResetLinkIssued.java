@@ -12,12 +12,10 @@ import java.time.Instant;
 public record KauthPasswordResetLinkIssued(
         KauthChannelRepository.ChannelRecord channel,
         String token,
-        Instant expiresAt,
-        String language
+        Instant expiresAt
 ) {
     @Override
     public String toString() {
-        return "KauthPasswordResetLinkIssued[channel=" + channel.channel() + ", expiresAt=" + expiresAt
-                + ", language=" + language + "]";
+        return "KauthPasswordResetLinkIssued[channel=" + channel.channel() + ", expiresAt=" + expiresAt + "]";
     }
 }

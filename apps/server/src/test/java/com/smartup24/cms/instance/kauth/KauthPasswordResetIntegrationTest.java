@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
+import com.smartup24.cms.instance.kauth.service.KauthChannelTexts;
 import com.smartup24.cms.instance.kauth.service.KauthOtpSender;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordResetLinkIssued;
@@ -23,12 +24,14 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdI18nCatalog;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdSettingService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
@@ -96,8 +99,6 @@ class KauthPasswordResetIntegrationTest {
         var registry = new ProviderRegistry(
                 List.of(storageStub()), List.of(mail), List.of(smsStub()), List.of(messenger),
                 "local", "smtp", "console_sms", "telegram");
-        var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
-        var linkSender = new KauthPasswordResetLinkSender(new KauthOtpSender(registry), i18n, "https://cms.example.test/");
 
         var scopes = new MdScopeService(
                 new MdScopeRepository(jdbc),
@@ -114,6 +115,10 @@ class KauthPasswordResetIntegrationTest {
                 Mockito.mock(SearchChangePublisher.class),
                 auditLogService,
                 scopes);
+        var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
+        var texts = new KauthChannelTexts(i18n, new MdSettingService(new MdSettingRepository(jdbc),
+                new MdUserRepository(jdbc, mapper), i18n, auditLogService), userService);
+        var linkSender = new KauthPasswordResetLinkSender(new KauthOtpSender(registry, texts), "https://cms.example.test/");
 
         resetService = new KauthPasswordResetService(
                 userService,

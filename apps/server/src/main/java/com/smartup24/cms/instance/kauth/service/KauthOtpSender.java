@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Доставка одноразового кода в канал пользователя (FR-AUTH-5).
@@ -37,18 +38,20 @@ public class KauthOtpSender {
     private static final String STUB_PREFIX = "console_";
 
     private final ProviderRegistry providerRegistry;
+    private final KauthChannelTexts texts;
     private final boolean deliveryEnforced;
 
     @Autowired
-    public KauthOtpSender(ProviderRegistry providerRegistry,
+    public KauthOtpSender(ProviderRegistry providerRegistry, KauthChannelTexts texts,
                           @Value("${smc.delivery.enforce:true}") boolean deliveryEnforced) {
         this.providerRegistry = providerRegistry;
+        this.texts = texts;
         this.deliveryEnforced = deliveryEnforced;
     }
 
     /** Without enforcement: tests and tools that deliver to stubs on purpose. */
-    public KauthOtpSender(ProviderRegistry providerRegistry) {
-        this(providerRegistry, false);
+    public KauthOtpSender(ProviderRegistry providerRegistry, KauthChannelTexts texts) {
+        this(providerRegistry, texts, false);
     }
 
     /** Code of the provider behind a channel; {@code console_*} is a stub that only writes to the log. */
@@ -108,15 +111,24 @@ public class KauthOtpSender {
     }
 
     public void sendLoginCode(KauthChannelRepository.ChannelRecord channel, String code) {
-        send(channel, "Код входа",
-                "Код входа: " + code + ". Действует 5 минут. "
-                        + "Если вы не входили в систему, смените пароль.",
-                "login-" + KauthPasswordHasher.sha256(code));
+        sendText(channel, "login_code", Map.of("code", code, "minutes", "5"), "login-" + KauthPasswordHasher.sha256(code));
     }
 
     public void sendVerificationCode(KauthChannelRepository.ChannelRecord channel, String code) {
-        send(channel, "Подтверждение канала",
-                "Код подтверждения канала: " + code + ". Действует 15 минут.",
+        sendText(channel, "channel_verify", Map.of("code", code, "minutes", "15"),
                 "verify-" + KauthPasswordHasher.sha256(code));
+    }
+
+    /** A password reset link; {@code minutes} is what the message promises, rounded up. */
+    public void sendResetLink(KauthChannelRepository.ChannelRecord channel, String link, long minutes, String token) {
+        sendText(channel, "password_reset", Map.of("link", link, "minutes", Long.toString(minutes)),
+                "reset-" + KauthPasswordHasher.sha256(token));
+    }
+
+    /** A catalog text in the recipient's language ({@link KauthChannelTexts}). */
+    private void sendText(KauthChannelRepository.ChannelRecord channel, String name, Map<String, String> params,
+                          String idempotencyKey) {
+        KauthChannelTexts.Text text = texts.render(channel.userId(), name, params);
+        send(channel, text.subject(), text.body(), idempotencyKey);
     }
 }

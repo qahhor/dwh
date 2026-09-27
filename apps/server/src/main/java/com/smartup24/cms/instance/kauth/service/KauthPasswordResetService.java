@@ -114,8 +114,7 @@ public class KauthPasswordResetService {
             resetRepository.revokeActive(userId);
             resetRepository.create(userId, user.get().authenticationVersion(), channel.get().channel(),
                     KauthPasswordHasher.sha256(token), expiresAt);
-            events.publishEvent(new KauthPasswordResetLinkIssued(channel.get(), token, expiresAt,
-                    user.get().language()));
+            events.publishEvent(new KauthPasswordResetLinkIssued(channel.get(), token, expiresAt));
             auditLogService.logSecurityEvent("PASSWORD_RESET_REQUESTED", userId, ip, userAgent,
                     Map.of("result", "link_issued", "channel", channel.get().channel()));
         });
