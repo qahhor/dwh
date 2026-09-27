@@ -941,6 +941,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Security
 
+- Password reset works, by a one-time link (plan 10/10, item 0.1). The old code
+  wrote to a table that does not exist and delivered nothing: a known email
+  answered 5xx and an unknown one 204, which listed the accounts. Now
+  `POST /api/v1/auth/password-reset/request` always answers 204, and the link
+  (`/reset-password#token=…`, 256 bits, 15 minutes, one use, a new link voids
+  the previous one) reaches only a confirmed email or Telegram chat, after the
+  commit and off the request thread, so the answer takes the same time either
+  way. The link is bound to the user's authentication generation; using it sets
+  the password, starts a new generation and closes every session and API token.
+  Five rejected links from one address lock it for 15 minutes; a user gets at
+  most three links an hour. Links are built from the new `SMC_PUBLIC_URL`
+  setting, never from the Host header. V126 binds the table to the generation
+  and the channel; the web app has a reset screen (ru, uz, en).
 - One-time secrets are no longer stored for idempotent replay (plan 10/10,
   item 0.2). A new API token and a new webhook signing key were saved in
   `idempotency_keys` because the filter excluded a path that no longer exists.

@@ -54,6 +54,7 @@ class RbacSystemRolesIntegrationTest {
     private static final Set<String> PUBLIC_CONTROLLER_ALLOWLIST = Set.of(
             "KauthAuthController",   // публичный/сессионный контур входа
             "KauthPasswordController", // смена собственного пароля — контур аутентификации (Д-7)
+            "KauthPasswordResetController", // сброс пароля по одноразовой ссылке, вход ещё не выполнен (план 0.1)
             "OpenApiController",     // спецификация API, permitAll в SecurityConfig
             "MdI18nController"       // публичные UI-словари, без данных экземпляра/пользователей
     );

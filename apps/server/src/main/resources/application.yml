@@ -94,6 +94,11 @@ management:
       # Состояние канала показывает NotificationChannelStartupCheck и журнал.
       enabled: false
 
+smc:
+  # Public address of the web application, e.g. https://cms.example.com. Password reset links are built from it and
+  # never from the request's Host header. Empty -> no reset link is sent (the log says why).
+  public-url: ${SMC_PUBLIC_URL:}
+
 dwh:
   providers:
     # Активный провайдер каждого канала (ADR-0011). Значение console_* означает

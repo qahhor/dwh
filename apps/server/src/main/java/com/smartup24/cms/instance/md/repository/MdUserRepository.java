@@ -226,18 +226,6 @@ public class MdUserRepository {
         if (changed != 1) throw ApiException.invalidCredentials();
     }
 
-    public void updatePassword(Long userId, String newPasswordHash) {
-        jdbcClient.sql("""
-                update md_users
-                set password_hash = :passwordHash, password_changed_at = now(),
-                    force_password_change = false, modified_at = now()
-                where id = :userId
-                """)
-                .param("userId", userId)
-                .param("passwordHash", newPasswordHash)
-                .update();
-    }
-
     public void setState(Long userId, String state, Long modifiedBy) {
         jdbcClient.sql("""
                 update md_users

@@ -5,7 +5,6 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
-import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
@@ -28,7 +27,6 @@ public class KauthAuthService {
     private final KauthSessionRepository sessionRepository;
     private final KauthLoginAttemptRepository loginAttemptRepository;
     private final KauthOtpCodeRepository otpCodeRepository;
-    private final KauthPasswordResetRepository passwordResetRepository;
     private final KauthPasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
     private final AuditLogService auditLogService;
@@ -41,7 +39,6 @@ public class KauthAuthService {
             KauthSessionRepository sessionRepository,
             KauthLoginAttemptRepository loginAttemptRepository,
             KauthOtpCodeRepository otpCodeRepository,
-            KauthPasswordResetRepository passwordResetRepository,
             KauthPasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
             AuditLogService auditLogService,
@@ -51,7 +48,6 @@ public class KauthAuthService {
         this.sessionRepository = sessionRepository;
         this.loginAttemptRepository = loginAttemptRepository;
         this.otpCodeRepository = otpCodeRepository;
-        this.passwordResetRepository = passwordResetRepository;
         this.passwordHasher = passwordHasher;
         this.passwordValidator = passwordValidator;
         this.auditLogService = auditLogService;
@@ -182,34 +178,6 @@ public class KauthAuthService {
 
         return LoginResult.success(sessionToken, user, session);
     }
-
-    @Transactional
-    public void requestPasswordReset(String email) {
-        userService.findAuthUserByEmail(email).ifPresent(user -> {
-            String code = String.format("%06d", secureRandom.nextInt(1000000));
-            String codeHash = KauthPasswordHasher.sha256(code);
-            passwordResetRepository.create(user.id(), codeHash, Instant.now().plusSeconds(900));
-        });
-    }
-
-    @Transactional
-    public void confirmPasswordReset(String code, String newPassword) {
-        String codeHash = KauthPasswordHasher.sha256(code);
-        var reset = passwordResetRepository.findActiveByCodeHash(codeHash)
-                .orElseThrow(() -> ApiException.badRequest(ErrorCode.RESET_CODE_INVALID, "Неверный или просроченный код сброса пароля"));
-
-        var user = userService.findAuthUserById(reset.userId())
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
-
-        passwordValidator.validate(newPassword, user.login());
-
-        passwordResetRepository.markAsUsed(reset.id());
-
-        String newHash = passwordHasher.hashPassword(newPassword);
-        userService.setPasswordForReset(reset.userId(), newHash);
-        sessionRepository.closeAllUserSessions(reset.userId());
-    }
-
 
     private String generateSecureToken() {
         byte[] bytes = new byte[32];

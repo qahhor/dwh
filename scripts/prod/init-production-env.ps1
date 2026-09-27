@@ -13,6 +13,7 @@ param(
     [ValidateSet('local', 's3')][string]$BackupStorageMode = 'local',
     [int]$HttpPort = 8080,
     [string]$HttpBind = '127.0.0.1',
+    [string]$PublicUrl = '',
     [switch]$Force,
     [switch]$Validate
 )
@@ -143,6 +144,10 @@ APP_VERSION=$AppVersion
 ORGANIZATION_CODE=$OrganizationCode
 ORGANIZATION_NAME=$OrganizationName
 RESOURCE_PROFILE=$ResourceProfile
+
+# Public address of the web application, e.g. https://cms.example.com.
+# Password reset links are built from it; empty means no link is sent.
+SMC_PUBLIC_URL=$PublicUrl
 
 # Database credentials (I-02 Least Privilege role separation)
 DB_NAME=smartupcms

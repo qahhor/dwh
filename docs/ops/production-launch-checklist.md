@@ -75,6 +75,9 @@ owner. A commercial SLA cannot override a failed safety gate.
       and task export streaming bounds (`LIMIT :maxExportRows`) are enforced.
 - [ ] Session revocation, password recovery, CSRF, rate limits, and audit events
       pass the release test suite.
+- [ ] `SMC_PUBLIC_URL` is the public HTTPS address of the web application:
+      password reset links are built from it (never from the request's Host
+      header), and with it empty no reset link is sent.
 - [ ] Real delivery-provider and object-storage credentials are least-privilege,
       scoped to this installation, and successfully rotated in a drill.
 - [ ] Named operational roles (Privacy Owner, Incident Response Lead, Backup Operator,

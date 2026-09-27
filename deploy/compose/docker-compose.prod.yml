@@ -19,6 +19,7 @@ x-server-common: &server-common
     DWH_INSTANCE_ADMIN_LOGIN: ${ADMIN_LOGIN:-admin}
     DWH_INSTANCE_ADMIN_EMAIL: ${ADMIN_EMAIL:-}
     DWH_INSTANCE_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    SMC_PUBLIC_URL: ${SMC_PUBLIC_URL:-}
     DWH_PROVIDER_STORAGE: ${DWH_PROVIDER_STORAGE:-local_disk}
     DWH_STORAGE_LOCAL_PATH: /var/lib/smartupcms/storage
     DWH_BACKUP_STATUS_FILE: /var/lib/smartupcms/backup/status.json

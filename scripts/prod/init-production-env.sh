@@ -15,6 +15,7 @@ STORAGE_MODE="${STORAGE_MODE:-local_disk}"
 BACKUP_STORAGE_MODE="${BACKUP_STORAGE_MODE:-local}"
 HTTP_PORT="${HTTP_PORT:-8080}"
 HTTP_BIND="${HTTP_BIND:-127.0.0.1}"
+SMC_PUBLIC_URL="${SMC_PUBLIC_URL:-}"
 FORCE="${FORCE:-false}"
 VALIDATE="${VALIDATE:-false}"
 
@@ -114,6 +115,10 @@ APP_VERSION=$APP_VERSION
 ORGANIZATION_CODE=$ORGANIZATION_CODE
 ORGANIZATION_NAME=$ORGANIZATION_NAME
 RESOURCE_PROFILE=$RESOURCE_PROFILE
+
+# Public address of the web application, e.g. https://cms.example.com.
+# Password reset links are built from it; empty means no link is sent.
+SMC_PUBLIC_URL=$SMC_PUBLIC_URL
 
 # Database credentials (I-02 Least Privilege role separation)
 DB_NAME=smartupcms

@@ -10,7 +10,6 @@ import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
-import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
@@ -125,7 +124,6 @@ class KauthOtpLoginIntegrationTest {
                 new KauthSessionRepository(jdbc),
                 new KauthLoginAttemptRepository(jdbc),
                 otpCodeRepository,
-                new KauthPasswordResetRepository(jdbc),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
                 auditLogService,
