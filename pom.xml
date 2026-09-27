@@ -24,7 +24,7 @@
         <tomcat.version>11.0.25</tomcat.version>
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.0</archunit.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <argon2.version>2.11</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
