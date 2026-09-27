@@ -76,9 +76,10 @@ The audit log is kept in daily partitions and archived by the server every
 night at 03:45 UTC (decision of 2026-09-27; `SMC_AUDIT_ARCHIVE_*` in the
 environment file):
 
-- closed days that no archive holds yet go into one file
-  `audit-log_<from>_<to>_<stamp>.jsonl.gz` once a week, or earlier when they
-  reach 100 MB; one line is one row of `audit_log`;
+- days closed for a full day (a transaction started before midnight may still
+  commit into the day) that no archive holds yet go into one file
+  `audit-log_<from>_<to>_<stamp>_<id>.jsonl.gz` once a week, or earlier when
+  they reach 100 MB; one line is one row of `audit_log`;
 - the target is a directory on the server (`SMC_AUDIT_ARCHIVE_TARGET=local`,
   `/var/lib/smartupcms/audit-archive` on the data volume) or a bucket of its
   own (`s3`, with `SMC_AUDIT_ARCHIVE_S3_*`);
@@ -86,8 +87,15 @@ environment file):
   counts; an archive that does not match is removed and retried the next night;
 - files older than 90 days are removed (`SMC_AUDIT_ARCHIVE_RETENTION`);
 - with `SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE=true` the archived days leave
-  the database; the database itself refuses a day that no verified, unexpired
-  archive holds. Off by default: the archive is then a copy.
+  the database, each only if its file is still in the store; the database
+  itself refuses a day that no verified, unexpired archive holds, and a day
+  whose row count differs from its archive. A day whose archive expired is
+  archived again before it leaves. Off by default: the archive is then a copy,
+  made once per day.
+- one instance runs the archive at a time (a lease in the database); a
+  verified archive record is permanent, so every day that left the database
+  keeps its trace. With deletion on, the application role can still remove
+  closed audit days: that is what the switch allows.
 
 Every archive, removal and expiry is a security event (`AUDIT_ARCHIVED`,
 `AUDIT_PARTITIONS_DROPPED`, `AUDIT_ARCHIVES_EXPIRED`). The files hold

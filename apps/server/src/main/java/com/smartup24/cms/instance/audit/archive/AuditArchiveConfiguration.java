@@ -3,9 +3,11 @@ package com.smartup24.cms.instance.audit.archive;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 /** The archive store chosen by {@code smc.audit.archive.target}: a local directory or an S3 bucket. */
 @Configuration(proxyBeanMethods = false)
+@Profile("!migrate")
 @EnableConfigurationProperties(AuditArchiveProperties.class)
 public class AuditArchiveConfiguration {
 

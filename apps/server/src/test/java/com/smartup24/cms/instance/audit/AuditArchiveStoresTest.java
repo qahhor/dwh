@@ -8,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 import org.springframework.util.unit.DataSize;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -18,6 +20,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -78,6 +81,26 @@ class AuditArchiveStoresTest {
         var complete = new AuditArchiveProperties.S3(URI.create("https://s3.example.test"), "auto", "AKIA-probe",
                 "secret-probe", "bucket", "audit/", true);
         assertThat(complete.toString()).doesNotContain("AKIA-probe").doesNotContain("secret-probe");
+    }
+
+    @Test
+    @DisplayName("Settings bind as application.yml gives them: 7d, 90d, 100MB and an empty S3 endpoint")
+    void settingsBindFromText() {
+        var source = new MapConfigurationPropertySource(Map.of(
+                "smc.audit.archive.target", "local",
+                "smc.audit.archive.interval", "7d",
+                "smc.audit.archive.retention", "90d",
+                "smc.audit.archive.size-threshold", "100MB",
+                "smc.audit.archive.s3.endpoint", ""));
+
+        var bound = new Binder(source).bind("smc.audit.archive", AuditArchiveProperties.class).get();
+
+        assertThat(bound.interval()).isEqualTo(Duration.ofDays(7));
+        assertThat(bound.retention()).isEqualTo(Duration.ofDays(90));
+        assertThat(bound.sizeThreshold()).isEqualTo(DataSize.ofMegabytes(100));
+        assertThat(bound.deleteAfterArchive()).as("deletion is an opt-in").isFalse();
+        assertThat(bound.enabled()).isTrue();
+        assertThat(bound.s3().prefix()).isEqualTo("audit/");
     }
 
     private static AuditArchiveProperties properties(String target) {

@@ -11,7 +11,10 @@ import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -69,6 +72,21 @@ public class S3AuditArchiveStore implements AuditArchiveStore, AutoCloseable {
     @Override
     public InputStream open(String key) {
         return client.getObject(GetObjectRequest.builder().bucket(bucket).key(prefix + key).build());
+    }
+
+    @Override
+    public boolean exists(String key) {
+        try {
+            client.headObject(HeadObjectRequest.builder().bucket(bucket).key(prefix + key).build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw e;
+        }
     }
 
     @Override

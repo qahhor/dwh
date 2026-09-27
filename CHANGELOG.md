@@ -616,10 +616,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   100 MB, stores it in a local directory or an S3 bucket of its own
   (`SMC_AUDIT_ARCHIVE_TARGET`), reads it back and matches SHA-256 and row
   count. Files are kept 90 days. With `SMC_AUDIT_ARCHIVE_DELETE_AFTER_ARCHIVE`
-  (off by default) archived days leave the database, through a function that
-  refuses any day without a verified, unexpired archive. Archives, removals
-  and expiries are security events; the runbook shows how to read an archive
-  back. Canonical specification: FR-ADMIN-05.
+  (off by default) archived days leave the database, each only while its file
+  is in the store, through a function that refuses a day without a verified,
+  unexpired archive or with more rows than the archive. A day counts as closed
+  a full day after it ends; a day whose archive expired is archived again
+  before it may leave. One instance archives at a time (a database lease);
+  verified archive records are permanent (triggers). Archives, removals and
+  expiries are security events; the runbook shows how to read an archive back.
+  Canonical specification: FR-ADMIN-05.
 - Logs are archived weekly or at 100 MB (decision of 2026-09-27). The server
   writes `/var/lib/smartupcms/logs/server.log` on its data volume in
   production (`SMC_LOG_FILE`) and rolls it to

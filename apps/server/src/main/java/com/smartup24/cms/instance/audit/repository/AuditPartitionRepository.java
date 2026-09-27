@@ -88,12 +88,12 @@ public class AuditPartitionRepository {
         return tableExists(partitionName(YearMonth.from(day))) || tableExists(dayPartitionName(day));
     }
 
+    /** In the schema the application works in, not in any schema of the database. */
     private boolean tableExists(String name) {
-        Long count = jdbc.sql("select count(*) from pg_class where relname = :name")
+        return Boolean.TRUE.equals(jdbc.sql("select to_regclass(:name) is not null")
                 .param("name", name)
-                .query(Long.class)
-                .single();
-        return count != null && count > 0;
+                .query(Boolean.class)
+                .single());
     }
 
     /** Месячная партиция (V033): для месяцев, которые ещё месячные, и для тестов обслуживания. */
@@ -128,10 +128,11 @@ public class AuditPartitionRepository {
                                exists (select 1
                                        from pg_inherits i
                                        join pg_class p on p.oid = i.inhparent
-                                       where i.inhrelid = c.oid and p.relname = 'audit_log') as attached
+                                       where i.inhrelid = c.oid and p.oid = to_regclass('audit_log')) as attached
                         from pg_class c
                         join pg_namespace n on n.oid = c.relnamespace
-                        where n.nspname = 'public' and c.relkind = 'r' and c.relname ~ '^audit_log_(archived_)?[0-9]{4}_'
+                        where n.nspname = current_schema() and c.relkind = 'r'
+                          and c.relname ~ '^audit_log_(archived_)?[0-9]{4}_[0-9]{2}(_[0-9]{2})?$'
                         """)
                 .query((rs, rowNum) -> parse(rs.getString("relname"), rs.getBoolean("attached")))
                 .list()

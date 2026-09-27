@@ -41,6 +41,11 @@ public class LocalAuditArchiveStore implements AuditArchiveStore {
     }
 
     @Override
+    public boolean exists(String key) {
+        return Files.isRegularFile(resolve(key));
+    }
+
+    @Override
     public void delete(String key) throws IOException {
         Files.deleteIfExists(resolve(key));
     }

@@ -14,6 +14,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.sql.DataSource;
+import java.time.LocalDate;
 import java.time.YearMonth;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -273,6 +274,29 @@ class DatabaseLeastPrivilegeIntegrationTest {
             long archivedCount = appJdbc.sql("select count(*) from audit_log_archived_2021_05 where table_name = 'future_partition_test'")
                     .query(Long.class).single();
             assertThat(archivedCount).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("V127: the application role creates daily partitions and cannot erase the trace of an archive")
+        void appUserManagesDailyPartitionsButNotTheArchiveTrace() {
+            LocalDate day = LocalDate.of(2021, 6, 7);
+            assertThat(new AuditPartitionRepository(appJdbc).createDay(day)).isEqualTo("audit_log_2021_06_07");
+
+            Long id = appJdbc.sql("""
+                    insert into audit_log_archives (file_key, storage, period_from, period_to, row_count, byte_size, sha256)
+                    values ('least-privilege.jsonl.gz', 'local', timestamptz '2021-06-07 00:00:00+00',
+                            timestamptz '2021-06-08 00:00:00+00', 0, 0, 'probe')
+                    returning id
+                    """).query(Long.class).single();
+            appJdbc.sql("update audit_log_archives set verified_at = now() where id = :id").param("id", id).update();
+
+            assertThatThrownBy(() -> appJdbc.sql("delete from audit_log_archives where id = :id").param("id", id).update())
+                    .isInstanceOf(DataAccessException.class)
+                    .hasMessageContaining("permanent");
+            assertThatThrownBy(() -> appJdbc.sql("select audit_log_drop_archived_partition('audit_log_2021_06_07')")
+                    .query().singleValue())
+                    .isInstanceOf(DataAccessException.class)
+                    .hasMessageContaining("no verified archive");
         }
 
         @Test

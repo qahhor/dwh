@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -21,6 +22,7 @@ import java.io.OutputStreamWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.DigestInputStream;
@@ -28,6 +30,7 @@ import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -38,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -46,17 +50,26 @@ import java.util.zip.GZIPOutputStream;
  *
  * <p>A run exports the closed partitions that no archive holds yet into one gzip file of JSON lines (one row of
  * {@code audit_log} per line, as {@code row_to_json} gives it), when a week has passed since the last archive or the
- * waiting partitions reach 100 MB. The file is recorded, stored (local directory or S3), read back and matched by
- * SHA-256 and row count; only then is it verified. With {@code delete-after-archive} on, the partitions of verified
- * archives leave the database; the database function refuses any other. Archive files older than the retention are
- * removed. Every step that removes something is a security event.
+ * waiting partitions reach 100 MB. A partition counts as closed a full day after its period ends: a transaction
+ * started before midnight may still commit a row into it. The file is recorded, stored (local directory or S3), read
+ * back and matched by SHA-256 and row count; only then is it verified.
+ *
+ * <p>Archive files older than the retention are removed first. Then, with {@code delete-after-archive} on, the
+ * partitions of verified archives leave the database, each only if its file is still in the store; the database
+ * function also requires the partition's row count to match the archive. With deletion on, a partition whose archive
+ * expired is archived again before it may leave, so none leaves without a copy.
+ *
+ * <p>One run at a time across instances (a lease in the database). Every step that removes something is a security
+ * event.
  */
 @Service
+@Profile("!migrate")
 public class AuditArchiveService {
 
     private static final Logger log = LoggerFactory.getLogger(AuditArchiveService.class);
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
     private static final String ACTOR = "audit-archive";
+    private static final Duration LEASE = Duration.ofHours(6);
 
     private final AuditPartitionRepository partitions;
     private final AuditArchiveRepository archives;
@@ -90,27 +103,50 @@ public class AuditArchiveService {
         this.clock = clock;
     }
 
-    /** What one run did. */
-    public record RunResult(String archivedKey, List<String> droppedPartitions, List<String> expiredKeys) {}
+    /** What one run did; {@code skipped} when disabled or another instance holds the lease. */
+    public record RunResult(boolean skipped, String archivedKey, List<String> droppedPartitions, List<String> expiredKeys) {}
 
     public RunResult run() {
         if (!properties.enabled()) {
-            return new RunResult(null, List.of(), List.of());
+            return new RunResult(true, null, List.of(), List.of());
         }
-        removeUnverified();
-        Instant now = clock.instant();
-        String archived = archiveIfDue(now);
-        // Expired files go first: a partition whose archive expires in this run has no copy left to be dropped with.
-        List<String> expired = removeExpiredFiles(now);
-        List<String> dropped = properties.deleteAfterArchive() ? dropArchivedPartitions() : List.of();
-        return new RunResult(archived, dropped, expired);
+        String holder = UUID.randomUUID().toString();
+        if (!archives.acquireLease(holder, LEASE)) {
+            log.info("audit_archive_skipped: another instance is archiving");
+            return new RunResult(true, null, List.of(), List.of());
+        }
+        try {
+            clearStaging();
+            removeUnverified();
+            Instant now = clock.instant();
+            // Expired files go first: a partition whose archive expires is renewed below before it may leave, and
+            // never leaves on the strength of a file removed in the same run.
+            List<String> expired = removeExpiredFiles(now);
+            String archived = archiveIfDue(now);
+            List<String> dropped = properties.deleteAfterArchive() ? dropArchivedPartitions(now) : List.of();
+            return new RunResult(false, archived, dropped, expired);
+        } finally {
+            archives.releaseLease(holder);
+        }
     }
 
-    /** Closed partitions that no archive holds, oldest first. */
+    /** The name an archive records: retention renames audit_log_X to audit_log_archived_X. */
+    static String recordedName(String partitionName) {
+        return partitionName.replaceFirst("^audit_log_archived_", "audit_log_");
+    }
+
+    /** Closed a full day ago: no transaction started within the period can still commit a row into it. */
+    static boolean settled(AuditPartition partition, LocalDate today) {
+        return !partition.to().plusDays(1).isAfter(today);
+    }
+
+    /** Settled partitions that no archive holds, oldest first. */
     List<AuditPartition> waitingPartitions(LocalDate today) {
-        Set<String> archivedNames = archives.archivedPartitionNames();
+        Set<String> held = properties.deleteAfterArchive()
+                ? archives.liveArchivedPartitionNames()
+                : archives.everArchivedPartitionNames();
         return partitions.partitions().stream()
-                .filter(partition -> partition.closedBy(today) && !archivedNames.contains(partition.name()))
+                .filter(partition -> settled(partition, today) && !held.contains(recordedName(partition.name())))
                 .toList();
     }
 
@@ -136,18 +172,18 @@ public class AuditArchiveService {
     private String archive(List<AuditPartition> waiting, Instant now) throws IOException {
         LocalDate from = waiting.getFirst().from();
         LocalDate to = waiting.stream().map(AuditPartition::to).max(LocalDate::compareTo).orElseThrow();
-        String key = "audit-log_" + from + "_" + to + "_" + STAMP.format(now) + ".jsonl.gz";
+        // The suffix keeps two archives of one period apart (a renewed copy may share the second of the old one).
+        String key = "audit-log_" + from + "_" + to + "_" + STAMP.format(now) + "_"
+                + UUID.randomUUID().toString().substring(0, 8) + ".jsonl.gz";
 
-        Path staging = properties.localPath().resolve(".staging");
-        Files.createDirectories(staging);
-        Path file = Files.createTempFile(staging, "audit-", ".jsonl.gz");
+        Path file = Files.createTempFile(staging(), "audit-", ".jsonl.gz");
         try {
             MessageDigest digest = sha256();
             Map<String, Long> rowsByPartition = new LinkedHashMap<>();
             try (OutputStream out = new DigestOutputStream(Files.newOutputStream(file), digest);
                  Writer writer = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(out), StandardCharsets.UTF_8))) {
                 for (AuditPartition partition : waiting) {
-                    rowsByPartition.put(partition.name(), export(partition, writer));
+                    rowsByPartition.put(recordedName(partition.name()), export(partition, writer));
                 }
             }
             long rows = rowsByPartition.values().stream().mapToLong(Long::longValue).sum();
@@ -159,7 +195,9 @@ public class AuditArchiveService {
             rowsByPartition.forEach((name, count) -> archives.addPartition(archiveId, name, count));
             store.put(key, file);
             verify(key, sha256, rows);
-            archives.markVerified(archiveId);
+            if (!archives.markVerified(archiveId)) {
+                throw new IllegalStateException("Archive record " + key + " vanished before it was verified");
+            }
 
             auditLogService.logSecurityEvent("AUDIT_ARCHIVED", null, null, ACTOR, Map.of(
                     "file", key, "storage", store.storage(), "rows", rows, "bytes", bytes,
@@ -198,17 +236,34 @@ public class AuditArchiveService {
         MessageDigest digest = sha256();
         long lines = 0;
         try (InputStream stored = store.open(key);
-             DigestInputStream digested = new DigestInputStream(stored, digest)) {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(digested), StandardCharsets.UTF_8));
+             DigestInputStream digested = new DigestInputStream(stored, digest);
+             BufferedReader reader = new BufferedReader(
+                     new InputStreamReader(new GZIPInputStream(digested), StandardCharsets.UTF_8))) {
             while (reader.readLine() != null) {
                 lines++;
             }
+            // Whatever follows the gzip trailer is part of the stored file, and of its digest.
             digested.transferTo(OutputStream.nullOutputStream());
         }
         String actual = HexFormat.of().formatHex(digest.digest());
         if (!actual.equals(expectedSha256) || lines != expectedRows) {
             throw new IOException("Stored archive " + key + " does not match: sha256 " + actual + ", " + lines
                     + " lines instead of " + expectedRows);
+        }
+    }
+
+    private Path staging() throws IOException {
+        return Files.createDirectories(properties.localPath().resolve(".staging"));
+    }
+
+    /** Files a crashed run left behind; only the lease holder gets here, so none of them is in use. */
+    private void clearStaging() {
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(staging())) {
+            for (Path file : files) {
+                Files.deleteIfExists(file);
+            }
+        } catch (IOException e) {
+            log.warn("audit_archive_staging_cleanup_failed", e);
         }
     }
 
@@ -220,24 +275,31 @@ public class AuditArchiveService {
             } catch (IOException | RuntimeException e) {
                 log.warn("audit_archive_cleanup_failed file={}", archive.fileKey(), e);
             }
-            archives.delete(archive.id());
+            archives.deleteUnverified(archive.id());
         }
     }
 
-    private List<String> dropArchivedPartitions() {
+    private List<String> dropArchivedPartitions(Instant now) {
+        LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
         Map<String, AuditPartition> existing = new LinkedHashMap<>();
-        partitions.partitions().forEach(partition -> existing.put(partition.name(), partition));
+        partitions.partitions().forEach(partition -> existing.put(recordedName(partition.name()), partition));
         List<String> dropped = new ArrayList<>();
-        for (String name : archives.partitionsToDrop()) {
-            AuditPartition partition = existing.get(name);
-            if (partition == null) {
+        for (var archived : archives.partitionsToDrop()) {
+            AuditPartition partition = existing.get(archived.recordedName());
+            if (partition == null || !settled(partition, today)) {
                 continue;
             }
             try {
+                // The database cannot see the store: a file removed outside the server is no copy.
+                if (!store.exists(archived.fileKey())) {
+                    log.error("audit_partition_kept partition={}: its archive {} is missing from the store",
+                            partition.name(), archived.fileKey());
+                    continue;
+                }
                 partitions.dropArchived(partition);
-                dropped.add(name);
-            } catch (RuntimeException e) {
-                log.error("audit_partition_drop_failed partition={}: {}", name, e.getMessage());
+                dropped.add(partition.name());
+            } catch (IOException | RuntimeException e) {
+                log.error("audit_partition_drop_failed partition={}: {}", partition.name(), e.getMessage());
             }
         }
         if (!dropped.isEmpty()) {
