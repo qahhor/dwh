@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Released migrations are immutable (plan 10/10, item 0.5).
+  `MigrationManifestTest` keeps the SHA-256 of every file in `db/migration`
+  and `db/dwh` (`migration-manifest.sha256`) and fails the build on any edit
+  or removal; new files are appended with `-Dmigrations.manifest.append=true`.
+  Databases that applied the edited V100 and the deleted V101 before
+  2026-09-20 are repaired once with `SMC_MIGRATE_REPAIR=true` on the migrate
+  job (`flyway repair`, then migrate); the runbook is
+  `docs/ops/migration-repair.md`, and RB-04 names it as the only sanctioned
+  history change.
 - Developer documentation for the low-code platform: the README presents
   SmartupCMS as a low-code CMS for developers with the five-file module and an
   architecture diagram, `docs/architecture/extension-points.md` lists every

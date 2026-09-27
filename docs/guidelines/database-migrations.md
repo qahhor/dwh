@@ -63,6 +63,12 @@ volume, запускает зависимости, применяет мигра
    `VNNN__short_description.sql`.
 2. Применённый Flyway-файл неизменяем: его нельзя редактировать, переименовывать,
    переставлять или удалять. Исправление выпускается следующей forward migration.
+   `MigrationManifestTest` хранит SHA-256 каждого файла
+   (`apps/server/src/test/resources/migration-manifest.sha256`) и валит сборку
+   при любой правке или удалении. Новый файл добавляется в манифест командой
+   `mvn test -pl apps/server -Dtest=MigrationManifestTest -Dmigrations.manifest.append=true`.
+   Стенды, применившие изменённый V100 и удалённый V101, чинятся по
+   [runbook](../ops/migration-repair.md).
 3. Совместимое изменение выполняется по expand/contract: сначала добавить новую
    структуру и совместимый код, затем перенести/проверить данные, и только в
    отдельном последующем релизе удалить старую структуру.
