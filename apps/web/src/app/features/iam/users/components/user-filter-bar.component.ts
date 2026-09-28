@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@core/services/i18n.service';
@@ -52,6 +52,7 @@ export class UserFilterBarComponent {
   readonly clearRoleFilter = output<void>();
   readonly clear2faFilter = output<void>();
   readonly resetAllFilters = output<void>();
+  private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('filterTrigger');
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<string>[]>();
   private readonly roleMemo = optionsMemo<SMTSelectOption<number>[]>();
@@ -74,5 +75,10 @@ export class UserFilterBarComponent {
       { id: true, label: this.optionText.translate('iam.tolko_s_2fa') },
       { id: false, label: this.optionText.translate('iam.bez_2fa') },
     ]);
+  }
+
+  /** Returns focus to the filter button once its panel closes (Escape), so the keyboard stays where it was. */
+  focusTrigger(): void {
+    this.trigger()?.nativeElement.focus();
   }
 }

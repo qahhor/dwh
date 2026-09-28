@@ -111,6 +111,19 @@ describe('UsersComponent UI contracts', () => {
     overlay.remove();
   });
 
+  it('returns focus to the filter button when Escape closes the filter menu', async () => {
+    const fixture = await createFixture();
+    const trigger = fixture.nativeElement.querySelector('.filter-trigger-btn') as HTMLButtonElement;
+    fixture.componentInstance.filterService.isFilterMenuOpen.set(true);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await Promise.resolve();
+
+    expect(fixture.componentInstance.filterService.isFilterMenuOpen()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it('labels filters and exposes explicit table interactions', async () => {
     const fixture = await createFixture();
     const user: User = {

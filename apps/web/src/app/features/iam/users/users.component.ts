@@ -65,7 +65,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
   private readonly recordRouter = inject(Router, { optional: true });
 
-  private readonly filterTrigger = viewChild<ElementRef<HTMLButtonElement>>('filterTrigger');
+  private readonly filterBar = viewChild(UserFilterBarComponent);
   private readonly userDetailModal = viewChild(UserDetailModalComponent);
 
   readonly routeRecordId = signal<string | null>(null);
@@ -123,7 +123,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   onEscape() {
     if (!this.filterService.isFilterMenuOpen()) return;
     this.filterService.isFilterMenuOpen.set(false);
-    queueMicrotask(() => this.filterTrigger()?.nativeElement.focus());
+    queueMicrotask(() => this.filterBar()?.focusTrigger());
   }
 
   ngOnInit() {
