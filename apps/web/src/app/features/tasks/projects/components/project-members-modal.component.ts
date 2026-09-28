@@ -1,15 +1,4 @@
-import {
-  Component,
-  Input,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  input,
-  output,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
@@ -59,7 +48,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
       <ng-template smtDialogContent>
         <div body class="members-modal-body">
           <!-- Add Member Panel (visible if user can update project) -->
-          @if (canUpdateProject) {
+          @if (canUpdateProject()) {
             <div class="add-member-panel">
               <div class="panel-header">
                 <span class="material-symbols-outlined panel-icon" aria-hidden="true">person_add</span>
@@ -446,6 +435,9 @@ export class ProjectMembersModalComponent {
   readonly isOpen = input(false);
   readonly project = input<Project | null>(null);
 
+  readonly members = input<ProjectMember[]>([]);
+  readonly canUpdateProject = input<boolean>(false);
+
   readonly close = output<void>();
   readonly addMember = output<{
     projectId: number;
@@ -464,8 +456,7 @@ export class ProjectMembersModalComponent {
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
 
-  readonly rows = signal<ProjectMember[]>([]);
-  private readonly canUpdate = signal(false);
+  readonly rows = computed<ProjectMember[]>(() => this.members() ?? []);
 
   /** The remove column is there only for someone who may change the project. */
   readonly config = computed<TableConfig<ProjectMember>>(() => {
@@ -485,6 +476,7 @@ export class ProjectMembersModalComponent {
       columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access'],
     };
   });
+  private readonly canUpdate = computed(() => this.canUpdateProject());
 
   /** Every member of the project is loaded, so a header click sorts them all. */
   readonly sortValues = {
@@ -539,19 +531,6 @@ export class ProjectMembersModalComponent {
     ]);
   }
 
-  @Input() set members(members: ProjectMember[]) {
-    this.rows.set(members ?? []);
-  }
-  get members(): ProjectMember[] {
-    return this.rows();
-  }
-  @Input() set canUpdateProject(can: boolean) {
-    this.canUpdate.set(can);
-  }
-  get canUpdateProject(): boolean {
-    return this.canUpdate();
-  }
-
   onSearchInput(query: string): void {
     if (this.selectedUser && query !== this.selectedUser.name) {
       this.selectedUser = null;
@@ -591,7 +570,7 @@ export class ProjectMembersModalComponent {
   }
 
   isUserAlreadyMember(userId: number): boolean {
-    return this.members.some((m) => m.userId === userId);
+    return this.members().some((m) => m.userId === userId);
   }
 
   submitAddMember(): void {

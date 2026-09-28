@@ -77,7 +77,7 @@
   },
   "src/app/features/analytics/components/analytics-projects-card.component.ts": {
     "@angular-eslint/prefer-signals": {
-      "count": 4
+      "count": 3
     },
     "@angular-eslint/template/click-events-have-key-events": {
       "count": 1
@@ -88,12 +88,12 @@
   },
   "src/app/features/analytics/components/analytics-trend-chart.component.ts": {
     "@angular-eslint/prefer-signals": {
-      "count": 10
+      "count": 9
     }
   },
   "src/app/features/analytics/components/analytics-workload-table.component.ts": {
     "@angular-eslint/prefer-signals": {
-      "count": 4
+      "count": 3
     }
   },
   "src/app/features/announcements/announcements.component.ts": {
@@ -116,19 +116,9 @@
       "count": 3
     }
   },
-  "src/app/features/audit/components/audit-logs-table.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    }
-  },
   "src/app/features/audit/components/audit-modals.component.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    }
-  },
-  "src/app/features/audit/components/audit-security-table.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 2
     }
   },
   "src/app/features/auth/login/components/login-reset-modal.component.ts": {
@@ -149,11 +139,6 @@
   "src/app/features/files/files.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 3
-    }
-  },
-  "src/app/features/iam/custom-fields/components/custom-fields-table.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 4
     }
   },
   "src/app/features/iam/org-units/org-unit-editor.component.ts": {
@@ -181,21 +166,6 @@
       "count": 1
     }
   },
-  "src/app/features/iam/profile/components/profile-channels-card.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
-  "src/app/features/iam/profile/components/profile-sessions-card.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
-  "src/app/features/iam/profile/components/profile-tokens-card.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    }
-  },
   "src/app/features/iam/profile/profile.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 3
@@ -211,9 +181,6 @@
     "@angular-eslint/prefer-inject": {
       "count": 3
     },
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 2
     }
@@ -227,9 +194,6 @@
     }
   },
   "src/app/features/iam/users/components/user-detail-modal.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
@@ -298,11 +262,6 @@
   },
   "src/app/features/settings/navigation/components/navigation-settings-modal.component.ts": {
     "@angular-eslint/template/label-has-associated-control": {
-      "count": 1
-    }
-  },
-  "src/app/features/settings/navigation/components/navigation-settings-table.component.ts": {
-    "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
@@ -409,19 +368,11 @@
   "src/app/features/tasks/projects/components/project-members-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 2
     }
   },
   "src/app/features/tasks/projects/components/project-modals.component.ts": {
     "@typescript-eslint/no-explicit-any": {
       "count": 2
-    }
-  },
-  "src/app/features/tasks/projects/components/project-table-view.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
     }
   },
   "src/app/features/tasks/projects/projects.component.spec.ts": {
@@ -649,7 +600,7 @@
       "count": 1
     },
     "@angular-eslint/prefer-signals": {
-      "count": 19
+      "count": 18
     }
   },
   "src/app/shared/ui-kit/components/forms/color-input/color-input-value-accessor.ts": {

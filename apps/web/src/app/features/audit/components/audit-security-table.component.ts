@@ -1,15 +1,4 @@
-import {
-  Component,
-  computed,
-  inject,
-  input,
-  Input,
-  Signal,
-  signal,
-  TemplateRef,
-  viewChild,
-  output,
-} from '@angular/core';
+import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -212,6 +201,9 @@ export class AuditSecurityTableComponent {
   readonly secIpFilter = input('');
   readonly securityUserFilter = input('');
 
+  readonly securityFromFilter = input<string>('');
+  readonly securityToFilter = input<string>('');
+
   readonly secEventTypeFilterChange = output<string>();
   readonly secIpFilterChange = output<string>();
   readonly securityUserFilterChange = output<string>();
@@ -237,9 +229,6 @@ export class AuditSecurityTableComponent {
   private readonly agentCell = viewChild.required<TemplateRef<unknown>>('agentCell');
   private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
   private readonly detailsCell = viewChild.required<TemplateRef<unknown>>('detailsCell');
-
-  private readonly periodFrom = signal('');
-  private readonly periodTo = signal('');
 
   /** The two UTC day bounds as one period; none set is "any period". */
   readonly period = computed<DateRange | null>(() => {
@@ -289,6 +278,9 @@ export class AuditSecurityTableComponent {
     };
   });
 
+  private readonly periodFrom = computed(() => this.securityFromFilter() ?? '');
+  private readonly periodTo = computed(() => this.securityToFilter() ?? '');
+
   private readonly eventTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   eventTypeOptions(): SMTSelectOption<string>[] {
@@ -300,19 +292,6 @@ export class AuditSecurityTableComponent {
       { id: 'PASSWORD_CHANGED', label: this.i18n.translate('audit.smena_parolya_password_changed') },
       { id: 'API_TOKEN_CREATED', label: this.i18n.translate('audit.vypusk_api_tokena') },
     ]);
-  }
-
-  @Input() set securityFromFilter(value: string) {
-    this.periodFrom.set(value ?? '');
-  }
-  get securityFromFilter(): string {
-    return this.periodFrom();
-  }
-  @Input() set securityToFilter(value: string) {
-    this.periodTo.set(value ?? '');
-  }
-  get securityToFilter(): string {
-    return this.periodTo();
   }
 
   getSecurityEventBadgeClass(type: string): string {

@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal, input, output } from '@angular/core';
+import { Component, computed, signal, input, output } from '@angular/core';
 
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -15,7 +15,7 @@ import { ProjectDistribution } from '../analytics.models';
           <p class="card-subtitle">{{ 'analytics.statusy_i_procent_vypolneniya' | t }}</p>
         </div>
         <!-- Quick Project Filter -->
-        @if (projects.length > 3) {
+        @if (projects().length > 3) {
           <smt-input
             class="project-search-box"
             type="search"
@@ -225,10 +225,11 @@ export class AnalyticsProjectsCardComponent {
   readonly loading = input(false);
   readonly error = input('');
 
+  readonly projects = input<ProjectDistribution[]>([]);
+
   readonly projectClick = output<number>();
 
   searchProjectQuery = signal('');
-  private _projects = signal<ProjectDistribution[]>([]);
 
   filteredProjects = computed(() => {
     const query = this.searchProjectQuery().trim().toLowerCase();
@@ -236,13 +237,7 @@ export class AnalyticsProjectsCardComponent {
     if (!query) return list;
     return list.filter((p) => p.projectName.toLowerCase().includes(query));
   });
-
-  @Input() set projects(value: ProjectDistribution[]) {
-    this._projects.set(value || []);
-  }
-  get projects(): ProjectDistribution[] {
-    return this._projects();
-  }
+  private _projects = computed<ProjectDistribution[]>(() => this.projects() || []);
 
   getProgressColor(pct: number): string {
     if (pct >= 100) return 'var(--success)';

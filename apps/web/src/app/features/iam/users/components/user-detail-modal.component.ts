@@ -1,15 +1,4 @@
-import {
-  Component,
-  Input,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  input,
-  output,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -144,7 +133,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                   </div>
                 }
 
-                @if (!isLoadingSecurity() && userSecurity; as sec) {
+                @if (!isLoadingSecurity() && userSecurity(); as sec) {
                   <div class="security-details">
                     <!-- Security Overview Cards -->
                     <div class="sec-metrics-grid">
@@ -386,6 +375,8 @@ export class UserDetailModalComponent {
   readonly viewingUser = input<User | null>(null);
   readonly routeRecordId = input<string | null>(null);
 
+  readonly userSecurity = input<UserSecuritySummary | null>(null);
+
   readonly closeRecordView = output<void>();
   readonly retryRecordView = output<string | null>();
   readonly switchTab = output<{
@@ -413,8 +404,6 @@ export class UserDetailModalComponent {
   private readonly attemptReasonCell = viewChild.required<TemplateRef<unknown>>('attemptReasonCell');
 
   readonly orgUnitsPanel = viewChild(UserOrgUnitsPanelComponent);
-
-  private readonly security = signal<UserSecuritySummary | null>(null);
 
   readonly sessions = computed(() => this.security()?.activeSessions ?? []);
   readonly attempts = computed(() => this.security()?.recentLoginAttempts ?? []);
@@ -459,6 +448,8 @@ export class UserDetailModalComponent {
     };
   });
 
+  private readonly security = computed<UserSecuritySummary | null>(() => this.userSecurity());
+
   /** The summary carries every open session, so a header click sorts them all. */
   readonly sessionSortValues = {
     ip: (s: UserSession) => s.ip,
@@ -476,13 +467,6 @@ export class UserDetailModalComponent {
   };
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[]>();
-
-  @Input() set userSecurity(summary: UserSecuritySummary | null) {
-    this.security.set(summary);
-  }
-  get userSecurity(): UserSecuritySummary | null {
-    return this.security();
-  }
 
   attemptStatus(att: LoginAttemptRecord): string {
     return this.i18n.translate(att.isSuccess ? 'iam.uspeshno' : 'iam.oshibka');

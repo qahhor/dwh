@@ -1,4 +1,4 @@
-import { Component, Input, Signal, TemplateRef, computed, inject, signal, viewChild, input } from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, signal, viewChild, input } from '@angular/core';
 
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -20,7 +20,7 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
         </div>
 
         <!-- Quick User Filter -->
-        @if (workload.length > 0) {
+        @if (workload().length > 0) {
           <smt-input
             class="user-search-box"
             type="search"
@@ -199,6 +199,8 @@ export class AnalyticsWorkloadTableComponent {
   readonly loading = input(false);
   readonly error = input('');
 
+  readonly workload = input<UserWorkload[]>([]);
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
   private readonly loginCell = viewChild.required<TemplateRef<unknown>>('loginCell');
   private readonly assignedCell = viewChild.required<TemplateRef<unknown>>('assignedCell');
@@ -206,7 +208,6 @@ export class AnalyticsWorkloadTableComponent {
   private readonly efficiencyCell = viewChild.required<TemplateRef<unknown>>('efficiencyCell');
 
   searchUserQuery = signal('');
-  private _workload = signal<UserWorkload[]>([]);
 
   /**
    * The people matching the search, busiest first (by name on a tie). This is
@@ -238,6 +239,7 @@ export class AnalyticsWorkloadTableComponent {
       columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency'],
     };
   });
+  private _workload = computed<UserWorkload[]>(() => this.workload() || []);
 
   /** The whole team is loaded, so a header click sorts every person, not a page. */
   readonly sortValues = {
@@ -247,13 +249,6 @@ export class AnalyticsWorkloadTableComponent {
     completed: (u: UserWorkload) => u.completedTasks,
     efficiency: (u: UserWorkload) => this.efficiencyOf(u),
   };
-
-  @Input() set workload(value: UserWorkload[]) {
-    this._workload.set(value || []);
-  }
-  get workload(): UserWorkload[] {
-    return this._workload();
-  }
 
   /** Share of assigned tasks that are done; nobody assigned counts as none done. */
   efficiencyOf(u: UserWorkload): number {

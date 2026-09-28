@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal, input } from '@angular/core';
+import { Component, computed, signal, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
@@ -30,7 +30,7 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
       }
 
       <!-- SVG Area / Line Chart -->
-      @if (trends.length > 0) {
+      @if (trends().length > 0) {
         <div
           class="svg-chart-container"
           role="region"
@@ -166,7 +166,7 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
         </div>
       }
 
-      @if (trends.length === 0 && !loading() && !error()) {
+      @if (trends().length === 0 && !loading() && !error()) {
         <div class="empty-chart">
           <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
             >show_chart</span
@@ -343,9 +343,10 @@ export class AnalyticsTrendChartComponent {
   readonly loading = input(false);
   readonly error = input('');
 
+  readonly trends = input<TrendDataPoint[]>([]);
+
   hoveredPoint = signal<ChartPoint | null>(null);
   hoverIndex = signal<number | null>(null);
-  private _trends = signal<TrendDataPoint[]>([]);
 
   chartPoints = computed<ChartPoint[]>(() => {
     const list = this._trends();
@@ -419,13 +420,7 @@ export class AnalyticsTrendChartComponent {
     const first = pts[0];
     return `${line} L ${last.x} 190 L ${first.x} 190 Z`;
   });
-
-  @Input() set trends(value: TrendDataPoint[]) {
-    this._trends.set(value || []);
-  }
-  get trends(): TrendDataPoint[] {
-    return this._trends();
-  }
+  private _trends = computed<TrendDataPoint[]>(() => this.trends() || []);
 
   setHoveredPoint(pt: ChartPoint, idx: number): void {
     this.hoveredPoint.set(pt);

@@ -1,15 +1,4 @@
-import {
-  Component,
-  computed,
-  inject,
-  input,
-  Input,
-  Signal,
-  signal,
-  TemplateRef,
-  viewChild,
-  output,
-} from '@angular/core';
+import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
@@ -57,7 +46,7 @@ import { ProjectListItem } from '../projects.models';
       <div class="project-title-cell">
         <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
         <div class="project-info-group">
-          @if (canViewTasks) {
+          @if (canViewTasks()) {
             <button type="button" class="project-name" (click)="viewTasks.emit(p)">{{ p.name }}</button>
           } @else {
             <span class="project-name-text">{{ p.name }}</span>
@@ -107,7 +96,7 @@ import { ProjectListItem } from '../projects.models';
     </ng-template>
     <ng-template #actionsCell let-p>
       <div class="row-action-btns">
-        @if (canViewTasks) {
+        @if (canViewTasks()) {
           <button
             type="button"
             class="action-link-btn"
@@ -364,6 +353,8 @@ export class ProjectTableViewComponent {
   readonly projectStats = input<Record<number, ProjectTaskStats>>({});
   readonly statsLoaded = input(false);
 
+  readonly canViewTasks = input<boolean>(false);
+
   readonly viewTasks = output<ProjectListItem>();
   readonly editProject = output<ProjectListItem>();
   readonly manageMembers = output<ProjectListItem>();
@@ -382,8 +373,6 @@ export class ProjectTableViewComponent {
   private readonly progressCell = viewChild.required<TemplateRef<unknown>>('progressCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
-
-  private readonly viewTasksAllowed = signal(false);
 
   /** Registry columns with the screen's cells, plus the row actions, which are not a field. */
   readonly tableConfig = computed<TableConfig<ProjectListItem> | null>(() => {
@@ -432,15 +421,10 @@ export class ProjectTableViewComponent {
     };
   });
 
-  @Input() set canViewTasks(value: boolean) {
-    this.viewTasksAllowed.set(value);
-  }
-  get canViewTasks(): boolean {
-    return this.viewTasksAllowed();
-  }
+  private readonly viewTasksAllowed = computed(() => this.canViewTasks());
 
   hasProjectStats(projectId: number): boolean {
-    return this.canViewTasks && this.statsLoaded() && this.projectStats()[projectId] !== undefined;
+    return this.canViewTasks() && this.statsLoaded() && this.projectStats()[projectId] !== undefined;
   }
 
   getProjectTotalCount(projectId: number): number {

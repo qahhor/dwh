@@ -1,15 +1,4 @@
-import {
-  Component,
-  computed,
-  inject,
-  input,
-  Input,
-  Signal,
-  signal,
-  TemplateRef,
-  viewChild,
-  output,
-} from '@angular/core';
+import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -438,6 +427,9 @@ export class AuditLogsTableComponent {
   readonly rowPkFilter = input('');
   readonly auditUserFilter = input('');
 
+  readonly auditFromFilter = input<string>('');
+  readonly auditToFilter = input<string>('');
+
   readonly tableFilterChange = output<string>();
   readonly eventFilterChange = output<string>();
   readonly rowPkFilterChange = output<string>();
@@ -465,9 +457,6 @@ export class AuditLogsTableComponent {
   private readonly channelCell = viewChild.required<TemplateRef<unknown>>('channelCell');
   private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
   private readonly diffCell = viewChild.required<TemplateRef<unknown>>('diffCell');
-
-  private readonly periodFrom = signal('');
-  private readonly periodTo = signal('');
 
   /** The two UTC day bounds as one period; none set is "any period". */
   readonly period = computed<DateRange | null>(() => {
@@ -520,6 +509,9 @@ export class AuditLogsTableComponent {
     };
   });
 
+  private readonly periodFrom = computed(() => this.auditFromFilter() ?? '');
+  private readonly periodTo = computed(() => this.auditToFilter() ?? '');
+
   private readonly tableOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   private readonly eventOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
@@ -540,19 +532,6 @@ export class AuditLogsTableComponent {
       { id: 'U', label: this.i18n.translate('audit.izmenenie_update') },
       { id: 'D', label: this.i18n.translate('audit.udalenie_delete') },
     ]);
-  }
-
-  @Input() set auditFromFilter(value: string) {
-    this.periodFrom.set(value ?? '');
-  }
-  get auditFromFilter(): string {
-    return this.periodFrom();
-  }
-  @Input() set auditToFilter(value: string) {
-    this.periodTo.set(value ?? '');
-  }
-  get auditToFilter(): string {
-    return this.periodTo();
   }
 
   getEventName(event: string): string {

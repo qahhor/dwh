@@ -1,15 +1,4 @@
-import {
-  Component,
-  Input,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  input,
-  output,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
@@ -290,6 +279,8 @@ export class NavigationSettingsTableComponent {
   readonly isLoading = input(false);
   readonly searchQuery = input('');
 
+  readonly items = input<CustomNavigationItem[]>([]);
+
   readonly searchQueryChange = output<string>();
   readonly clearSearch = output<void>();
   readonly toggleItem = output<CustomNavigationItem>();
@@ -306,7 +297,7 @@ export class NavigationSettingsTableComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  readonly rows = signal<CustomNavigationItem[]>([]);
+  readonly rows = computed<CustomNavigationItem[]>(() => this.items() ?? []);
 
   readonly config = computed<TableConfig<CustomNavigationItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.uiI18n.translate(key) });
@@ -342,10 +333,6 @@ export class NavigationSettingsTableComponent {
     order: (item: CustomNavigationItem) => item.sortOrder,
     status: (item: CustomNavigationItem) => (item.state === 'A' ? 0 : 1),
   };
-
-  @Input() set items(items: CustomNavigationItem[]) {
-    this.rows.set(items ?? []);
-  }
 
   targetTypeLabel(type: NavigationTargetType): string {
     switch (type) {

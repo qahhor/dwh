@@ -1,15 +1,4 @@
-import {
-  Component,
-  Input,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  input,
-  output,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -50,7 +39,7 @@ import {
           <div class="title-with-desc">
             <div class="title-row">
               <h4 class="section-title">{{ 'iam.kanaly_svyazi' | t }}</h4>
-              <span class="badge-count">{{ channels.length }}</span>
+              <span class="badge-count">{{ channels().length }}</span>
             </div>
             <p class="section-subtitle">{{ 'iam.kanaly_svyazi_opisanie' | t }}</p>
           </div>
@@ -476,6 +465,8 @@ export class ProfileChannelsCardComponent {
   readonly isConfirmingChannel = input(false);
   readonly canManageChannels = input(true);
 
+  readonly channels = input<UserChannel[]>([]);
+
   readonly bindChannel = output<{
     channel: string;
     address: string;
@@ -493,7 +484,7 @@ export class ProfileChannelsCardComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('channelStatusCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('channelActionCell');
 
-  readonly rows = signal<UserChannel[]>([]);
+  readonly rows = computed<UserChannel[]>(() => this.channels() ?? []);
 
   readonly config = computed<TableConfig<UserChannel>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -541,13 +532,6 @@ export class ProfileChannelsCardComponent {
     created: (c: UserChannel) => new Date(c.createdAt),
     status: (c: UserChannel) => this.channelStatus(c),
   };
-
-  @Input() set channels(channels: UserChannel[]) {
-    this.rows.set(channels ?? []);
-  }
-  get channels(): UserChannel[] {
-    return this.rows();
-  }
 
   channelLabel(channel: string): string {
     return this.i18n.translate(this.getChannelLabelKey(channel));

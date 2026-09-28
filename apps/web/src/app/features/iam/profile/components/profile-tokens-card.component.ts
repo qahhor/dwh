@@ -1,15 +1,4 @@
-import {
-  Component,
-  Input,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  input,
-  output,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -43,7 +32,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <div class="section-title-box">
           <span class="material-symbols-outlined section-icon" aria-hidden="true">key</span>
           <h4 class="section-title">{{ 'iam.api_tokeny_dostupa_bearer_tokens' | t }}</h4>
-          <span class="badge-count">{{ tokens.length }}</span>
+          <span class="badge-count">{{ tokens().length }}</span>
         </div>
         <button
           smt-button
@@ -216,6 +205,9 @@ export class ProfileTokensCardComponent {
   readonly createdTokenSecret = input('');
   readonly copiedSecret = input(false);
 
+  readonly tokens = input<ApiToken[]>([]);
+  readonly tokenExpirationOptions = input<TokenExpirationOption[]>([]);
+
   readonly openCreateTokenModal = output<void>();
   readonly closeCreateTokenModal = output<void>();
   readonly createTokenSubmit = output<void>();
@@ -231,8 +223,7 @@ export class ProfileTokensCardComponent {
   private readonly expiresCell = viewChild.required<TemplateRef<unknown>>('tokenExpiresCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('tokenActionCell');
 
-  readonly rows = signal<ApiToken[]>([]);
-  private readonly expirationSource = signal<TokenExpirationOption[]>([]);
+  readonly rows = computed<ApiToken[]>(() => this.tokens() ?? []);
 
   readonly config = computed<TableConfig<ApiToken>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -255,6 +246,7 @@ export class ProfileTokensCardComponent {
   readonly expirationItems = computed<SMTRadioOption<string>[]>(() =>
     this.expirationSource().map((option) => ({ value: option.value, label: this.i18n.translate(option.labelKey) })),
   );
+  private readonly expirationSource = computed<TokenExpirationOption[]>(() => this.tokenExpirationOptions());
 
   readonly sortValues = {
     name: (t: ApiToken) => t.name,
@@ -262,16 +254,6 @@ export class ProfileTokensCardComponent {
     created: (t: ApiToken) => new Date(t.createdAt),
     expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null),
   };
-
-  @Input() set tokens(tokens: ApiToken[]) {
-    this.rows.set(tokens ?? []);
-  }
-  get tokens(): ApiToken[] {
-    return this.rows();
-  }
-  @Input() set tokenExpirationOptions(options: TokenExpirationOption[]) {
-    this.expirationSource.set(options);
-  }
 
   onExpirationChosen(value: string | null): void {
     if (value !== null) this.expirationChange.emit(value);

@@ -1,15 +1,4 @@
-import {
-  Component,
-  Input,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  signal,
-  viewChild,
-  input,
-  output,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
@@ -27,10 +16,10 @@ import { UserSession } from '../profile.models';
         <div class="section-title-box">
           <span class="material-symbols-outlined section-icon" aria-hidden="true">devices</span>
           <h4 class="section-title">{{ 'iam.aktivnye_sessii' | t }}</h4>
-          <span class="badge-count">{{ sessions.length }}</span>
+          <span class="badge-count">{{ sessions().length }}</span>
         </div>
         <div class="sessions-header-actions">
-          @if (sessions.length > 1) {
+          @if (sessions().length > 1) {
             <button
               smt-button
               type="button"
@@ -331,6 +320,8 @@ export class ProfileSessionsCardComponent {
   readonly isLoadingSessions = input(false);
   readonly isTerminatingSession = input(false);
 
+  readonly sessions = input<UserSession[]>([]);
+
   readonly loadSessions = output<void>();
   readonly terminateSession = output<UserSession>();
   readonly terminateOtherSessions = output<void>();
@@ -341,7 +332,7 @@ export class ProfileSessionsCardComponent {
   private readonly seenCell = viewChild.required<TemplateRef<unknown>>('seenCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('actionCell');
 
-  readonly rows = signal<UserSession[]>([]);
+  readonly rows = computed<UserSession[]>(() => this.sessions() ?? []);
 
   readonly config = computed<TableConfig<UserSession>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -368,11 +359,4 @@ export class ProfileSessionsCardComponent {
     created: (s: UserSession) => new Date(s.createdAt),
     seen: (s: UserSession) => (s.lastSeenAt ? new Date(s.lastSeenAt) : null),
   };
-
-  @Input() set sessions(sessions: UserSession[]) {
-    this.rows.set(sessions ?? []);
-  }
-  get sessions(): UserSession[] {
-    return this.rows();
-  }
 }
