@@ -1,4 +1,4 @@
-import { Component, signal, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -22,6 +22,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
 
 @Component({
   selector: 'app-task-dictionaries-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,

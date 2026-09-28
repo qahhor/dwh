@@ -1,4 +1,4 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -28,6 +28,7 @@ export * from './audit.models';
 
 @Component({
   selector: 'app-audit',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTButtonComponent,
     SMTAlertComponent,

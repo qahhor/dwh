@@ -1,4 +1,4 @@
-import { Component, DestroyRef, signal, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, signal, inject, input, output } from '@angular/core';
 
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
@@ -19,6 +19,7 @@ export interface QueuedUpload {
 
 @Component({
   selector: 'ui-file-upload',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTDropzoneComponent, SMTFileCardComponent],
   template: `
     <div class="file-upload-wrapper">

@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
@@ -19,6 +19,7 @@ export * from './analytics.models';
 
 @Component({
   selector: 'app-analytics',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTRadioGroupComponent,
     SMTAlertComponent,

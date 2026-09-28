@@ -1,4 +1,13 @@
-import { Component, DestroyRef, OnDestroy, OnInit, computed, signal, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnDestroy,
+  OnInit,
+  computed,
+  signal,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
@@ -45,6 +54,7 @@ import {
 
 @Component({
   selector: 'app-projects',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTRadioGroupComponent,
     FormsModule,

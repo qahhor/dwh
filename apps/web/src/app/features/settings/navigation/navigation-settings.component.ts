@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -23,6 +23,7 @@ import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-navigation-settings',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     RouterModule,

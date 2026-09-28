@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
@@ -23,6 +23,7 @@ export type OrgUnitSubmission =
   { mode: 'create'; body: OrgUnitCreate } | { mode: 'edit'; id: number; patch: OrgUnitPatch };
 @Component({
   selector: 'app-org-unit-editor',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     TranslatePipe,

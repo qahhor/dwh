@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -26,6 +26,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
 
 @Component({
   selector: 'app-task-edit-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTControlComponent,
     FormsModule,

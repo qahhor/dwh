@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -36,6 +36,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 
 @Component({
   selector: 'app-user-edit-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTControlComponent,
     SMTSelectComponent,

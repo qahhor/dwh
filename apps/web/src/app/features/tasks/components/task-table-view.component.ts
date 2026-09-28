@@ -1,4 +1,15 @@
-import { Component, computed, inject, input, Signal, signal, TemplateRef, viewChild, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  Signal,
+  signal,
+  TemplateRef,
+  viewChild,
+  output,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -31,6 +42,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
  */
 @Component({
   selector: 'app-task-table-view',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     SMTButtonComponent,

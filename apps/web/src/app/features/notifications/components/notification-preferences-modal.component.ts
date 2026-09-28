@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
@@ -14,6 +14,7 @@ export interface EventTypeRow {
 
 @Component({
   selector: 'app-notification-preferences-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTDialogComponent,
     SMTDialogContentDirective,

@@ -1,4 +1,4 @@
-import { Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -17,6 +17,7 @@ export interface LanguageChangeRequest {
 
 @Component({
   selector: 'app-header',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, TranslatePipe, SMTSelectComponent],
   template: `
     <!-- Top Navigation -->

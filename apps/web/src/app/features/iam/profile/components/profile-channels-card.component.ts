@@ -1,4 +1,14 @@
-import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -17,6 +27,7 @@ import {
 
 @Component({
   selector: 'app-profile-channels-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

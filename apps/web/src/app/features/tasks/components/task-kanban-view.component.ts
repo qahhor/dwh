@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -7,6 +7,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
 
 @Component({
   selector: 'app-task-kanban-view',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DragDropModule, TranslatePipe, SMTButtonComponent, DatePipe],
   template: `
     <div class="kanban-board" cdkDropListGroup role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">

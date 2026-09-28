@@ -1,4 +1,14 @@
-import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  Signal,
+  TemplateRef,
+  viewChild,
+  output,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -23,6 +33,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
  */
 @Component({
   selector: 'app-user-table-view',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTDropdownButtonComponent,
     SMTAvatarComponent,

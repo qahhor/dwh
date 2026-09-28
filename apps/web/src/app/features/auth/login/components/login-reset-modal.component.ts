@@ -1,4 +1,4 @@
-import { Component, inject, signal, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -10,6 +10,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
 @Component({
   selector: 'app-login-reset-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -128,19 +129,18 @@ export class LoginResetModalComponent {
   readonly resetError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
 
-  resetEmail = '';
-
+  readonly resetEmail = signal('');
   onClose(): void {
-    this.resetEmail = '';
+    this.resetEmail.set('');
     this.resetError.set('');
     this.close.emit();
   }
 
   sendResetRequest(): void {
-    if (!this.resetEmail) return;
+    if (!this.resetEmail()) return;
     this.resetError.set('');
     this.isResetLoading.set(true);
-    this.api.post('/auth/password-reset/request', { email: this.resetEmail }, { notifyError: false }).subscribe({
+    this.api.post('/auth/password-reset/request', { email: this.resetEmail() }, { notifyError: false }).subscribe({
       next: () => {
         this.isResetLoading.set(false);
         this.onClose();

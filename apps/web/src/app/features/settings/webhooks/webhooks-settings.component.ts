@@ -1,4 +1,14 @@
-import { Component, OnInit, Signal, TemplateRef, inject, signal, computed, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  Signal,
+  TemplateRef,
+  inject,
+  signal,
+  computed,
+  viewChild,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -24,6 +34,7 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
 
 @Component({
   selector: 'app-webhooks-settings',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,
     SMTInputComponent,
