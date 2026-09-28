@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { StorageStats } from '../files.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -8,7 +8,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   standalone: true,
   imports: [TranslatePipe],
   template: `
-    @if (stats; as s) {
+    @if (stats(); as s) {
       <div class="storage-metrics-grid">
         <!-- Company Quota Card -->
         <div class="metric-card company-card">
@@ -245,7 +245,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   ],
 })
 export class FilesMetricsCardsComponent {
-  @Input() stats: StorageStats | null = null;
+  readonly stats = input<StorageStats | null>(null);
 
   getCompanyPercent(s: StorageStats): number {
     if (!s.companyQuotaBytes || s.companyQuotaBytes === 0) return 0;

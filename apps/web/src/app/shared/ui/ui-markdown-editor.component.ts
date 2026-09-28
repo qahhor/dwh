@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef, inject } from '@angular/core';
+import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
@@ -136,14 +136,16 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
         @if (mode === 'edit') {
           <div class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
             <label class="sr-only" [for]="textareaId">{{
-              ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
+              ariaLabel() || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
             }}</label>
             <textarea
               #textareaRef
               [id]="textareaId"
               class="md-textarea"
-              [rows]="rows"
-              [placeholder]="placeholder || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)"
+              [rows]="rows()"
+              [placeholder]="
+                placeholder() || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)
+              "
               [ngModel]="value"
               (ngModelChange)="onTextChange($event)"
               (focus)="isFocused = true"
@@ -372,12 +374,13 @@ export class UiMarkdownEditorComponent {
 
   private readonly uiI18n = inject(I18nService);
 
+  readonly placeholder = input('');
+  readonly rows = input(4);
+  readonly ariaLabel = input('');
+
   private static nextId = 0;
 
   @Input() value = '';
-  @Input() placeholder = '';
-  @Input() rows = 4;
-  @Input() ariaLabel = '';
   @Output() valueChange = new EventEmitter<string>();
 
   @ViewChild('textareaRef') textareaRef?: ElementRef<HTMLTextAreaElement>;

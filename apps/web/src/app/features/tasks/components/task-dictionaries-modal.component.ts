@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, signal, inject } from '@angular/core';
+import { Component, EventEmitter, Output, signal, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -43,7 +43,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
+      [open]="isOpen()"
       [smtTitle]="'tasks.nastroyka_spravochnikov_zadach' | t"
       smtSize="md"
       (closed)="close.emit()"
@@ -64,7 +64,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
             <div id="task-types-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-types-tab">
               <smt-sortable-list
                 class="dict-list"
-                [items]="taskTypes"
+                [items]="taskTypes()"
                 [trackBy]="byId"
                 [itemLabel]="nameOf"
                 (reorder)="reorderTypes.emit($event)"
@@ -147,7 +147,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
             <div id="task-statuses-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-statuses-tab">
               <smt-sortable-list
                 class="dict-list"
-                [items]="statuses"
+                [items]="statuses()"
                 [trackBy]="byId"
                 [itemLabel]="nameOf"
                 (reorder)="reorderStatuses.emit($event)"
@@ -371,9 +371,9 @@ export class TaskDictionariesModalComponent {
   /** Texts of the tabs below; translated again when the language changes. */
   private readonly tabText = inject(I18nService);
 
-  @Input() isOpen = false;
-  @Input() taskTypes: TaskType[] = [];
-  @Input() statuses: TaskStatus[] = [];
+  readonly isOpen = input(false);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly statuses = input<TaskStatus[]>([]);
 
   @Output() close = new EventEmitter<void>();
   @Output() createType = new EventEmitter<{ code: string; name: string; icon: string; color: string }>();
@@ -420,16 +420,16 @@ export class TaskDictionariesModalComponent {
   }
 
   dictionaryTabs(): SMTTabItem<'types' | 'statuses'>[] {
-    return this.tabsMemo([this.tabText.currentLang(), this.taskTypes.length, this.statuses.length], () => [
+    return this.tabsMemo([this.tabText.currentLang(), this.taskTypes().length, this.statuses().length], () => [
       {
         value: 'types',
-        label: this.tabText.translate('tasks.task_types_count', { count: this.taskTypes.length }),
+        label: this.tabText.translate('tasks.task_types_count', { count: this.taskTypes().length }),
         id: 'task-types-tab',
         panelId: 'task-types-panel',
       },
       {
         value: 'statuses',
-        label: this.tabText.translate('tasks.task_statuses_count', { count: this.statuses.length }),
+        label: this.tabText.translate('tasks.task_statuses_count', { count: this.statuses().length }),
         id: 'task-statuses-tab',
         panelId: 'task-statuses-panel',
       },

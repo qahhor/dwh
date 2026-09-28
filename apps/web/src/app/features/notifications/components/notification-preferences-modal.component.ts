@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, OnInit, signal } from '@angular/core';
+import { Component, EventEmitter, Output, OnInit, signal, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
@@ -28,7 +28,7 @@ export interface EventTypeRow {
       [open]="true"
       [smtTitle]="'notifications.preferences_title' | t"
       smtSize="lg"
-      [dismissible]="!isSaving"
+      [dismissible]="!isSaving()"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
@@ -95,10 +95,10 @@ export interface EventTypeRow {
         </div>
 
         <div footer>
-          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving">
+          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving()">
             {{ 'common.cancel' | t }}
           </button>
-          <button smt-button type="button" [smtLoading]="isSaving" (click)="onSave()">{{ 'common.save' | t }}</button>
+          <button smt-button type="button" [smtLoading]="isSaving()" (click)="onSave()">{{ 'common.save' | t }}</button>
         </div>
       </ng-template>
     </smt-dialog>
@@ -165,8 +165,8 @@ export interface EventTypeRow {
   ],
 })
 export class NotificationPreferencesModalComponent implements OnInit {
-  @Input() initialPreferences: NotificationPrefItem[] = [];
-  @Input() isSaving = false;
+  readonly initialPreferences = input<NotificationPrefItem[]>([]);
+  readonly isSaving = input(false);
 
   @Output() close = new EventEmitter<void>();
   @Output() save = new EventEmitter<NotificationPrefItem[]>();
@@ -190,7 +190,7 @@ export class NotificationPreferencesModalComponent implements OnInit {
         this.prefsMap.set(key, true);
       }
     }
-    for (const item of this.initialPreferences) {
+    for (const item of this.initialPreferences()) {
       const key = `${item.eventType}:${item.channel}`;
       this.prefsMap.set(key, item.isEnabled);
     }

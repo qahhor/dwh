@@ -53,7 +53,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [options]="tableOptions()"
             [placeholder]="'audit.vse_tablicy' | t"
             [emptyLabel]="'audit.vse_tablicy' | t"
-            [value]="tableFilter || null"
+            [value]="tableFilter() || null"
             (valueChange)="tableFilterChange.emit($event ?? ''); applyFilters.emit()"
           />
 
@@ -64,7 +64,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [options]="eventOptions()"
             [placeholder]="'audit.vse_deystviya' | t"
             [emptyLabel]="'audit.vse_deystviya' | t"
-            [value]="eventFilter || null"
+            [value]="eventFilter() || null"
             (valueChange)="eventFilterChange.emit($event ?? ''); applyFilters.emit()"
           />
 
@@ -75,7 +75,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               name="auditRowPkFilter"
               type="text"
               smtSize="sm"
-              [ngModel]="rowPkFilter"
+              [ngModel]="rowPkFilter()"
               (ngModelChange)="rowPkFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -90,7 +90,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               inputmode="numeric"
               smtSize="sm"
               smtPattern="[0-9]*"
-              [ngModel]="auditUserFilter"
+              [ngModel]="auditUserFilter()"
               (ngModelChange)="auditUserFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -136,11 +136,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         class="table-container"
         role="region"
         [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t"
-        [attr.aria-busy]="pager.loading()"
+        [attr.aria-busy]="pager().loading()"
       >
         @if (tableConfig(); as config) {
           <ui-server-table
-            [pager]="pager"
+            [pager]="pager()"
             [config]="config"
             [views]="views()"
             [filterMeta]="meta()"
@@ -427,10 +427,17 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 export class AuditLogsTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<AuditRecord>>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The filters on screen, so an export matches the list shown. */
   readonly exportOptions = input<Record<string, string> | null>(null);
+
+  readonly tableFilter = input('');
+  readonly eventFilter = input('');
+  readonly rowPkFilter = input('');
+  readonly auditUserFilter = input('');
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
@@ -495,13 +502,6 @@ export class AuditLogsTableComponent {
       columnsOrder: [...base.columnsOrder, 'diff'],
     };
   });
-
-  @Input({ required: true }) pager!: KeysetPager<AuditRecord>;
-
-  @Input() tableFilter = '';
-  @Input() eventFilter = '';
-  @Input() rowPkFilter = '';
-  @Input() auditUserFilter = '';
 
   @Output() tableFilterChange = new EventEmitter<string>();
   @Output() eventFilterChange = new EventEmitter<string>();

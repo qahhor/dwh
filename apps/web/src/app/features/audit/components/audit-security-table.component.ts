@@ -53,7 +53,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [options]="eventTypeOptions()"
             [placeholder]="'audit.vse_sobytiya' | t"
             [emptyLabel]="'audit.vse_sobytiya' | t"
-            [value]="secEventTypeFilter || null"
+            [value]="secEventTypeFilter() || null"
             (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()"
           />
 
@@ -66,7 +66,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               smtIcon="search"
               smtSize="sm"
               [placeholder]="'audit.poisk_po_ip' | t"
-              [ngModel]="secIpFilter"
+              [ngModel]="secIpFilter()"
               (ngModelChange)="secIpFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -81,7 +81,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               inputmode="numeric"
               smtSize="sm"
               smtPattern="[0-9]*"
-              [ngModel]="securityUserFilter"
+              [ngModel]="securityUserFilter()"
               (ngModelChange)="securityUserFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -126,11 +126,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         class="table-container"
         role="region"
         [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t"
-        [attr.aria-busy]="pager.loading()"
+        [attr.aria-busy]="pager().loading()"
       >
         @if (tableConfig(); as config) {
           <ui-server-table
-            [pager]="pager"
+            [pager]="pager()"
             [config]="config"
             [views]="views()"
             [filterMeta]="meta()"
@@ -202,10 +202,16 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 export class AuditSecurityTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<SecurityEventRecord>>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The filters on screen, so an export matches the list shown. */
   readonly exportOptions = input<Record<string, string> | null>(null);
+
+  readonly secEventTypeFilter = input('');
+  readonly secIpFilter = input('');
+  readonly securityUserFilter = input('');
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
@@ -268,12 +274,6 @@ export class AuditSecurityTableComponent {
   });
 
   private readonly eventTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
-
-  @Input({ required: true }) pager!: KeysetPager<SecurityEventRecord>;
-
-  @Input() secEventTypeFilter = '';
-  @Input() secIpFilter = '';
-  @Input() securityUserFilter = '';
 
   @Output() secEventTypeFilterChange = new EventEmitter<string>();
   @Output() secIpFilterChange = new EventEmitter<string>();

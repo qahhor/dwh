@@ -680,13 +680,13 @@ describe('PackagesComponent', () => {
     const withRight = await createFixture({ canApply: true });
     clickRow(withRight.fixture);
     const cardWithRight = withRight.fixture.debugElement.query(By.directive(PackageCardComponent));
-    expect(cardWithRight.componentInstance.canApply).toBe(true);
+    expect(cardWithRight.componentInstance.canApply()).toBe(true);
 
     TestBed.resetTestingModule();
     const withoutRight = await createFixture();
     clickRow(withoutRight.fixture);
     const cardWithoutRight = withoutRight.fixture.debugElement.query(By.directive(PackageCardComponent));
-    expect(cardWithoutRight.componentInstance.canApply).toBe(false);
+    expect(cardWithoutRight.componentInstance.canApply()).toBe(false);
   });
 
   it('применённый пакет из карточки показывается в ней, а список перечитывается', async () => {
@@ -703,7 +703,7 @@ describe('PackagesComponent', () => {
     fixture.detectChanges();
 
     const cardAfter = fixture.debugElement.query(By.directive(PackageCardComponent));
-    expect(cardAfter.componentInstance.item.status).toBe('applied');
+    expect(cardAfter.componentInstance.item().status).toBe('applied');
     expect(api.list).toHaveBeenCalledTimes(listCallsBefore + 1);
   });
 });

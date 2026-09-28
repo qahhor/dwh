@@ -9,6 +9,7 @@ import {
   inject,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -64,7 +65,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             [rows]="rows()"
             [config]="config()"
             [sortValues]="sortValues"
-            [loading]="isLoadingTokens"
+            [loading]="isLoadingTokens()"
             [emptyTemplate]="emptyTokens"
           />
         </div>
@@ -106,7 +107,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Create Token Modal -->
     <smt-dialog
-      [open]="isCreateTokenModalOpen"
+      [open]="isCreateTokenModalOpen()"
       [smtTitle]="'iam.vypusk_novogo_api_tokena' | t"
       smtSize="sm"
       (closed)="closeCreateTokenModal.emit()"
@@ -121,13 +122,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               smtFieldId="profile-token-name"
               name="profileTokenName"
               required
-              [smtInvalid]="isTokenSubmitted && !newTokenName.trim()"
-              [smtDescribedBy]="isTokenSubmitted && !newTokenName.trim() ? 'profile-token-name-error' : null"
-              [ngModel]="newTokenName"
+              [smtInvalid]="isTokenSubmitted() && !newTokenName().trim()"
+              [smtDescribedBy]="isTokenSubmitted() && !newTokenName().trim() ? 'profile-token-name-error' : null"
+              [ngModel]="newTokenName()"
               (ngModelChange)="nameChange.emit($event)"
               [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t"
             />
-            @if (isTokenSubmitted && !newTokenName.trim()) {
+            @if (isTokenSubmitted() && !newTokenName().trim()) {
               <span id="profile-token-name-error" class="field-error">
                 {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
               </span>
@@ -139,7 +140,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               smtAppearance="cards"
               smtOrientation="horizontal"
               [options]="expirationItems()"
-              [value]="selectedTokenExpiration"
+              [value]="selectedTokenExpiration()"
               (valueChange)="onExpirationChosen($event)"
             />
           </smt-control>
@@ -153,7 +154,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isCreatingToken"
+            [smtLoading]="isCreatingToken()"
             (click)="createTokenSubmit.emit()"
           >
             {{ 'iam.sgenerirovat' | t }}
@@ -164,7 +165,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Token Secret Reveal Modal -->
     <smt-dialog
-      [open]="isTokenSecretModalOpen"
+      [open]="isTokenSecretModalOpen()"
       [smtTitle]="'iam.api_token_uspeshno_sozdan' | t"
       smtSize="md"
       (closed)="closeSecretModal.emit()"
@@ -176,16 +177,16 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             <p>{{ 'iam.skopiruyte_i_sohranite_token_seychas_v_celyah_be' | t }}</p>
           </div>
           <div class="token-secret-box">
-            <code>{{ createdTokenSecret }}</code>
+            <code>{{ createdTokenSecret() }}</code>
             <button
               smt-button
               type="button"
-              [smtVariant]="copiedSecret ? 'primary' : 'secondary'"
+              [smtVariant]="copiedSecret() ? 'primary' : 'secondary'"
               smtSize="sm"
-              [smtIcon]="copiedSecret ? 'check' : 'content_copy'"
+              [smtIcon]="copiedSecret() ? 'check' : 'content_copy'"
               (click)="copySecret.emit()"
             >
-              {{ (copiedSecret ? 'iam.skopirovano' : 'iam.skopirovat') | t }}
+              {{ (copiedSecret() ? 'iam.skopirovano' : 'iam.skopirovat') | t }}
             </button>
           </div>
           <button
@@ -206,6 +207,16 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 })
 export class ProfileTokensCardComponent {
   private readonly i18n = inject(I18nService);
+
+  readonly isLoadingTokens = input(false);
+  readonly isCreatingToken = input(false);
+  readonly isCreateTokenModalOpen = input(false);
+  readonly isTokenSecretModalOpen = input(false);
+  readonly isTokenSubmitted = input(false);
+  readonly newTokenName = input('');
+  readonly selectedTokenExpiration = input('90');
+  readonly createdTokenSecret = input('');
+  readonly copiedSecret = input(false);
 
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('tokenNameCell');
   private readonly prefixCell = viewChild.required<TemplateRef<unknown>>('tokenPrefixCell');
@@ -244,15 +255,6 @@ export class ProfileTokensCardComponent {
     created: (t: ApiToken) => new Date(t.createdAt),
     expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null),
   };
-  @Input() isLoadingTokens = false;
-  @Input() isCreatingToken = false;
-  @Input() isCreateTokenModalOpen = false;
-  @Input() isTokenSecretModalOpen = false;
-  @Input() isTokenSubmitted = false;
-  @Input() newTokenName = '';
-  @Input() selectedTokenExpiration = '90';
-  @Input() createdTokenSecret = '';
-  @Input() copiedSecret = false;
 
   @Output() openCreateTokenModal = new EventEmitter<void>();
   @Output() closeCreateTokenModal = new EventEmitter<void>();

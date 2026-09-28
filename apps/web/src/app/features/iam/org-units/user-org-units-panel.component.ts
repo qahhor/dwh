@@ -7,11 +7,11 @@ import {
   EventEmitter,
   HostListener,
   inject,
-  Input,
   OnChanges,
   Output,
   signal,
   SimpleChanges,
+  input,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -50,6 +50,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  readonly userId = input.required<number>();
+
   readonly selectedOrgUnitIds = signal<readonly number[]>([]);
   readonly search = signal('');
 
@@ -57,7 +59,6 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
   readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
 
-  @Input({ required: true }) userId = 0;
   @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private treeRequest?: Subscription;
@@ -110,7 +111,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['userId'] || changes['userId'].currentValue === this.activeTarget) return;
-    this.activateTarget(this.userId);
+    this.activateTarget(this.userId());
   }
 
   can(action: 'view' | 'assign'): boolean {
@@ -148,7 +149,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
       !this.dirty ||
       this.pending ||
       target === null ||
-      target !== this.userId ||
+      target !== this.userId() ||
       !safeNumericRecordId(target) ||
       !ids.every(safeNumericRecordId)
     )
@@ -183,8 +184,9 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   reloadAll(): void {
     if (this.pending || !this.can('view')) return;
-    if (this.activeTarget !== this.userId) {
-      this.activateTarget(this.userId);
+    const userId = this.userId();
+    if (this.activeTarget !== userId) {
+      this.activateTarget(userId);
       return;
     }
     this.reloadTree();
@@ -378,13 +380,13 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.scopeRequest = undefined;
   }
   private currentView(epoch: number, target: number): boolean {
-    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.userId;
+    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.userId();
   }
   private loadDeferredTarget(): void {
     if (
       this.deferredTarget === null ||
       this.deferredTarget !== this.activeTarget ||
-      this.deferredTarget !== this.userId
+      this.deferredTarget !== this.userId()
     )
       return;
     this.deferredTarget = null;

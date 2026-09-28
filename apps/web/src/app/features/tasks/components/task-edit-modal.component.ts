@@ -1,4 +1,4 @@
-import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Input, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -49,19 +49,19 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
+      [open]="isOpen()"
       [smtTitle]="'tasks.redaktirovanie_zadachi' | t"
       smtSize="lg"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
-        @if (editLoading) {
+        @if (editLoading()) {
           <div body class="request-state request-loading" role="status">
             {{ 'tasks.edit_loading' | t }}
           </div>
         }
-        @if (editLoadError) {
+        @if (editLoadError()) {
           <div body class="request-state request-error" role="alert">
             <span>{{ 'tasks.edit_load_error' | t }}</span>
             <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryEditLoad.emit()">
@@ -69,14 +69,14 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
             </button>
           </div>
         }
-        @if (editingTask; as task) {
-          <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting">
+        @if (editingTask(); as task) {
+          <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting()">
             <!-- Title Input (Required) -->
             <smt-control
               class="form-group"
               [smtLabel]="'task.title' | t"
               [smtError]="
-                isEditSubmitted && !editForm.title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
+                isEditSubmitted() && !editForm.title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
               "
             >
               <smt-input
@@ -123,7 +123,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                   smtTriggerId="task-edit-project"
                   name="taskEditProject"
                   [(ngModel)]="editForm.projectId"
-                  [options]="projects | projectOptions"
+                  [options]="projects() | projectOptions"
                   [placeholder]="'tasks.bez_proekta' | t"
                   [searchPlaceholder]="'tasks.search_project' | t"
                   [emptyLabel]="'tasks.bez_proekta' | t"
@@ -239,18 +239,18 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="close.emit()"
           >
-            {{ editLoadError ? ('audit.zakryt' | t) : ('common.cancel' | t) }}
+            {{ editLoadError() ? ('audit.zakryt' | t) : ('common.cancel' | t) }}
           </button>
-          @if (editingTask) {
+          @if (editingTask()) {
             <button
               smt-button
               type="button"
               smtVariant="primary"
               smtSize="md"
-              [smtLoading]="isSubmitting"
+              [smtLoading]="isSubmitting()"
               (click)="submit.emit()"
             >
               {{ 'tasks.sohranit_izmeneniya' | t }}
@@ -261,7 +261,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
     </smt-dialog>
 
     <smt-dialog
-      [open]="isEditDiscardConfirmationOpen"
+      [open]="isEditDiscardConfirmationOpen()"
       [smtTitle]="'tasks.discard_edit_title' | t"
       smtSize="sm"
       (closed)="cancelDiscard.emit()"
@@ -370,20 +370,22 @@ export class TaskEditModalComponent {
   /** The pickers' sources and the people and parent the task's card already named. */
   readonly lookups = inject(TaskLookupsService);
   private readonly i18n = inject(I18nService);
+
+  readonly isOpen = input(false);
+  readonly editingTask = input<Task | null>(null);
+  readonly editLoading = input(false);
+  readonly editLoadError = input(false);
+  readonly isSubmitting = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly isEditDiscardConfirmationOpen = input(false);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly projects = input<Project[]>([]);
+
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
   /** A task cannot be its own parent. */
-  readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask?.id;
-  @Input() isOpen = false;
-  @Input() editingTask: Task | null = null;
+  readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask()?.id;
   @Input() editForm: any = {};
-  @Input() editLoading = false;
-  @Input() editLoadError = false;
-  @Input() isSubmitting = false;
-  @Input() isEditSubmitted = false;
-  @Input() isEditDiscardConfirmationOpen = false;
-  @Input() taskTypes: TaskType[] = [];
-  @Input() projects: Project[] = [];
   @Input() taskCustomFields: CustomField[] = [];
 
   @Output() close = new EventEmitter<void>();
@@ -394,10 +396,11 @@ export class TaskEditModalComponent {
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {
-    if (this.typeCache?.types !== this.taskTypes) {
+    const taskTypes = this.taskTypes();
+    if (this.typeCache?.types !== taskTypes) {
       this.typeCache = {
-        types: this.taskTypes,
-        options: this.taskTypes.map((type) => ({
+        types: taskTypes,
+        options: taskTypes.map((type) => ({
           value: type.code,
           label: type.name,
           icon: type.icon,

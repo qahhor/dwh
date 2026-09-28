@@ -9,6 +9,7 @@ import {
   inject,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -56,7 +57,7 @@ import {
             <p class="section-subtitle">{{ 'iam.kanaly_svyazi_opisanie' | t }}</p>
           </div>
         </div>
-        @if (canManageChannels) {
+        @if (canManageChannels()) {
           <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="openBindModal()">
             {{ 'iam.privyazat_kanal' | t }}
           </button>
@@ -69,7 +70,7 @@ import {
           [rows]="rows()"
           [config]="config()"
           [sortValues]="sortValues"
-          [loading]="isLoadingChannels"
+          [loading]="isLoadingChannels()"
           [emptyTemplate]="emptyChannels"
         />
       </div>
@@ -92,7 +93,7 @@ import {
     </ng-template>
     <ng-template #channelActionCell let-c>
       <div class="row-actions">
-        @if (!c.isVerified && canManageChannels) {
+        @if (!c.isVerified && canManageChannels()) {
           <button
             smt-button
             type="button"
@@ -100,13 +101,13 @@ import {
             smtSize="sm"
             smtIcon="verified"
             [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
-            [smtLoading]="isConfirmingChannel"
+            [smtLoading]="isConfirmingChannel()"
             (click)="requestConfirm(c)"
           >
             {{ 'iam.podtverdit_kodom' | t }}
           </button>
         }
-        @if (canManageChannels) {
+        @if (canManageChannels()) {
           <button
             smt-button
             type="button"
@@ -178,7 +179,7 @@ import {
             smtVariant="primary"
             smtSize="md"
             smtIcon="send"
-            [smtLoading]="isBindingChannel"
+            [smtLoading]="isBindingChannel()"
             (click)="submitBind()"
           >
             {{ 'iam.otpravit_kod' | t }}
@@ -236,7 +237,7 @@ import {
             smtVariant="primary"
             smtSize="md"
             smtIcon="check"
-            [smtLoading]="isConfirmingChannel"
+            [smtLoading]="isConfirmingChannel()"
             (click)="submitConfirm()"
           >
             {{ 'common.confirm' | t }}
@@ -472,6 +473,11 @@ import {
 export class ProfileChannelsCardComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingChannels = input(false);
+  readonly isBindingChannel = input(false);
+  readonly isConfirmingChannel = input(false);
+  readonly canManageChannels = input(true);
+
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('channelTypeCell');
   private readonly addressCell = viewChild.required<TemplateRef<unknown>>('channelAddressCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('channelCreatedCell');
@@ -506,11 +512,6 @@ export class ProfileChannelsCardComponent {
       { id: 'sms', label: this.i18n.translate('iam.kanal_sms') },
     ];
   });
-
-  @Input() isLoadingChannels = false;
-  @Input() isBindingChannel = false;
-  @Input() isConfirmingChannel = false;
-  @Input() canManageChannels = true;
 
   @Output() bindChannel = new EventEmitter<{ channel: string; address: string }>();
   @Output() confirmChannel = new EventEmitter<{ verifyToken: string; code: string }>();

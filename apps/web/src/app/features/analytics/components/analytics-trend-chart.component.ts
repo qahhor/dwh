@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, Input, computed, signal, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
@@ -8,11 +8,11 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
   standalone: true,
   imports: [TranslatePipe],
   template: `
-    <div class="analytics-card chart-card" [attr.aria-busy]="loading">
+    <div class="analytics-card chart-card" [attr.aria-busy]="loading()">
       <div class="card-header-row">
         <div>
           <h2 class="card-title">{{ 'analytics.dinamika_potoka_zadach' | t }}</h2>
-          <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t: { range: displayedRange } }}</p>
+          <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t: { range: displayedRange() } }}</p>
         </div>
         <div class="chart-legend">
           <div class="legend-item">
@@ -26,7 +26,7 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
         </div>
       </div>
 
-      @if (loading) {
+      @if (loading()) {
         <p class="card-subtitle" role="status">{{ 'common.loading' | t }}</p>
       }
 
@@ -167,7 +167,7 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
         </div>
       }
 
-      @if (trends.length === 0 && !loading && !error) {
+      @if (trends.length === 0 && !loading() && !error()) {
         <div class="empty-chart">
           <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
             >show_chart</span
@@ -340,6 +340,10 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
   ],
 })
 export class AnalyticsTrendChartComponent {
+  readonly displayedRange = input('7d');
+  readonly loading = input(false);
+  readonly error = input('');
+
   hoveredPoint = signal<ChartPoint | null>(null);
   hoverIndex = signal<number | null>(null);
   private _trends = signal<TrendDataPoint[]>([]);
@@ -416,10 +420,6 @@ export class AnalyticsTrendChartComponent {
     const first = pts[0];
     return `${line} L ${last.x} 190 L ${first.x} 190 Z`;
   });
-
-  @Input() displayedRange = '7d';
-  @Input() loading = false;
-  @Input() error = '';
 
   @Input() set trends(value: TrendDataPoint[]) {
     this._trends.set(value || []);

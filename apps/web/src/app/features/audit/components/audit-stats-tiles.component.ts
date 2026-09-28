@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -10,7 +10,7 @@ import { AuditStats } from '../audit.models';
   imports: [TranslatePipe, SMTButtonComponent],
   template: `
     <!-- Stats Cards -->
-    @if (stats; as s) {
+    @if (stats(); as s) {
       <div class="tiles">
         <div class="tile">
           <div class="tile-header">
@@ -70,7 +70,7 @@ import { AuditStats } from '../audit.models';
       </div>
     }
 
-    @if (statsError) {
+    @if (statsError()) {
       <div id="audit-stats-error" class="inline-feedback" role="alert">
         <span class="material-symbols-outlined" aria-hidden="true">error</span>
         <span>{{ 'audit.load_stats_error' | t }}</span>
@@ -171,8 +171,8 @@ import { AuditStats } from '../audit.models';
   ],
 })
 export class AuditStatsTilesComponent {
-  @Input() stats: AuditStats | null = null;
-  @Input() statsError = false;
+  readonly stats = input<AuditStats | null>(null);
+  readonly statsError = input(false);
 
   @Output() retryStats = new EventEmitter<void>();
 }

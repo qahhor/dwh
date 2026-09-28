@@ -1,7 +1,6 @@
 import {
   Component,
   EventEmitter,
-  Input,
   Output,
   Signal,
   TemplateRef,
@@ -122,11 +121,11 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
         >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>
         </button>
-        @if (canDeleteFn(file)) {
+        @if (canDeleteFn()(file)) {
           <button
             type="button"
             class="action-btn delete-btn"
-            [disabled]="isDeleting"
+            [disabled]="isDeleting()"
             [attr.aria-label]="'files.delete_named' | t: { name: file.originalName }"
             (click)="delete.emit(file)"
             [title]="'common.delete' | t"
@@ -334,6 +333,9 @@ export class FilesTableComponent {
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
 
+  readonly isDeleting = input<boolean>(false);
+  readonly canDeleteFn = input<(file: FileDetail) => boolean>(() => false);
+
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
   private readonly sizeCell = viewChild.required<TemplateRef<unknown>>('sizeCell');
   private readonly mimeCell = viewChild.required<TemplateRef<unknown>>('mimeCell');
@@ -376,9 +378,6 @@ export class FilesTableComponent {
       columnsOrder: [...base.columnsOrder, 'actions'],
     };
   });
-
-  @Input() isDeleting: boolean = false;
-  @Input() canDeleteFn: (file: FileDetail) => boolean = () => false;
 
   @Output() download = new EventEmitter<FileDetail>();
   /** An image asked to be shown in the preview. */

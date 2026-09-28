@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Output, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -22,9 +22,9 @@ import { I18nService } from '../../../core/services/i18n.service';
           smtAppearance="segmented"
           class="scope-filter"
           [options]="scopeOptions()"
-          [value]="scope"
+          [value]="scope()"
           [smtAriaLabel]="'files.oblast_faylov' | t"
-          (valueChange)="scopeChange.emit($event ?? scope)"
+          (valueChange)="scopeChange.emit($event ?? scope())"
         />
 
         <!-- Search Input -->
@@ -38,7 +38,7 @@ import { I18nService } from '../../../core/services/i18n.service';
             smtIcon="search"
             clearable
             [placeholder]="'files.poisk_faylov_po_imeni' | t"
-            [ngModel]="searchQuery"
+            [ngModel]="searchQuery()"
             (ngModelChange)="searchQueryChange.emit($event)"
             (keyup.enter)="search.emit()"
             (cleared)="clear.emit()"
@@ -136,8 +136,8 @@ export class FilesToolbarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input() scope: 'all' | 'mine' = 'all';
-  @Input() searchQuery = '';
+  readonly scope = input<'all' | 'mine'>('all');
+  readonly searchQuery = input('');
 
   @Output() scopeChange = new EventEmitter<'all' | 'mine'>();
   @Output() searchQueryChange = new EventEmitter<string>();

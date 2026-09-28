@@ -1,12 +1,12 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 @Component({
   selector: 'ui-badge',
   standalone: true,
   imports: [],
   template: `
-    <span [class]="'badge badge-' + variant + (dot ? ' has-dot' : '')">
-      @if (dot) {
+    <span [class]="'badge badge-' + variant() + (dot() ? ' has-dot' : '')">
+      @if (dot()) {
         <span class="dot"></span>
       }
       <ng-content></ng-content>
@@ -67,6 +67,6 @@ import { Component, Input } from '@angular/core';
   ],
 })
 export class UiBadgeComponent {
-  @Input() variant: string = 'neutral';
-  @Input() dot: boolean = false;
+  readonly variant = input<string>('neutral');
+  readonly dot = input<boolean>(false);
 }

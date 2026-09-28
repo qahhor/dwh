@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -10,10 +10,10 @@ import { NavSection } from '../app-shell.models';
   imports: [RouterModule, TranslatePipe],
   template: `
     <!-- Collapsed Rail Flyout Popover (Opens next to hovered/clicked category) -->
-    @if (isCollapsed && !isMobile && isFlyoutVisible && hoveredFlyoutSection; as section) {
+    @if (isCollapsed() && !isMobile() && isFlyoutVisible() && hoveredFlyoutSection(); as section) {
       <div
         class="rail-flyout-popover"
-        [style.top.px]="flyoutAnchorTop"
+        [style.top.px]="flyoutAnchorTop()"
         (mouseenter)="flyoutMouseEnter.emit()"
         (mouseleave)="flyoutMouseLeave.emit()"
         role="menu"
@@ -96,7 +96,7 @@ import { NavSection } from '../app-shell.models';
     }
 
     <!-- Collapsed Rail Profile Popover -->
-    @if (isCollapsed && !isMobile && isProfileFlyoutVisible) {
+    @if (isCollapsed() && !isMobile() && isProfileFlyoutVisible()) {
       <div
         class="rail-flyout-popover profile-flyout"
         [style.bottom.px]="12"
@@ -105,8 +105,8 @@ import { NavSection } from '../app-shell.models';
         role="menu"
       >
         <div class="flyout-header profile-flyout-header">
-          <div class="flyout-user-name">{{ currentUser?.name }}</div>
-          <div class="flyout-user-role font-mono">&#64;{{ currentUser?.login }}</div>
+          <div class="flyout-user-name">{{ currentUser()?.name }}</div>
+          <div class="flyout-user-role font-mono">&#64;{{ currentUser()?.login }}</div>
         </div>
         <div class="flyout-body">
           <a routerLink="/iam/profile" class="flyout-item" (click)="profileFlyoutClick.emit()" role="menuitem">
@@ -314,13 +314,13 @@ import { NavSection } from '../app-shell.models';
   ],
 })
 export class AppSidebarFlyoutComponent {
-  @Input() isCollapsed = false;
-  @Input() isMobile = false;
-  @Input() isFlyoutVisible = false;
-  @Input() hoveredFlyoutSection: NavSection | null = null;
-  @Input() flyoutAnchorTop = 0;
-  @Input() isProfileFlyoutVisible = false;
-  @Input() currentUser: any = null;
+  readonly isCollapsed = input(false);
+  readonly isMobile = input(false);
+  readonly isFlyoutVisible = input(false);
+  readonly hoveredFlyoutSection = input<NavSection | null>(null);
+  readonly flyoutAnchorTop = input(0);
+  readonly isProfileFlyoutVisible = input(false);
+  readonly currentUser = input<any>(null);
 
   @Output() flyoutMouseEnter = new EventEmitter<void>();
   @Output() flyoutMouseLeave = new EventEmitter<void>();

@@ -9,6 +9,7 @@ import {
   inject,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -37,7 +38,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
           smtIcon="search"
           clearable
           [smtAriaLabel]="'nav.settings.search_placeholder' | t"
-          [ngModel]="searchQuery"
+          [ngModel]="searchQuery()"
           (ngModelChange)="searchQueryChange.emit($event)"
           [placeholder]="'nav.settings.search_placeholder' | t"
           (cleared)="clearSearch.emit()"
@@ -50,7 +51,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
         [rows]="rows()"
         [config]="config()"
         [sortValues]="sortValues"
-        [loading]="isLoading"
+        [loading]="isLoading()"
         [emptyTemplate]="emptyState"
       />
     </div>
@@ -288,6 +289,9 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 export class NavigationSettingsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
+  readonly isLoading = input(false);
+  readonly searchQuery = input('');
+
   private readonly iconCell = viewChild.required<TemplateRef<unknown>>('iconCell');
   private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
@@ -324,9 +328,6 @@ export class NavigationSettingsTableComponent {
       columnsOrder: ['icon', 'title', 'type', 'section', 'target', 'order', 'status', 'actions'],
     };
   });
-
-  @Input() isLoading = false;
-  @Input() searchQuery = '';
 
   @Output() searchQueryChange = new EventEmitter<string>();
   @Output() clearSearch = new EventEmitter<void>();

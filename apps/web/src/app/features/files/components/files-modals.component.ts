@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 
 import { TaskFile } from '../../../core/models/task.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -13,7 +13,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   template: `
     <!-- Upload Modal -->
     <smt-dialog
-      [open]="isUploadModalOpen"
+      [open]="isUploadModalOpen()"
       [smtTitle]="'files.zagruzka_faylov_v_hranilische' | t"
       smtSize="md"
       (closed)="closeUpload.emit()"
@@ -21,7 +21,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
       <ng-template smtDialogContent>
         <div body class="upload-modal-body">
           <ui-file-upload
-            [files]="uploadedBatch"
+            [files]="uploadedBatch()"
             [canUpload]="true"
             [canDelete]="true"
             (fileAttached)="batchFileUploaded.emit($event)"
@@ -56,8 +56,8 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
   ],
 })
 export class FilesModalsComponent {
-  @Input() isUploadModalOpen = false;
-  @Input() uploadedBatch: TaskFile[] = [];
+  readonly isUploadModalOpen = input(false);
+  readonly uploadedBatch = input<TaskFile[]>([]);
 
   @Output() closeUpload = new EventEmitter<void>();
   @Output() batchFileUploaded = new EventEmitter<TaskFile>();

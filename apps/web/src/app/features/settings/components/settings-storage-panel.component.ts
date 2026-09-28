@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -19,7 +19,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             <p class="card-desc">{{ 'settings.limity_diskovogo_prostranstva_dlya_novyh_sotrudn' | t }}</p>
           </div>
         </div>
-        @if (!canUpdateSystemSettings) {
+        @if (!canUpdateSystemSettings()) {
           <span class="badge badge-neutral">{{ 'settings.readonly_badge' | t }}</span>
         }
       </div>
@@ -40,7 +40,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             type="number"
             [smtMin]="100"
             [smtMax]="102400"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-user-quota-hint"
             [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
           />
@@ -50,9 +50,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
         </div>
       </div>
 
-      @if (canUpdateSystemSettings) {
+      @if (canUpdateSystemSettings()) {
         <div class="card-footer-actions">
-          <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
+          <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
             {{ 'common.save' | t }}
           </button>
         </div>
@@ -169,9 +169,10 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 export class SettingsStoragePanelComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly canUpdateSystemSettings = input(false);
+  readonly isSaving = input(false);
+
   @Input() systemSettings: Record<string, string> = {};
-  @Input() canUpdateSystemSettings = false;
-  @Input() isSaving = false;
   @Output() save = new EventEmitter<void>();
 
   formatQuotaMb(mb: string | number | undefined): string {

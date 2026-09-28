@@ -121,7 +121,7 @@ import { ProjectListItem } from '../projects.models';
             {{ 'nav.tasks' | t }}
           </button>
         }
-        @if (canUpdateProject) {
+        @if (canUpdateProject()) {
           <button
             type="button"
             class="icon-ghost-btn"
@@ -362,6 +362,10 @@ export class ProjectTableViewComponent {
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
 
+  readonly canUpdateProject = input(false);
+  readonly projectStats = input<Record<number, ProjectTaskStats>>({});
+  readonly statsLoaded = input(false);
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -419,10 +423,6 @@ export class ProjectTableViewComponent {
     };
   });
 
-  @Input() canUpdateProject = false;
-  @Input() projectStats: Record<number, ProjectTaskStats> = {};
-  @Input() statsLoaded = false;
-
   @Output() viewTasks = new EventEmitter<ProjectListItem>();
   @Output() editProject = new EventEmitter<ProjectListItem>();
   @Output() manageMembers = new EventEmitter<ProjectListItem>();
@@ -436,19 +436,19 @@ export class ProjectTableViewComponent {
   }
 
   hasProjectStats(projectId: number): boolean {
-    return this.canViewTasks && this.statsLoaded && this.projectStats[projectId] !== undefined;
+    return this.canViewTasks && this.statsLoaded() && this.projectStats()[projectId] !== undefined;
   }
 
   getProjectTotalCount(projectId: number): number {
-    return this.projectStats[projectId]?.totalTasks ?? 0;
+    return this.projectStats()[projectId]?.totalTasks ?? 0;
   }
 
   getProjectDoneCount(projectId: number): number {
-    return this.projectStats[projectId]?.doneTasks ?? 0;
+    return this.projectStats()[projectId]?.doneTasks ?? 0;
   }
 
   getProjectPercent(projectId: number): number {
-    const stats = this.projectStats[projectId];
+    const stats = this.projectStats()[projectId];
     if (!stats) return 0;
     const total = stats.totalTasks;
     if (total === 0) return 0;

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -11,15 +11,15 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
   imports: [CommonModule, DragDropModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="kanban-board" cdkDropListGroup role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">
-      @if (tasks.length === 0 && !isLoading && !listLoadError) {
+      @if (tasks().length === 0 && !isLoading() && !listLoadError()) {
         <div class="kanban-empty-recovery">
           <span>{{ 'tasks.zadachi_ne_naydeny' | t }}</span>
-          @if (hasActiveFilters) {
+          @if (hasActiveFilters()) {
             <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
               {{ 'tasks.sbrosit_vse_filtry' | t }}
             </button>
           }
-          @if (!hasActiveFilters && canCreateTask) {
+          @if (!hasActiveFilters() && canCreateTask()) {
             <button
               smt-button
               type="button"
@@ -34,7 +34,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
         </div>
       }
 
-      @for (status of statuses; track status) {
+      @for (status of statuses(); track status) {
         <div
           class="kanban-column"
           [style.border-top-color]="status.color || 'var(--primary)'"
@@ -54,7 +54,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
           <!-- Drop List Zone for CDK Drag & Drop -->
           <div
             cdkDropList
-            [cdkDropListDisabled]="!canUpdateTask"
+            [cdkDropListDisabled]="!canUpdateTask()"
             [cdkDropListData]="getTasksByStatus(status.id)"
             [id]="'col-' + status.id"
             class="column-tasks-dropzone"
@@ -63,20 +63,20 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
             @for (task of getTasksByStatus(status.id); track task) {
               <div
                 cdkDrag
-                [cdkDragDisabled]="!canUpdateTask"
+                [cdkDragDisabled]="!canUpdateTask()"
                 [cdkDragData]="task"
-                [attr.draggable]="canUpdateTask ? 'true' : null"
+                [attr.draggable]="canUpdateTask() ? 'true' : null"
                 (dragstart)="onHtml5DragStart($event, task)"
                 (dragend)="onHtml5DragEnd()"
                 class="kanban-card"
-                [class.can-drag]="canUpdateTask"
-                [class.card-overdue]="isOverdue(task.endTime, task.statusId)"
+                [class.can-drag]="canUpdateTask()"
+                [class.card-overdue]="isOverdue()(task.endTime, task.statusId)"
                 (click)="onTaskContainerClick($event, task)"
               >
                 <!-- Card Top -->
                 <div class="card-top-row">
                   <div class="card-type-group">
-                    @if (canUpdateTask) {
+                    @if (canUpdateTask()) {
                       <span
                         class="material-symbols-outlined drag-grip-icon"
                         cdkDragHandle
@@ -86,18 +86,18 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                         drag_indicator
                       </span>
                     }
-                    <span class="task-type-badge-mini" [style.color]="getTypeColor(task)">
+                    <span class="task-type-badge-mini" [style.color]="getTypeColor()(task)">
                       <span
                         class="material-symbols-outlined mini-ico"
                         role="img"
-                        [attr.aria-label]="getTypeLabel(task)"
-                        >{{ getTypeIcon(task) }}</span
+                        [attr.aria-label]="getTypeLabel()(task)"
+                        >{{ getTypeIcon()(task) }}</span
                       >
                       <span class="task-id font-mono">#{{ task.id }}</span>
                     </span>
                   </div>
                   <span class="priority-pill" [attr.data-priority]="task.priority">
-                    {{ getPriorityLabel(task.priority) }}
+                    {{ getPriorityLabel()(task.priority) }}
                   </span>
                 </div>
 
@@ -105,7 +105,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                 <button
                   type="button"
                   class="card-title kanban-title-open"
-                  [class.title-overdue]="isOverdue(task.endTime, task.statusId)"
+                  [class.title-overdue]="isOverdue()(task.endTime, task.statusId)"
                   [attr.aria-label]="'tasks.open_task_named' | t: { id: task.id, title: task.title }"
                   (click)="openTaskDetails.emit(task)"
                 >
@@ -115,7 +115,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                 <!-- Card Meta -->
                 @if (task.projectId || task.parentTaskId) {
                   <div class="card-meta">
-                    @if (getProjectName(task.projectId); as pName) {
+                    @if (getProjectName()(task.projectId); as pName) {
                       <span class="project-tag-mini">
                         <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>
                         {{ pName }}
@@ -129,7 +129,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
 
                 <!-- Card Bottom Row -->
                 <div class="card-bottom-row" (click)="$event.stopPropagation()">
-                  @if (getDeadlineInfo(task.endTime, task.statusId); as dl) {
+                  @if (getDeadlineInfo()(task.endTime, task.statusId); as dl) {
                     @if (dl.state !== 'none') {
                       <span
                         class="deadline-pill"
@@ -150,7 +150,7 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
                   }
 
                   <!-- Quick Move Buttons -->
-                  @if (canUpdateTask) {
+                  @if (canUpdateTask()) {
                     <div class="kanban-move-actions">
                       <button
                         type="button"
@@ -191,23 +191,31 @@ import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.m
   styleUrl: './task-kanban-view.component.css',
 })
 export class TaskKanbanViewComponent {
-  @Input() tasks: Task[] = [];
-  @Input() statuses: TaskStatus[] = [];
-  @Input() projects: Project[] = [];
-  @Input() taskTypes: TaskType[] = [];
-  @Input() canCreateTask = false;
-  @Input() canUpdateTask = false;
-  @Input() hasActiveFilters = false;
-  @Input() isLoading = false;
-  @Input() listLoadError = false;
+  readonly getDeadlineInfo = input.required<
+    (
+      endTime: string | null | undefined,
+      statusId: number,
+    ) => {
+      state: string;
+      label: string;
+    }
+  >();
+  readonly getPriorityLabel = input.required<(priority: string) => string>();
+  readonly getTypeColor = input.required<(task: Task) => string>();
+  readonly getTypeIcon = input.required<(task: Task) => string>();
+  readonly getTypeLabel = input.required<(task: Task) => string>();
+  readonly getProjectName = input.required<(projectId: number | null | undefined) => string | null>();
+  readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
 
-  @Input() getDeadlineInfo!: (endTime: string | null | undefined, statusId: number) => { state: string; label: string };
-  @Input() getPriorityLabel!: (priority: string) => string;
-  @Input() getTypeColor!: (task: Task) => string;
-  @Input() getTypeIcon!: (task: Task) => string;
-  @Input() getTypeLabel!: (task: Task) => string;
-  @Input() getProjectName!: (projectId: number | null | undefined) => string | null;
-  @Input() isOverdue!: (endTime: string | null | undefined, statusId: number) => boolean;
+  readonly tasks = input<Task[]>([]);
+  readonly statuses = input<TaskStatus[]>([]);
+  readonly projects = input<Project[]>([]);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly canCreateTask = input(false);
+  readonly canUpdateTask = input(false);
+  readonly hasActiveFilters = input(false);
+  readonly isLoading = input(false);
+  readonly listLoadError = input(false);
 
   @Output() openTaskDetails = new EventEmitter<Task>();
   @Output() taskStatusChange = new EventEmitter<{ task: Task; targetStatusId: number }>();
@@ -219,38 +227,38 @@ export class TaskKanbanViewComponent {
   private draggedTask: Task | null = null;
 
   getTasksByStatus(statusId: number): Task[] {
-    return this.tasks.filter((t) => t.statusId === statusId);
+    return this.tasks().filter((t) => t.statusId === statusId);
   }
 
   isFirstStatus(statusId: number): boolean {
-    return this.statuses.length > 0 && this.statuses[0].id === statusId;
+    return this.statuses().length > 0 && this.statuses()[0].id === statusId;
   }
 
   isLastStatus(statusId: number): boolean {
-    return this.statuses.length > 0 && this.statuses[this.statuses.length - 1].id === statusId;
+    return this.statuses().length > 0 && this.statuses()[this.statuses().length - 1].id === statusId;
   }
 
   moveTaskStatus(task: Task, direction: -1 | 1) {
-    if (!this.canUpdateTask) return;
-    const currentIndex = this.statuses.findIndex((s) => s.id === task.statusId);
+    if (!this.canUpdateTask()) return;
+    const currentIndex = this.statuses().findIndex((s) => s.id === task.statusId);
     if (currentIndex === -1) return;
 
     const targetIndex = currentIndex + direction;
-    if (targetIndex >= 0 && targetIndex < this.statuses.length) {
-      const targetStatus = this.statuses[targetIndex];
+    if (targetIndex >= 0 && targetIndex < this.statuses().length) {
+      const targetStatus = this.statuses()[targetIndex];
       this.taskStatusChange.emit({ task, targetStatusId: targetStatus.id });
     }
   }
 
   onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
-    if (!this.canUpdateTask) return;
+    if (!this.canUpdateTask()) return;
     const task = event.item.data as Task;
     if (!task || task.statusId === targetStatusId) return;
     this.taskStatusChange.emit({ task, targetStatusId });
   }
 
   onHtml5DragStart(event: DragEvent, task: Task) {
-    if (!this.canUpdateTask) {
+    if (!this.canUpdateTask()) {
       event.preventDefault();
       return;
     }
@@ -268,7 +276,7 @@ export class TaskKanbanViewComponent {
   }
 
   onHtml5DragOver(event: DragEvent) {
-    if (!this.canUpdateTask) return;
+    if (!this.canUpdateTask()) return;
     event.preventDefault();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'move';
@@ -280,7 +288,7 @@ export class TaskKanbanViewComponent {
   }
 
   onHtml5DragLeave(event: DragEvent) {
-    if (!this.canUpdateTask) return;
+    if (!this.canUpdateTask()) return;
     const col = event.currentTarget as HTMLElement;
     if (col) {
       col.classList.remove('drag-over');
@@ -288,7 +296,7 @@ export class TaskKanbanViewComponent {
   }
 
   onHtml5Drop(event: DragEvent, targetStatusId: number) {
-    if (!this.canUpdateTask) return;
+    if (!this.canUpdateTask()) return;
     event.preventDefault();
     const col = event.currentTarget as HTMLElement;
     if (col) {

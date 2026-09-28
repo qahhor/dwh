@@ -7,11 +7,11 @@ import {
   EventEmitter,
   HostListener,
   inject,
-  Input,
   OnChanges,
   Output,
   signal,
   SimpleChanges,
+  input,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -46,6 +46,8 @@ export class RoleScopePanelComponent implements OnChanges {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  readonly roleId = input.required<number>();
+
   readonly selectedRule = signal<ScopeRule>('ALL');
 
   /** The rules as radio items, translated; each description says what the rule lets the role see. */
@@ -57,7 +59,6 @@ export class RoleScopePanelComponent implements OnChanges {
     })),
   );
 
-  @Input({ required: true }) roleId = 0;
   @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private readRequest?: Subscription;
@@ -101,7 +102,7 @@ export class RoleScopePanelComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['roleId'] || changes['roleId'].currentValue === this.activeTarget) return;
-    this.activateTarget(this.roleId);
+    this.activateTarget(this.roleId());
   }
 
   can(action: 'view' | 'assign'): boolean {
@@ -128,7 +129,7 @@ export class RoleScopePanelComponent implements OnChanges {
       this.pending ||
       this.confirmationOpen ||
       this.activeTarget === null ||
-      this.activeTarget !== this.roleId ||
+      this.activeTarget !== this.roleId() ||
       !safeNumericRecordId(this.activeTarget)
     )
       return;
@@ -153,7 +154,7 @@ export class RoleScopePanelComponent implements OnChanges {
       !this.dirty ||
       this.pending ||
       target === null ||
-      target !== this.roleId ||
+      target !== this.roleId() ||
       !safeNumericRecordId(target) ||
       !isScopeRule(rule)
     )
@@ -300,13 +301,13 @@ export class RoleScopePanelComponent implements OnChanges {
     this.changeDetector.markForCheck();
   }
   private currentView(epoch: number, target: number): boolean {
-    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.roleId;
+    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.roleId();
   }
   private loadDeferredTarget(): void {
     if (
       this.deferredTarget === null ||
       this.deferredTarget !== this.activeTarget ||
-      this.deferredTarget !== this.roleId
+      this.deferredTarget !== this.roleId()
     )
       return;
     this.deferredTarget = null;

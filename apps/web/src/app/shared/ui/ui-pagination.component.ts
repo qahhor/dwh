@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, input } from '@angular/core';
 
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -17,7 +17,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
             <span class="range-text">
               {{ 'ui.pagination.pokazano' | t }}
               <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
-              @if (!cursorMode || !cursorItemsArePageLength) {
+              @if (!cursorMode || !cursorItemsArePageLength()) {
                 {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong>
               }
             </span>
@@ -27,7 +27,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
         <!-- Right: Page Size Selector & Navigation Buttons -->
         <div class="pagination-controls">
           <!-- Page Size Selector -->
-          @if (showPageSize) {
+          @if (showPageSize()) {
             <div class="page-size-picker">
               <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.strok' | t }}</label>
               <smt-select
@@ -35,7 +35,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                 [smtTriggerId]="pageSizeSelectId"
                 [options]="pageSizeChoices()"
                 [allowClear]="false"
-                [disabled]="disabled"
+                [disabled]="disabled()"
                 [value]="pageSize"
                 (valueChange)="onPageSizeChange($event)"
               />
@@ -51,7 +51,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                 class="nav-btn"
                 [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
                 [title]="'ui.pagination.pervaya_stranica' | t"
-                [disabled]="disabled || currentPage === 1"
+                [disabled]="disabled() || currentPage === 1"
                 (click)="goToPage(1)"
               >
                 <span class="material-symbols-outlined icon" aria-hidden="true">first_page</span>
@@ -64,7 +64,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               class="nav-btn"
               [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
               [title]="'ui.pagination.predyduschaya_stranica' | t"
-              [disabled]="disabled || currentPage === 1"
+              [disabled]="disabled() || currentPage === 1"
               (click)="goToPage(currentPage - 1)"
             >
               <span class="material-symbols-outlined icon" aria-hidden="true">chevron_left</span>
@@ -84,7 +84,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                       [class.active]="p === currentPage"
                       [attr.aria-label]="'ui.pagination.page_number' | t: { page: p }"
                       [attr.aria-current]="p === currentPage ? 'page' : null"
-                      [disabled]="disabled"
+                      [disabled]="disabled()"
                       (click)="goToPage(p)"
                     >
                       {{ p }}
@@ -108,7 +108,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               class="nav-btn"
               [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
               [title]="'ui.pagination.sleduyuschaya_stranica' | t"
-              [disabled]="disabled || (cursorMode ? !hasNextPage : currentPage >= totalPages)"
+              [disabled]="disabled() || (cursorMode ? !hasNextPage : currentPage >= totalPages)"
               (click)="goToPage(currentPage + 1)"
             >
               <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
@@ -121,7 +121,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                 class="nav-btn"
                 [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
                 [title]="'ui.pagination.poslednyaya_stranica' | t"
-                [disabled]="disabled || currentPage >= totalPages"
+                [disabled]="disabled() || currentPage >= totalPages"
                 (click)="goToPage(totalPages)"
               >
                 <span class="material-symbols-outlined icon" aria-hidden="true">last_page</span>
@@ -267,17 +267,18 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
   ],
 })
 export class UiPaginationComponent implements OnChanges {
+  readonly pageSizeOptions = input<number[]>([10, 25, 50, 100]);
+  readonly showPageSize = input<boolean>(true);
+  readonly cursorItemsArePageLength = input<boolean>(false);
+  readonly disabled = input<boolean>(false);
+
   private static nextId = 0;
 
   @Input() totalItems: number = 0;
   @Input() currentPage: number = 1;
   @Input() pageSize: number = 10;
-  @Input() pageSizeOptions: number[] = [10, 25, 50, 100];
-  @Input() showPageSize: boolean = true;
   @Input() cursorMode: boolean = false;
-  @Input() cursorItemsArePageLength: boolean = false;
   @Input() hasNextPage: boolean = false;
-  @Input() disabled: boolean = false;
 
   @Output() pageChange = new EventEmitter<number>();
   @Output() pageSizeChange = new EventEmitter<number>();
@@ -291,8 +292,8 @@ export class UiPaginationComponent implements OnChanges {
   private readonly pageSizeMemo = optionsMemo<SMTSelectOption<number>[]>();
 
   pageSizeChoices(): SMTSelectOption<number>[] {
-    return this.pageSizeMemo([this.pageSizeOptions], () =>
-      this.pageSizeOptions.map((size) => ({ id: size, label: String(size) })),
+    return this.pageSizeMemo([this.pageSizeOptions()], () =>
+      this.pageSizeOptions().map((size) => ({ id: size, label: String(size) })),
     );
   }
 
@@ -313,7 +314,7 @@ export class UiPaginationComponent implements OnChanges {
       this.currentPage = Math.max(1, this.currentPage);
       this.totalPages = this.currentPage + (this.hasNextPage ? 1 : 0);
       this.startItem = (this.currentPage - 1) * this.pageSize + 1;
-      this.endItem = this.cursorItemsArePageLength
+      this.endItem = this.cursorItemsArePageLength()
         ? this.startItem + this.totalItems - 1
         : Math.min(this.currentPage * this.pageSize, this.totalItems);
       this.visiblePages = [];
@@ -335,7 +336,7 @@ export class UiPaginationComponent implements OnChanges {
   }
 
   goToPage(page: number) {
-    if (this.disabled) return;
+    if (this.disabled()) return;
     const isCursorStep =
       this.cursorMode && (page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage));
     const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;

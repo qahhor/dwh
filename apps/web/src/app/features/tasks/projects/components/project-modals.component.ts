@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
@@ -42,20 +42,20 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
       <smt-dialog [open]="true" [smtTitle]="'projects.proekt' | t" smtSize="sm" (closed)="closeRecordView.emit()">
         <ng-template smtDialogContent>
           <div body>
-            @if (recordLoading) {
+            @if (recordLoading()) {
               <p role="status">{{ 'search.record_loading' | t }}</p>
             }
-            @if (recordError) {
+            @if (recordError()) {
               <div role="alert">
-                <p>{{ (recordNotFound ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
-                @if (!recordNotFound) {
+                <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
+                @if (!recordNotFound()) {
                   <button smt-button type="button" smtVariant="secondary" (click)="loadRecordView.emit(routeRecordId)">
                     {{ 'audit.retry' | t }}
                   </button>
                 }
               </div>
             }
-            @if (viewingProject; as project) {
+            @if (viewingProject(); as project) {
               <div [attr.data-record-id]="routeRecordId">
                 <p>#{{ routeRecordId }}</p>
                 <h3>{{ project.name }}</h3>
@@ -86,20 +86,20 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 
     <!-- Create Project Modal -->
     <smt-dialog
-      [open]="isCreateModalOpen"
+      [open]="isCreateModalOpen()"
       [smtTitle]="'projects.sozdanie_novogo_proekta' | t"
       smtSize="sm"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="requestCloseCreate.emit()"
     >
       <ng-template smtDialogContent>
         <form body id="project-create-form" (ngSubmit)="submitCreateProject.emit()">
-          <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting">
+          <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
             <smt-control
               class="form-group"
               [smtLabel]="'projects.nazvanie_proekta' | t"
               [smtError]="
-                isCreateSubmitted && !createForm.name.trim()
+                isCreateSubmitted() && !createForm.name.trim()
                   ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t)
                   : ''
               "
@@ -142,7 +142,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="requestCloseCreate.emit()"
           >
             {{ 'common.cancel' | t }}
@@ -153,7 +153,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             form="project-create-form"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmitting"
+            [smtLoading]="isSubmitting()"
           >
             {{ 'projects.sozdat_proekt' | t }}
           </button>
@@ -162,7 +162,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     </smt-dialog>
 
     <smt-dialog
-      [open]="isCreateDiscardConfirmationOpen"
+      [open]="isCreateDiscardConfirmationOpen()"
       [smtTitle]="'projects.discard_create_title' | t"
       smtSize="sm"
       (closed)="cancelNavigationDiscard.emit('create')"
@@ -190,19 +190,19 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 
     <!-- Edit Project Modal -->
     <smt-dialog
-      [open]="isEditModalOpen"
+      [open]="isEditModalOpen()"
       [smtTitle]="'projects.redaktirovanie_proekta' | t"
       smtSize="sm"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="requestCloseEdit.emit()"
     >
       <ng-template smtDialogContent>
-        @if (editLoading) {
+        @if (editLoading()) {
           <div body class="request-state" data-testid="project-edit-loading" role="status">
             {{ 'projects.edit_loading' | t }}
           </div>
         }
-        @if (editLoadError) {
+        @if (editLoadError()) {
           <div body class="request-state request-error" data-testid="project-edit-load-error" role="alert">
             <span>{{ 'projects.edit_load_error' | t }}</span>
             <button
@@ -217,14 +217,16 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             </button>
           </div>
         }
-        @if (editingProject; as p) {
+        @if (editingProject(); as p) {
           <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()">
-            <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting">
+            <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
               <smt-control
                 class="form-group"
                 [smtLabel]="'projects.nazvanie_proekta' | t"
                 [smtError]="
-                  isEditSubmitted && !editForm.name.trim() ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t) : ''
+                  isEditSubmitted() && !editForm.name.trim()
+                    ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t)
+                    : ''
                 "
               >
                 <smt-input smtFieldId="project-edit-name" name="projectEditName" required [(ngModel)]="editForm.name" />
@@ -268,19 +270,19 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="requestCloseEdit.emit()"
           >
             {{ 'common.cancel' | t }}
           </button>
-          @if (editingProject) {
+          @if (editingProject()) {
             <button
               smt-button
               type="submit"
               form="project-edit-form"
               smtVariant="primary"
               smtSize="md"
-              [smtLoading]="isSubmitting"
+              [smtLoading]="isSubmitting()"
             >
               {{ 'common.save' | t }}
             </button>
@@ -290,7 +292,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     </smt-dialog>
 
     <smt-dialog
-      [open]="isEditDiscardConfirmationOpen"
+      [open]="isEditDiscardConfirmationOpen()"
       [smtTitle]="'projects.discard_edit_title' | t"
       smtSize="sm"
       (closed)="cancelNavigationDiscard.emit('edit')"
@@ -406,35 +408,40 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 })
 export class ProjectModalsComponent {
   private readonly uiI18n = inject(I18nService);
+
+  readonly viewingProject = input<Project | null>(null);
+  readonly recordLoading = input(false);
+  readonly recordError = input(false);
+  readonly recordNotFound = input(false);
+
+  // Create Modal
+  readonly isCreateModalOpen = input(false);
+  readonly isCreateSubmitted = input(false);
+  readonly isCreateDiscardConfirmationOpen = input(false);
+
+  // Edit Modal
+  readonly isEditModalOpen = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly isEditDiscardConfirmationOpen = input(false);
+  readonly editLoading = input(false);
+  readonly editLoadError = input(false);
+  readonly editingProject = input<Project | null>(null);
+
+  // Shared
+  readonly isSubmitting = input(false);
+
   private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   // Record View
   @Input() routeRecordId: string | null = null;
-  @Input() viewingProject: Project | null = null;
-  @Input() recordLoading = false;
-  @Input() recordError = false;
-  @Input() recordNotFound = false;
   @Output() closeRecordView = new EventEmitter<void>();
   @Output() loadRecordView = new EventEmitter<string | null>();
-
-  // Create Modal
-  @Input() isCreateModalOpen = false;
-  @Input() isCreateSubmitted = false;
-  @Input() isCreateDiscardConfirmationOpen = false;
   @Input() createSaveError: string | null = null;
   @Input() createForm: ProjectCreateForm = { name: '', description: '', attributes: {} };
   @Output() requestCloseCreate = new EventEmitter<void>();
   @Output() confirmDiscardCreate = new EventEmitter<void>();
   @Output() submitCreateProject = new EventEmitter<void>();
-
-  // Edit Modal
-  @Input() isEditModalOpen = false;
-  @Input() isEditSubmitted = false;
-  @Input() isEditDiscardConfirmationOpen = false;
-  @Input() editLoading = false;
-  @Input() editLoadError = false;
   @Input() editSaveError: string | null = null;
-  @Input() editingProject: Project | null = null;
   @Input() editForm: ProjectEditForm = { name: '', description: '', state: 'A', attributes: {} };
   @Output() requestCloseEdit = new EventEmitter<void>();
   @Output() confirmDiscardEdit = new EventEmitter<void>();
@@ -443,9 +450,6 @@ export class ProjectModalsComponent {
 
   // Discard helper
   @Output() cancelNavigationDiscard = new EventEmitter<'create' | 'edit'>();
-
-  // Shared
-  @Input() isSubmitting = false;
   @Input() projectCustomFields: CustomField[] = [];
 
   /** Project states for the edit form; translated again when the language changes. */

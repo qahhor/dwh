@@ -3,10 +3,10 @@
   @if (!can('view')) {
     <p role="alert">{{ 'iam.org_units.forbidden' | t }}</p>
   } @else {
-    <section class="card" [attr.aria-labelledby]="'assigned-title-' + userId">
+    <section class="card" [attr.aria-labelledby]="'assigned-title-' + userId()">
       <div class="heading">
         <div>
-          <h4 [id]="'assigned-title-' + userId">{{ 'iam.org_units.assignments_title' | t }}</h4>
+          <h4 [id]="'assigned-title-' + userId()">{{ 'iam.org_units.assignments_title' | t }}</h4>
           <p class="help">{{ 'iam.org_units.assignments_help' | t }}</p>
         </div>
         <button
@@ -111,9 +111,9 @@
       }
     </section>
 
-    <section class="card" [attr.aria-labelledby]="'scope-title-' + userId">
+    <section class="card" [attr.aria-labelledby]="'scope-title-' + userId()">
       <div class="heading">
-        <h4 [id]="'scope-title-' + userId">{{ 'iam.org_units.effective_scope_title' | t }}</h4>
+        <h4 [id]="'scope-title-' + userId()">{{ 'iam.org_units.effective_scope_title' | t }}</h4>
         <button
           smt-button
           type="button"

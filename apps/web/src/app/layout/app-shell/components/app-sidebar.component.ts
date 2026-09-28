@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, input } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -13,56 +13,56 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
   imports: [SMTAvatarComponent, RouterModule, TranslatePipe, AppSidebarNavSectionsComponent, AppSidebarFlyoutComponent],
   template: `
     <!-- Mobile Drawer Backdrop -->
-    @if (isMobile && isMobileMenuOpen) {
+    @if (isMobile() && isMobileMenuOpen()) {
       <div class="mobile-drawer-backdrop" (click)="closeMobileMenu.emit(true)" aria-hidden="true"></div>
     }
 
     <!-- Sidebar Slot (preserves flex-layout width during floating hover) -->
-    <div class="sidebar-slot" [class.collapsed]="isCollapsed">
+    <div class="sidebar-slot" [class.collapsed]="isCollapsed()">
       <!-- Sidebar -->
       <aside
         #sidebarElement
-        [id]="sidebarId"
+        [id]="sidebarId()"
         class="sidebar"
-        [class.collapsed]="isCollapsed"
-        [class.mobile-open]="isMobile && isMobileMenuOpen"
-        [attr.role]="isMobile && isMobileMenuOpen ? 'dialog' : null"
-        [attr.aria-modal]="isMobile && isMobileMenuOpen ? 'true' : null"
-        [attr.aria-hidden]="isMobile && !isMobileMenuOpen ? 'true' : null"
-        [attr.inert]="isMobile && !isMobileMenuOpen ? true : null"
+        [class.collapsed]="isCollapsed()"
+        [class.mobile-open]="isMobile() && isMobileMenuOpen()"
+        [attr.role]="isMobile() && isMobileMenuOpen() ? 'dialog' : null"
+        [attr.aria-modal]="isMobile() && isMobileMenuOpen() ? 'true' : null"
+        [attr.aria-hidden]="isMobile() && !isMobileMenuOpen() ? 'true' : null"
+        [attr.inert]="isMobile() && !isMobileMenuOpen() ? true : null"
       >
         <div class="sidebar-header">
-          @if (!isCollapsed || isMobileMenuOpen) {
+          @if (!isCollapsed() || isMobileMenuOpen()) {
             <div class="brand-logo">
               <span class="brand-icon">S</span>
               <span class="brand-name">SmartupCMS</span>
             </div>
           }
-          @if (isCollapsed && !isMobileMenuOpen) {
+          @if (isCollapsed() && !isMobileMenuOpen()) {
             <div class="brand-mark-collapsed" [title]="'SmartupCMS'">
               <span class="brand-icon">S</span>
             </div>
           }
-          @if (!isMobile) {
+          @if (!isMobile()) {
             <button
               type="button"
               class="toggle-btn"
-              [class.pinned]="!isCollapsed"
+              [class.pinned]="!isCollapsed()"
               (click)="toggleSidebar.emit()"
               [attr.aria-label]="
-                (isCollapsed ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t
+                (isCollapsed() ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t
               "
-              [attr.aria-expanded]="!isCollapsed"
+              [attr.aria-expanded]="!isCollapsed()"
               [title]="
-                (isCollapsed ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t
+                (isCollapsed() ? 'layout.app_shell.expand_navigation' : 'layout.app_shell.collapse_navigation') | t
               "
             >
               <span class="material-symbols-outlined" aria-hidden="true">{{
-                isCollapsed ? 'chevron_right' : 'chevron_left'
+                isCollapsed() ? 'chevron_right' : 'chevron_left'
               }}</span>
             </button>
           }
-          @if (isMobile && isMobileMenuOpen) {
+          @if (isMobile() && isMobileMenuOpen()) {
             <button
               #mobileDrawerClose
               type="button"
@@ -81,15 +81,15 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
           (click)="onNavClick.emit()"
         >
           <!-- Collapsed Mode: Categories Rail (Main Categories of the Menu) -->
-          @if (isCollapsed && !isMobileMenuOpen) {
+          @if (isCollapsed() && !isMobileMenuOpen()) {
             <div class="rail-category-list">
-              @for (section of navSections; track section) {
-                @if (hasVisibleItems(section)) {
+              @for (section of navSections(); track section) {
+                @if (hasVisibleItems()(section)) {
                   <button
                     type="button"
                     class="rail-category-btn"
-                    [class.active]="isSectionActive(section)"
-                    [class.open]="isFlyoutVisible && hoveredFlyoutSection?.id === section.id"
+                    [class.active]="isSectionActive()(section)"
+                    [class.open]="isFlyoutVisible() && hoveredFlyoutSection()?.id === section.id"
                     [attr.aria-label]="section.titleKey | t"
                     [attr.title]="section.titleKey | t"
                     (click)="categoryClick.emit({ section: section, event: $event })"
@@ -97,9 +97,9 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
                     (mouseleave)="categoryMouseLeave.emit()"
                   >
                     <span class="material-symbols-outlined rail-category-icon" aria-hidden="true">{{
-                      getSectionIcon(section.id)
+                      getSectionIcon()(section.id)
                     }}</span>
-                    @if (isSectionActive(section)) {
+                    @if (isSectionActive()(section)) {
                       <span class="rail-category-active-bar" aria-hidden="true"></span>
                     }
                     @if (getSectionBadge(section) > 0) {
@@ -115,14 +115,14 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
           }
 
           <!-- Expanded Mode / Mobile Drawer: Full Sections Hierarchy -->
-          @if (!isCollapsed || isMobileMenuOpen) {
+          @if (!isCollapsed() || isMobileMenuOpen()) {
             <app-sidebar-nav-sections
-              [navSections]="navSections"
-              [hasVisibleItems]="hasVisibleItems"
-              [isSectionExpanded]="isSectionExpanded"
-              [isSectionActive]="isSectionActive"
-              [isSubmenuExpanded]="isSubmenuExpanded"
-              [isRouteActive]="isRouteActive"
+              [navSections]="navSections()"
+              [hasVisibleItems]="hasVisibleItems()"
+              [isSectionExpanded]="isSectionExpanded()"
+              [isSectionActive]="isSectionActive()"
+              [isSubmenuExpanded]="isSubmenuExpanded()"
+              [isRouteActive]="isRouteActive()"
               (toggleSection)="toggleSection.emit($event)"
               (toggleSubmenu)="toggleSubmenu.emit($event)"
             ></app-sidebar-nav-sections>
@@ -133,23 +133,23 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
           <a
             routerLink="/iam/profile"
             routerLinkActive="active"
-            [attr.aria-current]="isRouteActive('/iam/profile') ? 'page' : null"
+            [attr.aria-current]="isRouteActive()('/iam/profile') ? 'page' : null"
             class="user-profile-btn"
             [title]="'nav.profile' | t"
             (mouseenter)="profileMouseEnter.emit($event)"
             (mouseleave)="profileMouseLeave.emit()"
             (click)="onNavClick.emit()"
           >
-            <smt-avatar class="avatar-circle" [name]="currentUser?.name" smtSize="md" />
-            @if (!isCollapsed || isMobileMenuOpen) {
+            <smt-avatar class="avatar-circle" [name]="currentUser()?.name" smtSize="md" />
+            @if (!isCollapsed() || isMobileMenuOpen()) {
               <div class="user-meta">
-                <div class="user-name">{{ currentUser?.name }}</div>
-                <div class="user-role font-mono">&#64;{{ currentUser?.login }}</div>
+                <div class="user-name">{{ currentUser()?.name }}</div>
+                <div class="user-role font-mono">&#64;{{ currentUser()?.login }}</div>
               </div>
             }
-            @if (isCollapsed && !isMobile) {
+            @if (isCollapsed() && !isMobile()) {
               <div class="nav-tooltip" role="tooltip">
-                <span>{{ currentUser?.name || ('nav.profile' | t) }}</span>
+                <span>{{ currentUser()?.name || ('nav.profile' | t) }}</span>
               </div>
             }
           </a>
@@ -158,13 +158,13 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
       <!-- Collapsed Rail Flyouts (Section Popover + Profile Popover) -->
       <app-sidebar-flyout
-        [isCollapsed]="isCollapsed"
-        [isMobile]="isMobile"
-        [isFlyoutVisible]="isFlyoutVisible"
-        [hoveredFlyoutSection]="hoveredFlyoutSection"
-        [flyoutAnchorTop]="flyoutAnchorTop"
-        [isProfileFlyoutVisible]="isProfileFlyoutVisible"
-        [currentUser]="currentUser"
+        [isCollapsed]="isCollapsed()"
+        [isMobile]="isMobile()"
+        [isFlyoutVisible]="isFlyoutVisible()"
+        [hoveredFlyoutSection]="hoveredFlyoutSection()"
+        [flyoutAnchorTop]="flyoutAnchorTop()"
+        [isProfileFlyoutVisible]="isProfileFlyoutVisible()"
+        [currentUser]="currentUser()"
         (flyoutMouseEnter)="flyoutMouseEnter.emit()"
         (flyoutMouseLeave)="flyoutMouseLeave.emit()"
         (flyoutItemClick)="flyoutItemClick.emit()"
@@ -178,27 +178,27 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
   styleUrl: './app-sidebar.component.css',
 })
 export class AppSidebarComponent {
+  readonly isSectionActive = input.required<(section: NavSection) => boolean>();
+  readonly isRouteActive = input.required<(route: string, exact?: boolean) => boolean>();
+  readonly getSectionIcon = input.required<(id: string) => string>();
+  readonly hasVisibleItems = input.required<(section: NavSection) => boolean>();
+  readonly isSectionExpanded = input.required<(sectionId: string) => boolean>();
+  readonly isSubmenuExpanded = input.required<(itemId: string) => boolean>();
+
+  readonly sidebarId = input('app-sidebar');
+  readonly isMobile = input(false);
+  readonly isMobileMenuOpen = input(false);
+  readonly isCollapsed = input(false);
+  readonly navSections = input<NavSection[]>([]);
+  readonly isFlyoutVisible = input(false);
+  readonly hoveredFlyoutSection = input<NavSection | null>(null);
+  readonly flyoutAnchorTop = input(0);
+  readonly isProfileFlyoutVisible = input(false);
+  readonly currentUser = input<any>(null);
+
   @ViewChild('sidebarElement') sidebarElement?: ElementRef<HTMLElement>;
   @ViewChild('mobileDrawerClose') mobileDrawerClose?: ElementRef<HTMLButtonElement>;
-
-  @Input() sidebarId = 'app-sidebar';
-  @Input() isMobile = false;
-  @Input() isMobileMenuOpen = false;
-  @Input() isCollapsed = false;
-  @Input() navSections: NavSection[] = [];
-  @Input() isFlyoutVisible = false;
-  @Input() hoveredFlyoutSection: NavSection | null = null;
-  @Input() flyoutAnchorTop = 0;
-  @Input() isProfileFlyoutVisible = false;
-  @Input() currentUser: any = null;
-
-  @Input() isSectionActive!: (section: NavSection) => boolean;
-  @Input() isRouteActive!: (route: string, exact?: boolean) => boolean;
-  @Input() getSectionIcon!: (id: string) => string;
   @Input() getSectionBadge!: (section: NavSection) => number;
-  @Input() hasVisibleItems!: (section: NavSection) => boolean;
-  @Input() isSectionExpanded!: (sectionId: string) => boolean;
-  @Input() isSubmenuExpanded!: (itemId: string) => boolean;
 
   @Output() toggleSidebar = new EventEmitter<void>();
   @Output() closeMobileMenu = new EventEmitter<boolean>();

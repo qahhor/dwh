@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -9,26 +9,26 @@ import { NavSection } from '../app-shell.models';
   standalone: true,
   imports: [RouterModule, TranslatePipe],
   template: `
-    @for (section of navSections; track section; let first = $first) {
-      @if (hasVisibleItems(section)) {
+    @for (section of navSections(); track section; let first = $first) {
+      @if (hasVisibleItems()(section)) {
         <button
           type="button"
           class="nav-section-header"
           (click)="toggleSection.emit({ id: section.id, event: $event })"
-          [attr.aria-expanded]="isSectionExpanded(section.id)"
+          [attr.aria-expanded]="isSectionExpanded()(section.id)"
           [attr.aria-controls]="'section-content-' + section.id"
           [attr.aria-label]="
-            (isSectionExpanded(section.id) ? 'layout.app_shell.collapse_section' : 'layout.app_shell.expand_section')
+            (isSectionExpanded()(section.id) ? 'layout.app_shell.collapse_section' : 'layout.app_shell.expand_section')
               | t
           "
         >
           <span class="nav-section-title">{{ section.titleKey | t }}</span>
-          @if (!isSectionExpanded(section.id) && isSectionActive(section)) {
+          @if (!isSectionExpanded()(section.id) && isSectionActive()(section)) {
             <span class="section-active-dot" [attr.title]="'common.active' | t"></span>
           }
           <span
             class="material-symbols-outlined section-chevron"
-            [class.rotated]="!isSectionExpanded(section.id)"
+            [class.rotated]="!isSectionExpanded()(section.id)"
             aria-hidden="true"
             >expand_more</span
           >
@@ -37,7 +37,7 @@ import { NavSection } from '../app-shell.models';
       <div
         [id]="'section-content-' + section.id"
         class="nav-section-content"
-        [class.collapsed]="!isSectionExpanded(section.id)"
+        [class.collapsed]="!isSectionExpanded()(section.id)"
       >
         @for (item of section.items; track item) {
           <!-- Internal link item -->
@@ -46,7 +46,7 @@ import { NavSection } from '../app-shell.models';
               [routerLink]="item.route"
               routerLinkActive="active"
               [routerLinkActiveOptions]="{ exact: !!item.exact }"
-              [attr.aria-current]="item.route && isRouteActive(item.route, !!item.exact) ? 'page' : null"
+              [attr.aria-current]="item.route && isRouteActive()(item.route, !!item.exact) ? 'page' : null"
               class="nav-item"
               [title]="item.label ? item.label : (item.titleKey || item.labelKey! | t)"
             >
@@ -87,20 +87,20 @@ import { NavSection } from '../app-shell.models';
                 type="button"
                 class="nav-item nav-parent-btn"
                 (click)="toggleSubmenu.emit({ id: item.id, event: $event })"
-                [attr.aria-expanded]="isSubmenuExpanded(item.id)"
+                [attr.aria-expanded]="isSubmenuExpanded()(item.id)"
                 [title]="item.label ? item.label : (item.titleKey || item.labelKey! | t)"
               >
                 <span class="material-symbols-outlined nav-icon" aria-hidden="true">{{ item.icon }}</span>
                 <span class="nav-label">{{ item.label ? item.label : (item.labelKey! | t) }}</span>
                 <span
                   class="material-symbols-outlined submenu-chevron"
-                  [class.rotated]="!isSubmenuExpanded(item.id)"
+                  [class.rotated]="!isSubmenuExpanded()(item.id)"
                   aria-hidden="true"
                   >expand_more</span
                 >
               </button>
 
-              @if (isSubmenuExpanded(item.id)) {
+              @if (isSubmenuExpanded()(item.id)) {
                 <div class="nav-submenu">
                   @for (child of item.children; track child) {
                     @if (child.permission()) {
@@ -108,7 +108,7 @@ import { NavSection } from '../app-shell.models';
                         [routerLink]="child.route"
                         routerLinkActive="active"
                         [routerLinkActiveOptions]="{ exact: !!child.exact }"
-                        [attr.aria-current]="child.route && isRouteActive(child.route, !!child.exact) ? 'page' : null"
+                        [attr.aria-current]="child.route && isRouteActive()(child.route, !!child.exact) ? 'page' : null"
                         class="nav-item nav-subitem"
                         [title]="child.label ? child.label : (child.titleKey || child.labelKey! | t)"
                       >
@@ -297,12 +297,13 @@ import { NavSection } from '../app-shell.models';
   ],
 })
 export class AppSidebarNavSectionsComponent {
-  @Input() navSections: NavSection[] = [];
-  @Input() hasVisibleItems!: (section: NavSection) => boolean;
-  @Input() isSectionExpanded!: (sectionId: string) => boolean;
-  @Input() isSectionActive!: (section: NavSection) => boolean;
-  @Input() isSubmenuExpanded!: (itemId: string) => boolean;
-  @Input() isRouteActive!: (route: string, exact?: boolean) => boolean;
+  readonly hasVisibleItems = input.required<(section: NavSection) => boolean>();
+  readonly isSectionExpanded = input.required<(sectionId: string) => boolean>();
+  readonly isSectionActive = input.required<(section: NavSection) => boolean>();
+  readonly isSubmenuExpanded = input.required<(itemId: string) => boolean>();
+  readonly isRouteActive = input.required<(route: string, exact?: boolean) => boolean>();
+
+  readonly navSections = input<NavSection[]>([]);
 
   @Output() toggleSection = new EventEmitter<{ id: string; event: MouseEvent }>();
   @Output() toggleSubmenu = new EventEmitter<{ id: string; event: MouseEvent }>();

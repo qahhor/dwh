@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
@@ -54,13 +54,13 @@ const FIELD_TYPES: readonly [string, string][] = [
     @if (showModal) {
       <smt-dialog
         [open]="showModal"
-        [smtTitle]="(editingField ? 'iam.edit_field' : 'iam.new_custom_field') | t"
+        [smtTitle]="(editingField() ? 'iam.edit_field' : 'iam.new_custom_field') | t"
         (closed)="closeModal.emit()"
       >
         <ng-template smtDialogContent>
           <form id="customFieldForm" body class="modal-form" (ngSubmit)="saveField.emit()">
             <!-- Entity Target (only in creation) -->
-            @if (!editingField) {
+            @if (!editingField()) {
               <div class="form-group">
                 <label class="form-label" for="custom-field-entity">
                   {{ 'iam.celevaya_suschnost' | t }} <span class="req" aria-hidden="true">*</span>
@@ -89,7 +89,7 @@ const FIELD_TYPES: readonly [string, string][] = [
                   name="code"
                   [(ngModel)]="formData.code"
                   (input)="codeInput.emit($event)"
-                  [disabled]="!!editingField"
+                  [disabled]="!!editingField()"
                   [placeholder]="'iam.naprimer_inn_budget' | t"
                   [maxLength]="64"
                   autocomplete="off"
@@ -97,10 +97,10 @@ const FIELD_TYPES: readonly [string, string][] = [
                   [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
                   required
                 />
-                @if (!editingField) {
+                @if (!editingField()) {
                   <span class="form-hint">{{ 'iam.kod_polya_help' | t }}</span>
                 }
-                @if (editingField) {
+                @if (editingField()) {
                   <span class="form-hint readonly-hint">{{ 'iam.kod_polya_readonly' | t }}</span>
                 }
               </div>
@@ -124,7 +124,7 @@ const FIELD_TYPES: readonly [string, string][] = [
 
             <!-- Type, Default Value & Order -->
             <div class="form-row">
-              @if (!editingField) {
+              @if (!editingField()) {
                 <div class="form-group flex-1">
                   <label class="form-label" for="custom-field-type">
                     {{ 'iam.tip_dannyh' | t }} <span class="req" aria-hidden="true">*</span>
@@ -211,7 +211,7 @@ const FIELD_TYPES: readonly [string, string][] = [
               type="submit"
               form="customFieldForm"
               smtVariant="primary"
-              [smtLoading]="saving"
+              [smtLoading]="saving()"
               (click)="saveField.emit()"
             >
               {{ 'common.save' | t }}
@@ -325,11 +325,12 @@ const FIELD_TYPES: readonly [string, string][] = [
 export class CustomFieldsModalsComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly editingField = input<CustomField | null>(null);
+  readonly saving = input(false);
+
   @Input() showModal = false;
-  @Input() editingField: CustomField | null = null;
   @Input() formData!: CustomFieldFormData;
   @Input() formError = '';
-  @Input() saving = false;
 
   @Output() closeModal = new EventEmitter<void>();
   @Output() saveField = new EventEmitter<void>();

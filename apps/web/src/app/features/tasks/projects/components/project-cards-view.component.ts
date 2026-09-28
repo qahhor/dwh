@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiPaginationComponent } from '../../../../shared/ui/ui-pagination.component';
@@ -11,7 +11,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
   template: `
     <div class="cards-view-wrapper">
       <div class="projects-grid">
-        @for (p of paginatedProjects; track p) {
+        @for (p of paginatedProjects(); track p) {
           <div class="project-card">
             <div class="card-top">
               <div class="project-icon-box">
@@ -22,7 +22,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
                   <span class="status-dot" [class.active]="p.state === 'A'"></span>
                   {{ (p.state === 'A' ? 'projects.state_active' : 'projects.state_archived') | t }}
                 </span>
-                @if (canUpdateProject) {
+                @if (canUpdateProject()) {
                   <button
                     type="button"
                     class="edit-btn"
@@ -33,7 +33,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
                     <span class="material-symbols-outlined" aria-hidden="true">group</span>
                   </button>
                 }
-                @if (canUpdateProject) {
+                @if (canUpdateProject()) {
                   <button
                     type="button"
                     class="edit-btn"
@@ -49,7 +49,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
 
             <div class="card-content">
               <h3 class="project-title">
-                @if (canViewTasks) {
+                @if (canViewTasks()) {
                   <button type="button" class="project-title-btn" (click)="viewTasks.emit(p)">
                     {{ p.name }}
                   </button>
@@ -60,7 +60,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
               <p class="project-desc">{{ p.description || ('projects.description_missing' | t) }}</p>
             </div>
 
-            @if (canViewTasks && hasProjectStats(p.id)) {
+            @if (canViewTasks() && hasProjectStats(p.id)) {
               <div class="card-progress">
                 <div class="progress-labels">
                   <span class="progress-count tabular-nums">
@@ -92,19 +92,19 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
               <span class="foot-date tabular-nums">{{
                 'projects.created_at' | t: { date: (p.createdAt | date: 'dd.MM.yyyy') || '' }
               }}</span>
-              @if (canViewTasks && hasProjectStats(p.id)) {
+              @if (canViewTasks() && hasProjectStats(p.id)) {
                 <button type="button" class="view-tasks-link" (click)="viewTasks.emit(p)">
                   {{ 'projects.tasks_count_arrow' | t: { count: getProjectTotalCount(p.id) } }}
                 </button>
               }
-              @if (canViewTasks && !hasProjectStats(p.id)) {
+              @if (canViewTasks() && !hasProjectStats(p.id)) {
                 <span class="stats-unknown">{{ 'projects.stats_unknown' | t }}</span>
               }
             </div>
           </div>
         }
 
-        @if (totalCount === 0) {
+        @if (totalCount() === 0) {
           <div class="empty-projects-cell">
             <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
             <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
@@ -113,12 +113,12 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
       </div>
 
       <ui-pagination
-        [totalItems]="totalCount"
-        [currentPage]="currentPage"
-        [pageSize]="pageSize"
+        [totalItems]="totalCount()"
+        [currentPage]="currentPage()"
+        [pageSize]="pageSize()"
         [showPageSize]="false"
         [cursorMode]="true"
-        [hasNextPage]="hasNextPage"
+        [hasNextPage]="hasNextPage()"
         (pageChange)="pageChange.emit($event)"
       ></ui-pagination>
     </div>
@@ -343,18 +343,18 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
   ],
 })
 export class ProjectCardsViewComponent {
-  @Input() paginatedProjects: Project[] = [];
-  @Input() totalCount = 0;
-  @Input() currentPage = 1;
-  @Input() pageSize = 10;
+  readonly paginatedProjects = input<Project[]>([]);
+  readonly totalCount = input(0);
+  readonly currentPage = input(1);
+  readonly pageSize = input(10);
   /** The server pages by cursor (ms.projects): the next page exists while it says so. */
-  @Input() hasNextPage = false;
-  @Input() canViewTasks = false;
-  @Input() canUpdateProject = false;
-  @Input() projectStats: Record<number, ProjectTaskStats> = {};
-  @Input() statsLoading = false;
-  @Input() statsLoadError = false;
-  @Input() statsLoaded = false;
+  readonly hasNextPage = input(false);
+  readonly canViewTasks = input(false);
+  readonly canUpdateProject = input(false);
+  readonly projectStats = input<Record<number, ProjectTaskStats>>({});
+  readonly statsLoading = input(false);
+  readonly statsLoadError = input(false);
+  readonly statsLoaded = input(false);
 
   @Output() viewTasks = new EventEmitter<Project>();
   @Output() editProject = new EventEmitter<Project>();
@@ -363,24 +363,24 @@ export class ProjectCardsViewComponent {
 
   hasProjectStats(projectId: number): boolean {
     return (
-      this.canViewTasks &&
-      this.statsLoaded &&
-      !this.statsLoading &&
-      !this.statsLoadError &&
-      this.projectStats[projectId] !== undefined
+      this.canViewTasks() &&
+      this.statsLoaded() &&
+      !this.statsLoading() &&
+      !this.statsLoadError() &&
+      this.projectStats()[projectId] !== undefined
     );
   }
 
   getProjectTotalCount(projectId: number): number {
-    return this.projectStats[projectId]?.totalTasks ?? 0;
+    return this.projectStats()[projectId]?.totalTasks ?? 0;
   }
 
   getProjectDoneCount(projectId: number): number {
-    return this.projectStats[projectId]?.doneTasks ?? 0;
+    return this.projectStats()[projectId]?.doneTasks ?? 0;
   }
 
   getProjectPercent(projectId: number): number {
-    const stats = this.projectStats[projectId];
+    const stats = this.projectStats()[projectId];
     if (!stats) return 0;
     const total = stats.totalTasks;
     if (total === 0) return 0;

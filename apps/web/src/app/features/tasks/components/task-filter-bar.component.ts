@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Output, inject, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
@@ -26,9 +26,9 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           smtAppearance="chips"
           class="preset-filter"
           [options]="presetOptions()"
-          [value]="activePreset"
+          [value]="activePreset()"
           [smtAriaLabel]="'tasks.bystrye_filtry' | t"
-          (valueChange)="onPresetClick($event ?? activePreset)"
+          (valueChange)="onPresetClick($event ?? activePreset())"
         />
 
         <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
@@ -41,7 +41,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           smtSize="sm"
           clearable
           [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-          [value]="searchQuery"
+          [value]="searchQuery()"
           (valueChange)="onSearchValue($event)"
           (keydown.enter)="searchApply.emit(); $event.preventDefault()"
         />
@@ -53,9 +53,9 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           smtAppearance="chips"
           class="status-filter"
           [options]="statusOptions()"
-          [value]="statusFilterMode"
+          [value]="statusFilterMode()"
           [smtAriaLabel]="'tasks.filtr_po_statusu' | t"
-          (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode)"
+          (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode())"
         />
 
         <!-- Project Filter -->
@@ -63,9 +63,9 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
         <smt-select
           class="project-filter"
           smtTriggerId="task-project-filter"
-          [value]="selectedProjectId"
+          [value]="selectedProjectId()"
           (valueChange)="selectedProjectIdChange.emit($event)"
-          [options]="projects | projectOptions"
+          [options]="projects() | projectOptions"
           [placeholder]="'tasks.vse_proekty' | t"
           [searchPlaceholder]="'tasks.search_project' | t"
           [emptyLabel]="'tasks.vse_proekty' | t"
@@ -76,14 +76,14 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
         <smt-select
           class="priority-filter"
           smtTriggerId="task-priority-filter"
-          [value]="selectedPriority || null"
+          [value]="selectedPriority() || null"
           (valueChange)="selectedPriorityChange.emit($event ?? '')"
           [options]="priorityOptions()"
           [placeholder]="'tasks.vse_prioritety' | t"
           [emptyLabel]="'tasks.vse_prioritety' | t"
         ></smt-select>
 
-        @if (hasActiveFilters) {
+        @if (hasActiveFilters()) {
           <button
             type="button"
             class="reset-filters-btn"
@@ -177,14 +177,14 @@ export class TaskFilterBarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input() activePreset: TaskPreset = 'all';
-  @Input() searchQuery = '';
-  @Input() statusFilterMode: 'active' | 'all' | number = 'active';
-  @Input() statuses: TaskStatus[] = [];
-  @Input() selectedProjectId: number | null = null;
-  @Input() projects: Project[] = [];
-  @Input() selectedPriority = '';
-  @Input() hasActiveFilters = false;
+  readonly activePreset = input<TaskPreset>('all');
+  readonly searchQuery = input('');
+  readonly statusFilterMode = input<'active' | 'all' | number>('active');
+  readonly statuses = input<TaskStatus[]>([]);
+  readonly selectedProjectId = input<number | null>(null);
+  readonly projects = input<Project[]>([]);
+  readonly selectedPriority = input('');
+  readonly hasActiveFilters = input(false);
 
   @Output() activePresetChange = new EventEmitter<TaskPreset>();
   @Output() searchQueryChange = new EventEmitter<string>();
@@ -228,7 +228,7 @@ export class TaskFilterBarComponent {
 
   /** Active, all, then each status with its colour mark. */
   statusOptions(): SMTRadioOption<'active' | 'all' | number>[] {
-    return this.statusMemo([this.statuses, this.optionText.currentLang()], () => [
+    return this.statusMemo([this.statuses(), this.optionText.currentLang()], () => [
       {
         value: 'active',
         label: this.optionText.translate('iam.aktivnye'),
@@ -239,7 +239,7 @@ export class TaskFilterBarComponent {
         label: this.optionText.translate('common.all'),
         title: this.optionText.translate('tasks.vse_zadachi_vklyuchaya_zavershennye'),
       },
-      ...this.statuses.map((status) => ({ value: status.id, label: status.name, color: status.color || undefined })),
+      ...this.statuses().map((status) => ({ value: status.id, label: status.name, color: status.color || undefined })),
     ]);
   }
 

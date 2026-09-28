@@ -116,7 +116,9 @@ describe('RolesComponent UI contracts', () => {
     panel.discard.confirm();
     fixture.detectChanges();
     expect(fixture.componentInstance.selectedRole()?.id).toBe(second.id);
-    expect(fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance.roleId).toBe(second.id);
+    expect(fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance.roleId()).toBe(
+      second.id,
+    );
   });
 
   it('blocks destructive target changes during scope save without blocking the permission matrix save', async () => {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, TemplateRef, computed, inject, viewChild } from '@angular/core';
+import { Component, EventEmitter, Input, Output, TemplateRef, computed, inject, viewChild, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -50,10 +50,10 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
                 smtVariant="secondary"
                 id="migrate-legacy-languages"
                 type="button"
-                [disabled]="isMigratingLegacyLanguages"
+                [disabled]="isMigratingLegacyLanguages()"
                 (click)="migrateLegacyLanguages.emit()"
               >
-                {{ (isMigratingLegacyLanguages ? 'settings.migrating' : 'settings.migrate') | t }}
+                {{ (isMigratingLegacyLanguages() ? 'settings.migrating' : 'settings.migrate') | t }}
               </button>
             }
           </div>
@@ -157,7 +157,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
               <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
               <smt-input
                 smtFieldId="new-lang-code"
-                [ngModel]="newLangCode"
+                [ngModel]="newLangCode()"
                 (ngModelChange)="newLangCodeChange.emit($event)"
                 placeholder="kk, ky, tg, de, tr"
                 [maxLength]="10"
@@ -167,7 +167,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
               <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
               <smt-input
                 smtFieldId="new-lang-name"
-                [ngModel]="newLangName"
+                [ngModel]="newLangName()"
                 (ngModelChange)="newLangNameChange.emit($event)"
                 [placeholder]="'settings.aza_sha_deutsch_etc' | t"
               />
@@ -180,7 +180,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
                 class="mono"
                 smtFieldId="new-lang-json"
                 [rows]="6"
-                [ngModel]="newLangJson"
+                [ngModel]="newLangJson()"
                 (ngModelChange)="newLangJsonChange.emit($event)"
                 [placeholder]="'settings.translation_json_example' | t"
               />
@@ -192,7 +192,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
               type="button"
               smtVariant="secondary"
               (click)="closeAddLangModal.emit()"
-              [disabled]="isAddingLang"
+              [disabled]="isAddingLang()"
             >
               {{ 'common.cancel' | t }}
             </button>
@@ -200,9 +200,9 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
               smt-button
               type="button"
               smtVariant="primary"
-              [smtLoading]="isAddingLang"
+              [smtLoading]="isAddingLang()"
               (click)="saveNewLanguage.emit()"
-              [disabled]="!newLangCode.trim() || !newLangName.trim()"
+              [disabled]="!newLangCode().trim() || !newLangName().trim()"
             >
               {{ 'settings.sohranit_yazyk' | t }}
             </button>
@@ -421,6 +421,12 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 export class SettingsLanguagesPanelComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isMigratingLegacyLanguages = input(false);
+  readonly isAddingLang = input(false);
+  readonly newLangCode = input('');
+  readonly newLangName = input('');
+  readonly newLangJson = input('');
+
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
   private readonly coverageCell = viewChild.required<TemplateRef<unknown>>('coverageCell');
@@ -483,14 +489,9 @@ export class SettingsLanguagesPanelComponent {
   @Input() canUpdateSystemSettings = false;
   @Input() editingLanguageCode: string | null = null;
   @Input() legacyLanguageCount = 0;
-  @Input() isMigratingLegacyLanguages = false;
   @Input() languages: LanguageInfo[] = [];
   @Input() currentLang = '';
   @Input() isAddLangModalOpen = false;
-  @Input() isAddingLang = false;
-  @Input() newLangCode = '';
-  @Input() newLangName = '';
-  @Input() newLangJson = '';
 
   @Output() openLanguageEditor = new EventEmitter<string>();
   @Output() closeLanguageEditor = new EventEmitter<void>();

@@ -1,4 +1,4 @@
-import { Component, DestroyRef, EventEmitter, Input, Output, signal, inject } from '@angular/core';
+import { Component, DestroyRef, EventEmitter, Input, Output, signal, inject, input } from '@angular/core';
 
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
@@ -24,9 +24,9 @@ export interface QueuedUpload {
   template: `
     <div class="file-upload-wrapper">
       <!-- Picking files: the shared dropzone (a label for a real file input). -->
-      @if (canUpload) {
+      @if (canUpload()) {
         <smt-dropzone
-          [smtMultiple]="multiple"
+          [smtMultiple]="multiple()"
           [smtHint]="'ui.file_upload.do_50_mb_na_fayl_pdf_png_jpg_docx_zip_i_dr' | t"
           (filesSelected)="uploadFiles($event)"
         ></smt-dropzone>
@@ -94,7 +94,7 @@ export interface QueuedUpload {
               [name]="file.fileName"
               [mimeType]="file.mimeType"
               [size]="file.sizeBytes"
-              [smtRemovable]="canDelete"
+              [smtRemovable]="canDelete()"
               (download)="downloadFile(file)"
               (preview)="previewFile(file)"
               (remove)="removeFile(file)"
@@ -103,7 +103,7 @@ export interface QueuedUpload {
         </div>
       }
 
-      @if ((!files || files.length === 0) && !canUpload) {
+      @if ((!files || files.length === 0) && !canUpload()) {
         <div class="empty-files">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
           <span>{{ 'ui.file_upload.net_prikreplennyh_faylov' | t }}</span>
@@ -205,13 +205,14 @@ export class UiFileUploadComponent {
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
+  readonly canUpload = input(true);
+  readonly canDelete = input(true);
+  readonly multiple = input(true);
+
   /** Files waiting, uploading or failed; a file leaves the queue once it is attached. */
   readonly queue = signal<QueuedUpload[]>([]);
 
   @Input() files: TaskFile[] = [];
-  @Input() canUpload = true;
-  @Input() canDelete = true;
-  @Input() multiple = true;
 
   @Output() fileAttached = new EventEmitter<TaskFile>();
   @Output() fileRemoved = new EventEmitter<TaskFile>();

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -23,21 +23,21 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
             clearable
             smtSize="sm"
             [placeholder]="'iam.filtr_roley' | t"
-            [value]="searchQuery"
+            [value]="searchQuery()"
             (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
           />
         </div>
       </div>
 
       <div class="roles-cards-grid">
-        @for (r of roles; track r) {
-          <div class="role-card-btn" [class.active]="selectedRole?.id === r.id">
+        @for (r of roles(); track r) {
+          <div class="role-card-btn" [class.active]="selectedRole()?.id === r.id">
             <button
               type="button"
               class="role-select-btn"
               [attr.aria-label]="'iam.select_role_named' | t: { name: r.name }"
-              [attr.aria-pressed]="selectedRole?.id === r.id"
-              [disabled]="isSaving || scopePanelBusy || isSubmittingRole"
+              [attr.aria-pressed]="selectedRole()?.id === r.id"
+              [disabled]="isSaving() || scopePanelBusy() || isSubmittingRole()"
               (click)="selectRole.emit(r)"
             >
               <span class="role-card-head">
@@ -62,17 +62,17 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
                 type="button"
                 class="role-users-btn"
                 [attr.aria-label]="
-                  'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts[r.id] || 0 }
+                  'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts()[r.id] || 0 }
                 "
-                [title]="'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts[r.id] || 0 }"
+                [title]="'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts()[r.id] || 0 }"
                 (click)="navigateToUsers.emit({ role: r, event: $event })"
               >
                 <span class="material-symbols-outlined users-icon" aria-hidden="true">group</span>
-                <span>{{ roleUserCounts[r.id] || 0 }}</span>
+                <span>{{ roleUserCounts()[r.id] || 0 }}</span>
               </button>
 
               <div class="role-btns">
-                @if (canUpdateRole) {
+                @if (canUpdateRole()) {
                   <button
                     type="button"
                     class="mini-btn"
@@ -83,13 +83,13 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                   </button>
                 }
-                @if (!r.pcode && canDeleteRole) {
+                @if (!r.pcode && canDeleteRole()) {
                   <button
                     type="button"
                     class="mini-btn delete"
                     [attr.aria-label]="'iam.delete_role_named' | t: { name: r.name }"
                     [title]="'iam.udalit_rol' | t"
-                    [disabled]="isSaving || scopePanelBusy || isSubmittingRole"
+                    [disabled]="isSaving() || scopePanelBusy() || isSubmittingRole()"
                     (click)="openDelete.emit(r)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">delete</span>
@@ -100,7 +100,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           </div>
         }
 
-        @if (canCreateRole) {
+        @if (canCreateRole()) {
           <button type="button" class="add-role-dashed-btn" (click)="openCreate.emit()">
             <span class="material-symbols-outlined" aria-hidden="true">add</span>
             <span>{{ 'iam.sozdat_rol' | t }}</span>
@@ -320,16 +320,16 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
   ],
 })
 export class RoleCardsBarComponent {
-  @Input() roles: Role[] = [];
-  @Input() selectedRole: Role | null = null;
-  @Input() roleUserCounts: Record<number, number> = {};
-  @Input() searchQuery = '';
-  @Input() isSaving = false;
-  @Input() scopePanelBusy = false;
-  @Input() isSubmittingRole = false;
-  @Input() canCreateRole = false;
-  @Input() canUpdateRole = false;
-  @Input() canDeleteRole = false;
+  readonly roles = input<Role[]>([]);
+  readonly selectedRole = input<Role | null>(null);
+  readonly roleUserCounts = input<Record<number, number>>({});
+  readonly searchQuery = input('');
+  readonly isSaving = input(false);
+  readonly scopePanelBusy = input(false);
+  readonly isSubmittingRole = input(false);
+  readonly canCreateRole = input(false);
+  readonly canUpdateRole = input(false);
+  readonly canDeleteRole = input(false);
 
   @Output() searchQueryChange = new EventEmitter<string>();
   @Output() selectRole = new EventEmitter<Role>();

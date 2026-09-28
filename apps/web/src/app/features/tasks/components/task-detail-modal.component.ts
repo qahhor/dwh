@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -41,27 +41,27 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
-      [smtTitle]="'tasks.task_number' | t: { id: detailRecordId || '' }"
+      [open]="isOpen()"
+      [smtTitle]="'tasks.task_number' | t: { id: detailRecordId() || '' }"
       smtSize="lg"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
-        @if (detailLoading) {
+        @if (detailLoading()) {
           <div body class="request-state request-loading" role="status">
             {{ 'tasks.detail_loading' | t }}
           </div>
         }
 
-        @if (detailLoadError) {
+        @if (detailLoadError()) {
           <div body class="request-state request-error" role="alert">
-            <span>{{ (detailNotFound ? 'search.record_not_found' : 'tasks.detail_load_error') | t }}</span>
-            @if (!detailNotFound) {
+            <span>{{ (detailNotFound() ? 'search.record_not_found' : 'tasks.detail_load_error') | t }}</span>
+            @if (!detailNotFound()) {
               <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryTaskDetails.emit()">
                 {{ 'audit.retry' | t }}
               </button>
             }
-            @if (detailNotFound) {
+            @if (detailNotFound()) {
               <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="close.emit()">
                 {{ 'search.back_to_list' | t }}
               </button>
@@ -69,8 +69,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
           </div>
         }
 
-        @if (!detailLoading && !detailLoadError && selectedTask; as t) {
-          <div body class="task-details-view" [attr.data-record-id]="detailRecordId">
+        @if (!detailLoading() && !detailLoadError() && selectedTask(); as t) {
+          <div body class="task-details-view" [attr.data-record-id]="detailRecordId()">
             @if (!safeRecordId(t.id)) {
               <p role="status">{{ 'search.record_readonly_id' | t }}</p>
             }
@@ -89,12 +89,12 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                   </button>
                   <span class="anc-sep" aria-hidden="true">›</span>
                 }
-                <span class="anc-current">#{{ detailRecordId }} {{ t.title }}</span>
+                <span class="anc-current">#{{ detailRecordId() }} {{ t.title }}</span>
               </div>
             }
 
             <!-- Overdue Notice Banner -->
-            @if (isOverdue(t.endTime, t.statusId)) {
+            @if (isOverdue()(t.endTime, t.statusId)) {
               <div class="overdue-banner">
                 <span class="material-symbols-outlined" aria-hidden="true">error</span>
                 <span>{{
@@ -129,7 +129,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                 <div class="detail-section">
                   <div class="section-header-between">
                     <h4 class="section-label">{{ 'tasks.subtasks_count' | t: { count: taskSubtasks.length } }}</h4>
-                    @if (canCreateTask && safeRecordId(t.id)) {
+                    @if (canCreateTask() && safeRecordId(t.id)) {
                       <button type="button" class="add-subtask-btn" (click)="openAddSubtask.emit(t)">
                         <span class="material-symbols-outlined" aria-hidden="true">add</span>
                         {{ 'tasks.dobavit_podzadachu' | t }}
@@ -145,15 +145,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                           class="subtask-row"
                           [disabled]="!safeRecordId(sub.id)"
                           [attr.aria-label]="'tasks.open_subtask_named' | t: { id: sub.id, title: sub.title }"
-                          [class.row-overdue]="isOverdue(sub.endTime, sub.statusId)"
+                          [class.row-overdue]="isOverdue()(sub.endTime, sub.statusId)"
                           (click)="openTaskDetails.emit(sub)"
                         >
-                          <span class="subtask-type" [style.color]="getTypeColor(sub)">
+                          <span class="subtask-type" [style.color]="getTypeColor()(sub)">
                             <span
                               class="material-symbols-outlined type-icon"
                               role="img"
-                              [attr.aria-label]="getTypeLabel(sub)"
-                              >{{ getTypeIcon(sub) }}</span
+                              [attr.aria-label]="getTypeLabel()(sub)"
+                              >{{ getTypeIcon()(sub) }}</span
                             >
                           </span>
                           <span class="font-mono text-muted text-xs">#{{ sub.id }}</span>
@@ -161,13 +161,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                           <span class="inline-status-badge status-label">
                             <span
                               class="status-dot"
-                              [style.background-color]="getStatusColor(sub.statusId)"
+                              [style.background-color]="getStatusColor()(sub.statusId)"
                               aria-hidden="true"
                             ></span>
-                            {{ getStatusName(sub.statusId) }}
+                            {{ getStatusName()(sub.statusId) }}
                           </span>
                           <span class="priority-pill" [attr.data-priority]="sub.priority">
-                            {{ getPriorityLabel(sub.priority) }}
+                            {{ getPriorityLabel()(sub.priority) }}
                           </span>
                         </button>
                       }
@@ -182,11 +182,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
                 <!-- Attachments & Files Section -->
                 <div class="detail-section files-section">
-                  <h4 class="section-label">{{ 'tasks.attachments_count' | t: { count: taskFiles.length } }}</h4>
+                  <h4 class="section-label">{{ 'tasks.attachments_count' | t: { count: taskFiles().length } }}</h4>
                   <ui-file-upload
-                    [files]="taskFiles"
-                    [canUpload]="canUpdateTask && safeRecordId(t.id)"
-                    [canDelete]="canUpdateTask && safeRecordId(t.id)"
+                    [files]="taskFiles()"
+                    [canUpload]="canUpdateTask() && safeRecordId(t.id)"
+                    [canDelete]="canUpdateTask() && safeRecordId(t.id)"
                     (fileAttached)="fileAttached.emit($event)"
                     (fileRemoved)="fileRemoved.emit($event)"
                   ></ui-file-upload>
@@ -194,14 +194,14 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
                 <!-- Comments Feed -->
                 <div class="detail-section comments-section">
-                  <h4 class="section-label">{{ 'tasks.comments_count' | t: { count: comments.length } }}</h4>
+                  <h4 class="section-label">{{ 'tasks.comments_count' | t: { count: comments().length } }}</h4>
 
-                  @if (commentsLoading) {
+                  @if (commentsLoading()) {
                     <div class="request-state request-loading" role="status">
                       {{ 'tasks.comments_loading' | t }}
                     </div>
                   }
-                  @if (commentsLoadError) {
+                  @if (commentsLoadError()) {
                     <div class="request-state request-error" role="alert">
                       <span>{{ 'tasks.comments_load_error' | t }}</span>
                       <button
@@ -216,9 +216,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                     </div>
                   }
 
-                  @if (!commentsLoading && !commentsLoadError) {
+                  @if (!commentsLoading() && !commentsLoadError()) {
                     <div class="comments-feed">
-                      @for (c of comments; track c) {
+                      @for (c of comments(); track c) {
                         <div class="comment-card">
                           <div class="comment-top">
                             <div class="comment-author-badge">
@@ -237,7 +237,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                           </div>
                         </div>
                       }
-                      @if (comments.length === 0) {
+                      @if (comments().length === 0) {
                         <div class="no-comments-hint text-muted">
                           {{ 'tasks.kommentariev_poka_net' | t }}
                         </div>
@@ -245,7 +245,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                     </div>
                   }
 
-                  @if (canCommentTask) {
+                  @if (canCommentTask()) {
                     <div class="add-comment-box">
                       <label class="sr-only" for="task-comment-draft">{{
                         'tasks.comment_task_aria' | t: { id: t.id }
@@ -255,9 +255,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         smtFieldId="task-comment-draft"
                         [rows]="2"
                         [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
-                        [value]="commentDraft"
+                        [value]="commentDraft()"
                         (valueChange)="commentDraftChange.emit($event)"
-                        [disabled]="isCommentSubmitting"
+                        [disabled]="isCommentSubmitting()"
                         (keydown.ctrl.enter)="submitComment.emit()"
                       />
                       <button
@@ -266,7 +266,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         smtVariant="primary"
                         smtSize="sm"
                         smtIcon="send"
-                        [smtLoading]="isCommentSubmitting"
+                        [smtLoading]="isCommentSubmitting()"
                         (click)="submitComment.emit()"
                       >
                         {{ 'tasks.otpravit' | t }}
@@ -291,7 +291,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                     <div class="prop-v">
                       <span
                         class="status-dot"
-                        [style.background-color]="getStatusColor(t.statusId)"
+                        [style.background-color]="getStatusColor()(t.statusId)"
                         aria-hidden="true"
                       ></span>
                       <smt-select
@@ -300,7 +300,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                         [value]="t.statusId"
                         (valueChange)="onStatusChange(t.id, $event)"
                         [allowClear]="false"
-                        [disabled]="!canUpdateTask || !safeRecordId(t.id)"
+                        [disabled]="!canUpdateTask() || !safeRecordId(t.id)"
                         [ariaLabel]="'tasks.task_status_aria' | t: { id: t.id }"
                       ></smt-select>
                     </div>
@@ -311,11 +311,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                     <div class="prop-v">
                       <span
                         class="task-type-badge"
-                        [style.color]="getTypeColor(t)"
-                        [style.background-color]="getTypeBg(t)"
+                        [style.color]="getTypeColor()(t)"
+                        [style.background-color]="getTypeBg()(t)"
                       >
-                        <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
-                        {{ getTypeLabel(t) }}
+                        <span class="material-symbols-outlined type-icon" aria-hidden="true">{{
+                          getTypeIcon()(t)
+                        }}</span>
+                        {{ getTypeLabel()(t) }}
                       </span>
                     </div>
                   </div>
@@ -324,14 +326,14 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                     <span class="prop-k">{{ 'common.priority' | t }}</span>
                     <div class="prop-v">
                       <span class="priority-pill" [attr.data-priority]="t.priority">
-                        {{ getPriorityLabel(t.priority) }}
+                        {{ getPriorityLabel()(t.priority) }}
                       </span>
                     </div>
                   </div>
 
                   <div class="side-prop-row">
                     <span class="prop-k">{{ 'projects.proekt' | t }}</span>
-                    <div class="prop-v">{{ getProjectName(t.projectId) || ('tasks.without_project' | t) }}</div>
+                    <div class="prop-v">{{ getProjectName()(t.projectId) || ('tasks.without_project' | t) }}</div>
                   </div>
 
                   @if (t.parentTaskId) {
@@ -343,7 +345,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
                   <div class="side-prop-row">
                     <span class="prop-k">{{ 'tasks.dedlayn' | t }}</span>
-                    <div class="prop-v" [class.text-danger]="isOverdue(t.endTime, t.statusId)">
+                    <div class="prop-v" [class.text-danger]="isOverdue()(t.endTime, t.statusId)">
                       {{ t.endTime ? (t.endTime | date: 'dd.MM.yyyy HH:mm') : ('common.not_set' | t) }}
                     </div>
                   </div>
@@ -362,7 +364,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                 </div>
 
                 <!-- Members Card -->
-                @if (taskMembers.length > 0) {
+                @if (taskMembers().length > 0) {
                   <div class="side-card">
                     <h5 class="side-card-title">{{ 'tasks.uchastniki' | t }}</h5>
 
@@ -476,7 +478,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                   </div>
                 }
 
-                @if (canUpdateTask && safeRecordId(t.id)) {
+                @if (canUpdateTask() && safeRecordId(t.id)) {
                   <button type="button" class="side-edit-btn" (click)="openEditModal.emit(t)">
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
                     {{ 'tasks.redaktirovat_zadachu' | t }}
@@ -498,41 +500,41 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
   styleUrl: './task-detail-modal.component.css',
 })
 export class TaskDetailModalComponent {
-  readonly safeRecordId = safeNumericRecordId;
+  readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
+  readonly getTypeColor = input.required<(task: Task) => string>();
+  readonly getTypeBg = input.required<(task: Task) => string>();
+  readonly getTypeIcon = input.required<(task: Task) => string>();
+  readonly getTypeLabel = input.required<(task: Task) => string>();
+  readonly getStatusName = input.required<(statusId: number | null | undefined) => string>();
+  readonly getStatusColor = input.required<(statusId: number | null | undefined) => string>();
+  readonly getPriorityLabel = input.required<(priority: string) => string>();
+  readonly getProjectName = input.required<(projectId: number | null | undefined) => string | null>();
 
-  @Input() isOpen = false;
-  @Input() selectedTask: Task | null = null;
-  @Input() routeRecordId: string | null = null;
-  @Input() detailRecordId: string | null = null;
-  @Input() detailLoading = false;
-  @Input() detailLoadError = false;
-  @Input() detailNotFound = false;
+  readonly isOpen = input(false);
+  readonly selectedTask = input<Task | null>(null);
+  readonly routeRecordId = input<string | null>(null);
+  readonly detailRecordId = input<string | null>(null);
+  readonly detailLoading = input(false);
+  readonly detailLoadError = input(false);
+  readonly detailNotFound = input(false);
+  readonly taskFiles = input<TaskFile[]>([]);
+  readonly comments = input<TaskComment[]>([]);
+  readonly commentsLoading = input(false);
+  readonly commentsLoadError = input(false);
+  readonly taskMembers = input<TaskMember[]>([]);
+  readonly taskCustomFields = input<CustomField[]>([]);
+  readonly statuses = input<TaskStatus[]>([]);
+  readonly projects = input<Project[]>([]);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly commentDraft = input('');
+  readonly isCommentSubmitting = input(false);
+  readonly canCreateTask = input(false);
+  readonly canUpdateTask = input(false);
+  readonly canCommentTask = input(false);
+
+  readonly safeRecordId = safeNumericRecordId;
   @Input() taskAncestors: Task[] = [];
   @Input() taskSubtasks: Task[] = [];
-  @Input() taskFiles: TaskFile[] = [];
-  @Input() comments: TaskComment[] = [];
-  @Input() commentsLoading = false;
-  @Input() commentsLoadError = false;
-  @Input() taskMembers: TaskMember[] = [];
-  @Input() taskCustomFields: CustomField[] = [];
-  @Input() statuses: TaskStatus[] = [];
-  @Input() projects: Project[] = [];
-  @Input() taskTypes: TaskType[] = [];
-  @Input() commentDraft = '';
-  @Input() isCommentSubmitting = false;
-  @Input() canCreateTask = false;
-  @Input() canUpdateTask = false;
-  @Input() canCommentTask = false;
-
-  @Input() isOverdue!: (endTime: string | null | undefined, statusId: number) => boolean;
-  @Input() getTypeColor!: (task: Task) => string;
-  @Input() getTypeBg!: (task: Task) => string;
-  @Input() getTypeIcon!: (task: Task) => string;
-  @Input() getTypeLabel!: (task: Task) => string;
-  @Input() getStatusName!: (statusId: number | null | undefined) => string;
-  @Input() getStatusColor!: (statusId: number | null | undefined) => string;
-  @Input() getPriorityLabel!: (priority: string) => string;
-  @Input() getProjectName!: (projectId: number | null | undefined) => string | null;
 
   @Output() close = new EventEmitter<void>();
   @Output() retryTaskDetails = new EventEmitter<void>();
@@ -552,8 +554,8 @@ export class TaskDetailModalComponent {
 
   /** Statuses as smt-select options; the same array while the statuses stay the same. */
   statusOptions(): SMTSelectOption<number>[] {
-    return this.statusMemo([this.statuses], () =>
-      this.statuses.map((status) => ({ id: status.id, label: status.name })),
+    return this.statusMemo([this.statuses()], () =>
+      this.statuses().map((status) => ({ id: status.id, label: status.name })),
     );
   }
 
@@ -562,7 +564,7 @@ export class TaskDetailModalComponent {
   }
 
   get groupedMembers(): GroupedTaskMembers {
-    return groupMembersByRole(this.taskMembers);
+    return groupMembersByRole(this.taskMembers());
   }
 
   getInvolveKindLabel(kind: string | undefined): string {
@@ -588,7 +590,7 @@ export class TaskDetailModalComponent {
 
   formatAttributes(attrs: any): Array<{ key: string; value: string }> {
     if (!this.hasAttributes(attrs)) return [];
-    const fields = this.taskCustomFields;
+    const fields = this.taskCustomFields();
     return Object.entries(attrs)
       .filter(([k]) => k !== 'task_type')
       .map(([k, v]) => {

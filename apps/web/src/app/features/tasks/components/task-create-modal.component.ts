@@ -1,4 +1,4 @@
-import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Input, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -48,24 +48,24 @@ import { Project, TaskType } from '../../../core/models/task.models';
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
+      [open]="isOpen()"
       [smtTitle]="
         createForm.parentTaskId
           ? ('tasks.create_subtask_for' | t: { id: createForm.parentTaskId })
           : ('tasks.create_new_task' | t)
       "
       smtSize="lg"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
-        <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting">
+        <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting()">
           <!-- Title Input (Required) -->
           <smt-control
             class="form-group"
             [smtLabel]="'task.title' | t"
             [smtError]="
-              isCreateSubmitted && !createForm.title.trim() ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t) : ''
+              isCreateSubmitted() && !createForm.title.trim() ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t) : ''
             "
           >
             <smt-input
@@ -113,7 +113,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
                 smtTriggerId="task-create-project"
                 name="taskCreateProject"
                 [(ngModel)]="createForm.projectId"
-                [options]="projects | projectOptions"
+                [options]="projects() | projectOptions"
                 [placeholder]="'tasks.bez_proekta' | t"
                 [searchPlaceholder]="'tasks.search_project' | t"
                 [emptyLabel]="'tasks.bez_proekta' | t"
@@ -241,7 +241,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="close.emit()"
           >
             {{ 'common.cancel' | t }}
@@ -251,7 +251,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmitting"
+            [smtLoading]="isSubmitting()"
             (click)="submit.emit()"
           >
             {{ 'tasks.sozdat_zadachu' | t }}
@@ -381,14 +381,16 @@ export class TaskCreateModalComponent {
   /** The pickers' sources and the people and parent the task's card already named. */
   readonly lookups = inject(TaskLookupsService);
   private readonly i18n = inject(I18nService);
+
+  readonly isOpen = input(false);
+  readonly isSubmitting = input(false);
+  readonly isCreateSubmitted = input(false);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly projects = input<Project[]>([]);
+
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
-  @Input() isOpen = false;
   @Input() createForm: any = {};
-  @Input() isSubmitting = false;
-  @Input() isCreateSubmitted = false;
-  @Input() taskTypes: TaskType[] = [];
-  @Input() projects: Project[] = [];
   @Input() taskCustomFields: CustomField[] = [];
 
   @Output() close = new EventEmitter<void>();
@@ -396,10 +398,11 @@ export class TaskCreateModalComponent {
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {
-    if (this.typeCache?.types !== this.taskTypes) {
+    const taskTypes = this.taskTypes();
+    if (this.typeCache?.types !== taskTypes) {
       this.typeCache = {
-        types: this.taskTypes,
-        options: this.taskTypes.map((type) => ({
+        types: taskTypes,
+        options: taskTypes.map((type) => ({
           value: type.code,
           label: type.name,
           icon: type.icon,

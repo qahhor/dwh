@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -37,7 +37,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           clearable
           class="search-input"
           [placeholder]="'iam.poisk_po_imeni_loginu_email' | t"
-          [value]="searchQuery"
+          [value]="searchQuery()"
           (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
           (input)="searchInput.emit()"
           (cleared)="clearSearch.emit()"
@@ -61,21 +61,21 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
             type="button"
             class="filter-trigger-btn"
             aria-haspopup="dialog"
-            [attr.aria-expanded]="isFilterMenuOpen"
+            [attr.aria-expanded]="isFilterMenuOpen()"
             aria-controls="user-extra-filters"
-            [class.has-filters]="hasExtraFilters"
-            [class.open]="isFilterMenuOpen"
+            [class.has-filters]="hasExtraFilters()"
+            [class.open]="isFilterMenuOpen()"
             (click)="toggleFilterMenu.emit($event)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
             <span>{{ 'iam.filtry' | t }}</span>
-            @if (hasExtraFilters) {
+            @if (hasExtraFilters()) {
               <span class="filter-dot"></span>
             }
           </button>
 
           <!-- Filter Dropdown Panel -->
-          @if (isFilterMenuOpen) {
+          @if (isFilterMenuOpen()) {
             <div
               id="user-extra-filters"
               class="filter-dropdown"
@@ -85,7 +85,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
             >
               <div class="filter-dropdown-header">
                 <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
-                @if (hasExtraFilters) {
+                @if (hasExtraFilters()) {
                   <button type="button" class="reset-link" (click)="resetExtraFilters.emit()">
                     {{ 'iam.sbrosit' | t }}
                   </button>
@@ -97,7 +97,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
                   <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
                   <smt-select
                     smtTriggerId="user-role-filter"
-                    [value]="selectedRoleId"
+                    [value]="selectedRoleId()"
                     (valueChange)="roleFilterChange.emit($event)"
                     [options]="roleOptions()"
                     [placeholder]="'iam.vse_roli' | t"
@@ -130,7 +130,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           smtSize="sm"
           smtIcon="refresh"
           [attr.aria-label]="'iam.obnovit_spisok_polzovateley' | t"
-          [smtLoading]="isLoading"
+          [smtLoading]="isLoading()"
           [title]="'common.refresh' | t"
           (click)="refresh.emit()"
         ></button>
@@ -138,7 +138,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     </div>
 
     <!-- Active Filters Bar -->
-    @if (hasAnyActiveFilters) {
+    @if (hasAnyActiveFilters()) {
       <div class="active-filters-bar">
         <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
 
@@ -161,9 +161,9 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
         }
 
         <!-- Role Filter Pill -->
-        @if (selectedRoleId) {
+        @if (selectedRoleId()) {
           <div class="filter-pill">
-            <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName } }}</span>
+            <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName() } }}</span>
             <button
               type="button"
               class="clear-pill-btn"
@@ -407,16 +407,17 @@ export class UserFilterBarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input() searchQuery = '';
+  readonly searchQuery = input('');
+  readonly isFilterMenuOpen = input(false);
+  readonly hasExtraFilters = input(false);
+  readonly roles = input<Role[]>([]);
+  readonly selectedRoleId = input<number | null>(null);
+  readonly isLoading = input(false);
+  readonly hasAnyActiveFilters = input(false);
+  readonly selectedRoleName = input('');
+
   @Input() selectedState = '';
-  @Input() isFilterMenuOpen = false;
-  @Input() hasExtraFilters = false;
-  @Input() roles: Role[] = [];
-  @Input() selectedRoleId: number | null = null;
   @Input() selected2fa: boolean | null = null;
-  @Input() isLoading = false;
-  @Input() hasAnyActiveFilters = false;
-  @Input() selectedRoleName = '';
 
   @Output() searchQueryChange = new EventEmitter<string>();
   @Output() searchInput = new EventEmitter<void>();
@@ -445,7 +446,7 @@ export class UserFilterBarComponent {
   }
 
   roleOptions(): SMTSelectOption<number>[] {
-    return this.roleMemo([this.roles], () => this.roles.map((role) => ({ id: role.id, label: role.name })));
+    return this.roleMemo([this.roles()], () => this.roles().map((role) => ({ id: role.id, label: role.name })));
   }
 
   twoFactorOptions(): SMTSelectOption<boolean>[] {

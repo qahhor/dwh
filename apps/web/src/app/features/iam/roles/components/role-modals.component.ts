@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -30,7 +30,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
   template: `
     <!-- Create Role Modal -->
     <smt-dialog
-      [open]="isCreateModalOpen"
+      [open]="isCreateModalOpen()"
       [smtTitle]="'iam.sozdanie_novoy_roli' | t"
       smtSize="sm"
       (closed)="closeCreate.emit()"
@@ -45,12 +45,12 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               smtFieldId="role-create-name"
               name="roleCreateName"
               required
-              [smtInvalid]="isCreateSubmitted && !newRoleForm.name.trim()"
-              [smtDescribedBy]="isCreateSubmitted && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
+              [smtInvalid]="isCreateSubmitted() && !newRoleForm.name.trim()"
+              [smtDescribedBy]="isCreateSubmitted() && !newRoleForm.name.trim() ? 'role-create-name-error' : null"
               [(ngModel)]="newRoleForm.name"
               [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t"
             />
-            @if (isCreateSubmitted && !newRoleForm.name.trim()) {
+            @if (isCreateSubmitted() && !newRoleForm.name.trim()) {
               <span id="role-create-name-error" class="field-error">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
             }
           </div>
@@ -75,7 +75,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmittingRole"
+            [smtLoading]="isSubmittingRole()"
             (click)="submitCreate.emit()"
           >
             {{ 'common.create' | t }}
@@ -86,13 +86,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Edit Role Modal -->
     <smt-dialog
-      [open]="isEditModalOpen"
+      [open]="isEditModalOpen()"
       [smtTitle]="'iam.redaktirovanie_roli' | t"
       smtSize="sm"
       (closed)="closeEdit.emit()"
     >
       <ng-template smtDialogContent>
-        @if (editingRole; as r) {
+        @if (editingRole(); as r) {
           <div body class="modal-body-form">
             <div class="modal-field">
               <label class="modal-label" for="role-edit-name"
@@ -102,11 +102,11 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
                 smtFieldId="role-edit-name"
                 name="roleEditName"
                 required
-                [smtInvalid]="isEditSubmitted && !editRoleForm.name.trim()"
-                [smtDescribedBy]="isEditSubmitted && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
+                [smtInvalid]="isEditSubmitted() && !editRoleForm.name.trim()"
+                [smtDescribedBy]="isEditSubmitted() && !editRoleForm.name.trim() ? 'role-edit-name-error' : null"
                 [(ngModel)]="editRoleForm.name"
               />
-              @if (isEditSubmitted && !editRoleForm.name.trim()) {
+              @if (isEditSubmitted() && !editRoleForm.name.trim()) {
                 <span id="role-edit-name-error" class="field-error">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
               }
             </div>
@@ -145,7 +145,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmittingRole"
+            [smtLoading]="isSubmittingRole()"
             (click)="submitEdit.emit()"
           >
             {{ 'common.save' | t }}
@@ -156,14 +156,14 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Delete Role Modal -->
     <smt-dialog
-      [open]="isDeleteModalOpen"
+      [open]="isDeleteModalOpen()"
       [smtTitle]="'iam.udalenie_roli' | t"
       smtSize="sm"
-      [dismissible]="!isSubmittingRole"
+      [dismissible]="!isSubmittingRole()"
       (closed)="closeDelete.emit()"
     >
       <ng-template smtDialogContent>
-        @if (deletingRole; as r) {
+        @if (deletingRole(); as r) {
           <div body class="modal-delete-body">
             <p class="delete-title">
               {{ 'iam.vy_deystvitelno_hotite_udalit_polzovatelskuyu_ro' | t }} <strong>{{ r.name }}</strong
@@ -178,7 +178,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmittingRole"
+            [disabled]="isSubmittingRole()"
             (click)="closeDelete.emit()"
           >
             {{ 'common.cancel' | t }}
@@ -188,7 +188,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="danger"
             smtSize="md"
-            [smtLoading]="isSubmittingRole"
+            [smtLoading]="isSubmittingRole()"
             (click)="confirmDelete.emit()"
           >
             {{ 'common.delete' | t }}
@@ -199,18 +199,18 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Unsaved Changes Confirmation Modal -->
     <smt-dialog
-      [open]="isDiscardPermissionsModalOpen"
+      [open]="isDiscardPermissionsModalOpen()"
       [smtTitle]="'iam.nesohranennye_izmeneniya_prav' | t"
       smtSize="sm"
-      [dismissible]="!isSaving"
+      [dismissible]="!isSaving()"
       (closed)="closeDiscard.emit()"
     >
       <ng-template smtDialogContent>
-        @if (selectedRole; as r) {
+        @if (selectedRole(); as r) {
           <div body class="modal-delete-body">
             <p class="delete-title">
               {{
-                'iam.u_vas_est_nesohranennye_izmeneniya_v_matrice' | t: { name: r.name, count: dirtyPermissionsCount }
+                'iam.u_vas_est_nesohranennye_izmeneniya_v_matrice' | t: { name: r.name, count: dirtyPermissionsCount() }
               }}
             </p>
           </div>
@@ -221,7 +221,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSaving"
+            [disabled]="isSaving()"
             (click)="closeDiscard.emit()"
           >
             {{ 'common.cancel' | t }}
@@ -231,7 +231,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="danger"
             smtSize="md"
-            [disabled]="isSaving"
+            [disabled]="isSaving()"
             (click)="confirmDiscardAndSwitch.emit()"
           >
             {{ 'iam.sbrosit_i_pereyti' | t }}
@@ -241,7 +241,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSaving"
+            [smtLoading]="isSaving()"
             (click)="saveAndSwitch.emit()"
           >
             {{ 'iam.sohranit_i_pereyti' | t }}
@@ -301,26 +301,27 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 })
 export class RoleModalsComponent {
   private readonly i18n = inject(I18nService);
+
+  readonly isCreateModalOpen = input(false);
+  readonly isCreateSubmitted = input(false);
+
+  readonly isEditModalOpen = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly editingRole = input<Role | null>(null);
+
+  readonly isDeleteModalOpen = input(false);
+  readonly deletingRole = input<Role | null>(null);
+
+  readonly isDiscardPermissionsModalOpen = input(false);
+  readonly selectedRole = input<Role | null>(null);
+  readonly dirtyPermissionsCount = input(0);
+
+  readonly isSubmittingRole = input(false);
+  readonly isSaving = input(false);
+
   private readonly stateMemo = optionsMemo<SMTSelectOption<string>[]>();
-
-  @Input() isCreateModalOpen = false;
-  @Input() isCreateSubmitted = false;
   @Input() newRoleForm = { name: '', orderNo: 0 };
-
-  @Input() isEditModalOpen = false;
-  @Input() isEditSubmitted = false;
-  @Input() editingRole: Role | null = null;
   @Input() editRoleForm = { name: '', state: 'A', orderNo: 0 };
-
-  @Input() isDeleteModalOpen = false;
-  @Input() deletingRole: Role | null = null;
-
-  @Input() isDiscardPermissionsModalOpen = false;
-  @Input() selectedRole: Role | null = null;
-  @Input() dirtyPermissionsCount = 0;
-
-  @Input() isSubmittingRole = false;
-  @Input() isSaving = false;
 
   @Output() closeCreate = new EventEmitter<void>();
   @Output() submitCreate = new EventEmitter<void>();

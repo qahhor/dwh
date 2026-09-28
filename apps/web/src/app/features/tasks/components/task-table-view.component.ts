@@ -258,11 +258,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       <div class="empty-state-cell">
         <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
         <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
-        @if (hasActiveFilters) {
+        @if (hasActiveFilters()) {
           <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
             {{ 'tasks.sbrosit_vse_filtry' | t }}
           </button>
-        } @else if (canCreateTask) {
+        } @else if (canCreateTask()) {
           <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">
             {{ 'task.new' | t }}
           </button>
@@ -486,6 +486,10 @@ export class TaskTableViewComponent {
   /** The search text and quick filters on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
+  readonly projects = input<Project[]>([]);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly canCreateTask = input(false);
+  readonly hasActiveFilters = input(false);
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
@@ -568,11 +572,7 @@ export class TaskTableViewComponent {
 
   @Input({ required: true }) pager!: KeysetPager<Task>;
   @Input() statuses: TaskStatus[] = [];
-  @Input() projects: Project[] = [];
-  @Input() taskTypes: TaskType[] = [];
-  @Input() canCreateTask = false;
   @Input() canUpdateTask = false;
-  @Input() hasActiveFilters = false;
 
   @Input() isOverdue!: (endTime: string | null | undefined, statusId: number) => boolean;
   @Input() getTypeColor!: (task: Task) => string;

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -66,7 +66,7 @@ function withCurrent(
             <p class="card-desc">{{ 'settings.globalnye_parametry_dlya_vseh_sotrudnikov_organi' | t }}</p>
           </div>
         </div>
-        @if (!canUpdateSystemSettings) {
+        @if (!canUpdateSystemSettings()) {
           <span class="badge badge-neutral">{{ 'settings.readonly_badge' | t }}</span>
         }
       </div>
@@ -77,7 +77,7 @@ function withCurrent(
           <smt-input
             smtFieldId="settings-company-name"
             name="settingsCompanyName"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             [(ngModel)]="systemSettings['system.company_name']"
             placeholder="SmartupCMS"
           />
@@ -90,7 +90,7 @@ function withCurrent(
             name="settingsDefaultLanguage"
             [options]="languageOptions()"
             [allowClear]="false"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             [(ngModel)]="systemSettings['system.default_language']"
           />
         </div>
@@ -102,7 +102,7 @@ function withCurrent(
             name="settingsDefaultTimezone"
             [options]="timezoneOptions()"
             [allowClear]="false"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             [(ngModel)]="systemSettings['system.default_timezone']"
           />
         </div>
@@ -114,15 +114,15 @@ function withCurrent(
             name="settingsDateFormat"
             [options]="dateFormatOptions()"
             [allowClear]="false"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             [(ngModel)]="systemSettings['system.date_format']"
           />
         </div>
       </div>
 
-      @if (canUpdateSystemSettings) {
+      @if (canUpdateSystemSettings()) {
         <div class="card-footer-actions">
-          <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
+          <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
             {{ 'common.save' | t }}
           </button>
         </div>
@@ -230,10 +230,16 @@ function withCurrent(
   ],
 })
 export class SettingsGeneralPanelComponent {
+  readonly canUpdateSystemSettings = input(false);
+  readonly isSaving = input(false);
+  readonly languages = input<
+    Array<{
+      code: string;
+      name: string;
+    }>
+  >([]);
+
   @Input() systemSettings: Record<string, string> = {};
-  @Input() canUpdateSystemSettings = false;
-  @Input() isSaving = false;
-  @Input() languages: Array<{ code: string; name: string }> = [];
   @Output() save = new EventEmitter<void>();
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
@@ -243,8 +249,8 @@ export class SettingsGeneralPanelComponent {
   private readonly dateFormatMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
 
   languageOptions(): SMTSelectOption<string>[] {
-    return this.languageMemo([this.languages], () =>
-      this.languages.map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` })),
+    return this.languageMemo([this.languages()], () =>
+      this.languages().map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` })),
     );
   }
 

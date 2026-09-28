@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Output, ViewChild, inject, input } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -28,11 +28,11 @@ export interface LanguageChangeRequest {
           type="button"
           class="icon-btn mobile-menu-btn"
           [attr.aria-label]="'layout.app_shell.otkryt_menyu_navigacii' | t"
-          [attr.aria-expanded]="isMobileMenuOpen"
-          [attr.aria-controls]="sidebarId"
+          [attr.aria-expanded]="isMobileMenuOpen()"
+          [attr.aria-controls]="sidebarId()"
           (click)="toggleMobileMenu.emit()"
         >
-          <span class="material-symbols-outlined" aria-hidden="true">{{ isMobileMenuOpen ? 'close' : 'menu' }}</span>
+          <span class="material-symbols-outlined" aria-hidden="true">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
         </button>
 
         <button
@@ -62,8 +62,8 @@ export interface LanguageChangeRequest {
             [options]="languageOptions()"
             [allowClear]="false"
             [value]="i18n.currentLang()"
-            [disabled]="i18n.isLoading() || isChangingLanguage || authService.isLoggingOut()"
-            [attr.aria-busy]="isChangingLanguage"
+            [disabled]="i18n.isLoading() || isChangingLanguage() || authService.isLoggingOut()"
+            [attr.aria-busy]="isChangingLanguage()"
             (valueChange)="onLanguagePick($event)"
           />
         </div>
@@ -84,7 +84,7 @@ export interface LanguageChangeRequest {
         </button>
 
         <!-- Notification Bell -->
-        @if (canReadNotifications) {
+        @if (canReadNotifications()) {
           <button
             type="button"
             class="icon-btn notif-btn"
@@ -124,7 +124,7 @@ export interface LanguageChangeRequest {
     </header>
 
     <!-- Active Announcement Banner -->
-    @if (canReadAnnouncements && notifService.activeAnnouncement()) {
+    @if (canReadAnnouncements() && notifService.activeAnnouncement()) {
       <div class="announcement-banner" role="status">
         <div class="announcement-content">
           <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
@@ -136,7 +136,7 @@ export interface LanguageChangeRequest {
         <button
           type="button"
           class="banner-close"
-          [disabled]="isDismissingAnnouncement || authService.isLoggingOut()"
+          [disabled]="isDismissingAnnouncement() || authService.isLoggingOut()"
           [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t"
           (click)="dismissAnnouncement.emit()"
         >
@@ -392,17 +392,17 @@ export class AppHeaderComponent {
   readonly notifService = inject(NotificationService);
   readonly paletteService = inject(CommandPaletteService);
 
+  readonly isMobile = input(false);
+  readonly isMobileMenuOpen = input(false);
+  readonly sidebarId = input('app-sidebar-nav');
+  readonly isChangingLanguage = input(false);
+  readonly isDismissingAnnouncement = input(false);
+  readonly canReadNotifications = input(false);
+  readonly canReadAnnouncements = input(false);
+
   @ViewChild('mobileMenuBtn') mobileMenuBtn?: ElementRef<HTMLButtonElement>;
 
   @ViewChild(SMTSelectComponent) languagePicker?: SMTSelectComponent<string>;
-
-  @Input() isMobile = false;
-  @Input() isMobileMenuOpen = false;
-  @Input() sidebarId = 'app-sidebar-nav';
-  @Input() isChangingLanguage = false;
-  @Input() isDismissingAnnouncement = false;
-  @Input() canReadNotifications = false;
-  @Input() canReadAnnouncements = false;
 
   @Output() toggleMobileMenu = new EventEmitter<void>();
   @Output() changeLanguage = new EventEmitter<LanguageChangeRequest>();

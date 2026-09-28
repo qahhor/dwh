@@ -228,7 +228,7 @@ describe('UsersComponent UI contracts', () => {
     panel.discard.confirm();
     redraw(fixture);
     expect(fixture.componentInstance.viewingUser?.id).toBe(second.id);
-    expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance.userId).toBe(
+    expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance.userId()).toBe(
       second.id,
     );
   });
@@ -363,7 +363,7 @@ describe('UsersComponent UI contracts', () => {
     const panel = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent))
       .componentInstance as UserOrgUnitsPanelComponent;
     expect(fixture.componentInstance.routeRecordId()).toBe('7');
-    expect(panel.userId).toBe(7);
+    expect(panel.userId()).toBe(7);
   });
 
   it('guards a same-ID deep-link reload before clearing its dirty panel', async () => {

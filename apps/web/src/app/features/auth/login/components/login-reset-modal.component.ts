@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
+import { Component, EventEmitter, Output, inject, signal, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -21,7 +21,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     TranslatePipe,
   ],
   template: `
-    <smt-dialog [open]="isOpen" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
+    <smt-dialog [open]="isOpen()" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
       <ng-template smtDialogContent>
         <div body class="reset-body">
           <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
@@ -122,10 +122,11 @@ export class LoginResetModalComponent {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  readonly isOpen = input(false);
+
   readonly resetError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
 
-  @Input() isOpen = false;
   @Output() close = new EventEmitter<void>();
 
   resetEmail = '';

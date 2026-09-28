@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core';
+import { Component, EventEmitter, Input, Output, computed, signal, input } from '@angular/core';
 
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -69,7 +69,7 @@ import { ProjectDistribution } from '../analytics.models';
         </div>
       }
 
-      @if (filteredProjects().length === 0 && !loading && !error) {
+      @if (filteredProjects().length === 0 && !loading() && !error()) {
         <div class="empty-chart">
           <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
             >folder_open</span
@@ -223,6 +223,9 @@ import { ProjectDistribution } from '../analytics.models';
   ],
 })
 export class AnalyticsProjectsCardComponent {
+  readonly loading = input(false);
+  readonly error = input('');
+
   searchProjectQuery = signal('');
   private _projects = signal<ProjectDistribution[]>([]);
 
@@ -233,8 +236,6 @@ export class AnalyticsProjectsCardComponent {
     return list.filter((p) => p.projectName.toLowerCase().includes(query));
   });
 
-  @Input() loading = false;
-  @Input() error = '';
   @Output() projectClick = new EventEmitter<number>();
 
   @Input() set projects(value: ProjectDistribution[]) {

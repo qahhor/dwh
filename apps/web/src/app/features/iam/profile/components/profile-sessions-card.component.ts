@@ -9,6 +9,7 @@ import {
   inject,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -38,7 +39,7 @@ import { UserSession } from '../profile.models';
               smtVariant="danger"
               smtSize="sm"
               smtIcon="logout"
-              [smtLoading]="isTerminatingSession"
+              [smtLoading]="isTerminatingSession()"
               [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
               (click)="terminateOtherSessions.emit()"
             >
@@ -51,7 +52,7 @@ import { UserSession } from '../profile.models';
             smtVariant="secondary"
             smtSize="sm"
             smtIcon="refresh"
-            [smtLoading]="isLoadingSessions"
+            [smtLoading]="isLoadingSessions()"
             (click)="loadSessions.emit()"
           >
             {{ 'common.refresh' | t }}
@@ -65,7 +66,7 @@ import { UserSession } from '../profile.models';
             [rows]="rows()"
             [config]="config()"
             [sortValues]="sortValues"
-            [loading]="isLoadingSessions"
+            [loading]="isLoadingSessions()"
             [emptyTemplate]="emptySessions"
           />
         </div>
@@ -329,6 +330,9 @@ import { UserSession } from '../profile.models';
 export class ProfileSessionsCardComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingSessions = input(false);
+  readonly isTerminatingSession = input(false);
+
   private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
   private readonly deviceCell = viewChild.required<TemplateRef<unknown>>('deviceCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
@@ -355,9 +359,6 @@ export class ProfileSessionsCardComponent {
       columnsOrder: ['ip', 'device', 'created', 'seen', 'action'],
     };
   });
-
-  @Input() isLoadingSessions = false;
-  @Input() isTerminatingSession = false;
 
   @Output() loadSessions = new EventEmitter<void>();
   @Output() terminateSession = new EventEmitter<UserSession>();

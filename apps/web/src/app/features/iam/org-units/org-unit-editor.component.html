@@ -5,7 +5,7 @@
   @if (attempted && !valid) {
     <p role="alert">{{ 'iam.org_units.validation' | t }}</p>
   }
-  <fieldset [disabled]="pending || impactOpen">
+  <fieldset [disabled]="pending() || impactOpen">
     <legend class="sr-only">{{ 'iam.org_units.details' | t }}</legend>
     <label [for]="formId + '-code'">{{ 'iam.org_units.code' | t }}</label>
     <smt-input
@@ -99,10 +99,16 @@
     }
   </fieldset>
   <div class="actions">
-    <button smt-button type="button" smtVariant="secondary" [disabled]="pending || impactOpen" (click)="cancel.emit()">
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      [disabled]="pending() || impactOpen"
+      (click)="cancel.emit()"
+    >
       {{ 'iam.org_units.cancel' | t }}
     </button>
-    <button smt-button type="submit" [smtLoading]="pending" [disabled]="!dirty || !valid || impactOpen">
+    <button smt-button type="submit" [smtLoading]="pending()" [disabled]="!dirty || !valid || impactOpen">
       {{ 'iam.org_units.save' | t }}
     </button>
   </div>

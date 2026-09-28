@@ -9,6 +9,7 @@ import {
   inject,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -144,8 +145,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                     smtVariant="primary"
                     smtSize="md"
                     smtIcon="add"
-                    [disabled]="!selectedUser || isAddingMember"
-                    [smtLoading]="isAddingMember"
+                    [disabled]="!selectedUser || isAddingMember()"
+                    [smtLoading]="isAddingMember()"
                     (click)="submitAddMember()"
                   >
                     {{ 'common.add' | t }}
@@ -167,7 +168,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
               [rows]="rows()"
               [config]="config()"
               [sortValues]="sortValues"
-              [loading]="isLoadingMembers"
+              [loading]="isLoadingMembers()"
               [emptyTemplate]="emptyMembers"
             />
           </div>
@@ -202,7 +203,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           smtSize="sm"
           smtIcon="delete"
           [attr.aria-label]="'projects.remove_member_named' | t: { name: m.userName }"
-          [smtLoading]="removingUserId === m.userId"
+          [smtLoading]="removingUserId() === m.userId"
           (click)="requestRemove(m)"
         >
           {{ 'common.delete' | t }}
@@ -439,6 +440,11 @@ export class ProjectMembersModalComponent {
   private readonly api = inject(ApiService);
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingMembers = input(false);
+  readonly isAddingMember = input(false);
+  /** The member whose removal is running, so only that row's button shows it. */
+  readonly removingUserId = input<number | null>(null);
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('memberUserCell');
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
@@ -468,10 +474,6 @@ export class ProjectMembersModalComponent {
 
   @Input() isOpen = false;
   @Input() project: Project | null = null;
-  @Input() isLoadingMembers = false;
-  @Input() isAddingMember = false;
-  /** The member whose removal is running, so only that row's button shows it. */
-  @Input() removingUserId: number | null = null;
 
   /** Every member of the project is loaded, so a header click sorts them all. */
   readonly sortValues = {

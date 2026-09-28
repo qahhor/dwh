@@ -10,6 +10,7 @@ import {
   inject,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
@@ -45,25 +46,25 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   template: `
     <!-- User View / Profile Modal -->
     <smt-dialog
-      [open]="isOpen"
+      [open]="isOpen()"
       [smtTitle]="'iam.profil_polzovatelya' | t"
       [smtSize]="
-        activeViewTab === 'security' ||
-        activeViewTab === 'permissions' ||
-        (canViewOrgUnits && viewingUser && safeRecordId(viewingUser.id))
+        activeViewTab() === 'security' ||
+        activeViewTab() === 'permissions' ||
+        (canViewOrgUnits() && viewingUser && safeRecordId()(viewingUser.id))
           ? 'xl'
           : 'sm'
       "
       (closed)="closeRecordView.emit()"
     >
       <ng-template smtDialogContent>
-        @if (recordLoading) {
+        @if (recordLoading()) {
           <div body role="status">{{ 'search.record_loading' | t }}</div>
         }
-        @if (recordError) {
+        @if (recordError()) {
           <div body role="alert">
-            <p>{{ (recordNotFound ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
-            @if (!recordNotFound) {
+            <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
+            @if (!recordNotFound()) {
               <button smt-button type="button" smtVariant="secondary" (click)="retryRecordView.emit(routeRecordId)">
                 {{ 'audit.retry' | t }}
               </button>
@@ -75,7 +76,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
             @if (routeRecordId) {
               <p>#{{ routeRecordId }}</p>
             }
-            @if (!safeRecordId(u.id)) {
+            @if (!safeRecordId()(u.id)) {
               <p role="status">{{ 'search.record_readonly_id' | t }}</p>
             }
             <div class="view-header-card">
@@ -90,13 +91,13 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
             <smt-tab-bar
               class="modal-tab-bar"
               [tabs]="viewTabs(u)"
-              [value]="activeViewTab"
+              [value]="activeViewTab()"
               [smtAriaLabel]="'iam.razdely_kartochki' | t"
               (valueChange)="$event && switchTab.emit({ tab: $event, userId: u.id })"
             />
 
             <!-- Info Tab -->
-            @if (activeViewTab === 'info') {
+            @if (activeViewTab() === 'info') {
               <div class="info-list">
                 <div class="info-row">
                   <span class="lbl">Email</span>
@@ -108,11 +109,11 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                 </div>
                 <div class="info-row">
                   <span class="lbl">{{ 'iam.rukovoditel' | t }}</span>
-                  <span class="val">{{ getManagerName(u) || '—' }}</span>
+                  <span class="val">{{ getManagerName()(u) || '—' }}</span>
                 </div>
                 <div class="info-row">
                   <span class="lbl">{{ 'iam.roli' | t }}</span>
-                  <span class="val">{{ getUserRoleNames(u).join(', ') || '—' }}</span>
+                  <span class="val">{{ getUserRoleNames()(u).join(', ') || '—' }}</span>
                 </div>
                 <div class="info-row">
                   <span class="lbl">{{ 'iam.2fa_zaschita' | t }}</span>
@@ -132,21 +133,21 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                 </div>
               </div>
             }
-            @if (activeViewTab === 'info' && safeRecordId(u.id)) {
+            @if (activeViewTab() === 'info' && safeRecordId()(u.id)) {
               <ui-record-history class="user-history" kind="users" [recordId]="u.id" />
             }
 
             <!-- Security & Sessions Tab -->
-            @if (activeViewTab === 'security') {
+            @if (activeViewTab() === 'security') {
               <div class="security-tab-content">
-                @if (isLoadingSecurity) {
+                @if (isLoadingSecurity()) {
                   <div class="security-loading">
                     <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
                     <span>{{ 'common.loading' | t }}</span>
                   </div>
                 }
 
-                @if (!isLoadingSecurity && userSecurity; as sec) {
+                @if (!isLoadingSecurity() && userSecurity; as sec) {
                   <div class="security-details">
                     <!-- Security Overview Cards -->
                     <div class="sec-metrics-grid">
@@ -187,12 +188,12 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                     </div>
 
                     <!-- Quick Security Actions Toolbar -->
-                    @if (canUpdateUser) {
+                    @if (canUpdateUser()) {
                       <div class="sec-actions-bar">
                         <button
                           type="button"
                           class="sec-action-btn warning"
-                          [disabled]="isSecurityActionPending || sec.forcePasswordChange"
+                          [disabled]="isSecurityActionPending() || sec.forcePasswordChange"
                           (click)="forcePasswordChange.emit(u.id)"
                         >
                           <span class="material-symbols-outlined" aria-hidden="true">password</span>
@@ -202,7 +203,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                         <button
                           type="button"
                           class="sec-action-btn danger"
-                          [disabled]="isSecurityActionPending || !sec.is2faEnabled"
+                          [disabled]="isSecurityActionPending() || !sec.is2faEnabled"
                           (click)="reset2fa.emit(u.id)"
                         >
                           <span class="material-symbols-outlined" aria-hidden="true">key_off</span>
@@ -212,7 +213,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                         <button
                           type="button"
                           class="sec-action-btn secondary"
-                          [disabled]="isSecurityActionPending || sec.activeSessionsCount === 0"
+                          [disabled]="isSecurityActionPending() || sec.activeSessionsCount === 0"
                           (click)="terminateAllSessions.emit(u.id)"
                         >
                           <span class="material-symbols-outlined" aria-hidden="true">logout</span>
@@ -278,8 +279,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
             }
 
             <!-- Org Units Tab (use [hidden] to keep directive in DOM for spec tests) -->
-            <div [hidden]="activeViewTab !== 'orgUnits'">
-              @if (isOpen && canViewOrgUnits && safeRecordId(u.id)) {
+            <div [hidden]="activeViewTab() !== 'orgUnits'">
+              @if (isOpen() && canViewOrgUnits() && safeRecordId()(u.id)) {
                 <app-user-org-units-panel
                   [userId]="u.id"
                   (busyChange)="orgPanelBusy.emit($event)"
@@ -288,13 +289,13 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
             </div>
 
             <!-- Effective Permissions Tab -->
-            @if (activeViewTab === 'permissions') {
+            @if (activeViewTab() === 'permissions') {
               <div>
-                @if (isOpen && canViewAssignments && safeRecordId(u.id)) {
+                @if (isOpen() && canViewAssignments() && safeRecordId()(u.id)) {
                   <app-user-effective-permissions-panel
                     [userId]="u.id"
-                    [canAssign]="canAssignPermissions"
-                    [userRoleNames]="getUserRoleNames(u)"
+                    [canAssign]="canAssignPermissions()"
+                    [userRoleNames]="getUserRoleNames()(u)"
                   ></app-user-effective-permissions-panel>
                 }
               </div>
@@ -305,7 +306,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeRecordView.emit()">
             {{ (routeRecordId ? 'search.back_to_list' : 'audit.zakryt') | t }}
           </button>
-          @if (canUpdateUser && viewingUser && safeRecordId(viewingUser.id)) {
+          @if (canUpdateUser() && viewingUser && safeRecordId()(viewingUser.id)) {
             <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="openEdit.emit()">
               {{ 'common.edit' | t }}
             </button>
@@ -338,7 +339,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           class="danger"
           [title]="'iam.zavershit_sessiyu' | t"
           [attr.aria-label]="'iam.terminate_session_ip_named' | t: { ip: s.ip }"
-          [disabled]="isSecurityActionPending"
+          [disabled]="isSecurityActionPending()"
           (click)="terminateSession(s)"
         ></button>
       </div>
@@ -366,6 +367,24 @@ export class UserDetailModalComponent {
   private readonly tabText = inject(I18nService);
 
   private readonly i18n = inject(I18nService);
+
+  readonly safeRecordId = input.required<(id: any) => boolean>();
+  readonly getUserRoleNames = input.required<(u: User) => string[]>();
+  readonly getManagerName = input.required<(u: User) => string | null>();
+
+  readonly isOpen = input(false);
+  readonly recordLoading = input(false);
+  readonly recordError = input(false);
+  readonly recordNotFound = input(false);
+  readonly activeViewTab = input<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
+  readonly isLoadingSecurity = input(false);
+  readonly isSecurityActionPending = input(false);
+  readonly canUpdateUser = input(false);
+  readonly canViewOrgUnits = input(false);
+  readonly canViewAssignments = input(false);
+  readonly canAssignPermissions = input(false);
+
+  readonly isSubmitting = input(false);
 
   private readonly sessionIpCell = viewChild.required<TemplateRef<unknown>>('sessionIpCell');
   private readonly sessionAgentCell = viewChild.required<TemplateRef<unknown>>('sessionAgentCell');
@@ -422,24 +441,8 @@ export class UserDetailModalComponent {
     };
   });
 
-  @Input() isOpen = false;
   @Input() viewingUser: User | null = null;
   @Input() routeRecordId: string | null = null;
-  @Input() recordLoading = false;
-  @Input() recordError = false;
-  @Input() recordNotFound = false;
-  @Input() activeViewTab: 'info' | 'security' | 'orgUnits' | 'permissions' = 'info';
-  @Input() isLoadingSecurity = false;
-  @Input() isSecurityActionPending = false;
-  @Input() canUpdateUser = false;
-  @Input() canViewOrgUnits = false;
-  @Input() canViewAssignments = false;
-  @Input() canAssignPermissions = false;
-  @Input() safeRecordId!: (id: any) => boolean;
-  @Input() getUserRoleNames!: (u: User) => string[];
-  @Input() getManagerName!: (u: User) => string | null;
-
-  @Input() isSubmitting = false;
 
   @Output() closeRecordView = new EventEmitter<void>();
   @Output() retryRecordView = new EventEmitter<string | null>();
@@ -493,9 +496,9 @@ export class UserDetailModalComponent {
 
   /** The card's sections; org units and effective rights only with the right to see them. */
   viewTabs(user: User): SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[] {
-    const withId = !!this.safeRecordId(user.id);
-    const orgUnits = this.canViewOrgUnits && withId;
-    const permissions = this.canViewAssignments && withId;
+    const withId = !!this.safeRecordId()(user.id);
+    const orgUnits = this.canViewOrgUnits() && withId;
+    const permissions = this.canViewAssignments() && withId;
     return this.tabsMemo([this.tabText.currentLang(), orgUnits, permissions], () => [
       { value: 'info' as const, label: this.tabText.translate('iam.osnovnoe'), icon: 'badge' },
       { value: 'security' as const, label: this.tabText.translate('iam.bezopasnost_i_sessii'), icon: 'shield' },

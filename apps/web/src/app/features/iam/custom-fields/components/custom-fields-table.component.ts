@@ -9,6 +9,7 @@ import {
   computed,
   signal,
   viewChild,
+  input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
@@ -34,7 +35,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
           [rows]="rows()"
           [config]="config()"
           [sortValues]="sortValues"
-          [loading]="isLoading"
+          [loading]="isLoading()"
           [emptyTemplate]="emptyState"
         />
       </div>
@@ -358,6 +359,8 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 export class CustomFieldsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
+  readonly isLoading = input(false);
+
   private readonly orderCell = viewChild.required<TemplateRef<unknown>>('orderCell');
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -404,7 +407,6 @@ export class CustomFieldsTableComponent {
     };
   });
 
-  @Input() isLoading = false;
   @Input() searchQuery = '';
 
   @Output() copyCode = new EventEmitter<string>();

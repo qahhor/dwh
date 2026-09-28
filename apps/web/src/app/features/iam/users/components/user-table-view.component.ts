@@ -4,7 +4,6 @@ import {
   EventEmitter,
   inject,
   input,
-  Input,
   Output,
   Signal,
   TemplateRef,
@@ -48,11 +47,11 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       class="table-container"
       role="region"
       [attr.aria-label]="'iam.tablica_polzovateley' | t"
-      [attr.aria-busy]="pager.loading()"
+      [attr.aria-busy]="pager().loading()"
     >
       @if (tableConfig(); as config) {
         <ui-server-table
-          [pager]="pager"
+          [pager]="pager()"
           [config]="config"
           [views]="views()"
           [filterMeta]="meta()"
@@ -92,7 +91,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       </div>
     </ng-template>
     <ng-template #rolesCell let-u>
-      @let roleNames = getUserRoleNames(u);
+      @let roleNames = getUserRoleNames()(u);
       <div class="roles-wrap">
         @for (roleName of roleNames; track roleName) {
           <span class="role-pill">{{ roleName }}</span>
@@ -102,7 +101,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       </div>
     </ng-template>
     <ng-template #managerCell let-u>
-      @let managerName = getManagerName(u);
+      @let managerName = getManagerName()(u);
       @if (managerName) {
         <span class="manager-text">{{ managerName }}</span>
       } @else {
@@ -143,7 +142,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
           [title]="'iam.prosmotr' | t"
           (click)="viewUser.emit(u)"
         ></button>
-        @if (canUpdateUser) {
+        @if (canUpdateUser()) {
           <button
             smt-button
             type="button"
@@ -315,11 +314,20 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
 export class UserTableViewComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<User>>();
+
+  readonly getUserRoleNames = input.required<(u: User) => string[]>();
+  readonly getManagerName = input.required<(u: User) => string | null>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The search text and quick filters on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
+  readonly canUpdateUser = input(false);
+  readonly canBlockUser = input(false);
+  readonly canUnblockUser = input(false);
+  readonly canDeleteUser = input(false);
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly identityCell = viewChild.required<TemplateRef<unknown>>('identityCell');
@@ -386,15 +394,6 @@ export class UserTableViewComponent {
     };
   });
 
-  @Input({ required: true }) pager!: KeysetPager<User>;
-  @Input() canUpdateUser = false;
-  @Input() canBlockUser = false;
-  @Input() canUnblockUser = false;
-  @Input() canDeleteUser = false;
-
-  @Input() getUserRoleNames!: (u: User) => string[];
-  @Input() getManagerName!: (u: User) => string | null;
-
   @Output() viewUser = new EventEmitter<User>();
   @Output() editUser = new EventEmitter<User>();
   @Output() toggleState = new EventEmitter<{ user: User; action: 'block' | 'unblock' }>();
@@ -405,9 +404,9 @@ export class UserTableViewComponent {
 
   /** Block or unblock and delete, behind "more" so the row keeps two visible actions; null when none apply. */
   moreActions(user: User): SMTMenuItem<UserMenuAction>[] | null {
-    const block = user.state === 'A' && this.canBlockUser;
-    const unblock = user.state === 'P' && this.canUnblockUser;
-    const remove = user.login !== 'admin' && this.canDeleteUser;
+    const block = user.state === 'A' && this.canBlockUser();
+    const unblock = user.state === 'P' && this.canUnblockUser();
+    const remove = user.login !== 'admin' && this.canDeleteUser();
     const key = [block, unblock, remove, this.i18n.currentLang()].join('|');
     const cached = this.actionMenus.get(user);
     if (cached?.key === key) return cached.items;

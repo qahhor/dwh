@@ -1,4 +1,4 @@
-import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
+import { Component, inject, EventEmitter, Input, Output, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -57,15 +57,15 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     UiCustomFieldsComponent,
   ],
   template: `
-    <smt-dialog [open]="isOpen" [smtTitle]="'iam.redaktirovat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
+    <smt-dialog [open]="isOpen()" [smtTitle]="'iam.redaktirovat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
       <ng-template smtDialogContent>
-        @if (editingUser; as u) {
+        @if (editingUser(); as u) {
           <div body class="clean-modal-body">
             <div class="form-grid">
               <smt-control
                 class="form-group span-2"
                 [smtLabel]="'iam.fio' | t"
-                [smtError]="isEditSubmitted && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+                [smtError]="isEditSubmitted() && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
               >
                 <smt-input
                   smtFieldId="user-edit-name"
@@ -128,7 +128,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               </div>
 
               <!-- Roles -->
-              @if (roles.length > 0) {
+              @if (roles().length > 0) {
                 <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
                   <smt-tag-group
                     [options]="roleOptions(u)"
@@ -157,7 +157,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmitting"
+            [smtLoading]="isSubmitting()"
             (click)="submit.emit()"
           >
             {{ 'common.save' | t }}
@@ -225,6 +225,18 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 export class UserEditModalComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isOpen = input(false);
+  readonly isSubmitting = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly editingUser = input<User | null>(null);
+  readonly roles = input<Role[]>([]);
+  readonly languages = input<
+    Array<{
+      code: string;
+      name: string;
+    }>
+  >([]);
+
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
   readonly timezoneOptions = TIMEZONE_OPTIONS;
@@ -232,14 +244,8 @@ export class UserEditModalComponent {
   private roleOptionsCache: { roles: Role[]; user: User | null; lang: string; options: SMTTagOption<number>[] } | null =
     null;
   /** A user cannot be their own manager. */
-  readonly notThisUser = (candidate: UserRef) => candidate.id === this.editingUser?.id;
-  @Input() isOpen = false;
-  @Input() isSubmitting = false;
-  @Input() isEditSubmitted = false;
-  @Input() editingUser: User | null = null;
+  readonly notThisUser = (candidate: UserRef) => candidate.id === this.editingUser()?.id;
   @Input() editForm: any = {};
-  @Input() roles: Role[] = [];
-  @Input() languages: Array<{ code: string; name: string }> = [];
   @Input() customFields: CustomField[] = [];
 
   @Output() close = new EventEmitter<void>();
@@ -247,8 +253,8 @@ export class UserEditModalComponent {
 
   /** The languages as options, labelled as they are named in the data. */
   languageOptions(): SMTSelectOption<string>[] {
-    return this.languageMemo([this.languages], () =>
-      this.languages.map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code})` })),
+    return this.languageMemo([this.languages()], () =>
+      this.languages().map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code})` })),
     );
   }
 
@@ -256,9 +262,10 @@ export class UserEditModalComponent {
   roleOptions(user: User | null): SMTTagOption<number>[] {
     const lang = this.i18n.currentLang();
     const cached = this.roleOptionsCache;
-    if (cached && cached.roles === this.roles && cached.user === user && cached.lang === lang) return cached.options;
+    const roles = this.roles();
+    if (cached && cached.roles === roles && cached.user === user && cached.lang === lang) return cached.options;
     const locked = (role: Role) => user?.login === 'admin' && role.pcode === 'admin';
-    const options = this.roles.map((role) =>
+    const options = roles.map((role) =>
       locked(role)
         ? {
             value: role.id,
@@ -269,7 +276,7 @@ export class UserEditModalComponent {
           }
         : { value: role.id, label: role.name },
     );
-    this.roleOptionsCache = { roles: this.roles, user, lang, options };
+    this.roleOptionsCache = { roles: roles, user, lang, options };
     return options;
   }
 }

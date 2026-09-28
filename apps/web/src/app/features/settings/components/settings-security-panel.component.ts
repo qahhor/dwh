@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
 
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
@@ -28,7 +28,7 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
             <p class="card-desc">{{ 'settings.trebovaniya_k_parolyam_2fa_i_veb_sessiyam' | t }}</p>
           </div>
         </div>
-        @if (!canUpdateSystemSettings) {
+        @if (!canUpdateSystemSettings()) {
           <span class="badge badge-neutral">{{ 'settings.readonly_badge' | t }}</span>
         }
       </div>
@@ -54,7 +54,7 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
             type="number"
             [smtMin]="1"
             [smtMax]="8760"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-session-lifetime-hint"
             [(ngModel)]="systemSettings['security.session_lifetime_hours']"
           />
@@ -71,7 +71,7 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
             type="number"
             [smtMin]="0"
             [smtMax]="1440"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-idle-lock-hint"
             [(ngModel)]="systemSettings['security.idle_lock_minutes']"
           />
@@ -90,7 +90,7 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
               smtFieldId="settings-require-2fa"
               smtLabelledBy="settings-require-2fa-label"
               smtDescribedBy="settings-require-2fa-desc"
-              [disabled]="!canUpdateSystemSettings || isSaving"
+              [disabled]="!canUpdateSystemSettings() || isSaving()"
               [checked]="systemSettings['security.require_2fa'] === 'true'"
               (smtUserChange)="toggleRequire2fa.emit($event)"
             />
@@ -98,9 +98,9 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
         </div>
       </div>
 
-      @if (canUpdateSystemSettings) {
+      @if (canUpdateSystemSettings()) {
         <div class="card-footer-actions">
-          <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
+          <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
             {{ 'common.save' | t }}
           </button>
         </div>
@@ -248,9 +248,10 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
 export class SettingsSecurityPanelComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly canUpdateSystemSettings = input(false);
+  readonly isSaving = input(false);
+
   @Input() systemSettings: Record<string, string> = {};
-  @Input() canUpdateSystemSettings = false;
-  @Input() isSaving = false;
   @Output() save = new EventEmitter<void>();
   @Output() toggleRequire2fa = new EventEmitter<boolean>();
 

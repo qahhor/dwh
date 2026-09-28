@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, Input, OnInit, Output, computed, signal, inject } from '@angular/core';
+import { Component, EventEmitter, HostListener, OnInit, Output, computed, signal, inject, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import {
@@ -34,7 +34,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
           </button>
           <div>
             <h3 id="translation-editor-title">
-              {{ 'settings.translations_for' | t: { name: editor()?.language?.name || languageCode.toUpperCase() } }}
+              {{ 'settings.translations_for' | t: { name: editor()?.language?.name || languageCode().toUpperCase() } }}
             </h3>
             @if (editor(); as model) {
               <p>
@@ -108,8 +108,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
         <div class="translation-table" role="region" [attr.aria-label]="'settings.tablica_perevodov' | t" tabindex="0">
           <div class="translation-row header-row" aria-hidden="true">
             <span>{{ 'settings.klyuch' | t }}</span>
-            <span>{{ (languageCode === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t }}</span>
-            <span>{{ (languageCode === 'ru' ? 'settings.interface_text' : 'settings.translation') | t }}</span>
+            <span>{{ (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t }}</span>
+            <span>{{ (languageCode() === 'ru' ? 'settings.interface_text' : 'settings.translation') | t }}</span>
             <span>{{ 'common.status' | t }}</span>
           </div>
 
@@ -119,10 +119,10 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
               <div
                 class="source-value"
                 [attr.data-label]="
-                  (languageCode === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t
+                  (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t
                 "
               >
-                {{ languageCode === 'ru' ? entry.bundledValue : entry.russianValue }}
+                {{ languageCode() === 'ru' ? entry.bundledValue : entry.russianValue }}
               </div>
               <div class="target-value" [attr.data-label]="'settings.translation' | t">
                 <label class="sr-only" [for]="inputId(entry.key)">{{
@@ -134,7 +134,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
                   [disabled]="!canEdit"
                   [ngModel]="valueFor(entry.key)"
                   (ngModelChange)="setValue(entry.key, $event)"
-                  [placeholder]="languageCode === 'ru' ? entry.bundledValue || '' : entry.russianValue"
+                  [placeholder]="languageCode() === 'ru' ? entry.bundledValue || '' : entry.russianValue"
                   [maxLength]="4000"
                 />
                 @if (canEdit && canReset(entry)) {
@@ -206,6 +206,8 @@ export class LanguageEditorComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
+  readonly languageCode = input.required<string>();
+
   readonly editor = signal<TranslationEditor | null>(null);
   readonly isLoading = signal(false);
   readonly isSaving = signal(false);
@@ -237,7 +239,6 @@ export class LanguageEditorComponent implements OnInit {
     });
   });
 
-  @Input({ required: true }) languageCode = 'ru';
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly saved = new EventEmitter<string>();
 
@@ -262,7 +263,7 @@ export class LanguageEditorComponent implements OnInit {
     this.isLoading.set(true);
     this.loadError.set(null);
     this.api
-      .get<TranslationEditor>(`/i18n/admin/languages/${this.languageCode}/translations`)
+      .get<TranslationEditor>(`/i18n/admin/languages/${this.languageCode()}/translations`)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (model) => {
@@ -295,7 +296,7 @@ export class LanguageEditorComponent implements OnInit {
   }
 
   isTranslated(entry: TranslationEntry): boolean {
-    return this.languageCode === 'ru' || this.valueFor(entry.key).trim().length > 0;
+    return this.languageCode() === 'ru' || this.valueFor(entry.key).trim().length > 0;
   }
 
   canReset(entry: TranslationEntry): boolean {
@@ -314,7 +315,8 @@ export class LanguageEditorComponent implements OnInit {
     const model = this.editor();
     if (!model || !this.canEdit || this.dirtyCount() === 0) return;
 
-    if (this.languageCode === 'ru') {
+    const languageCode = this.languageCode();
+    if (languageCode === 'ru') {
       const emptyRussian = model.entries.find((entry) => !this.valueFor(entry.key).trim());
       if (emptyRussian) {
         this.toast.error(
@@ -330,7 +332,7 @@ export class LanguageEditorComponent implements OnInit {
     this.isSaving.set(true);
     this.saveError.set(null);
     this.api
-      .put<LanguageInfo>(`/i18n/admin/languages/${this.languageCode}/translations`, {
+      .put<LanguageInfo>(`/i18n/admin/languages/${languageCode}/translations`, {
         expectedRevision: model.language.revision,
         translations,
       })
@@ -338,10 +340,10 @@ export class LanguageEditorComponent implements OnInit {
       .subscribe({
         next: (language) => {
           this.applySavedModel(model, language, translations);
-          this.i18n.refreshLanguage(this.languageCode).subscribe({
+          this.i18n.refreshLanguage(this.languageCode()).subscribe({
             next: () => {
               this.toast.success(this.uiI18n.translate('settings.perevody_uspeshno_sohraneny'));
-              this.saved.emit(this.languageCode);
+              this.saved.emit(this.languageCode());
             },
             error: () =>
               this.toast.error(this.uiI18n.translate('settings.perevody_sohraneny_no_interfeys_ne_udalos_obnovi')),
@@ -407,7 +409,7 @@ export class LanguageEditorComponent implements OnInit {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `smartupcms-translations-${this.languageCode}.json`;
+    anchor.download = `smartupcms-translations-${this.languageCode()}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -461,7 +463,7 @@ export class LanguageEditorComponent implements OnInit {
         ...entry,
         overrideValue,
         effectiveValue,
-        translated: this.languageCode === 'ru' || overrideValue !== null || entry.bundledValue !== null,
+        translated: this.languageCode() === 'ru' || overrideValue !== null || entry.bundledValue !== null,
       };
     });
     this.editor.set({ language, entries });

@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Input, Output, TemplateRef, viewChild } from '@angular/core';
+import { Component, computed, EventEmitter, inject, Output, TemplateRef, viewChild, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -40,13 +40,13 @@ interface DiffRow {
 
     <!-- MODAL: AUDIT DIFF VIEWER -->
     <smt-dialog
-      [open]="selectedAudit !== null"
+      [open]="selectedAudit() !== null"
       [smtTitle]="'audit.detali_izmeneniya_zapisi_visual_diff' | t"
       smtSize="lg"
       (closed)="closeAuditModal.emit()"
     >
       <ng-template smtDialogContent>
-        @if (selectedAudit; as audit) {
+        @if (selectedAudit(); as audit) {
           <div body class="diff-modal-body">
             <div class="diff-meta-grid">
               <div class="meta-item">
@@ -101,13 +101,13 @@ interface DiffRow {
 
     <!-- MODAL: SECURITY EVENT DETAILS -->
     <smt-dialog
-      [open]="selectedSecEvent !== null"
+      [open]="selectedSecEvent() !== null"
       [smtTitle]="'audit.sobytie_bezopasnosti' | t"
       smtSize="md"
       (closed)="closeSecModal.emit()"
     >
       <ng-template smtDialogContent>
-        @if (selectedSecEvent; as ev) {
+        @if (selectedSecEvent(); as ev) {
           <div body class="sec-modal-body">
             <div class="diff-meta-grid">
               <div class="meta-item">
@@ -337,6 +337,9 @@ interface DiffRow {
 export class AuditModalsComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly selectedAudit = input<AuditRecord | null>(null);
+  readonly selectedSecEvent = input<SecurityEventRecord | null>(null);
+
   private readonly fieldCell = viewChild.required<TemplateRef<unknown>>('diffFieldCell');
 
   private readonly beforeCell = viewChild.required<TemplateRef<unknown>>('diffBeforeCell');
@@ -364,9 +367,6 @@ export class AuditModalsComponent {
   });
 
   private readonly diffMemo = optionsMemo<DiffRow[]>();
-
-  @Input() selectedAudit: AuditRecord | null = null;
-  @Input() selectedSecEvent: SecurityEventRecord | null = null;
 
   @Output() closeAuditModal = new EventEmitter<void>();
   @Output() closeSecModal = new EventEmitter<void>();

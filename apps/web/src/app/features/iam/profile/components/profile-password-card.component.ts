@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -33,14 +33,14 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             autocomplete="current-password"
             [(ngModel)]="passwordForm.oldPassword"
             name="oldPassword"
-            [smtInvalid]="isPasswordSubmitted && !passwordForm.oldPassword"
+            [smtInvalid]="isPasswordSubmitted() && !passwordForm.oldPassword"
             [smtDescribedBy]="
-              isPasswordSubmitted && !passwordForm.oldPassword ? 'profile-current-password-error' : null
+              isPasswordSubmitted() && !passwordForm.oldPassword ? 'profile-current-password-error' : null
             "
             [placeholder]="'iam.vvedite_tekuschiy_parol' | t"
             required
           />
-          @if (isPasswordSubmitted && !passwordForm.oldPassword) {
+          @if (isPasswordSubmitted() && !passwordForm.oldPassword) {
             <span id="profile-current-password-error" class="field-error">
               {{ 'iam.vvedite_tekuschiy_parol' | t }}
             </span>
@@ -61,9 +61,9 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             [maxLength]="passwordPolicy.max"
             [(ngModel)]="passwordForm.newPassword"
             name="newPassword"
-            [smtInvalid]="isPasswordSubmitted && !fitsPolicy(passwordForm.newPassword)"
+            [smtInvalid]="isPasswordSubmitted() && !fitsPolicy(passwordForm.newPassword)"
             [smtDescribedBy]="
-              isPasswordSubmitted && !fitsPolicy(passwordForm.newPassword)
+              isPasswordSubmitted() && !fitsPolicy(passwordForm.newPassword)
                 ? 'profile-new-password-hint profile-new-password-error'
                 : 'profile-new-password-hint'
             "
@@ -73,7 +73,7 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
           <span id="profile-new-password-hint" class="field-hint">{{
             'password.policy.hint' | t: passwordPolicy
           }}</span>
-          @if (isPasswordSubmitted && !fitsPolicy(passwordForm.newPassword)) {
+          @if (isPasswordSubmitted() && !fitsPolicy(passwordForm.newPassword)) {
             <span id="profile-new-password-error" class="field-error">
               {{ 'password.policy.length_error' | t: passwordPolicy }}
             </span>
@@ -84,43 +84,43 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             <div class="strength-meter-container">
               <div class="strength-header">
                 <span class="strength-label">{{ 'iam.nadezhnost_parolya' | t }}:</span>
-                <span class="strength-value" [ngClass]="passwordStrength.colorClass">
-                  {{ passwordStrength.label | t }}
+                <span class="strength-value" [ngClass]="passwordStrength().colorClass">
+                  {{ passwordStrength().label | t }}
                 </span>
               </div>
               <div class="strength-bar-track">
                 <div
                   class="strength-bar-fill"
-                  [ngClass]="passwordStrength.colorClass"
-                  [style.width.%]="passwordStrength.percent"
+                  [ngClass]="passwordStrength().colorClass"
+                  [style.width.%]="passwordStrength().percent"
                 ></div>
               </div>
               <div class="strength-checklist">
-                <div class="check-item" [class.valid]="hasMinLength">
+                <div class="check-item" [class.valid]="hasMinLength()">
                   <span class="material-symbols-outlined check-icon" aria-hidden="true">{{
-                    hasMinLength ? 'check_circle' : 'radio_button_unchecked'
+                    hasMinLength() ? 'check_circle' : 'radio_button_unchecked'
                   }}</span>
                   <span>{{ 'iam.trebovanie_dlina' | t }}</span>
                   <span class="sr-only">{{
-                    (hasMinLength ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                    (hasMinLength() ? 'common.requirement_met' : 'common.requirement_not_met') | t
                   }}</span>
                 </div>
-                <div class="check-item" [class.valid]="hasLettersAndNumbers">
+                <div class="check-item" [class.valid]="hasLettersAndNumbers()">
                   <span class="material-symbols-outlined check-icon" aria-hidden="true">{{
-                    hasLettersAndNumbers ? 'check_circle' : 'radio_button_unchecked'
+                    hasLettersAndNumbers() ? 'check_circle' : 'radio_button_unchecked'
                   }}</span>
                   <span>{{ 'iam.trebovanie_bukvy_i_cifry' | t }}</span>
                   <span class="sr-only">{{
-                    (hasLettersAndNumbers ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                    (hasLettersAndNumbers() ? 'common.requirement_met' : 'common.requirement_not_met') | t
                   }}</span>
                 </div>
-                <div class="check-item" [class.valid]="hasMixedCase">
+                <div class="check-item" [class.valid]="hasMixedCase()">
                   <span class="material-symbols-outlined check-icon" aria-hidden="true">{{
-                    hasMixedCase ? 'check_circle' : 'radio_button_unchecked'
+                    hasMixedCase() ? 'check_circle' : 'radio_button_unchecked'
                   }}</span>
                   <span>{{ 'iam.trebovanie_raznyy_registr' | t }}</span>
                   <span class="sr-only">{{
-                    (hasMixedCase ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                    (hasMixedCase() ? 'common.requirement_met' : 'common.requirement_not_met') | t
                   }}</span>
                 </div>
               </div>
@@ -141,11 +141,11 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             [(ngModel)]="passwordForm.confirmPassword"
             name="confirmPassword"
             [smtInvalid]="
-              isPasswordSubmitted &&
+              isPasswordSubmitted() &&
               (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)
             "
             [smtDescribedBy]="
-              isPasswordSubmitted &&
+              isPasswordSubmitted() &&
               (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)
                 ? 'profile-confirm-password-error'
                 : null
@@ -155,13 +155,13 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
           />
           @if (passwordForm.confirmPassword && passwordForm.newPassword) {
             <div class="password-match-hint">
-              @if (passwordsMatch) {
+              @if (passwordsMatch()) {
                 <span class="match-badge match-ok">
                   <span class="material-symbols-outlined match-icon" aria-hidden="true">check</span>
                   {{ 'iam.paroli_sovpadayut' | t }}
                 </span>
               }
-              @if (!passwordsMatch) {
+              @if (!passwordsMatch()) {
                 <span class="match-badge match-error">
                   <span class="material-symbols-outlined match-icon" aria-hidden="true">close</span>
                   {{ 'iam.paroli_ne_sovpadayut' | t }}
@@ -170,7 +170,7 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             </div>
           }
           @if (
-            isPasswordSubmitted &&
+            isPasswordSubmitted() &&
             (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)
           ) {
             <span id="profile-confirm-password-error" class="field-error">
@@ -180,7 +180,7 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
         </div>
 
         <div class="form-actions">
-          <button smt-button smtVariant="primary" smtSize="md" [smtLoading]="isChangingPassword" type="submit">
+          <button smt-button smtVariant="primary" smtSize="md" [smtLoading]="isChangingPassword()" type="submit">
             {{ 'iam.obnovit_parol' | t }}
           </button>
         </div>
@@ -420,14 +420,15 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
   ],
 })
 export class ProfilePasswordCardComponent {
+  readonly isPasswordSubmitted = input(false);
+  readonly isChangingPassword = input(false);
+  readonly passwordStrength = input<PasswordStrength>({ score: 0, label: '', percent: 0, colorClass: '' });
+  readonly hasMinLength = input(false);
+  readonly hasLettersAndNumbers = input(false);
+  readonly hasMixedCase = input(false);
+  readonly passwordsMatch = input(false);
+
   @Input() passwordForm!: PasswordForm;
-  @Input() isPasswordSubmitted = false;
-  @Input() isChangingPassword = false;
-  @Input() passwordStrength: PasswordStrength = { score: 0, label: '', percent: 0, colorClass: '' };
-  @Input() hasMinLength = false;
-  @Input() hasLettersAndNumbers = false;
-  @Input() hasMixedCase = false;
-  @Input() passwordsMatch = false;
   @Output() submitPassword = new EventEmitter<Event>();
 
   readonly passwordPolicy = PASSWORD_POLICY;

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { User } from '../profile.models';
@@ -17,17 +17,17 @@ import { User } from '../profile.models';
       </div>
 
       <div class="security-info-box">
-        <div class="twofa-status-banner" [class.enabled]="user?.is2faEnabled">
+        <div class="twofa-status-banner" [class.enabled]="user()?.is2faEnabled">
           <span class="material-symbols-outlined twofa-big-icon" aria-hidden="true">
-            {{ user?.is2faEnabled ? 'verified_user' : 'gpp_maybe' }}
+            {{ user()?.is2faEnabled ? 'verified_user' : 'gpp_maybe' }}
           </span>
           <div class="twofa-status-text">
             <div class="twofa-status-title">
-              {{ (user?.is2faEnabled ? 'iam.two_factor_active' : 'iam.two_factor_disabled') | t }}
+              {{ (user()?.is2faEnabled ? 'iam.two_factor_active' : 'iam.two_factor_disabled') | t }}
             </div>
             <div class="twofa-status-desc">
               {{
-                user?.is2faEnabled
+                user()?.is2faEnabled
                   ? ('iam.two_factor_active_description' | t)
                   : ('iam.two_factor_disabled_description' | t)
               }}
@@ -169,5 +169,5 @@ import { User } from '../profile.models';
   ],
 })
 export class ProfileSecurityCardComponent {
-  @Input() user: User | null = null;
+  readonly user = input<User | null>(null);
 }

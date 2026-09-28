@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
 import { CustomField } from '../../core/models/custom-field.models';
 import { I18nService } from '../../core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
@@ -18,7 +18,7 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTDynamicFieldComponent],
   template: `
-    @if (fields.length > 0) {
+    @if (fields().length > 0) {
       <div class="custom-fields-grid">
         @for (field of definitions(); track field.code) {
           <smt-dynamic-field
@@ -45,9 +45,9 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
 export class UiCustomFieldsComponent {
   private readonly i18n = inject(I18nService);
 
-  readonly users = inject(LookupSources).activeUsers;
+  readonly fields = input<CustomField[]>([]);
 
-  @Input() fields: CustomField[] = [];
+  readonly users = inject(LookupSources).activeUsers;
 
   @Input() values: Record<string, unknown> = {};
 
@@ -58,8 +58,9 @@ export class UiCustomFieldsComponent {
   /** The fields as definitions; the same array while the fields and the language stay the same. */
   definitions(): SMTDynamicFieldDef[] {
     const lang = this.i18n.currentLang();
-    if (this.cache?.fields !== this.fields || this.cache.lang !== lang) {
-      this.cache = { fields: this.fields, lang, definitions: this.fields.map((field) => this.definitionOf(field)) };
+    const fields = this.fields();
+    if (this.cache?.fields !== fields || this.cache.lang !== lang) {
+      this.cache = { fields: fields, lang, definitions: fields.map((field) => this.definitionOf(field)) };
     }
     return this.cache.definitions;
   }

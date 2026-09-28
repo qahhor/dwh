@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -31,7 +31,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     @if (isModalOpen) {
       <smt-dialog
         [open]="isModalOpen"
-        [smtTitle]="editingItem ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
+        [smtTitle]="editingItem() ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
         (closed)="closeModal.emit()"
       >
         <ng-template smtDialogContent>
@@ -41,7 +41,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                 <label class="form-label" for="nav-title">{{ 'nav.settings.field_title' | t }} *</label>
                 <smt-input
                   smtFieldId="nav-title"
-                  [ngModel]="formTitle"
+                  [ngModel]="formTitle()"
                   (ngModelChange)="formTitleChange.emit($event); titleChange.emit()"
                   [placeholder]="'nav.settings.title_placeholder' | t"
                 />
@@ -50,7 +50,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                 <label class="form-label" for="nav-code">{{ 'nav.settings.field_code' | t }} *</label>
                 <smt-input
                   smtFieldId="nav-code"
-                  [ngModel]="formCode"
+                  [ngModel]="formCode()"
                   (ngModelChange)="formCodeChange.emit($event)"
                   placeholder="superset-sales"
                 />
@@ -64,7 +64,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                   smtTriggerId="nav-type"
                   [options]="targetTypeOptions()"
                   [allowClear]="false"
-                  [value]="formTargetType"
+                  [value]="formTargetType()"
                   (valueChange)="$event && formTargetTypeChange.emit($event)"
                 />
               </div>
@@ -74,7 +74,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                   smtTriggerId="nav-section"
                   [options]="sectionOptions()"
                   [allowClear]="false"
-                  [value]="formSectionId"
+                  [value]="formSectionId()"
                   (valueChange)="$event && formSectionIdChange.emit($event)"
                 />
               </div>
@@ -83,13 +83,13 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                 <smt-input
                   smtFieldId="nav-order"
                   type="number"
-                  [ngModel]="formSortOrder"
+                  [ngModel]="formSortOrder()"
                   (ngModelChange)="formSortOrderChange.emit($event)"
                 />
               </div>
             </div>
 
-            @if (formTargetType === 'EMBEDDED_IFRAME') {
+            @if (formTargetType() === 'EMBEDDED_IFRAME') {
               <div class="type-hint-box">
                 <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
                 <span>{{ 'nav.settings.iframe_type_hint' | t }}</span>
@@ -100,7 +100,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
               <label class="form-label" for="nav-url">{{ 'nav.settings.field_url' | t }} *</label>
               <smt-input
                 smtFieldId="nav-url"
-                [ngModel]="formUrl"
+                [ngModel]="formUrl()"
                 (ngModelChange)="formUrlChange.emit($event)"
                 (touch)="urlBlur.emit()"
                 placeholder="https://bi.company.uz/superset/dashboard/123/"
@@ -127,20 +127,20 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
               <div class="icon-selector-row">
                 <smt-input
                   class="icon-input"
-                  [ngModel]="formIcon"
+                  [ngModel]="formIcon()"
                   (ngModelChange)="formIconChange.emit($event)"
                   placeholder="analytics"
                 />
                 <span class="material-symbols-outlined icon-preview" aria-hidden="true">{{
-                  formIcon || 'bar_chart'
+                  formIcon() || 'bar_chart'
                 }}</span>
               </div>
               <div class="icon-quick-chips">
-                @for (ic of popularIcons; track ic) {
+                @for (ic of popularIcons(); track ic) {
                   <button
                     type="button"
                     class="chip-btn"
-                    [class.active]="formIcon === ic"
+                    [class.active]="formIcon() === ic"
                     (click)="formIconChange.emit(ic)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">{{ ic }}</span>
@@ -158,9 +158,9 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
               smt-button
               type="button"
               smtVariant="primary"
-              [smtLoading]="isSubmitting"
+              [smtLoading]="isSubmitting()"
               (click)="saveItem.emit()"
-              [disabled]="!isFormValid"
+              [disabled]="!isFormValid()"
             >
               {{ 'common.save' | t }}
             </button>
@@ -301,22 +301,23 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 export class NavigationSettingsModalComponent {
   private readonly i18n = inject(I18nService);
 
-  @Input() isModalOpen = false;
-  @Input() editingItem: CustomNavigationItem | null = null;
-  @Input() isSubmitting = false;
-  @Input() isFormValid = false;
+  readonly editingItem = input<CustomNavigationItem | null>(null);
+  readonly isSubmitting = input(false);
+  readonly isFormValid = input(false);
 
-  @Input() formTitle = '';
-  @Input() formCode = '';
-  @Input() formTargetType: NavigationTargetType = 'EMBEDDED_IFRAME';
-  @Input() formSectionId = 'custom';
-  @Input() formSortOrder = 10;
-  @Input() formUrl = '';
-  @Input() formIcon = 'analytics';
+  readonly formTitle = input('');
+  readonly formCode = input('');
+  readonly formTargetType = input<NavigationTargetType>('EMBEDDED_IFRAME');
+  readonly formSectionId = input('custom');
+  readonly formSortOrder = input(10);
+  readonly formUrl = input('');
+  readonly formIcon = input('analytics');
+  readonly popularIcons = input<string[]>([]);
+
+  @Input() isModalOpen = false;
   /** `form.action` pair the item is limited to; null shows it to everyone. */
   @Input() formRequiredPermission: string | null = null;
   @Input() permissionChoices: NavigationPermissionChoice[] = [];
-  @Input() popularIcons: string[] = [];
 
   @Output() formTitleChange = new EventEmitter<string>();
   @Output() formCodeChange = new EventEmitter<string>();

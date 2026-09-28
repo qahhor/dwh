@@ -1,4 +1,4 @@
-import { Component, Input, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, Input, Signal, TemplateRef, computed, inject, signal, viewChild, input } from '@angular/core';
 
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -81,7 +81,7 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
       </div>
     </ng-template>
     <ng-template #emptyWorkload>
-      @if (!loading && !error) {
+      @if (!loading() && !error()) {
         <p class="empty">{{ 'analytics.dannye_po_zagruzke_sotrudnikov_otsutstvuyut' | t }}</p>
       }
     </ng-template>
@@ -197,6 +197,9 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 export class AnalyticsWorkloadTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly loading = input(false);
+  readonly error = input('');
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('userCell');
   private readonly loginCell = viewChild.required<TemplateRef<unknown>>('loginCell');
   private readonly assignedCell = viewChild.required<TemplateRef<unknown>>('assignedCell');
@@ -236,9 +239,6 @@ export class AnalyticsWorkloadTableComponent {
       columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency'],
     };
   });
-
-  @Input() loading = false;
-  @Input() error = '';
 
   /** The whole team is loaded, so a header click sorts every person, not a page. */
   readonly sortValues = {

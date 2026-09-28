@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, OnChanges, input } from '@angular/core';
 
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 
@@ -104,11 +104,11 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
   ],
 })
 export class UiMarkdownViewComponent implements OnChanges {
-  @Input() content: string | undefined = '';
+  readonly content = input<string | undefined>('');
   renderedHtml = '';
 
   ngOnChanges() {
-    this.renderedHtml = this.parseMarkdown(this.content || '');
+    this.renderedHtml = this.parseMarkdown(this.content() || '');
   }
 
   private parseMarkdown(text: string): string {

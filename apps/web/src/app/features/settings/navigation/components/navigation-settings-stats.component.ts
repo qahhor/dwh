@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 
@@ -9,19 +9,19 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
   template: `
     <div class="stats-grid">
       <div class="stat-card">
-        <span class="stat-value">{{ totalCount }}</span>
+        <span class="stat-value">{{ totalCount() }}</span>
         <span class="stat-label">{{ 'nav.settings.stat_total' | t }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-value stat-active">{{ activeCount }}</span>
+        <span class="stat-value stat-active">{{ activeCount() }}</span>
         <span class="stat-label">{{ 'nav.settings.stat_active' | t }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-value stat-embedded">{{ embeddedCount }}</span>
+        <span class="stat-value stat-embedded">{{ embeddedCount() }}</span>
         <span class="stat-label">{{ 'nav.settings.stat_embedded' | t }}</span>
       </div>
       <div class="stat-card">
-        <span class="stat-value stat-external">{{ externalCount }}</span>
+        <span class="stat-value stat-external">{{ externalCount() }}</span>
         <span class="stat-label">{{ 'nav.settings.stat_external' | t }}</span>
       </div>
     </div>
@@ -75,8 +75,8 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
   ],
 })
 export class NavigationSettingsStatsComponent {
-  @Input() totalCount = 0;
-  @Input() activeCount = 0;
-  @Input() embeddedCount = 0;
-  @Input() externalCount = 0;
+  readonly totalCount = input(0);
+  readonly activeCount = input(0);
+  readonly embeddedCount = input(0);
+  readonly externalCount = input(0);
 }
