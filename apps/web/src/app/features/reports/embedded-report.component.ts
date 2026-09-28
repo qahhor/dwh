@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -9,6 +9,7 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-embedded-report',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTButtonComponent, RouterModule, TranslatePipe],
   template: `
     <div class="embedded-report-container" [class.fullscreen]="isFullscreen()">

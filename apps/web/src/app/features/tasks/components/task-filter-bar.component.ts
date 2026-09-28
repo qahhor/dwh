@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
@@ -16,6 +16,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 
 @Component({
   selector: 'app-task-filter-bar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe, SMTSelectComponent, ProjectOptionsPipe],
   template: `
     <div class="toolbar">

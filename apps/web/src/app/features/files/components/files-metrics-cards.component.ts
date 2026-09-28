@@ -1,10 +1,11 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { StorageStats } from '../files.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-metrics-cards',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
     @if (stats(); as s) {

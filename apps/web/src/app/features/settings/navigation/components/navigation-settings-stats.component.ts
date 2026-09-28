@@ -1,9 +1,10 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-navigation-settings-stats',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
     <div class="stats-grid">

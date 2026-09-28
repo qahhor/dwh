@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -6,6 +6,7 @@ import { NavSection } from '../app-shell.models';
 
 @Component({
   selector: 'app-sidebar-nav-sections',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterModule, TranslatePipe],
   template: `
     @for (section of navSections(); track section; let first = $first) {

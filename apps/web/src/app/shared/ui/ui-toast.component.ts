@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 import { ToastService, ToastMessage } from '../../core/services/toast.service';
 import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-toast-container',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
     @if (toastService.toasts().length > 0) {

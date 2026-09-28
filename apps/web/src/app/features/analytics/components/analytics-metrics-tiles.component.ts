@@ -1,10 +1,11 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AnalyticsSummary } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-metrics-tiles',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
     <div class="tiles">

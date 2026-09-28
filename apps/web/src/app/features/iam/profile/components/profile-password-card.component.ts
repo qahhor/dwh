@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -9,6 +9,7 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
 
 @Component({
   selector: 'app-profile-password-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent, NgClass],
   template: `
     <div class="card section-card">

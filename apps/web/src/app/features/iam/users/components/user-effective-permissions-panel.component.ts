@@ -1,4 +1,14 @@
-import { Component, OnInit, OnChanges, SimpleChanges, inject, signal, computed, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnInit,
+  OnChanges,
+  SimpleChanges,
+  inject,
+  signal,
+  computed,
+  input,
+} from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -41,6 +51,7 @@ export interface GroupedPermissionModule {
 
 @Component({
   selector: 'app-user-effective-permissions-panel',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTRadioGroupComponent,
     SMTSelectComponent,

@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -7,6 +7,7 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
 
 @Component({
   selector: 'app-user-profile-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTAvatarComponent, TranslatePipe, UiBadgeComponent],
   template: `
     @if (user(); as user) {

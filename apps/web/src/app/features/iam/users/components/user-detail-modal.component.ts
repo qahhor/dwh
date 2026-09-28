@@ -1,4 +1,14 @@
-import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -16,6 +26,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-user-detail-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTabBarComponent,
     SMTAvatarComponent,

@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { TaskFile } from '../../../core/models/task.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -8,6 +8,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-modals',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, UiFileUploadComponent, TranslatePipe],
   template: `
     <!-- Upload Modal -->

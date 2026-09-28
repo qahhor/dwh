@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
@@ -9,6 +9,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-settings-preferences-panel',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTSwitchComponent, SMTSelectComponent, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">

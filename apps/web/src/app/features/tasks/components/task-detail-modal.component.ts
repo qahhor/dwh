@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -25,6 +25,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
 @Component({
   selector: 'app-task-detail-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAvatarComponent,
     SMTSelectComponent,

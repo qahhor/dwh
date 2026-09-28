@@ -1,4 +1,14 @@
-import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  Signal,
+  TemplateRef,
+  viewChild,
+  output,
+} from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -17,6 +27,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
 @Component({
   selector: 'app-audit-logs-table',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     SMTInputComponent,

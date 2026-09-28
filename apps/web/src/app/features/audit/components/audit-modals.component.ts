@@ -1,4 +1,13 @@
-import { Component, computed, inject, TemplateRef, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  TemplateRef,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 import { NgClass, JsonPipe, DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -17,6 +26,7 @@ interface DiffRow {
 
 @Component({
   selector: 'app-audit-modals',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     SMTButtonComponent,

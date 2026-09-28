@@ -1,4 +1,14 @@
-import { Component, Signal, TemplateRef, computed, inject, signal, viewChild, input } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+  input,
+} from '@angular/core';
 
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -10,6 +20,7 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-analytics-workload-table',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTAvatarComponent, SMTInputComponent, TranslatePipe, UiBadgeComponent, UiLocalTableComponent],
   template: `
     <div class="table-card" style="margin-top: 20px;">

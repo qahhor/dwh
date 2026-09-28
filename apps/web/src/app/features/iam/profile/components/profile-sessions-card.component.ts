@@ -1,4 +1,14 @@
-import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
@@ -9,6 +19,7 @@ import { UserSession } from '../profile.models';
 
 @Component({
   selector: 'app-profile-sessions-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiLocalTableComponent, TranslatePipe, SMTButtonComponent, UiBadgeComponent, DatePipe],
   template: `
     <div class="card section-card full-width">

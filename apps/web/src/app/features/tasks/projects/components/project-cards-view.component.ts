@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiPaginationComponent } from '../../../../shared/ui/ui-pagination.component';
@@ -6,6 +6,7 @@ import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
 
 @Component({
   selector: 'app-project-cards-view',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, UiPaginationComponent, DatePipe],
   template: `
     <div class="cards-view-wrapper">

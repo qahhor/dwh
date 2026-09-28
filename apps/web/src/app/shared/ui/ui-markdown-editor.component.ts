@@ -1,4 +1,4 @@
-import { Component, signal, ElementRef, inject, input, model, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, ElementRef, inject, input, model, viewChild } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
@@ -8,6 +8,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'ui-markdown-editor',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTTabBarComponent, TranslatePipe, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">

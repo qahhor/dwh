@@ -1,4 +1,14 @@
-import { Component, Signal, TemplateRef, computed, inject, input, viewChild, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  input,
+  viewChild,
+  output,
+} from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FileDetail } from '../files.models';
 import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
@@ -25,6 +35,7 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
  */
 @Component({
   selector: 'app-files-table',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, UiServerTableComponent, DatePipe, NgClass],
   template: `
     <div

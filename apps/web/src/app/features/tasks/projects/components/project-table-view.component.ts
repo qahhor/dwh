@@ -1,4 +1,14 @@
-import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  Signal,
+  TemplateRef,
+  viewChild,
+  output,
+} from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
@@ -17,6 +27,7 @@ import { ProjectListItem } from '../projects.models';
  */
 @Component({
   selector: 'app-project-table-view',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, UiServerTableComponent, DatePipe],
   template: `
     <div class="table-card" role="region" [attr.aria-label]="'projects.tablica_proektov' | t">

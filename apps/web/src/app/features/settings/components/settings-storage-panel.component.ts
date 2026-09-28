@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -7,6 +7,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 
 @Component({
   selector: 'app-settings-storage-panel',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">

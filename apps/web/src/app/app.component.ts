@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
@@ -7,6 +7,7 @@ import { UiToastContainerComponent } from './shared/ui/ui-toast.component';
 
 @Component({
   selector: 'app-root',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, RouterModule, UiToastContainerComponent],
   template: `
     @if (authService.isLoading()) {

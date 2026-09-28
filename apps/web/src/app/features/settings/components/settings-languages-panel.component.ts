@@ -1,4 +1,13 @@
-import { Component, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -13,6 +22,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 
 @Component({
   selector: 'app-settings-languages-panel',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTextareaComponent,
     SMTTextareaValueAccessor,

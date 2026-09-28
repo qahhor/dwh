@@ -1,4 +1,14 @@
-import { Component, HostListener, OnInit, computed, signal, inject, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostListener,
+  OnInit,
+  computed,
+  signal,
+  inject,
+  input,
+  output,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import {
@@ -17,6 +27,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
 
 @Component({
   selector: 'app-language-editor',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTSwitchComponent, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, FormsModule],
   template: `
     <section class="translation-editor" aria-labelledby="translation-editor-title">

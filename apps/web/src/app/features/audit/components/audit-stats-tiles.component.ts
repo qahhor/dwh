@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -6,6 +6,7 @@ import { AuditStats } from '../audit.models';
 
 @Component({
   selector: 'app-audit-stats-tiles',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent],
   template: `
     <!-- Stats Cards -->

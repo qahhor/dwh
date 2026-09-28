@@ -1,4 +1,14 @@
-import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
@@ -14,6 +24,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
  */
 @Component({
   selector: 'app-navigation-settings-table',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <!-- Search & Filter Bar -->

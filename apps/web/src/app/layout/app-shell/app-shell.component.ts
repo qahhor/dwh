@@ -1,5 +1,6 @@
 import { IdleLockDialogComponent } from './components/idle-lock-dialog.component';
 import {
+  ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
@@ -43,6 +44,7 @@ import {
 import { AppShellFlyoutService } from './services/app-shell-flyout.service';
 @Component({
   selector: 'app-shell',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     IdleLockDialogComponent,
     RouterModule,

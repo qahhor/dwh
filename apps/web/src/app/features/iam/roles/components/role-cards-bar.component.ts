@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -7,6 +7,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-role-cards-bar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTInputComponent, FormsModule, TranslatePipe],
   template: `
     <div class="roles-strip-container">

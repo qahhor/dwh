@@ -1,10 +1,11 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { User } from '../profile.models';
 
 @Component({
   selector: 'app-profile-security-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `
     <div class="card section-card">

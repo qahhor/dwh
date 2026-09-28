@@ -1,4 +1,14 @@
-import { Component, inject, Signal, TemplateRef, computed, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  Signal,
+  TemplateRef,
+  computed,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
 import { NgClass } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -9,6 +19,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 
 @Component({
   selector: 'app-custom-fields-table',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTButtonComponent, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <div class="card table-card">

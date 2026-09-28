@@ -1,4 +1,4 @@
-import { Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ProjectStateFilter } from '../projects.models';
@@ -12,6 +12,7 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
 
 @Component({
   selector: 'app-project-filter-bar',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe],
   template: `
     <div class="toolbar">
