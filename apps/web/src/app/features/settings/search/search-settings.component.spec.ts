@@ -768,11 +768,11 @@ describe('SearchSettingsComponent', () => {
         (inScreen(fixture.nativeElement).querySelector('button[data-action="start-rebuild"]') as HTMLButtonElement)
           .disabled,
       ).toBe(true);
-      fixture.componentInstance.save();
-      fixture.componentInstance.requestMaintenance('CHECK');
-      fixture.componentInstance.confirmation.set({ action: 'REBUILD' });
-      fixture.componentInstance.confirmMaintenance();
-      fixture.componentInstance.retryJob({
+      fixture.componentInstance.store.save();
+      fixture.componentInstance.store.requestMaintenance('CHECK');
+      fixture.componentInstance.store.confirmation.set({ action: 'REBUILD' });
+      fixture.componentInstance.store.confirmMaintenance();
+      fixture.componentInstance.store.retryJob({
         id: 'failed-job',
         action: 'REBUILD',
         generationId: 'generation-2',
@@ -802,7 +802,7 @@ describe('SearchSettingsComponent', () => {
       const cancelButton = inScreen(fixture.nativeElement).querySelector('.active-job button') as HTMLButtonElement;
       expect(cancelButton).not.toBeNull();
       expect(cancelButton.disabled).toBe(false);
-      fixture.componentInstance.cancelJob(running);
+      fixture.componentInstance.store.cancelJob(running);
       expect(cancel).toHaveBeenCalledWith('job-1');
       fixture.destroy();
     } finally {
@@ -850,7 +850,7 @@ describe('SearchSettingsComponent', () => {
         (inScreen(fixture.nativeElement).querySelector('button[data-action="start-check"]') as HTMLButtonElement)
           .disabled,
       ).toBe(true);
-      fixture.componentInstance.requestMaintenance('CHECK');
+      fixture.componentInstance.store.requestMaintenance('CHECK');
       expect(startJob).not.toHaveBeenCalled();
       vi.advanceTimersByTime(0);
       expect(job).toHaveBeenCalledTimes(1);

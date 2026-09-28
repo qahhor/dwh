@@ -6,20 +6,20 @@
       type="button"
       smtVariant="secondary"
       smtIcon="refresh"
-      [smtLoading]="isLoading()"
+      [smtLoading]="store.isLoading()"
       [attr.aria-label]="'common.refresh' | t"
-      (click)="loadAllSettings()"
+      (click)="store.loadAllSettings()"
     >
       {{ 'common.refresh' | t }}
     </button>
   </ui-page-header>
 
   <!-- Error Banner -->
-  @if (loadError()) {
+  @if (store.loadError()) {
     <div class="load-error-banner" role="alert">
       <span class="material-symbols-outlined" aria-hidden="true">error</span>
-      <span class="load-error-text">{{ loadError() }}</span>
-      <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="loadAllSettings()">
+      <span class="load-error-text">{{ store.loadError() }}</span>
+      <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="store.loadAllSettings()">
         {{ 'common.retry' | t }}
       </button>
     </div>
@@ -37,60 +37,60 @@
   </div>
 
   <!-- TAB: Search Settings -->
-  @if (activeTab() === 'search' && canViewSearchSettings()) {
+  @if (activeTab() === 'search' && store.canViewSearchSettings()) {
     <div id="settings-search-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-search-tab">
       <app-search-settings />
     </div>
   }
 
   <!-- TAB: Navigation Settings -->
-  @if (activeTab() === 'navigation' && canViewNavigationSettings()) {
+  @if (activeTab() === 'navigation' && store.canViewNavigationSettings()) {
     <div id="settings-navigation-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-navigation-tab">
       <app-navigation-settings />
     </div>
   }
 
   <!-- TAB: Webhook Subscriptions -->
-  @if (activeTab() === 'webhooks' && canViewWebhookSettings()) {
+  @if (activeTab() === 'webhooks' && store.canViewWebhookSettings()) {
     <div id="settings-webhooks-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-webhooks-tab">
       <app-webhooks-settings />
     </div>
   }
 
   <!-- TAB 1: General Settings -->
-  @if (activeTab() === 'general' && canManageSystemSettings()) {
+  @if (activeTab() === 'general' && store.canManageSystemSettings()) {
     <div id="settings-general-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-general-tab">
       <app-settings-general-panel
-        [systemSettings]="systemSettings()"
-        [canUpdateSystemSettings]="canUpdateSystemSettings()"
-        [isSaving]="isSaving()"
+        [systemSettings]="store.systemSettings()"
+        [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
+        [isSaving]="store.isSaving()"
         [languages]="i18n.languages()"
-        (save)="saveSystemSettings()"
+        (save)="store.saveSystemSettings()"
       />
     </div>
   }
 
   <!-- TAB 2: Security Settings -->
-  @if (activeTab() === 'security' && canManageSystemSettings()) {
+  @if (activeTab() === 'security' && store.canManageSystemSettings()) {
     <div id="settings-security-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-security-tab">
       <app-settings-security-panel
-        [systemSettings]="systemSettings()"
-        [canUpdateSystemSettings]="canUpdateSystemSettings()"
-        [isSaving]="isSaving()"
-        (save)="saveSystemSettings()"
-        (toggleRequire2fa)="toggleRequire2fa($event)"
+        [systemSettings]="store.systemSettings()"
+        [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
+        [isSaving]="store.isSaving()"
+        (save)="store.saveSystemSettings()"
+        (toggleRequire2fa)="store.toggleRequire2fa($event)"
       />
     </div>
   }
 
   <!-- TAB 3: Storage Settings -->
-  @if (activeTab() === 'storage' && canManageSystemSettings()) {
+  @if (activeTab() === 'storage' && store.canManageSystemSettings()) {
     <div id="settings-storage-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-storage-tab">
       <app-settings-storage-panel
-        [systemSettings]="systemSettings()"
-        [canUpdateSystemSettings]="canUpdateSystemSettings()"
-        [isSaving]="isSaving()"
-        (save)="saveSystemSettings()"
+        [systemSettings]="store.systemSettings()"
+        [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
+        [isSaving]="store.isSaving()"
+        (save)="store.saveSystemSettings()"
       />
     </div>
   }
@@ -99,43 +99,43 @@
   @if (activeTab() === 'preferences') {
     <div id="settings-preferences-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-preferences-tab">
       <app-settings-preferences-panel
-        [userSettings]="userSettings()"
-        [isSaving]="isSaving()"
+        [userSettings]="store.userSettings()"
+        [isSaving]="store.isSaving()"
         [currentLang]="i18n.currentLang()"
         [languages]="i18n.languages()"
-        [userThemePreference]="userThemePreference()"
-        (save)="saveUserSettings()"
-        (changeLanguage)="changePersonalLang($event)"
-        (themeChange)="onThemeChange($event)"
-        (toggleSound)="toggleSound($event)"
+        [userThemePreference]="store.userThemePreference()"
+        (save)="store.saveUserSettings()"
+        (changeLanguage)="store.changePersonalLang($event)"
+        (themeChange)="store.onThemeChange($event)"
+        (toggleSound)="store.toggleSound($event)"
       />
     </div>
   }
 
   <!-- TAB 5: Languages & Translations -->
-  @if (activeTab() === 'languages' && canManageSystemSettings()) {
+  @if (activeTab() === 'languages' && store.canManageSystemSettings()) {
     <div id="settings-languages-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-languages-tab">
       <app-settings-languages-panel
-        [canUpdateSystemSettings]="canUpdateSystemSettings()"
-        [editingLanguageCode]="editingLanguageCode()"
-        [legacyLanguageCount]="legacyLanguageCount()"
-        [isMigratingLegacyLanguages]="isMigratingLegacyLanguages()"
+        [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
+        [editingLanguageCode]="languageStore.editingLanguageCode()"
+        [legacyLanguageCount]="languageStore.legacyLanguageCount()"
+        [isMigratingLegacyLanguages]="languageStore.isMigratingLegacyLanguages()"
         [languages]="i18n.languages()"
         [currentLang]="i18n.currentLang()"
-        [isAddLangModalOpen]="isAddLangModalOpen()"
-        [isAddingLang]="isAddingLang()"
+        [isAddLangModalOpen]="languageStore.isAddLangModalOpen()"
+        [isAddingLang]="languageStore.isAddingLang()"
         [newLangCode]="newLangCode"
         [newLangName]="newLangName"
         [newLangJson]="newLangJson"
-        (openLanguageEditor)="openLanguageEditor($event)"
-        (closeLanguageEditor)="editingLanguageCode.set(null)"
-        (languageSaved)="onLanguageSaved()"
-        (migrateLegacyLanguages)="migrateLegacyLanguages()"
+        (openLanguageEditor)="languageStore.openLanguageEditor($event)"
+        (closeLanguageEditor)="languageStore.editingLanguageCode.set(null)"
+        (languageSaved)="languageStore.onLanguageSaved()"
+        (migrateLegacyLanguages)="languageStore.migrateLegacyLanguages()"
         (openAddLangModal)="openAddLangModal()"
-        (closeAddLangModal)="isAddLangModalOpen.set(false)"
+        (closeAddLangModal)="languageStore.isAddLangModalOpen.set(false)"
         (saveNewLanguage)="saveNewLanguage()"
-        (exportLangJson)="exportLangJson($event)"
-        (switchLanguage)="switchLanguage($event)"
+        (exportLangJson)="languageStore.exportLangJson($event)"
+        (switchLanguage)="languageStore.switchLanguage($event)"
         (newLangCodeChange)="newLangCode = $event"
         (newLangNameChange)="newLangName = $event"
         (newLangJsonChange)="newLangJson = $event"

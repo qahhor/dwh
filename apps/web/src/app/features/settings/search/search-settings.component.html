@@ -1,8 +1,8 @@
-@if (canSearch()) {
+@if (store.canSearch()) {
   <section class="search-settings" aria-labelledby="search-settings-title">
     <h2 id="search-settings-title" class="sr-only">{{ 'settings.search.title' | t }}</h2>
 
-    <section class="settings-block" [attr.aria-busy]="statusLoading()" aria-labelledby="search-status-title">
+    <section class="settings-block" [attr.aria-busy]="store.statusLoading()" aria-labelledby="search-status-title">
       <header class="block-header">
         <div>
           <h3 id="search-status-title">{{ 'settings.search.status.title' | t }}</h3>
@@ -13,19 +13,19 @@
           smtVariant="secondary"
           type="button"
           data-action="refresh-search-status"
-          [disabled]="statusLoading()"
-          (click)="refreshOperationalData()"
+          [disabled]="store.statusLoading()"
+          (click)="store.refreshOperationalData()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">refresh</span>{{ 'common.refresh' | t }}
         </button>
       </header>
-      @if (statusLoading()) {
+      @if (store.statusLoading()) {
         <p class="notice" role="status" aria-live="polite">{{ 'settings.search.loading' | t }}</p>
       }
-      @if (statusError(); as error) {
+      @if (store.statusError(); as error) {
         <div class="notice notice-error" role="alert">{{ error.detail }}</div>
       }
-      @if (status(); as current) {
+      @if (store.status(); as current) {
         <div class="status-grid" [attr.data-status]="current.dependency.healthy ? 'healthy' : 'unhealthy'">
           <div>
             <span>{{ 'settings.search.status.engine' | t }}</span
@@ -103,7 +103,7 @@
             </div>
           }
         </div>
-        @if (rebuildRequired()) {
+        @if (store.rebuildRequired()) {
           <div class="notice notice-warning" data-state="rebuild-required" role="status">
             {{ 'settings.search.rebuild_required' | t }}
           </div>
@@ -125,17 +125,17 @@
       }
     </section>
 
-    @if (!canReadSettings()) {
+    @if (!store.canReadSettings()) {
       <div class="notice" data-state="configuration-not-authorized" role="status">
         {{ 'settings.search.configuration_not_authorized' | t }}
       </div>
     }
-    @if (canReadSettings() && settingsLoading()) {
+    @if (store.canReadSettings() && store.settingsLoading()) {
       <div class="notice" role="status" aria-live="polite">
         {{ 'settings.search.configuration_loading' | t }}
       </div>
     }
-    @if (canReadSettings() && settingsError(); as error) {
+    @if (store.canReadSettings() && store.settingsError(); as error) {
       <div class="notice notice-error" data-state="configuration-unavailable" role="alert">
         <span>{{ 'settings.search.configuration_unavailable' | t }} {{ error.detail }}</span>
         <button
@@ -143,14 +143,14 @@
           smtVariant="secondary"
           type="button"
           data-action="reload-search-settings"
-          (click)="loadSettings()"
+          (click)="store.loadSettings()"
         >
           {{ 'settings.search.reload' | t }}
         </button>
       </div>
     }
 
-    @if (draft() || statusAuthorized()) {
+    @if (store.draft() || store.statusAuthorized()) {
       <section class="settings-block" aria-labelledby="search-relevance-title">
         <header class="block-header">
           <div>
@@ -158,7 +158,7 @@
             <p>{{ 'settings.search.relevance.description' | t }}</p>
           </div>
         </header>
-        @if (draft(); as policy) {
+        @if (store.draft(); as policy) {
           <div class="form-grid">
             <label
               ><span>{{ 'settings.search.global_limit' | t }}</span
@@ -171,7 +171,7 @@
                 [smtStep]="1"
                 inputmode="numeric"
                 [ngModel]="policy.globalLimit"
-                (ngModelChange)="updatePolicyNumber('globalLimit', $event)"
+                (ngModelChange)="store.updatePolicyNumber('globalLimit', $event)"
               /><small>{{ 'settings.search.global_limit_hint' | t }}</small></label
             >
           </div>
@@ -191,7 +191,7 @@
                     ><span>{{ 'settings.search.fields.typos' | t }}</span
                     ><span>{{ 'settings.search.fields.prefix' | t }}</span>
                   </div>
-                  @for (field of fields(entity); track trackField(i, field); let i = $index) {
+                  @for (field of store.fields(entity); track trackField(i, field); let i = $index) {
                     <div class="field-grid">
                       <span class="field-name" [id]="'search-field-' + entity + '-' + i">{{
                         'settings.search.field.' + field.field | t
@@ -206,7 +206,7 @@
                           inputmode="numeric"
                           [smtDescribedBy]="'search-field-' + entity + '-' + i"
                           [ngModel]="field.weight"
-                          (ngModelChange)="updateFieldNumber(entity, i, 'weight', $event)"
+                          (ngModelChange)="store.updateFieldNumber(entity, i, 'weight', $event)"
                       /></label>
                       <label
                         ><span class="sr-only">{{ 'settings.search.fields.typos' | t }}</span
@@ -218,7 +218,7 @@
                           inputmode="numeric"
                           [smtDescribedBy]="'search-field-' + entity + '-' + i"
                           [ngModel]="field.numTypos"
-                          (ngModelChange)="updateFieldNumber(entity, i, 'numTypos', $event)"
+                          (ngModelChange)="store.updateFieldNumber(entity, i, 'numTypos', $event)"
                       /></label>
                       <div class="checkbox-cell">
                         <div
@@ -228,7 +228,7 @@
                             ('settings.search.fields.prefix' | t) + ': ' + ('settings.search.field.' + field.field | t)
                           "
                           [checked]="field.prefix"
-                          (checkedChange)="updateFieldPrefix(entity, i, $event)"
+                          (checkedChange)="store.updateFieldPrefix(entity, i, $event)"
                         ></div>
                       </div>
                     </div>
@@ -238,7 +238,7 @@
             }
           </div>
         }
-        @if (statusAuthorized()) {
+        @if (store.statusAuthorized()) {
           <div class="preview-panel">
             <h4>{{ 'settings.search.preview.title' | t }}</h4>
             <p>{{ 'settings.search.preview.description' | t }}</p>
@@ -269,26 +269,26 @@
                 data-action="preview-search-settings"
                 [disabled]="
                   !previewQuery.trim() ||
-                  (draft() !== null && policyErrors().length > 0) ||
-                  previewCooldownSeconds() > 0
+                  (store.draft() !== null && store.policyErrors().length > 0) ||
+                  store.previewCooldownSeconds() > 0
                 "
-                [attr.aria-busy]="previewPending()"
-                (click)="preview()"
+                [attr.aria-busy]="store.previewPending()"
+                (click)="store.preview(previewQuery, previewEntity)"
               >
                 {{ 'settings.search.preview.action' | t }}
               </button>
             </div>
-            @if (previewCooldownSeconds() > 0) {
+            @if (store.previewCooldownSeconds() > 0) {
               <p role="status">
-                {{ 'settings.search.preview.cooldown' | t: { seconds: previewCooldownSeconds() } }}
+                {{ 'settings.search.preview.cooldown' | t: { seconds: store.previewCooldownSeconds() } }}
               </p>
             }
-            @if (previewError(); as error) {
+            @if (store.previewError(); as error) {
               <div class="notice notice-error" data-state="preview-error" role="alert">
                 {{ error.detail }}
               </div>
             }
-            @if (previewResult(); as preview) {
+            @if (store.previewResult(); as preview) {
               <div class="preview-results" aria-live="polite">
                 <p class="profile-label" [attr.data-active-profile]="preview.activeProfile">
                   {{ 'settings.search.preview.active_profile' | t }}: <strong>{{ preview.activeProfile }}</strong>
@@ -310,7 +310,7 @@
       </section>
     }
 
-    @if (draft(); as policy) {
+    @if (store.draft(); as policy) {
       <section class="settings-block" aria-labelledby="search-language-title">
         <header class="block-header">
           <div>
@@ -325,7 +325,7 @@
             [options]="schemaProfileOptions"
             [allowClear]="false"
             [value]="policy.schemaProfile"
-            (valueChange)="$event && updateSchemaProfile($event)"
+            (valueChange)="$event && store.updateSchemaProfile($event)"
         /></label>
         <div class="notice notice-warning">{{ 'settings.search.language.rebuild_explanation' | t }}</div>
       </section>
@@ -348,7 +348,7 @@
               [smtStep]="1"
               inputmode="numeric"
               [ngModel]="policy.requestsPerMinute"
-              (ngModelChange)="updatePolicyNumber('requestsPerMinute', $event)"
+              (ngModelChange)="store.updatePolicyNumber('requestsPerMinute', $event)"
           /></label>
           <label
             ><span>{{ 'settings.search.burst' | t }}</span
@@ -360,10 +360,10 @@
               [smtStep]="1"
               inputmode="numeric"
               [ngModel]="policy.burst"
-              (ngModelChange)="updatePolicyNumber('burst', $event)"
+              (ngModelChange)="store.updatePolicyNumber('burst', $event)"
           /></label>
         </div>
-        @if (status()?.budgets?.searchRate; as rates) {
+        @if (store.status()?.budgets?.searchRate; as rates) {
           <div class="effective-rates">
             <span
               >{{ 'settings.search.protection.effective_user' | t }}: {{ rates.user.perMinute }}/min · burst
@@ -374,17 +374,17 @@
             >
           </div>
         }
-        @if (saveAttempted() && policyErrors().length > 0) {
+        @if (store.saveAttempted() && store.policyErrors().length > 0) {
           <div class="notice notice-error" data-state="policy-invalid" role="alert">
             <strong>{{ 'settings.search.validation.title' | t }}</strong>
             <ul>
-              @for (error of policyErrors(); track error) {
+              @for (error of store.policyErrors(); track error) {
                 <li>{{ error | t }}</li>
               }
             </ul>
           </div>
         }
-        @if (saveError(); as error) {
+        @if (store.saveError(); as error) {
           <div class="notice notice-error" data-state="save-error" role="alert">
             <span>{{ error.detail }}</span>
             @if (error.status === 409) {
@@ -393,7 +393,7 @@
                 smtVariant="secondary"
                 type="button"
                 data-action="reload-search-settings"
-                (click)="loadSettings()"
+                (click)="store.loadSettings()"
               >
                 {{ 'settings.search.reload_server_version' | t }}
               </button>
@@ -401,22 +401,28 @@
           </div>
         }
         <div class="save-row">
-          @if (!dirty() && savedSettings()) {
+          @if (!store.dirty() && store.savedSettings()) {
             <span data-state="policy-clean" role="status"
-              >{{ 'settings.search.saved' | t }} · v{{ savedSettings()!.version }}</span
+              >{{ 'settings.search.saved' | t }} · v{{ store.savedSettings()!.version }}</span
             >
           }
-          @if (dirty()) {
+          @if (store.dirty()) {
             <span data-state="policy-dirty" role="status">{{ 'settings.search.unsaved' | t }}</span>
           }
-          @if (canMaintain()) {
+          @if (store.canMaintain()) {
             <button
               smt-button
               type="button"
               data-action="save-search-settings"
-              [disabled]="!canReadSettings() || !dirty() || savePending() || mutationPending() || activeOperation()"
-              [attr.aria-busy]="savePending()"
-              (click)="save()"
+              [disabled]="
+                !store.canReadSettings() ||
+                !store.dirty() ||
+                store.savePending() ||
+                store.mutationPending() ||
+                store.activeOperation()
+              "
+              [attr.aria-busy]="store.savePending()"
+              (click)="store.save()"
             >
               {{ 'common.save' | t }}
             </button>
@@ -425,7 +431,7 @@
       </section>
     }
 
-    @if (status(); as current) {
+    @if (store.status(); as current) {
       <section class="settings-block" aria-labelledby="search-maintenance-title">
         <header class="block-header">
           <div>
@@ -433,21 +439,21 @@
             <p>{{ 'settings.search.maintenance.description' | t }}</p>
           </div>
         </header>
-        @if (atCapacity()) {
+        @if (store.atCapacity()) {
           <div class="notice notice-warning" data-state="generation-capacity" role="status">
             {{ 'settings.search.maintenance.capacity' | t }}
           </div>
         }
         <p class="maintenance-note">{{ 'settings.search.maintenance.cancel_limit' | t }}</p>
-        @if (canMaintain()) {
+        @if (store.canMaintain()) {
           <div class="maintenance-actions">
             <button
               smt-button
               smtVariant="secondary"
               type="button"
               data-action="start-check"
-              [disabled]="mutationPending() || savePending() || activeOperation()"
-              (click)="requestMaintenance('CHECK')"
+              [disabled]="store.mutationPending() || store.savePending() || store.activeOperation()"
+              (click)="store.requestMaintenance('CHECK')"
             >
               {{ 'settings.search.maintenance.check' | t }}
             </button>
@@ -455,8 +461,10 @@
               smt-button
               type="button"
               data-action="start-rebuild"
-              [disabled]="mutationPending() || savePending() || activeOperation() || atCapacity()"
-              (click)="requestMaintenance('REBUILD')"
+              [disabled]="
+                store.mutationPending() || store.savePending() || store.activeOperation() || store.atCapacity()
+              "
+              (click)="store.requestMaintenance('REBUILD')"
             >
               {{ 'settings.search.maintenance.rebuild' | t }}
             </button>
@@ -466,32 +474,32 @@
                 smtVariant="secondary"
                 type="button"
                 [attr.data-generation-id]="target.id"
-                [disabled]="mutationPending() || savePending() || activeOperation()"
-                (click)="requestMaintenance('ROLLBACK', target.id)"
+                [disabled]="store.mutationPending() || store.savePending() || store.activeOperation()"
+                (click)="store.requestMaintenance('ROLLBACK', target.id)"
               >
                 {{ 'settings.search.maintenance.rollback' | t }} · {{ target.schemaProfile }} · {{ target.id }}
               </button>
             }
           </div>
         }
-        @if (mutationError(); as error) {
+        @if (store.mutationError(); as error) {
           <div class="notice notice-error" role="alert">
             <span>{{ error.detail }}</span>
-            @if (uncertainMutation()) {
+            @if (store.uncertainMutation()) {
               <button
                 smt-button
                 smtVariant="secondary"
                 type="button"
                 data-action="retry-uncertain-mutation"
-                (click)="retryUncertainMutation()"
+                (click)="store.retryUncertainMutation()"
               >
                 {{ 'common.retry' | t }}
               </button>
             }
           </div>
         }
-        @if (activeJob(); as job) {
-          <div class="active-job" [attr.aria-busy]="!isTerminal(job)" aria-live="polite">
+        @if (store.activeJob(); as job) {
+          <div class="active-job" [attr.aria-busy]="!store.isTerminal(job)" aria-live="polite">
             <strong>{{ job.action }} · {{ job.state }}</strong
             ><span>{{ 'settings.search.jobs.processed' | t }}: {{ job.processedCount }}</span
             ><span>{{ 'settings.search.jobs.failed' | t }}: {{ job.failedCount }}</span>
@@ -505,69 +513,69 @@
             @if (job.errorCode) {
               <span class="error-text">{{ jobErrorMessage(job.errorCode) }}</span>
             }
-            @if (canMaintain() && canCancel(job)) {
+            @if (store.canMaintain() && store.canCancel(job)) {
               <button
                 smt-button
                 smtVariant="secondary"
                 type="button"
-                [disabled]="mutationPending() || savePending()"
-                (click)="cancelJob(job)"
+                [disabled]="store.mutationPending() || store.savePending()"
+                (click)="store.cancelJob(job)"
               >
                 {{ 'common.cancel' | t }}
               </button>
             }
-            @if (canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')) {
+            @if (store.canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')) {
               <button
                 smt-button
                 smtVariant="secondary"
                 type="button"
-                [disabled]="mutationPending() || savePending() || activeOperation()"
-                (click)="retryJob(job)"
+                [disabled]="store.mutationPending() || store.savePending() || store.activeOperation()"
+                (click)="store.retryJob(job)"
               >
                 {{ 'common.retry' | t }}
               </button>
             }
           </div>
         }
-        @if (pollError(); as error) {
+        @if (store.pollError(); as error) {
           <div class="notice notice-error" role="alert">
-            <span>{{ error.detail }} · {{ activeJobId() }}</span
+            <span>{{ error.detail }} · {{ store.activeJobId() }}</span
             ><button
               smt-button
               smtVariant="secondary"
               type="button"
               data-action="resume-job-polling"
-              (click)="resumePolling()"
+              (click)="store.resumePolling()"
             >
               {{ 'common.retry' | t }}
             </button>
           </div>
         }
-        @if (historyError(); as error) {
+        @if (store.historyError(); as error) {
           <div
             class="notice notice-error"
-            [attr.data-state]="historyRetryNextPage() ? 'search-history-page-error' : 'search-history-error'"
+            [attr.data-state]="store.historyRetryNextPage() ? 'search-history-page-error' : 'search-history-error'"
             role="alert"
           >
             <span>{{ error.detail }}</span>
-            @if (!historyRetryNextPage()) {
+            @if (!store.historyRetryNextPage()) {
               <button
                 smt-button
                 smtVariant="secondary"
                 type="button"
                 data-action="retry-search-history"
-                (click)="retryHistory()"
+                (click)="store.retryHistory()"
               >
                 {{ 'common.retry' | t }}
               </button>
             }
-            @if (historyRetryNextPage()) {
+            @if (store.historyRetryNextPage()) {
               <button
                 smt-button
                 smtVariant="secondary"
                 type="button"
                 data-action="retry-search-history-page"
-                (click)="retryHistory()"
+                (click)="store.retryHistory()"
               >
                 {{ 'common.retry' | t }}
               </button>
@@ -579,24 +587,24 @@
           role="region"
           tabindex="0"
           [attr.aria-label]="'settings.search.jobs.scroll_label' | t"
-          [attr.aria-busy]="historyLoading()"
+          [attr.aria-busy]="store.historyLoading()"
         >
           <ui-local-table
             data-testid="search-jobs-table"
-            [rows]="displayedJobs()"
+            [rows]="store.displayedJobs()"
             [config]="jobsConfig()"
             [emptyTemplate]="noJobs"
           />
         </div>
-        @if (historyHasMore() && !historyError()) {
+        @if (store.historyHasMore() && !store.historyError()) {
           <button
             smt-button
             smtVariant="secondary"
             type="button"
             class="load-more"
             data-action="load-more-search-jobs"
-            [disabled]="historyLoading()"
-            (click)="loadMoreHistory()"
+            [disabled]="store.historyLoading()"
+            (click)="store.loadMoreHistory()"
           >
             {{ 'settings.search.jobs.load_more' | t }}
           </button>
@@ -604,17 +612,17 @@
       </section>
     }
 
-    @if (confirmation(); as dialog) {
+    @if (store.confirmation(); as dialog) {
       <smt-dialog
         [open]="true"
-        [dismissible]="!mutationPending()"
+        [dismissible]="!store.mutationPending()"
         [smtTitle]="
           (dialog.action === 'REBUILD'
             ? 'settings.search.confirm.rebuild_title'
             : 'settings.search.confirm.rollback_title'
           ) | t
         "
-        (closed)="confirmation.set(null)"
+        (closed)="store.confirmation.set(null)"
       >
         <ng-template smtDialogContent>
           <p>
@@ -626,9 +634,14 @@
             }}
           </p>
           <div footer class="dialog-actions">
-            <button smt-button smtVariant="secondary" type="button" (click)="confirmation.set(null)">
+            <button smt-button smtVariant="secondary" type="button" (click)="store.confirmation.set(null)">
               {{ 'common.cancel' | t }}</button
-            ><button smt-button type="button" data-action="confirm-search-maintenance" (click)="confirmMaintenance()">
+            ><button
+              smt-button
+              type="button"
+              data-action="confirm-search-maintenance"
+              (click)="store.confirmMaintenance()"
+            >
               {{ 'common.confirm' | t }}
             </button>
           </div>
@@ -686,28 +699,28 @@
 <ng-template #jobCreatedCell let-job>{{ job.createdAt | date: 'short' }}</ng-template>
 <ng-template #jobActionsCell let-job>
   <span class="cell-actions">
-    @if (canMaintain() && canCancel(job)) {
+    @if (store.canMaintain() && store.canCancel(job)) {
       <button
         smt-button
         smtVariant="secondary"
         smtSize="sm"
         type="button"
         [attr.aria-label]="'settings.search.jobs.cancel_named' | t: { id: job.id }"
-        [disabled]="mutationPending() || savePending()"
-        (click)="cancelJob(job)"
+        [disabled]="store.mutationPending() || store.savePending()"
+        (click)="store.cancelJob(job)"
       >
         {{ 'common.cancel' | t }}
       </button>
     }
-    @if (canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')) {
+    @if (store.canMaintain() && (job.state === 'FAILED' || job.state === 'CANCELLED')) {
       <button
         smt-button
         smtVariant="secondary"
         smtSize="sm"
         type="button"
         [attr.aria-label]="'settings.search.jobs.retry_named' | t: { id: job.id }"
-        [disabled]="mutationPending() || savePending() || activeOperation()"
-        (click)="retryJob(job)"
+        [disabled]="store.mutationPending() || store.savePending() || store.activeOperation()"
+        (click)="store.retryJob(job)"
       >
         {{ 'common.retry' | t }}
       </button>
@@ -715,7 +728,7 @@
   </span>
 </ng-template>
 <ng-template #noJobs>
-  @if (!historyError()) {
+  @if (!store.historyError()) {
     <p class="table-empty">{{ 'settings.search.jobs.empty' | t }}</p>
   }
 </ng-template>

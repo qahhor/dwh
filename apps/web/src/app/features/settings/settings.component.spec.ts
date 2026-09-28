@@ -12,6 +12,7 @@ import { ThemeService } from '@core/services/theme.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 import { SettingsComponent } from './settings.component';
+import { formatQuotaMb, formatSessionHours } from './settings-format';
 import { translateTest } from '@testing/i18n-test.stub';
 import { inScreen, redraw } from '@testing/in-screen';
 
@@ -226,7 +227,7 @@ describe('SettingsComponent UI contracts', () => {
     const fixture = await createFixture(api);
     const confirm = vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(true));
 
-    fixture.componentInstance.migrateLegacyLanguages();
+    fixture.componentInstance.languageStore.migrateLegacyLanguages();
 
     expect(confirm).toHaveBeenCalledOnce();
     expect(api.put).toHaveBeenCalledWith('/i18n/admin/languages/de/translations', {
@@ -246,7 +247,7 @@ describe('SettingsComponent UI contracts', () => {
     const fixture = await createFixture(api);
     vi.spyOn(TestBed.inject(SMTModalService), 'confirm').mockReturnValue(of(false));
 
-    fixture.componentInstance.migrateLegacyLanguages();
+    fixture.componentInstance.languageStore.migrateLegacyLanguages();
 
     expect(api.put).not.toHaveBeenCalled();
     expect(localStorage.getItem('dwh_custom_languages')).toBe(legacy);
@@ -284,13 +285,13 @@ describe('SettingsComponent UI contracts', () => {
     const fixture = await createFixture(undefined, () => true, undefined, themeServiceMock);
 
     // Immediate change via UI helper
-    fixture.componentInstance.onThemeChange('dark');
+    fixture.componentInstance.store.onThemeChange('dark');
     expect(themeServiceMock.setTheme).toHaveBeenCalledWith('dark');
-    expect(fixture.componentInstance.userSettings()['user.theme']).toBe('dark');
+    expect(fixture.componentInstance.store.userSettings()['user.theme']).toBe('dark');
 
     // On saveUserSettings
-    fixture.componentInstance.userSettings.set({ 'user.theme': 'system' });
-    fixture.componentInstance.saveUserSettings();
+    fixture.componentInstance.store.userSettings.set({ 'user.theme': 'system' });
+    fixture.componentInstance.store.saveUserSettings();
     expect(themeServiceMock.setTheme).toHaveBeenCalledWith('system');
   });
 
@@ -307,15 +308,15 @@ describe('SettingsComponent UI contracts', () => {
     const fixture = await createFixture(api, () => true, undefined, undefined, toast);
 
     // Session lifetime invalid (> 8760)
-    fixture.componentInstance.systemSettings.set({ 'security.session_lifetime_hours': '10000' });
-    fixture.componentInstance.saveSystemSettings();
+    fixture.componentInstance.store.systemSettings.set({ 'security.session_lifetime_hours': '10000' });
+    fixture.componentInstance.store.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
 
     // User quota invalid (< 100)
     toast.error.mockClear();
-    fixture.componentInstance.systemSettings.set({ 'storage.default_user_quota_mb': '50' });
-    fixture.componentInstance.saveSystemSettings();
+    fixture.componentInstance.store.systemSettings.set({ 'storage.default_user_quota_mb': '50' });
+    fixture.componentInstance.store.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
   });
@@ -356,7 +357,7 @@ describe('SettingsComponent UI contracts', () => {
 
     const modal = inScreen(fixture.nativeElement).querySelector('[role="dialog"]');
     expect(modal).not.toBeNull();
-    expect(fixture.componentInstance.isAddLangModalOpen()).toBe(true);
+    expect(fixture.componentInstance.languageStore.isAddLangModalOpen()).toBe(true);
     expect(modal.querySelector('.smt-dialog')).not.toBeNull();
   });
 
@@ -365,40 +366,39 @@ describe('SettingsComponent UI contracts', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     const fixture = await createFixture(api, () => true, undefined, undefined, toast);
 
-    fixture.componentInstance.systemSettings.set({ 'security.session_lifetime_hours': '   ' });
-    fixture.componentInstance.saveSystemSettings();
+    fixture.componentInstance.store.systemSettings.set({ 'security.session_lifetime_hours': '   ' });
+    fixture.componentInstance.store.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
 
     toast.error.mockClear();
-    fixture.componentInstance.systemSettings.set({ 'security.session_lifetime_hours': 'letters' });
-    fixture.componentInstance.saveSystemSettings();
+    fixture.componentInstance.store.systemSettings.set({ 'security.session_lifetime_hours': 'letters' });
+    fixture.componentInstance.store.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
 
     toast.error.mockClear();
-    fixture.componentInstance.systemSettings.set({
+    fixture.componentInstance.store.systemSettings.set({
       'security.session_lifetime_hours': '720',
       'storage.default_user_quota_mb': 'not-a-number',
     });
-    fixture.componentInstance.saveSystemSettings();
+    fixture.componentInstance.store.saveSystemSettings();
     expect(toast.error).toHaveBeenCalled();
     expect(api.patch).not.toHaveBeenCalled();
   });
 
-  it('provides human-readable units for session hours and quota MB', async () => {
-    const fixture = await createFixture();
-    expect(fixture.componentInstance.formatSessionHours('720')).toBe('720 ч. (30 дн.)');
-    expect(fixture.componentInstance.formatSessionHours('24')).toBe('24 ч. (1 дн.)');
-    expect(fixture.componentInstance.formatSessionHours('12')).toBe('12 ч.');
-    expect(fixture.componentInstance.formatQuotaMb('1024')).toBe('1024 МБ (~1 ГБ)');
-    expect(fixture.componentInstance.formatQuotaMb('5120')).toBe('5120 МБ (~5 ГБ)');
-    expect(fixture.componentInstance.formatQuotaMb('500')).toBe('500 МБ');
+  it('provides human-readable units for session hours and quota MB', () => {
+    expect(formatSessionHours('720', translateTest)).toBe('720 ч. (30 дн.)');
+    expect(formatSessionHours('24', translateTest)).toBe('24 ч. (1 дн.)');
+    expect(formatSessionHours('12', translateTest)).toBe('12 ч.');
+    expect(formatQuotaMb('1024', translateTest)).toBe('1024 МБ (~1 ГБ)');
+    expect(formatQuotaMb('5120', translateTest)).toBe('5120 МБ (~5 ГБ)');
+    expect(formatQuotaMb('500', translateTest)).toBe('500 МБ');
   });
 
   it('supports webhooks tab when user has platform.webhooks permission', async () => {
     const fixture = await createFixture(undefined, (form) => form === 'platform.webhooks');
-    expect(fixture.componentInstance.canViewWebhookSettings()).toBe(true);
+    expect(fixture.componentInstance.store.canViewWebhookSettings()).toBe(true);
     expect(fixture.componentInstance.isTabAvailable('webhooks')).toBe(true);
 
     // A click marks the screen for checking, as it does in the app; the switch works through setTab.

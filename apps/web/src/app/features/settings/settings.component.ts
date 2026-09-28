@@ -2,18 +2,13 @@ import { ChangeDetectionStrategy, Component, HostListener, OnInit, signal, injec
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { FormsModule } from '@angular/forms';
-import { Observable, concatMap, finalize, from, switchMap, toArray } from 'rxjs';
-import { TranslationDictionary } from '@core/models/i18n.models';
-import { SettingsApi } from './settings.api';
-import { ToastService } from '@core/services/toast.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { PermissionService } from '@core/services/permission.service';
-import { ThemeService } from '@core/services/theme.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SearchSettingsComponent } from './search/search-settings.component';
 import { NavigationSettingsComponent } from './navigation/navigation-settings.component';
-import { SettingsTab, LegacyLanguage, filterKnownTranslations, readLegacyLanguages } from './settings.models';
+import { SettingsTab } from './settings.models';
+import { SettingsStore } from './settings.store';
+import { SettingsLanguagesStore } from './settings-languages.store';
 import { SettingsGeneralPanelComponent } from './components/settings-general-panel.component';
 import { SettingsSecurityPanelComponent } from './components/settings-security-panel.component';
 import { SettingsStoragePanelComponent } from './components/settings-storage-panel.component';
@@ -42,45 +37,27 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     SettingsLanguagesPanelComponent,
     WebhooksSettingsComponent,
   ],
+  providers: [SettingsStore, SettingsLanguagesStore],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.css',
 })
 export class SettingsComponent implements OnInit {
-  /** Texts of the tabs below; translated again when the language changes. */
-  private readonly tabText = inject(I18nService);
-  private readonly settingsApi = inject(SettingsApi);
-
-  private readonly uiI18n = inject(I18nService);
-  private readonly themeService = inject(ThemeService);
-  private readonly modal = inject(SMTModalService);
+  /** System and personal settings; the template reads it directly. */
+  readonly store = inject(SettingsStore);
+  /** The languages tab; the template reads it directly. */
+  readonly languageStore = inject(SettingsLanguagesStore);
+  /** Languages for the panels, and the texts of the tabs, translated again when the language changes. */
+  readonly i18n = inject(I18nService);
   private readonly route = inject(ActivatedRoute, { optional: true });
   private readonly router = inject(Router, { optional: true });
 
-  readonly isLoading = signal<boolean>(false);
-  readonly loadError = signal<string | null>(null);
-  readonly systemSettings = signal<Record<string, string>>({});
-  readonly userSettings = signal<Record<string, string>>({});
-  readonly isSaving = signal<boolean>(false);
-
-  // Languages Management
-  readonly isAddLangModalOpen = signal<boolean>(false);
-  readonly isAddingLang = signal<boolean>(false);
-  readonly editingLanguageCode = signal<string | null>(null);
-  readonly legacyLanguageCount = signal(0);
-  readonly isMigratingLegacyLanguages = signal(false);
-
   readonly activeTab = signal<SettingsTab>('general');
+
   newLangCode = '';
   newLangName = '';
   newLangJson = '';
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
-
-  constructor(
-    private toast: ToastService,
-    public i18n: I18nService,
-    private permService: PermissionService,
-  ) {}
 
   ngOnInit() {
     if (this.route) {
@@ -88,198 +65,26 @@ export class SettingsComponent implements OnInit {
         const tabParam = params['tab'];
         if (tabParam && this.isTabAvailable(tabParam)) {
           this.activeTab.set(tabParam);
-        } else if (!this.canManageSystemSettings()) {
+        } else if (!this.store.canManageSystemSettings()) {
           this.activeTab.set('preferences');
         }
       });
-    } else if (!this.canManageSystemSettings()) {
+    } else if (!this.store.canManageSystemSettings()) {
       this.activeTab.set('preferences');
     }
-    this.legacyLanguageCount.set(Object.keys(readLegacyLanguages()).length);
-    this.loadAllSettings();
+    this.languageStore.countLegacyLanguages();
+    this.store.loadAllSettings();
   }
 
-  canManageSystemSettings(): boolean {
-    return (
-      this.permService.hasPermission('platform.settings', 'view') ||
-      this.permService.hasPermission('platform.settings', 'update') ||
-      this.permService.hasPermission('settings', 'view') ||
-      this.permService.hasPermission('settings', 'update')
-    );
-  }
-
-  canUpdateSystemSettings(): boolean {
-    return (
-      this.permService.hasPermission('platform.settings', 'update') ||
-      this.permService.hasPermission('settings', 'update')
-    );
-  }
-
-  canViewSearchSettings(): boolean {
-    return this.permService.hasPermission('platform.search', 'view');
-  }
-
-  canViewNavigationSettings(): boolean {
-    return this.permService.hasPermission('platform.navigation', 'view');
-  }
-
-  canViewWebhookSettings(): boolean {
-    return (
-      this.permService.hasPermission('platform.webhooks', 'view') ||
-      this.permService.hasPermission('platform.webhooks', 'manage')
-    );
-  }
-
-  userThemePreference(): string {
-    return this.userSettings()['user.theme'] || this.themeService.themePreference();
-  }
-
-  onThemeChange(newTheme: string): void {
-    this.userSettings.update((settings) => ({ ...settings, 'user.theme': newTheme }));
-    if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'system') {
-      this.themeService.setTheme(newTheme);
-    }
-  }
-
-  loadAllSettings() {
-    this.isLoading.set(true);
-    this.loadError.set(null);
-    let sysLoaded = !this.canManageSystemSettings();
-    let userLoaded = false;
-    const checkDone = () => {
-      if (sysLoaded && userLoaded) {
-        this.isLoading.set(false);
-      }
-    };
-
-    if (this.canManageSystemSettings()) {
-      this.settingsApi.systemSettings().subscribe({
-        next: (res) => {
-          this.systemSettings.set({ ...res });
-          sysLoaded = true;
-          checkDone();
-        },
-        error: () => {
-          this.loadError.set(this.uiI18n.translate('settings.oshibka_zagruzki_nastroek'));
-          sysLoaded = true;
-          checkDone();
-        },
-      });
-    }
-
-    this.settingsApi.userSettings().subscribe({
-      next: (res) => {
-        this.userSettings.set({ ...res });
-        const theme = res['user.theme'];
-        if (theme === 'light' || theme === 'dark' || theme === 'system') {
-          this.themeService.setTheme(theme);
-        }
-        userLoaded = true;
-        checkDone();
-      },
-      error: () => {
-        this.loadError.set(this.uiI18n.translate('settings.oshibka_zagruzki_nastroek'));
-        userLoaded = true;
-        checkDone();
-      },
-    });
-  }
-
-  saveSystemSettings() {
-    if (!this.canUpdateSystemSettings()) return;
-
-    const sessionStr = this.systemSettings()['security.session_lifetime_hours'];
-    if (sessionStr !== undefined) {
-      const trimmed = String(sessionStr).trim();
-      const sessionLifetime = trimmed === '' ? NaN : Number(trimmed);
-      if (!Number.isFinite(sessionLifetime) || sessionLifetime < 1 || sessionLifetime > 8760) {
-        this.toast.error(this.uiI18n.translate('settings.validation.session_lifetime'));
-        return;
-      }
-    }
-
-    const quotaStr = this.systemSettings()['storage.default_user_quota_mb'];
-    if (quotaStr !== undefined) {
-      const trimmed = String(quotaStr).trim();
-      const quota = trimmed === '' ? NaN : Number(trimmed);
-      if (!Number.isFinite(quota) || quota < 100 || quota > 102400) {
-        this.toast.error(this.uiI18n.translate('settings.validation.quota'));
-        return;
-      }
-    }
-
-    this.isSaving.set(true);
-    this.settingsApi.saveSystemSettings(this.systemSettings()).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        this.toast.success(this.i18n.translate('common.saved'));
-      },
-      error: () => this.isSaving.set(false),
-    });
-  }
-
-  saveUserSettings() {
-    this.isSaving.set(true);
-    this.settingsApi.saveUserSettings(this.userSettings()).subscribe({
-      next: () => {
-        this.isSaving.set(false);
-        const theme = this.userSettings()['user.theme'];
-        if (theme === 'light' || theme === 'dark' || theme === 'system') {
-          this.themeService.setTheme(theme);
-        }
-        this.toast.success(this.i18n.translate('common.saved'));
-      },
-      error: () => this.isSaving.set(false),
-    });
-  }
-
-  changePersonalLang(lang: string) {
-    this.i18n.setLanguage(lang).subscribe({
-      next: () => this.userSettings.update((settings) => ({ ...settings, 'user.language': lang })),
-    });
-  }
-
-  toggleRequire2fa(enabled: boolean) {
-    this.systemSettings.update((settings) => ({
-      ...settings,
-      'security.require_2fa': enabled ? 'true' : 'false',
-    }));
-  }
-
-  toggleSound(enabled: boolean) {
-    this.userSettings.update((settings) => ({
-      ...settings,
-      'user.notifications_sound': enabled ? 'true' : 'false',
-    }));
-  }
-
-  // Language management methods
   openAddLangModal() {
     this.newLangCode = '';
     this.newLangName = '';
     this.newLangJson = '';
-    this.isAddLangModalOpen.set(true);
+    this.languageStore.isAddLangModalOpen.set(true);
   }
 
-  openLanguageEditor(code: string) {
-    this.editingLanguageCode.set(code);
-  }
-
-  onLanguageSaved() {
-    this.i18n.refreshLanguages().subscribe();
-  }
-
-  migrateLegacyLanguages(): void {
-    const legacyLanguages = readLegacyLanguages();
-    const entries = Object.entries(legacyLanguages);
-    if (entries.length === 0 || !this.canUpdateSystemSettings()) return;
-    this.modal
-      .confirm({
-        message: this.uiI18n.translate('settings.confirm_legacy_migration', { count: entries.length }),
-      })
-      .subscribe((confirmed) => {
-        if (confirmed) this.runLegacyLanguageMigration(entries);
-      });
+  saveNewLanguage() {
+    this.languageStore.saveNewLanguage(this.newLangCode, this.newLangName, this.newLangJson);
   }
 
   isTabAvailable(tab: string): tab is SettingsTab {
@@ -288,15 +93,15 @@ export class SettingsComponent implements OnInit {
       case 'security':
       case 'storage':
       case 'languages':
-        return this.canManageSystemSettings();
+        return this.store.canManageSystemSettings();
       case 'preferences':
         return true;
       case 'search':
-        return this.canViewSearchSettings();
+        return this.store.canViewSearchSettings();
       case 'navigation':
-        return this.canViewNavigationSettings();
+        return this.store.canViewNavigationSettings();
       case 'webhooks':
-        return this.canViewWebhookSettings();
+        return this.store.canViewWebhookSettings();
       default:
         return false;
     }
@@ -320,97 +125,15 @@ export class SettingsComponent implements OnInit {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && !event.altKey && !event.shiftKey) {
       event.preventDefault();
       if (['general', 'security', 'storage'].includes(this.activeTab())) {
-        if (this.canUpdateSystemSettings() && !this.isSaving()) {
-          this.saveSystemSettings();
+        if (this.store.canUpdateSystemSettings() && !this.store.isSaving()) {
+          this.store.saveSystemSettings();
         }
       } else if (this.activeTab() === 'preferences') {
-        if (!this.isSaving()) {
-          this.saveUserSettings();
+        if (!this.store.isSaving()) {
+          this.store.saveUserSettings();
         }
       }
     }
-  }
-
-  formatSessionHours(hours: string | number | undefined): string {
-    if (hours === undefined || hours === '') return '';
-    const num = Number(hours);
-    if (!Number.isFinite(num) || num <= 0) return '';
-    const days = Math.floor(num / 24);
-    const remHours = num % 24;
-    const h = this.i18n.translate('settings.unit_hours_short') || 'h';
-    const d = this.i18n.translate('settings.unit_days_short') || 'd';
-    if (days === 0) return `${num} ${h}`;
-    if (remHours === 0) return `${num} ${h} (${days} ${d})`;
-    return `${num} ${h} (${days} ${d} ${remHours} ${h})`;
-  }
-
-  formatQuotaMb(mb: string | number | undefined): string {
-    if (mb === undefined || mb === '') return '';
-    const num = Number(mb);
-    if (!Number.isFinite(num) || num <= 0) return '';
-    const mbUnit = this.i18n.translate('settings.unit_mb') || 'MB';
-    const gbUnit = this.i18n.translate('settings.unit_gb') || 'GB';
-    if (num >= 1024) {
-      const gb = (num / 1024).toFixed(1).replace(/\.0$/, '');
-      return `${num} ${mbUnit} (~${gb} ${gbUnit})`;
-    }
-    return `${num} ${mbUnit}`;
-  }
-
-  saveNewLanguage() {
-    const rawCode = this.newLangCode.trim().toLowerCase();
-    const rawName = this.newLangName.trim();
-    if (!rawCode || !rawName) return;
-
-    if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(rawCode)) {
-      this.toast.error(this.uiI18n.translate('settings.validation.lang_code'));
-      return;
-    }
-
-    let dict: Record<string, string> = {};
-    if (this.newLangJson) {
-      try {
-        dict = JSON.parse(this.newLangJson);
-      } catch {
-        this.toast.error(this.uiI18n.translate('settings.nevernyy_format_json_slovarya'));
-        return;
-      }
-    }
-
-    this.isAddingLang.set(true);
-    this.i18n
-      .registerLanguage(rawCode, rawName, dict)
-      .pipe(finalize(() => this.isAddingLang.set(false)))
-      .subscribe({
-        next: () => {
-          this.isAddLangModalOpen.set(false);
-          this.toast.success(this.uiI18n.translate('settings.language_added', { name: rawName }));
-        },
-        error: () => {
-          this.toast.error(this.uiI18n.translate('common.error'));
-        },
-      });
-  }
-
-  switchLanguage(lang: string) {
-    this.i18n.setLanguage(lang).subscribe();
-  }
-
-  exportLangJson(langCode: string) {
-    this.settingsApi.dictionary(langCode).subscribe((dictionary) => {
-      const blob = new Blob([JSON.stringify(dictionary, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `smartupcms-translations-${langCode}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      this.toast.info(
-        this.uiI18n.translate('settings.dictionary_exported', {
-          code: langCode.toUpperCase(),
-        }),
-      );
-    });
   }
 
   /** The sections the viewer may open; each tab names its panel. */
@@ -426,59 +149,14 @@ export class SettingsComponent implements OnInit {
       ['webhooks', 'webhook', 'settings.webhooks.tab'],
     ];
     const available = all.filter(([tab]) => this.isTabAvailable(tab));
-    return this.tabsMemo([this.tabText.currentLang(), available.map(([tab]) => tab).join()], () =>
+    return this.tabsMemo([this.i18n.currentLang(), available.map(([tab]) => tab).join()], () =>
       available.map(([tab, icon, key]) => ({
         value: tab,
-        label: this.tabText.translate(key),
+        label: this.i18n.translate(key),
         icon,
         id: `settings-${tab}-tab`,
         panelId: `settings-${tab}-panel`,
       })),
-    );
-  }
-
-  private runLegacyLanguageMigration(entries: [string, LegacyLanguage][]): void {
-    this.isMigratingLegacyLanguages.set(true);
-    this.settingsApi
-      .translations('ru')
-      .pipe(
-        switchMap((russianEditor) => {
-          const knownKeys = new Set(russianEditor.entries.map((entry) => entry.key));
-          return from(entries).pipe(
-            concatMap(([code, legacy]) => this.migrateLegacyLanguage(code, legacy, knownKeys)),
-            toArray(),
-          );
-        }),
-        switchMap(() => this.i18n.refreshLanguages()),
-        finalize(() => this.isMigratingLegacyLanguages.set(false)),
-      )
-      .subscribe({
-        next: () => {
-          localStorage.removeItem('dwh_custom_languages');
-          this.legacyLanguageCount.set(0);
-          this.toast.success(this.uiI18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
-        },
-        error: () =>
-          this.toast.error(this.uiI18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')),
-      });
-  }
-
-  private migrateLegacyLanguage(code: string, legacy: LegacyLanguage, knownKeys: Set<string>): Observable<unknown> {
-    const translations = filterKnownTranslations(legacy.dict, knownKeys);
-    const existing = this.i18n.languages().some((language) => language.code === code);
-    if (!existing) {
-      return this.i18n.registerLanguage(code, legacy.name, translations);
-    }
-
-    return this.settingsApi.translations(code).pipe(
-      switchMap((editor) => {
-        const merged: TranslationDictionary = {};
-        for (const entry of editor.entries) {
-          if (entry.overrideValue) merged[entry.key] = entry.overrideValue;
-        }
-        Object.assign(merged, translations);
-        return this.settingsApi.saveTranslations(code, editor.language.revision, merged);
-      }),
     );
   }
 }

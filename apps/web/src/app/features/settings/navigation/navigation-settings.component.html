@@ -1,0 +1,65 @@
+<div class="nav-settings-page">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-titles">
+      <h1 class="page-title">{{ 'nav.settings.navigation_title' | t }}</h1>
+      <p class="page-subtitle">{{ 'nav.settings.navigation_subtitle' | t }}</p>
+    </div>
+    <div class="header-actions">
+      <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
+        {{ 'nav.settings.add_item' | t }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Summary -->
+  <app-navigation-settings-stats
+    [totalCount]="store.items().length"
+    [activeCount]="store.activeCount()"
+    [embeddedCount]="store.embeddedCount()"
+    [externalCount]="store.externalCount()"
+  ></app-navigation-settings-stats>
+
+  <!-- Table & Filters -->
+  <app-navigation-settings-table
+    [items]="filteredItems()"
+    [isLoading]="store.isLoading()"
+    [searchQuery]="searchQuery"
+    (searchQueryChange)="searchQuery = $event"
+    (clearSearch)="searchQuery = ''"
+    (toggleItem)="store.toggleItem($event)"
+    (previewItem)="previewItem($event)"
+    (editItem)="openEditModal($event)"
+    (deleteItem)="store.confirmDelete($event)"
+  ></app-navigation-settings-table>
+
+  <!-- Modals (Create/Edit & Delete) -->
+  <app-navigation-settings-modal
+    [isModalOpen]="isModalOpen()"
+    [editingItem]="editingItem()"
+    [isSubmitting]="store.isSubmitting()"
+    [isFormValid]="isFormValid()"
+    [formTitle]="formTitle"
+    [formCode]="formCode"
+    [formTargetType]="formTargetType"
+    [formSectionId]="formSectionId"
+    [formSortOrder]="formSortOrder"
+    [formUrl]="formUrl"
+    [formIcon]="formIcon"
+    [formRequiredPermission]="formRequiredPermission"
+    [permissionChoices]="store.permissionChoices()"
+    [popularIcons]="popularIcons"
+    (formTitleChange)="formTitle = $event"
+    (formCodeChange)="formCode = $event"
+    (formTargetTypeChange)="formTargetType = $event"
+    (formSectionIdChange)="formSectionId = $event"
+    (formSortOrderChange)="formSortOrder = $event"
+    (formUrlChange)="formUrl = $event"
+    (formIconChange)="formIcon = $event"
+    (formRequiredPermissionChange)="formRequiredPermission = $event"
+    (titleChange)="onTitleChange()"
+    (urlBlur)="onUrlBlur()"
+    (closeModal)="closeModal()"
+    (saveItem)="saveItem()"
+  ></app-navigation-settings-modal>
+</div>
