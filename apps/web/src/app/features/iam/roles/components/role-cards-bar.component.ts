@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -8,7 +8,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 @Component({
   selector: 'app-role-cards-bar',
   standalone: true,
-  imports: [SMTInputComponent, CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTInputComponent, FormsModule, TranslatePipe],
   template: `
     <div class="roles-strip-container">
       <div class="roles-strip-header">
@@ -30,72 +30,82 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
       </div>
 
       <div class="roles-cards-grid">
-        <div *ngFor="let r of roles" class="role-card-btn" [class.active]="selectedRole?.id === r.id">
-          <button
-            type="button"
-            class="role-select-btn"
-            [attr.aria-label]="'iam.select_role_named' | t: { name: r.name }"
-            [attr.aria-pressed]="selectedRole?.id === r.id"
-            [disabled]="isSaving || scopePanelBusy || isSubmittingRole"
-            (click)="selectRole.emit(r)"
-          >
-            <span class="role-card-head">
-              <span class="role-card-title">{{ r.name }}</span>
-              <span class="role-sys-tag font-mono" *ngIf="r.pcode">{{ r.pcode }}</span>
-              <span class="role-custom-tag" *ngIf="!r.pcode">{{ 'iam.kastomnaya' | t }}</span>
-            </span>
-            <div class="role-status-line">
-              <span class="status-dot" aria-hidden="true" [class.active]="r.state === 'A'"></span>
-              <span class="status-text">{{
-                (r.state === 'A' ? 'common.active_feminine' : 'common.disabled_feminine') | t
-              }}</span>
-            </div>
-          </button>
-
-          <div class="role-card-foot">
+        @for (r of roles; track r) {
+          <div class="role-card-btn" [class.active]="selectedRole?.id === r.id">
             <button
               type="button"
-              class="role-users-btn"
-              [attr.aria-label]="
-                'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts[r.id] || 0 }
-              "
-              [title]="'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts[r.id] || 0 }"
-              (click)="navigateToUsers.emit({ role: r, event: $event })"
+              class="role-select-btn"
+              [attr.aria-label]="'iam.select_role_named' | t: { name: r.name }"
+              [attr.aria-pressed]="selectedRole?.id === r.id"
+              [disabled]="isSaving || scopePanelBusy || isSubmittingRole"
+              (click)="selectRole.emit(r)"
             >
-              <span class="material-symbols-outlined users-icon" aria-hidden="true">group</span>
-              <span>{{ roleUserCounts[r.id] || 0 }}</span>
+              <span class="role-card-head">
+                <span class="role-card-title">{{ r.name }}</span>
+                @if (r.pcode) {
+                  <span class="role-sys-tag font-mono">{{ r.pcode }}</span>
+                }
+                @if (!r.pcode) {
+                  <span class="role-custom-tag">{{ 'iam.kastomnaya' | t }}</span>
+                }
+              </span>
+              <div class="role-status-line">
+                <span class="status-dot" aria-hidden="true" [class.active]="r.state === 'A'"></span>
+                <span class="status-text">{{
+                  (r.state === 'A' ? 'common.active_feminine' : 'common.disabled_feminine') | t
+                }}</span>
+              </div>
             </button>
 
-            <div class="role-btns">
+            <div class="role-card-foot">
               <button
                 type="button"
-                class="mini-btn"
-                [attr.aria-label]="'iam.edit_role_named' | t: { name: r.name }"
-                [title]="'iam.redaktirovat_rol' | t"
-                *ngIf="canUpdateRole"
-                (click)="openEdit.emit(r)"
+                class="role-users-btn"
+                [attr.aria-label]="
+                  'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts[r.id] || 0 }
+                "
+                [title]="'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts[r.id] || 0 }"
+                (click)="navigateToUsers.emit({ role: r, event: $event })"
               >
-                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                <span class="material-symbols-outlined users-icon" aria-hidden="true">group</span>
+                <span>{{ roleUserCounts[r.id] || 0 }}</span>
               </button>
-              <button
-                type="button"
-                class="mini-btn delete"
-                [attr.aria-label]="'iam.delete_role_named' | t: { name: r.name }"
-                [title]="'iam.udalit_rol' | t"
-                *ngIf="!r.pcode && canDeleteRole"
-                [disabled]="isSaving || scopePanelBusy || isSubmittingRole"
-                (click)="openDelete.emit(r)"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-              </button>
+
+              <div class="role-btns">
+                @if (canUpdateRole) {
+                  <button
+                    type="button"
+                    class="mini-btn"
+                    [attr.aria-label]="'iam.edit_role_named' | t: { name: r.name }"
+                    [title]="'iam.redaktirovat_rol' | t"
+                    (click)="openEdit.emit(r)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                  </button>
+                }
+                @if (!r.pcode && canDeleteRole) {
+                  <button
+                    type="button"
+                    class="mini-btn delete"
+                    [attr.aria-label]="'iam.delete_role_named' | t: { name: r.name }"
+                    [title]="'iam.udalit_rol' | t"
+                    [disabled]="isSaving || scopePanelBusy || isSubmittingRole"
+                    (click)="openDelete.emit(r)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                  </button>
+                }
+              </div>
             </div>
           </div>
-        </div>
+        }
 
-        <button type="button" class="add-role-dashed-btn" *ngIf="canCreateRole" (click)="openCreate.emit()">
-          <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          <span>{{ 'iam.sozdat_rol' | t }}</span>
-        </button>
+        @if (canCreateRole) {
+          <button type="button" class="add-role-dashed-btn" (click)="openCreate.emit()">
+            <span class="material-symbols-outlined" aria-hidden="true">add</span>
+            <span>{{ 'iam.sozdat_rol' | t }}</span>
+          </button>
+        }
       </div>
     </div>
   `,

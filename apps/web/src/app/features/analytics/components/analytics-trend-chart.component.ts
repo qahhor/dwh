@@ -1,12 +1,12 @@
 import { Component, Input, computed, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-trend-chart',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe],
   template: `
     <div class="analytics-card chart-card" [attr.aria-busy]="loading">
       <div class="card-header-row">
@@ -26,147 +26,155 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
         </div>
       </div>
 
-      <p *ngIf="loading" class="card-subtitle" role="status">{{ 'common.loading' | t }}</p>
+      @if (loading) {
+        <p class="card-subtitle" role="status">{{ 'common.loading' | t }}</p>
+      }
 
       <!-- SVG Area / Line Chart -->
-      <div
-        class="svg-chart-container"
-        *ngIf="trends.length > 0"
-        role="region"
-        tabindex="0"
-        [attr.aria-label]="'analytics.dinamika_potoka_zadach' | t"
-        (mouseleave)="clearHover()"
-      >
-        <!-- Y Axis numeric tick values -->
-        <div class="chart-y-axis" aria-hidden="true">
-          <span *ngFor="let tick of yAxisTicks()" class="y-axis-tick font-mono" [style.top.px]="tick.y - 7">
-            {{ tick.value }}
-          </span>
-        </div>
-
-        <svg class="trend-svg" viewBox="0 0 700 240" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25" />
-              <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0" />
-            </linearGradient>
-            <linearGradient id="completedGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--success)" stop-opacity="0.25" />
-              <stop offset="100%" stop-color="var(--success)" stop-opacity="0.0" />
-            </linearGradient>
-          </defs>
-
-          <!-- Gridlines -->
-          <g class="gridlines">
-            <line x1="40" y1="40" x2="680" y2="40" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
-            <line x1="40" y1="90" x2="680" y2="90" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
-            <line x1="40" y1="140" x2="680" y2="140" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
-            <line x1="40" y1="190" x2="680" y2="190" stroke="var(--border-subtle)" />
-          </g>
-
-          <!-- Area Fills -->
-          <path [attr.d]="createdAreaPath()" fill="url(#createdGrad)" />
-          <path [attr.d]="completedAreaPath()" fill="url(#completedGrad)" />
-
-          <!-- Line Strokes -->
-          <path
-            [attr.d]="createdLinePath()"
-            fill="none"
-            stroke="var(--primary)"
-            stroke-width="2.5"
-            stroke-linecap="round"
-          />
-          <path
-            [attr.d]="completedLinePath()"
-            fill="none"
-            stroke="var(--success)"
-            stroke-width="2.5"
-            stroke-linecap="round"
-          />
-
-          <!-- Hover guideline -->
-          <line
-            *ngIf="hoveredPoint() as hp"
-            [attr.x1]="hp.x"
-            y1="40"
-            [attr.x2]="hp.x"
-            y2="190"
-            stroke="var(--text-muted)"
-            stroke-width="1.5"
-            stroke-dasharray="4,4"
-          />
-
-          <!-- Data Dots -->
-          <g
-            *ngFor="let pt of chartPoints(); let i = index"
-            class="chart-point-group"
-            (mouseenter)="setHoveredPoint(pt, i)"
-            (focus)="setHoveredPoint(pt, i)"
-          >
-            <!-- Hit area for easy hovering -->
-            <rect [attr.x]="pt.x - 12" y="30" width="24" height="170" fill="transparent" class="hit-area" />
-
-            <circle
-              [attr.cx]="pt.x"
-              [attr.cy]="pt.yCreated"
-              [attr.r]="hoverIndex() === i ? 5.5 : 3.5"
-              fill="var(--bg-surface)"
-              stroke="var(--primary)"
-              stroke-width="2"
-            >
-              <title>{{ pt.date }}: {{ 'analytics.sozdano' | t }}: {{ pt.created }}</title>
-            </circle>
-            <circle
-              [attr.cx]="pt.x"
-              [attr.cy]="pt.yCompleted"
-              [attr.r]="hoverIndex() === i ? 5.5 : 3.5"
-              fill="var(--bg-surface)"
-              stroke="var(--success)"
-              stroke-width="2"
-            >
-              <title>{{ pt.date }}: {{ 'analytics.zaversheno' | t }}: {{ pt.completed }}</title>
-            </circle>
-            <!-- X axis date labels for some points -->
-            <text
-              *ngIf="shouldShowDateLabel(i, chartPoints().length)"
-              [attr.x]="pt.x"
-              y="215"
-              font-size="10"
-              text-anchor="middle"
-              fill="var(--text-muted)"
-              font-family="inherit"
-            >
-              {{ pt.label }}
-            </text>
-          </g>
-        </svg>
-
-        <!-- Floating Tooltip Card -->
-        <div *ngIf="hoveredPoint() as hp" class="chart-tooltip-floating" [style.left.px]="getTooltipLeft(hp.x)">
-          <div class="tooltip-date font-mono">{{ hp.date }}</div>
-          <div class="tooltip-values">
-            <div class="tooltip-val">
-              <span class="tooltip-dot" style="background-color: var(--primary);"></span>
-              <span
-                >{{ 'analytics.sozdano' | t }}: <strong>{{ hp.created }}</strong></span
-              >
-            </div>
-            <div class="tooltip-val">
-              <span class="tooltip-dot" style="background-color: var(--success);"></span>
-              <span
-                >{{ 'analytics.zaversheno' | t }}: <strong>{{ hp.completed }}</strong></span
-              >
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div *ngIf="trends.length === 0 && !loading && !error" class="empty-chart">
-        <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
-          >show_chart</span
+      @if (trends.length > 0) {
+        <div
+          class="svg-chart-container"
+          role="region"
+          tabindex="0"
+          [attr.aria-label]="'analytics.dinamika_potoka_zadach' | t"
+          (mouseleave)="clearHover()"
         >
-        <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
-      </div>
+          <!-- Y Axis numeric tick values -->
+          <div class="chart-y-axis" aria-hidden="true">
+            @for (tick of yAxisTicks(); track tick) {
+              <span class="y-axis-tick font-mono" [style.top.px]="tick.y - 7">
+                {{ tick.value }}
+              </span>
+            }
+          </div>
+
+          <svg class="trend-svg" viewBox="0 0 700 240" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="createdGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--primary)" stop-opacity="0.25" />
+                <stop offset="100%" stop-color="var(--primary)" stop-opacity="0.0" />
+              </linearGradient>
+              <linearGradient id="completedGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="var(--success)" stop-opacity="0.25" />
+                <stop offset="100%" stop-color="var(--success)" stop-opacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            <!-- Gridlines -->
+            <g class="gridlines">
+              <line x1="40" y1="40" x2="680" y2="40" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+              <line x1="40" y1="90" x2="680" y2="90" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+              <line x1="40" y1="140" x2="680" y2="140" stroke="var(--border-subtle)" stroke-dasharray="3,3" />
+              <line x1="40" y1="190" x2="680" y2="190" stroke="var(--border-subtle)" />
+            </g>
+
+            <!-- Area Fills -->
+            <path [attr.d]="createdAreaPath()" fill="url(#createdGrad)" />
+            <path [attr.d]="completedAreaPath()" fill="url(#completedGrad)" />
+
+            <!-- Line Strokes -->
+            <path
+              [attr.d]="createdLinePath()"
+              fill="none"
+              stroke="var(--primary)"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            />
+            <path
+              [attr.d]="completedLinePath()"
+              fill="none"
+              stroke="var(--success)"
+              stroke-width="2.5"
+              stroke-linecap="round"
+            />
+
+            <!-- Hover guideline -->
+            @if (hoveredPoint(); as hp) {
+              <line
+                [attr.x1]="hp.x"
+                y1="40"
+                [attr.x2]="hp.x"
+                y2="190"
+                stroke="var(--text-muted)"
+                stroke-width="1.5"
+                stroke-dasharray="4,4"
+              />
+            }
+
+            <!-- Data Dots -->
+            @for (pt of chartPoints(); track pt; let i = $index) {
+              <g class="chart-point-group" (mouseenter)="setHoveredPoint(pt, i)" (focus)="setHoveredPoint(pt, i)">
+                <!-- Hit area for easy hovering -->
+                <rect [attr.x]="pt.x - 12" y="30" width="24" height="170" fill="transparent" class="hit-area" />
+
+                <circle
+                  [attr.cx]="pt.x"
+                  [attr.cy]="pt.yCreated"
+                  [attr.r]="hoverIndex() === i ? 5.5 : 3.5"
+                  fill="var(--bg-surface)"
+                  stroke="var(--primary)"
+                  stroke-width="2"
+                >
+                  <title>{{ pt.date }}: {{ 'analytics.sozdano' | t }}: {{ pt.created }}</title>
+                </circle>
+                <circle
+                  [attr.cx]="pt.x"
+                  [attr.cy]="pt.yCompleted"
+                  [attr.r]="hoverIndex() === i ? 5.5 : 3.5"
+                  fill="var(--bg-surface)"
+                  stroke="var(--success)"
+                  stroke-width="2"
+                >
+                  <title>{{ pt.date }}: {{ 'analytics.zaversheno' | t }}: {{ pt.completed }}</title>
+                </circle>
+                <!-- X axis date labels for some points -->
+                @if (shouldShowDateLabel(i, chartPoints().length)) {
+                  <text
+                    [attr.x]="pt.x"
+                    y="215"
+                    font-size="10"
+                    text-anchor="middle"
+                    fill="var(--text-muted)"
+                    font-family="inherit"
+                  >
+                    {{ pt.label }}
+                  </text>
+                }
+              </g>
+            }
+          </svg>
+
+          <!-- Floating Tooltip Card -->
+          @if (hoveredPoint(); as hp) {
+            <div class="chart-tooltip-floating" [style.left.px]="getTooltipLeft(hp.x)">
+              <div class="tooltip-date font-mono">{{ hp.date }}</div>
+              <div class="tooltip-values">
+                <div class="tooltip-val">
+                  <span class="tooltip-dot" style="background-color: var(--primary);"></span>
+                  <span
+                    >{{ 'analytics.sozdano' | t }}: <strong>{{ hp.created }}</strong></span
+                  >
+                </div>
+                <div class="tooltip-val">
+                  <span class="tooltip-dot" style="background-color: var(--success);"></span>
+                  <span
+                    >{{ 'analytics.zaversheno' | t }}: <strong>{{ hp.completed }}</strong></span
+                  >
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (trends.length === 0 && !loading && !error) {
+        <div class="empty-chart">
+          <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
+            >show_chart</span
+          >
+          <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
+        </div>
+      }
     </div>
   `,
   styles: [

@@ -1,13 +1,14 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'ui-badge',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: `
     <span [class]="'badge badge-' + variant + (dot ? ' has-dot' : '')">
-      <span *ngIf="dot" class="dot"></span>
+      @if (dot) {
+        <span class="dot"></span>
+      }
       <ng-content></ng-content>
     </span>
   `,

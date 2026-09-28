@@ -1,5 +1,5 @@
 import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -18,7 +18,7 @@ export interface LanguageChangeRequest {
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslatePipe, SMTSelectComponent],
+  imports: [RouterModule, TranslatePipe, SMTSelectComponent],
   template: `
     <!-- Top Navigation -->
     <header class="topbar">
@@ -84,22 +84,27 @@ export interface LanguageChangeRequest {
         </button>
 
         <!-- Notification Bell -->
-        <button
-          *ngIf="canReadNotifications"
-          type="button"
-          class="icon-btn notif-btn"
-          routerLink="/notifications"
-          [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t"
-          [attr.aria-describedby]="notifService.unreadCount() > 0 ? 'header-unread-count' : null"
-          [disabled]="authService.isLoggingOut()"
-          [title]="'nav.notifications' | t"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
-          <span class="bell-dot" *ngIf="notifService.unreadCount() > 0" aria-hidden="true"></span>
-          <span id="header-unread-count" class="sr-only" *ngIf="notifService.unreadCount() > 0">
-            {{ 'layout.app_shell.unread_notifications' | t: { count: notifService.unreadCount() } }}
-          </span>
-        </button>
+        @if (canReadNotifications) {
+          <button
+            type="button"
+            class="icon-btn notif-btn"
+            routerLink="/notifications"
+            [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t"
+            [attr.aria-describedby]="notifService.unreadCount() > 0 ? 'header-unread-count' : null"
+            [disabled]="authService.isLoggingOut()"
+            [title]="'nav.notifications' | t"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+            @if (notifService.unreadCount() > 0) {
+              <span class="bell-dot" aria-hidden="true"></span>
+            }
+            @if (notifService.unreadCount() > 0) {
+              <span id="header-unread-count" class="sr-only">
+                {{ 'layout.app_shell.unread_notifications' | t: { count: notifService.unreadCount() } }}
+              </span>
+            }
+          </button>
+        }
 
         <!-- Logout -->
         <button
@@ -119,24 +124,26 @@ export interface LanguageChangeRequest {
     </header>
 
     <!-- Active Announcement Banner -->
-    <div *ngIf="canReadAnnouncements && notifService.activeAnnouncement()" class="announcement-banner" role="status">
-      <div class="announcement-content">
-        <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
-        <div class="banner-text">
-          <strong>{{ notifService.activeAnnouncement()?.title }}</strong>
-          <p class="banner-body">{{ notifService.activeAnnouncement()?.body }}</p>
+    @if (canReadAnnouncements && notifService.activeAnnouncement()) {
+      <div class="announcement-banner" role="status">
+        <div class="announcement-content">
+          <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
+          <div class="banner-text">
+            <strong>{{ notifService.activeAnnouncement()?.title }}</strong>
+            <p class="banner-body">{{ notifService.activeAnnouncement()?.body }}</p>
+          </div>
         </div>
+        <button
+          type="button"
+          class="banner-close"
+          [disabled]="isDismissingAnnouncement || authService.isLoggingOut()"
+          [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t"
+          (click)="dismissAnnouncement.emit()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
       </div>
-      <button
-        type="button"
-        class="banner-close"
-        [disabled]="isDismissingAnnouncement || authService.isLoggingOut()"
-        [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t"
-        (click)="dismissAnnouncement.emit()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">close</span>
-      </button>
-    </div>
+    }
   `,
   styles: [
     `

@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -20,7 +20,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     SMTRadioGroupComponent,
     SMTSelectComponent,
     SMTInputComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -70,51 +69,58 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
             <span>{{ 'iam.filtry' | t }}</span>
-            <span class="filter-dot" *ngIf="hasExtraFilters"></span>
+            @if (hasExtraFilters) {
+              <span class="filter-dot"></span>
+            }
           </button>
 
           <!-- Filter Dropdown Panel -->
-          <div
-            id="user-extra-filters"
-            class="filter-dropdown"
-            role="dialog"
-            [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t"
-            *ngIf="isFilterMenuOpen"
-            (click)="$event.stopPropagation()"
-          >
-            <div class="filter-dropdown-header">
-              <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
-              <button type="button" class="reset-link" *ngIf="hasExtraFilters" (click)="resetExtraFilters.emit()">
-                {{ 'iam.sbrosit' | t }}
-              </button>
-            </div>
-
-            <div class="filter-dropdown-body">
-              <div class="filter-group">
-                <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
-                <smt-select
-                  smtTriggerId="user-role-filter"
-                  [value]="selectedRoleId"
-                  (valueChange)="roleFilterChange.emit($event)"
-                  [options]="roleOptions()"
-                  [placeholder]="'iam.vse_roli' | t"
-                  [emptyLabel]="'iam.vse_roli' | t"
-                />
+          @if (isFilterMenuOpen) {
+            <div
+              id="user-extra-filters"
+              class="filter-dropdown"
+              role="dialog"
+              [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="filter-dropdown-header">
+                <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
+                @if (hasExtraFilters) {
+                  <button type="button" class="reset-link" (click)="resetExtraFilters.emit()">
+                    {{ 'iam.sbrosit' | t }}
+                  </button>
+                }
               </div>
 
-              <div class="filter-group">
-                <label class="filter-caption" for="user-2fa-filter">{{ 'iam.dvuhfaktornaya_zaschita_2fa' | t }}</label>
-                <smt-select
-                  smtTriggerId="user-2fa-filter"
-                  [value]="selected2fa"
-                  (valueChange)="twoFactorFilterChange.emit($event)"
-                  [options]="twoFactorOptions()"
-                  [placeholder]="'iam.lyuboy_status_2fa' | t"
-                  [emptyLabel]="'iam.lyuboy_status_2fa' | t"
-                />
+              <div class="filter-dropdown-body">
+                <div class="filter-group">
+                  <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
+                  <smt-select
+                    smtTriggerId="user-role-filter"
+                    [value]="selectedRoleId"
+                    (valueChange)="roleFilterChange.emit($event)"
+                    [options]="roleOptions()"
+                    [placeholder]="'iam.vse_roli' | t"
+                    [emptyLabel]="'iam.vse_roli' | t"
+                  />
+                </div>
+
+                <div class="filter-group">
+                  <label class="filter-caption" for="user-2fa-filter">{{
+                    'iam.dvuhfaktornaya_zaschita_2fa' | t
+                  }}</label>
+                  <smt-select
+                    smtTriggerId="user-2fa-filter"
+                    [value]="selected2fa"
+                    (valueChange)="twoFactorFilterChange.emit($event)"
+                    [options]="twoFactorOptions()"
+                    [placeholder]="'iam.lyuboy_status_2fa' | t"
+                    [emptyLabel]="'iam.lyuboy_status_2fa' | t"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          }
         </div>
 
         <button
@@ -132,58 +138,67 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     </div>
 
     <!-- Active Filters Bar -->
-    <div class="active-filters-bar" *ngIf="hasAnyActiveFilters">
-      <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
+    @if (hasAnyActiveFilters) {
+      <div class="active-filters-bar">
+        <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
 
-      <!-- Status Filter Pill -->
-      <div *ngIf="selectedState" class="filter-pill">
-        <span>{{
-          'iam.filtr_status' | t: { status: selectedState === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
-        }}</span>
-        <button
-          type="button"
-          class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr' | t"
-          (click)="clearStateFilter.emit()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        <!-- Status Filter Pill -->
+        @if (selectedState) {
+          <div class="filter-pill">
+            <span>{{
+              'iam.filtr_status'
+                | t: { status: selectedState === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
+            }}</span>
+            <button
+              type="button"
+              class="clear-pill-btn"
+              [attr.aria-label]="'iam.ochistit_filtr' | t"
+              (click)="clearStateFilter.emit()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        }
+
+        <!-- Role Filter Pill -->
+        @if (selectedRoleId) {
+          <div class="filter-pill">
+            <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName } }}</span>
+            <button
+              type="button"
+              class="clear-pill-btn"
+              [attr.aria-label]="'iam.ochistit_filtr_roli' | t"
+              (click)="clearRoleFilter.emit()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        }
+
+        <!-- 2FA Filter Pill -->
+        @if (selected2fa !== null) {
+          <div class="filter-pill">
+            <span>{{
+              'iam.filtr_2fa' | t: { status: selected2fa ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
+            }}</span>
+            <button
+              type="button"
+              class="clear-pill-btn"
+              [attr.aria-label]="'iam.ochistit_filtr' | t"
+              (click)="clear2faFilter.emit()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        }
+
+        <!-- Reset All Button -->
+        <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters.emit()">
+          <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
+          <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
         </button>
       </div>
-
-      <!-- Role Filter Pill -->
-      <div *ngIf="selectedRoleId" class="filter-pill">
-        <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName } }}</span>
-        <button
-          type="button"
-          class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr_roli' | t"
-          (click)="clearRoleFilter.emit()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </div>
-
-      <!-- 2FA Filter Pill -->
-      <div *ngIf="selected2fa !== null" class="filter-pill">
-        <span>{{
-          'iam.filtr_2fa' | t: { status: selected2fa ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
-        }}</span>
-        <button
-          type="button"
-          class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr' | t"
-          (click)="clear2faFilter.emit()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </div>
-
-      <!-- Reset All Button -->
-      <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters.emit()">
-        <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-        <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
-      </button>
-    </div>
+    }
   `,
   styles: [
     `

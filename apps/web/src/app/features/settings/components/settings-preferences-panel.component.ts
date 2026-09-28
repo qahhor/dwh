@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -10,7 +10,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 @Component({
   selector: 'app-settings-preferences-panel',
   standalone: true,
-  imports: [SMTSwitchComponent, SMTSelectComponent, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
+  imports: [SMTSwitchComponent, SMTSelectComponent, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">

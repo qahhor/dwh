@@ -1,12 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { User } from '../profile.models';
 
 @Component({
   selector: 'app-profile-security-card',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe],
   template: `
     <div class="card section-card">
       <div class="section-header">

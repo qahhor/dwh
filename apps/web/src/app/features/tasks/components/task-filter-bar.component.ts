@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
 import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
@@ -17,14 +17,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 @Component({
   selector: 'app-task-filter-bar',
   standalone: true,
-  imports: [
-    SMTRadioGroupComponent,
-    SMTInputComponent,
-    CommonModule,
-    TranslatePipe,
-    SMTSelectComponent,
-    ProjectOptionsPipe,
-  ],
+  imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe, SMTSelectComponent, ProjectOptionsPipe],
   template: `
     <div class="toolbar">
       <div class="toolbar-left-row">
@@ -90,16 +83,17 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [emptyLabel]="'tasks.vse_prioritety' | t"
         ></smt-select>
 
-        <button
-          *ngIf="hasActiveFilters"
-          type="button"
-          class="reset-filters-btn"
-          [attr.aria-label]="'tasks.sbrosit_vse_filtry' | t"
-          (click)="resetFilters.emit()"
-          [title]="'tasks.sbrosit_vse_filtry' | t"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-        </button>
+        @if (hasActiveFilters) {
+          <button
+            type="button"
+            class="reset-filters-btn"
+            [attr.aria-label]="'tasks.sbrosit_vse_filtry' | t"
+            (click)="resetFilters.emit()"
+            [title]="'tasks.sbrosit_vse_filtry' | t"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
+          </button>
+        }
       </div>
     </div>
   `,

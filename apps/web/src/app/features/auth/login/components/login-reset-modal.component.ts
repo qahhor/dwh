@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -14,7 +14,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
-    CommonModule,
     FormsModule,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -39,7 +38,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               [smtInvalid]="resetError() ? 'true' : null"
             />
           </div>
-          <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
+          @if (resetError()) {
+            <p class="form-error" role="alert">{{ resetError() }}</p>
+          }
         </div>
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">

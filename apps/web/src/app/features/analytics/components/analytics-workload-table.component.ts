@@ -1,5 +1,5 @@
 import { Component, Input, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
@@ -11,14 +11,7 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 @Component({
   selector: 'app-analytics-workload-table',
   standalone: true,
-  imports: [
-    SMTAvatarComponent,
-    SMTInputComponent,
-    CommonModule,
-    TranslatePipe,
-    UiBadgeComponent,
-    UiLocalTableComponent,
-  ],
+  imports: [SMTAvatarComponent, SMTInputComponent, TranslatePipe, UiBadgeComponent, UiLocalTableComponent],
   template: `
     <div class="table-card" style="margin-top: 20px;">
       <div class="card-header-row" style="padding: 14px 20px; border-bottom: 1px solid var(--border-color);">
@@ -28,18 +21,19 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
         </div>
 
         <!-- Quick User Filter -->
-        <smt-input
-          *ngIf="workload.length > 0"
-          class="user-search-box"
-          type="search"
-          smtIcon="search"
-          clearable
-          smtSize="sm"
-          [placeholder]="'analytics.poisk_sotrudnika' | t"
-          [smtAriaLabel]="'analytics.poisk_sotrudnika' | t"
-          [value]="searchUserQuery()"
-          (valueChange)="searchUserQuery.set($any($event) ?? '')"
-        />
+        @if (workload.length > 0) {
+          <smt-input
+            class="user-search-box"
+            type="search"
+            smtIcon="search"
+            clearable
+            smtSize="sm"
+            [placeholder]="'analytics.poisk_sotrudnika' | t"
+            [smtAriaLabel]="'analytics.poisk_sotrudnika' | t"
+            [value]="searchUserQuery()"
+            (valueChange)="searchUserQuery.set($any($event) ?? '')"
+          />
+        }
       </div>
 
       <div

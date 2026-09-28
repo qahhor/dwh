@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import {
@@ -12,7 +12,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 @Component({
   selector: 'app-custom-fields-toolbar',
   standalone: true,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTRadioGroupComponent, SMTInputComponent, FormsModule, TranslatePipe],
   template: `
     <div class="toolbar-container">
       <!-- Entity Type Filter Tabs -->

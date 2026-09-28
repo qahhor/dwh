@@ -47,393 +47,445 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
-        <div body class="request-state request-loading" *ngIf="detailLoading" role="status">
-          {{ 'tasks.detail_loading' | t }}
-        </div>
+        @if (detailLoading) {
+          <div body class="request-state request-loading" role="status">
+            {{ 'tasks.detail_loading' | t }}
+          </div>
+        }
 
-        <div body class="request-state request-error" *ngIf="detailLoadError" role="alert">
-          <span>{{ (detailNotFound ? 'search.record_not_found' : 'tasks.detail_load_error') | t }}</span>
-          <button
-            smt-button
-            type="button"
-            *ngIf="!detailNotFound"
-            smtVariant="secondary"
-            smtSize="sm"
-            (click)="retryTaskDetails.emit()"
-          >
-            {{ 'audit.retry' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            *ngIf="detailNotFound"
-            smtVariant="secondary"
-            smtSize="sm"
-            (click)="close.emit()"
-          >
-            {{ 'search.back_to_list' | t }}
-          </button>
-        </div>
-
-        <div
-          body
-          class="task-details-view"
-          [attr.data-record-id]="detailRecordId"
-          *ngIf="!detailLoading && !detailLoadError && selectedTask as t"
-        >
-          <p *ngIf="!safeRecordId(t.id)" role="status">{{ 'search.record_readonly_id' | t }}</p>
-          <!-- Ancestor Breadcrumbs Trail -->
-          <div class="ancestor-trail" *ngIf="taskAncestors.length > 0">
-            <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
-            <ng-container *ngFor="let anc of taskAncestors">
-              <button
-                type="button"
-                class="anc-link"
-                [disabled]="!safeRecordId(anc.id)"
-                (click)="openTaskDetails.emit(anc)"
-              >
-                #{{ anc.id }} {{ anc.title }}
+        @if (detailLoadError) {
+          <div body class="request-state request-error" role="alert">
+            <span>{{ (detailNotFound ? 'search.record_not_found' : 'tasks.detail_load_error') | t }}</span>
+            @if (!detailNotFound) {
+              <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryTaskDetails.emit()">
+                {{ 'audit.retry' | t }}
               </button>
-              <span class="anc-sep" aria-hidden="true">›</span>
-            </ng-container>
-            <span class="anc-current">#{{ detailRecordId }} {{ t.title }}</span>
+            }
+            @if (detailNotFound) {
+              <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="close.emit()">
+                {{ 'search.back_to_list' | t }}
+              </button>
+            }
           </div>
+        }
 
-          <!-- Overdue Notice Banner -->
-          <div class="overdue-banner" *ngIf="isOverdue(t.endTime, t.statusId)">
-            <span class="material-symbols-outlined" aria-hidden="true">error</span>
-            <span>{{ 'tasks.deadline_expired_at' | t: { date: (t.endTime | date: 'dd.MM.yyyy HH:mm') || '' } }}</span>
-          </div>
-
-          <div class="details-2col-layout">
-            <!-- Left Column (Main) -->
-            <div class="details-main-col">
-              <div class="detail-header-group">
-                <h2 class="detail-main-title">{{ t.title }}</h2>
-              </div>
-
-              <!-- Description (Rich Markdown View) -->
-              <div class="detail-section">
-                <h4 class="section-label">{{ 'tasks.opisanie_zadachi' | t }}</h4>
-                <div class="description-card" *ngIf="t.descriptionMarkdown">
-                  <ui-markdown-view [content]="t.descriptionMarkdown"></ui-markdown-view>
-                </div>
-                <div class="description-card empty-desc text-muted" *ngIf="!t.descriptionMarkdown">
-                  {{ 'tasks.opisanie_otsutstvuet_nazhmite_redaktirovat_chtob' | t }}
-                </div>
-              </div>
-
-              <!-- Subtasks Section -->
-              <div class="detail-section">
-                <div class="section-header-between">
-                  <h4 class="section-label">{{ 'tasks.subtasks_count' | t: { count: taskSubtasks.length } }}</h4>
+        @if (!detailLoading && !detailLoadError && selectedTask; as t) {
+          <div body class="task-details-view" [attr.data-record-id]="detailRecordId">
+            @if (!safeRecordId(t.id)) {
+              <p role="status">{{ 'search.record_readonly_id' | t }}</p>
+            }
+            <!-- Ancestor Breadcrumbs Trail -->
+            @if (taskAncestors.length > 0) {
+              <div class="ancestor-trail">
+                <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
+                @for (anc of taskAncestors; track anc) {
                   <button
-                    *ngIf="canCreateTask && safeRecordId(t.id)"
                     type="button"
-                    class="add-subtask-btn"
-                    (click)="openAddSubtask.emit(t)"
+                    class="anc-link"
+                    [disabled]="!safeRecordId(anc.id)"
+                    (click)="openTaskDetails.emit(anc)"
                   >
-                    <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                    {{ 'tasks.dobavit_podzadachu' | t }}
+                    #{{ anc.id }} {{ anc.title }}
                   </button>
+                  <span class="anc-sep" aria-hidden="true">›</span>
+                }
+                <span class="anc-current">#{{ detailRecordId }} {{ t.title }}</span>
+              </div>
+            }
+
+            <!-- Overdue Notice Banner -->
+            @if (isOverdue(t.endTime, t.statusId)) {
+              <div class="overdue-banner">
+                <span class="material-symbols-outlined" aria-hidden="true">error</span>
+                <span>{{
+                  'tasks.deadline_expired_at' | t: { date: (t.endTime | date: 'dd.MM.yyyy HH:mm') || '' }
+                }}</span>
+              </div>
+            }
+
+            <div class="details-2col-layout">
+              <!-- Left Column (Main) -->
+              <div class="details-main-col">
+                <div class="detail-header-group">
+                  <h2 class="detail-main-title">{{ t.title }}</h2>
                 </div>
 
-                <div class="subtasks-list" *ngIf="taskSubtasks.length > 0">
-                  <button
-                    type="button"
-                    *ngFor="let sub of taskSubtasks"
-                    class="subtask-row"
-                    [disabled]="!safeRecordId(sub.id)"
-                    [attr.aria-label]="'tasks.open_subtask_named' | t: { id: sub.id, title: sub.title }"
-                    [class.row-overdue]="isOverdue(sub.endTime, sub.statusId)"
-                    (click)="openTaskDetails.emit(sub)"
-                  >
-                    <span class="subtask-type" [style.color]="getTypeColor(sub)">
-                      <span
-                        class="material-symbols-outlined type-icon"
-                        role="img"
-                        [attr.aria-label]="getTypeLabel(sub)"
-                        >{{ getTypeIcon(sub) }}</span
+                <!-- Description (Rich Markdown View) -->
+                <div class="detail-section">
+                  <h4 class="section-label">{{ 'tasks.opisanie_zadachi' | t }}</h4>
+                  @if (t.descriptionMarkdown) {
+                    <div class="description-card">
+                      <ui-markdown-view [content]="t.descriptionMarkdown"></ui-markdown-view>
+                    </div>
+                  }
+                  @if (!t.descriptionMarkdown) {
+                    <div class="description-card empty-desc text-muted">
+                      {{ 'tasks.opisanie_otsutstvuet_nazhmite_redaktirovat_chtob' | t }}
+                    </div>
+                  }
+                </div>
+
+                <!-- Subtasks Section -->
+                <div class="detail-section">
+                  <div class="section-header-between">
+                    <h4 class="section-label">{{ 'tasks.subtasks_count' | t: { count: taskSubtasks.length } }}</h4>
+                    @if (canCreateTask && safeRecordId(t.id)) {
+                      <button type="button" class="add-subtask-btn" (click)="openAddSubtask.emit(t)">
+                        <span class="material-symbols-outlined" aria-hidden="true">add</span>
+                        {{ 'tasks.dobavit_podzadachu' | t }}
+                      </button>
+                    }
+                  </div>
+
+                  @if (taskSubtasks.length > 0) {
+                    <div class="subtasks-list">
+                      @for (sub of taskSubtasks; track sub) {
+                        <button
+                          type="button"
+                          class="subtask-row"
+                          [disabled]="!safeRecordId(sub.id)"
+                          [attr.aria-label]="'tasks.open_subtask_named' | t: { id: sub.id, title: sub.title }"
+                          [class.row-overdue]="isOverdue(sub.endTime, sub.statusId)"
+                          (click)="openTaskDetails.emit(sub)"
+                        >
+                          <span class="subtask-type" [style.color]="getTypeColor(sub)">
+                            <span
+                              class="material-symbols-outlined type-icon"
+                              role="img"
+                              [attr.aria-label]="getTypeLabel(sub)"
+                              >{{ getTypeIcon(sub) }}</span
+                            >
+                          </span>
+                          <span class="font-mono text-muted text-xs">#{{ sub.id }}</span>
+                          <span class="subtask-title">{{ sub.title }}</span>
+                          <span class="inline-status-badge status-label">
+                            <span
+                              class="status-dot"
+                              [style.background-color]="getStatusColor(sub.statusId)"
+                              aria-hidden="true"
+                            ></span>
+                            {{ getStatusName(sub.statusId) }}
+                          </span>
+                          <span class="priority-pill" [attr.data-priority]="sub.priority">
+                            {{ getPriorityLabel(sub.priority) }}
+                          </span>
+                        </button>
+                      }
+                    </div>
+                  }
+                  @if (taskSubtasks.length === 0) {
+                    <div class="no-subtasks-hint text-muted">
+                      {{ 'tasks.u_etoy_zadachi_poka_net_podzadach' | t }}
+                    </div>
+                  }
+                </div>
+
+                <!-- Attachments & Files Section -->
+                <div class="detail-section files-section">
+                  <h4 class="section-label">{{ 'tasks.attachments_count' | t: { count: taskFiles.length } }}</h4>
+                  <ui-file-upload
+                    [files]="taskFiles"
+                    [canUpload]="canUpdateTask && safeRecordId(t.id)"
+                    [canDelete]="canUpdateTask && safeRecordId(t.id)"
+                    (fileAttached)="fileAttached.emit($event)"
+                    (fileRemoved)="fileRemoved.emit($event)"
+                  ></ui-file-upload>
+                </div>
+
+                <!-- Comments Feed -->
+                <div class="detail-section comments-section">
+                  <h4 class="section-label">{{ 'tasks.comments_count' | t: { count: comments.length } }}</h4>
+
+                  @if (commentsLoading) {
+                    <div class="request-state request-loading" role="status">
+                      {{ 'tasks.comments_loading' | t }}
+                    </div>
+                  }
+                  @if (commentsLoadError) {
+                    <div class="request-state request-error" role="alert">
+                      <span>{{ 'tasks.comments_load_error' | t }}</span>
+                      <button
+                        smt-button
+                        type="button"
+                        smtVariant="secondary"
+                        smtSize="sm"
+                        (click)="retryComments.emit()"
                       >
-                    </span>
-                    <span class="font-mono text-muted text-xs">#{{ sub.id }}</span>
-                    <span class="subtask-title">{{ sub.title }}</span>
-                    <span class="inline-status-badge status-label">
+                        {{ 'audit.retry' | t }}
+                      </button>
+                    </div>
+                  }
+
+                  @if (!commentsLoading && !commentsLoadError) {
+                    <div class="comments-feed">
+                      @for (c of comments; track c) {
+                        <div class="comment-card">
+                          <div class="comment-top">
+                            <div class="comment-author-badge">
+                              <smt-avatar [name]="c.userName" smtSize="xs" />
+                              <span class="comment-author"
+                                >{{ c.userName || ('tasks.removed_comment_author' | t) }}
+                                @if (c.userLogin) {
+                                  <span class="text-muted">&#64;{{ c.userLogin }}</span>
+                                }
+                              </span>
+                            </div>
+                            <span class="comment-time tabular-nums">{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+                          </div>
+                          <div class="comment-text">
+                            <ui-markdown-view [content]="c.textMarkdown || c.commentMarkdown"></ui-markdown-view>
+                          </div>
+                        </div>
+                      }
+                      @if (comments.length === 0) {
+                        <div class="no-comments-hint text-muted">
+                          {{ 'tasks.kommentariev_poka_net' | t }}
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  @if (canCommentTask) {
+                    <div class="add-comment-box">
+                      <label class="sr-only" for="task-comment-draft">{{
+                        'tasks.comment_task_aria' | t: { id: t.id }
+                      }}</label>
+                      <smt-textarea
+                        class="comment-textarea"
+                        smtFieldId="task-comment-draft"
+                        [rows]="2"
+                        [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
+                        [value]="commentDraft"
+                        (valueChange)="commentDraftChange.emit($event)"
+                        [disabled]="isCommentSubmitting"
+                        (keydown.ctrl.enter)="submitComment.emit()"
+                      />
+                      <button
+                        smt-button
+                        type="button"
+                        smtVariant="primary"
+                        smtSize="sm"
+                        smtIcon="send"
+                        [smtLoading]="isCommentSubmitting"
+                        (click)="submitComment.emit()"
+                      >
+                        {{ 'tasks.otpravit' | t }}
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                <!-- Change History (audit log), loaded when opened -->
+                @if (safeRecordId(t.id)) {
+                  <div class="detail-section">
+                    <ui-record-history kind="tasks" [recordId]="t.id" />
+                  </div>
+                }
+              </div>
+
+              <!-- Right Column (Properties Sidebar) -->
+              <div class="details-side-col">
+                <div class="side-card">
+                  <div class="side-prop-row">
+                    <span class="prop-k">{{ 'common.status' | t }}</span>
+                    <div class="prop-v">
                       <span
                         class="status-dot"
-                        [style.background-color]="getStatusColor(sub.statusId)"
+                        [style.background-color]="getStatusColor(t.statusId)"
                         aria-hidden="true"
                       ></span>
-                      {{ getStatusName(sub.statusId) }}
-                    </span>
-                    <span class="priority-pill" [attr.data-priority]="sub.priority">
-                      {{ getPriorityLabel(sub.priority) }}
-                    </span>
-                  </button>
-                </div>
-                <div *ngIf="taskSubtasks.length === 0" class="no-subtasks-hint text-muted">
-                  {{ 'tasks.u_etoy_zadachi_poka_net_podzadach' | t }}
-                </div>
-              </div>
+                      <smt-select
+                        class="status-select"
+                        [options]="statusOptions()"
+                        [value]="t.statusId"
+                        (valueChange)="onStatusChange(t.id, $event)"
+                        [allowClear]="false"
+                        [disabled]="!canUpdateTask || !safeRecordId(t.id)"
+                        [ariaLabel]="'tasks.task_status_aria' | t: { id: t.id }"
+                      ></smt-select>
+                    </div>
+                  </div>
 
-              <!-- Attachments & Files Section -->
-              <div class="detail-section files-section">
-                <h4 class="section-label">{{ 'tasks.attachments_count' | t: { count: taskFiles.length } }}</h4>
-                <ui-file-upload
-                  [files]="taskFiles"
-                  [canUpload]="canUpdateTask && safeRecordId(t.id)"
-                  [canDelete]="canUpdateTask && safeRecordId(t.id)"
-                  (fileAttached)="fileAttached.emit($event)"
-                  (fileRemoved)="fileRemoved.emit($event)"
-                ></ui-file-upload>
-              </div>
+                  <div class="side-prop-row">
+                    <span class="prop-k">{{ 'tasks.tip_zadachi' | t }}</span>
+                    <div class="prop-v">
+                      <span
+                        class="task-type-badge"
+                        [style.color]="getTypeColor(t)"
+                        [style.background-color]="getTypeBg(t)"
+                      >
+                        <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
+                        {{ getTypeLabel(t) }}
+                      </span>
+                    </div>
+                  </div>
 
-              <!-- Comments Feed -->
-              <div class="detail-section comments-section">
-                <h4 class="section-label">{{ 'tasks.comments_count' | t: { count: comments.length } }}</h4>
+                  <div class="side-prop-row">
+                    <span class="prop-k">{{ 'common.priority' | t }}</span>
+                    <div class="prop-v">
+                      <span class="priority-pill" [attr.data-priority]="t.priority">
+                        {{ getPriorityLabel(t.priority) }}
+                      </span>
+                    </div>
+                  </div>
 
-                <div class="request-state request-loading" *ngIf="commentsLoading" role="status">
-                  {{ 'tasks.comments_loading' | t }}
+                  <div class="side-prop-row">
+                    <span class="prop-k">{{ 'projects.proekt' | t }}</span>
+                    <div class="prop-v">{{ getProjectName(t.projectId) || ('tasks.without_project' | t) }}</div>
+                  </div>
+
+                  @if (t.parentTaskId) {
+                    <div class="side-prop-row">
+                      <span class="prop-k">{{ 'tasks.roditel' | t }}</span>
+                      <div class="prop-v font-mono text-xs">#{{ t.parentTaskId }}</div>
+                    </div>
+                  }
+
+                  <div class="side-prop-row">
+                    <span class="prop-k">{{ 'tasks.dedlayn' | t }}</span>
+                    <div class="prop-v" [class.text-danger]="isOverdue(t.endTime, t.statusId)">
+                      {{ t.endTime ? (t.endTime | date: 'dd.MM.yyyy HH:mm') : ('common.not_set' | t) }}
+                    </div>
+                  </div>
+
+                  @if (t.beginTime) {
+                    <div class="side-prop-row">
+                      <span class="prop-k">{{ 'tasks.data_nachala' | t }}</span>
+                      <div class="prop-v">{{ t.beginTime | date: 'dd.MM.yyyy HH:mm' }}</div>
+                    </div>
+                  }
+
+                  <div class="side-prop-row">
+                    <span class="prop-k">{{ 'iam.sozdana' | t }}</span>
+                    <div class="prop-v text-muted">{{ t.createdAt | date: 'dd.MM.yyyy HH:mm' }}</div>
+                  </div>
                 </div>
-                <div class="request-state request-error" *ngIf="commentsLoadError" role="alert">
-                  <span>{{ 'tasks.comments_load_error' | t }}</span>
-                  <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryComments.emit()">
-                    {{ 'audit.retry' | t }}
-                  </button>
-                </div>
 
-                <div class="comments-feed" *ngIf="!commentsLoading && !commentsLoadError">
-                  <div *ngFor="let c of comments" class="comment-card">
-                    <div class="comment-top">
-                      <div class="comment-author-badge">
-                        <smt-avatar [name]="c.userName" smtSize="xs" />
-                        <span class="comment-author"
-                          >{{ c.userName || ('tasks.removed_comment_author' | t) }}
-                          <span *ngIf="c.userLogin" class="text-muted">&#64;{{ c.userLogin }}</span></span
-                        >
+                <!-- Members Card -->
+                @if (taskMembers.length > 0) {
+                  <div class="side-card">
+                    <h5 class="side-card-title">{{ 'tasks.uchastniki' | t }}</h5>
+
+                    <!-- Responsible (R) -->
+                    @if (groupedMembers.responsible; as resp) {
+                      <div class="member-role-group">
+                        <div class="member-role-title">
+                          <span class="member-role-icon material-symbols-outlined" aria-hidden="true">person</span>
+                          <span>{{ 'task.responsible' | t }}</span>
+                        </div>
+                        <div class="member-stack-item member-highlighted">
+                          <smt-avatar [name]="resp.userName" smtSize="sm" />
+                          <div class="member-info">
+                            <span class="member-name">{{ resp.userName }}</span>
+                            <span class="member-login text-muted">&#64;{{ resp.userLogin }}</span>
+                          </div>
+                        </div>
                       </div>
-                      <span class="comment-time tabular-nums">{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
-                    </div>
-                    <div class="comment-text">
-                      <ui-markdown-view [content]="c.textMarkdown || c.commentMarkdown"></ui-markdown-view>
-                    </div>
-                  </div>
-                  <div *ngIf="comments.length === 0" class="no-comments-hint text-muted">
-                    {{ 'tasks.kommentariev_poka_net' | t }}
-                  </div>
-                </div>
+                    }
 
-                <div class="add-comment-box" *ngIf="canCommentTask">
-                  <label class="sr-only" for="task-comment-draft">{{
-                    'tasks.comment_task_aria' | t: { id: t.id }
-                  }}</label>
-                  <smt-textarea
-                    class="comment-textarea"
-                    smtFieldId="task-comment-draft"
-                    [rows]="2"
-                    [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
-                    [value]="commentDraft"
-                    (valueChange)="commentDraftChange.emit($event)"
-                    [disabled]="isCommentSubmitting"
-                    (keydown.ctrl.enter)="submitComment.emit()"
-                  />
-                  <button
-                    smt-button
-                    type="button"
-                    smtVariant="primary"
-                    smtSize="sm"
-                    smtIcon="send"
-                    [smtLoading]="isCommentSubmitting"
-                    (click)="submitComment.emit()"
-                  >
-                    {{ 'tasks.otpravit' | t }}
+                    <!-- Executors (E) -->
+                    @if (groupedMembers.executors.length > 0) {
+                      <div class="member-role-group">
+                        <div class="member-role-title">
+                          <span class="member-role-icon material-symbols-outlined" aria-hidden="true">group</span>
+                          <span>{{ 'tasks.soispolniteli' | t }} ({{ groupedMembers.executors.length }})</span>
+                        </div>
+                        <div class="members-stack">
+                          @for (m of groupedMembers.executors; track m) {
+                            <div class="member-stack-item">
+                              <smt-avatar [name]="m.userName" smtSize="sm" />
+                              <div class="member-info">
+                                <span class="member-name">{{ m.userName }}</span>
+                                <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Observers (O) -->
+                    @if (groupedMembers.observers.length > 0) {
+                      <div class="member-role-group">
+                        <div class="member-role-title">
+                          <span class="member-role-icon material-symbols-outlined" aria-hidden="true">visibility</span>
+                          <span>{{ 'tasks.nablyudateli' | t }} ({{ groupedMembers.observers.length }})</span>
+                        </div>
+                        <div class="members-stack">
+                          @for (m of groupedMembers.observers; track m) {
+                            <div class="member-stack-item member-observer">
+                              <smt-avatar [name]="m.userName" smtSize="sm" />
+                              <div class="member-info">
+                                <span class="member-name">{{ m.userName }}</span>
+                                <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Author (A) -->
+                    @if (groupedMembers.author; as auth) {
+                      <div class="member-role-group member-author-group">
+                        <div class="member-role-title">
+                          <span class="member-role-icon material-symbols-outlined" aria-hidden="true">edit_note</span>
+                          <span>{{ 'tasks.avtor' | t }}</span>
+                        </div>
+                        <div class="member-stack-item member-author">
+                          <span class="member-name">{{ auth.userName }}</span>
+                          <span class="member-login text-muted">&#64;{{ auth.userLogin }}</span>
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Others (if any) -->
+                    @if (groupedMembers.others.length > 0) {
+                      <div class="member-role-group">
+                        <div class="member-role-title">
+                          <span class="member-role-icon material-symbols-outlined" aria-hidden="true"
+                            >person_outline</span
+                          >
+                          <span>{{ 'tasks.uchastnik' | t }}</span>
+                        </div>
+                        <div class="members-stack">
+                          @for (m of groupedMembers.others; track m) {
+                            <div class="member-stack-item">
+                              <span class="member-name">{{ m.userName }}</span>
+                              <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                <!-- Custom Attributes Card -->
+                @if (hasAttributes(t.attributes)) {
+                  <div class="side-card">
+                    <h5 class="side-card-title">{{ 'nav.custom_fields' | t }}</h5>
+                    <div class="attributes-stack">
+                      @for (item of formatAttributes(t.attributes); track item) {
+                        <div class="attr-stack-item">
+                          <span class="attr-k">{{ item.key }}:</span>
+                          <span class="attr-v">{{ item.value }}</span>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (canUpdateTask && safeRecordId(t.id)) {
+                  <button type="button" class="side-edit-btn" (click)="openEditModal.emit(t)">
+                    <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                    {{ 'tasks.redaktirovat_zadachu' | t }}
                   </button>
-                </div>
+                }
               </div>
-
-              <!-- Change History (audit log), loaded when opened -->
-              <div class="detail-section" *ngIf="safeRecordId(t.id)">
-                <ui-record-history kind="tasks" [recordId]="t.id" />
-              </div>
-            </div>
-
-            <!-- Right Column (Properties Sidebar) -->
-            <div class="details-side-col">
-              <div class="side-card">
-                <div class="side-prop-row">
-                  <span class="prop-k">{{ 'common.status' | t }}</span>
-                  <div class="prop-v">
-                    <span
-                      class="status-dot"
-                      [style.background-color]="getStatusColor(t.statusId)"
-                      aria-hidden="true"
-                    ></span>
-                    <smt-select
-                      class="status-select"
-                      [options]="statusOptions()"
-                      [value]="t.statusId"
-                      (valueChange)="onStatusChange(t.id, $event)"
-                      [allowClear]="false"
-                      [disabled]="!canUpdateTask || !safeRecordId(t.id)"
-                      [ariaLabel]="'tasks.task_status_aria' | t: { id: t.id }"
-                    ></smt-select>
-                  </div>
-                </div>
-
-                <div class="side-prop-row">
-                  <span class="prop-k">{{ 'tasks.tip_zadachi' | t }}</span>
-                  <div class="prop-v">
-                    <span
-                      class="task-type-badge"
-                      [style.color]="getTypeColor(t)"
-                      [style.background-color]="getTypeBg(t)"
-                    >
-                      <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
-                      {{ getTypeLabel(t) }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="side-prop-row">
-                  <span class="prop-k">{{ 'common.priority' | t }}</span>
-                  <div class="prop-v">
-                    <span class="priority-pill" [attr.data-priority]="t.priority">
-                      {{ getPriorityLabel(t.priority) }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="side-prop-row">
-                  <span class="prop-k">{{ 'projects.proekt' | t }}</span>
-                  <div class="prop-v">{{ getProjectName(t.projectId) || ('tasks.without_project' | t) }}</div>
-                </div>
-
-                <div class="side-prop-row" *ngIf="t.parentTaskId">
-                  <span class="prop-k">{{ 'tasks.roditel' | t }}</span>
-                  <div class="prop-v font-mono text-xs">#{{ t.parentTaskId }}</div>
-                </div>
-
-                <div class="side-prop-row">
-                  <span class="prop-k">{{ 'tasks.dedlayn' | t }}</span>
-                  <div class="prop-v" [class.text-danger]="isOverdue(t.endTime, t.statusId)">
-                    {{ t.endTime ? (t.endTime | date: 'dd.MM.yyyy HH:mm') : ('common.not_set' | t) }}
-                  </div>
-                </div>
-
-                <div class="side-prop-row" *ngIf="t.beginTime">
-                  <span class="prop-k">{{ 'tasks.data_nachala' | t }}</span>
-                  <div class="prop-v">{{ t.beginTime | date: 'dd.MM.yyyy HH:mm' }}</div>
-                </div>
-
-                <div class="side-prop-row">
-                  <span class="prop-k">{{ 'iam.sozdana' | t }}</span>
-                  <div class="prop-v text-muted">{{ t.createdAt | date: 'dd.MM.yyyy HH:mm' }}</div>
-                </div>
-              </div>
-
-              <!-- Members Card -->
-              <div class="side-card" *ngIf="taskMembers.length > 0">
-                <h5 class="side-card-title">{{ 'tasks.uchastniki' | t }}</h5>
-
-                <!-- Responsible (R) -->
-                <div class="member-role-group" *ngIf="groupedMembers.responsible as resp">
-                  <div class="member-role-title">
-                    <span class="member-role-icon material-symbols-outlined" aria-hidden="true">person</span>
-                    <span>{{ 'task.responsible' | t }}</span>
-                  </div>
-                  <div class="member-stack-item member-highlighted">
-                    <smt-avatar [name]="resp.userName" smtSize="sm" />
-                    <div class="member-info">
-                      <span class="member-name">{{ resp.userName }}</span>
-                      <span class="member-login text-muted">&#64;{{ resp.userLogin }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Executors (E) -->
-                <div class="member-role-group" *ngIf="groupedMembers.executors.length > 0">
-                  <div class="member-role-title">
-                    <span class="member-role-icon material-symbols-outlined" aria-hidden="true">group</span>
-                    <span>{{ 'tasks.soispolniteli' | t }} ({{ groupedMembers.executors.length }})</span>
-                  </div>
-                  <div class="members-stack">
-                    <div *ngFor="let m of groupedMembers.executors" class="member-stack-item">
-                      <smt-avatar [name]="m.userName" smtSize="sm" />
-                      <div class="member-info">
-                        <span class="member-name">{{ m.userName }}</span>
-                        <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Observers (O) -->
-                <div class="member-role-group" *ngIf="groupedMembers.observers.length > 0">
-                  <div class="member-role-title">
-                    <span class="member-role-icon material-symbols-outlined" aria-hidden="true">visibility</span>
-                    <span>{{ 'tasks.nablyudateli' | t }} ({{ groupedMembers.observers.length }})</span>
-                  </div>
-                  <div class="members-stack">
-                    <div *ngFor="let m of groupedMembers.observers" class="member-stack-item member-observer">
-                      <smt-avatar [name]="m.userName" smtSize="sm" />
-                      <div class="member-info">
-                        <span class="member-name">{{ m.userName }}</span>
-                        <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Author (A) -->
-                <div class="member-role-group member-author-group" *ngIf="groupedMembers.author as auth">
-                  <div class="member-role-title">
-                    <span class="member-role-icon material-symbols-outlined" aria-hidden="true">edit_note</span>
-                    <span>{{ 'tasks.avtor' | t }}</span>
-                  </div>
-                  <div class="member-stack-item member-author">
-                    <span class="member-name">{{ auth.userName }}</span>
-                    <span class="member-login text-muted">&#64;{{ auth.userLogin }}</span>
-                  </div>
-                </div>
-
-                <!-- Others (if any) -->
-                <div class="member-role-group" *ngIf="groupedMembers.others.length > 0">
-                  <div class="member-role-title">
-                    <span class="member-role-icon material-symbols-outlined" aria-hidden="true">person_outline</span>
-                    <span>{{ 'tasks.uchastnik' | t }}</span>
-                  </div>
-                  <div class="members-stack">
-                    <div *ngFor="let m of groupedMembers.others" class="member-stack-item">
-                      <span class="member-name">{{ m.userName }}</span>
-                      <span class="member-login text-muted">&#64;{{ m.userLogin }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Custom Attributes Card -->
-              <div class="side-card" *ngIf="hasAttributes(t.attributes)">
-                <h5 class="side-card-title">{{ 'nav.custom_fields' | t }}</h5>
-                <div class="attributes-stack">
-                  <div *ngFor="let item of formatAttributes(t.attributes)" class="attr-stack-item">
-                    <span class="attr-k">{{ item.key }}:</span>
-                    <span class="attr-v">{{ item.value }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                *ngIf="canUpdateTask && safeRecordId(t.id)"
-                type="button"
-                class="side-edit-btn"
-                (click)="openEditModal.emit(t)"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                {{ 'tasks.redaktirovat_zadachu' | t }}
-              </button>
             </div>
           </div>
-        </div>
+        }
 
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">

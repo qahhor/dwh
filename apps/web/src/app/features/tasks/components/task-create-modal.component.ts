@@ -1,5 +1,5 @@
 import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import {
   SMTDataSelectComponent,
@@ -28,7 +28,6 @@ import { Project, TaskType } from '../../../core/models/task.models';
   standalone: true,
   imports: [
     SMTControlComponent,
-    CommonModule,
     FormsModule,
     SMTDatePickerComponent,
     SMTDatePickerValueAccessor,
@@ -216,21 +215,25 @@ import { Project, TaskType } from '../../../core/models/task.models';
           </div>
 
           <!-- Custom Dynamic Fields -->
-          <div class="custom-fields-section" *ngIf="taskCustomFields.length > 0">
-            <h4 class="custom-fields-title">
-              <span>{{ 'nav.custom_fields' | t }}</span>
-            </h4>
-            <ui-custom-fields [fields]="taskCustomFields" [(values)]="createForm.attributes"></ui-custom-fields>
-          </div>
+          @if (taskCustomFields.length > 0) {
+            <div class="custom-fields-section">
+              <h4 class="custom-fields-title">
+                <span>{{ 'nav.custom_fields' | t }}</span>
+              </h4>
+              <ui-custom-fields [fields]="taskCustomFields" [(values)]="createForm.attributes"></ui-custom-fields>
+            </div>
+          }
 
-          <div class="custom-fields-empty-tip" *ngIf="taskCustomFields.length === 0">
-            <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
-            <span class="tip-text"
-              >{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }}
-              <strong>{{ 'nav.custom_fields' | t }}</strong
-              >.</span
-            >
-          </div>
+          @if (taskCustomFields.length === 0) {
+            <div class="custom-fields-empty-tip">
+              <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
+              <span class="tip-text"
+                >{{ 'tasks.nuzhny_specificheskie_polya_byudzhet_nomer_dogov' | t }}
+                <strong>{{ 'nav.custom_fields' | t }}</strong
+                >.</span
+              >
+            </div>
+          }
         </fieldset>
         <div footer>
           <button

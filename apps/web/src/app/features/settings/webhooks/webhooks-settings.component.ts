@@ -57,60 +57,72 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
           >
             {{ 'common.refresh' | t }}
           </button>
-          <button
-            smt-button
-            type="button"
-            *ngIf="canManageWebhooks()"
-            smtVariant="primary"
-            smtSize="sm"
-            smtIcon="add"
-            (click)="openCreateModal()"
-          >
-            {{ 'settings.webhooks.add' | t }}
-          </button>
+          @if (canManageWebhooks()) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              smtSize="sm"
+              smtIcon="add"
+              (click)="openCreateModal()"
+            >
+              {{ 'settings.webhooks.add' | t }}
+            </button>
+          }
         </div>
       </div>
 
       <!-- Loading State -->
-      <div *ngIf="isLoading()" class="loading-state" role="status">
-        <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
-        <span>{{ 'common.loading' | t }}</span>
-      </div>
+      @if (isLoading()) {
+        <div class="loading-state" role="status">
+          <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
+          <span>{{ 'common.loading' | t }}</span>
+        </div>
+      }
 
       <!-- Error State -->
-      <div *ngIf="!isLoading() && loadError()" class="error-banner" role="alert">
-        <span class="material-symbols-outlined" aria-hidden="true">error</span>
-        <span>{{ 'common.error' | t }}</span>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadSubscriptions()">
-          {{ 'common.retry' | t }}
-        </button>
-      </div>
-
-      <!-- Subscriptions Content -->
-      <div *ngIf="!isLoading() && !loadError()">
-        <!-- Empty State -->
-        <div *ngIf="subscriptions().length === 0" class="empty-card">
-          <span class="material-symbols-outlined empty-icon" aria-hidden="true">webhook</span>
-          <h4>{{ 'settings.webhooks.empty' | t }}</h4>
-          <p class="empty-desc">{{ 'settings.webhooks.subtitle' | t }}</p>
-          <button
-            smt-button
-            type="button"
-            *ngIf="canManageWebhooks()"
-            smtVariant="primary"
-            smtSize="sm"
-            smtIcon="add"
-            (click)="openCreateModal()"
-          >
-            {{ 'settings.webhooks.add' | t }}
+      @if (!isLoading() && loadError()) {
+        <div class="error-banner" role="alert">
+          <span class="material-symbols-outlined" aria-hidden="true">error</span>
+          <span>{{ 'common.error' | t }}</span>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadSubscriptions()">
+            {{ 'common.retry' | t }}
           </button>
         </div>
+      }
 
-        <!-- Subscriptions Table -->
-        <div *ngIf="subscriptions().length > 0" class="table-card">
-          <ui-local-table [rows]="subscriptions()" [config]="tableConfig()" [sortValues]="sortValues" />
+      <!-- Subscriptions Content -->
+      @if (!isLoading() && !loadError()) {
+        <div>
+          <!-- Empty State -->
+          @if (subscriptions().length === 0) {
+            <div class="empty-card">
+              <span class="material-symbols-outlined empty-icon" aria-hidden="true">webhook</span>
+              <h4>{{ 'settings.webhooks.empty' | t }}</h4>
+              <p class="empty-desc">{{ 'settings.webhooks.subtitle' | t }}</p>
+              @if (canManageWebhooks()) {
+                <button
+                  smt-button
+                  type="button"
+                  smtVariant="primary"
+                  smtSize="sm"
+                  smtIcon="add"
+                  (click)="openCreateModal()"
+                >
+                  {{ 'settings.webhooks.add' | t }}
+                </button>
+              }
+            </div>
+          }
+
+          <!-- Subscriptions Table -->
+          @if (subscriptions().length > 0) {
+            <div class="table-card">
+              <ui-local-table [rows]="subscriptions()" [config]="tableConfig()" [sortValues]="sortValues" />
+            </div>
+          }
         </div>
-      </div>
+      }
 
       <ng-template #idCell let-sub
         ><span class="font-mono text-muted text-xs">#{{ sub.id }}</span></ng-template
@@ -211,16 +223,17 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
                 </button>
               </div>
               <div class="events-grid">
-                <div
-                  *ngFor="let opt of availableEvents"
-                  smt-checkbox
-                  class="event-checkbox-label"
-                  [checked]="selectedEvents.has(opt.code)"
-                  [smtHint]="opt.descKey | t"
-                  (smtCheckedChange)="onEventCheck(opt.code, $event)"
-                >
-                  <span class="event-opt-code font-mono">{{ opt.code }}</span>
-                </div>
+                @for (opt of availableEvents; track opt) {
+                  <div
+                    smt-checkbox
+                    class="event-checkbox-label"
+                    [checked]="selectedEvents.has(opt.code)"
+                    [smtHint]="opt.descKey | t"
+                    (smtCheckedChange)="onEventCheck(opt.code, $event)"
+                  >
+                    <span class="event-opt-code font-mono">{{ opt.code }}</span>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -251,42 +264,44 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
         (closed)="closeSecretModal()"
       >
         <ng-template smtDialogContent>
-          <div body class="secret-modal-body" *ngIf="recentlyCreatedSubscription() as sub">
-            <div class="warning-callout">
-              <span class="material-symbols-outlined callout-icon" aria-hidden="true">warning</span>
-              <p>{{ 'settings.webhooks.secret_modal_warning' | t }}</p>
-            </div>
+          @if (recentlyCreatedSubscription(); as sub) {
+            <div body class="secret-modal-body">
+              <div class="warning-callout">
+                <span class="material-symbols-outlined callout-icon" aria-hidden="true">warning</span>
+                <p>{{ 'settings.webhooks.secret_modal_warning' | t }}</p>
+              </div>
 
-            <div class="secret-field-box">
-              <label class="form-lbl">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
-              <div class="secret-input-row">
-                <smt-input
-                  class="font-mono secret-input"
-                  [value]="sub.secretToken"
-                  readonly
-                  smtAriaLabel="Secret token"
-                />
-                <button
-                  smt-button
-                  type="button"
-                  smtVariant="secondary"
-                  smtSize="sm"
-                  smtIcon="content_copy"
-                  (click)="copySecret(sub.secretToken)"
-                >
-                  {{ 'settings.webhooks.copy_secret' | t }}
-                </button>
+              <div class="secret-field-box">
+                <label class="form-lbl">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
+                <div class="secret-input-row">
+                  <smt-input
+                    class="font-mono secret-input"
+                    [value]="sub.secretToken"
+                    readonly
+                    smtAriaLabel="Secret token"
+                  />
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="secondary"
+                    smtSize="sm"
+                    smtIcon="content_copy"
+                    (click)="copySecret(sub.secretToken)"
+                  >
+                    {{ 'settings.webhooks.copy_secret' | t }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="hmac-info-box">
+                <span class="text-xs text-muted">
+                  {{ 'settings.webhooks.request_headers' | t }}:
+                  <code>X-Hub-Signature-256: sha256=&lt;hmac-hex&gt;</code>,
+                  <code>X-Webhook-Event: &lt;event_type&gt;</code>.
+                </span>
               </div>
             </div>
-
-            <div class="hmac-info-box">
-              <span class="text-xs text-muted">
-                {{ 'settings.webhooks.request_headers' | t }}:
-                <code>X-Hub-Signature-256: sha256=&lt;hmac-hex&gt;</code>,
-                <code>X-Webhook-Event: &lt;event_type&gt;</code>.
-              </span>
-            </div>
-          </div>
+          }
           <div footer>
             <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="closeSecretModal()">
               {{ 'common.confirm' | t }}

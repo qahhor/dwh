@@ -169,11 +169,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         <span class="event-badge" [ngClass]="getEventBadgeClass(item.event)">{{ getEventName(item.event) }}</span>
       </ng-template>
       <ng-template #userCell let-item>
-        <div class="user-cell" *ngIf="item.changedByName">
-          <span class="user-name">{{ item.changedByName }}</span>
-          <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
-        </div>
-        <span *ngIf="!item.changedByName" class="text-muted">{{ 'audit.sistema' | t }}</span>
+        @if (item.changedByName) {
+          <div class="user-cell">
+            <span class="user-name">{{ item.changedByName }}</span>
+            <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
+          </div>
+        }
+        @if (!item.changedByName) {
+          <span class="text-muted">{{ 'audit.sistema' | t }}</span>
+        }
       </ng-template>
       <ng-template #channelCell let-item>
         <span class="channel-pill" [class.api-pill]="item.isApi">

@@ -6,17 +6,11 @@
       <span class="count-badge">{{ roles().length }}</span>
     </div>
     <div class="header-right">
-      <button
-        smt-button
-        type="button"
-        *ngIf="canCreateRole()"
-        smtVariant="primary"
-        smtSize="md"
-        smtIcon="add"
-        (click)="openCreateModal()"
-      >
-        {{ 'iam.novaya_rol' | t }}
-      </button>
+      @if (canCreateRole()) {
+        <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+          {{ 'iam.novaya_rol' | t }}
+        </button>
+      }
     </div>
   </div>
 
@@ -41,49 +35,49 @@
   ></app-role-cards-bar>
 
   <!-- Main Permission Matrix Section -->
-  <div class="matrix-card" *ngIf="selectedRole() as role" [attr.aria-busy]="isLoading() || isSaving()">
-    <app-role-permissions-matrix
-      [role]="role"
-      [isLoading]="isLoading()"
-      [isSaving]="isSaving()"
-      [permissionsError]="permissionsError()"
-      [activePermissionsCount]="activePermissionsCount()"
-      [totalActionsCount]="totalActionsCount()"
-      [permissionPercentage]="permissionPercentage()"
-      [isPermissionsDirty]="isPermissionsDirty()"
-      [dirtyPermissionsCount]="dirtyPermissionsCount()"
-      [canGrant]="canGrant()"
-      [canEditPermissions]="canEditPermissions()"
-      [matrixSearchQuery]="matrixSearchQuery"
-      [matchingFormsCount]="matchingFormsCount()"
-      [formsCount]="forms().length"
-      [selectedModuleTab]="selectedModuleTab"
-      [moduleGroups]="moduleGroups"
-      [visibleModuleGroups]="visibleModuleGroups()"
-      [hasPermission]="hasPermissionFn"
-      [isPermissionDirty]="isPermissionDirtyFn"
-      [getModuleIcon]="getModuleIconFn"
-      [getModuleActionsCount]="getModuleActionsCountFn"
-      (resetChanges)="resetMatrixChanges()"
-      (savePermissions)="savePermissions()"
-      (refreshRole)="selectRole($event)"
-      (matrixSearchQueryChange)="matrixSearchQuery = $event"
-      (selectedModuleTabChange)="selectedModuleTab = $event"
-      (setAllModulesExpanded)="setAllModulesExpanded($event)"
-      (toggleAllPermissions)="toggleAllPermissions($event)"
-      (toggleReadOnlyAllPermissions)="toggleReadOnlyAllPermissions()"
-      (toggleModuleExpand)="toggleModuleExpand($event)"
-      (toggleReadOnlyModule)="toggleReadOnlyModule($event)"
-      (toggleAllModule)="toggleAllModule($event.mod, $event.select)"
-      (toggleAllForm)="toggleAllForm($event.form, $event.select)"
-      (togglePermission)="togglePermission($event.formCode, $event.action, $event.checked)"
-    ></app-role-permissions-matrix>
-    <app-role-scope-panel
-      *ngIf="canViewOrgUnits() && safeRoleId(role.id)"
-      [roleId]="role.id"
-      (busyChange)="scopePanelBusy.set($event)"
-    ></app-role-scope-panel>
-  </div>
+  @if (selectedRole(); as role) {
+    <div class="matrix-card" [attr.aria-busy]="isLoading() || isSaving()">
+      <app-role-permissions-matrix
+        [role]="role"
+        [isLoading]="isLoading()"
+        [isSaving]="isSaving()"
+        [permissionsError]="permissionsError()"
+        [activePermissionsCount]="activePermissionsCount()"
+        [totalActionsCount]="totalActionsCount()"
+        [permissionPercentage]="permissionPercentage()"
+        [isPermissionsDirty]="isPermissionsDirty()"
+        [dirtyPermissionsCount]="dirtyPermissionsCount()"
+        [canGrant]="canGrant()"
+        [canEditPermissions]="canEditPermissions()"
+        [matrixSearchQuery]="matrixSearchQuery"
+        [matchingFormsCount]="matchingFormsCount()"
+        [formsCount]="forms().length"
+        [selectedModuleTab]="selectedModuleTab"
+        [moduleGroups]="moduleGroups"
+        [visibleModuleGroups]="visibleModuleGroups()"
+        [hasPermission]="hasPermissionFn"
+        [isPermissionDirty]="isPermissionDirtyFn"
+        [getModuleIcon]="getModuleIconFn"
+        [getModuleActionsCount]="getModuleActionsCountFn"
+        (resetChanges)="resetMatrixChanges()"
+        (savePermissions)="savePermissions()"
+        (refreshRole)="selectRole($event)"
+        (matrixSearchQueryChange)="matrixSearchQuery = $event"
+        (selectedModuleTabChange)="selectedModuleTab = $event"
+        (setAllModulesExpanded)="setAllModulesExpanded($event)"
+        (toggleAllPermissions)="toggleAllPermissions($event)"
+        (toggleReadOnlyAllPermissions)="toggleReadOnlyAllPermissions()"
+        (toggleModuleExpand)="toggleModuleExpand($event)"
+        (toggleReadOnlyModule)="toggleReadOnlyModule($event)"
+        (toggleAllModule)="toggleAllModule($event.mod, $event.select)"
+        (toggleAllForm)="toggleAllForm($event.form, $event.select)"
+        (togglePermission)="togglePermission($event.formCode, $event.action, $event.checked)"
+      ></app-role-permissions-matrix>
+      @if (canViewOrgUnits() && safeRoleId(role.id)) {
+        <app-role-scope-panel [roleId]="role.id" (busyChange)="scopePanelBusy.set($event)"></app-role-scope-panel>
+      }
+    </div>
+  }
 </div>
 
 <!-- Modals (Create, Edit, Delete, Discard) -->

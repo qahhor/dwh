@@ -1,6 +1,6 @@
 import { Component, DestroyRef, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { canonicalRecordId, safeNumericRecordId } from '../../core/services/search-target';
@@ -67,7 +67,6 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   imports: [
     SMTRadioGroupComponent,
     TranslatePipe,
-    CommonModule,
     FormsModule,
     SMTButtonComponent,
     UiPaginationComponent,

@@ -10,97 +10,107 @@ import { I18nService, TranslatePipe } from '../../../core/services/i18n.service'
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="palette-results">
-      <div *ngIf="isLoading()" class="palette-loading" role="status" aria-live="polite">
-        {{ 'layout.app_shell.poisk' | t }}
-      </div>
+      @if (isLoading()) {
+        <div class="palette-loading" role="status" aria-live="polite">
+          {{ 'layout.app_shell.poisk' | t }}
+        </div>
+      }
 
-      <div *ngIf="!isLoading() && errorMessage()" class="palette-error" role="alert">
-        <span>{{ errorMessage() }}</span>
-        <span *ngIf="retrySeconds() > 0">{{ 'search.retry_countdown' | t: { seconds: retrySeconds() } }}</span>
-        <button
-          type="button"
-          class="palette-retry"
-          [disabled]="retrySeconds() > 0 || !validQuery()"
-          (click)="retry.emit()"
-        >
-          {{ 'announcements.povtorit' | t }}
-        </button>
-      </div>
+      @if (!isLoading() && errorMessage()) {
+        <div class="palette-error" role="alert">
+          <span>{{ errorMessage() }}</span>
+          @if (retrySeconds() > 0) {
+            <span>{{ 'search.retry_countdown' | t: { seconds: retrySeconds() } }}</span>
+          }
+          <button
+            type="button"
+            class="palette-retry"
+            [disabled]="retrySeconds() > 0 || !validQuery()"
+            (click)="retry.emit()"
+          >
+            {{ 'announcements.povtorit' | t }}
+          </button>
+        </div>
+      }
 
-      <div *ngIf="metadata()?.degraded" class="palette-degraded" role="status">{{ 'search.degraded' | t }}</div>
+      @if (metadata()?.degraded) {
+        <div class="palette-degraded" role="status">{{ 'search.degraded' | t }}</div>
+      }
 
-      <div *ngIf="metadata() as meta" class="palette-count" role="status">
-        {{
-          (meta.foundHits === null ? 'search.returned' : 'search.returned_found')
-            | t: { returned: results().length, found: meta.foundHits ?? 0 }
-        }}
-        <span *ngIf="meta.hasMore">{{ 'search.has_more' | t }}</span>
-      </div>
+      @if (metadata(); as meta) {
+        <div class="palette-count" role="status">
+          {{
+            (meta.foundHits === null ? 'search.returned' : 'search.returned_found')
+              | t: { returned: results().length, found: meta.foundHits ?? 0 }
+          }}
+          @if (meta.hasMore) {
+            <span>{{ 'search.has_more' | t }}</span>
+          }
+        </div>
+      }
 
-      <div
-        *ngIf="!isLoading() && !errorMessage() && metadata() && results().length === 0"
-        class="palette-empty"
-        role="status"
-      >
-        {{ 'layout.command_palette.nothing_found_for' | t: { query: searchQuery() } }}
-      </div>
+      @if (!isLoading() && !errorMessage() && metadata() && results().length === 0) {
+        <div class="palette-empty" role="status">
+          {{ 'layout.command_palette.nothing_found_for' | t: { query: searchQuery() } }}
+        </div>
+      }
 
       <!-- Hint & Recent Searches -->
-      <div *ngIf="!isLoading() && queryLength(searchQuery()) < 2" class="palette-hint">
-        <div class="hint-text">
-          <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
-          <span>{{ 'layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk' | t }}</span>
-        </div>
+      @if (!isLoading() && queryLength(searchQuery()) < 2) {
+        <div class="palette-hint">
+          <div class="hint-text">
+            <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
+            <span>{{ 'layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk' | t }}</span>
+          </div>
 
-        <div *ngIf="recentSearches().length > 0" class="recent-searches">
-          <div class="recent-header">
-            <span class="recent-title">{{ 'search.recent_searches' | t }}</span>
-            <button type="button" class="recent-clear-btn" (click)="clearRecent.emit()">
-              {{ 'search.clear_recent' | t }}
-            </button>
-          </div>
-          <div class="recent-chips">
-            <button
-              *ngFor="let item of recentSearches()"
-              type="button"
-              class="recent-chip"
-              (click)="selectRecent.emit(item)"
-            >
-              <span class="material-symbols-outlined chip-icon" aria-hidden="true">history</span>
-              <span>{{ item }}</span>
-            </button>
-          </div>
+          @if (recentSearches().length > 0) {
+            <div class="recent-searches">
+              <div class="recent-header">
+                <span class="recent-title">{{ 'search.recent_searches' | t }}</span>
+                <button type="button" class="recent-clear-btn" (click)="clearRecent.emit()">
+                  {{ 'search.clear_recent' | t }}
+                </button>
+              </div>
+              <div class="recent-chips">
+                @for (item of recentSearches(); track item) {
+                  <button type="button" class="recent-chip" (click)="selectRecent.emit(item)">
+                    <span class="material-symbols-outlined chip-icon" aria-hidden="true">history</span>
+                    <span>{{ item }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
         </div>
-      </div>
+      }
 
       <!-- Results List -->
-      <div
-        *ngIf="results().length > 0"
-        class="results-list"
-        role="listbox"
-        [id]="listboxId()"
-        [attr.aria-label]="'search.results' | t"
-      >
-        <button
-          *ngFor="let hit of results(); let i = index"
-          type="button"
-          class="result-item"
-          role="option"
-          [id]="optionId(i)"
-          [attr.aria-selected]="i === selectedIndex()"
-          [class.active]="i === selectedIndex()"
-          (click)="selectHit.emit(hit)"
-        >
-          <div class="result-icon-box" [ngClass]="'icon-' + hit.entityType.toLowerCase()">
-            <span class="material-symbols-outlined" aria-hidden="true">{{ getIcon(hit.entityType) }}</span>
-          </div>
-          <div class="result-info">
-            <div class="result-title">{{ hit.title }}</div>
-            <div *ngIf="hit.description" class="result-desc">{{ hit.description }}</div>
-          </div>
-          <span class="result-badge">{{ getEntityBadge(hit.entityType) }}</span>
-        </button>
-      </div>
+      @if (results().length > 0) {
+        <div class="results-list" role="listbox" [id]="listboxId()" [attr.aria-label]="'search.results' | t">
+          @for (hit of results(); track hit; let i = $index) {
+            <button
+              type="button"
+              class="result-item"
+              role="option"
+              [id]="optionId(i)"
+              [attr.aria-selected]="i === selectedIndex()"
+              [class.active]="i === selectedIndex()"
+              (click)="selectHit.emit(hit)"
+            >
+              <div class="result-icon-box" [ngClass]="'icon-' + hit.entityType.toLowerCase()">
+                <span class="material-symbols-outlined" aria-hidden="true">{{ getIcon(hit.entityType) }}</span>
+              </div>
+              <div class="result-info">
+                <div class="result-title">{{ hit.title }}</div>
+                @if (hit.description) {
+                  <div class="result-desc">{{ hit.description }}</div>
+                }
+              </div>
+              <span class="result-badge">{{ getEntityBadge(hit.entityType) }}</span>
+            </button>
+          }
+        </div>
+      }
     </div>
   `,
   styles: [

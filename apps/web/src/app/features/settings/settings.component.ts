@@ -1,6 +1,6 @@
 import { Component, HostListener, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Observable, concatMap, finalize, from, switchMap, toArray } from 'rxjs';
 import { TranslationDictionary, TranslationEditor } from '../../core/models/i18n.models';
@@ -28,7 +28,6 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
   standalone: true,
   imports: [
     SMTTabBarComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,

@@ -15,7 +15,7 @@ import { Observable, Subscription, finalize, tap } from 'rxjs';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../shared/ui/problem-text';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -63,7 +63,6 @@ import { UserDirectoryService } from './services/user-directory.service';
   standalone: true,
   imports: [
     TranslatePipe,
-    CommonModule,
     FormsModule,
     SMTButtonComponent,
     SMTAlertComponent,

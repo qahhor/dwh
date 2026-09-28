@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TaskFile } from '../../../core/models/task.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -9,14 +9,7 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 @Component({
   selector: 'app-files-modals',
   standalone: true,
-  imports: [
-    CommonModule,
-    SMTDialogComponent,
-    SMTDialogContentDirective,
-    SMTButtonComponent,
-    UiFileUploadComponent,
-    TranslatePipe,
-  ],
+  imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, UiFileUploadComponent, TranslatePipe],
   template: `
     <!-- Upload Modal -->
     <smt-dialog

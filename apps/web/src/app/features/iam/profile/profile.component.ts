@@ -1,5 +1,5 @@
 import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { AuthService } from '../../../core/services/auth.service';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -35,7 +35,6 @@ export * from './profile.models';
   selector: 'app-profile',
   standalone: true,
   imports: [
-    CommonModule,
     TranslatePipe,
     UserProfileCardComponent,
     ProfilePasswordCardComponent,

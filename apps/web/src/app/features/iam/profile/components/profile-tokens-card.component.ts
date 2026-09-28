@@ -127,9 +127,11 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               (ngModelChange)="nameChange.emit($event)"
               [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t"
             />
-            <span id="profile-token-name-error" class="field-error" *ngIf="isTokenSubmitted && !newTokenName.trim()">
-              {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
-            </span>
+            @if (isTokenSubmitted && !newTokenName.trim()) {
+              <span id="profile-token-name-error" class="field-error">
+                {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
+              </span>
+            }
           </div>
 
           <smt-control class="mt-3" [smtLabel]="'iam.srok_deystviya_tokena' | t">

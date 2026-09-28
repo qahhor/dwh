@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -13,7 +13,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 @Component({
   selector: 'app-files-toolbar',
   standalone: true,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe],
+  imports: [SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe],
   template: `
     <div class="filter-toolbar">
       <div class="toolbar-left">

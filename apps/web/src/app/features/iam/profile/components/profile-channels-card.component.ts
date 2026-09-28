@@ -56,17 +56,11 @@ import {
             <p class="section-subtitle">{{ 'iam.kanaly_svyazi_opisanie' | t }}</p>
           </div>
         </div>
-        <button
-          smt-button
-          type="button"
-          *ngIf="canManageChannels"
-          smtVariant="primary"
-          smtSize="sm"
-          smtIcon="add"
-          (click)="openBindModal()"
-        >
-          {{ 'iam.privyazat_kanal' | t }}
-        </button>
+        @if (canManageChannels) {
+          <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="openBindModal()">
+            {{ 'iam.privyazat_kanal' | t }}
+          </button>
+        }
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_kanalov_svyazi' | t" tabindex="0">
@@ -98,31 +92,33 @@ import {
     </ng-template>
     <ng-template #channelActionCell let-c>
       <div class="row-actions">
-        <button
-          smt-button
-          type="button"
-          *ngIf="!c.isVerified && canManageChannels"
-          smtVariant="secondary"
-          smtSize="sm"
-          smtIcon="verified"
-          [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
-          [smtLoading]="isConfirmingChannel"
-          (click)="requestConfirm(c)"
-        >
-          {{ 'iam.podtverdit_kodom' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          *ngIf="canManageChannels"
-          smtVariant="danger"
-          smtSize="sm"
-          smtIcon="delete"
-          [attr.aria-label]="'iam.unbind_channel_named' | t: { address: c.address }"
-          (click)="requestUnbind(c)"
-        >
-          {{ 'iam.otvyazat_kanal' | t }}
-        </button>
+        @if (!c.isVerified && canManageChannels) {
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="verified"
+            [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
+            [smtLoading]="isConfirmingChannel"
+            (click)="requestConfirm(c)"
+          >
+            {{ 'iam.podtverdit_kodom' | t }}
+          </button>
+        }
+        @if (canManageChannels) {
+          <button
+            smt-button
+            type="button"
+            smtVariant="danger"
+            smtSize="sm"
+            smtIcon="delete"
+            [attr.aria-label]="'iam.unbind_channel_named' | t: { address: c.address }"
+            (click)="requestUnbind(c)"
+          >
+            {{ 'iam.otvyazat_kanal' | t }}
+          </button>
+        }
       </div>
     </ng-template>
     <ng-template #emptyChannels
@@ -165,9 +161,11 @@ import {
               [smtDescribedBy]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
               (keydown.enter)="submitBind()"
             />
-            <span id="profile-channel-address-error" class="field-error" *ngIf="isBindSubmitted && !newAddress.trim()">
-              {{ 'iam.adres_kanala_obyazatelen' | t }}
-            </span>
+            @if (isBindSubmitted && !newAddress.trim()) {
+              <span id="profile-channel-address-error" class="field-error">
+                {{ 'iam.adres_kanala_obyazatelen' | t }}
+              </span>
+            }
           </div>
         </div>
         <div footer class="modal-actions">
@@ -221,13 +219,11 @@ import {
               "
               (keydown.enter)="submitConfirm()"
             />
-            <span
-              id="profile-channel-code-error"
-              class="field-error"
-              *ngIf="isConfirmSubmitted && verificationCode.trim().length !== 6"
-            >
-              {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
-            </span>
+            @if (isConfirmSubmitted && verificationCode.trim().length !== 6) {
+              <span id="profile-channel-code-error" class="field-error">
+                {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
+              </span>
+            }
           </div>
         </div>
         <div footer class="modal-actions">

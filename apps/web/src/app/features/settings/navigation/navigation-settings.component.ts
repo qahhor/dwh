@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NavigationService } from '../../../core/services/navigation.service';
@@ -25,7 +25,6 @@ import { problemText } from '../../../shared/ui/problem-text';
   selector: 'app-navigation-settings',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     TranslatePipe,

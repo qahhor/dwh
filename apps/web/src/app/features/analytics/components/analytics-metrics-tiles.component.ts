@@ -1,12 +1,12 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AnalyticsSummary } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-metrics-tiles',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe],
   template: `
     <div class="tiles">
       <!-- 1. Всего задач -->
@@ -61,12 +61,12 @@ import { AnalyticsSummary } from '../analytics.models';
           {{ summary?.overdueTasks || 0 }}
         </div>
         <div class="tile-meta">
-          <span *ngIf="(summary?.overdueTasks || 0) > 0" class="text-danger" style="font-weight: 600;">{{
-            'analytics.trebuyut_vnimaniya' | t
-          }}</span>
-          <span *ngIf="(summary?.overdueTasks || 0) === 0" class="text-success" style="font-weight: 600;">{{
-            'analytics.vse_zadachi_v_grafike' | t
-          }}</span>
+          @if ((summary?.overdueTasks || 0) > 0) {
+            <span class="text-danger" style="font-weight: 600;">{{ 'analytics.trebuyut_vnimaniya' | t }}</span>
+          }
+          @if ((summary?.overdueTasks || 0) === 0) {
+            <span class="text-success" style="font-weight: 600;">{{ 'analytics.vse_zadachi_v_grafike' | t }}</span>
+          }
         </div>
       </div>
 

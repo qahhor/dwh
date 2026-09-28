@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -20,7 +20,6 @@ export interface EventTypeRow {
     SMTDialogContentDirective,
     SMTButtonComponent,
     SMTCheckboxComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
   ],
@@ -57,38 +56,40 @@ export interface EventTypeRow {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of eventRows">
-                <td class="event-title">
-                  {{ row.titleKey | t }}
-                </td>
-                <td class="channel-cell">
-                  <span
-                    smt-checkbox
-                    smtHideLabel
-                    [checked]="isEnabled(row.code, 'in_app')"
-                    (checkedChange)="toggle(row.code, 'in_app', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"
-                  ></span>
-                </td>
-                <td class="channel-cell">
-                  <span
-                    smt-checkbox
-                    smtHideLabel
-                    [checked]="isEnabled(row.code, 'email')"
-                    (checkedChange)="toggle(row.code, 'email', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - Email'"
-                  ></span>
-                </td>
-                <td class="channel-cell">
-                  <span
-                    smt-checkbox
-                    smtHideLabel
-                    [checked]="isEnabled(row.code, 'telegram')"
-                    (checkedChange)="toggle(row.code, 'telegram', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"
-                  ></span>
-                </td>
-              </tr>
+              @for (row of eventRows; track row) {
+                <tr>
+                  <td class="event-title">
+                    {{ row.titleKey | t }}
+                  </td>
+                  <td class="channel-cell">
+                    <span
+                      smt-checkbox
+                      smtHideLabel
+                      [checked]="isEnabled(row.code, 'in_app')"
+                      (checkedChange)="toggle(row.code, 'in_app', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"
+                    ></span>
+                  </td>
+                  <td class="channel-cell">
+                    <span
+                      smt-checkbox
+                      smtHideLabel
+                      [checked]="isEnabled(row.code, 'email')"
+                      (checkedChange)="toggle(row.code, 'email', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - Email'"
+                    ></span>
+                  </td>
+                  <td class="channel-cell">
+                    <span
+                      smt-checkbox
+                      smtHideLabel
+                      [checked]="isEnabled(row.code, 'telegram')"
+                      (checkedChange)="toggle(row.code, 'telegram', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"
+                    ></span>
+                  </td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>

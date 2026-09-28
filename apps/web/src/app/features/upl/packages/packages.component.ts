@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -79,7 +78,6 @@ function emptyFormErrors(): UplPackageFormErrors {
   imports: [
     SMTAlertComponent,
     SMTControlComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     UiBadgeComponent,

@@ -1,5 +1,5 @@
 import { Component, DestroyRef, EventEmitter, Input, Output, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SMTDropzoneComponent } from '../ui-kit/components/dropzone';
@@ -20,88 +20,95 @@ export interface QueuedUpload {
 @Component({
   selector: 'ui-file-upload',
   standalone: true,
-  imports: [TranslatePipe, CommonModule, SMTDropzoneComponent, SMTFileCardComponent],
+  imports: [TranslatePipe, SMTDropzoneComponent, SMTFileCardComponent],
   template: `
     <div class="file-upload-wrapper">
       <!-- Picking files: the shared dropzone (a label for a real file input). -->
-      <smt-dropzone
-        *ngIf="canUpload"
-        [smtMultiple]="multiple"
-        [smtHint]="'ui.file_upload.do_50_mb_na_fayl_pdf_png_jpg_docx_zip_i_dr' | t"
-        (filesSelected)="uploadFiles($event)"
-      ></smt-dropzone>
+      @if (canUpload) {
+        <smt-dropzone
+          [smtMultiple]="multiple"
+          [smtHint]="'ui.file_upload.do_50_mb_na_fayl_pdf_png_jpg_docx_zip_i_dr' | t"
+          (filesSelected)="uploadFiles($event)"
+        ></smt-dropzone>
+      }
 
       <!-- Upload queue: one file at a time, each with its own progress and actions. -->
-      <ul class="upload-queue" *ngIf="queue().length > 0" [attr.aria-label]="'ui.file_upload.queue' | t">
-        <li
-          *ngFor="let item of queue(); trackBy: trackQueued"
-          class="queue-item"
-          [class.failed]="item.status === 'failed'"
-        >
-          <span class="queue-name">{{ item.file.name }}</span>
-          <div
-            *ngIf="item.status === 'uploading'"
-            class="queue-progress"
-            role="progressbar"
-            [attr.aria-label]="'ui.file_upload.upload_progress' | t: { progress: item.progress }"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            [attr.aria-valuenow]="item.progress"
-            [attr.aria-valuetext]="item.progress + '%'"
-          >
-            <div class="progress-track"><div class="progress-fill" [style.width.%]="item.progress"></div></div>
-          </div>
-          <span *ngIf="item.status === 'queued'" class="queue-state">{{ 'ui.file_upload.queued' | t }}</span>
-          <span *ngIf="item.status === 'failed'" class="queue-state queue-error" role="alert">{{ item.error }}</span>
-          <div class="file-actions">
-            <button
-              *ngIf="item.status === 'failed'"
-              type="button"
-              class="action-btn"
-              (click)="retry(item)"
-              [attr.aria-label]="'ui.file_upload.retry_named' | t: { name: item.file.name }"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-            </button>
-            <button
-              type="button"
-              class="action-btn delete"
-              (click)="cancel(item)"
-              [attr.aria-label]="
-                (item.status === 'failed' ? 'ui.file_upload.dismiss_named' : 'ui.file_upload.cancel_named')
-                  | t: { name: item.file.name }
-              "
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          </div>
-        </li>
-      </ul>
+      @if (queue().length > 0) {
+        <ul class="upload-queue" [attr.aria-label]="'ui.file_upload.queue' | t">
+          @for (item of queue(); track trackQueued($index, item)) {
+            <li class="queue-item" [class.failed]="item.status === 'failed'">
+              <span class="queue-name">{{ item.file.name }}</span>
+              @if (item.status === 'uploading') {
+                <div
+                  class="queue-progress"
+                  role="progressbar"
+                  [attr.aria-label]="'ui.file_upload.upload_progress' | t: { progress: item.progress }"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-valuenow]="item.progress"
+                  [attr.aria-valuetext]="item.progress + '%'"
+                >
+                  <div class="progress-track"><div class="progress-fill" [style.width.%]="item.progress"></div></div>
+                </div>
+              }
+              @if (item.status === 'queued') {
+                <span class="queue-state">{{ 'ui.file_upload.queued' | t }}</span>
+              }
+              @if (item.status === 'failed') {
+                <span class="queue-state queue-error" role="alert">{{ item.error }}</span>
+              }
+              <div class="file-actions">
+                @if (item.status === 'failed') {
+                  <button
+                    type="button"
+                    class="action-btn"
+                    (click)="retry(item)"
+                    [attr.aria-label]="'ui.file_upload.retry_named' | t: { name: item.file.name }"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="action-btn delete"
+                  (click)="cancel(item)"
+                  [attr.aria-label]="
+                    (item.status === 'failed' ? 'ui.file_upload.dismiss_named' : 'ui.file_upload.cancel_named')
+                      | t: { name: item.file.name }
+                  "
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                </button>
+              </div>
+            </li>
+          }
+        </ul>
+      }
 
       <!-- File Attachment List -->
-      <div
-        class="attachments-list"
-        *ngIf="files && files.length > 0"
-        role="list"
-        [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t"
-      >
-        <smt-file-card
-          *ngFor="let file of files; trackBy: trackFile"
-          role="listitem"
-          [name]="file.fileName"
-          [mimeType]="file.mimeType"
-          [size]="file.sizeBytes"
-          [smtRemovable]="canDelete"
-          (download)="downloadFile(file)"
-          (preview)="previewFile(file)"
-          (remove)="removeFile(file)"
-        />
-      </div>
+      @if (files && files.length > 0) {
+        <div class="attachments-list" role="list" [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t">
+          @for (file of files; track trackFile($index, file)) {
+            <smt-file-card
+              role="listitem"
+              [name]="file.fileName"
+              [mimeType]="file.mimeType"
+              [size]="file.sizeBytes"
+              [smtRemovable]="canDelete"
+              (download)="downloadFile(file)"
+              (preview)="previewFile(file)"
+              (remove)="removeFile(file)"
+            />
+          }
+        </div>
+      }
 
-      <div *ngIf="(!files || files.length === 0) && !canUpload" class="empty-files">
-        <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
-        <span>{{ 'ui.file_upload.net_prikreplennyh_faylov' | t }}</span>
-      </div>
+      @if ((!files || files.length === 0) && !canUpload) {
+        <div class="empty-files">
+          <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
+          <span>{{ 'ui.file_upload.net_prikreplennyh_faylov' | t }}</span>
+        </div>
+      }
     </div>
   `,
   styles: [

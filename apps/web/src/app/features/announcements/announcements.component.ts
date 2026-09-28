@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ApiService } from '../../core/services/api.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -34,7 +34,6 @@ export type {
   selector: 'app-announcements',
   standalone: true,
   imports: [
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     AnnouncementsToolbarComponent,
@@ -62,127 +61,122 @@ export type {
           >
             {{ 'common.refresh' | t }}
           </button>
-          <button
-            smt-button
-            type="button"
-            *ngIf="canCreate()"
-            smtIcon="add"
-            [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
-            (click)="openCreate()"
-          >
-            {{ 'common.create' | t }}
-          </button>
+          @if (canCreate()) {
+            <button
+              smt-button
+              type="button"
+              smtIcon="add"
+              [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
+              (click)="openCreate()"
+            >
+              {{ 'common.create' | t }}
+            </button>
+          }
         </div>
       </header>
 
-      <div *ngIf="operationError()" class="inline-alert" role="alert">
-        <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
-        <div>
-          <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
-          <p>{{ operationError() }}</p>
+      @if (operationError()) {
+        <div class="inline-alert" role="alert">
+          <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
+          <div>
+            <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
+            <p>{{ operationError() }}</p>
+          </div>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+            (click)="refreshAfterConflict()"
+          >
+            {{ 'announcements.obnovit_spisok' | t }}
+          </button>
         </div>
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          smtSize="sm"
-          [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
-          (click)="refreshAfterConflict()"
-        >
-          {{ 'announcements.obnovit_spisok' | t }}
-        </button>
-      </div>
+      }
 
       <!-- Toolbar: Tabs for status filtering & Search box -->
-      <app-announcements-toolbar
-        *ngIf="announcements().length > 0"
-        [totalCount]="announcements().length"
-        [publishedCount]="publishedCount()"
-        [draftCount]="draftCount()"
-        [archivedCount]="archivedCount()"
-        [statusFilter]="statusFilter()"
-        [searchQuery]="searchQuery()"
-        (filterChange)="setStatusFilter($event)"
-        (searchChange)="searchQuery.set($event)"
-        (searchClear)="searchQuery.set('')"
-      />
+      @if (announcements().length > 0) {
+        <app-announcements-toolbar
+          [totalCount]="announcements().length"
+          [publishedCount]="publishedCount()"
+          [draftCount]="draftCount()"
+          [archivedCount]="archivedCount()"
+          [statusFilter]="statusFilter()"
+          [searchQuery]="searchQuery()"
+          (filterChange)="setStatusFilter($event)"
+          (searchChange)="searchQuery.set($event)"
+          (searchClear)="searchQuery.set('')"
+        />
+      }
 
-      <div *ngIf="isLoading() && announcements().length === 0" class="state-panel" aria-busy="true" aria-live="polite">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>{{ 'announcements.zagruzhaem_obyavleniya' | t }}</span>
-      </div>
-
-      <div
-        *ngIf="loadError() && !isLoading()"
-        class="state-panel error-state"
-        role="alert"
-        data-testid="announcements-load-error"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
-        <div>
-          <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
-          <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
+      @if (isLoading() && announcements().length === 0) {
+        <div class="state-panel" aria-busy="true" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>{{ 'announcements.zagruzhaem_obyavleniya' | t }}</span>
         </div>
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t"
-          (click)="loadAnnouncements()"
-        >
-          {{ 'announcements.povtorit' | t }}
-        </button>
-      </div>
+      }
 
-      <div
-        *ngIf="!isLoading() && !loadError() && announcements().length === 0"
-        class="state-panel empty-state"
-        data-testid="announcements-empty"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">campaign</span>
-        <div>
-          <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
-          <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
+      @if (loadError() && !isLoading()) {
+        <div class="state-panel error-state" role="alert" data-testid="announcements-load-error">
+          <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
+          <div>
+            <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
+            <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
+          </div>
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t"
+            (click)="loadAnnouncements()"
+          >
+            {{ 'announcements.povtorit' | t }}
+          </button>
         </div>
-        <button
-          smt-button
-          type="button"
-          *ngIf="canCreate()"
-          smtVariant="secondary"
-          smtIcon="add"
-          (click)="openCreate()"
-        >
-          {{ 'announcements.sozdat_chernovik' | t }}
-        </button>
-      </div>
+      }
+
+      @if (!isLoading() && !loadError() && announcements().length === 0) {
+        <div class="state-panel empty-state" data-testid="announcements-empty">
+          <span class="material-symbols-outlined" aria-hidden="true">campaign</span>
+          <div>
+            <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
+            <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
+          </div>
+          @if (canCreate()) {
+            <button smt-button type="button" smtVariant="secondary" smtIcon="add" (click)="openCreate()">
+              {{ 'announcements.sozdat_chernovik' | t }}
+            </button>
+          }
+        </div>
+      }
 
       <!-- Empty state when search or tab filter matches nothing -->
-      <div
-        *ngIf="!isLoading() && !loadError() && announcements().length > 0 && filteredAnnouncements().length === 0"
-        class="state-panel empty-state"
-        role="status"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">filter_list_off</span>
-        <div>
-          <h2>{{ 'announcements.po_filtram_nichego_ne_naydeno' | t }}</h2>
+      @if (!isLoading() && !loadError() && announcements().length > 0 && filteredAnnouncements().length === 0) {
+        <div class="state-panel empty-state" role="status">
+          <span class="material-symbols-outlined" aria-hidden="true">filter_list_off</span>
+          <div>
+            <h2>{{ 'announcements.po_filtram_nichego_ne_naydeno' | t }}</h2>
+          </div>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters()">
+            {{ 'announcements.sbrosit_filtry' | t }}
+          </button>
         </div>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters()">
-          {{ 'announcements.sbrosit_filtry' | t }}
-        </button>
-      </div>
+      }
 
       <!-- Announcement Cards List -->
-      <app-announcements-list
-        *ngIf="filteredAnnouncements().length > 0"
-        [items]="filteredAnnouncements()"
-        [activeId]="activeAnnouncementId()"
-        [canUpdate]="canUpdate()"
-        [canPublish]="canPublish()"
-        [canArchive]="canArchive()"
-        (edit)="openEdit($event)"
-        (publish)="requestConfirmation('publish', $event)"
-        (archive)="requestConfirmation('archive', $event)"
-      />
+      @if (filteredAnnouncements().length > 0) {
+        <app-announcements-list
+          [items]="filteredAnnouncements()"
+          [activeId]="activeAnnouncementId()"
+          [canUpdate]="canUpdate()"
+          [canPublish]="canPublish()"
+          [canArchive]="canArchive()"
+          (edit)="openEdit($event)"
+          (publish)="requestConfirmation('publish', $event)"
+          (archive)="requestConfirmation('archive', $event)"
+        />
+      }
 
       <!-- Modals (Editor + Confirmation) -->
       <app-announcements-modals

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { RouterModule } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
 import { TranslatePipe } from './core/services/i18n.service';
@@ -8,14 +8,18 @@ import { UiToastContainerComponent } from './shared/ui/ui-toast.component';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [TranslatePipe, CommonModule, RouterModule, UiToastContainerComponent],
+  imports: [TranslatePipe, RouterModule, UiToastContainerComponent],
   template: `
-    <div *ngIf="authService.isLoading()" class="app-loader">
-      <div class="loader-spinner"></div>
-      <div class="loader-text">{{ 'app.inicializaciya_smartupcms' | t }}</div>
-    </div>
+    @if (authService.isLoading()) {
+      <div class="app-loader">
+        <div class="loader-spinner"></div>
+        <div class="loader-text">{{ 'app.inicializaciya_smartupcms' | t }}</div>
+      </div>
+    }
 
-    <router-outlet *ngIf="!authService.isLoading()"></router-outlet>
+    @if (!authService.isLoading()) {
+      <router-outlet></router-outlet>
+    }
     <ui-toast-container></ui-toast-container>
   `,
   styles: [

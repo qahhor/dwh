@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -57,7 +57,6 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent,
-    CommonModule,
     FormsModule,
     RouterLink,
     TranslatePipe,

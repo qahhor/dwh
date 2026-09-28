@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, Subscription, forkJoin } from 'rxjs';
@@ -23,7 +23,6 @@ export * from './analytics.models';
   imports: [
     SMTRadioGroupComponent,
     SMTAlertComponent,
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     AnalyticsMetricsTilesComponent,
@@ -79,12 +78,14 @@ export * from './analytics.models';
       </div>
 
       <!-- Error Alert -->
-      <smt-alert smtTone="danger" *ngIf="error()">
-        <span>{{ error() }}</span>
-        <button type="button" class="alert-retry" data-testid="analytics-retry" (click)="setRange(selectedRange)">
-          {{ 'common.retry' | t }}
-        </button>
-      </smt-alert>
+      @if (error()) {
+        <smt-alert smtTone="danger">
+          <span>{{ error() }}</span>
+          <button type="button" class="alert-retry" data-testid="analytics-retry" (click)="setRange(selectedRange)">
+            {{ 'common.retry' | t }}
+          </button>
+        </smt-alert>
+      }
 
       <!-- KPI Metrics Row -->
       <app-analytics-metrics-tiles [summary]="summary()"></app-analytics-metrics-tiles>

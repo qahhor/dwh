@@ -1,106 +1,108 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { StorageStats } from '../files.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-metrics-cards',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe],
   template: `
-    <div class="storage-metrics-grid" *ngIf="stats as s">
-      <!-- Company Quota Card -->
-      <div class="metric-card company-card">
-        <div class="metric-header">
-          <div class="metric-title-group">
-            <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
-            <span class="card-title">{{ 'files.diskovoe_prostranstvo_kompanii' | t }}</span>
+    @if (stats; as s) {
+      <div class="storage-metrics-grid">
+        <!-- Company Quota Card -->
+        <div class="metric-card company-card">
+          <div class="metric-header">
+            <div class="metric-title-group">
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
+              <span class="card-title">{{ 'files.diskovoe_prostranstvo_kompanii' | t }}</span>
+            </div>
+            <span
+              class="percent-badge"
+              [class.danger]="getCompanyPercent(s) >= 90"
+              [class.warning]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90"
+            >
+              {{ getCompanyPercent(s) }}%
+            </span>
           </div>
-          <span
-            class="percent-badge"
-            [class.danger]="getCompanyPercent(s) >= 90"
-            [class.warning]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90"
-          >
-            {{ getCompanyPercent(s) }}%
-          </span>
+
+          <div class="metric-body">
+            <div class="metric-values">
+              <span class="used-val">{{ formatBytes(s.companyUsedBytes) }}</span>
+              <span class="sep-val">{{ 'files.iz' | t }}</span>
+              <span class="quota-val">{{ formatBytes(s.companyQuotaBytes) }}</span>
+            </div>
+
+            <div
+              class="progress-bar-track"
+              role="progressbar"
+              [attr.aria-label]="'files.ispolzovanie_hranilischa_kompanii' | t"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="getCompanyPercent(s)"
+            >
+              <div
+                class="progress-bar-fill"
+                [style.width.%]="getCompanyPercent(s)"
+                [class.danger-fill]="getCompanyPercent(s) >= 90"
+                [class.warning-fill]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90"
+              ></div>
+            </div>
+
+            <div class="metric-footer">
+              <span>{{ 'files.available_space' | t: { size: formatBytes(s.companyAvailableBytes) } }}</span>
+              <span>{{ 'files.total_files_count' | t: { count: s.totalFilesCount } }}</span>
+            </div>
+          </div>
         </div>
 
-        <div class="metric-body">
-          <div class="metric-values">
-            <span class="used-val">{{ formatBytes(s.companyUsedBytes) }}</span>
-            <span class="sep-val">{{ 'files.iz' | t }}</span>
-            <span class="quota-val">{{ formatBytes(s.companyQuotaBytes) }}</span>
+        <!-- User Personal Quota Card -->
+        <div class="metric-card user-card">
+          <div class="metric-header">
+            <div class="metric-title-group">
+              <span class="material-symbols-outlined card-icon" aria-hidden="true">person</span>
+              <span class="card-title">{{ 'files.moya_personalnaya_kvota' | t }}</span>
+            </div>
+            <span
+              class="percent-badge user-badge"
+              [class.danger]="getUserPercent(s) >= 90"
+              [class.warning]="getUserPercent(s) >= 75 && getUserPercent(s) < 90"
+            >
+              {{ getUserPercent(s) }}%
+            </span>
           </div>
 
-          <div
-            class="progress-bar-track"
-            role="progressbar"
-            [attr.aria-label]="'files.ispolzovanie_hranilischa_kompanii' | t"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            [attr.aria-valuenow]="getCompanyPercent(s)"
-          >
+          <div class="metric-body">
+            <div class="metric-values">
+              <span class="used-val">{{ formatBytes(s.userUsedBytes) }}</span>
+              <span class="sep-val">{{ 'files.iz' | t }}</span>
+              <span class="quota-val">{{ formatBytes(s.userQuotaBytes) }}</span>
+            </div>
+
             <div
-              class="progress-bar-fill"
-              [style.width.%]="getCompanyPercent(s)"
-              [class.danger-fill]="getCompanyPercent(s) >= 90"
-              [class.warning-fill]="getCompanyPercent(s) >= 75 && getCompanyPercent(s) < 90"
-            ></div>
-          </div>
+              class="progress-bar-track"
+              role="progressbar"
+              [attr.aria-label]="'files.ispolzovanie_personalnoy_kvoty' | t"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              [attr.aria-valuenow]="getUserPercent(s)"
+            >
+              <div
+                class="progress-bar-fill user-fill"
+                [style.width.%]="getUserPercent(s)"
+                [class.danger-fill]="getUserPercent(s) >= 90"
+                [class.warning-fill]="getUserPercent(s) >= 75 && getUserPercent(s) < 90"
+              ></div>
+            </div>
 
-          <div class="metric-footer">
-            <span>{{ 'files.available_space' | t: { size: formatBytes(s.companyAvailableBytes) } }}</span>
-            <span>{{ 'files.total_files_count' | t: { count: s.totalFilesCount } }}</span>
+            <div class="metric-footer">
+              <span>{{ 'files.available_space' | t: { size: formatBytes(s.userAvailableBytes) } }}</span>
+              <span>{{ 'files.my_files_count' | t: { count: s.userFilesCount } }}</span>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- User Personal Quota Card -->
-      <div class="metric-card user-card">
-        <div class="metric-header">
-          <div class="metric-title-group">
-            <span class="material-symbols-outlined card-icon" aria-hidden="true">person</span>
-            <span class="card-title">{{ 'files.moya_personalnaya_kvota' | t }}</span>
-          </div>
-          <span
-            class="percent-badge user-badge"
-            [class.danger]="getUserPercent(s) >= 90"
-            [class.warning]="getUserPercent(s) >= 75 && getUserPercent(s) < 90"
-          >
-            {{ getUserPercent(s) }}%
-          </span>
-        </div>
-
-        <div class="metric-body">
-          <div class="metric-values">
-            <span class="used-val">{{ formatBytes(s.userUsedBytes) }}</span>
-            <span class="sep-val">{{ 'files.iz' | t }}</span>
-            <span class="quota-val">{{ formatBytes(s.userQuotaBytes) }}</span>
-          </div>
-
-          <div
-            class="progress-bar-track"
-            role="progressbar"
-            [attr.aria-label]="'files.ispolzovanie_personalnoy_kvoty' | t"
-            aria-valuemin="0"
-            aria-valuemax="100"
-            [attr.aria-valuenow]="getUserPercent(s)"
-          >
-            <div
-              class="progress-bar-fill user-fill"
-              [style.width.%]="getUserPercent(s)"
-              [class.danger-fill]="getUserPercent(s) >= 90"
-              [class.warning-fill]="getUserPercent(s) >= 75 && getUserPercent(s) < 90"
-            ></div>
-          </div>
-
-          <div class="metric-footer">
-            <span>{{ 'files.available_space' | t: { size: formatBytes(s.userAvailableBytes) } }}</span>
-            <span>{{ 'files.my_files_count' | t: { count: s.userFilesCount } }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    }
   `,
   styles: [
     `

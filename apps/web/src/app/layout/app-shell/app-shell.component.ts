@@ -14,7 +14,6 @@ import {
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -47,7 +46,6 @@ import { AppShellFlyoutService } from './services/app-shell-flyout.service';
   standalone: true,
   imports: [
     IdleLockDialogComponent,
-    CommonModule,
     RouterModule,
     TranslatePipe,
     CommandPaletteComponent,

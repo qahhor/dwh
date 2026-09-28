@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
@@ -9,7 +9,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 @Component({
   selector: 'ui-markdown-editor',
   standalone: true,
-  imports: [SMTTabBarComponent, TranslatePipe, CommonModule, FormsModule],
+  imports: [SMTTabBarComponent, TranslatePipe, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">
       <!-- Toolbar -->
@@ -133,39 +133,36 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
       <!-- Editor Content -->
       <div class="md-body">
         <!-- Textarea Mode -->
-        <div
-          *ngIf="mode === 'edit'"
-          class="editor-pane"
-          role="tabpanel"
-          [id]="editPanelId"
-          [attr.aria-labelledby]="editTabId"
-        >
-          <label class="sr-only" [for]="textareaId">{{
-            ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
-          }}</label>
-          <textarea
-            #textareaRef
-            [id]="textareaId"
-            class="md-textarea"
-            [rows]="rows"
-            [placeholder]="placeholder || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)"
-            [ngModel]="value"
-            (ngModelChange)="onTextChange($event)"
-            (focus)="isFocused = true"
-            (blur)="isFocused = false"
-            (keydown)="handleKeydown($event)"
-          ></textarea>
-        </div>
+        @if (mode === 'edit') {
+          <div class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
+            <label class="sr-only" [for]="textareaId">{{
+              ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
+            }}</label>
+            <textarea
+              #textareaRef
+              [id]="textareaId"
+              class="md-textarea"
+              [rows]="rows"
+              [placeholder]="placeholder || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)"
+              [ngModel]="value"
+              (ngModelChange)="onTextChange($event)"
+              (focus)="isFocused = true"
+              (blur)="isFocused = false"
+              (keydown)="handleKeydown($event)"
+            ></textarea>
+          </div>
+        }
 
         <!-- Preview Mode -->
-        <div
-          *ngIf="mode === 'preview'"
-          class="md-preview-pane"
-          role="tabpanel"
-          [id]="previewPanelId"
-          [attr.aria-labelledby]="previewTabId"
-          [innerHTML]="renderMarkdown(value)"
-        ></div>
+        @if (mode === 'preview') {
+          <div
+            class="md-preview-pane"
+            role="tabpanel"
+            [id]="previewPanelId"
+            [attr.aria-labelledby]="previewTabId"
+            [innerHTML]="renderMarkdown(value)"
+          ></div>
+        }
       </div>
     </div>
   `,

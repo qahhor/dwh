@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { NotificationFilterTab } from '../notifications.models';
 import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
@@ -9,7 +9,7 @@ import { I18nService } from '../../../core/services/i18n.service';
 @Component({
   selector: 'app-notifications-tabs',
   standalone: true,
-  imports: [SMTTabBarComponent, CommonModule, TranslatePipe],
+  imports: [SMTTabBarComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <smt-tab-bar

@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -8,7 +8,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 @Component({
   selector: 'app-settings-storage-panel',
   standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
+  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -19,19 +19,20 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             <p class="card-desc">{{ 'settings.limity_diskovogo_prostranstva_dlya_novyh_sotrudn' | t }}</p>
           </div>
         </div>
-        <span class="badge badge-neutral" *ngIf="!canUpdateSystemSettings">{{ 'settings.readonly_badge' | t }}</span>
+        @if (!canUpdateSystemSettings) {
+          <span class="badge badge-neutral">{{ 'settings.readonly_badge' | t }}</span>
+        }
       </div>
 
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="settings-user-quota">
             {{ 'settings.default_user_quota' | t }}
-            <span
-              class="unit-badge"
-              *ngIf="formatQuotaMb(systemSettings['storage.default_user_quota_mb']) as quotaBadge"
-            >
-              {{ quotaBadge }}
-            </span>
+            @if (formatQuotaMb(systemSettings['storage.default_user_quota_mb']); as quotaBadge) {
+              <span class="unit-badge">
+                {{ quotaBadge }}
+              </span>
+            }
           </label>
           <smt-input
             smtFieldId="settings-user-quota"
@@ -49,11 +50,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
         </div>
       </div>
 
-      <div class="card-footer-actions" *ngIf="canUpdateSystemSettings">
-        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
-          {{ 'common.save' | t }}
-        </button>
-      </div>
+      @if (canUpdateSystemSettings) {
+        <div class="card-footer-actions">
+          <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
+            {{ 'common.save' | t }}
+          </button>
+        </div>
+      }
     </div>
   `,
   styles: [

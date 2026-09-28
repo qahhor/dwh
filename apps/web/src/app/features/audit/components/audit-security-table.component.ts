@@ -156,11 +156,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         </span>
       </ng-template>
       <ng-template #userCell let-item>
-        <div class="user-cell" *ngIf="item.userName">
-          <span class="user-name">{{ item.userName }}</span>
-          <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
-        </div>
-        <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
+        @if (item.userName) {
+          <div class="user-cell">
+            <span class="user-name">{{ item.userName }}</span>
+            <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
+          </div>
+        }
+        @if (!item.userName) {
+          <span class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
+        }
       </ng-template>
       <ng-template #ipCell let-item
         ><span class="ip-pill font-mono">{{ item.ip }}</span></ng-template

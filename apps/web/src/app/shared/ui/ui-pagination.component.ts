@@ -1,5 +1,5 @@
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
 import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-options';
@@ -7,118 +7,130 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
 @Component({
   selector: 'ui-pagination',
   standalone: true,
-  imports: [TranslatePipe, CommonModule, SMTSelectComponent],
+  imports: [TranslatePipe, SMTSelectComponent],
   template: `
-    <nav
-      class="pagination-bar"
-      *ngIf="totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))"
-      [attr.aria-label]="'ui.pagination.paginaciya' | t"
-    >
-      <!-- Left: Item Range & Total Counter -->
-      <div class="pagination-info" *ngIf="totalItems > 0" role="status" aria-live="polite" aria-atomic="true">
-        <span class="range-text">
-          {{ 'ui.pagination.pokazano' | t }} <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
-          <ng-container *ngIf="!cursorMode || !cursorItemsArePageLength">
-            {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong></ng-container
-          >
-        </span>
-      </div>
-
-      <!-- Right: Page Size Selector & Navigation Buttons -->
-      <div class="pagination-controls">
-        <!-- Page Size Selector -->
-        <div class="page-size-picker" *ngIf="showPageSize">
-          <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.strok' | t }}</label>
-          <smt-select
-            class="size-select"
-            [smtTriggerId]="pageSizeSelectId"
-            [options]="pageSizeChoices()"
-            [allowClear]="false"
-            [disabled]="disabled"
-            [value]="pageSize"
-            (valueChange)="onPageSizeChange($event)"
-          />
-        </div>
-
-        <!-- Navigation Buttons & Page Numbers -->
-        <div class="page-nav">
-          <!-- First Page -->
-          <button
-            *ngIf="!cursorMode"
-            type="button"
-            class="nav-btn"
-            [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
-            [title]="'ui.pagination.pervaya_stranica' | t"
-            [disabled]="disabled || currentPage === 1"
-            (click)="goToPage(1)"
-          >
-            <span class="material-symbols-outlined icon" aria-hidden="true">first_page</span>
-          </button>
-
-          <!-- Prev Page -->
-          <button
-            type="button"
-            class="nav-btn"
-            [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
-            [title]="'ui.pagination.predyduschaya_stranica' | t"
-            [disabled]="disabled || currentPage === 1"
-            (click)="goToPage(currentPage - 1)"
-          >
-            <span class="material-symbols-outlined icon" aria-hidden="true">chevron_left</span>
-          </button>
-
-          <!-- Page Numbers -->
-          <div class="page-numbers" *ngIf="!cursorMode">
-            <ng-container *ngFor="let p of visiblePages">
-              <span *ngIf="p === -1" class="ellipsis" aria-hidden="true">…</span>
-              <button
-                *ngIf="p !== -1"
-                type="button"
-                class="page-btn font-mono"
-                [class.active]="p === currentPage"
-                [attr.aria-label]="'ui.pagination.page_number' | t: { page: p }"
-                [attr.aria-current]="p === currentPage ? 'page' : null"
-                [disabled]="disabled"
-                (click)="goToPage(p)"
-              >
-                {{ p }}
-              </button>
-            </ng-container>
+    @if (totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))) {
+      <nav class="pagination-bar" [attr.aria-label]="'ui.pagination.paginaciya' | t">
+        <!-- Left: Item Range & Total Counter -->
+        @if (totalItems > 0) {
+          <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
+            <span class="range-text">
+              {{ 'ui.pagination.pokazano' | t }}
+              <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
+              @if (!cursorMode || !cursorItemsArePageLength) {
+                {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong>
+              }
+            </span>
           </div>
+        }
 
-          <!-- aria-label is ignored on a span without a role, so the name is real text. -->
-          <span *ngIf="cursorMode" class="current-page-indicator font-mono" aria-current="page">
-            <span aria-hidden="true">{{ currentPage }}</span>
-            <span class="sr-only">{{ 'ui.pagination.page_number' | t: { page: currentPage } }}</span>
-          </span>
+        <!-- Right: Page Size Selector & Navigation Buttons -->
+        <div class="pagination-controls">
+          <!-- Page Size Selector -->
+          @if (showPageSize) {
+            <div class="page-size-picker">
+              <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.strok' | t }}</label>
+              <smt-select
+                class="size-select"
+                [smtTriggerId]="pageSizeSelectId"
+                [options]="pageSizeChoices()"
+                [allowClear]="false"
+                [disabled]="disabled"
+                [value]="pageSize"
+                (valueChange)="onPageSizeChange($event)"
+              />
+            </div>
+          }
 
-          <!-- Next Page -->
-          <button
-            type="button"
-            class="nav-btn"
-            [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
-            [title]="'ui.pagination.sleduyuschaya_stranica' | t"
-            [disabled]="disabled || (cursorMode ? !hasNextPage : currentPage >= totalPages)"
-            (click)="goToPage(currentPage + 1)"
-          >
-            <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
-          </button>
+          <!-- Navigation Buttons & Page Numbers -->
+          <div class="page-nav">
+            <!-- First Page -->
+            @if (!cursorMode) {
+              <button
+                type="button"
+                class="nav-btn"
+                [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
+                [title]="'ui.pagination.pervaya_stranica' | t"
+                [disabled]="disabled || currentPage === 1"
+                (click)="goToPage(1)"
+              >
+                <span class="material-symbols-outlined icon" aria-hidden="true">first_page</span>
+              </button>
+            }
 
-          <!-- Last Page -->
-          <button
-            *ngIf="!cursorMode"
-            type="button"
-            class="nav-btn"
-            [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
-            [title]="'ui.pagination.poslednyaya_stranica' | t"
-            [disabled]="disabled || currentPage >= totalPages"
-            (click)="goToPage(totalPages)"
-          >
-            <span class="material-symbols-outlined icon" aria-hidden="true">last_page</span>
-          </button>
+            <!-- Prev Page -->
+            <button
+              type="button"
+              class="nav-btn"
+              [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
+              [title]="'ui.pagination.predyduschaya_stranica' | t"
+              [disabled]="disabled || currentPage === 1"
+              (click)="goToPage(currentPage - 1)"
+            >
+              <span class="material-symbols-outlined icon" aria-hidden="true">chevron_left</span>
+            </button>
+
+            <!-- Page Numbers -->
+            @if (!cursorMode) {
+              <div class="page-numbers">
+                @for (p of visiblePages; track p) {
+                  @if (p === -1) {
+                    <span class="ellipsis" aria-hidden="true">…</span>
+                  }
+                  @if (p !== -1) {
+                    <button
+                      type="button"
+                      class="page-btn font-mono"
+                      [class.active]="p === currentPage"
+                      [attr.aria-label]="'ui.pagination.page_number' | t: { page: p }"
+                      [attr.aria-current]="p === currentPage ? 'page' : null"
+                      [disabled]="disabled"
+                      (click)="goToPage(p)"
+                    >
+                      {{ p }}
+                    </button>
+                  }
+                }
+              </div>
+            }
+
+            <!-- aria-label is ignored on a span without a role, so the name is real text. -->
+            @if (cursorMode) {
+              <span class="current-page-indicator font-mono" aria-current="page">
+                <span aria-hidden="true">{{ currentPage }}</span>
+                <span class="sr-only">{{ 'ui.pagination.page_number' | t: { page: currentPage } }}</span>
+              </span>
+            }
+
+            <!-- Next Page -->
+            <button
+              type="button"
+              class="nav-btn"
+              [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
+              [title]="'ui.pagination.sleduyuschaya_stranica' | t"
+              [disabled]="disabled || (cursorMode ? !hasNextPage : currentPage >= totalPages)"
+              (click)="goToPage(currentPage + 1)"
+            >
+              <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
+            </button>
+
+            <!-- Last Page -->
+            @if (!cursorMode) {
+              <button
+                type="button"
+                class="nav-btn"
+                [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
+                [title]="'ui.pagination.poslednyaya_stranica' | t"
+                [disabled]="disabled || currentPage >= totalPages"
+                (click)="goToPage(totalPages)"
+              >
+                <span class="material-symbols-outlined icon" aria-hidden="true">last_page</span>
+              </button>
+            }
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    }
   `,
   styles: [
     `

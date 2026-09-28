@@ -1,11 +1,11 @@
 import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-navigation-settings-stats',
   standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe],
   template: `
     <div class="stats-grid">
       <div class="stat-card">

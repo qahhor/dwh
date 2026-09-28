@@ -1,5 +1,5 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -18,7 +18,6 @@ import { problemText } from '../../../shared/ui/problem-text';
   selector: 'app-custom-fields',
   standalone: true,
   imports: [
-    CommonModule,
     SMTButtonComponent,
     TranslatePipe,
     CustomFieldsToolbarComponent,
@@ -48,16 +47,11 @@ import { problemText } from '../../../shared/ui/problem-text';
           >
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
-          <button
-            smt-button
-            type="button"
-            *ngIf="canCreate()"
-            smtVariant="primary"
-            smtIcon="add"
-            (click)="openCreateModal()"
-          >
-            {{ 'iam.dobavit_pole' | t }}
-          </button>
+          @if (canCreate()) {
+            <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
+              {{ 'iam.dobavit_pole' | t }}
+            </button>
+          }
         </div>
       </div>
 

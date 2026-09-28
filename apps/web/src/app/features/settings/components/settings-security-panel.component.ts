@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -14,7 +14,6 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
     SMTInputComponent,
     SMTInputValueAccessor,
     SMTSwitchComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -29,7 +28,9 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
             <p class="card-desc">{{ 'settings.trebovaniya_k_parolyam_2fa_i_veb_sessiyam' | t }}</p>
           </div>
         </div>
-        <span class="badge badge-neutral" *ngIf="!canUpdateSystemSettings">{{ 'settings.readonly_badge' | t }}</span>
+        @if (!canUpdateSystemSettings) {
+          <span class="badge badge-neutral">{{ 'settings.readonly_badge' | t }}</span>
+        }
       </div>
 
       <div class="form-grid">
@@ -41,12 +42,11 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
         <div class="form-group">
           <label class="form-label" for="settings-session-lifetime">
             {{ 'settings.session_lifetime' | t }}
-            <span
-              class="unit-badge"
-              *ngIf="formatSessionHours(systemSettings['security.session_lifetime_hours']) as sessionBadge"
-            >
-              {{ sessionBadge }}
-            </span>
+            @if (formatSessionHours(systemSettings['security.session_lifetime_hours']); as sessionBadge) {
+              <span class="unit-badge">
+                {{ sessionBadge }}
+              </span>
+            }
           </label>
           <smt-input
             smtFieldId="settings-session-lifetime"
@@ -98,11 +98,13 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
         </div>
       </div>
 
-      <div class="card-footer-actions" *ngIf="canUpdateSystemSettings">
-        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
-          {{ 'common.save' | t }}
-        </button>
-      </div>
+      @if (canUpdateSystemSettings) {
+        <div class="card-footer-actions">
+          <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
+            {{ 'common.save' | t }}
+          </button>
+        </div>
+      }
     </div>
   `,
   styles: [

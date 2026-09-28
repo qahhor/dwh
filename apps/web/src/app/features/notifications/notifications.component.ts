@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, finalize } from 'rxjs';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -22,7 +22,6 @@ export { resolveNotificationIcon };
   selector: 'app-notifications',
   standalone: true,
   imports: [
-    CommonModule,
     NotificationsHeaderComponent,
     NotificationsTabsComponent,
     NotificationsListComponent,
@@ -69,13 +68,14 @@ export { resolveNotificationIcon };
         />
       </div>
 
-      <app-notification-preferences-modal
-        *ngIf="isPreferencesOpen()"
-        [initialPreferences]="preferences()"
-        [isSaving]="isSavingPreferences()"
-        (close)="isPreferencesOpen.set(false)"
-        (save)="savePreferences($event)"
-      />
+      @if (isPreferencesOpen()) {
+        <app-notification-preferences-modal
+          [initialPreferences]="preferences()"
+          [isSaving]="isSavingPreferences()"
+          (close)="isPreferencesOpen.set(false)"
+          (save)="savePreferences($event)"
+        />
+      }
     </div>
   `,
   styles: [

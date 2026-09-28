@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -16,14 +16,7 @@ export type { InstalledModule, ModuleFilterTab };
 @Component({
   selector: 'app-modules',
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslatePipe,
-    SMTButtonComponent,
-    ModulesStatsComponent,
-    ModulesToolbarComponent,
-    ModulesTableComponent,
-  ],
+  imports: [TranslatePipe, SMTButtonComponent, ModulesStatsComponent, ModulesToolbarComponent, ModulesTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="modules-page" aria-labelledby="modules-title">

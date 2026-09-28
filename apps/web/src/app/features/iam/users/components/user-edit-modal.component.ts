@@ -1,5 +1,5 @@
 import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
@@ -45,7 +45,6 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     SMTInputValueAccessor,
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTDialogComponent,
@@ -60,89 +59,95 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
   template: `
     <smt-dialog [open]="isOpen" [smtTitle]="'iam.redaktirovat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
       <ng-template smtDialogContent>
-        <div body class="clean-modal-body" *ngIf="editingUser as u">
-          <div class="form-grid">
-            <smt-control
-              class="form-group span-2"
-              [smtLabel]="'iam.fio' | t"
-              [smtError]="isEditSubmitted && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
-            >
-              <smt-input
-                smtFieldId="user-edit-name"
-                name="userEditName"
-                required
-                [(ngModel)]="editForm.name"
-                [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
-              />
-            </smt-control>
+        @if (editingUser; as u) {
+          <div body class="clean-modal-body">
+            <div class="form-grid">
+              <smt-control
+                class="form-group span-2"
+                [smtLabel]="'iam.fio' | t"
+                [smtError]="isEditSubmitted && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+              >
+                <smt-input
+                  smtFieldId="user-edit-name"
+                  name="userEditName"
+                  required
+                  [(ngModel)]="editForm.name"
+                  [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
+                />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.login_chtenie' | t">
-              <smt-input smtFieldId="user-edit-login" class="font-mono" [value]="u.login" disabled />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.login_chtenie' | t">
+                <smt-input smtFieldId="user-edit-login" class="font-mono" [value]="u.login" disabled />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.email_chtenie' | t">
-              <smt-input smtFieldId="user-edit-email" type="email" class="font-mono" [value]="u.email" disabled />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.email_chtenie' | t">
+                <smt-input smtFieldId="user-edit-email" type="email" class="font-mono" [value]="u.email" disabled />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-              <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm.phone" />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
+                <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm.phone" />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
-              <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
-              <smt-data-select
-                [source]="users"
-                [exclude]="notThisUser"
-                [value]="editForm.managerId"
-                (valueChange)="editForm.managerId = $event"
-                [placeholder]="'iam.bez_rukovoditelya' | t"
-                [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-                [emptyLabel]="'iam.bez_rukovoditelya' | t"
-              />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
+                <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
+                <smt-data-select
+                  [source]="users"
+                  [exclude]="notThisUser"
+                  [value]="editForm.managerId"
+                  (valueChange)="editForm.managerId = $event"
+                  [placeholder]="'iam.bez_rukovoditelya' | t"
+                  [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
+                  [emptyLabel]="'iam.bez_rukovoditelya' | t"
+                />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
-              <smt-select
-                smtTriggerId="user-edit-language"
-                name="userEditLanguage"
-                [(ngModel)]="editForm.language"
-                [options]="languageOptions()"
-                [allowClear]="false"
-              />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
+                <smt-select
+                  smtTriggerId="user-edit-language"
+                  name="userEditLanguage"
+                  [(ngModel)]="editForm.language"
+                  [options]="languageOptions()"
+                  [allowClear]="false"
+                />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
-              <smt-select
-                smtTriggerId="user-edit-timezone"
-                name="userEditTimezone"
-                [(ngModel)]="editForm.timezone"
-                [options]="timezoneOptions"
-                [allowClear]="false"
-              />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
+                <smt-select
+                  smtTriggerId="user-edit-timezone"
+                  name="userEditTimezone"
+                  [(ngModel)]="editForm.timezone"
+                  [options]="timezoneOptions"
+                  [allowClear]="false"
+                />
+              </smt-control>
 
-            <div class="form-group span-2">
-              <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm.is2faEnabled">
-                {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
+              <div class="form-group span-2">
+                <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm.is2faEnabled">
+                  {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
+                </div>
               </div>
-            </div>
 
-            <!-- Roles -->
-            <smt-control class="form-group span-2" *ngIf="roles.length > 0" [smtLabel]="'iam.roli_dostupa_rbac' | t">
-              <smt-tag-group
-                [options]="roleOptions(u)"
-                [value]="editForm.roleIds || []"
-                (valueChange)="editForm.roleIds = $event"
-              />
-            </smt-control>
+              <!-- Roles -->
+              @if (roles.length > 0) {
+                <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+                  <smt-tag-group
+                    [options]="roleOptions(u)"
+                    [value]="editForm.roleIds || []"
+                    (valueChange)="editForm.roleIds = $event"
+                  />
+                </smt-control>
+              }
 
-            <!-- Custom Fields -->
-            <div class="form-group span-2" *ngIf="customFields.length > 0">
-              <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
-              <ui-custom-fields [fields]="customFields" [(values)]="editForm.attributes"></ui-custom-fields>
+              <!-- Custom Fields -->
+              @if (customFields.length > 0) {
+                <div class="form-group span-2">
+                  <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
+                  <ui-custom-fields [fields]="customFields" [(values)]="editForm.attributes"></ui-custom-fields>
+                </div>
+              }
             </div>
           </div>
-        </div>
+        }
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
             {{ 'common.cancel' | t }}

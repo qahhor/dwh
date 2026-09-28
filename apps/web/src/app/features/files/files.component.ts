@@ -1,6 +1,6 @@
 import { Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { finalize, Observable, Subscription, tap, throwError } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -42,7 +42,6 @@ function formatBytes(bytes: number): string {
   standalone: true,
   imports: [
     SMTAlertComponent,
-    CommonModule,
     SMTButtonComponent,
     TranslatePipe,
     FilesMetricsCardsComponent,

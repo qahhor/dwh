@@ -1,5 +1,5 @@
 import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
@@ -45,7 +45,6 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     SMTInputValueAccessor,
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTDialogComponent,
@@ -159,86 +158,89 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">auto_fix_high</span>
                   </button>
-                  <button
-                    type="button"
-                    class="pwd-btn"
-                    *ngIf="createForm.password"
-                    [title]="'iam.skopirovat_parol' | t"
-                    [attr.aria-label]="'iam.skopirovat_parol' | t"
-                    (click)="copyPassword.emit()"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
-                  </button>
+                  @if (createForm.password) {
+                    <button
+                      type="button"
+                      class="pwd-btn"
+                      [title]="'iam.skopirovat_parol' | t"
+                      [attr.aria-label]="'iam.skopirovat_parol' | t"
+                      (click)="copyPassword.emit()"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
+                    </button>
+                  }
                 </div>
               </div>
               <!-- Dynamic Password Strength Meter -->
-              <div class="pwd-strength-container" *ngIf="createForm.password">
-                <div class="pwd-meter-header">
-                  <div class="pwd-meter-bars">
-                    <div
-                      class="pwd-bar"
-                      [class.filled]="passwordStrength.score >= 1"
-                      [style.background-color]="passwordStrength.score >= 1 ? passwordStrength.color : ''"
-                    ></div>
-                    <div
-                      class="pwd-bar"
-                      [class.filled]="passwordStrength.score >= 2"
-                      [style.background-color]="passwordStrength.score >= 2 ? passwordStrength.color : ''"
-                    ></div>
-                    <div
-                      class="pwd-bar"
-                      [class.filled]="passwordStrength.score >= 3"
-                      [style.background-color]="passwordStrength.score >= 3 ? passwordStrength.color : ''"
-                    ></div>
-                    <div
-                      class="pwd-bar"
-                      [class.filled]="passwordStrength.score >= 4"
-                      [style.background-color]="passwordStrength.score >= 4 ? passwordStrength.color : ''"
-                    ></div>
+              @if (createForm.password) {
+                <div class="pwd-strength-container">
+                  <div class="pwd-meter-header">
+                    <div class="pwd-meter-bars">
+                      <div
+                        class="pwd-bar"
+                        [class.filled]="passwordStrength.score >= 1"
+                        [style.background-color]="passwordStrength.score >= 1 ? passwordStrength.color : ''"
+                      ></div>
+                      <div
+                        class="pwd-bar"
+                        [class.filled]="passwordStrength.score >= 2"
+                        [style.background-color]="passwordStrength.score >= 2 ? passwordStrength.color : ''"
+                      ></div>
+                      <div
+                        class="pwd-bar"
+                        [class.filled]="passwordStrength.score >= 3"
+                        [style.background-color]="passwordStrength.score >= 3 ? passwordStrength.color : ''"
+                      ></div>
+                      <div
+                        class="pwd-bar"
+                        [class.filled]="passwordStrength.score >= 4"
+                        [style.background-color]="passwordStrength.score >= 4 ? passwordStrength.color : ''"
+                      ></div>
+                    </div>
+                    <span class="pwd-strength-label" [style.color]="passwordStrength.color">{{
+                      passwordStrength.label
+                    }}</span>
                   </div>
-                  <span class="pwd-strength-label" [style.color]="passwordStrength.color">{{
-                    passwordStrength.label
-                  }}</span>
+                  <div class="pwd-checklist">
+                    <div class="check-item" [class.valid]="hasMinLength">
+                      <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
+                        hasMinLength ? 'check' : 'close'
+                      }}</span>
+                      <span>{{ 'password.policy.range' | t: passwordPolicy }}</span>
+                      <span class="sr-only">{{
+                        (hasMinLength ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                      }}</span>
+                    </div>
+                    <div class="check-item" [class.valid]="hasUpperAndLower">
+                      <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
+                        hasUpperAndLower ? 'check' : 'close'
+                      }}</span>
+                      <span>{{ 'iam.zaglavnye_i_strochnye_bukvy' | t }}</span>
+                      <span class="sr-only">{{
+                        (hasUpperAndLower ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                      }}</span>
+                    </div>
+                    <div class="check-item" [class.valid]="hasDigitsOrSymbols">
+                      <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
+                        hasDigitsOrSymbols ? 'check' : 'close'
+                      }}</span>
+                      <span>{{ 'iam.cifry_ili_specsimvoly' | t }}</span>
+                      <span class="sr-only">{{
+                        (hasDigitsOrSymbols ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                      }}</span>
+                    </div>
+                    <div class="check-item" [class.valid]="doesNotContainLogin">
+                      <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
+                        doesNotContainLogin ? 'check' : 'close'
+                      }}</span>
+                      <span>{{ 'iam.bez_sovpadeniy_s_loginom' | t }}</span>
+                      <span class="sr-only">{{
+                        (doesNotContainLogin ? 'common.requirement_met' : 'common.requirement_not_met') | t
+                      }}</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="pwd-checklist">
-                  <div class="check-item" [class.valid]="hasMinLength">
-                    <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
-                      hasMinLength ? 'check' : 'close'
-                    }}</span>
-                    <span>{{ 'password.policy.range' | t: passwordPolicy }}</span>
-                    <span class="sr-only">{{
-                      (hasMinLength ? 'common.requirement_met' : 'common.requirement_not_met') | t
-                    }}</span>
-                  </div>
-                  <div class="check-item" [class.valid]="hasUpperAndLower">
-                    <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
-                      hasUpperAndLower ? 'check' : 'close'
-                    }}</span>
-                    <span>{{ 'iam.zaglavnye_i_strochnye_bukvy' | t }}</span>
-                    <span class="sr-only">{{
-                      (hasUpperAndLower ? 'common.requirement_met' : 'common.requirement_not_met') | t
-                    }}</span>
-                  </div>
-                  <div class="check-item" [class.valid]="hasDigitsOrSymbols">
-                    <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
-                      hasDigitsOrSymbols ? 'check' : 'close'
-                    }}</span>
-                    <span>{{ 'iam.cifry_ili_specsimvoly' | t }}</span>
-                    <span class="sr-only">{{
-                      (hasDigitsOrSymbols ? 'common.requirement_met' : 'common.requirement_not_met') | t
-                    }}</span>
-                  </div>
-                  <div class="check-item" [class.valid]="doesNotContainLogin">
-                    <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
-                      doesNotContainLogin ? 'check' : 'close'
-                    }}</span>
-                    <span>{{ 'iam.bez_sovpadeniy_s_loginom' | t }}</span>
-                    <span class="sr-only">{{
-                      (doesNotContainLogin ? 'common.requirement_met' : 'common.requirement_not_met') | t
-                    }}</span>
-                  </div>
-                </div>
-              </div>
+              }
             </smt-control>
 
             <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
@@ -268,19 +270,23 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             </div>
 
             <!-- Roles -->
-            <smt-control class="form-group span-2" *ngIf="roles.length > 0" [smtLabel]="'iam.roli_dostupa_rbac' | t">
-              <smt-tag-group
-                [options]="roleOptions()"
-                [value]="createForm.roleIds || []"
-                (valueChange)="createForm.roleIds = $event"
-              />
-            </smt-control>
+            @if (roles.length > 0) {
+              <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+                <smt-tag-group
+                  [options]="roleOptions()"
+                  [value]="createForm.roleIds || []"
+                  (valueChange)="createForm.roleIds = $event"
+                />
+              </smt-control>
+            }
 
             <!-- Custom Fields -->
-            <div class="form-group span-2" *ngIf="customFields.length > 0">
-              <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
-              <ui-custom-fields [fields]="customFields" [(values)]="createForm.attributes"></ui-custom-fields>
-            </div>
+            @if (customFields.length > 0) {
+              <div class="form-group span-2">
+                <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
+                <ui-custom-fields [fields]="customFields" [(values)]="createForm.attributes"></ui-custom-fields>
+              </div>
+            }
           </div>
         </div>
         <div footer>

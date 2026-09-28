@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, HostListener, Input, OnInit, Output, computed, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -19,7 +18,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
 @Component({
   selector: 'app-language-editor',
   standalone: true,
-  imports: [SMTSwitchComponent, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, CommonModule, FormsModule],
+  imports: [SMTSwitchComponent, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, FormsModule],
   template: `
     <section class="translation-editor" aria-labelledby="translation-editor-title">
       <header class="editor-header">
@@ -37,33 +36,43 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
             <h3 id="translation-editor-title">
               {{ 'settings.translations_for' | t: { name: editor()?.language?.name || languageCode.toUpperCase() } }}
             </h3>
-            <p *ngIf="editor() as model">
-              {{
-                'settings.translation_progress'
-                  | t
-                    : {
-                        translated: model.language.translated,
-                        total: model.language.total,
-                        coverage: model.language.coverage,
-                      }
-              }}
-            </p>
+            @if (editor(); as model) {
+              <p>
+                {{
+                  'settings.translation_progress'
+                    | t
+                      : {
+                          translated: model.language.translated,
+                          total: model.language.total,
+                          coverage: model.language.coverage,
+                        }
+                }}
+              </p>
+            }
           </div>
         </div>
         <!-- The full name is real text: aria-label is dropped on a span without a role. -->
-        <span class="coverage" *ngIf="editor() as model">
-          <span class="sr-only">{{ 'settings.translation_coverage' | t: { coverage: model.language.coverage } }}</span>
-          <span aria-hidden="true">{{ model.language.coverage }}%</span>
-        </span>
+        @if (editor(); as model) {
+          <span class="coverage">
+            <span class="sr-only">{{
+              'settings.translation_coverage' | t: { coverage: model.language.coverage }
+            }}</span>
+            <span aria-hidden="true">{{ model.language.coverage }}%</span>
+          </span>
+        }
       </header>
 
-      <div class="editor-loading" *ngIf="isLoading()" role="status">{{ 'settings.zagruzka_perevodov' | t }}</div>
-      <div class="editor-error" *ngIf="loadError()" role="alert">
-        <span>{{ loadError() }}</span>
-        <button type="button" class="text-action" (click)="load()">{{ 'announcements.povtorit' | t }}</button>
-      </div>
+      @if (isLoading()) {
+        <div class="editor-loading" role="status">{{ 'settings.zagruzka_perevodov' | t }}</div>
+      }
+      @if (loadError()) {
+        <div class="editor-error" role="alert">
+          <span>{{ loadError() }}</span>
+          <button type="button" class="text-action" (click)="load()">{{ 'announcements.povtorit' | t }}</button>
+        </div>
+      }
 
-      <ng-container *ngIf="editor()">
+      @if (editor()) {
         <div class="editor-toolbar">
           <div class="search-field">
             <label for="translation-search">{{ 'settings.poisk_perevoda' | t }}</label>
@@ -83,11 +92,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
             (checkedChange)="missingOnly.set($event)"
             [smtLabel]="'settings.tolko_neperevedennye' | t"
           />
-          <label class="import-action" *ngIf="canEdit">
-            <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
-            <span>{{ 'settings.import_json' | t }}</span>
-            <input type="file" accept="application/json,.json" (change)="importFile($event)" />
-          </label>
+          @if (canEdit) {
+            <label class="import-action">
+              <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+              <span>{{ 'settings.import_json' | t }}</span>
+              <input type="file" accept="application/json,.json" (change)="importFile($event)" />
+            </label>
+          }
           <button type="button" class="secondary-action" (click)="exportDraft()">
             <span class="material-symbols-outlined" aria-hidden="true">download</span>
             {{ 'settings.eksport_json' | t }}
@@ -102,84 +113,91 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
             <span>{{ 'common.status' | t }}</span>
           </div>
 
-          <div
-            class="translation-row"
-            *ngFor="let entry of filteredEntries(); trackBy: trackByKey"
-            [attr.data-translation-key]="entry.key"
-          >
-            <code class="translation-key">{{ entry.key }}</code>
-            <div
-              class="source-value"
-              [attr.data-label]="(languageCode === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t"
-            >
-              {{ languageCode === 'ru' ? entry.bundledValue : entry.russianValue }}
-            </div>
-            <div class="target-value" [attr.data-label]="'settings.translation' | t">
-              <label class="sr-only" [for]="inputId(entry.key)">{{
-                'settings.translation_for_key' | t: { key: entry.key }
-              }}</label>
-              <smt-input
-                [smtFieldId]="inputId(entry.key)"
-                type="text"
-                [disabled]="!canEdit"
-                [ngModel]="valueFor(entry.key)"
-                (ngModelChange)="setValue(entry.key, $event)"
-                [placeholder]="languageCode === 'ru' ? entry.bundledValue || '' : entry.russianValue"
-                [maxLength]="4000"
-              />
-              <button
-                type="button"
-                class="reset-action"
-                *ngIf="canEdit && canReset(entry)"
-                [attr.aria-label]="'settings.restore_packaged_value' | t: { key: entry.key }"
-                (click)="resetValue(entry)"
+          @for (entry of filteredEntries(); track trackByKey($index, entry)) {
+            <div class="translation-row" [attr.data-translation-key]="entry.key">
+              <code class="translation-key">{{ entry.key }}</code>
+              <div
+                class="source-value"
+                [attr.data-label]="
+                  (languageCode === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t
+                "
               >
-                <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
-              </button>
+                {{ languageCode === 'ru' ? entry.bundledValue : entry.russianValue }}
+              </div>
+              <div class="target-value" [attr.data-label]="'settings.translation' | t">
+                <label class="sr-only" [for]="inputId(entry.key)">{{
+                  'settings.translation_for_key' | t: { key: entry.key }
+                }}</label>
+                <smt-input
+                  [smtFieldId]="inputId(entry.key)"
+                  type="text"
+                  [disabled]="!canEdit"
+                  [ngModel]="valueFor(entry.key)"
+                  (ngModelChange)="setValue(entry.key, $event)"
+                  [placeholder]="languageCode === 'ru' ? entry.bundledValue || '' : entry.russianValue"
+                  [maxLength]="4000"
+                />
+                @if (canEdit && canReset(entry)) {
+                  <button
+                    type="button"
+                    class="reset-action"
+                    [attr.aria-label]="'settings.restore_packaged_value' | t: { key: entry.key }"
+                    (click)="resetValue(entry)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+                  </button>
+                }
+              </div>
+              <span
+                class="translation-status"
+                [class.ready]="isTranslated(entry)"
+                [attr.data-status]="isTranslated(entry) ? 'translated' : 'missing'"
+                [attr.data-label]="'common.status' | t"
+              >
+                {{ (isTranslated(entry) ? 'settings.translated' : 'settings.fallback_ru') | t }}
+              </span>
             </div>
-            <span
-              class="translation-status"
-              [class.ready]="isTranslated(entry)"
-              [attr.data-status]="isTranslated(entry) ? 'translated' : 'missing'"
-              [attr.data-label]="'common.status' | t"
-            >
-              {{ (isTranslated(entry) ? 'settings.translated' : 'settings.fallback_ru') | t }}
-            </span>
-          </div>
+          }
 
-          <div class="empty-filter" *ngIf="filteredEntries().length === 0">
-            {{ 'settings.po_zadannym_usloviyam_stroki_ne_naydeny' | t }}
-          </div>
+          @if (filteredEntries().length === 0) {
+            <div class="empty-filter">
+              {{ 'settings.po_zadannym_usloviyam_stroki_ne_naydeny' | t }}
+            </div>
+          }
         </div>
 
-        <div class="save-error" *ngIf="saveError()" role="alert">{{ saveError() }}</div>
+        @if (saveError()) {
+          <div class="save-error" role="alert">{{ saveError() }}</div>
+        }
 
-        <footer class="editor-actions" *ngIf="canEdit">
-          <span class="dirty-count" aria-live="polite">{{
-            'settings.changed_count' | t: { count: dirtyCount() }
-          }}</span>
-          <div>
-            <button
-              type="button"
-              class="secondary-action"
-              [disabled]="dirtyCount() === 0 || isSaving()"
-              (click)="cancelChanges()"
-            >
-              {{ 'settings.otmenit_izmeneniya' | t }}
-            </button>
-            <button
-              type="button"
-              class="primary-action"
-              data-testid="language-editor-save"
-              [disabled]="dirtyCount() === 0 || isSaving()"
-              (click)="save()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">save</span>
-              {{ (isSaving() ? 'common.saving' : 'settings.save_translations') | t }}
-            </button>
-          </div>
-        </footer>
-      </ng-container>
+        @if (canEdit) {
+          <footer class="editor-actions">
+            <span class="dirty-count" aria-live="polite">{{
+              'settings.changed_count' | t: { count: dirtyCount() }
+            }}</span>
+            <div>
+              <button
+                type="button"
+                class="secondary-action"
+                [disabled]="dirtyCount() === 0 || isSaving()"
+                (click)="cancelChanges()"
+              >
+                {{ 'settings.otmenit_izmeneniya' | t }}
+              </button>
+              <button
+                type="button"
+                class="primary-action"
+                data-testid="language-editor-save"
+                [disabled]="dirtyCount() === 0 || isSaving()"
+                (click)="save()"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">save</span>
+                {{ (isSaving() ? 'common.saving' : 'settings.save_translations') | t }}
+              </button>
+            </div>
+          </footer>
+        }
+      }
     </section>
   `,
   styleUrl: './language-editor.component.css',

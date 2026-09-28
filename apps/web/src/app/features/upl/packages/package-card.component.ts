@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -38,14 +37,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
   selector: 'app-upl-package-card',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTAlertComponent,
-    CommonModule,
-    TranslatePipe,
-    UiBadgeComponent,
-    SMTButtonComponent,
-    UiLocalTableComponent,
-  ],
+  imports: [SMTAlertComponent, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">

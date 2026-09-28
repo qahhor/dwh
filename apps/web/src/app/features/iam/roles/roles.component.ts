@@ -1,7 +1,7 @@
 import { Component, DestroyRef, OnInit, ViewChild, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
@@ -38,7 +38,6 @@ import { RoleFormsService } from './services/role-forms.service';
   standalone: true,
   imports: [
     TranslatePipe,
-    CommonModule,
     FormsModule,
     SMTButtonComponent,
     RoleScopePanelComponent,

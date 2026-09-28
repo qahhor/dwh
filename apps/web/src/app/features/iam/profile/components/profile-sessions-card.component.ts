@@ -31,19 +31,20 @@ import { UserSession } from '../profile.models';
           <span class="badge-count">{{ sessions.length }}</span>
         </div>
         <div class="sessions-header-actions">
-          <button
-            smt-button
-            type="button"
-            *ngIf="sessions.length > 1"
-            smtVariant="danger"
-            smtSize="sm"
-            smtIcon="logout"
-            [smtLoading]="isTerminatingSession"
-            [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
-            (click)="terminateOtherSessions.emit()"
-          >
-            {{ 'iam.zavershit_drugie_sessii' | t }}
-          </button>
+          @if (sessions.length > 1) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="danger"
+              smtSize="sm"
+              smtIcon="logout"
+              [smtLoading]="isTerminatingSession"
+              [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
+              (click)="terminateOtherSessions.emit()"
+            >
+              {{ 'iam.zavershit_drugie_sessii' | t }}
+            </button>
+          }
           <button
             smt-button
             type="button"

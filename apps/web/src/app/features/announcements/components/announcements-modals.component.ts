@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -17,7 +17,6 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
   standalone: true,
   imports: [
     SMTTabBarComponent,
-    CommonModule,
     FormsModule,
     A11yModule,
     TranslatePipe,
@@ -54,7 +53,7 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
           </div>
 
           <!-- Russian language inputs (Authoritative primary fields) -->
-          <ng-container *ngIf="selectedLang() === 'ru'">
+          @if (selectedLang() === 'ru') {
             <div class="field-group">
               <div class="field-header">
                 <label for="announcement-title-ru"
@@ -96,10 +95,10 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
                 'announcements.do_10_000_simvolov_tekst_uvidyat_vse_polzovateli' | t
               }}</span>
             </div>
-          </ng-container>
+          }
 
           <!-- Non-Russian language inputs -->
-          <ng-container *ngIf="selectedLang() !== 'ru'">
+          @if (selectedLang() !== 'ru') {
             <div class="field-group">
               <div class="field-header">
                 <label for="announcement-title-other"
@@ -132,7 +131,7 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
                 (ngModelChange)="onDraftBodyChange(selectedLang(), $event)"
               />
             </div>
-          </ng-container>
+          }
 
           <div class="field-group">
             <label for="announcement-banner-type">{{ 'announcements.uroven_soobscheniya' | t }}</label>

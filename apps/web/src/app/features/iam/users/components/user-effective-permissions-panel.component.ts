@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -46,7 +46,6 @@ export interface GroupedPermissionModule {
     SMTRadioGroupComponent,
     SMTSelectComponent,
     SMTInputComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -54,187 +53,214 @@ export interface GroupedPermissionModule {
   template: `
     <div class="effective-perms-container">
       <!-- Loading State -->
-      <div *ngIf="isLoading()" class="perms-loading" role="status">
-        <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
-        <span>{{ 'common.loading' | t }}</span>
-      </div>
+      @if (isLoading()) {
+        <div class="perms-loading" role="status">
+          <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
+          <span>{{ 'common.loading' | t }}</span>
+        </div>
+      }
 
       <!-- Error State -->
-      <div *ngIf="!isLoading() && loadError()" class="perms-error" role="alert">
-        <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
-        <p>{{ 'common.error' | t }}</p>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="loadAll()">
-          {{ 'common.retry' | t }}
-        </button>
-      </div>
+      @if (!isLoading() && loadError()) {
+        <div class="perms-error" role="alert">
+          <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
+          <p>{{ 'common.error' | t }}</p>
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="loadAll()">
+            {{ 'common.retry' | t }}
+          </button>
+        </div>
+      }
 
       <!-- Content -->
-      <div *ngIf="!isLoading() && !loadError()" class="perms-content">
-        <!-- Overview Stats & Roles -->
-        <div class="overview-section">
-          <div class="user-roles-banner" *ngIf="userRoleNames.length > 0">
-            <span class="banner-lbl">{{ 'iam.roli' | t }}:</span>
-            <div class="roles-chips">
-              <span *ngFor="let roleName of userRoleNames" class="role-chip">
-                <span class="material-symbols-outlined" aria-hidden="true">shield</span>
-                {{ roleName }}
-              </span>
-            </div>
-          </div>
-
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span class="stat-lbl">{{ 'iam.vsego_razresheniy' | t }}</span>
-              <span class="stat-val primary">{{ effectiveItems().length }}</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-lbl">{{ 'iam.iz_roley' | t }}</span>
-              <span class="stat-val role">{{ roleCount() }}</span>
-            </div>
-            <div class="stat-card">
-              <span class="stat-lbl">{{ 'iam.personalnyh' | t }}</span>
-              <span class="stat-val personal">{{ personalCount() }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Add Personal Grant Section (when canAssign) -->
-        <div *ngIf="canAssign" class="add-grant-card">
-          <div class="add-grant-header">
-            <span class="material-symbols-outlined" aria-hidden="true">add_moderator</span>
-            <h4>{{ 'iam.dobavit_isklyuchenie' | t }}</h4>
-          </div>
-
-          <div class="add-grant-form">
-            <div class="form-group">
-              <label for="select-grant-form" class="sr-only">{{ 'iam.forma' | t }}</label>
-              <smt-select
-                smtTriggerId="select-grant-form"
-                class="grant-select"
-                [value]="selectedFormCode()"
-                (valueChange)="onFormSelect($event ?? '')"
-                [options]="formOptions()"
-                [placeholder]="'iam.vyberite_formu' | t"
-                [emptyLabel]="'iam.vyberite_formu' | t"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="select-grant-action" class="sr-only">{{ 'iam.deystvie' | t }}</label>
-              <smt-select
-                smtTriggerId="select-grant-action"
-                class="grant-select"
-                [value]="selectedAction()"
-                (valueChange)="selectedAction.set($event ?? '')"
-                [disabled]="!selectedFormCode()"
-                [options]="actionOptions()"
-                [placeholder]="'iam.vyberite_deystvie' | t"
-                [emptyLabel]="'iam.vyberite_deystvie' | t"
-              />
-            </div>
-
-            <button
-              smt-button
-              type="button"
-              smtVariant="secondary"
-              smtSize="sm"
-              smtIcon="add"
-              [disabled]="!selectedFormCode() || !selectedAction()"
-              (click)="addPersonalGrant()"
-            >
-              {{ 'common.add' | t }}
-            </button>
-          </div>
-
-          <div *ngIf="hasUnsavedChanges()" class="unsaved-banner">
-            <span class="material-symbols-outlined warning-icon" aria-hidden="true">warning</span>
-            <span>{{ 'settings.search.unsaved' | t }}</span>
-            <button
-              smt-button
-              type="button"
-              smtVariant="primary"
-              smtSize="sm"
-              smtIcon="save"
-              [smtLoading]="isSaving()"
-              (click)="savePersonalGrants()"
-            >
-              {{ 'iam.sohranit_prava' | t }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Filter & Search Toolbar -->
-        <div class="perms-toolbar">
-          <smt-input
-            class="search-input-wrap"
-            type="search"
-            smtIcon="search"
-            clearable
-            [placeholder]="'iam.poisk_po_pravam' | t"
-            [value]="searchQuery()"
-            (valueChange)="searchQuery.set($event === null ? '' : '' + $event)"
-            [smtAriaLabel]="'iam.poisk_po_pravam' | t"
-          />
-
-          <smt-radio-group
-            smtAppearance="chips"
-            class="source-filter"
-            [options]="sourceOptions()"
-            [value]="sourceFilter()"
-            [smtAriaLabel]="'iam.istochnik_prava' | t"
-            (valueChange)="sourceFilter.set($event ?? 'all')"
-          />
-        </div>
-
-        <!-- Empty State -->
-        <div *ngIf="groupedModules().length === 0" class="perms-empty">
-          <span class="material-symbols-outlined empty-icon" aria-hidden="true">vpn_key_off</span>
-          <p>{{ 'iam.net_effektivnyh_prav' | t }}</p>
-        </div>
-
-        <!-- Grouped Permissions Modules -->
-        <div *ngIf="groupedModules().length > 0" class="modules-accordion">
-          <div *ngFor="let mod of groupedModules()" class="module-group-card">
-            <div class="module-group-header">
-              <span class="material-symbols-outlined mod-icon" aria-hidden="true">{{ mod.icon }}</span>
-              <span class="mod-name">{{ mod.moduleName }}</span>
-              <span class="mod-count font-mono">{{ mod.forms.length }}</span>
-            </div>
-
-            <div class="module-forms-list">
-              <div *ngFor="let form of mod.forms" class="form-row">
-                <div class="form-info">
-                  <span class="form-name">{{ form.formName }}</span>
-                  <span class="form-code font-mono text-xs">{{ form.formCode }}</span>
-                </div>
-
-                <div class="form-actions-wrap">
-                  <div *ngFor="let act of form.actions" class="action-tag" [class.personal]="act.source === 'personal'">
-                    <span class="action-name font-mono">{{ act.action }}</span>
-                    <span
-                      class="source-badge"
-                      [class.role]="act.source === 'role'"
-                      [class.personal]="act.source === 'personal'"
-                    >
-                      {{ (act.source === 'role' ? 'iam.istochnik_rol' : 'iam.istochnik_personal') | t }}
+      @if (!isLoading() && !loadError()) {
+        <div class="perms-content">
+          <!-- Overview Stats & Roles -->
+          <div class="overview-section">
+            @if (userRoleNames.length > 0) {
+              <div class="user-roles-banner">
+                <span class="banner-lbl">{{ 'iam.roli' | t }}:</span>
+                <div class="roles-chips">
+                  @for (roleName of userRoleNames; track roleName) {
+                    <span class="role-chip">
+                      <span class="material-symbols-outlined" aria-hidden="true">shield</span>
+                      {{ roleName }}
                     </span>
-                    <button
-                      *ngIf="canAssign && act.source === 'personal'"
-                      type="button"
-                      class="remove-grant-btn"
-                      [title]="'iam.udalit_isklyuchenie' | t"
-                      [attr.aria-label]="'iam.udalit_isklyuchenie' | t"
-                      (click)="removePersonalGrant(form.formCode, act.action)"
-                    >
-                      <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true">close</span>
-                    </button>
-                  </div>
+                  }
                 </div>
+              </div>
+            }
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span class="stat-lbl">{{ 'iam.vsego_razresheniy' | t }}</span>
+                <span class="stat-val primary">{{ effectiveItems().length }}</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-lbl">{{ 'iam.iz_roley' | t }}</span>
+                <span class="stat-val role">{{ roleCount() }}</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-lbl">{{ 'iam.personalnyh' | t }}</span>
+                <span class="stat-val personal">{{ personalCount() }}</span>
               </div>
             </div>
           </div>
+
+          <!-- Add Personal Grant Section (when canAssign) -->
+          @if (canAssign) {
+            <div class="add-grant-card">
+              <div class="add-grant-header">
+                <span class="material-symbols-outlined" aria-hidden="true">add_moderator</span>
+                <h4>{{ 'iam.dobavit_isklyuchenie' | t }}</h4>
+              </div>
+
+              <div class="add-grant-form">
+                <div class="form-group">
+                  <label for="select-grant-form" class="sr-only">{{ 'iam.forma' | t }}</label>
+                  <smt-select
+                    smtTriggerId="select-grant-form"
+                    class="grant-select"
+                    [value]="selectedFormCode()"
+                    (valueChange)="onFormSelect($event ?? '')"
+                    [options]="formOptions()"
+                    [placeholder]="'iam.vyberite_formu' | t"
+                    [emptyLabel]="'iam.vyberite_formu' | t"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label for="select-grant-action" class="sr-only">{{ 'iam.deystvie' | t }}</label>
+                  <smt-select
+                    smtTriggerId="select-grant-action"
+                    class="grant-select"
+                    [value]="selectedAction()"
+                    (valueChange)="selectedAction.set($event ?? '')"
+                    [disabled]="!selectedFormCode()"
+                    [options]="actionOptions()"
+                    [placeholder]="'iam.vyberite_deystvie' | t"
+                    [emptyLabel]="'iam.vyberite_deystvie' | t"
+                  />
+                </div>
+
+                <button
+                  smt-button
+                  type="button"
+                  smtVariant="secondary"
+                  smtSize="sm"
+                  smtIcon="add"
+                  [disabled]="!selectedFormCode() || !selectedAction()"
+                  (click)="addPersonalGrant()"
+                >
+                  {{ 'common.add' | t }}
+                </button>
+              </div>
+
+              @if (hasUnsavedChanges()) {
+                <div class="unsaved-banner">
+                  <span class="material-symbols-outlined warning-icon" aria-hidden="true">warning</span>
+                  <span>{{ 'settings.search.unsaved' | t }}</span>
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="primary"
+                    smtSize="sm"
+                    smtIcon="save"
+                    [smtLoading]="isSaving()"
+                    (click)="savePersonalGrants()"
+                  >
+                    {{ 'iam.sohranit_prava' | t }}
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Filter & Search Toolbar -->
+          <div class="perms-toolbar">
+            <smt-input
+              class="search-input-wrap"
+              type="search"
+              smtIcon="search"
+              clearable
+              [placeholder]="'iam.poisk_po_pravam' | t"
+              [value]="searchQuery()"
+              (valueChange)="searchQuery.set($event === null ? '' : '' + $event)"
+              [smtAriaLabel]="'iam.poisk_po_pravam' | t"
+            />
+
+            <smt-radio-group
+              smtAppearance="chips"
+              class="source-filter"
+              [options]="sourceOptions()"
+              [value]="sourceFilter()"
+              [smtAriaLabel]="'iam.istochnik_prava' | t"
+              (valueChange)="sourceFilter.set($event ?? 'all')"
+            />
+          </div>
+
+          <!-- Empty State -->
+          @if (groupedModules().length === 0) {
+            <div class="perms-empty">
+              <span class="material-symbols-outlined empty-icon" aria-hidden="true">vpn_key_off</span>
+              <p>{{ 'iam.net_effektivnyh_prav' | t }}</p>
+            </div>
+          }
+
+          <!-- Grouped Permissions Modules -->
+          @if (groupedModules().length > 0) {
+            <div class="modules-accordion">
+              @for (mod of groupedModules(); track mod) {
+                <div class="module-group-card">
+                  <div class="module-group-header">
+                    <span class="material-symbols-outlined mod-icon" aria-hidden="true">{{ mod.icon }}</span>
+                    <span class="mod-name">{{ mod.moduleName }}</span>
+                    <span class="mod-count font-mono">{{ mod.forms.length }}</span>
+                  </div>
+
+                  <div class="module-forms-list">
+                    @for (form of mod.forms; track form) {
+                      <div class="form-row">
+                        <div class="form-info">
+                          <span class="form-name">{{ form.formName }}</span>
+                          <span class="form-code font-mono text-xs">{{ form.formCode }}</span>
+                        </div>
+
+                        <div class="form-actions-wrap">
+                          @for (act of form.actions; track act) {
+                            <div class="action-tag" [class.personal]="act.source === 'personal'">
+                              <span class="action-name font-mono">{{ act.action }}</span>
+                              <span
+                                class="source-badge"
+                                [class.role]="act.source === 'role'"
+                                [class.personal]="act.source === 'personal'"
+                              >
+                                {{ (act.source === 'role' ? 'iam.istochnik_rol' : 'iam.istochnik_personal') | t }}
+                              </span>
+                              @if (canAssign && act.source === 'personal') {
+                                <button
+                                  type="button"
+                                  class="remove-grant-btn"
+                                  [title]="'iam.udalit_isklyuchenie' | t"
+                                  [attr.aria-label]="'iam.udalit_isklyuchenie' | t"
+                                  (click)="removePersonalGrant(form.formCode, act.action)"
+                                >
+                                  <span class="material-symbols-outlined" style="font-size: 14px;" aria-hidden="true"
+                                    >close</span
+                                  >
+                                </button>
+                              }
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
         </div>
-      </div>
+      }
     </div>
   `,
   styles: [

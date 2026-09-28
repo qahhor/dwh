@@ -1,11 +1,11 @@
 import { Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 
 @Component({
   selector: 'ui-markdown-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   template: ` <div class="md-rendered-content" [innerHTML]="renderedHtml"></div> `,
   styles: [
     `
