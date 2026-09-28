@@ -98,17 +98,30 @@ describe('UsersComponent UI contracts', () => {
   it('keeps the filter menu open while a filter option is picked in the overlay', async () => {
     const fixture = await createFixture();
     const component = fixture.componentInstance;
-    component.isFilterMenuOpen.set(true);
+    component.filterService.isFilterMenuOpen.set(true);
     const overlay = document.createElement('div');
     overlay.className = 'cdk-overlay-container';
     const option = document.createElement('div');
     overlay.appendChild(option);
     document.body.appendChild(overlay);
     component.onDocumentClick({ target: option } as unknown as MouseEvent);
-    expect(component.isFilterMenuOpen()).toBe(true);
+    expect(component.filterService.isFilterMenuOpen()).toBe(true);
     component.onDocumentClick({ target: document.body } as unknown as MouseEvent);
-    expect(component.isFilterMenuOpen()).toBe(false);
+    expect(component.filterService.isFilterMenuOpen()).toBe(false);
     overlay.remove();
+  });
+
+  it('returns focus to the filter button when Escape closes the filter menu', async () => {
+    const fixture = await createFixture();
+    const trigger = fixture.nativeElement.querySelector('.filter-trigger-btn') as HTMLButtonElement;
+    fixture.componentInstance.filterService.isFilterMenuOpen.set(true);
+    fixture.detectChanges();
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await Promise.resolve();
+
+    expect(fixture.componentInstance.filterService.isFilterMenuOpen()).toBe(false);
+    expect(document.activeElement).toBe(trigger);
   });
 
   it('labels filters and exposes explicit table interactions', async () => {
@@ -153,7 +166,7 @@ describe('UsersComponent UI contracts', () => {
   it('connects required create-user fields to inline validation', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateModal();
-    (fixture.componentInstance as any).isCreateSubmitted = true;
+    fixture.componentInstance.formsService.isCreateSubmitted = true;
     redraw(fixture);
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
@@ -179,7 +192,7 @@ describe('UsersComponent UI contracts', () => {
     );
     twoFactor.click();
     await fixture.whenStable();
-    expect(fixture.componentInstance.createForm.is2faEnabled).toBe(true);
+    expect(fixture.componentInstance.formsService.createForm.is2faEnabled).toBe(true);
     const language = inScreen(fixture.nativeElement).querySelector('#user-create-language') as HTMLButtonElement;
     expect(language.getAttribute('role')).toBe('combobox');
     expect(inScreen(fixture.nativeElement).querySelector(`label[for="${language.id}"]`)).not.toBeNull();
@@ -470,33 +483,33 @@ describe('UsersComponent UI contracts', () => {
 
     firstSave.next();
 
-    expect(fixture.componentInstance.isSubmitting()).toBe(true);
+    expect(fixture.componentInstance.formsService.isSubmitting()).toBe(true);
     expect(fixture.componentInstance.isEditModalOpen()).toBe(true);
-    expect(fixture.componentInstance.editingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.formsService.editingUser?.id).toBe(first.id);
 
     newerSave.next();
-    expect(fixture.componentInstance.isSubmitting()).toBe(false);
+    expect(fixture.componentInstance.formsService.isSubmitting()).toBe(false);
     expect(fixture.componentInstance.isEditModalOpen()).toBe(false);
   });
 
   it('evaluates password strength and requirements checklist dynamically', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateModal();
-    fixture.componentInstance.createForm.login = 'john';
+    fixture.componentInstance.formsService.createForm.login = 'john';
 
-    fixture.componentInstance.createForm.password = 'short';
-    expect(fixture.componentInstance.hasMinLength()).toBe(false);
-    expect(fixture.componentInstance.passwordStrength().score).toBe(1);
+    fixture.componentInstance.formsService.createForm.password = 'short';
+    expect(fixture.componentInstance.formsService.hasMinLength()).toBe(false);
+    expect(fixture.componentInstance.formsService.passwordStrength().score).toBe(1);
 
-    fixture.componentInstance.createForm.password = 'johnStrong123!';
-    expect(fixture.componentInstance.doesNotContainLogin()).toBe(false);
+    fixture.componentInstance.formsService.createForm.password = 'johnStrong123!';
+    expect(fixture.componentInstance.formsService.doesNotContainLogin()).toBe(false);
 
-    fixture.componentInstance.createForm.password = 'SafePass123!#';
-    expect(fixture.componentInstance.hasMinLength()).toBe(true);
-    expect(fixture.componentInstance.hasUpperAndLower()).toBe(true);
-    expect(fixture.componentInstance.hasDigitsOrSymbols()).toBe(true);
-    expect(fixture.componentInstance.doesNotContainLogin()).toBe(true);
-    expect(fixture.componentInstance.passwordStrength().score).toBe(4);
+    fixture.componentInstance.formsService.createForm.password = 'SafePass123!#';
+    expect(fixture.componentInstance.formsService.hasMinLength()).toBe(true);
+    expect(fixture.componentInstance.formsService.hasUpperAndLower()).toBe(true);
+    expect(fixture.componentInstance.formsService.hasDigitsOrSymbols()).toBe(true);
+    expect(fixture.componentInstance.formsService.doesNotContainLogin()).toBe(true);
+    expect(fixture.componentInstance.formsService.passwordStrength().score).toBe(4);
   });
 
   it('switches to security tab and loads security summary for viewing user', async () => {
@@ -541,9 +554,9 @@ describe('UsersComponent UI contracts', () => {
     redraw(fixture);
 
     expect(fixture.componentInstance.activeViewTab()).toBe('security');
-    expect(fixture.componentInstance.userSecurity()?.userId).toBe(15);
-    expect(fixture.componentInstance.userSecurity()?.activeSessionsCount).toBe(1);
-    expect(fixture.componentInstance.userSecurity()?.recentLoginAttempts.length).toBe(1);
+    expect(fixture.componentInstance.secService.userSecurity()?.userId).toBe(15);
+    expect(fixture.componentInstance.secService.userSecurity()?.activeSessionsCount).toBe(1);
+    expect(fixture.componentInstance.secService.userSecurity()?.recentLoginAttempts.length).toBe(1);
 
     const root = inScreen(fixture.nativeElement);
     const sessionsTable = root.querySelector('[data-testid="user-sessions-table"] [role="table"]');
@@ -563,24 +576,24 @@ describe('UsersComponent UI contracts', () => {
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
 
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Пользователь 1')], nextCursor: 'cursor_abc', hasMore: true }));
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.list.loadUsers(true);
     expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ limit: 20, cursor: undefined }));
-    expect(fixture.componentInstance.userPager.canGoForward()).toBe(true);
+    expect(fixture.componentInstance.list.userPager.canGoForward()).toBe(true);
 
     api.get.mockReturnValueOnce(of({ items: [user(2, 'Пользователь 2')], nextCursor: null, hasMore: false }));
-    fixture.componentInstance.userPager.next();
+    fixture.componentInstance.list.userPager.next();
     expect(api.get).toHaveBeenLastCalledWith(
       '/iam/users',
       expect.objectContaining({ cursor: 'cursor_abc', limit: 20 }),
     );
     expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([2]);
-    expect(fixture.componentInstance.userPager.page()).toBe(2);
-    expect(fixture.componentInstance.userPager.canGoForward()).toBe(false);
+    expect(fixture.componentInstance.list.userPager.page()).toBe(2);
+    expect(fixture.componentInstance.list.userPager.canGoForward()).toBe(false);
 
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Пользователь 1')], nextCursor: 'cursor_abc', hasMore: true }));
-    fixture.componentInstance.userPager.previous();
+    fixture.componentInstance.list.userPager.previous();
     expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: undefined }));
-    expect(fixture.componentInstance.userPager.page()).toBe(1);
+    expect(fixture.componentInstance.list.userPager.page()).toBe(1);
   });
 
   it('never lets a pending page of the old filter replace the new result', async () => {
@@ -590,12 +603,12 @@ describe('UsersComponent UI contracts', () => {
     const pendingFilter = new Subject<unknown>();
 
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.list.loadUsers(true);
     api.get.mockReturnValueOnce(pendingNext.asObservable());
-    fixture.componentInstance.userPager.next();
+    fixture.componentInstance.list.userPager.next();
     api.get.mockReturnValueOnce(pendingFilter.asObservable());
-    fixture.componentInstance.selectedState = 'P';
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.filterService.selectedState = 'P';
+    fixture.componentInstance.list.loadUsers(true);
 
     pendingFilter.next({ items: [user(9, 'Заблокированный')], nextCursor: null, hasMore: false });
     pendingFilter.complete();
@@ -603,7 +616,7 @@ describe('UsersComponent UI contracts', () => {
     pendingNext.complete();
 
     expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([9]);
-    expect(fixture.componentInstance.userPager.page()).toBe(1);
+    expect(fixture.componentInstance.list.userPager.page()).toBe(1);
   });
 
   it('keeps the page on screen after blocking a user, and steps back when its last row is gone', async () => {
@@ -613,40 +626,40 @@ describe('UsersComponent UI contracts', () => {
       post: ReturnType<typeof vi.fn>;
     };
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.list.loadUsers(true);
     api.get.mockReturnValueOnce(of({ items: [user(2, 'Второй')], nextCursor: null, hasMore: false }));
-    fixture.componentInstance.userPager.next();
+    fixture.componentInstance.list.userPager.next();
 
     api.get.mockReturnValueOnce(
       of({ items: [{ ...user(2, 'Второй'), state: 'P' }], nextCursor: null, hasMore: false }),
     );
-    fixture.componentInstance.toggleUserState(user(2, 'Второй'), 'block');
+    fixture.componentInstance.list.toggleUserState(user(2, 'Второй'), 'block');
     expect(api.get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ cursor: 'c2' }));
-    expect(fixture.componentInstance.userPager.page()).toBe(2);
+    expect(fixture.componentInstance.list.userPager.page()).toBe(2);
 
     // With a state filter the blocked user leaves the page, which is now empty.
     api.get.mockReturnValueOnce(of({ items: [], nextCursor: null, hasMore: false }));
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'c2', hasMore: true }));
-    fixture.componentInstance.toggleUserState(user(2, 'Второй'), 'block');
-    expect(fixture.componentInstance.userPager.page()).toBe(1);
+    fixture.componentInstance.list.toggleUserState(user(2, 'Второй'), 'block');
+    expect(fixture.componentInstance.list.userPager.page()).toBe(1);
     expect(fixture.componentInstance.users().map((item) => item.id)).toEqual([1]);
   });
 
   it('sorts the whole list on the server and hands the quick filters to the server export', async () => {
     const fixture = await createFixture();
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
-    fixture.componentInstance.selectedState = 'A';
-    fixture.componentInstance.selected2fa = true;
+    fixture.componentInstance.filterService.selectedState = 'A';
+    fixture.componentInstance.filterService.selected2fa = true;
 
-    fixture.componentInstance.onSort({ column: 'createdAt', sortBy: OrderBy.Desc });
+    fixture.componentInstance.list.onSort({ column: 'createdAt', sortBy: OrderBy.Desc });
 
     expect(api.get).toHaveBeenLastCalledWith(
       '/iam/users',
       expect.objectContaining({ sort: '-createdAt', state: 'A', is_2fa_enabled: true, cursor: undefined }),
     );
-    const options = fixture.componentInstance.exportOptions();
+    const options = fixture.componentInstance.list.exportOptions();
     expect(options).toEqual({ state: 'A', is_2fa_enabled: 'true' });
-    expect(fixture.componentInstance.exportOptions()).toBe(options);
+    expect(fixture.componentInstance.list.exportOptions()).toBe(options);
     redraw(fixture);
     expect(inScreen(fixture.nativeElement).querySelector('ui-export-button')).not.toBeNull();
   });
@@ -655,15 +668,15 @@ describe('UsersComponent UI contracts', () => {
     const fixture = await createFixture();
     const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
     api.get.mockReturnValueOnce(of({ items: [user(1, 'Первый')], nextCursor: 'old-cursor', hasMore: true }));
-    fixture.componentInstance.loadUsers(true);
-    expect(fixture.componentInstance.userPager.canGoForward()).toBe(true);
+    fixture.componentInstance.list.loadUsers(true);
+    expect(fixture.componentInstance.list.userPager.canGoForward()).toBe(true);
 
     vi.useFakeTimers();
     try {
       fixture.componentInstance.searchQuery = 'ann';
-      fixture.componentInstance.onSearchInput();
+      fixture.componentInstance.list.onSearchInput();
       const calls = api.get.mock.calls.length;
-      fixture.componentInstance.userPager.next();
+      fixture.componentInstance.list.userPager.next();
       expect(api.get).toHaveBeenCalledTimes(calls);
 
       api.get.mockReturnValueOnce(of({ items: [user(4, 'Анна')], nextCursor: null, hasMore: false }));
@@ -682,10 +695,10 @@ describe('UsersComponent UI contracts', () => {
     const late = new Subject<unknown>();
     fixture.componentInstance.searchQuery = 'ab';
     api.get.mockReturnValueOnce(early.asObservable());
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.list.loadUsers(true);
     fixture.componentInstance.searchQuery = 'abc';
     api.get.mockReturnValueOnce(late.asObservable());
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.list.loadUsers(true);
 
     late.next({ items: [user(3, 'abc')], nextCursor: null, hasMore: false });
     late.complete();
@@ -709,7 +722,7 @@ describe('UsersComponent UI contracts', () => {
             : [],
       ),
     );
-    fixture.componentInstance.loadUsers(true);
+    fixture.componentInstance.list.loadUsers(true);
     redraw(fixture);
 
     expect(api.get).toHaveBeenCalledWith('/iam/users/42', undefined, { notifyError: false });
@@ -726,17 +739,17 @@ describe('UsersComponent UI contracts', () => {
 
   it('generateSecurePassword generates a 14-char password meeting all complexity rules', async () => {
     const fixture = await createFixture();
-    fixture.componentInstance.createForm.login = 'testuser';
+    fixture.componentInstance.formsService.createForm.login = 'testuser';
 
-    const generated = fixture.componentInstance.generateSecurePassword();
+    const generated = fixture.componentInstance.formsService.generateSecurePassword();
 
     expect(generated.length).toBe(14);
-    expect(fixture.componentInstance.createForm.password).toBe(generated);
-    expect(fixture.componentInstance.hasMinLength()).toBe(true);
-    expect(fixture.componentInstance.hasUpperAndLower()).toBe(true);
-    expect(fixture.componentInstance.hasDigitsOrSymbols()).toBe(true);
-    expect(fixture.componentInstance.doesNotContainLogin()).toBe(true);
-    expect(fixture.componentInstance.passwordStrength().score).toBe(4);
+    expect(fixture.componentInstance.formsService.createForm.password).toBe(generated);
+    expect(fixture.componentInstance.formsService.hasMinLength()).toBe(true);
+    expect(fixture.componentInstance.formsService.hasUpperAndLower()).toBe(true);
+    expect(fixture.componentInstance.formsService.hasDigitsOrSymbols()).toBe(true);
+    expect(fixture.componentInstance.formsService.doesNotContainLogin()).toBe(true);
+    expect(fixture.componentInstance.formsService.passwordStrength().score).toBe(4);
   });
 
   it('copies generated password to clipboard and shows toast', async () => {
@@ -749,8 +762,8 @@ describe('UsersComponent UI contracts', () => {
       },
     });
 
-    fixture.componentInstance.createForm.password = 'ComplexPass123!';
-    await fixture.componentInstance.copyGeneratedPassword();
+    fixture.componentInstance.formsService.createForm.password = 'ComplexPass123!';
+    await fixture.componentInstance.formsService.copyGeneratedPassword();
 
     expect(writeTextSpy).toHaveBeenCalledWith('ComplexPass123!');
     expect(toast.success).toHaveBeenCalled();
@@ -758,27 +771,27 @@ describe('UsersComponent UI contracts', () => {
 
   it('active filter pills render and allow clearing individual filters', async () => {
     const fixture = await createFixture();
-    fixture.componentInstance.roles.set([{ id: 10, pcode: 'manager', name: 'Менеджер' } as any]);
+    fixture.componentInstance.list.roles.set([{ id: 10, pcode: 'manager', name: 'Менеджер' } as any]);
 
-    fixture.componentInstance.selectedRoleId = 10;
-    fixture.componentInstance.selected2fa = true;
-    fixture.componentInstance.selectedState = 'A';
+    fixture.componentInstance.filterService.selectedRoleId = 10;
+    fixture.componentInstance.filterService.selected2fa = true;
+    fixture.componentInstance.filterService.selectedState = 'A';
     redraw(fixture);
 
-    expect(fixture.componentInstance.hasAnyActiveFilters()).toBe(true);
+    expect(fixture.componentInstance.filterService.hasAnyActiveFilters()).toBe(true);
 
     const pills = inScreen(fixture.nativeElement).querySelectorAll('.filter-pill');
     expect(pills.length).toBe(3);
 
-    fixture.componentInstance.clear2faFilter();
-    expect(fixture.componentInstance.selected2fa).toBeNull();
+    fixture.componentInstance.list.clear2faFilter();
+    expect(fixture.componentInstance.filterService.selected2fa).toBeNull();
 
-    fixture.componentInstance.clearStateFilter();
-    expect(fixture.componentInstance.selectedState).toBe('');
+    fixture.componentInstance.list.clearStateFilter();
+    expect(fixture.componentInstance.filterService.selectedState).toBe('');
 
-    fixture.componentInstance.resetAllFilters();
-    expect(fixture.componentInstance.selectedRoleId).toBeNull();
-    expect(fixture.componentInstance.hasAnyActiveFilters()).toBe(false);
+    fixture.componentInstance.list.resetAllFilters();
+    expect(fixture.componentInstance.filterService.selectedRoleId).toBeNull();
+    expect(fixture.componentInstance.filterService.hasAnyActiveFilters()).toBe(false);
   });
 
   it('security confirmation modal triggers action on confirm without window.confirm', async () => {
@@ -790,7 +803,7 @@ describe('UsersComponent UI contracts', () => {
     const confirmSpy = vi.spyOn(window, 'confirm');
     api.delete.mockReturnValue(of({}));
 
-    fixture.componentInstance.terminateUserSessions(42);
+    fixture.componentInstance.secService.terminateUserSessions(42);
 
     expect(confirmSpy).not.toHaveBeenCalled();
     redraw(fixture);
@@ -815,7 +828,7 @@ describe('UsersComponent UI contracts', () => {
     };
     api.delete.mockReturnValue(of({}));
 
-    fixture.componentInstance.terminateSingleSession(101, 42);
+    fixture.componentInstance.secService.terminateSingleSession(101, 42);
     expect(api.delete).toHaveBeenCalledWith('/iam/users/42/sessions/101');
   });
 

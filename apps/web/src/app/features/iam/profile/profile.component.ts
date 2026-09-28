@@ -8,7 +8,7 @@ import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { Observable, finalize, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
-import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH, PASSWORD_POLICY } from '@core/security/password-policy';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 
 import {
   UserSession,
@@ -17,6 +17,8 @@ import {
   PasswordForm,
   PasswordStrength,
   TokenExpirationOption,
+  passwordStrengthOf,
+  tokenExpiresAt,
 } from './profile.models';
 
 import { UserProfileCardComponent } from './components/user-profile-card.component';
@@ -42,107 +44,8 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     ProfileSessionsCardComponent,
     ProfileTokensCardComponent,
   ],
-  template: `
-    <div class="profile-container">
-      <ui-page-header [title]="'nav.profile' | t" [count]="'iam.bezopasnost_i_nastroyki' | t"></ui-page-header>
-
-      <!-- User Info Card -->
-      <app-user-profile-card [user]="authService.currentUser()"></app-user-profile-card>
-
-      <!-- Main Grid Sections -->
-      <div class="sections-grid">
-        <!-- Change Password Card -->
-        <app-profile-password-card
-          [passwordForm]="passwordForm()"
-          [isPasswordSubmitted]="isPasswordSubmitted()"
-          [isChangingPassword]="isChangingPassword()"
-          [passwordStrength]="passwordStrength()"
-          [hasMinLength]="hasMinLength()"
-          [hasLettersAndNumbers]="hasLettersAndNumbers()"
-          [hasMixedCase]="hasMixedCase()"
-          [passwordsMatch]="passwordsMatch()"
-          (submitPassword)="submitChangePassword($event)"
-        ></app-profile-password-card>
-
-        <!-- Security & 2FA Info Card -->
-        <app-profile-security-card [user]="authService.currentUser()"></app-profile-security-card>
-
-        <!-- Communication Channels Card -->
-        <app-profile-channels-card
-          #channelsCard
-          [channels]="channels()"
-          [isLoadingChannels]="isLoadingChannels()"
-          [isBindingChannel]="isBindingChannel()"
-          [isConfirmingChannel]="isConfirmingChannel()"
-          [canManageChannels]="canManageChannels()"
-          (bindChannel)="onBindChannel($event)"
-          (confirmChannel)="onConfirmChannel($event)"
-          (unbindChannel)="onUnbindChannel($event)"
-        ></app-profile-channels-card>
-
-        <!-- Active Sessions Card -->
-        <app-profile-sessions-card
-          [sessions]="sessions()"
-          [isLoadingSessions]="isLoadingSessions()"
-          [isTerminatingSession]="isTerminatingSession()"
-          (loadSessions)="loadSessions()"
-          (terminateSession)="requestTerminateSession($event)"
-          (terminateOtherSessions)="requestTerminateOtherSessions()"
-        ></app-profile-sessions-card>
-
-        <!-- API Tokens Card -->
-        <app-profile-tokens-card
-          [tokens]="tokens()"
-          [isLoadingTokens]="isLoadingTokens()"
-          [isCreatingToken]="isCreatingToken()"
-          [isCreateTokenModalOpen]="isCreateTokenModalOpen()"
-          [isTokenSecretModalOpen]="isTokenSecretModalOpen()"
-          [isTokenSubmitted]="isTokenSubmitted()"
-          [newTokenName]="newTokenName()"
-          [selectedTokenExpiration]="selectedTokenExpiration()"
-          [createdTokenSecret]="createdTokenSecret()"
-          [copiedSecret]="copiedSecret()"
-          [tokenExpirationOptions]="tokenExpirationOptions"
-          (openCreateTokenModal)="openCreateTokenModal()"
-          (closeCreateTokenModal)="isCreateTokenModalOpen.set(false)"
-          (createTokenSubmit)="createTokenSubmit()"
-          (nameChange)="newTokenName.set($event)"
-          (expirationChange)="selectedTokenExpiration.set($event)"
-          (closeSecretModal)="isTokenSecretModalOpen.set(false)"
-          (copySecret)="copySecret()"
-          (requestRevoke)="requestRevokeToken($event)"
-        ></app-profile-tokens-card>
-      </div>
-    </div>
-  `,
-  styles: [
-    `
-      :host {
-        display: block;
-        min-width: 0;
-      }
-
-      .profile-container {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        max-width: 1400px;
-        min-width: 0;
-      }
-
-      .sections-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: 16px;
-      }
-
-      @media (max-width: 1024px) {
-        .sections-grid {
-          grid-template-columns: minmax(0, 1fr);
-        }
-      }
-    `,
-  ],
+  templateUrl: './profile.component.html',
+  styleUrl: './profile.component.css',
 })
 export class ProfileComponent implements OnInit {
   public readonly permissionService = inject(PermissionService);
@@ -196,34 +99,9 @@ export class ProfileComponent implements OnInit {
     private toast: ToastService,
   ) {}
 
+  // Methods, not computed: the card's ngModel edits the form object in place.
   passwordStrength(): PasswordStrength {
-    const pwd = this.passwordForm().newPassword;
-    if (!pwd) return { score: 0, label: '', percent: 0, colorClass: '' };
-    let score = 0;
-    if (pwd.length >= PASSWORD_MIN_LENGTH) score++;
-    if (/[a-z\u0430-\u044f]/.test(pwd) && /[A-Z\u0410-\u042f]/.test(pwd)) score++;
-    if (/\d/.test(pwd)) score++;
-    if (/[^a-zA-Z\u0400-\u04FF0-9]/.test(pwd)) score++;
-
-    let label = 'iam.parol_slabyy';
-    let colorClass = 'strength-weak';
-    let percent = 25;
-
-    if (score === 2) {
-      label = 'iam.parol_sredniy';
-      colorClass = 'strength-medium';
-      percent = 50;
-    } else if (score === 3) {
-      label = 'iam.parol_horoshiy';
-      colorClass = 'strength-good';
-      percent = 75;
-    } else if (score >= 4) {
-      label = 'iam.parol_otlichnyy';
-      colorClass = 'strength-strong';
-      percent = 100;
-    }
-
-    return { score, label, percent, colorClass };
+    return passwordStrengthOf(this.passwordForm().newPassword);
   }
 
   hasMinLength(): boolean {
@@ -232,7 +110,7 @@ export class ProfileComponent implements OnInit {
 
   hasLettersAndNumbers(): boolean {
     const pwd = this.passwordForm().newPassword || '';
-    return /[a-zA-Z\u0400-\u04FF]/.test(pwd) && /\d/.test(pwd);
+    return /[a-zA-ZЀ-ӿ]/.test(pwd) && /\d/.test(pwd);
   }
 
   hasMixedCase(): boolean {
@@ -419,16 +297,7 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    let expiresAt: string | null = null;
-    const now = new Date();
-    if (this.selectedTokenExpiration() === '30') {
-      expiresAt = new Date(now.getTime() + 30 * 86400000).toISOString();
-    } else if (this.selectedTokenExpiration() === '90') {
-      expiresAt = new Date(now.getTime() + 90 * 86400000).toISOString();
-    } else if (this.selectedTokenExpiration() === '365') {
-      expiresAt = new Date(now.getTime() + 365 * 86400000).toISOString();
-    }
-
+    const expiresAt = tokenExpiresAt(this.selectedTokenExpiration(), new Date());
     this.isCreatingToken.set(true);
     this.profile.createToken(this.newTokenName().trim(), expiresAt).subscribe({
       next: (res) => {

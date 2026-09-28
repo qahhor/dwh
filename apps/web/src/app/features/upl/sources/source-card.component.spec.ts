@@ -256,7 +256,7 @@ describe('SourceCardComponent', () => {
 
   it('opens the new draft dialog when newDraft=1 is in the query', async () => {
     const { fixture } = await createFixture({ query: { newDraft: '1' } });
-    expect(fixture.componentInstance.isDraftOpen()).toBe(true);
+    expect(fixture.componentInstance.store.isDraftOpen()).toBe(true);
   });
 
   it('shows load error instead of not found on a server failure', async () => {
@@ -289,7 +289,7 @@ describe('SourceCardComponent', () => {
 
   it('ignores newDraft=1 without the edit right', async () => {
     const { fixture } = await createFixture({ query: { newDraft: '1' }, canEdit: false });
-    expect(fixture.componentInstance.isDraftOpen()).toBe(false);
+    expect(fixture.componentInstance.store.isDraftOpen()).toBe(false);
   });
 
   it('puts 422 errors under the fields and keeps the input', async () => {

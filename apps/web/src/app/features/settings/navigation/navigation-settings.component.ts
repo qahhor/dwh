@@ -1,25 +1,20 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { NavigationService } from '@core/services/navigation.service';
 import {
   CustomNavigationItem,
-  NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload,
   NavigationTargetType,
 } from '@core/models/navigation.models';
-import { ToastService } from '@core/services/toast.service';
-import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { transliterateToCode } from '@core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
 import { NavigationSettingsTableComponent } from './components/navigation-settings-table.component';
 import { NavigationSettingsModalComponent } from './components/navigation-settings-modal.component';
-import { tap } from 'rxjs';
-import { SMTModalService } from '@shared/ui-kit/components/modal';
-import { problemText } from '@shared/ui/problem-text';
+import { NavigationSettingsStore } from './navigation-settings.store';
 
 @Component({
   selector: 'app-navigation-settings',
@@ -33,123 +28,16 @@ import { problemText } from '@shared/ui/problem-text';
     NavigationSettingsTableComponent,
     NavigationSettingsModalComponent,
   ],
-  template: `
-    <div class="nav-settings-page">
-      <!-- Header -->
-      <div class="page-header">
-        <div class="header-titles">
-          <h1 class="page-title">{{ 'nav.settings.navigation_title' | t }}</h1>
-          <p class="page-subtitle">{{ 'nav.settings.navigation_subtitle' | t }}</p>
-        </div>
-        <div class="header-actions">
-          <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
-            {{ 'nav.settings.add_item' | t }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Stats Summary -->
-      <app-navigation-settings-stats
-        [totalCount]="items().length"
-        [activeCount]="activeCount()"
-        [embeddedCount]="embeddedCount()"
-        [externalCount]="externalCount()"
-      ></app-navigation-settings-stats>
-
-      <!-- Table & Filters -->
-      <app-navigation-settings-table
-        [items]="filteredItems()"
-        [isLoading]="isLoading()"
-        [searchQuery]="searchQuery"
-        (searchQueryChange)="searchQuery = $event"
-        (clearSearch)="searchQuery = ''"
-        (toggleItem)="toggleItem($event)"
-        (previewItem)="previewItem($event)"
-        (editItem)="openEditModal($event)"
-        (deleteItem)="confirmDelete($event)"
-      ></app-navigation-settings-table>
-
-      <!-- Modals (Create/Edit & Delete) -->
-      <app-navigation-settings-modal
-        [isModalOpen]="isModalOpen()"
-        [editingItem]="editingItem()"
-        [isSubmitting]="isSubmitting()"
-        [isFormValid]="isFormValid()"
-        [formTitle]="formTitle"
-        [formCode]="formCode"
-        [formTargetType]="formTargetType"
-        [formSectionId]="formSectionId"
-        [formSortOrder]="formSortOrder"
-        [formUrl]="formUrl"
-        [formIcon]="formIcon"
-        [formRequiredPermission]="formRequiredPermission"
-        [permissionChoices]="permissionChoices()"
-        [popularIcons]="popularIcons"
-        (formTitleChange)="formTitle = $event"
-        (formCodeChange)="formCode = $event"
-        (formTargetTypeChange)="formTargetType = $event"
-        (formSectionIdChange)="formSectionId = $event"
-        (formSortOrderChange)="formSortOrder = $event"
-        (formUrlChange)="formUrl = $event"
-        (formIconChange)="formIcon = $event"
-        (formRequiredPermissionChange)="formRequiredPermission = $event"
-        (titleChange)="onTitleChange()"
-        (urlBlur)="onUrlBlur()"
-        (closeModal)="closeModal()"
-        (saveItem)="saveItem()"
-      ></app-navigation-settings-modal>
-    </div>
-  `,
-  styles: [
-    `
-      .nav-settings-page {
-        padding: 24px;
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-      }
-
-      .page-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        flex-wrap: wrap;
-      }
-
-      .page-title {
-        font-size: 22px;
-        font-weight: 700;
-        color: var(--text-main);
-        margin: 0 0 4px 0;
-      }
-
-      .page-subtitle {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin: 0;
-      }
-    `,
-  ],
+  providers: [NavigationSettingsStore],
+  templateUrl: './navigation-settings.component.html',
+  styleUrl: './navigation-settings.component.css',
 })
 export class NavigationSettingsComponent implements OnInit {
-  private readonly navService = inject(NavigationService);
-  private readonly toast = inject(ToastService);
-  private readonly i18n = inject(I18nService);
-  private readonly modal = inject(SMTModalService);
+  /** The menu items and their requests; the template reads it directly. */
+  readonly store = inject(NavigationSettingsStore);
 
-  readonly items = signal<CustomNavigationItem[]>([]);
-  readonly isLoading = signal<boolean>(false);
-  readonly isSubmitting = signal<boolean>(false);
   readonly isModalOpen = signal<boolean>(false);
   readonly editingItem = signal<CustomNavigationItem | null>(null);
-  readonly permissionChoices = signal<NavigationPermissionChoice[]>([]);
-
-  readonly activeCount = computed(() => this.items().filter((i) => i.state === 'A').length);
-  readonly embeddedCount = computed(() => this.items().filter((i) => i.targetType === 'EMBEDDED_IFRAME').length);
-  readonly externalCount = computed(() => this.items().filter((i) => i.targetType === 'EXTERNAL_LINK').length);
 
   searchQuery = '';
 
@@ -176,69 +64,22 @@ export class NavigationSettingsComponent implements OnInit {
   formRequiredPermission: string | null = null;
 
   ngOnInit(): void {
-    this.loadItems();
-    this.loadPermissionChoices();
-  }
-
-  /** Without the list the item keeps its right: the select shows the stored pair only. */
-  loadPermissionChoices(): void {
-    this.navService.loadPermissionChoices().subscribe({
-      next: (choices) => this.permissionChoices.set(choices || []),
-      error: () => this.permissionChoices.set([]),
-    });
-  }
-
-  loadItems(): void {
-    this.isLoading.set(true);
-    this.navService.loadAllItems().subscribe({
-      next: (data) => {
-        this.items.set(data || []);
-        this.isLoading.set(false);
-      },
-      error: (err: unknown) => {
-        const msg = problemText(err) || this.i18n.translate('common.error');
-        this.toast.error(msg);
-        this.isLoading.set(false);
-      },
-    });
+    this.store.loadItems();
+    this.store.loadPermissionChoices();
   }
 
   filteredItems(): CustomNavigationItem[] {
     const q = this.searchQuery.trim().toLowerCase();
-    if (!q) return this.items();
-    return this.items().filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.code.toLowerCase().includes(q) ||
-        item.url.toLowerCase().includes(q) ||
-        item.sectionId.toLowerCase().includes(q),
-    );
-  }
-
-  targetTypeLabel(type: NavigationTargetType): string {
-    switch (type) {
-      case 'EMBEDDED_IFRAME':
-        return this.i18n.translate('nav.settings.type_embedded');
-      case 'EXTERNAL_LINK':
-        return this.i18n.translate('nav.settings.type_external');
-      case 'INTERNAL_ROUTE':
-        return this.i18n.translate('nav.settings.type_internal');
-    }
-  }
-
-  sectionLabel(sectionId: string): string {
-    switch (sectionId) {
-      case 'custom':
-        return this.i18n.translate('nav.settings.section_custom');
-      case 'workspace':
-        return this.i18n.translate('nav.section.workspace');
-      case 'iam':
-        return this.i18n.translate('nav.section.iam');
-      case 'administration':
-        return this.i18n.translate('nav.section.administration');
-      default:
-        return sectionId;
-    }
+    if (!q) return this.store.items();
+    return this.store
+      .items()
+      .filter(
+        (item) =>
+          item.title.toLowerCase().includes(q) ||
+          item.code.toLowerCase().includes(q) ||
+          item.url.toLowerCase().includes(q) ||
+          item.sectionId.toLowerCase().includes(q),
+      );
   }
 
   onTitleChange(): void {
@@ -277,7 +118,7 @@ export class NavigationSettingsComponent implements OnInit {
     this.formSectionId = 'custom';
     this.formUrl = '';
     this.formIcon = 'analytics';
-    this.formSortOrder = (this.items().length + 1) * 10;
+    this.formSortOrder = (this.store.items().length + 1) * 10;
     this.formRequiredPermission = null;
     this.isModalOpen.set(true);
   }
@@ -312,96 +153,33 @@ export class NavigationSettingsComponent implements OnInit {
 
   saveItem(): void {
     if (!this.isFormValid()) return;
-    this.isSubmitting.set(true);
 
     const finalUrl = this.normalizeUrl(this.formUrl, this.formTargetType);
     const finalCode = transliterateToCode(this.formCode.trim()) || this.formCode.trim().toLowerCase();
+    const payload: CreateNavigationItemPayload = {
+      code: finalCode,
+      title: this.formTitle.trim(),
+      targetType: this.formTargetType,
+      sectionId: this.formSectionId,
+      url: finalUrl,
+      icon: this.formIcon.trim() || 'bar_chart',
+      sortOrder: this.formSortOrder,
+      openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
+      requiredPermission: this.formRequiredPermission,
+    };
 
     const editing = this.editingItem();
     if (editing) {
-      const payload: UpdateNavigationItemPayload = {
-        code: finalCode,
-        title: this.formTitle.trim(),
-        targetType: this.formTargetType,
-        sectionId: this.formSectionId,
-        url: finalUrl,
-        icon: this.formIcon.trim() || 'bar_chart',
-        sortOrder: this.formSortOrder,
-        openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
-        requiredPermission: this.formRequiredPermission,
+      // An edit keeps what the form does not show: the parent, the title key and the state.
+      const update: UpdateNavigationItemPayload = {
+        ...payload,
         parentId: editing.parentId ?? null,
         titleKey: editing.titleKey ?? null,
         state: editing.state,
       };
-      this.navService.updateItem(editing.id, payload).subscribe({
-        next: () => {
-          this.toast.success(this.i18n.translate('common.saved'));
-          this.isSubmitting.set(false);
-          this.closeModal();
-          this.loadItems();
-        },
-        error: (err: unknown) => {
-          const msg = problemText(err) || this.i18n.translate('common.error');
-          this.toast.error(msg);
-          this.isSubmitting.set(false);
-        },
-      });
+      this.store.updateItem(editing.id, update, () => this.closeModal());
     } else {
-      const payload: CreateNavigationItemPayload = {
-        code: finalCode,
-        title: this.formTitle.trim(),
-        targetType: this.formTargetType,
-        sectionId: this.formSectionId,
-        url: finalUrl,
-        icon: this.formIcon.trim() || 'bar_chart',
-        sortOrder: this.formSortOrder,
-        openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
-        requiredPermission: this.formRequiredPermission,
-      };
-      this.navService.createItem(payload).subscribe({
-        next: () => {
-          this.toast.success(this.i18n.translate('common.saved'));
-          this.isSubmitting.set(false);
-          this.closeModal();
-          this.loadItems();
-        },
-        error: (err: unknown) => {
-          const msg = problemText(err) || this.i18n.translate('common.error');
-          this.toast.error(msg);
-          this.isSubmitting.set(false);
-        },
-      });
+      this.store.createItem(payload, () => this.closeModal());
     }
-  }
-
-  toggleItem(item: CustomNavigationItem): void {
-    this.navService.toggleItem(item.id).subscribe({
-      next: () => this.loadItems(),
-      error: (err: unknown) => {
-        const msg = problemText(err) || this.i18n.translate('common.error');
-        this.toast.error(msg);
-      },
-    });
-  }
-
-  /** Asks before deleting a menu item; the dialog stays open until the server answers. */
-  confirmDelete(item: CustomNavigationItem): void {
-    this.modal
-      .confirm({
-        title: this.i18n.translate('nav.settings.delete_modal_title'),
-        message: this.i18n.translate('nav.settings.delete_confirm', { title: item.title }),
-        yesLabel: this.i18n.translate('common.delete'),
-        noLabel: this.i18n.translate('common.cancel'),
-        destructive: true,
-        action: () =>
-          this.navService.deleteItem(item.id, { notifyError: false }).pipe(
-            tap(() => {
-              this.toast.success(this.i18n.translate('common.saved'));
-              this.loadItems();
-            }),
-          ),
-        actionError: (error) => problemText(error) || this.i18n.translate('common.error'),
-      })
-      .subscribe();
   }
 }

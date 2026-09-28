@@ -1,4 +1,4 @@
-import { UplColumn, UplFormatDraftRequest, UplSheet } from '../upl-api';
+import { UplColumn, UplFileKind, UplFormatDraftRequest, UplSheet } from '../upl-api';
 import { UplFieldError } from './upl-format-errors';
 
 /** Шаги анкеты формата. */
@@ -75,4 +75,43 @@ export function clearFieldsForType(column: UplColumn): boolean {
 /** На каком шаге правится поле с ошибкой: адрес листа — «Листы и колонки», поля файла — «Файл». */
 export function uplErrorStep(error: UplFieldError): UplFormatStep {
   return error.sheet === null && FILE_STEP_FIELDS.has(error.field) ? 'file' : 'sheets';
+}
+
+/**
+ * The draft as the server takes it: ordinals follow the order on screen, empty
+ * optional text becomes null, and settings of the other file kind are dropped.
+ */
+export function buildDraftRequest(model: UplFormatDraftRequest, lockVersion: number): UplFormatDraftRequest {
+  const fileKind: UplFileKind = model.fileKind ?? 'xlsx';
+  const csv = fileKind === 'csv';
+  return {
+    lockVersion,
+    fileKind,
+    encoding: csv ? model.encoding : null,
+    delimiter: csv ? trimToNull(model.delimiter) : null,
+    matchColumnsBy: model.matchColumnsBy ?? 'header',
+    sheets: model.sheets.map((sheet, index) => ({
+      id: sheet.id,
+      ordinal: index + 1,
+      sheetName: csv ? null : trimToNull(sheet.sheetName),
+      headerRow: sheet.headerRow,
+      totalRowMarker: trimToNull(sheet.totalRowMarker),
+      columns: sheet.columns.map((column, columnIndex) => ({
+        id: column.id,
+        ordinal: columnIndex + 1,
+        filePosition: column.filePosition,
+        nameInFile: (column.nameInFile ?? '').trim(),
+        targetField: (column.targetField ?? '').trim(),
+        dataType: column.dataType,
+        required: column.required,
+        sourceUnit: trimToNull(column.sourceUnit),
+        baseUnit: trimToNull(column.baseUnit),
+        keyMask: trimToNull(column.keyMask),
+        keyPadLength: column.keyPadLength,
+        keyPadMax: column.keyPadMax,
+        refBookCode: trimToNull(column.refBookCode),
+        headerSynonyms: (column.headerSynonyms ?? []).map((name) => name.trim()).filter((name) => name.length > 0),
+      })),
+    })),
+  };
 }

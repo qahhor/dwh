@@ -86,7 +86,7 @@ describe('NavigationSettingsComponent', () => {
     fixture.detectChanges();
 
     expect(navService.loadAllItems).toHaveBeenCalled();
-    expect(fixture.componentInstance.items()).toHaveLength(2);
+    expect(fixture.componentInstance.store.items()).toHaveLength(2);
 
     const rows = fixture.nativeElement.querySelectorAll('.nav-table [role="rowgroup"] > [role="row"]');
     expect(rows).toHaveLength(2);
@@ -200,7 +200,7 @@ describe('NavigationSettingsComponent', () => {
     const { fixture, navService } = setup();
     fixture.detectChanges();
 
-    fixture.componentInstance.toggleItem(sampleItems[0]);
+    fixture.componentInstance.store.toggleItem(sampleItems[0]);
 
     expect(navService.toggleItem).toHaveBeenCalledWith(1);
     expect(navService.loadAllItems).toHaveBeenCalledTimes(2);
@@ -210,7 +210,7 @@ describe('NavigationSettingsComponent', () => {
     const { fixture, navService, toast } = setup();
     fixture.detectChanges();
 
-    fixture.componentInstance.confirmDelete(sampleItems[0]);
+    fixture.componentInstance.store.confirmDelete(sampleItems[0]);
     fixture.detectChanges();
     await fixture.whenStable();
     const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;

@@ -176,29 +176,29 @@ describe('AnnouncementsComponent', () => {
     const { fixture } = await createFixture({ records: [draft, published, archived] });
     const comp = fixture.componentInstance;
 
-    expect(comp.filteredAnnouncements()).toHaveLength(3);
+    expect(comp.store.filteredAnnouncements()).toHaveLength(3);
 
-    comp.setStatusFilter('PUBLISHED');
-    expect(comp.filteredAnnouncements()).toHaveLength(1);
-    expect(comp.filteredAnnouncements()[0].id).toBe(8);
+    comp.store.setStatusFilter('PUBLISHED');
+    expect(comp.store.filteredAnnouncements()).toHaveLength(1);
+    expect(comp.store.filteredAnnouncements()[0].id).toBe(8);
 
-    comp.setStatusFilter('DRAFT');
-    expect(comp.filteredAnnouncements()).toHaveLength(1);
-    expect(comp.filteredAnnouncements()[0].id).toBe(7);
+    comp.store.setStatusFilter('DRAFT');
+    expect(comp.store.filteredAnnouncements()).toHaveLength(1);
+    expect(comp.store.filteredAnnouncements()[0].id).toBe(7);
 
-    comp.setStatusFilter('ARCHIVED');
-    expect(comp.filteredAnnouncements()).toHaveLength(1);
-    expect(comp.filteredAnnouncements()[0].id).toBe(9);
+    comp.store.setStatusFilter('ARCHIVED');
+    expect(comp.store.filteredAnnouncements()).toHaveLength(1);
+    expect(comp.store.filteredAnnouncements()[0].id).toBe(9);
 
-    comp.setStatusFilter('ALL');
-    comp.searchQuery.set('Релиз');
-    expect(comp.filteredAnnouncements()).toHaveLength(1);
-    expect(comp.filteredAnnouncements()[0].id).toBe(8);
+    comp.store.setStatusFilter('ALL');
+    comp.store.searchQuery.set('Релиз');
+    expect(comp.store.filteredAnnouncements()).toHaveLength(1);
+    expect(comp.store.filteredAnnouncements()[0].id).toBe(8);
 
-    comp.resetFilters();
-    expect(comp.statusFilter()).toBe('ALL');
-    expect(comp.searchQuery()).toBe('');
-    expect(comp.filteredAnnouncements()).toHaveLength(3);
+    comp.store.resetFilters();
+    expect(comp.store.statusFilter()).toBe('ALL');
+    expect(comp.store.searchQuery()).toBe('');
+    expect(comp.store.filteredAnnouncements()).toHaveLength(3);
   });
 
   it('highlights the active published announcement with an active badge', async () => {

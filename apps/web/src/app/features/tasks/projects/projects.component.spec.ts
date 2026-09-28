@@ -94,7 +94,7 @@ describe('ProjectsComponent UI contracts', () => {
   it('connects project modal labels, required state and validation message', async () => {
     const { fixture } = await createFixture();
     fixture.componentInstance.openCreateModal();
-    fixture.componentInstance.isCreateSubmitted = true;
+    fixture.componentInstance.forms.isCreateSubmitted = true;
     redraw(fixture);
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
@@ -401,7 +401,7 @@ describe('ProjectsComponent UI contracts', () => {
     redraw(fixture);
     expect(api.get).toHaveBeenCalledWith('/tasks/projects/7', undefined, { notifyError: false });
     expect(component.editLoading()).toBe(true);
-    expect(component.editingProject).toBeNull();
+    expect(component.forms.editingProject).toBeNull();
     expect(
       inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-loading"][role="status"]'),
     ).not.toBeNull();
@@ -410,7 +410,7 @@ describe('ProjectsComponent UI contracts', () => {
     mismatch.complete();
     redraw(fixture);
     expect(component.editLoadError()).toBe(true);
-    expect(component.editingProject).toBeNull();
+    expect(component.forms.editingProject).toBeNull();
     expect(
       inScreen(fixture.nativeElement).querySelector('[data-testid="project-edit-load-error"][role="alert"]'),
     ).not.toBeNull();
@@ -447,13 +447,13 @@ describe('ProjectsComponent UI contracts', () => {
     component.openEditModal(project(2));
     oldDetail.next({ ...project(1), name: 'Obsolete' });
     currentDetail.next({ ...project(2), name: 'Current' });
-    expect(component.editingProject?.id).toBe(2);
+    expect(component.forms.editingProject?.id).toBe(2);
     expect(component.editForm.name).toBe('Current');
 
     component.editForm.name = 'Live draft';
     component.openEditModal(project(1));
     component.openCreateModal();
-    expect(component.editingProject?.id).toBe(2);
+    expect(component.forms.editingProject?.id).toBe(2);
     expect(component.editForm.name).toBe('Live draft');
     expect(component.isCreateModalOpen()).toBe(false);
   });
@@ -693,7 +693,7 @@ describe('ProjectsComponent UI contracts', () => {
     component.createForm = { name: 'Disallowed', description: '' };
     component.submitCreateProject();
     component.openEditModal(project(1));
-    component.editingProject = project(1);
+    component.forms.editingProject = project(1);
     component.editForm = { name: 'Disallowed edit', description: '', state: 'A' };
     component.submitEditProject();
 
@@ -777,13 +777,13 @@ describe('ProjectsComponent UI contracts', () => {
     const component = fixture.componentInstance;
 
     // 1. Open members modal
-    component.openMembersModal(testProject);
-    expect(component.selectedProjectForMembers()).toEqual(testProject);
+    component.members.openMembersModal(testProject);
+    expect(component.members.selectedProjectForMembers()).toEqual(testProject);
     expect(api.get).toHaveBeenCalledWith('/tasks/projects/42/members');
-    expect(component.projectMembers()).toEqual(mockMembers);
+    expect(component.members.projectMembers()).toEqual(mockMembers);
 
     // 2. Add member
-    component.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    component.members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
     expect(api.post).toHaveBeenCalledWith(
       '/tasks/projects/42/members',
       { userId: 20, accessKind: 'MEMBER' },
@@ -792,7 +792,7 @@ describe('ProjectsComponent UI contracts', () => {
     expect(toast.success).toHaveBeenCalled();
 
     // 3. Remove member
-    component.onRemoveProjectMember({ projectId: 42, userId: 10, userName: 'Иван' });
+    component.members.onRemoveProjectMember({ projectId: 42, userId: 10, userName: 'Иван' });
     redraw(fixture);
     await fixture.whenStable();
     const dialog = document.querySelector('.smt-modal-confirm') as HTMLElement;
@@ -804,8 +804,8 @@ describe('ProjectsComponent UI contracts', () => {
     document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
 
     // 4. Close modal
-    component.closeMembersModal();
-    expect(component.selectedProjectForMembers()).toBeNull();
-    expect(component.projectMembers()).toEqual([]);
+    component.members.closeMembersModal();
+    expect(component.members.selectedProjectForMembers()).toBeNull();
+    expect(component.members.projectMembers()).toEqual([]);
   });
 });

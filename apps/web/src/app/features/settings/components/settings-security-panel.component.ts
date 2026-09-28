@@ -6,6 +6,7 @@ import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 import { PASSWORD_POLICY } from '@core/security/password-policy';
+import { formatSessionHours } from '../settings-format';
 
 @Component({
   selector: 'app-settings-security-panel',
@@ -123,15 +124,6 @@ export class SettingsSecurityPanelComponent {
   readonly passwordPolicy = PASSWORD_POLICY;
 
   formatSessionHours(hours: string | number | undefined): string {
-    if (hours === undefined || hours === '') return '';
-    const num = Number(hours);
-    if (!Number.isFinite(num) || num <= 0) return '';
-    const days = Math.floor(num / 24);
-    const remHours = num % 24;
-    const h = this.i18n.translate('settings.unit_hours_short') || 'h';
-    const d = this.i18n.translate('settings.unit_days_short') || 'd';
-    if (days === 0) return `${num} ${h}`;
-    if (remHours === 0) return `${num} ${h} (${days} ${d})`;
-    return `${num} ${h} (${days} ${d} ${remHours} ${h})`;
+    return formatSessionHours(hours, (key) => this.i18n.translate(key));
   }
 }

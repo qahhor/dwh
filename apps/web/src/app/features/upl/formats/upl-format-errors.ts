@@ -1,4 +1,5 @@
 import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
+import { UplFormatDraftRequest } from '../upl-api';
 import { uplErrorKey } from '../upl-labels';
 
 /** Ошибка сервера с адресом: sheet/column — индексы с нуля из `sheets[i].columns[j].<поле>`; null — уровень выше. */
@@ -105,4 +106,62 @@ export function uplSheetError(list: UplFieldError[], sheet: number, field: strin
 /** Есть ли у листа хоть одна ошибка — своя или в колонке. */
 export function uplSheetHasErrors(list: UplFieldError[], sheet: number): boolean {
   return list.some((error) => error.sheet === sheet);
+}
+
+const TARGET_FIELD_PATTERN = /^[a-z][a-z0-9_]{0,62}$/;
+
+/**
+ * Checks made before sending: what the server would refuse with Bean
+ * Validation codes. The codes are the same, so the texts come from the same dictionary.
+ */
+export function localFormatErrors(model: UplFormatDraftRequest): UplFieldError[] {
+  const found: FieldErrorItem[] = [];
+  model.sheets.forEach((sheet, s) => {
+    const row = Number(sheet.headerRow);
+    if (sheet.headerRow === null || !Number.isInteger(row) || row < 1) {
+      found.push({ field: `sheets[${s}].headerRow`, code: 'Min', message: '' });
+    }
+    sheet.columns.forEach((column, c) => {
+      if ((column.nameInFile ?? '').trim().length === 0) {
+        found.push({ field: `sheets[${s}].columns[${c}].nameInFile`, code: 'NotBlank', message: '' });
+      }
+      const target = (column.targetField ?? '').trim();
+      if (target.length === 0) {
+        found.push({ field: `sheets[${s}].columns[${c}].targetField`, code: 'NotBlank', message: '' });
+      } else if (!TARGET_FIELD_PATTERN.test(target)) {
+        found.push({ field: `sheets[${s}].columns[${c}].targetField`, code: 'Pattern', message: '' });
+      }
+    });
+  });
+  return parseUplFieldErrors(found);
+}
+
+/** Field of a column error (the tail after `columns[n].`) → key of that column's table header (M-21). */
+const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
+  nameInFile: 'upl.format.col.name_in_file',
+  targetField: 'upl.format.col.target_field',
+  dataType: 'upl.format.col.type',
+  required: 'upl.format.col.required',
+  sourceUnit: 'upl.format.col.source_unit',
+  baseUnit: 'upl.format.col.base_unit',
+  keyMask: 'upl.format.col.key_mask',
+  keyPadLength: 'upl.format.col.key_pad_length',
+  keyPadMax: 'upl.format.col.key_pad_max',
+  refBookCode: 'upl.format.col.ref_book',
+  filePosition: 'upl.format.col.file_position',
+};
+
+/** Where an error is, for the summary: with the field's name when the table header knows it (M-21). */
+export function uplErrorAddress(
+  problem: UplFieldError,
+  translate: (key: string, params?: Record<string, string>) => string,
+): string {
+  if (problem.sheet === null) return '';
+  const sheet = (problem.sheet + 1).toString();
+  if (problem.column === null) return translate('upl.format.err_at_sheet', { sheet });
+  const column = (problem.column + 1).toString();
+  const labelKey = COLUMN_FIELD_LABEL_KEY[problem.field];
+  return labelKey
+    ? translate('upl.format.err_at_field', { sheet, column, field: translate(labelKey) })
+    : translate('upl.format.err_at_column', { sheet, column });
 }

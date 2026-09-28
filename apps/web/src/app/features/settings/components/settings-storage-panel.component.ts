@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { formatQuotaMb } from '../settings-format';
 
 @Component({
   selector: 'app-settings-storage-panel',
@@ -72,15 +73,6 @@ export class SettingsStoragePanelComponent {
   readonly save = output<void>();
 
   formatQuotaMb(mb: string | number | undefined): string {
-    if (mb === undefined || mb === '') return '';
-    const num = Number(mb);
-    if (!Number.isFinite(num) || num <= 0) return '';
-    const mbUnit = this.i18n.translate('settings.unit_mb') || 'MB';
-    const gbUnit = this.i18n.translate('settings.unit_gb') || 'GB';
-    if (num >= 1024) {
-      const gb = (num / 1024).toFixed(1).replace(/\.0$/, '');
-      return `${num} ${mbUnit} (~${gb} ${gbUnit})`;
-    }
-    return `${num} ${mbUnit}`;
+    return formatQuotaMb(mb, (key) => this.i18n.translate(key));
   }
 }

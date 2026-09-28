@@ -208,7 +208,7 @@ describe('TasksComponent UI contracts', () => {
 
   it('explains that export includes every accessible task and ignores filters', async () => {
     const fixture = await createFixture();
-    fixture.componentInstance.showExportMenu = true;
+    fixture.componentInstance.filterService.showExportMenu = true;
     redraw(fixture);
     const menu = inScreen(fixture.nativeElement).querySelector('.export-popover') as HTMLElement;
     expect(menu.textContent).toContain('Экспорт всех доступных задач');
@@ -218,7 +218,7 @@ describe('TasksComponent UI contracts', () => {
   it('uses concise business labels in create-task fields', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateTaskModal();
-    fixture.componentInstance.taskCustomFields.set([
+    fixture.componentInstance.list.customFields.set([
       {
         id: 1,
         entityType: 'TASK',
@@ -251,7 +251,7 @@ describe('TasksComponent UI contracts', () => {
   it('uses the dynamic-fields navigation name in empty create-task guidance', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateTaskModal();
-    fixture.componentInstance.taskCustomFields.set([]);
+    fixture.componentInstance.list.customFields.set([]);
     redraw(fixture);
 
     const tip = inScreen(fixture.nativeElement).querySelector('.custom-fields-empty-tip') as HTMLElement;
@@ -262,7 +262,7 @@ describe('TasksComponent UI contracts', () => {
   it('connects create-task labels, required state and shared field names', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.openCreateTaskModal();
-    fixture.componentInstance.isCreateSubmitted = true;
+    fixture.componentInstance.formsService.isCreateSubmitted = true;
     redraw(fixture);
     TestBed.tick(); // smt-control wires label, error and aria state after render
 
@@ -313,7 +313,7 @@ describe('TasksComponent UI contracts', () => {
         isSystem: false,
       },
     ]);
-    fixture.componentInstance.openSettingsModal();
+    fixture.componentInstance.dictService.openSettingsModal();
     redraw(fixture);
 
     expect(
@@ -536,8 +536,8 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     first.error({ detail: 'offline' });
     redraw(fixture);
 
-    expect(component.editingTask).toBeNull();
-    expect(component.editLoadError()).toBe(true);
+    expect(component.formsService.editingTask).toBeNull();
+    expect(component.formsService.editLoadError()).toBe(true);
     expect(inScreen(fixture.nativeElement).querySelector('#task-edit-title')).toBeNull();
 
     component.retryEditLoad();
@@ -545,7 +545,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     retry.complete();
     redraw(fixture);
 
-    expect(component.editingTask?.title).toBe('Fresh task');
+    expect(component.formsService.editingTask?.title).toBe('Fresh task');
     expect(component.editForm.title).toBe('Fresh task');
   });
 
@@ -579,7 +579,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       ],
     });
 
-    expect(component.editingTask).toEqual(fresh);
+    expect(component.formsService.editingTask).toEqual(fresh);
     expect(component.editForm.title).toBe('Fresh title');
     expect(component.editForm.descriptionMarkdown).toBe('fresh body');
     expect(component.editForm.responsibleUserId).toBe(31);
@@ -954,10 +954,10 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       true,
     );
     expect(inScreen(fixture.nativeElement).querySelector('.request-error')).toBeNull();
-    component.retryTaskList();
+    component.list.retryTaskList();
     expect(api.get.mock.calls).toHaveLength(callsAfterFailure);
 
-    component.setStatusFilterMode('all');
+    component.list.setStatusFilterMode('all');
     const appliedCalls = api.get.mock.calls.filter(([path, params]) => path === '/tasks' && params.q === 'pending');
     expect(appliedCalls).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(350);
@@ -979,8 +979,8 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     kanbanToggle.click();
     redraw(fixture);
     expect(inScreen(fixture.nativeElement).querySelector('.kanban-board')?.innerHTML).toContain('Сбросить все фильтры');
-    component.resetFilters();
-    component.viewMode = 'table';
+    component.list.resetFilters();
+    component.filterService.viewMode = 'table';
     redraw(fixture);
     expect(inScreen(fixture.nativeElement).querySelector('.empty-state-cell')?.textContent).toContain('Новая задача');
   });
@@ -996,7 +996,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
 
   it('removes task drag affordances and handlers without update permission', async () => {
     const { fixture, component } = await createControlledFixture({ canUpdate: false });
-    component.viewMode = 'kanban';
+    component.filterService.viewMode = 'kanban';
     component.statuses.set([{ id: 1, name: 'Новая', orderNo: 1, isTerminal: false }]);
     component.tasks.set([task(71)]);
     redraw(fixture);
@@ -1006,7 +1006,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(card.querySelector('.drag-grip-icon')).toBeNull();
     expect(card.querySelector('.kanban-move-actions')).toBeNull();
     card.dispatchEvent(new Event('dragstart', { bubbles: true, cancelable: true }));
-    expect(component.draggedTask).toBeNull();
+    expect(component.kanbanService.draggedTask).toBeNull();
   });
 
   it('keeps a busy edit open and sends only one PATCH request', async () => {
@@ -1082,7 +1082,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     redraw(fixture);
 
     expect(api.post.mock.calls.filter(([path]) => path === '/tasks')).toHaveLength(1);
-    expect(component.isCreateModalOpen()).toBe(true);
+    expect(component.formsService.isCreateModalOpen()).toBe(true);
     const form = inScreen(fixture.nativeElement).querySelector(
       'fieldset.task-create-form',
     ) as HTMLFieldSetElement | null;
@@ -1107,15 +1107,15 @@ describe('TasksComponent asynchronous detail and editing state', () => {
           : of(path === '/iam/users' ? { items: [], nextCursor: null, hasMore: false } : []),
     });
 
-    component.loadTasks(true);
+    component.list.loadTasks(true);
     failedLoad.error({ detail: 'offline' });
 
     expect(component.tasks().map((item) => item.title)).toEqual(['Existing']);
-    expect(component.listLoadError()).toBe(true);
+    expect(component.list.listLoadError()).toBe(true);
 
-    component.retryTaskList();
+    component.list.retryTaskList();
     expect(component.tasks().map((item) => item.title)).toEqual(['Recovered']);
-    expect(component.listLoadError()).toBe(false);
+    expect(component.list.listLoadError()).toBe(false);
   });
 
   it('ignores all outstanding task responses after component destruction', async () => {
@@ -1173,7 +1173,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
 
     edit.next({ task: task(18, 'Late edit'), members: [] });
 
-    expect(component.editingTask).toBeNull();
+    expect(component.formsService.editingTask).toBeNull();
   });
 
   it('navigates all 125 server-paged task IDs without duplicates through the visible cursor controls', async () => {
@@ -1216,7 +1216,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
           inScreen(fixture.nativeElement).querySelector('ui-pagination [role="status"]') as HTMLElement
         ).textContent?.trim(),
       );
-      expect(component.currentPage).toBe(expectedPage);
+      expect(component.list.taskPager.page()).toBe(expectedPage);
     }
 
     expect(requestedCursors).toEqual([undefined, 'c50', 'c100']);
@@ -1247,15 +1247,15 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       },
     });
 
-    component.goToTaskPage(2);
-    component.setStatusFilterMode('all');
+    component.list.goToTaskPage(2);
+    component.list.setStatusFilterMode('all');
     filteredPage.next({ items: [task(700, 'Filtered first')], nextCursor: null, hasMore: false, totalReturned: 1 });
     oldPage.next({ items: [task(51, 'Old answer')], nextCursor: null, hasMore: false, totalReturned: 1 });
 
     expect(paramsSeen[1]?.['cursor']).toBe('next');
     expect(paramsSeen[2]?.['cursor']).toBeUndefined();
     expect(paramsSeen[2]?.['hide_terminal']).toBe(false);
-    expect(component.currentPage).toBe(1);
+    expect(component.list.taskPager.page()).toBe(1);
     expect(component.tasks().map((item) => item.id)).toEqual([700]);
   });
 
@@ -1290,7 +1290,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     redraw(fixture);
     expect(component.tasks().map((item) => item.id)).toEqual([1, 2]);
 
-    component.viewMode = 'kanban';
+    component.filterService.viewMode = 'kanban';
     redraw(fixture);
     expect(
       inScreen(fixture.nativeElement).querySelector('.toolbar [role="radiogroup"][aria-label="Фильтр по статусу"]'),
@@ -1568,12 +1568,12 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     expect(next.disabled).toBe(true);
     next.click();
     expect(cursorCalls).toBe(1);
-    expect(component.currentPage).toBe(1);
+    expect(component.list.taskPager.page()).toBe(1);
     expect(component.tasks().map((item) => item.id)).toEqual([1]);
 
     firstNext.error({ status: 503 });
     redraw(fixture);
-    expect(component.currentPage).toBe(1);
+    expect(component.list.taskPager.page()).toBe(1);
     expect(component.tasks().map((item) => item.id)).toEqual([1]);
     const retry = Array.from(
       inScreen(fixture.nativeElement).querySelectorAll('#tasks-load-error button') as NodeListOf<HTMLButtonElement>,
@@ -1583,7 +1583,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     redraw(fixture);
 
     expect(requested.filter((params) => params?.['cursor'] === 'c50')).toHaveLength(2);
-    expect(component.currentPage).toBe(2);
+    expect(component.list.taskPager.page()).toBe(2);
     expect(component.tasks().map((item) => item.id)).toEqual([51]);
   });
 
@@ -1604,7 +1604,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     ).click();
     redraw(fixture);
 
-    expect(component.currentPage).toBe(2);
+    expect(component.list.taskPager.page()).toBe(2);
     expect(component.tasks()).toEqual([]);
     const previous = inScreen(fixture.nativeElement).querySelector(
       'button[aria-label="Предыдущая страница"]',
@@ -1637,7 +1637,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     component.updateStatus(51, 2);
     redraw(fixture);
 
-    expect(component.currentPage).toBe(2);
+    expect(component.list.taskPager.page()).toBe(2);
     expect(component.tasks()).toEqual([]);
     expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Предыдущая страница"]')).not.toBeNull();
   });
@@ -1747,16 +1747,16 @@ describe('TasksComponent asynchronous detail and editing state', () => {
 
   it('passes preset parameters to loadTasks when smart view presets are selected', async () => {
     const { component, api } = await createControlledFixture();
-    component.setPreset('overdue');
+    component.list.setPreset('overdue');
     expect(api.get).toHaveBeenCalledWith('/tasks', expect.objectContaining({ overdue: true }));
   });
 
   it('passes member_role E or O when executor or observer presets are selected', async () => {
     const { component, api } = await createControlledFixture();
-    component.setPreset('executor');
+    component.list.setPreset('executor');
     expect(api.get).toHaveBeenCalledWith('/tasks', expect.objectContaining({ member_role: 'E' }));
 
-    component.setPreset('observer');
+    component.list.setPreset('observer');
     expect(api.get).toHaveBeenCalledWith('/tasks', expect.objectContaining({ member_role: 'O' }));
   });
 
@@ -1764,21 +1764,21 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     const { component } = await createControlledFixture();
     component.statuses.set([{ id: 1, name: 'В работе', orderNo: 1, isTerminal: false }]);
 
-    const overdueInfo = component.getDeadlineInfo(new Date(Date.now() - 86400000 * 2).toISOString(), 1);
+    const overdueInfo = component.presenter.getDeadlineInfo(new Date(Date.now() - 86400000 * 2).toISOString(), 1);
     expect(overdueInfo.state).toBe('overdue');
     expect(overdueInfo.label).toContain('Просрочено');
 
-    const todayInfo = component.getDeadlineInfo(new Date().toISOString(), 1);
+    const todayInfo = component.presenter.getDeadlineInfo(new Date().toISOString(), 1);
     expect(todayInfo.state).toBe('today');
     expect(todayInfo.label).toContain('Сегодня');
 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowInfo = component.getDeadlineInfo(tomorrow.toISOString(), 1);
+    const tomorrowInfo = component.presenter.getDeadlineInfo(tomorrow.toISOString(), 1);
     expect(tomorrowInfo.state).toBe('tomorrow');
     expect(tomorrowInfo.label).toBe('Завтра');
 
-    const noneInfo = component.getDeadlineInfo(null, 1);
+    const noneInfo = component.presenter.getDeadlineInfo(null, 1);
     expect(noneInfo.state).toBe('none');
     expect(noneInfo.label).toBe('—');
   });

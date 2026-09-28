@@ -140,10 +140,10 @@ describe('AuditComponent UI contracts', () => {
     expect(get).toHaveBeenCalledWith('/audit/logs', expect.objectContaining({ limit: 20, cursor: undefined }));
     expect(fixture.componentInstance.auditTotal()).toBe(41);
 
-    fixture.componentInstance.onAuditPageChange(2);
+    fixture.componentInstance.auditPager.goTo(2);
 
     expect(get).toHaveBeenCalledWith('/audit/logs', expect.objectContaining({ limit: 20, cursor: 'audit-next' }));
-    expect(fixture.componentInstance.auditCurrentPage).toBe(2);
+    expect(fixture.componentInstance.auditPager.page()).toBe(2);
     expect(fixture.componentInstance.auditLogs()[0].id).toBe(20);
   });
 
@@ -230,13 +230,13 @@ describe('AuditComponent UI contracts', () => {
     today.click();
     fixture.detectChanges();
 
-    expect(component.auditFromFilter).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(component.auditToFilter).toBe(component.auditFromFilter);
+    expect(component.auditFilters.from).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(component.auditFilters.to).toBe(component.auditFilters.from);
     const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/logs').at(-1)?.[1];
     expect(params).toEqual(
       expect.objectContaining({
-        from: `${component.auditFromFilter}T00:00:00.000Z`,
-        to: `${component.auditFromFilter}T23:59:59.999Z`,
+        from: `${component.auditFilters.from}T00:00:00.000Z`,
+        to: `${component.auditFilters.from}T23:59:59.999Z`,
       }),
     );
   });
@@ -244,14 +244,14 @@ describe('AuditComponent UI contracts', () => {
   it('sends every audit filter to the server and resets the cursor history', async () => {
     const { fixture, get } = await createFixture(pagedGet());
     const component = fixture.componentInstance;
-    component.tableFilter = 'ms_tasks';
-    component.eventFilter = 'U';
-    component.rowPkFilter = '42';
-    component.auditUserFilter = '7';
-    component.auditFromFilter = '2026-09-01';
-    component.auditToFilter = '2026-09-04';
-    component.onAuditPageChange(2);
-    expect(component.auditCurrentPage).toBe(2);
+    component.auditFilters.table = 'ms_tasks';
+    component.auditFilters.event = 'U';
+    component.auditFilters.rowPk = '42';
+    component.auditFilters.user = '7';
+    component.auditFilters.from = '2026-09-01';
+    component.auditFilters.to = '2026-09-04';
+    component.auditPager.goTo(2);
+    expect(component.auditPager.page()).toBe(2);
 
     component.loadAuditLogs(true);
 
@@ -267,29 +267,29 @@ describe('AuditComponent UI contracts', () => {
         cursor: undefined,
       }),
     );
-    expect(component.auditCurrentPage).toBe(1);
+    expect(component.auditPager.page()).toBe(1);
   });
 
   it('clears every security filter before requesting the first page', async () => {
     const { fixture, get } = await createFixture(pagedGet());
     const component = fixture.componentInstance;
-    component.secEventTypeFilter = 'LOGIN_FAILED';
-    component.secIpFilter = '10.0.0.1';
-    component.securityUserFilter = '9';
-    component.securityFromFilter = '2026-08-01';
-    component.securityToFilter = '2026-08-31';
+    component.securityFilters.eventType = 'LOGIN_FAILED';
+    component.securityFilters.ip = '10.0.0.1';
+    component.securityFilters.user = '9';
+    component.securityFilters.from = '2026-08-01';
+    component.securityFilters.to = '2026-08-31';
     component.setTab('security');
-    component.onSecurityPageChange(2);
-    expect(component.secCurrentPage).toBe(2);
+    component.securityPager.goTo(2);
+    expect(component.securityPager.page()).toBe(2);
 
     component.resetSecurityFilters();
 
-    expect(component.secEventTypeFilter).toBe('');
-    expect(component.secIpFilter).toBe('');
-    expect(component.securityUserFilter).toBe('');
-    expect(component.securityFromFilter).toBe('');
-    expect(component.securityToFilter).toBe('');
-    expect(component.secCurrentPage).toBe(1);
+    expect(component.securityFilters.eventType).toBe('');
+    expect(component.securityFilters.ip).toBe('');
+    expect(component.securityFilters.user).toBe('');
+    expect(component.securityFilters.from).toBe('');
+    expect(component.securityFilters.to).toBe('');
+    expect(component.securityPager.page()).toBe(1);
     const params = get.mock.calls.filter(([url]: [string]) => url === '/audit/security-events').at(-1)?.[1];
     expect(params).toEqual(
       expect.objectContaining({
@@ -306,11 +306,11 @@ describe('AuditComponent UI contracts', () => {
   it('sends every security-event filter to the server', async () => {
     const { fixture, get } = await createFixture();
     const component = fixture.componentInstance;
-    component.secEventTypeFilter = 'LOGIN_FAILED';
-    component.secIpFilter = '10.0.0.1';
-    component.securityUserFilter = '9';
-    component.securityFromFilter = '2026-08-01';
-    component.securityToFilter = '2026-08-31';
+    component.securityFilters.eventType = 'LOGIN_FAILED';
+    component.securityFilters.ip = '10.0.0.1';
+    component.securityFilters.user = '9';
+    component.securityFilters.from = '2026-08-01';
+    component.securityFilters.to = '2026-08-31';
 
     component.loadSecurityEvents(true);
 
@@ -329,24 +329,24 @@ describe('AuditComponent UI contracts', () => {
   it('clears every audit filter before requesting the first page', async () => {
     const { fixture } = await createFixture(pagedGet());
     const component = fixture.componentInstance;
-    component.tableFilter = 'ms_tasks';
-    component.eventFilter = 'D';
-    component.rowPkFilter = '44';
-    component.auditUserFilter = '5';
-    component.auditFromFilter = '2026-07-01';
-    component.auditToFilter = '2026-07-31';
-    component.onAuditPageChange(2);
-    expect(component.auditCurrentPage).toBe(2);
+    component.auditFilters.table = 'ms_tasks';
+    component.auditFilters.event = 'D';
+    component.auditFilters.rowPk = '44';
+    component.auditFilters.user = '5';
+    component.auditFilters.from = '2026-07-01';
+    component.auditFilters.to = '2026-07-31';
+    component.auditPager.goTo(2);
+    expect(component.auditPager.page()).toBe(2);
 
     component.resetAuditFilters();
 
-    expect(component.tableFilter).toBe('');
-    expect(component.eventFilter).toBe('');
-    expect(component.rowPkFilter).toBe('');
-    expect(component.auditUserFilter).toBe('');
-    expect(component.auditFromFilter).toBe('');
-    expect(component.auditToFilter).toBe('');
-    expect(component.auditCurrentPage).toBe(1);
+    expect(component.auditFilters.table).toBe('');
+    expect(component.auditFilters.event).toBe('');
+    expect(component.auditFilters.rowPk).toBe('');
+    expect(component.auditFilters.user).toBe('');
+    expect(component.auditFilters.from).toBe('');
+    expect(component.auditFilters.to).toBe('');
+    expect(component.auditPager.page()).toBe(1);
   });
 
   it('shows an accessible statistics error and clears it after retry', async () => {
@@ -439,10 +439,10 @@ describe('AuditComponent UI contracts', () => {
     });
 
     // The user narrows the filter twice; the first narrowing answers last.
-    component.rowPkFilter = '5';
+    component.auditFilters.rowPk = '5';
     component.loadAuditLogs(true);
     const stale = answers.at(-1)!;
-    component.rowPkFilter = '7';
+    component.auditFilters.rowPk = '7';
     component.loadAuditLogs(true);
     const fresh = answers.at(-1)!;
     fresh.next(record(7));
@@ -498,14 +498,14 @@ describe('AuditComponent UI contracts', () => {
     const component = fixture.componentInstance;
 
     failNext = true;
-    component.onAuditPageChange(2);
-    expect(component.auditCurrentPage).toBe(1);
+    component.auditPager.goTo(2);
+    expect(component.auditPager.page()).toBe(1);
     expect(component.auditLogs().map((row) => row.id)).toEqual([1]);
 
     failNext = false;
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('#audit-load-error button') as HTMLButtonElement).click();
-    expect(component.auditCurrentPage).toBe(2);
+    expect(component.auditPager.page()).toBe(2);
     expect(component.auditLogs().map((row) => row.id)).toEqual([2]);
   });
 
