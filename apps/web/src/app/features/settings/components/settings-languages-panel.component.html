@@ -127,8 +127,8 @@
           <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
           <smt-input
             smtFieldId="new-lang-code"
-            [ngModel]="newLangCode()"
-            (ngModelChange)="newLangCodeChange.emit($event)"
+            [value]="newLangCode()"
+            (valueChange)="newLangCodeChange.emit($event === null ? '' : '' + $event)"
             placeholder="kk, ky, tg, de, tr"
             [maxLength]="10"
           />
@@ -137,8 +137,8 @@
           <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
           <smt-input
             smtFieldId="new-lang-name"
-            [ngModel]="newLangName()"
-            (ngModelChange)="newLangNameChange.emit($event)"
+            [value]="newLangName()"
+            (valueChange)="newLangNameChange.emit($event === null ? '' : '' + $event)"
             [placeholder]="'settings.aza_sha_deutsch_etc' | t"
           />
         </div>
@@ -148,8 +148,8 @@
             class="mono"
             smtFieldId="new-lang-json"
             [rows]="6"
-            [ngModel]="newLangJson()"
-            (ngModelChange)="newLangJsonChange.emit($event)"
+            [value]="newLangJson()"
+            (valueChange)="newLangJsonChange.emit($event)"
             [placeholder]="'settings.translation_json_example' | t"
           />
         </div>

@@ -58,7 +58,8 @@ export class NavigationSettingsComponent implements OnInit {
   formSectionId = 'custom';
   formUrl = '';
   formIcon = 'analytics';
-  formSortOrder = 100;
+  /** Null while the person has emptied the order field. */
+  formSortOrder: number | null = 100;
   formRequiredPermission: string | null = null;
 
   ngOnInit(): void {
@@ -161,7 +162,8 @@ export class NavigationSettingsComponent implements OnInit {
       sectionId: this.formSectionId,
       url: finalUrl,
       icon: this.formIcon.trim() || 'bar_chart',
-      sortOrder: this.formSortOrder,
+      // An empty order was sent as null, which the server reads as 0.
+      sortOrder: this.formSortOrder ?? 0,
       openInIframe: this.formTargetType === 'EMBEDDED_IFRAME',
       requiredPermission: this.formRequiredPermission,
     };

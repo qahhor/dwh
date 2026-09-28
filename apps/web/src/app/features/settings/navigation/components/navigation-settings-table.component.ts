@@ -10,8 +10,7 @@ import {
   output,
 } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { CustomNavigationItem, NavigationTargetType } from '@core/models/navigation.models';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
@@ -25,7 +24,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 @Component({
   selector: 'app-navigation-settings-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, UiLocalTableComponent, NgClass],
+  imports: [SMTInputComponent, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <!-- Search & Filter Bar -->
     <div class="filter-bar">
@@ -36,8 +35,8 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
           smtIcon="search"
           clearable
           [smtAriaLabel]="'nav.settings.search_placeholder' | t"
-          [ngModel]="searchQuery()"
-          (ngModelChange)="searchQueryChange.emit($event)"
+          [value]="searchQuery()"
+          (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
           [placeholder]="'nav.settings.search_placeholder' | t"
           (cleared)="clearSearch.emit()"
         />

@@ -94,6 +94,39 @@ describe('SettingsComponent UI contracts', () => {
     expect(companyName.value).toBe('Persisted Company');
   });
 
+  it('keeps what is typed in the panels and saves it with the other system settings', async () => {
+    const api = {
+      get: vi.fn((path: string) =>
+        of(
+          path === '/settings/system'
+            ? { 'system.company_name': 'Old', 'storage.default_user_quota_mb': '1024' }
+            : { 'user.theme': 'light' },
+        ),
+      ),
+      patch: vi.fn(() => of({})),
+    };
+    const fixture = await createFixture(api, () => true);
+
+    const companyName = inScreen(fixture.nativeElement).querySelector('#settings-company-name') as HTMLInputElement;
+    companyName.value = 'New Company';
+    companyName.dispatchEvent(new Event('input'));
+    redraw(fixture);
+
+    (inScreen(fixture.nativeElement).querySelector('#settings-storage-tab') as HTMLButtonElement).click();
+    redraw(fixture);
+    const quota = inScreen(fixture.nativeElement).querySelector('#settings-user-quota') as HTMLInputElement;
+    expect(quota.value).toBe('1024');
+    quota.value = '2048';
+    quota.dispatchEvent(new Event('input'));
+    redraw(fixture);
+
+    fixture.componentInstance.store.saveSystemSettings();
+    expect(api.patch).toHaveBeenCalledWith('/settings/system', {
+      'system.company_name': 'New Company',
+      'storage.default_user_quota_mb': '2048',
+    });
+  });
+
   it('connects settings tabs and general fields', async () => {
     const fixture = await createFixture();
 

@@ -10,7 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormField, form, maxLength, required } from '@angular/forms/signals';
 import { WebhooksApi } from './webhooks.api';
 import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
@@ -29,8 +29,17 @@ import {
   AVAILABLE_WEBHOOK_EVENTS,
   WebhookEventOption,
 } from './webhooks-settings.models';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+
+/** What the person types in the create dialog. */
+interface WebhookCreateModel {
+  name: string;
+  targetUrl: string;
+}
+
+const EMPTY_CREATE: WebhookCreateModel = { name: '', targetUrl: '' };
 
 @Component({
   selector: 'app-webhooks-settings',
@@ -38,8 +47,7 @@ import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
   imports: [
     SMTCheckboxComponent,
     SMTInputComponent,
-    SMTInputValueAccessor,
-    FormsModule,
+    FormField,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
@@ -72,6 +80,8 @@ export class WebhooksSettingsComponent implements OnInit {
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly createdSecretModalOpen = signal<boolean>(false);
   readonly recentlyCreatedSubscription = signal<CreatedWebhookSubscription | null>(null);
+
+  readonly createModel = signal<WebhookCreateModel>({ ...EMPTY_CREATE });
 
   readonly tableConfig = computed<TableConfig<WebhookSubscription>>(() => {
     const i18n = this.uiI18n;
@@ -117,8 +127,14 @@ export class WebhooksSettingsComponent implements OnInit {
     status: (sub: WebhookSubscription) => (sub.state === 'A' ? 0 : 1),
   };
 
-  createName = '';
-  createTargetUrl = '';
+  /** Both fields are required (the kit marks a blank one once it was left); maxLength also caps the typing. */
+  readonly createForm = form(this.createModel, (path) => {
+    required(path.name);
+    maxLength(path.name, 100);
+    required(path.targetUrl);
+    maxLength(path.targetUrl, 500);
+  });
+
   selectedEvents = new Set<string>(['*']);
 
   readonly availableEvents: WebhookEventOption[] = AVAILABLE_WEBHOOK_EVENTS;
@@ -143,8 +159,8 @@ export class WebhooksSettingsComponent implements OnInit {
   }
 
   openCreateModal(): void {
-    this.createName = '';
-    this.createTargetUrl = '';
+    // A new dialog starts blank and untouched, so no field shows an error before it is used.
+    this.createForm().reset({ ...EMPTY_CREATE });
     this.selectedEvents = new Set(['*']);
     this.isCreateModalOpen.set(true);
   }
@@ -176,16 +192,21 @@ export class WebhooksSettingsComponent implements OnInit {
   }
 
   isCreateValid(): boolean {
-    return this.createName.trim().length > 0 && this.createTargetUrl.trim().length > 0 && this.selectedEvents.size > 0;
+    const { name, targetUrl } = this.createModel();
+    // Blank text passes required(), so the trimmed check stays.
+    return (
+      this.createForm().valid() && name.trim().length > 0 && targetUrl.trim().length > 0 && this.selectedEvents.size > 0
+    );
   }
 
   submitCreate(): void {
+    markSMTFormFieldsTouched(this.createForm);
     if (!this.isCreateValid()) return;
     this.isSaving.set(true);
 
     const body: CreateWebhookSubscriptionDto = {
-      name: this.createName.trim(),
-      targetUrl: this.createTargetUrl.trim(),
+      name: this.createModel().name.trim(),
+      targetUrl: this.createModel().targetUrl.trim(),
       subscribedEvents: Array.from(this.selectedEvents),
     };
 

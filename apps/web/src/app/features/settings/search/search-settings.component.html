@@ -159,6 +159,7 @@
           </div>
         </header>
         @if (store.draft(); as policy) {
+          <!-- (edited), not (valueChange): every keystroke reaches the draft, even one that leaves the number as it was. -->
           <div class="form-grid">
             <label
               ><span>{{ 'settings.search.global_limit' | t }}</span
@@ -170,8 +171,8 @@
                 [smtMax]="50"
                 [smtStep]="1"
                 inputmode="numeric"
-                [ngModel]="policy.globalLimit"
-                (ngModelChange)="store.updatePolicyNumber('globalLimit', $event)"
+                [value]="policy.globalLimit"
+                (edited)="store.updatePolicyNumber('globalLimit', $event)"
               /><small>{{ 'settings.search.global_limit_hint' | t }}</small></label
             >
           </div>
@@ -205,8 +206,8 @@
                           [smtStep]="1"
                           inputmode="numeric"
                           [smtDescribedBy]="'search-field-' + entity + '-' + i"
-                          [ngModel]="field.weight"
-                          (ngModelChange)="store.updateFieldNumber(entity, i, 'weight', $event)"
+                          [value]="field.weight"
+                          (edited)="store.updateFieldNumber(entity, i, 'weight', $event)"
                       /></label>
                       <label
                         ><span class="sr-only">{{ 'settings.search.fields.typos' | t }}</span
@@ -217,8 +218,8 @@
                           [smtStep]="1"
                           inputmode="numeric"
                           [smtDescribedBy]="'search-field-' + entity + '-' + i"
-                          [ngModel]="field.numTypos"
-                          (ngModelChange)="store.updateFieldNumber(entity, i, 'numTypos', $event)"
+                          [value]="field.numTypos"
+                          (edited)="store.updateFieldNumber(entity, i, 'numTypos', $event)"
                       /></label>
                       <div class="checkbox-cell">
                         <div
@@ -249,7 +250,8 @@
                   smtFieldId="search-preview-query"
                   name="searchPreviewQuery"
                   type="search"
-                  [(ngModel)]="previewQuery"
+                  [value]="previewQuery()"
+                  (valueChange)="previewQuery.set($event === null ? '' : '' + $event)"
                   autocomplete="off"
               /></label>
               <label for="search-preview-entity"
@@ -268,12 +270,12 @@
                 type="button"
                 data-action="preview-search-settings"
                 [disabled]="
-                  !previewQuery.trim() ||
+                  !previewQuery().trim() ||
                   (store.draft() !== null && store.policyErrors().length > 0) ||
                   store.previewCooldownSeconds() > 0
                 "
                 [attr.aria-busy]="store.previewPending()"
-                (click)="store.preview(previewQuery, previewEntity)"
+                (click)="store.preview(previewQuery(), previewEntity)"
               >
                 {{ 'settings.search.preview.action' | t }}
               </button>
@@ -347,8 +349,8 @@
               [smtMax]="600"
               [smtStep]="1"
               inputmode="numeric"
-              [ngModel]="policy.requestsPerMinute"
-              (ngModelChange)="store.updatePolicyNumber('requestsPerMinute', $event)"
+              [value]="policy.requestsPerMinute"
+              (edited)="store.updatePolicyNumber('requestsPerMinute', $event)"
           /></label>
           <label
             ><span>{{ 'settings.search.burst' | t }}</span
@@ -359,8 +361,8 @@
               [smtMax]="60"
               [smtStep]="1"
               inputmode="numeric"
-              [ngModel]="policy.burst"
-              (ngModelChange)="store.updatePolicyNumber('burst', $event)"
+              [value]="policy.burst"
+              (edited)="store.updatePolicyNumber('burst', $event)"
           /></label>
         </div>
         @if (store.status()?.budgets?.searchRate; as rates) {

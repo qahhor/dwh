@@ -6,10 +6,10 @@ import {
   Signal,
   TemplateRef,
   computed,
+  signal,
   inject,
   viewChild,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import {
   SEARCH_ENTITIES,
   SearchEntityType,
@@ -19,7 +19,7 @@ import {
 } from '@core/models/search-management.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
@@ -42,14 +42,12 @@ const ENTITY_LABEL_KEYS: Record<SearchEntityType, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTButtonComponent,
-    FormsModule,
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
     SMTSelectComponent,
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTCheckboxComponent,
     DatePipe,
   ],
@@ -71,6 +69,9 @@ export class SearchSettingsComponent implements OnInit {
   private readonly jobGenerationCell = viewChild.required<TemplateRef<unknown>>('jobGenerationCell');
   private readonly jobCreatedCell = viewChild.required<TemplateRef<unknown>>('jobCreatedCell');
   private readonly jobActionsCell = viewChild.required<TemplateRef<unknown>>('jobActionsCell');
+
+  /** Typed text for the preview; a signal, so the OnPush button follows it. */
+  readonly previewQuery = signal('');
 
   readonly generationsConfig = computed<TableConfig<SearchGenerationStatus>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -146,7 +147,6 @@ export class SearchSettingsComponent implements OnInit {
 
   private readonly previewEntityMemo = optionsMemo<SMTSelectOption<SearchEntityType>[]>();
 
-  previewQuery = '';
   previewEntity: SearchEntityType | '' = '';
 
   /** At most four generations exist and all of them are shown, so a header click sorts them all. */
