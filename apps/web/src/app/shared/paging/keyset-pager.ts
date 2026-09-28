@@ -63,6 +63,8 @@ export class KeysetPager<T> {
   readonly total = signal(0);
   readonly hasMore = signal(false);
   readonly loading = signal(false);
+  /** A first answer (rows or a failure) has arrived; before it an empty list means nothing yet, not no rows. */
+  readonly loaded = signal(false);
   readonly loadingMore = signal(false);
   /** The last page request failed; the previous page, if any, is still shown. */
   readonly failed = signal(false);
@@ -99,6 +101,7 @@ export class KeysetPager<T> {
         ),
       )
       .subscribe((result) => {
+        this.loaded.set(true);
         this.loading.set(false);
         this.loadingMore.set(false);
         if (!result.ok) {

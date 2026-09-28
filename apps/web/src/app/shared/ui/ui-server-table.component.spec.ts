@@ -118,6 +118,17 @@ describe('ui-server-table', () => {
     expect(rowText(fixture)).toEqual(['#1']);
   });
 
+  it('shows no empty state before the first page has answered', async () => {
+    respond = () => of({ items: [], nextCursor: null });
+    const fixture = await render();
+    expect(el(fixture).querySelector('.custom-empty')).toBeNull();
+    expect(el(fixture).querySelector('[role="table"]')?.getAttribute('aria-busy')).toBe('true');
+
+    fixture.componentInstance.pager.first();
+    fixture.detectChanges();
+    expect(el(fixture).querySelector('.custom-empty')).not.toBeNull();
+  });
+
   it('shows the screen’s own empty state', async () => {
     respond = () => of({ items: [], nextCursor: null });
     const fixture = await render();

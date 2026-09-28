@@ -137,7 +137,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
         [smtData]="pager().items()"
         [smtConfig]="shownConfig()"
         [(smtSelectedItems)]="selected"
-        [smtIsLoading]="pager().loading()"
+        [smtIsLoading]="pager().loading() || !pager().loaded()"
         [smtSkeletonRowCount]="pager().pageSize()"
         [smtEmptyTemplate]="emptyTemplate()"
         [smtColumnResizeEnabled]="!!columnsId() || !!views()"
