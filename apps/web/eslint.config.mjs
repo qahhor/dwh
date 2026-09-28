@@ -12,6 +12,17 @@ const DEEP_RELATIVE_IMPORT = {
   message: 'Import code two or more levels up by its alias (@core, @shared, @features, @layout, @app, @testing).',
 };
 
+/**
+ * Plan 10/10, item 2.8: forms outside the kit use Signal Forms (form() + [formField]) or bind a kit control's
+ * value directly; template-driven and reactive forms stay inside the kit, which bridges them for old callers.
+ */
+const TEMPLATE_FORMS = {
+  name: '@angular/forms',
+  importNames: ['FormsModule', 'ReactiveFormsModule', 'NgModel'],
+  message:
+    'Use Signal Forms (@angular/forms/signals) or bind the kit control ([(value)]); see src/app/shared/README.md.',
+};
+
 /** Screens and their parts are app-*, kit primitives and the entity framework smt-*, shared blocks ui-*. */
 function prefixRule(files, ignores, prefix) {
   return [
@@ -49,7 +60,7 @@ export default tseslint.config(
       '@angular-eslint/prefer-signals': 'error',
       '@angular-eslint/prefer-output-emitter-ref': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
-      'no-restricted-imports': ['error', { patterns: [DEEP_RELATIVE_IMPORT] }],
+      'no-restricted-imports': ['error', { paths: [TEMPLATE_FORMS], patterns: [DEEP_RELATIVE_IMPORT] }],
     },
   },
   // Plan 10/10, item 2.6: the prefix says where a component lives (see src/app/shared/README.md).
@@ -65,6 +76,7 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
+          paths: [TEMPLATE_FORMS],
           patterns: [
             DEEP_RELATIVE_IMPORT,
             {
@@ -74,6 +86,13 @@ export default tseslint.config(
           ],
         },
       ],
+    },
+  },
+  {
+    // The kit bridges ngModel and reactive forms for callers that still use them.
+    files: ['src/app/shared/ui-kit/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', { patterns: [DEEP_RELATIVE_IMPORT] }],
     },
   },
   {

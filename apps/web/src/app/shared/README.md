@@ -45,6 +45,20 @@ A feature never imports another feature; what two features need goes to
 | Button                                                            | `button[smt-button]`                                                                                                                |                                                                                               |
 | Notices on the page                                               | `smt-alert`                                                                                                                         | a toast only for what outlives the screen                                                     |
 
+## Forms
+
+Plan 10/10, item 2.8; ESLint refuses `FormsModule`, `ReactiveFormsModule` and
+`NgModel` outside `shared/ui-kit`.
+
+- An entity declared on the server: `smt-entity-form` (form, rules and
+  actions come from `form-meta`).
+- A form with its own rules: Signal Forms. `form(model, schema)` with
+  validators, `[formField]` on the kit control, `smt-control` for the label
+  and the error, `markSMTFormFieldsTouched(form)` before saving.
+- A filter, a search box or a single setting: bind the kit control directly,
+  `[(value)]="query"` or `[value]` + `(valueChange)`; `(edited)` fires on every
+  keystroke when the screen needs that.
+
 ## Requests
 
 A component asks its feature's typed data service (`<feature>.api.ts`), not
