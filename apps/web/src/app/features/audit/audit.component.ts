@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 
-import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { KeysetPager } from '@shared/paging/keyset-pager';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -14,6 +13,7 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 import { AuditRecord, SecurityEventRecord, AuditStats } from './audit.models';
 import { AuditApi } from './audit.api';
+import { AuditLogFilters, SecurityEventFilters } from './audit-filters';
 
 import { AuditStatsTilesComponent } from './components/audit-stats-tiles.component';
 import { AuditLogsTableComponent } from './components/audit-logs-table.component';
@@ -91,23 +91,23 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
           [pager]="auditPager"
           [meta]="auditMeta()"
           [views]="auditViews"
-          [exportOptions]="auditExportOptions()"
+          [exportOptions]="auditFilters.exportOptions()"
           (sortChange)="onAuditSort($event)"
-          [tableFilter]="tableFilter"
-          [eventFilter]="eventFilter"
-          [rowPkFilter]="rowPkFilter"
-          [auditUserFilter]="auditUserFilter"
-          [auditFromFilter]="auditFromFilter"
-          [auditToFilter]="auditToFilter"
-          (tableFilterChange)="tableFilter = $event"
-          (eventFilterChange)="eventFilter = $event"
-          (rowPkFilterChange)="rowPkFilter = $event"
-          (auditUserFilterChange)="auditUserFilter = $event"
-          (auditFromFilterChange)="auditFromFilter = $event"
-          (auditToFilterChange)="auditToFilter = $event"
+          [tableFilter]="auditFilters.table"
+          [eventFilter]="auditFilters.event"
+          [rowPkFilter]="auditFilters.rowPk"
+          [auditUserFilter]="auditFilters.user"
+          [auditFromFilter]="auditFilters.from"
+          [auditToFilter]="auditFilters.to"
+          (tableFilterChange)="auditFilters.table = $event"
+          (eventFilterChange)="auditFilters.event = $event"
+          (rowPkFilterChange)="auditFilters.rowPk = $event"
+          (auditUserFilterChange)="auditFilters.user = $event"
+          (auditFromFilterChange)="auditFilters.from = $event"
+          (auditToFilterChange)="auditFilters.to = $event"
           (applyFilters)="loadAuditLogs(true)"
           (resetFilters)="resetAuditFilters()"
-          (selectRecord)="selectAuditRecord($event)"
+          (selectRecord)="selectedAudit = $event"
         ></app-audit-logs-table>
       }
 
@@ -117,21 +117,21 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
           [pager]="securityPager"
           [meta]="securityMeta()"
           [views]="securityViews"
-          [exportOptions]="securityExportOptions()"
+          [exportOptions]="securityFilters.exportOptions()"
           (sortChange)="onSecuritySort($event)"
-          [secEventTypeFilter]="secEventTypeFilter"
-          [secIpFilter]="secIpFilter"
-          [securityUserFilter]="securityUserFilter"
-          [securityFromFilter]="securityFromFilter"
-          [securityToFilter]="securityToFilter"
-          (secEventTypeFilterChange)="secEventTypeFilter = $event"
-          (secIpFilterChange)="secIpFilter = $event"
-          (securityUserFilterChange)="securityUserFilter = $event"
-          (securityFromFilterChange)="securityFromFilter = $event"
-          (securityToFilterChange)="securityToFilter = $event"
+          [secEventTypeFilter]="securityFilters.eventType"
+          [secIpFilter]="securityFilters.ip"
+          [securityUserFilter]="securityFilters.user"
+          [securityFromFilter]="securityFilters.from"
+          [securityToFilter]="securityFilters.to"
+          (secEventTypeFilterChange)="securityFilters.eventType = $event"
+          (secIpFilterChange)="securityFilters.ip = $event"
+          (securityUserFilterChange)="securityFilters.user = $event"
+          (securityFromFilterChange)="securityFilters.from = $event"
+          (securityToFilterChange)="securityFilters.to = $event"
           (applyFilters)="loadSecurityEvents(true)"
           (resetFilters)="resetSecurityFilters()"
-          (selectEvent)="selectSecurityEvent($event)"
+          (selectEvent)="selectedSecEvent = $event"
         ></app-audit-security-table>
       }
 
@@ -166,9 +166,6 @@ export class AuditComponent implements OnInit {
 
   readonly securityEvents = computed(() => this.securityPager.items() as SecurityEventRecord[]);
 
-  private auditExport: Record<string, string> = {};
-  private securityExport: Record<string, string> = {};
-
   /** Sort, filter and columns of each list; saved views keep them under a name. */
   readonly auditViews = new ListViewState('audit.logs', inject(ListViewsApi), {
     defaultSort: () => {
@@ -189,21 +186,10 @@ export class AuditComponent implements OnInit {
 
   activeTab: 'audit' | 'security' = 'audit';
 
-  // Audit Filters & Pagination
-  tableFilter = '';
-  eventFilter = '';
-  rowPkFilter = '';
-  auditUserFilter = '';
-  auditFromFilter = '';
-  auditToFilter = '';
+  /** The screen's own filters of each list; the pagers read them at request time. */
+  readonly auditFilters = new AuditLogFilters();
+  readonly securityFilters = new SecurityEventFilters();
   selectedAudit: AuditRecord | null = null;
-
-  // Security Events Filters & Pagination
-  secEventTypeFilter = '';
-  secIpFilter = '';
-  securityUserFilter = '';
-  securityFromFilter = '';
-  securityToFilter = '';
   selectedSecEvent: SecurityEventRecord | null = null;
 
   /* Each list pages through its own keyset endpoint. The pager reads the
@@ -212,7 +198,7 @@ export class AuditComponent implements OnInit {
   readonly auditPager = new KeysetPager<AuditRecord>(
     (cursor, limit) =>
       this.audit.logs(
-        this.auditFlatFilters(),
+        this.auditFilters.flat(),
         { sort: this.auditViews.sort(), conditions: this.auditViews.filter(), match: this.auditViews.match() },
         cursor,
         limit,
@@ -223,7 +209,7 @@ export class AuditComponent implements OnInit {
   readonly securityPager = new KeysetPager<SecurityEventRecord>(
     (cursor, limit) =>
       this.audit.securityEvents(
-        this.securityFlatFilters(),
+        this.securityFilters.flat(),
         { sort: this.securityViews.sort(), conditions: this.securityViews.filter(), match: this.securityViews.match() },
         cursor,
         limit,
@@ -231,28 +217,9 @@ export class AuditComponent implements OnInit {
     { destroyRef: this.destroyRef },
   );
   readonly auditTotal = this.auditPager.total;
-  readonly auditHasMore = this.auditPager.canGoForward;
-  readonly auditError = this.auditPager.failed;
   readonly securityTotal = this.securityPager.total;
-  readonly securityHasMore = this.securityPager.canGoForward;
-  readonly securityError = this.securityPager.failed;
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'audit' | 'security'>[]>();
-
-  constructor(private toast: ToastService) {}
-
-  get auditCurrentPage(): number {
-    return this.auditPager.page();
-  }
-  get auditPageSize(): number {
-    return this.auditPager.pageSize();
-  }
-  get secCurrentPage(): number {
-    return this.securityPager.page();
-  }
-  get secPageSize(): number {
-    return this.securityPager.pageSize();
-  }
 
   ngOnInit() {
     this.refreshAll();
@@ -320,66 +287,14 @@ export class AuditComponent implements OnInit {
     this.securityPager.first();
   }
 
-  /** The filters on screen as export options; the same object while they stay, so the button is not re-rendered. */
-  auditExportOptions(): Record<string, string> {
-    this.auditExport = sameOrNext(this.auditExport, this.auditFlatFilters());
-    return this.auditExport;
-  }
-
-  securityExportOptions(): Record<string, string> {
-    this.securityExport = sameOrNext(this.securityExport, this.securityFlatFilters());
-    return this.securityExport;
-  }
-
   resetAuditFilters() {
-    this.tableFilter = '';
-    this.eventFilter = '';
-    this.rowPkFilter = '';
-    this.auditUserFilter = '';
-    this.auditFromFilter = '';
-    this.auditToFilter = '';
+    this.auditFilters.reset();
     this.loadAuditLogs(true);
   }
 
   resetSecurityFilters() {
-    this.secEventTypeFilter = '';
-    this.secIpFilter = '';
-    this.securityUserFilter = '';
-    this.securityFromFilter = '';
-    this.securityToFilter = '';
+    this.securityFilters.reset();
     this.loadSecurityEvents(true);
-  }
-
-  paginatedAuditLogs(): AuditRecord[] {
-    return this.auditLogs();
-  }
-
-  paginatedSecurityEvents(): SecurityEventRecord[] {
-    return this.securityEvents();
-  }
-
-  onAuditPageChange(page: number) {
-    this.auditPager.goTo(page);
-  }
-
-  onAuditPageSizeChange(pageSize: number) {
-    this.auditPager.setPageSize(pageSize);
-  }
-
-  onSecurityPageChange(page: number) {
-    this.securityPager.goTo(page);
-  }
-
-  onSecurityPageSizeChange(pageSize: number) {
-    this.securityPager.setPageSize(pageSize);
-  }
-
-  selectAuditRecord(record: AuditRecord) {
-    this.selectedAudit = record;
-  }
-
-  selectSecurityEvent(ev: SecurityEventRecord) {
-    this.selectedSecEvent = ev;
   }
 
   getDiffKeys(record: AuditRecord): string[] {
@@ -405,27 +320,6 @@ export class AuditComponent implements OnInit {
     ]);
   }
 
-  private auditFlatFilters() {
-    return {
-      table_name: this.tableFilter || undefined,
-      row_pk: this.rowPkFilter.trim() || undefined,
-      event: this.eventFilter || undefined,
-      user_id: this.auditUserFilter.trim() || undefined,
-      from: this.startOfUtcDay(this.auditFromFilter),
-      to: this.endOfUtcDay(this.auditToFilter),
-    };
-  }
-
-  private securityFlatFilters() {
-    return {
-      event_type: this.secEventTypeFilter || undefined,
-      user_id: this.securityUserFilter.trim() || undefined,
-      ip: this.secIpFilter || undefined,
-      from: this.startOfUtcDay(this.securityFromFilter),
-      to: this.endOfUtcDay(this.securityToFilter),
-    };
-  }
-
   private loadMeta(
     code: string,
     meta: { set(value: QueryListMeta): void },
@@ -444,27 +338,4 @@ export class AuditComponent implements OnInit {
         error: () => this.metaError.set(true),
       });
   }
-
-  private startOfUtcDay(value: string): string | undefined {
-    return value ? `${value}T00:00:00.000Z` : undefined;
-  }
-
-  private endOfUtcDay(value: string): string | undefined {
-    return value ? `${value}T23:59:59.999Z` : undefined;
-  }
-}
-
-/** Filters as export options, keeping the previous object while nothing changed. */
-function sameOrNext(
-  previous: Record<string, string>,
-  filters: Record<string, string | undefined>,
-): Record<string, string> {
-  const next: Record<string, string> = {};
-  for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== '') next[key] = value;
-  }
-  const same =
-    Object.keys(next).length === Object.keys(previous).length &&
-    Object.entries(next).every(([key, value]) => previous[key] === value);
-  return same ? previous : next;
 }
