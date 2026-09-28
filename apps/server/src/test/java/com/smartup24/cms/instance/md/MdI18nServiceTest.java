@@ -155,6 +155,38 @@ class MdI18nServiceTest {
         verify(repository).replaceOverrides("fr-ca", Map.of("common.save", "Enregistrer"), 1L, 7L);
     }
 
+    @Test
+    @DisplayName("Выключенный пользовательский язык включается снова и сохраняет свои переводы")
+    void reAddingASwitchedOffLanguageSwitchesItBackOn() {
+        when(repository.findLanguage("de")).thenReturn(Optional.of(language("de", false, false, 4)));
+        when(repository.reactivateLanguage("de", "Deutsch", 7L))
+                .thenReturn(Optional.of(language("de", false, true, 5)));
+        when(repository.findOverrides("de")).thenReturn(Map.of("common.cancel", "Abbrechen"));
+        when(repository.replaceOverrides(eq("de"), any(), eq(5L), eq(7L))).thenReturn(6L);
+
+        var result = service.createLanguage(
+                new CreateLanguageRequest("de", "Deutsch", Map.of("common.save", "Speichern")), 7L);
+
+        assertThat(result.active()).isTrue();
+        assertThat(result.revision()).isEqualTo(6);
+        verify(repository, never()).insertLanguage(any(), any(), any());
+        verify(repository)
+                .replaceOverrides("de", Map.of("common.cancel", "Abbrechen", "common.save", "Speichern"), 5L, 7L);
+    }
+
+    @Test
+    @DisplayName("Активный или встроенный язык с тем же кодом — конфликт")
+    void reAddingAnActiveLanguageIsAConflict() {
+        when(repository.findLanguage("uz")).thenReturn(Optional.of(language("uz", true, true, 3)));
+        when(repository.reactivateLanguage("uz", "Uzbek", 7L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.createLanguage(new CreateLanguageRequest("uz", "Uzbek", Map.of()), 7L))
+                .isInstanceOf(ApiException.class)
+                .extracting(error -> ((ApiException) error).getErrorCode())
+                .isEqualTo(ErrorCode.I18N_LANGUAGE_EXISTS);
+        verify(repository, never()).insertLanguage(any(), any(), any());
+    }
+
     private LanguageRecord language(String code, boolean builtin, boolean active, long revision) {
         return new LanguageRecord(
                 code,

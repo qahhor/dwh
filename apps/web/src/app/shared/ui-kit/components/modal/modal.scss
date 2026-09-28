@@ -6,7 +6,9 @@
  * `text-gray-900`), which has no dark theme. These rules read our semantic
  * tokens instead. They are global (the components use
  * `ViewEncapsulation.None`) because CDK renders the panel and backdrop in
- * the overlay container, outside any component host. */
+ * the overlay container, outside any component host. The file is a global
+ * stylesheet in angular.json: loaded with a component it would be missing
+ * until the first smt-modal of a page. */
 
 .smt-modal-backdrop {
   background-color: rgba(15, 23, 42, 0.6);

@@ -3,6 +3,7 @@
  * the kit's four cover our changes. */
 // @vitest-environment jsdom
 import '@angular/compiler';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { tickInZone } from '../../testing/zone-tick';
 import { Subject, firstValueFrom } from 'rxjs';
@@ -14,6 +15,9 @@ import { SMTModalService } from './modal.service';
 import type { SMTModalConfirmCloseResult } from './types/modal-confirm.types';
 
 class DummyComponent {}
+
+@Component({ standalone: true, template: '<p>Dialog body</p>' })
+class BodyComponent {}
 
 interface FakeDialogRef<R = unknown> {
   backdropClick: Subject<MouseEvent>;
@@ -46,6 +50,8 @@ describe('SMTModalService', () => {
     const service = Object.assign(Object.create(SMTModalService.prototype), {
       dialog,
       i18n,
+      document,
+      returnChains: new Map(),
     }) as SMTModalService;
 
     return {
@@ -217,6 +223,31 @@ describe('SMTModalService with CDK Dialog', () => {
     await new Promise((resolve) => setTimeout(resolve));
     tickInZone();
   }
+
+  it('returns focus to the page opener when a confirmation and the dialog under it close together', async () => {
+    const service = setup();
+    const opener = document.createElement('button');
+    opener.textContent = 'New project';
+    document.body.appendChild(opener);
+    opener.focus();
+
+    const editor = service.open(BodyComponent);
+    await settle();
+    const discard = document.createElement('button');
+    editor.overlayRef.overlayElement.appendChild(discard);
+    discard.focus();
+    const confirmation = service.open(BodyComponent);
+    await settle();
+
+    // Discarding a draft closes both in one turn: CDK would restore focus into the removed editor.
+    confirmation.close();
+    editor.close();
+    await settle();
+    await settle();
+
+    expect(document.activeElement).toBe(opener);
+    opener.remove();
+  });
 
   it('renders an accessible alertdialog whose name and description are the visible texts', async () => {
     const service = setup();

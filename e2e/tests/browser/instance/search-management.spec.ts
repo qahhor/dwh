@@ -226,16 +226,18 @@ test('[controlled HTTP/layout] 320px keyboard navigation keeps settings content 
     const panel = document.querySelector<HTMLElement>(`#${panelId}`);
     const tab = document.querySelector<HTMLElement>(`#${tabId}`);
     if (!toolbar || !pageContent || !header || !panel || !tab) throw new Error('Settings layout fixture is incomplete');
-    const toolbarRect = toolbar.getBoundingClientRect();
+    // The tab strip that scrolls (and clips a focus ring) is the tablist of smt-tab-bar inside the toolbar.
+    const strip = toolbar.querySelector<HTMLElement>('[role="tablist"]') ?? toolbar;
+    const toolbarRect = strip.getBoundingClientRect();
     const contentRect = pageContent.getBoundingClientRect();
     const panelRect = panel.getBoundingClientRect();
     const tabRect = tab.getBoundingClientRect();
     const tabStyle = getComputedStyle(tab);
     const outlineExpansion = Number.parseFloat(tabStyle.outlineWidth) + Number.parseFloat(tabStyle.outlineOffset);
     return {
-      toolbarClientWidth: toolbar.clientWidth,
-      toolbarScrollWidth: toolbar.scrollWidth,
-      toolbarScrollLeft: toolbar.scrollLeft,
+      toolbarClientWidth: strip.clientWidth,
+      toolbarScrollWidth: strip.scrollWidth,
+      toolbarScrollLeft: strip.scrollLeft,
       pageContentScrollLeft: pageContent.scrollLeft,
       pageContentScrollTop: pageContent.scrollTop,
       documentClientWidth: document.documentElement.clientWidth,
@@ -297,13 +299,14 @@ test('[controlled HTTP/layout] 320px keyboard navigation keeps settings content 
   const forward = [];
   for (let index = 0; index < tabs.length; index++) {
     forward.push(await assertTab(...tabs[index]));
-    if (index < tabs.length - 1) await page.keyboard.press('Tab');
+    // smt-tab-bar is a WAI-ARIA tablist with a roving tabindex: the arrows move between tabs.
+    if (index < tabs.length - 1) await page.keyboard.press('ArrowRight');
   }
   expect(forward.at(-1)?.toolbarScrollWidth).toBeGreaterThan(forward.at(-1)?.toolbarClientWidth ?? Infinity);
   expect(forward.at(-1)?.toolbarScrollLeft).toBeGreaterThan(0);
 
   for (let index = tabs.length - 2; index >= 0; index--) {
-    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('ArrowLeft');
     await assertTab(...tabs[index]);
   }
   expect((await readLayout(...tabs[0])).toolbarScrollLeft).toBe(0);
@@ -412,8 +415,11 @@ test('[controlled visual] dark Search settings keeps text, notices and enabled a
     violations.push(...result.violations.filter(violation => violation.impact === 'critical' || violation.impact === 'serious')
       .map(violation => ({ id: violation.id, targets: violation.nodes.flatMap(node => node.target) })));
   }
+  // A preview whose answer was lost (503) is repeated twice under the same key (roadmap item 29).
   expect(expectedResponses).toEqual([
     { method: 'PUT', path: '/api/v1/search/settings', status: 409 },
+    { method: 'POST', path: '/api/v1/search/preview', status: 503 },
+    { method: 'POST', path: '/api/v1/search/preview', status: 503 },
     { method: 'POST', path: '/api/v1/search/preview', status: 503 }
   ]);
   expect(Object.fromEntries(Object.entries(ratios).map(([name, value]) => [name, value >= 4.5]))).toEqual(

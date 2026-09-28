@@ -139,8 +139,10 @@ export class SMTDialogComponent {
       width: WIDTH[this.size()],
       minWidth: 'min(320px, calc(100vw - 32px))',
       viewContainerRef: this.viewContainer,
-      ariaLabelledBy: this.title() ? this.titleId : undefined,
-      ariaLabel: this.title() ? undefined : this.ariaLabel() || undefined,
+      // Named by its title even when the title arrives after opening (a translation, a create/edit switch):
+      // aria-labelledby resolves whenever the heading is in the page. smtAriaLabel names a dialog without a title.
+      ariaLabelledBy: this.ariaLabel() && !this.title() ? undefined : this.titleId,
+      ariaLabel: this.ariaLabel() && !this.title() ? this.ariaLabel() : undefined,
       // Escape and the backdrop only ask; the dialog closes when the screen sets `open` to false.
       canDismiss: () => {
         this.dismiss();

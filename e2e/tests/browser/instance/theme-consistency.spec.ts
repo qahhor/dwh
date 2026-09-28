@@ -22,10 +22,11 @@ const DARK = {
 const ROUTE_SURFACES = [
   { route: '/files', selector: '.metric-card' },
   { route: '/files', selector: '.table-container' },
-  { route: '/audit', selector: '.filter-select' },
+  // Kit controls: the visible box of an smt-select is its trigger, of an smt-input the host itself.
+  { route: '/audit', selector: '.filter-select .smt-select__trigger' },
   { route: '/audit', selector: '.table-container' },
   { route: '/settings', selector: '.settings-card' },
-  { route: '/settings', selector: '.settings-card .form-input' },
+  { route: '/settings', selector: '.settings-card smt-input' },
   { route: '/iam/custom-fields', selector: '.table-card' },
 ] as const;
 
@@ -72,7 +73,7 @@ test('light theme keeps every content surface and form control light', async ({ 
   await page.goto('/iam/custom-fields');
   await ensureTheme(page, 'light');
   await page.locator('.view-header').getByRole('button', { name: 'Добавить поле' }).click();
-  await expectColors(page.locator('.modal-form .form-input').first(), {
+  await expectColors(page.locator('.modal-form smt-input').first(), {
     'background-color': LIGHT.surface,
     'border-top-color': LIGHT.border,
     color: LIGHT.text,
@@ -121,7 +122,7 @@ test('theme toggle applies canonical dark surfaces across the affected pages', a
   await page.goto('/iam/custom-fields');
   await ensureTheme(page, 'dark');
   await page.locator('.view-header').getByRole('button', { name: 'Добавить поле' }).click();
-  await expectColors(page.locator('.modal-form .form-input').first(), {
+  await expectColors(page.locator('.modal-form smt-input').first(), {
     'background-color': DARK.surface,
     'border-top-color': DARK.border,
     color: DARK.text,

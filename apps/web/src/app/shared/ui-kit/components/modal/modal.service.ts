@@ -16,7 +16,7 @@
  *   `open()` never read them. They belong in `data` for `SMTModalComponent`.
  */
 import { filter, map, Observable, take, takeUntil } from 'rxjs';
-import { Injectable, inject, TemplateRef, Type } from '@angular/core';
+import { DOCUMENT, Injectable, inject, TemplateRef, Type } from '@angular/core';
 import { Dialog, DialogRef } from '@angular/cdk/dialog';
 import { SMTModalConfirmComponent } from './modal-confirm/modal-confirm.component';
 import { SMTI18nService } from '../../i18n';
@@ -38,6 +38,14 @@ let nextConfirmId = 0;
 export class SMTModalService {
   private readonly dialog = inject(Dialog);
   private readonly i18n = inject(SMTI18nService);
+  private readonly document = inject(DOCUMENT);
+
+  /**
+   * Where focus goes back when a dialog closes: the element that opened it, then — when that element sat in
+   * another dialog — the elements that opened that one. CDK restores focus to the opener only, so when a
+   * confirmation and the dialog under it close together (discard a draft) focus fell onto the body.
+   */
+  private readonly returnChains = new Map<DialogRef<unknown, unknown>, HTMLElement[]>();
 
   open<T, R = unknown>(componentOrTemplate: Type<T> | TemplateRef<T>, config: SMTModalConfig = {}): DialogRef<R, T> {
     const { width, minWidth, maxWidth, maxHeight, data, closeOnBackdropClick = true, closeOnEscape = true } = config;
@@ -62,6 +70,7 @@ export class SMTModalService {
     }) as DialogRef<R, T>;
 
     this.bindDefaultCloseInteractions(dialogRef, closeOnBackdropClick, closeOnEscape, config.canDismiss);
+    this.keepFocusReturn(dialogRef as DialogRef<unknown, unknown>);
 
     return dialogRef;
   }
@@ -132,6 +141,24 @@ export class SMTModalService {
     );
   }
 
+  private keepFocusReturn(dialogRef: DialogRef<unknown, unknown>): void {
+    const opener = this.document.activeElement;
+    const chain: HTMLElement[] = opener instanceof HTMLElement && opener !== this.document.body ? [opener] : [];
+    for (const [ref, parentChain] of this.returnChains) {
+      if (opener && ref.overlayRef?.overlayElement?.contains(opener)) chain.push(...parentChain);
+    }
+    this.returnChains.set(dialogRef, chain);
+    dialogRef.closed.pipe(take(1)).subscribe(() => {
+      this.returnChains.delete(dialogRef);
+      // After CDK's own restore and after a dialog closing in the same turn.
+      setTimeout(() => {
+        const active = this.document.activeElement;
+        if (active && active !== this.document.body && active.isConnected) return;
+        chain.find((element) => element.isConnected && !element.hasAttribute('disabled'))?.focus();
+      });
+    });
+  }
+
   private bindDefaultCloseInteractions<T, R>(
     dialogRef: DialogRef<R, T>,
     closeOnBackdropClick: boolean,
@@ -151,7 +178,8 @@ export class SMTModalService {
           takeUntil(dialogRef.closed),
         )
         .subscribe((event) => {
-          // Marks the key as handled, so nothing underneath that listens on the          // document closes as well.
+          // Marks the key as handled, so nothing underneath that listens on the
+          // document closes as well.
           event.preventDefault();
           if (canDismiss()) dialogRef.close();
         });

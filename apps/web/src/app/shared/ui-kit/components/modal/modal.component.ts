@@ -31,7 +31,8 @@ let nextTitleId = 0;
   encapsulation: ViewEncapsulation.None,
   imports: [NgClass, NgTemplateOutlet],
   templateUrl: './modal.component.html',
-  styleUrl: './modal.scss',
+  // modal.scss is a global stylesheet (angular.json): a component's styles load only when it is first created,
+  // and smt-dialog opens its panel without an smt-modal, so the first dialog of a page was left unstyled.
   host: {
     class: 'smt-modal',
   },

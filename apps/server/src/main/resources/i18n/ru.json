@@ -1135,7 +1135,6 @@
   "tasks.uchastnik": "Участник",
   "layout.command_palette.ne_udalos_vypolnit_poisk_proverte_soedinenie_i_p": "Не удалось выполнить поиск. Проверьте соединение и повторите попытку.",
   "ui.file_upload.oshibka_zagruzki_fayla": "Ошибка загрузки файла",
-  "ui.file_upload.zagruzka_ne_udalas": "Загрузка не удалась",
   "ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow": "Напишите текст задачи (поддерживается Markdown)...",
   "ui.markdown_editor.tekst_v_formate_markdown": "Текст в формате Markdown",
   "ui.markdown_editor.zhirnyy_tekst": "**жирный текст**",

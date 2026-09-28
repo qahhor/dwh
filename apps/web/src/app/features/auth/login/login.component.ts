@@ -463,16 +463,20 @@ export class LoginComponent {
     this.focusInput(step === 'credentials' ? 'login' : step === 'otp' ? 'otp-code' : 'new-password');
   }
 
-  private focusInput(id: string): void {
+  private focusInput(id: string, attempts = 5): void {
     if (this.destroyRef.destroyed) return;
     afterNextRender(
       () => {
-        // NgModel applies its disabled state in a microtask after rendering.
-        // Wait for that update so an error can focus a re-enabled input.
+        // NgModel applies its disabled state in a microtask after rendering, and smt-input writes it to its
+        // native input only on the render after that: an input still disabled here waits for the next render.
         queueMicrotask(() => {
-          if (!this.destroyRef.destroyed && !this.isResetModalOpen()) {
-            this.element.nativeElement.querySelector<HTMLInputElement>(`#${id}`)?.focus();
+          if (this.destroyRef.destroyed || this.isResetModalOpen()) return;
+          const input = this.element.nativeElement.querySelector<HTMLInputElement>(`#${id}`);
+          if (input?.disabled && attempts > 1) {
+            this.focusInput(id, attempts - 1);
+            return;
           }
+          input?.focus();
         });
       },
       { injector: this.injector },

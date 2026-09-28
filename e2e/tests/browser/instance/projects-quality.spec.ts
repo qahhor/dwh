@@ -33,7 +33,9 @@ function collectExpectedProject503(page: Page): (expected: ExpectedProject503) =
 
   return (expected: ExpectedProject503): void => {
     page.off('response', onResponse);
-    expect.soft(responses, 'all HTTP 503 responses belong to the controlled project fixture').toEqual([expected]);
+    // The client repeats a change whose answer was lost twice under the same key (roadmap item 29).
+    expect.soft(responses, 'all HTTP 503 responses belong to the controlled project fixture')
+      .toEqual([expected, expected, expected]);
     assertNoPageErrors();
   };
 }
@@ -124,8 +126,8 @@ async function openEditorAndObserveDetail(page: Page, projectName: string): Prom
 async function createProjectWithButton(page: Page, name: string, description: string): Promise<void> {
   await page.getByRole('button', { name: 'Новый проект', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Создание нового проекта', exact: true });
-  await dialog.getByLabel('Название проекта', { exact: true }).fill(name);
-  await dialog.getByLabel('Описание проекта', { exact: true }).fill(description);
+  await dialog.getByRole('textbox', { name: 'Название проекта', exact: true }).fill(name);
+  await dialog.getByRole('textbox', { name: 'Описание проекта', exact: true }).fill(description);
   const responsePromise = page.waitForResponse(response => response.request().method() === 'POST'
     && new URL(response.url()).pathname === PROJECTS_PATH);
   await dialog.getByRole('button', { name: 'Создать проект', exact: true }).click();
@@ -145,8 +147,8 @@ test('native Enter creates and edits exactly once while description newlines and
 
   await page.getByRole('button', { name: 'Новый проект', exact: true }).click();
   const createDialog = page.getByRole('dialog', { name: 'Создание нового проекта', exact: true });
-  const createName = createDialog.getByLabel('Название проекта', { exact: true });
-  const createDescription = createDialog.getByLabel('Описание проекта', { exact: true });
+  const createName = createDialog.getByRole('textbox', { name: 'Название проекта', exact: true });
+  const createDescription = createDialog.getByRole('textbox', { name: 'Описание проекта', exact: true });
   await createName.fill(originalName);
   await createDescription.fill(originalDescription);
   await createDescription.press('Enter');
@@ -168,7 +170,7 @@ test('native Enter creates and edits exactly once while description newlines and
   const detailPath = await openEditorAndObserveDetail(page, originalName);
   const editDialog = page.getByRole('dialog', { name: 'Редактирование проекта', exact: true });
   await expect(editDialog.getByLabel('Описание', { exact: true })).toHaveValue(originalDescription);
-  const editName = editDialog.getByLabel('Название проекта', { exact: true });
+  const editName = editDialog.getByRole('textbox', { name: 'Название проекта', exact: true });
   await editName.fill(editedName);
   const namePatch = page.waitForResponse(response => response.request().method() === 'PATCH'
     && new URL(response.url()).pathname === detailPath);
@@ -206,7 +208,7 @@ test('dirty create Cancel and Escape preserve or discard the draft with trapped 
   await opener.click();
   const createDialog = page.getByRole('dialog', { name: 'Создание нового проекта', exact: true });
   await expectTabFocusContained(page, createDialog);
-  const nameInput = createDialog.getByLabel('Название проекта', { exact: true });
+  const nameInput = createDialog.getByRole('textbox', { name: 'Название проекта', exact: true });
   await nameInput.fill(discardedName);
 
   await createDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
@@ -236,9 +238,10 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
   const opener = page.getByRole('button', { name: 'Новый проект', exact: true });
   await opener.click();
   const createDialog = page.getByRole('dialog', { name: 'Создание нового проекта', exact: true });
-  await createDialog.getByLabel('Название проекта', { exact: true }).fill(retriedName);
-  await createDialog.getByLabel('Описание проекта', { exact: true }).fill(retriedDescription);
+  await createDialog.getByRole('textbox', { name: 'Название проекта', exact: true }).fill(retriedName);
+  await createDialog.getByRole('textbox', { name: 'Описание проекта', exact: true }).fill(retriedDescription);
   let controlledAttempts = 0;
+  const controlledKeys = new Set<string | undefined>();
   const controlledCreateFailure = async (route: Route): Promise<void> => {
     const request = route.request();
     if (request.method() !== 'POST' || new URL(request.url()).pathname !== PROJECTS_PATH) {
@@ -246,6 +249,7 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
       return;
     }
     controlledAttempts++;
+    controlledKeys.add(request.headers()['idempotency-key']);
     await route.fulfill({
       status: 503,
       contentType: 'application/problem+json',
@@ -262,9 +266,13 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
   try {
     await createDialog.getByRole('button', { name: 'Создать проект', exact: true }).click();
     await expect(createDialog.getByTestId('project-create-save-error')).toHaveText('Controlled create failure');
-    await expect(createDialog.getByLabel('Название проекта', { exact: true })).toHaveValue(retriedName);
-    await expect(createDialog.getByLabel('Описание проекта', { exact: true })).toHaveValue(retriedDescription);
-    expect(controlledAttempts).toBe(1);
+    await expect(createDialog.getByRole('textbox', { name: 'Название проекта', exact: true })).toHaveValue(retriedName);
+    await expect(createDialog.getByRole('textbox', { name: 'Описание проекта', exact: true })).toHaveValue(retriedDescription);
+    // A lost answer (503) is repeated twice under the same Idempotency-Key (roadmap item 29): the server
+    // would do the change once. Then the draft waits for the person.
+    expect(controlledAttempts).toBe(3);
+    expect(controlledKeys.size).toBe(1);
+    expect([...controlledKeys][0]).toBeTruthy();
   } finally {
     await page.unroute('**/api/v1/tasks/projects', controlledCreateFailure);
   }
@@ -273,7 +281,8 @@ test('controlled HTTP 503 create retry preserves the draft and reaches the real 
     && new URL(response.url()).pathname === PROJECTS_PATH);
   await createDialog.getByRole('button', { name: 'Создать проект', exact: true }).click();
   expect((await retryResponse).status()).toBe(201);
-  expect(mutations.filter(request => request.method() === 'POST')).toHaveLength(2);
+  // Three controlled attempts under one key, then the person's retry (roadmap item 29).
+  expect(mutations.filter(request => request.method() === 'POST')).toHaveLength(4);
   await expect(page.getByRole('button', { name: retriedName, exact: true })).toBeVisible();
   assertExpectedProject503({ method: 'POST', path: PROJECTS_PATH });
 });
@@ -290,7 +299,7 @@ test('dirty edit Cancel and Escape preserve or discard the draft and return focu
   const mutations = observeProjectMutations(page);
   await openEditorAndObserveDetail(page, originalName);
   const editDialog = page.getByRole('dialog', { name: 'Редактирование проекта', exact: true });
-  const editName = editDialog.getByLabel('Название проекта', { exact: true });
+  const editName = editDialog.getByRole('textbox', { name: 'Название проекта', exact: true });
   await editName.fill(discardedName);
 
   await editDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
@@ -322,8 +331,9 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
   const mutations = observeProjectMutations(page);
   const detailPath = await openEditorAndObserveDetail(page, originalName);
   const editDialog = page.getByRole('dialog', { name: 'Редактирование проекта', exact: true });
-  await editDialog.getByLabel('Название проекта', { exact: true }).fill(retriedName);
+  await editDialog.getByRole('textbox', { name: 'Название проекта', exact: true }).fill(retriedName);
   let controlledAttempts = 0;
+  const controlledKeys = new Set<string | undefined>();
   const controlledEditFailure = async (route: Route): Promise<void> => {
     const request = route.request();
     if (request.method() !== 'PATCH' || new URL(request.url()).pathname !== detailPath) {
@@ -331,6 +341,7 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
       return;
     }
     controlledAttempts++;
+    controlledKeys.add(request.headers()['idempotency-key']);
     await route.fulfill({
       status: 503,
       contentType: 'application/problem+json',
@@ -348,9 +359,13 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
   try {
     await editDialog.getByRole('button', { name: 'Сохранить', exact: true }).click();
     await expect(editDialog.getByTestId('project-edit-save-error')).toHaveText('Controlled edit failure');
-    await expect(editDialog.getByLabel('Название проекта', { exact: true })).toHaveValue(retriedName);
+    await expect(editDialog.getByRole('textbox', { name: 'Название проекта', exact: true })).toHaveValue(retriedName);
     await expect(editDialog.getByLabel('Описание', { exact: true })).toHaveValue(description);
-    expect(controlledAttempts).toBe(1);
+    // A lost answer (503) is repeated twice under the same Idempotency-Key (roadmap item 29): the server
+    // would do the change once. Then the draft waits for the person.
+    expect(controlledAttempts).toBe(3);
+    expect(controlledKeys.size).toBe(1);
+    expect([...controlledKeys][0]).toBeTruthy();
   } finally {
     await page.unroute(detailGlob, controlledEditFailure);
   }
@@ -361,7 +376,8 @@ test('controlled HTTP 503 edit retry preserves the draft and reaches the real se
   const response = await retryResponse;
   expect(response.status()).toBe(204);
   expect(response.request().postDataJSON()).toEqual({ name: retriedName });
-  expect(mutations.filter(request => request.method() === 'PATCH')).toHaveLength(2);
+  // Three controlled attempts under one key, then the person's retry (roadmap item 29).
+  expect(mutations.filter(request => request.method() === 'PATCH')).toHaveLength(4);
   await expect(page.getByRole('button', { name: retriedName, exact: true })).toBeVisible();
   assertExpectedProject503({ method: 'PATCH', path: detailPath });
 });
@@ -441,15 +457,16 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
 
   try {
     await page.goto('/tasks/projects');
-    const viewGroup = page.getByRole('group', { name: 'Режим отображения проектов' });
-    const listButton = viewGroup.getByRole('button', { name: 'Список', exact: true });
-    const cardsButton = viewGroup.getByRole('button', { name: 'Карточки', exact: true });
-    await expect(listButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(cardsButton).toHaveAttribute('aria-pressed', 'false');
+    // The view and the status filter are segmented radio groups (smt-radio-group) now.
+    const viewGroup = page.getByRole('radiogroup', { name: 'Режим отображения проектов' });
+    const listButton = viewGroup.getByRole('radio', { name: 'Список', exact: true });
+    const cardsButton = viewGroup.getByRole('radio', { name: 'Карточки', exact: true });
+    await expect(listButton).toBeChecked();
+    await expect(cardsButton).not.toBeChecked();
 
-    const filterGroup = page.getByRole('group', { name: 'Фильтр проектов по статусу' });
-    await expect(filterGroup.getByRole('button', { name: 'Активные', exact: true })).toBeVisible();
-    await expect(filterGroup.getByRole('button', { name: 'Архив', exact: true })).toBeVisible();
+    const filterGroup = page.getByRole('radiogroup', { name: 'Фильтр проектов по статусу' });
+    await expect(filterGroup.getByRole('radio', { name: 'Активные', exact: true })).toBeVisible();
+    await expect(filterGroup.getByRole('radio', { name: 'Архив', exact: true })).toBeVisible();
     await expect(projectRow(page, 'Fixture active anchor')).toContainText('Активен');
     await expect(projectRow(page, 'Fixture archived anchor')).toContainText('В архиве');
     await expect(projectRow(page, 'Fixture active anchor')).toContainText('2 / 3 закрыто');
@@ -472,7 +489,7 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
     await page.getByRole('button', { name: 'Очистить поле', exact: true }).click();
 
     await cardsButton.click();
-    await expect(cardsButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(cardsButton).toBeChecked();
     await expect(projectCard(page, 'Fixture active anchor')).toContainText('Активен');
     await expect(projectCard(page, 'Fixture archived anchor')).toContainText('В архиве');
     await expectMinimumHitbox(projectEditButton(page, 'Fixture active anchor'), { width: 28, height: 28 });
@@ -486,8 +503,8 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
       clientWidth: document.documentElement.clientWidth,
       scrollWidth: document.documentElement.scrollWidth,
     }))).toEqual({ clientWidth: 390, scrollWidth: 390 });
-    await filterGroup.getByRole('button', { name: 'Архив', exact: true }).click();
-    await expect(filterGroup.getByRole('button', { name: 'Архив', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    await filterGroup.getByRole('radio', { name: 'Архив', exact: true }).click();
+    await expect(filterGroup.getByRole('radio', { name: 'Архив', exact: true })).toBeChecked();
     await expect(page.locator('.project-card')).toHaveCount(1);
     const archivedCard = projectCard(page, 'Fixture archived anchor');
     await expect(archivedCard).toContainText('В архиве');
@@ -498,9 +515,16 @@ test('controlled project fixtures keep filter, copy, hitbox, card, and mobile co
     await mobileEdit.click();
     expect((await detailResponse).status()).toBe(200);
     const editDialog = page.getByRole('dialog', { name: 'Редактирование проекта', exact: true });
-    const state = editDialog.getByLabel('Статус активности', { exact: true });
-    await expect(state).toHaveValue('P');
-    await expect(state.locator('option')).toHaveText(['Активен', 'В архиве']);
+    // The state is an smt-select: its value is on the trigger, its options in the overlay listbox.
+    const state = editDialog.getByRole('combobox', { name: 'Статус активности', exact: true });
+    await expect(state).toHaveAttribute('data-value', 'P');
+    await state.click();
+    // Names, not text: the chosen option also holds its check mark icon.
+    const options = page.locator('.cdk-overlay-container [role="listbox"]').last().getByRole('option');
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toHaveAccessibleName('Активен');
+    await expect(options.nth(1)).toHaveAccessibleName('В архиве');
+    await page.keyboard.press('Escape');
     await editDialog.getByRole('button', { name: 'Отмена', exact: true }).click();
     await expect(editDialog).toBeHidden();
     await expect(mobileEdit).toBeFocused();

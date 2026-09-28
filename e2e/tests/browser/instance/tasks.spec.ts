@@ -27,7 +27,8 @@ test('project to task to comment works through the visible UI', async ({ page })
   await expect(page).toHaveURL(/\/tasks\?project_id=\d+$/u);
   await page.getByRole('button', { name: 'Новая задача' }).click();
   await page.getByLabel('Название задачи').fill(taskName);
-  await page.getByRole('button', { name: 'Высокий' }).click();
+  // Priority is a segmented radio group (smt-radio-group).
+  await page.getByRole('radio', { name: 'Высокий' }).click();
   await page.getByLabel('Описание', { exact: true }).fill('Created by the browser E2E suite.');
   const taskResponse = page.waitForResponse(response =>
     response.request().method() === 'POST' && response.url().endsWith('/api/v1/tasks')
