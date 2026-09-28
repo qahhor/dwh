@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTTextareaComponent, SMTTextareaValueAccessor } from '@shared/ui-kit/components/forms/textarea';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
@@ -16,16 +15,13 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
   selector: 'app-announcements-modals',
   imports: [
     SMTTabBarComponent,
-    FormsModule,
     A11yModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTTextareaComponent,
-    SMTTextareaValueAccessor,
     SMTSelectComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,7 +34,13 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
       (closed)="closeEditor.emit()"
     >
       <ng-template smtDialogContent>
-        <form body id="announcement-editor" class="editor-form" (ngSubmit)="onSaveDraft()" novalidate>
+        <form
+          body
+          id="announcement-editor"
+          class="editor-form"
+          (submit)="$event.preventDefault(); onSaveDraft()"
+          novalidate
+        >
           <!-- Language selector tabs for multilingual content -->
           <div class="lang-selector-row">
             <span class="lang-selector-label">{{ 'announcements.yazyk_redaktirovaniya' | t }}:</span>
@@ -67,7 +69,8 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [maxLength]="10000"
                 required
                 smtFocusInitial
-                [(ngModel)]="titleRu"
+                [value]="titleRu"
+                (valueChange)="onDraftTitleChange('ru', $event)"
                 smtDescribedBy="announcement-title-hint"
               />
               <span id="announcement-title-hint" class="field-hint">{{
@@ -88,7 +91,8 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [maxRows]="20"
                 [maxLength]="10000"
                 required
-                [(ngModel)]="bodyRu"
+                [value]="bodyRu"
+                (valueChange)="onDraftBodyChange('ru', $event)"
               />
               <span id="announcement-body-hint" class="field-hint">{{
                 'announcements.do_10_000_simvolov_tekst_uvidyat_vse_polzovateli' | t
@@ -110,8 +114,8 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 name="announcementTitleOther"
                 type="text"
                 [maxLength]="10000"
-                [ngModel]="draftTitles()[selectedLang()]"
-                (ngModelChange)="onDraftTitleChange(selectedLang(), $event)"
+                [value]="draftTitles()[selectedLang()]"
+                (valueChange)="onDraftTitleChange(selectedLang(), $event)"
               />
             </div>
             <div class="field-group">
@@ -126,8 +130,8 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [rows]="7"
                 [maxRows]="20"
                 [maxLength]="10000"
-                [ngModel]="draftBodies()[selectedLang()]"
-                (ngModelChange)="onDraftBodyChange(selectedLang(), $event)"
+                [value]="draftBodies()[selectedLang()]"
+                (valueChange)="onDraftBodyChange(selectedLang(), $event)"
               />
             </div>
           }
@@ -193,19 +197,14 @@ export class AnnouncementsModalsComponent {
   get titleRu(): string {
     return this.draftTitles()['ru'] || '';
   }
-  set titleRu(val: string) {
-    this.draftTitlesChange.emit({ ...this.draftTitles(), ru: val });
-  }
 
   get bodyRu(): string {
     return this.draftBodies()['ru'] || '';
   }
-  set bodyRu(val: string) {
-    this.draftBodiesChange.emit({ ...this.draftBodies(), ru: val });
-  }
 
-  onDraftTitleChange(lang: string, val: string): void {
-    this.draftTitlesChange.emit({ ...this.draftTitles(), [lang]: val });
+  /** The kit field types its value as text, a number or null; the draft keeps text. */
+  onDraftTitleChange(lang: string, val: SMTInputValue): void {
+    this.draftTitlesChange.emit({ ...this.draftTitles(), [lang]: val === null ? '' : String(val) });
   }
 
   onDraftBodyChange(lang: string, val: string): void {

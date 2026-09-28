@@ -1,35 +1,51 @@
 import { ChangeDetectionStrategy, Component, signal, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import {
   SMTSortableActionsDirective,
   SMTSortableItemDirective,
   SMTSortableListComponent,
 } from '@shared/ui-kit/components/sortable-list';
-import { SMTColorInputComponent, SMTColorInputValueAccessor } from '@shared/ui-kit/components/forms/color-input';
+import { SMTColorInputComponent } from '@shared/ui-kit/components/forms/color-input';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { TaskStatus, TaskType } from '@core/models/task.models';
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+
+interface NewTypeForm {
+  code: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+interface NewStatusForm {
+  name: string;
+  color: string;
+  isTerminal: boolean;
+}
+
+function emptyTypeForm(): NewTypeForm {
+  return { code: '', name: '', icon: 'task_alt', color: '#2563eb' };
+}
+
+function emptyStatusForm(): NewStatusForm {
+  return { name: '', color: '#0284c7', isTerminal: false };
+}
 
 @Component({
   selector: 'app-task-dictionaries-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,
-    SMTCheckboxValueAccessor,
     SMTTabBarComponent,
     SMTColorInputComponent,
-    SMTColorInputValueAccessor,
     SMTControlComponent,
     SMTInputComponent,
-    SMTInputValueAccessor,
-    FormsModule,
     SMTSortableListComponent,
     SMTSortableItemDirective,
     SMTSortableActionsDirective,
@@ -69,9 +85,11 @@ export class TaskDictionariesModalComponent {
   readonly reorderTypes = output<TaskType[]>();
   readonly reorderStatuses = output<TaskStatus[]>();
 
+  /** The new type and status being typed; signals, since the fields' callbacks change them. */
+  readonly newTypeForm = signal<NewTypeForm>(emptyTypeForm());
+  readonly newStatusForm = signal<NewStatusForm>(emptyStatusForm());
+
   settingsTab: 'types' | 'statuses' = 'types';
-  newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#2563eb' };
-  newStatusForm = { name: '', color: '#0284c7', isTerminal: false };
 
   /** Rows are kept by id, so a moved row keeps its focus. */
   readonly byId = (item: { id: number }) => item.id;
@@ -80,25 +98,40 @@ export class TaskDictionariesModalComponent {
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'types' | 'statuses'>[]>();
 
+  patchTypeForm(patch: Partial<NewTypeForm>): void {
+    this.newTypeForm.update((form) => ({ ...form, ...patch }));
+  }
+
+  patchStatusForm(patch: Partial<NewStatusForm>): void {
+    this.newStatusForm.update((form) => ({ ...form, ...patch }));
+  }
+
+  /** A text field's value is typed as text, a number or null; the forms keep text. */
+  text(value: SMTInputValue): string {
+    return value === null ? '' : String(value);
+  }
+
   submitType() {
-    if (!this.newTypeForm.code.trim() || !this.newTypeForm.name.trim()) return;
+    const form = this.newTypeForm();
+    if (!form.code.trim() || !form.name.trim()) return;
     this.createType.emit({
-      code: this.newTypeForm.code.trim(),
-      name: this.newTypeForm.name.trim(),
-      icon: this.newTypeForm.icon.trim() || 'task_alt',
-      color: this.newTypeForm.color,
+      code: form.code.trim(),
+      name: form.name.trim(),
+      icon: form.icon.trim() || 'task_alt',
+      color: form.color,
     });
-    this.newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#2563eb' };
+    this.newTypeForm.set(emptyTypeForm());
   }
 
   submitStatus() {
-    if (!this.newStatusForm.name.trim()) return;
+    const form = this.newStatusForm();
+    if (!form.name.trim()) return;
     this.createStatus.emit({
-      name: this.newStatusForm.name.trim(),
-      color: this.newStatusForm.color,
-      isTerminal: this.newStatusForm.isTerminal,
+      name: form.name.trim(),
+      color: form.color,
+      isTerminal: form.isTerminal,
     });
-    this.newStatusForm = { name: '', color: '#0284c7', isTerminal: false };
+    this.newStatusForm.set(emptyStatusForm());
   }
 
   /** Asks the page to delete; the page confirms it first. */

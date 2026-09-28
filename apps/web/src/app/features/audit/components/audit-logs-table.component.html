@@ -31,8 +31,8 @@
           name="auditRowPkFilter"
           type="text"
           smtSize="sm"
-          [ngModel]="rowPkFilter()"
-          (ngModelChange)="rowPkFilterChange.emit($event)"
+          [value]="rowPkFilter()"
+          (valueChange)="rowPkFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
       </div>
@@ -46,8 +46,8 @@
           inputmode="numeric"
           smtSize="sm"
           smtPattern="[0-9]*"
-          [ngModel]="auditUserFilter()"
-          (ngModelChange)="auditUserFilterChange.emit($event)"
+          [value]="auditUserFilter()"
+          (valueChange)="auditUserFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
       </div>
