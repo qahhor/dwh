@@ -877,6 +877,9 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The S3 storage integration test runs again: MinIO stopped publishing
+  free images (`quay.io/minio/minio` answers 401, `minio/minio` left Docker
+  Hub), so the test uses Chainguard's MinIO build, pinned by digest.
 - The browser E2E suite passes again: 54 of 54 on fresh stacks, in the two
   CI shards (it failed 41 of 54 on main). Most failures cascaded from a
   lockout: after every failed test the restarted worker first tried the

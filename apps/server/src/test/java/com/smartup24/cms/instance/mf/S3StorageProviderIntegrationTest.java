@@ -26,11 +26,19 @@ class S3StorageProviderIntegrationTest {
     private static final String SECRET_KEY = "smartupcms-test-secret";
     private static final String PHYSICAL_BUCKET = "smartupcms-test";
 
+    /*
+     * MinIO no longer publishes free images (quay.io/minio/minio answers 401, minio/minio is gone from Docker
+     * Hub); Chainguard builds MinIO from source. Pinned by digest: the free tier has only `latest`. The image
+     * runs as a non-root user, so the data directory is under /tmp.
+     */
+    private static final String MINIO_IMAGE =
+            "cgr.dev/chainguard/minio@sha256:6a1d0b45c8669726bba580ced0bfa4cb9fdeed1ed636dfabd81d1577beb6937b";
+
     @Container
-    static GenericContainer<?> minio = new GenericContainer<>(DockerImageName.parse("quay.io/minio/minio:latest"))
+    static GenericContainer<?> minio = new GenericContainer<>(DockerImageName.parse(MINIO_IMAGE))
             .withEnv("MINIO_ROOT_USER", ACCESS_KEY)
             .withEnv("MINIO_ROOT_PASSWORD", SECRET_KEY)
-            .withCommand("server", "/data")
+            .withCommand("server", "/tmp/minio-data")
             .withExposedPorts(9000)
             .waitingFor(Wait.forHttp("/minio/health/ready").forPort(9000));
 
