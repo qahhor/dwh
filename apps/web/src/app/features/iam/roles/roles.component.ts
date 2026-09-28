@@ -11,7 +11,6 @@ import {
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
@@ -41,7 +40,6 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   imports: [
     UiPageHeaderComponent,
     TranslatePipe,
-    FormsModule,
     SMTButtonComponent,
     RoleScopePanelComponent,
     RoleModalsComponent,

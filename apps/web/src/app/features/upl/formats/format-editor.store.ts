@@ -9,6 +9,7 @@ import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplU
 import { UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
 import { UplFieldError, localFormatErrors, parseUplProblem } from './upl-format-errors';
 import { UplFormatStep, buildDraftRequest, emptyModel, uplErrorStep } from './upl-format-model';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 /**
  * One format version being edited: loading it, the draft, saving, publishing
@@ -60,11 +61,11 @@ export class FormatEditorStore {
     const status = this.version()?.status;
     return status ? UPL_VERSION_STATUS_KEY[status] : '';
   });
-  readonly statusVariant = computed(() => {
+  readonly statusVariant = computed<TBadgeVariant>(() => {
     const status = this.version()?.status;
-    if (status === 'draft') return 'info';
+    if (status === 'draft') return 'blue';
     if (status === 'published') return 'success';
-    return 'neutral';
+    return 'gray';
   });
   readonly previousValidFrom = computed(() => {
     const published = this.versions().filter((item) => item.status === 'published' && item.validFrom);

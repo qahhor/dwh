@@ -1,4 +1,5 @@
 import { UplPackageItem, UplPackageStatus } from './packages-api';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 /** Статус загрузки → ключ словаря: подписи живут в `ru.json`, не в коде. */
 export const UPL_PACKAGE_STATUS_KEY: Record<UplPackageStatus, string> = {
@@ -9,11 +10,11 @@ export const UPL_PACKAGE_STATUS_KEY: Record<UplPackageStatus, string> = {
 };
 
 /** Статус загрузки → вариант `ui-badge`. */
-export const UPL_PACKAGE_STATUS_VARIANT: Record<UplPackageStatus, string> = {
-  received: 'neutral',
+export const UPL_PACKAGE_STATUS_VARIANT: Record<UplPackageStatus, TBadgeVariant> = {
+  received: 'gray',
   verified: 'success',
-  rejected: 'danger',
-  applied: 'info',
+  rejected: 'error',
+  applied: 'blue',
 };
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;

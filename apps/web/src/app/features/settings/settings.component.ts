@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, HostListener, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SearchSettingsComponent } from './search/search-settings.component';
@@ -25,7 +24,6 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   imports: [
     UiPageHeaderComponent,
     SMTTabBarComponent,
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     SearchSettingsComponent,

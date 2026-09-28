@@ -179,7 +179,7 @@ describe('ProfileComponent UI contracts', () => {
     const { fixture } = await createFixture({ sessions });
     fixture.detectChanges();
 
-    const currentBadge = inScreen(fixture.nativeElement).querySelector('.session-ip-cell ui-badge');
+    const currentBadge = inScreen(fixture.nativeElement).querySelector('.session-ip-cell smt-badge');
     expect(currentBadge).not.toBeNull();
     expect(currentBadge.textContent).toContain('Текущая сессия');
 
@@ -264,10 +264,10 @@ describe('ProfileComponent UI contracts', () => {
     const rows = cardEl.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
 
-    const verifiedBadge = rows[0].querySelector('ui-badge');
+    const verifiedBadge = rows[0].querySelector('smt-badge');
     expect(verifiedBadge?.textContent).toContain('Подтверждён');
 
-    const pendingBadge = rows[1].querySelector('ui-badge');
+    const pendingBadge = rows[1].querySelector('smt-badge');
     expect(pendingBadge?.textContent).toContain('Ожидает подтверждения');
 
     const unbindLabels = [...cardEl.querySelectorAll('button')]
@@ -289,9 +289,12 @@ describe('ProfileComponent UI contracts', () => {
     );
 
     const channelsCard = comp.channelsCard();
-    expect(channelsCard?.isConfirmModalOpen).toBe(true);
-    expect(channelsCard?.activeVerifyToken).toBe('mock_verify_token_123');
-    expect(channelsCard?.activeVerifyAddress).toBe('alex@example.test');
+    expect(channelsCard?.isConfirmModalOpen()).toBe(true);
+    expect(channelsCard?.activeVerifyToken()).toBe('mock_verify_token_123');
+    expect(channelsCard?.activeVerifyAddress()).toBe('alex@example.test');
+    // The card is OnPush and the answer arrives in a callback: the dialog must be on screen, not only in state.
+    fixture.detectChanges();
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]').length).toBe(1);
   });
 
   it('shows the server reason of a failed channel binding in one message', async () => {
@@ -311,7 +314,7 @@ describe('ProfileComponent UI contracts', () => {
 
     const channelsCard = comp.channelsCard();
     channelsCard?.openConfirmModal('mock_verify_token_123', 'alex@example.test');
-    expect(channelsCard?.isConfirmModalOpen).toBe(true);
+    expect(channelsCard?.isConfirmModalOpen()).toBe(true);
 
     comp.onConfirmChannel({ verifyToken: 'mock_verify_token_123', code: '123456' });
 
@@ -320,7 +323,7 @@ describe('ProfileComponent UI contracts', () => {
       { verifyToken: 'mock_verify_token_123', code: '123456' },
       { notifyError: false },
     );
-    expect(channelsCard?.isConfirmModalOpen).toBe(false);
+    expect(channelsCard?.isConfirmModalOpen()).toBe(false);
   });
 
   it('requests and executes channel unbinding', async () => {

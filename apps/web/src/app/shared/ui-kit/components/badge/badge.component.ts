@@ -1,6 +1,12 @@
 /* Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/badge/badge.component.ts.
  * Per ADR-0015 this copy is ours to change; the commit above is only the
- * base for comparing later work in the kit. See NOTICE. */
+ * base for comparing later work in the kit. See NOTICE.
+ *
+ * Differences from the kit:
+ * - Content is projected after the label, so a badge can hold an icon and text of the
+ *   application (the only badge of the application since plan 10/10, item 2.6).
+ * - A badge is icon-only when it has an icon and neither label nor content, not merely
+ *   when the label is empty. */
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -117,7 +123,7 @@ export class SMTBadgeComponent {
     const size = this.size();
     const variant = this.variant();
     const type = this.type();
-    const isOnlyIcon = !this.label();
+    const isOnlyIcon = !this.label() && (!!this.leftIcon() || !!this.rightIcon());
     const leftImgSrc = this.leftImgSrc();
 
     if (isOnlyIcon) {

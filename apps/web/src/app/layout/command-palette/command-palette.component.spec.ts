@@ -80,6 +80,32 @@ describe('CommandPaletteComponent', () => {
     trigger.remove();
   });
 
+  it('searches what is typed and empties the field with the clear button', async () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, service } = await createFixture();
+      fixture.detectChanges();
+      const input = fixture.nativeElement.querySelector('[role="combobox"]') as HTMLInputElement;
+
+      input.value = 'отчёт';
+      input.dispatchEvent(new Event('input'));
+      await vi.advanceTimersByTimeAsync(121);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.searchQuery()).toBe('отчёт');
+      expect(service.search).toHaveBeenCalledWith('отчёт', 'ALL');
+
+      (fixture.nativeElement.querySelector('.palette-clear-btn') as HTMLButtonElement).click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.searchQuery()).toBe('');
+      expect(input.value).toBe('');
+      expect(fixture.nativeElement.querySelector('.palette-clear-btn')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('shows a recoverable inline error and can retry the same query', async () => {
     vi.useFakeTimers();
     try {
@@ -104,7 +130,7 @@ describe('CommandPaletteComponent', () => {
         );
       fixture.detectChanges();
 
-      fixture.componentInstance.searchQuery = 'Тест';
+      fixture.componentInstance.searchQuery.set('Тест');
       fixture.componentInstance.onSearchChange('Тест');
       await vi.advanceTimersByTimeAsync(121);
       fixture.detectChanges();
@@ -146,13 +172,13 @@ describe('CommandPaletteComponent', () => {
         }),
       );
       fixture.detectChanges();
-      fixture.componentInstance.searchQuery = 'old';
+      fixture.componentInstance.searchQuery.set('old');
       fixture.componentInstance.onSearchChange('old');
       await vi.advanceTimersByTimeAsync(121);
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector('[role="option"]')).not.toBeNull();
 
-      fixture.componentInstance.searchQuery = 'new';
+      fixture.componentInstance.searchQuery.set('new');
       fixture.componentInstance.onSearchChange('new');
       fixture.detectChanges();
 
@@ -190,7 +216,7 @@ describe('CommandPaletteComponent', () => {
       const pending = new Subject<SearchResult>();
       service.search.mockReturnValue(pending.asObservable());
       fixture.detectChanges();
-      fixture.componentInstance.searchQuery = 'old';
+      fixture.componentInstance.searchQuery.set('old');
       fixture.componentInstance.onSearchChange('old');
       await vi.advanceTimersByTimeAsync(121);
 
@@ -215,7 +241,7 @@ describe('CommandPaletteComponent', () => {
       });
       fixture.detectChanges();
 
-      expect(fixture.componentInstance.searchQuery).toBe('');
+      expect(fixture.componentInstance.searchQuery()).toBe('');
       expect(fixture.componentInstance.isLoading()).toBe(false);
       expect(fixture.nativeElement.querySelector('[role="option"]')).toBeNull();
       expect(fixture.nativeElement.querySelector('.palette-hint')).not.toBeNull();
@@ -230,7 +256,7 @@ describe('CommandPaletteComponent', () => {
       const { fixture, service } = await createFixture();
       service.search.mockReturnValue(throwError(() => ({ detail: 'Temporary failure' })));
       fixture.detectChanges();
-      fixture.componentInstance.searchQuery = 'old';
+      fixture.componentInstance.searchQuery.set('old');
       fixture.componentInstance.onSearchChange('old');
       await vi.advanceTimersByTimeAsync(121);
       fixture.detectChanges();
@@ -241,7 +267,7 @@ describe('CommandPaletteComponent', () => {
       service.open();
       fixture.detectChanges();
 
-      expect(fixture.componentInstance.searchQuery).toBe('');
+      expect(fixture.componentInstance.searchQuery()).toBe('');
       expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
     } finally {
       vi.useRealTimers();

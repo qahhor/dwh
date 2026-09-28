@@ -300,6 +300,31 @@ describe('TasksComponent UI contracts', () => {
     ).toBe('combobox');
   });
 
+  it('says a visited empty title is required before any create attempt, and types into the service form', async () => {
+    const fixture = await createFixture();
+    fixture.componentInstance.openCreateTaskModal();
+    redraw(fixture);
+    TestBed.tick();
+
+    const title = inScreen(fixture.nativeElement).querySelector('#task-create-title') as HTMLInputElement;
+    const errorText = () =>
+      inScreen(fixture.nativeElement).querySelector('.task-create-form .smt-control__error')?.textContent ?? '';
+    expect(errorText()).toBe('');
+
+    title.dispatchEvent(new Event('blur'));
+    redraw(fixture);
+    TestBed.tick();
+    expect(errorText()).toContain('Обязательное поле');
+    expect(title.getAttribute('aria-invalid')).toBe('true');
+
+    title.value = 'Typed title';
+    title.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    TestBed.tick();
+    expect(fixture.componentInstance.createForm.title).toBe('Typed title');
+    expect(errorText()).toBe('');
+  });
+
   it('labels task dictionaries and confirms destructive actions in-app', async () => {
     const fixture = await createFixture();
     fixture.componentInstance.taskTypes.set([
@@ -1343,7 +1368,7 @@ describe('TasksComponent asynchronous detail and editing state', () => {
     });
     component.openCreateTaskModal();
     redraw(fixture);
-    // The dialog's fields meet ngModel a microtask after it opens.
+    // Let the opened dialog settle before typing.
     await vi.advanceTimersByTimeAsync(0);
     redraw(fixture);
 

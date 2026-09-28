@@ -24,12 +24,12 @@
                 <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
                 <smt-input
                   smtFieldId="project-member-search"
-                  [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
-                  [(ngModel)]="userSearchQuery"
-                  (ngModelChange)="onSearchInput($event)"
+                  [placeholder]="selectedUser()?.name ?? ('projects.poisk_polzovatelya' | t)"
+                  [value]="userSearchQuery()"
+                  (valueChange)="onSearchInput($event)"
                   (focusin)="isUserDropdownOpen.set(true)"
                 />
-                @if (selectedUser) {
+                @if (selectedUser()) {
                   <button
                     type="button"
                     class="clear-user-btn"
@@ -76,7 +76,8 @@
               <smt-select
                 smtTriggerId="project-member-role"
                 name="accessKind"
-                [(ngModel)]="selectedAccessKind"
+                [value]="selectedAccessKind()"
+                (valueChange)="$event && selectedAccessKind.set($event)"
                 [options]="accessKindOptions()"
                 [allowClear]="false"
                 [required]="true"
@@ -91,7 +92,7 @@
                 smtVariant="primary"
                 smtSize="md"
                 smtIcon="add"
-                [disabled]="!selectedUser || isAddingMember()"
+                [disabled]="!selectedUser() || isAddingMember()"
                 [smtLoading]="isAddingMember()"
                 (click)="submitAddMember()"
               >
@@ -138,7 +139,7 @@
   ><span class="text-muted tabular-nums">{{ m.userEmail || '—' }}</span></ng-template
 >
 <ng-template #memberAccessCell let-m>
-  <ui-badge [variant]="accessVariant(m.accessKind)">{{ accessLabel(m.accessKind) }}</ui-badge>
+  <smt-badge smtSize="SM" [smtVariant]="accessVariant(m.accessKind)">{{ accessLabel(m.accessKind) }}</smt-badge>
 </ng-template>
 <ng-template #memberActionCell let-m>
   <div class="text-right">

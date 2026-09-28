@@ -70,7 +70,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
         <smt-tab-bar
           class="audit-tabs"
           [tabs]="auditTabs()"
-          [value]="activeTab"
+          [value]="activeTab()"
           [smtAriaLabel]="'audit.razdely_audita' | t"
           (valueChange)="$event && setTab($event)"
         />
@@ -78,7 +78,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
       @if (metaError()) {
         <smt-alert smtTone="danger" data-testid="audit-meta-error">
-          <span>{{ (activeTab === 'audit' ? 'audit.load_log_error' : 'audit.load_security_error') | t }}</span>
+          <span>{{ (activeTab() === 'audit' ? 'audit.load_log_error' : 'audit.load_security_error') | t }}</span>
           <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refreshAll()">
             {{ 'common.retry' | t }}
           </button>
@@ -86,7 +86,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
       }
 
       <!-- TAB 1: AUDIT LOGS -->
-      @if (activeTab === 'audit') {
+      @if (activeTab() === 'audit') {
         <app-audit-logs-table
           [pager]="auditPager"
           [meta]="auditMeta()"
@@ -112,7 +112,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
       }
 
       <!-- TAB 2: SECURITY EVENTS -->
-      @if (activeTab === 'security') {
+      @if (activeTab() === 'security') {
         <app-audit-security-table
           [pager]="securityPager"
           [meta]="securityMeta()"
@@ -162,6 +162,9 @@ export class AuditComponent implements OnInit {
   readonly stats = signal<AuditStats | null>(null);
   readonly statsError = signal<boolean>(false);
 
+  /** A signal, so a tab chosen from code (not only by a click) redraws the screen. */
+  readonly activeTab = signal<'audit' | 'security'>('audit');
+
   readonly auditLogs = computed(() => this.auditPager.items() as AuditRecord[]);
 
   readonly securityEvents = computed(() => this.securityPager.items() as SecurityEventRecord[]);
@@ -183,8 +186,6 @@ export class AuditComponent implements OnInit {
     onApply: () => this.securityPager.first(),
     columnsStore: inject(TableColumnStateStore),
   });
-
-  activeTab: 'audit' | 'security' = 'audit';
 
   /** The screen's own filters of each list; the pagers read them at request time. */
   readonly auditFilters = new AuditLogFilters();
@@ -227,7 +228,7 @@ export class AuditComponent implements OnInit {
 
   refreshAll() {
     this.loadStats();
-    if (this.activeTab === 'audit') {
+    if (this.activeTab() === 'audit') {
       this.loadAuditLogs(true);
     } else {
       this.loadSecurityEvents(true);
@@ -235,7 +236,7 @@ export class AuditComponent implements OnInit {
   }
 
   setTab(tab: 'audit' | 'security') {
-    this.activeTab = tab;
+    this.activeTab.set(tab);
     if (tab === 'audit' && (!this.auditMeta() || this.auditLogs().length === 0)) {
       this.loadAuditLogs();
     } else if (tab === 'security' && (!this.securityMeta() || this.securityEvents().length === 0)) {

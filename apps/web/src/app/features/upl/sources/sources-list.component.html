@@ -64,13 +64,13 @@
 >
 <ng-template #draftCell let-item>
   @if (item.hasDraft) {
-    <ui-badge variant="info">{{ 'upl.list.has_draft' | t }}</ui-badge>
+    <smt-badge smtSize="SM" smtVariant="blue">{{ 'upl.list.has_draft' | t }}</smt-badge>
   }
 </ng-template>
 
 <smt-dialog [open]="isCreateOpen()" [smtTitle]="'upl.source.new_title' | t" smtSize="md" (closed)="closeCreate()">
   <ng-template smtDialogContent>
-    <form body id="upl-source-create" class="upl-form" (ngSubmit)="submitCreate()" novalidate>
+    <form body id="upl-source-create" class="upl-form" (submit)="$event.preventDefault(); submitCreate()" novalidate>
       @if (createError()) {
         <smt-alert smtTone="danger" class="upl-alert" data-testid="upl-create-error">
           {{ createError()! | t }}
@@ -83,7 +83,7 @@
         [smtHint]="'upl.source.hint.code' | t"
         [smtError]="fieldErrorText('code')"
       >
-        <smt-input smtFieldId="upl-source-code" name="code" [maxLength]="63" [(ngModel)]="form.code" />
+        <smt-input smtFieldId="upl-source-code" [formField]="createForm.code" />
       </smt-control>
 
       <smt-control
@@ -92,7 +92,7 @@
         [smtHint]="'upl.source.hint.name' | t"
         [smtError]="fieldErrorText('name')"
       >
-        <smt-input smtFieldId="upl-source-name" name="name" [maxLength]="200" [(ngModel)]="form.name" />
+        <smt-input smtFieldId="upl-source-name" [formField]="createForm.name" />
       </smt-control>
 
       <smt-control
@@ -101,7 +101,7 @@
         [smtHint]="'upl.source.hint.owner_org' | t"
         [smtError]="fieldErrorText('ownerOrg')"
       >
-        <smt-input smtFieldId="upl-source-owner-org" name="ownerOrg" [maxLength]="200" [(ngModel)]="form.ownerOrg" />
+        <smt-input smtFieldId="upl-source-owner-org" [formField]="createForm.ownerOrg" />
       </smt-control>
 
       <smt-control
@@ -110,12 +110,7 @@
         [smtHint]="'upl.source.hint.owner_contact' | t"
         [smtError]="fieldErrorText('ownerContact')"
       >
-        <smt-input
-          smtFieldId="upl-source-owner-contact"
-          name="ownerContact"
-          [maxLength]="200"
-          [(ngModel)]="form.ownerContact"
-        />
+        <smt-input smtFieldId="upl-source-owner-contact" [formField]="createForm.ownerContact" />
       </smt-control>
 
       <smt-control
@@ -125,10 +120,9 @@
       >
         <smt-select
           smtTriggerId="upl-source-periodicity"
-          name="periodicity"
           [options]="periodicityOptions()"
           [allowClear]="false"
-          [(ngModel)]="form.periodicity"
+          [formField]="createForm.periodicity"
         ></smt-select>
       </smt-control>
 
@@ -140,12 +134,11 @@
       >
         <smt-input
           smtFieldId="upl-source-sla-days"
-          name="slaDays"
           type="number"
           [smtMin]="0"
           [smtMax]="366"
           [smtStep]="1"
-          [(ngModel)]="form.slaDays"
+          [formField]="createForm.slaDays"
         />
       </smt-control>
 
@@ -156,10 +149,9 @@
       >
         <smt-select
           smtTriggerId="upl-source-strictness"
-          name="reconciliationStrictness"
           [options]="strictnessOptions()"
           [allowClear]="false"
-          [(ngModel)]="form.reconciliationStrictness"
+          [formField]="createForm.reconciliationStrictness"
         ></smt-select>
       </smt-control>
     </form>

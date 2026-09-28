@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { CustomNavigationItem, NavigationPermissionChoice, NavigationTargetType } from '@core/models/navigation.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
@@ -14,9 +13,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    FormsModule,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
@@ -35,10 +32,11 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
             <div class="form-row">
               <div class="form-group flex-2">
                 <label class="form-label" for="nav-title">{{ 'nav.settings.field_title' | t }} *</label>
+                <!-- (edited) reports every keystroke: each one derives the code from the title again. -->
                 <smt-input
                   smtFieldId="nav-title"
-                  [ngModel]="formTitle()"
-                  (ngModelChange)="formTitleChange.emit($event); titleChange.emit()"
+                  [value]="formTitle()"
+                  (edited)="formTitleChange.emit(asText($event)); titleChange.emit()"
                   [placeholder]="'nav.settings.title_placeholder' | t"
                 />
               </div>
@@ -46,8 +44,8 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
                 <label class="form-label" for="nav-code">{{ 'nav.settings.field_code' | t }} *</label>
                 <smt-input
                   smtFieldId="nav-code"
-                  [ngModel]="formCode()"
-                  (ngModelChange)="formCodeChange.emit($event)"
+                  [value]="formCode()"
+                  (valueChange)="formCodeChange.emit(asText($event))"
                   placeholder="superset-sales"
                 />
               </div>
@@ -79,8 +77,8 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
                 <smt-input
                   smtFieldId="nav-order"
                   type="number"
-                  [ngModel]="formSortOrder()"
-                  (ngModelChange)="formSortOrderChange.emit($event)"
+                  [value]="formSortOrder()"
+                  (valueChange)="formSortOrderChange.emit(asNumber($event))"
                 />
               </div>
             </div>
@@ -96,8 +94,8 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
               <label class="form-label" for="nav-url">{{ 'nav.settings.field_url' | t }} *</label>
               <smt-input
                 smtFieldId="nav-url"
-                [ngModel]="formUrl()"
-                (ngModelChange)="formUrlChange.emit($event)"
+                [value]="formUrl()"
+                (valueChange)="formUrlChange.emit(asText($event))"
                 (touch)="urlBlur.emit()"
                 placeholder="https://bi.company.uz/superset/dashboard/123/"
               />
@@ -123,8 +121,8 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
               <div class="icon-selector-row">
                 <smt-input
                   class="icon-input"
-                  [ngModel]="formIcon()"
-                  (ngModelChange)="formIconChange.emit($event)"
+                  [value]="formIcon()"
+                  (valueChange)="formIconChange.emit(asText($event))"
                   placeholder="analytics"
                 />
                 <span class="material-symbols-outlined icon-preview" aria-hidden="true">{{
@@ -178,7 +176,8 @@ export class NavigationSettingsModalComponent {
   readonly formCode = input('');
   readonly formTargetType = input<NavigationTargetType>('EMBEDDED_IFRAME');
   readonly formSectionId = input('custom');
-  readonly formSortOrder = input(10);
+  /** Null while the order field is empty, as the number field gives it. */
+  readonly formSortOrder = input<number | null>(10);
   readonly formUrl = input('');
   readonly formIcon = input('analytics');
   readonly popularIcons = input<string[]>([]);
@@ -192,7 +191,7 @@ export class NavigationSettingsModalComponent {
   readonly formCodeChange = output<string>();
   readonly formTargetTypeChange = output<NavigationTargetType>();
   readonly formSectionIdChange = output<string>();
-  readonly formSortOrderChange = output<number>();
+  readonly formSortOrderChange = output<number | null>();
   readonly formUrlChange = output<string>();
   readonly formIconChange = output<string>();
   readonly formRequiredPermissionChange = output<string | null>();
@@ -207,6 +206,16 @@ export class NavigationSettingsModalComponent {
   private readonly sectionMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   private readonly permissionMemo = optionsMemo<SMTSelectOption<string>[]>();
+
+  /** The text fields give text; null only comes from a number field. */
+  asText(value: SMTInputValue): string {
+    return value === null ? '' : String(value);
+  }
+
+  /** The order field gives a number, or null when it is emptied. */
+  asNumber(value: SMTInputValue): number | null {
+    return value === null || value === '' ? null : Number(value);
+  }
 
   /** Catalog pairs by name; a stored pair missing from the list stays visible by its key. */
   permissionOptions(): SMTSelectOption<string>[] {

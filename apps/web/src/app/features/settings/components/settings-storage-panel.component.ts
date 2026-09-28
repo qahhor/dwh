@@ -1,15 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { formatQuotaMb } from '../settings-format';
+import { SettingChange } from '../settings.models';
 
 @Component({
   selector: 'app-settings-storage-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
+  imports: [SMTInputComponent, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -43,7 +43,8 @@ import { formatQuotaMb } from '../settings-format';
             [smtMax]="102400"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-user-quota-hint"
-            [(ngModel)]="systemSettings()['storage.default_user_quota_mb']"
+            [value]="systemSettings()['storage.default_user_quota_mb']"
+            (valueChange)="changeSetting('storage.default_user_quota_mb', $event)"
           />
           <span id="settings-user-quota-hint" class="hint-text">{{
             'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t
@@ -71,6 +72,13 @@ export class SettingsStoragePanelComponent {
   readonly systemSettings = input<Record<string, string>>({});
 
   readonly save = output<void>();
+  /** The settings object belongs to the store, so an edit goes up and the store keeps it. */
+  readonly settingChange = output<SettingChange>();
+
+  /** A number field gives a number, or null when empty; the settings keep text, validated on save. */
+  changeSetting(key: string, value: SMTInputValue): void {
+    this.settingChange.emit({ key, value: value === null ? '' : String(value) });
+  }
 
   formatQuotaMb(mb: string | number | undefined): string {
     return formatQuotaMb(mb, (key) => this.i18n.translate(key));

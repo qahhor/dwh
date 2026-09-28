@@ -33,10 +33,10 @@
           [attr.aria-controls]="results().length > 0 ? listboxId : null"
           [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex()) : null"
           [placeholder]="'layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr' | t"
-          [(ngModel)]="searchQuery"
-          (ngModelChange)="onSearchChange($event)"
+          [value]="searchQuery()"
+          (input)="onQueryInput($event)"
         />
-        @if (searchQuery) {
+        @if (searchQuery()) {
           <button
             type="button"
             class="palette-clear-btn"
@@ -78,7 +78,7 @@
       </div>
 
       <!-- Did you mean suggestion -->
-      @if (metadata()?.suggestedQuery && metadata()?.suggestedQuery !== searchQuery) {
+      @if (metadata()?.suggestedQuery && metadata()?.suggestedQuery !== searchQuery()) {
         <div class="palette-suggestion">
           <span class="material-symbols-outlined suggestion-icon" aria-hidden="true">lightbulb</span>
           <span class="suggestion-label">{{ 'search.did_you_mean' | t }}:</span>
@@ -93,13 +93,13 @@
         [isLoading]="isLoading()"
         [errorMessage]="errorMessage()"
         [retrySeconds]="retrySeconds()"
-        [searchQuery]="searchQuery"
+        [searchQuery]="searchQuery()"
         [metadata]="metadata()"
         [results]="results()"
         [recentSearches]="recentSearches()"
         [selectedIndex]="selectedIndex()"
         [listboxId]="listboxId"
-        [validQuery]="validQuery(searchQuery)"
+        [validQuery]="validQuery(searchQuery())"
         (retry)="retrySearch()"
         (selectRecent)="selectRecent($event)"
         (clearRecent)="clearRecentSearches()"

@@ -263,8 +263,12 @@ describe('FilesComponent request and deletion mechanics', () => {
 
   it('clearing search omits the previous query', async () => {
     const { component, fixture, host } = await createFixture(undefined, [file(1)]);
-    component.searchQuery = 'report';
+    // Typed, as a person does: the OnPush screen hears it through the toolbar's output.
+    const input = host.querySelector('#file-search') as HTMLInputElement;
+    input.value = 'report';
+    input.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+    expect(component.searchQuery).toBe('report');
     await fixture.whenStable();
     fixture.detectChanges();
     // The field's own clear button; clearing lists every file again at once.

@@ -686,6 +686,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Web forms have one approach (plan 10/10, item 2.8): no screen uses
+  template-driven forms any more (FormsModule in 50 files before). Forms
+  with their own rules use Signal Forms, filters and single settings bind
+  the kit control directly, and ESLint keeps FormsModule, ReactiveForms and
+  NgModel inside the UI kit. The application has one badge, the kit's
+  `smt-badge`, which now takes projected content.
 - No web screen component is longer than 400 lines (plan 10/10, item 2.7):
   templates over 150 lines and style blocks over 50 lines live in their
   own files, and the 15 largest screens hand their state and requests to
@@ -894,6 +900,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The profile's channel confirmation dialog opened only in the state: the
+  card did not redraw when the server answered. The audit tab switch and a
+  few other OnPush screens that relied on ngModel to redraw now keep their
+  state in signals. The profile card no longer shows a double colon after
+  "Login" and "Language/Zone".
 - Escape on the users screen's filter menu returns focus to the filter
   button; it fell to the page.
 - A failed profile channel binding or confirmation, token creation,

@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '@core/models/notification.models';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
@@ -15,14 +14,7 @@ export interface EventTypeRow {
 @Component({
   selector: 'app-notification-preferences-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTDialogComponent,
-    SMTDialogContentDirective,
-    SMTButtonComponent,
-    SMTCheckboxComponent,
-    FormsModule,
-    TranslatePipe,
-  ],
+  imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, SMTCheckboxComponent, TranslatePipe],
   template: `
     <smt-dialog
       [open]="true"

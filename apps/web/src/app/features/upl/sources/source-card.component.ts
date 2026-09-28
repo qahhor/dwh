@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Signal, TemplateRef, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormField } from '@angular/forms/signals';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -22,28 +22,27 @@ import {
 } from '../upl-api';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { DraftMode, SourceCardStore } from './source-card.store';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 @Component({
   selector: 'app-upl-source-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTAlertComponent,
     SMTControlComponent,
     UiLocalTableComponent,
-    FormsModule,
+    FormField,
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     SMTRadioGroupComponent,
     DatePipe,
   ],
@@ -148,10 +147,10 @@ export class SourceCardComponent {
     return this.versionStatusKey[version.status];
   }
 
-  statusVariant(status: UplVersionStatus): 'success' | 'info' | 'neutral' {
+  statusVariant(status: UplVersionStatus): TBadgeVariant {
     if (status === 'published') {
       return 'success';
     }
-    return status === 'draft' ? 'info' : 'neutral';
+    return status === 'draft' ? 'blue' : 'gray';
   }
 }

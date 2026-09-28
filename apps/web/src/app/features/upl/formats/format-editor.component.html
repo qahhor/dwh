@@ -26,7 +26,7 @@
       <h1 class="upl-title">
         {{ text('upl.format.title', { name: store.source()?.name ?? '', version: store.versionNumber() }) }}
       </h1>
-      <ui-badge [variant]="store.statusVariant()">{{ store.statusKey() | t }}</ui-badge>
+      <smt-badge smtSize="SM" [smtVariant]="store.statusVariant()">{{ store.statusKey() | t }}</smt-badge>
     </div>
 
     @if (store.version()?.status !== 'draft') {
@@ -163,9 +163,8 @@
             <smt-date-picker
               smtInputId="upl-valid-from"
               data-testid="upl-valid-from"
-              [ngModel]="store.validFrom()"
-              [ngModelOptions]="{ standalone: true }"
-              (ngModelChange)="store.validFrom.set($event ?? '')"
+              [value]="store.validFrom()"
+              (valueChange)="store.validFrom.set($event ?? '')"
             />
             @if (store.previousValidFrom(); as previous) {
               <span class="upl-hint">{{ text('upl.version.prev_valid_from', { date: previous }) }}</span>

@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { Role } from '@core/models/rbac.models';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -19,7 +18,6 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
     SMTInputComponent,
     SMTRadioGroupComponent,
     SMTAlertComponent,
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
   ],

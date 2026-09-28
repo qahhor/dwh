@@ -15,11 +15,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, timer } from 'rxjs';
 import { ExportItem, ExportsService } from '@core/services/exports.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 /** Titles of the lists that can be exported; an unknown code is shown as it is. */
 const LIST_TITLES: Record<string, string> = {
@@ -48,7 +49,7 @@ const POLL_MS = 3000;
 @Component({
   selector: 'app-exports',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAlertComponent, DatePipe, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
+  imports: [SMTAlertComponent, DatePipe, TranslatePipe, SMTBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `
     <section class="exports-page" aria-labelledby="exports-title">
       <header class="exports-head">
@@ -93,7 +94,7 @@ const POLL_MS = 3000;
       ><span class="exports-list">{{ listTitle(e) }}</span></ng-template
     >
     <ng-template #stateCell let-e>
-      <ui-badge [variant]="stateVariant(e)" [dot]="true">{{ stateText(e) }}</ui-badge>
+      <smt-badge smtSize="SM" [smtVariant]="stateVariant(e)" smtHasDot>{{ stateText(e) }}</smt-badge>
       @if (e.state === 'failed' && e.errorCode) {
         <span class="exports-note">{{ errorText(e) }}</span>
       }
@@ -212,14 +213,8 @@ export class ExportsComponent implements OnInit {
     return this.i18n.translate(STATE_KEYS[e.state] ?? STATE_KEYS.failed);
   }
 
-  stateVariant(e: ExportItem): 'success' | 'warning' | 'danger' | 'info' {
-    return e.state === 'done'
-      ? 'success'
-      : e.state === 'failed'
-        ? 'danger'
-        : e.state === 'running'
-          ? 'info'
-          : 'warning';
+  stateVariant(e: ExportItem): TBadgeVariant {
+    return e.state === 'done' ? 'success' : e.state === 'failed' ? 'error' : e.state === 'running' ? 'blue' : 'warning';
   }
 
   errorText(e: ExportItem): string {

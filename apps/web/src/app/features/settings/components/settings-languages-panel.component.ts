@@ -9,7 +9,6 @@ import {
   output,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { LanguageInfo } from '@core/models/i18n.models';
 import { SMTTableComponent } from '@shared/ui-kit/components/table/table.component';
@@ -17,18 +16,15 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { LanguageEditorComponent } from '../language-editor.component';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTTextareaComponent, SMTTextareaValueAccessor } from '@shared/ui-kit/components/forms/textarea';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
 
 @Component({
   selector: 'app-settings-languages-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTextareaComponent,
-    SMTTextareaValueAccessor,
     SMTInputComponent,
-    SMTInputValueAccessor,
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,

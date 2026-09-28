@@ -27,10 +27,10 @@
     <h1 class="upl-title">{{ s.name }}</h1>
     <code class="upl-code">{{ s.code }}</code>
     @if (s.lastPublishedVersion !== null) {
-      <ui-badge variant="success">{{ activeVersionLabel(s) }}</ui-badge>
+      <smt-badge smtSize="SM" smtVariant="success">{{ activeVersionLabel(s) }}</smt-badge>
     }
     @if (s.hasDraft) {
-      <ui-badge variant="info">{{ 'upl.list.has_draft' | t }}</ui-badge>
+      <smt-badge smtSize="SM" smtVariant="blue">{{ 'upl.list.has_draft' | t }}</smt-badge>
     }
   </header>
 
@@ -62,13 +62,7 @@
       </div>
 
       <smt-control class="form-group" [smtLabel]="'upl.source.field.name' | t" [smtError]="fieldErrorText('name')">
-        <smt-input
-          smtFieldId="upl-source-name"
-          [maxLength]="200"
-          smtTestId="upl-field-name"
-          [disabled]="!store.canEdit()"
-          [(ngModel)]="store.form().name"
-        />
+        <smt-input smtFieldId="upl-source-name" smtTestId="upl-field-name" [formField]="store.requisites.name" />
       </smt-control>
 
       <smt-control
@@ -78,10 +72,8 @@
       >
         <smt-input
           smtFieldId="upl-source-owner-org"
-          [maxLength]="200"
           smtTestId="upl-field-ownerOrg"
-          [disabled]="!store.canEdit()"
-          [(ngModel)]="store.form().ownerOrg"
+          [formField]="store.requisites.ownerOrg"
         />
       </smt-control>
 
@@ -92,10 +84,8 @@
       >
         <smt-input
           smtFieldId="upl-source-owner-contact"
-          [maxLength]="200"
           smtTestId="upl-field-ownerContact"
-          [disabled]="!store.canEdit()"
-          [(ngModel)]="store.form().ownerContact"
+          [formField]="store.requisites.ownerContact"
         />
       </smt-control>
 
@@ -103,10 +93,9 @@
         <smt-select
           smtTriggerId="upl-source-periodicity"
           data-testid="upl-field-periodicity"
-          [disabled]="!store.canEdit()"
           [options]="periodicityOptions()"
           [allowClear]="false"
-          [(ngModel)]="store.form().periodicity"
+          [formField]="store.requisites.periodicity"
         ></smt-select>
       </smt-control>
 
@@ -121,8 +110,7 @@
           [smtMin]="0"
           [smtMax]="366"
           smtTestId="upl-field-slaDays"
-          [disabled]="!store.canEdit()"
-          [(ngModel)]="store.form().slaDays"
+          [formField]="store.requisites.slaDays"
         />
       </smt-control>
 
@@ -130,10 +118,9 @@
         <smt-select
           smtTriggerId="upl-source-strictness"
           data-testid="upl-field-strictness"
-          [disabled]="!store.canEdit()"
           [options]="strictnessOptions()"
           [allowClear]="false"
-          [(ngModel)]="store.form().reconciliationStrictness"
+          [formField]="store.requisites.reconciliationStrictness"
         ></smt-select>
       </smt-control>
     </div>
@@ -190,7 +177,7 @@
     >
   </ng-template>
   <ng-template #versionStatusCell let-v>
-    <ui-badge [variant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</ui-badge>
+    <smt-badge smtSize="SM" [smtVariant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</smt-badge>
   </ng-template>
   <ng-template #validFromCell let-v>{{ v.validFrom ? (v.validFrom | date: 'dd.MM.yyyy') : dash }}</ng-template>
   <ng-template #validToCell let-v>{{ v.validTo ? (v.validTo | date: 'dd.MM.yyyy') : dash }}</ng-template>

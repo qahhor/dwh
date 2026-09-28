@@ -182,22 +182,22 @@ function headers(fixture: ComponentFixture<SourcesListComponent>): HTMLElement[]
 /** Submits the create form as it was opened, keeping what was prefilled. */
 function submitPrefilled(
   fixture: ComponentFixture<SourcesListComponent>,
-  values: Partial<SourcesListComponent['form']>,
+  values: Partial<ReturnType<SourcesListComponent['createModel']>>,
 ): void {
   fixture.detectChanges();
-  Object.assign(fixture.componentInstance.form, values);
-  fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('ngSubmit', null);
+  fixture.componentInstance.createModel.update((model) => ({ ...model, ...values }));
+  fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('submit', new Event('submit'));
   fixture.detectChanges();
 }
 
 async function openCreateForm(
   fixture: ComponentFixture<SourcesListComponent>,
-  values: Partial<SourcesListComponent['form']>,
+  values: Partial<ReturnType<SourcesListComponent['createModel']>>,
 ): Promise<void> {
   fixture.componentInstance.openCreate();
   fixture.detectChanges();
-  Object.assign(fixture.componentInstance.form, values);
-  fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('ngSubmit', null);
+  fixture.componentInstance.createModel.update((model) => ({ ...model, ...values }));
+  fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('submit', new Event('submit'));
   fixture.detectChanges();
 }
 
@@ -224,7 +224,7 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
     const links = [...inScreen(fixture.nativeElement).querySelectorAll('a.upl-link')] as HTMLAnchorElement[];
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/upl/sources/1', '/upl/sources/5']);
-    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="rowgroup"] ui-badge')).toHaveLength(1);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="rowgroup"] smt-badge')).toHaveLength(1);
     expect(inScreen(fixture.nativeElement).textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.quarter']);
     expect(testId(fixture, 'upl-count')[0].textContent?.trim()).toBe('2');
   });
@@ -396,7 +396,7 @@ describe('SourcesListComponent', () => {
     });
 
     expect(fixture.componentInstance.isCreateOpen()).toBe(true);
-    expect(fixture.componentInstance.form.name).toBe('Выпуск стекла');
+    expect(fixture.componentInstance.createModel().name).toBe('Выпуск стекла');
     submitPrefilled(fixture, { code: 'glass.output', ownerOrg: 'Org' });
 
     expect(api.createSource).toHaveBeenCalledWith(
@@ -487,8 +487,13 @@ describe('SourcesListComponent', () => {
     );
     pick('upl-source-periodicity', PACKAGED_RUSSIAN['upl.periodicity.quarter']);
     pick('upl-source-strictness', PACKAGED_RUSSIAN['upl.strictness.warning']);
-    Object.assign(fixture.componentInstance.form, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
-    fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('ngSubmit', null);
+    fixture.componentInstance.createModel.update((model) => ({
+      ...model,
+      code: 'cement.output',
+      name: 'Vypusk',
+      ownerOrg: 'Org',
+    }));
+    fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('submit', new Event('submit'));
     fixture.detectChanges();
 
     expect(api.createSource).toHaveBeenCalledWith(

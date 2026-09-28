@@ -85,7 +85,7 @@ describe('OrgUnitEditorComponent', () => {
   });
   it('preserves an unknown kind even when its name matches an object prototype property', async () => {
     const { fixture, editor } = setup({ ...child, kind: 'constructor' });
-    await fixture.whenStable(); // ngModel writes the value to the picker after a tick
+    await fixture.whenStable(); // let the picker settle before reading its label
     fixture.detectChanges();
     const kind = fixture.nativeElement.querySelector(
       'smt-select[name="kind"] button[role="combobox"]',

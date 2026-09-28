@@ -66,6 +66,7 @@
         [isSaving]="store.isSaving()"
         [languages]="i18n.languages()"
         (save)="store.saveSystemSettings()"
+        (settingChange)="store.setSystemSetting($event.key, $event.value)"
       />
     </div>
   }
@@ -78,6 +79,7 @@
         [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
         [isSaving]="store.isSaving()"
         (save)="store.saveSystemSettings()"
+        (settingChange)="store.setSystemSetting($event.key, $event.value)"
         (toggleRequire2fa)="store.toggleRequire2fa($event)"
       />
     </div>
@@ -91,6 +93,7 @@
         [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
         [isSaving]="store.isSaving()"
         (save)="store.saveSystemSettings()"
+        (settingChange)="store.setSystemSetting($event.key, $event.value)"
       />
     </div>
   }

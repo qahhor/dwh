@@ -57,8 +57,8 @@
           type="search"
           smtIcon="search"
           clearable
-          [ngModel]="search()"
-          (ngModelChange)="search.set($event)"
+          [value]="search()"
+          (valueChange)="search.set($event === null ? '' : '' + $event)"
           [placeholder]="'settings.klyuch_russkiy_tekst_ili_perevod' | t"
         />
       </div>
@@ -102,12 +102,13 @@
             <label class="sr-only" [for]="inputId(entry.key)">{{
               'settings.translation_for_key' | t: { key: entry.key }
             }}</label>
+            <!-- (edited) reports every keystroke, not only a new value: typing clears a save error. -->
             <smt-input
               [smtFieldId]="inputId(entry.key)"
               type="text"
               [disabled]="!canEdit"
-              [ngModel]="valueFor(entry.key)"
-              (ngModelChange)="setValue(entry.key, $event)"
+              [value]="valueFor(entry.key)"
+              (edited)="setValue(entry.key, $event === null ? '' : '' + $event)"
               [placeholder]="languageCode() === 'ru' ? entry.bundledValue || '' : entry.russianValue"
               [maxLength]="4000"
             />

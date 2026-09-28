@@ -12,7 +12,7 @@ import {
 
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { UserWorkload } from '../analytics.models';
@@ -21,7 +21,7 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 @Component({
   selector: 'app-analytics-workload-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAvatarComponent, SMTInputComponent, TranslatePipe, UiBadgeComponent, UiLocalTableComponent],
+  imports: [SMTAvatarComponent, SMTInputComponent, TranslatePipe, SMTBadgeComponent, UiLocalTableComponent],
   template: `
     <div class="table-card" style="margin-top: 20px;">
       <div class="card-header-row" style="padding: 14px 20px; border-bottom: 1px solid var(--border-color);">
@@ -78,7 +78,9 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
     >
     <ng-template #efficiencyCell let-u>
       <div class="efficiency-cell">
-        <ui-badge [variant]="efficiencyOf(u) >= 0.7 ? 'success' : 'neutral'"> {{ getEfficiencyPercent(u) }}% </ui-badge>
+        <smt-badge smtSize="SM" [smtVariant]="efficiencyOf(u) >= 0.7 ? 'success' : 'gray'">
+          {{ getEfficiencyPercent(u) }}%
+        </smt-badge>
         @if (u.assignedTasks > 0) {
           <div class="eff-mini-bar-bg" aria-hidden="true">
             <div

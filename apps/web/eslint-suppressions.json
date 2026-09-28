@@ -212,9 +212,6 @@
   "src/app/features/tasks/components/task-dictionaries-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
     }
   },
   "src/app/features/tasks/components/task-edit-modal.component.ts": {

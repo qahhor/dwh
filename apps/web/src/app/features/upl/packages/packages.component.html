@@ -46,7 +46,7 @@
               name="sourceId"
               data-testid="upl-pkg-source"
               [disabled]="isSending()"
-              [(ngModel)]="form.sourceId"
+              [(value)]="form.sourceId"
               [options]="sourceOptions()"
               [placeholder]="'upl.pkg.form.source_placeholder' | t"
               [searchPlaceholder]="'upl.pkg.form.source_search' | t"
@@ -76,8 +76,8 @@
               name="periodFrom"
               data-testid="upl-pkg-period-from"
               [disabled]="isSending()"
-              [ngModel]="form.periodFrom"
-              (ngModelChange)="form.periodFrom = $event ?? ''"
+              [value]="form.periodFrom"
+              (valueChange)="form.periodFrom = $event ?? ''"
             />
           </smt-control>
 
@@ -91,8 +91,8 @@
               name="periodTo"
               data-testid="upl-pkg-period-to"
               [disabled]="isSending()"
-              [ngModel]="form.periodTo"
-              (ngModelChange)="form.periodTo = $event ?? ''"
+              [value]="form.periodTo"
+              (valueChange)="form.periodTo = $event ?? ''"
             />
           </smt-control>
 
@@ -163,10 +163,11 @@
 >
 <ng-template #periodCell let-item>{{ period(item) }}</ng-template>
 <ng-template #statusCell let-item>
-  <ui-badge
-    [variant]="variantOf(item)"
+  <smt-badge
+    smtSize="SM"
+    [smtVariant]="variantOf(item)"
     [attr.title]="item.status === 'received' ? ('upl.pkg.status.received_hint' | t) : null"
-    >{{ statusKeyOf(item) | t }}</ui-badge
+    >{{ statusKeyOf(item) | t }}</smt-badge
   >
 </ng-template>
 <ng-template #rowsCell let-item>{{ rowsText(item) }}</ng-template>

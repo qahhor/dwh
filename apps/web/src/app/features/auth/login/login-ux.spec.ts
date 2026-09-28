@@ -64,7 +64,7 @@ describe('Login form interactions', () => {
   }
 
   function fillCredentials(): void {
-    component.login = 'login-ux';
+    component.login.set('login-ux');
     component.password.set('Synthetic-pass-26!');
     fixture.detectChanges();
   }
@@ -260,7 +260,7 @@ describe('Login form interactions', () => {
       fixture.detectChanges();
       await fixture.whenStable();
       expect(component.step()).toBe('credentials');
-      expect(component.login).toBe('login-ux');
+      expect(component.login()).toBe('login-ux');
       expect([
         component.password(),
         component.tempOldPassword(),

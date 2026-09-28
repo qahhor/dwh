@@ -15,7 +15,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, filter, interval } from 'rxjs';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { RouterLink } from '@angular/router';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { BarChartPoint, BarChartSeries, UiBarChartComponent } from '@shared/ui/ui-bar-chart.component';
 import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
@@ -32,17 +32,18 @@ import {
   UplSourceFreshness,
 } from './overview-api';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 /** How often an open, visible overview asks for fresh figures. */
 const REFRESH_MS = 5 * 60 * 1000;
 /** Worst first: what is late comes before what is merely due. */
 const SEVERITY: Record<UplFreshnessState, number> = { overdue: 0, due: 1, never: 2, fresh: 3, adhoc: 4 };
-const STATE_VARIANT: Record<UplFreshnessState, string> = {
-  overdue: 'danger',
+const STATE_VARIANT: Record<UplFreshnessState, TBadgeVariant> = {
+  overdue: 'error',
   due: 'warning',
-  never: 'neutral',
+  never: 'gray',
   fresh: 'success',
-  adhoc: 'info',
+  adhoc: 'blue',
 };
 const STATE_KEY: Record<UplFreshnessState, string> = {
   overdue: 'upl.overview.fresh.state.overdue',
@@ -67,7 +68,7 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
     DatePipe,
     RouterLink,
     TranslatePipe,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     SMTButtonComponent,
     UiDashboardCardComponent,
     UiLocalTableComponent,
@@ -159,7 +160,7 @@ export class UplOverviewComponent implements OnInit {
     return this.i18n.translate(STATE_KEY[f.state]);
   }
 
-  stateVariant(f: UplSourceFreshness): string {
+  stateVariant(f: UplSourceFreshness): TBadgeVariant {
     return STATE_VARIANT[f.state];
   }
 

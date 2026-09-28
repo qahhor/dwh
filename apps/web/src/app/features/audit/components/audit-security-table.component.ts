@@ -10,8 +10,7 @@ import {
   output,
 } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
 import { DateRange, SMTDateRangePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
@@ -29,9 +28,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
   selector: 'app-audit-security-table',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     SMTInputComponent,
-    SMTInputValueAccessor,
     TranslatePipe,
     SMTButtonComponent,
     UiServerTableComponent,
@@ -174,6 +171,11 @@ export class AuditSecurityTableComponent {
     if (ua.includes('Firefox')) return 'Mozilla Firefox';
     if (ua.includes('Safari')) return 'Apple Safari';
     return ua.length > 30 ? ua.substring(0, 30) + '...' : ua;
+  }
+
+  /** The filters are text; the kit field's value may be a number or null. */
+  filterText(value: SMTInputValue): string {
+    return value === null ? '' : String(value);
   }
 
   /** A preset, Apply or clearing sets both bounds and refetches at once. */

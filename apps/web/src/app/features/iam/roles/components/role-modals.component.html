@@ -17,7 +17,7 @@
           required
           [smtInvalid]="isCreateSubmitted() && !newRoleForm().name.trim()"
           [smtDescribedBy]="isCreateSubmitted() && !newRoleForm().name.trim() ? 'role-create-name-error' : null"
-          [(ngModel)]="newRoleForm().name"
+          [(value)]="newRoleForm().name"
           [placeholder]="'iam.naprimer_starshiy_analitik_dannyh' | t"
         />
         @if (isCreateSubmitted() && !newRoleForm().name.trim()) {
@@ -31,7 +31,7 @@
           name="roleCreateOrder"
           type="number"
           class="font-mono"
-          [(ngModel)]="newRoleForm().orderNo"
+          [(value)]="newRoleForm().orderNo"
           placeholder="0"
         />
       </div>
@@ -74,7 +74,7 @@
             required
             [smtInvalid]="isEditSubmitted() && !editRoleForm().name.trim()"
             [smtDescribedBy]="isEditSubmitted() && !editRoleForm().name.trim() ? 'role-edit-name-error' : null"
-            [(ngModel)]="editRoleForm().name"
+            [(value)]="editRoleForm().name"
           />
           @if (isEditSubmitted() && !editRoleForm().name.trim()) {
             <span id="role-edit-name-error" class="field-error">{{ 'iam.ukazhite_nazvanie_roli' | t }}</span>
@@ -85,7 +85,7 @@
           <smt-select
             smtTriggerId="role-edit-state"
             name="roleEditState"
-            [(ngModel)]="editRoleForm().state"
+            [(value)]="editRoleForm().state"
             [options]="stateOptions()"
             [allowClear]="false"
             [disabled]="r.pcode === 'admin'"
@@ -101,7 +101,7 @@
             name="roleEditOrder"
             type="number"
             class="font-mono"
-            [(ngModel)]="editRoleForm().orderNo"
+            [(value)]="editRoleForm().orderNo"
           />
         </div>
       </div>

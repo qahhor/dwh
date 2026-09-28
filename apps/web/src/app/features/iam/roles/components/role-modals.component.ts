@@ -1,27 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { Role } from '@core/models/rbac.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-role-modals',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTInputComponent,
-    SMTInputValueAccessor,
   ],
   templateUrl: './role-modals.component.html',
   styles: [

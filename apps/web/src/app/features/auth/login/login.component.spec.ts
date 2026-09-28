@@ -84,10 +84,33 @@ describe('LoginComponent', () => {
     expect(otp.getAttribute('aria-describedby')).toBe('otp-hint');
   });
 
+  it('submits typed credentials on the form submit and shows its own errors instead of the browser bubbles', () => {
+    authService.login.mockReturnValue(throwError(() => ({ detail: 'Неверный логин или пароль' })));
+    const fixture = TestBed.createComponent(LoginComponent);
+    fixture.detectChanges();
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    expect(form.noValidate).toBe(true);
+
+    for (const [id, text] of [
+      ['login', 'user'],
+      ['password', 'wrong'],
+    ]) {
+      const field = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      field.value = text;
+      field.dispatchEvent(new Event('input'));
+    }
+    const submit = new Event('submit', { cancelable: true });
+    form.dispatchEvent(submit);
+    fixture.detectChanges();
+
+    expect(submit.defaultPrevented).toBe(true);
+    expect(authService.login).toHaveBeenCalledWith('user', 'wrong', navigator.userAgent);
+  });
+
   it('keeps a failed login recoverable with inline feedback', () => {
     authService.login.mockReturnValue(throwError(() => ({ detail: 'Неверный логин или пароль' })));
     const fixture = TestBed.createComponent(LoginComponent);
-    fixture.componentInstance.login = 'user';
+    fixture.componentInstance.login.set('user');
     fixture.componentInstance.password.set('wrong');
     fixture.detectChanges();
 

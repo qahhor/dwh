@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
 import { Subscription, Observable } from 'rxjs';
@@ -53,7 +52,6 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   imports: [
     UiPageHeaderComponent,
     SMTRadioGroupComponent,
-    FormsModule,
     RouterModule,
     TranslatePipe,
     SMTButtonComponent,

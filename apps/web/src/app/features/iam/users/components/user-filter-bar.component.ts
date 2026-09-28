@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { Role } from '@core/models/rbac.models';
@@ -12,14 +11,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 @Component({
   selector: 'app-user-filter-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTRadioGroupComponent,
-    SMTSelectComponent,
-    SMTInputComponent,
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent,
-  ],
+  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, TranslatePipe, SMTButtonComponent],
   templateUrl: './user-filter-bar.component.html',
   styleUrl: './user-filter-bar.component.css',
 })

@@ -1,13 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { applyWhen, disabled, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
 import { UplApiService, UplPeriodicity, UplSource, UplSourceRequest, UplStrictness, UplVersionItem } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { uplProblemText } from '../upl-labels';
+import { UplRuleMessage, uplSourceLengthLimits, uplSourceRequisiteRules } from './source-form-rules';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
 export interface SourceForm {
@@ -56,10 +59,7 @@ export class SourceCardStore {
   readonly draftError = signal<string | null>(null);
   readonly draftExists = signal(false);
 
-  /**
-   * The requisites being edited. The fields edit this object in place; the
-   * signal changes only when the whole form is refilled from the server.
-   */
+  /** The requisites being edited; the card's fields write it through {@link requisites}. */
   readonly form = signal<SourceForm>({
     name: '',
     ownerOrg: '',
@@ -69,6 +69,9 @@ export class SourceCardStore {
     reconciliationStrictness: 'error',
   });
 
+  /* The rules run only after a save attempt, so errors still appear on save (not while typing), as before. */
+  private readonly submitted = signal(false);
+
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly draftVersion = computed(() => this.versions().find((v) => v.status === 'draft') ?? null);
   /** Versions a draft can be copied from, newest first. */
@@ -77,6 +80,18 @@ export class SourceCardStore {
       .filter((v) => v.status === 'published' || v.status === 'superseded')
       .sort((a, b) => b.version - a.version),
   );
+
+  private readonly ruleMessage: UplRuleMessage = (key) => ({ kind: key, message: this.i18n.translate(key) });
+  /** The card's form: without the edit right every field is disabled. */
+  readonly requisites = form(this.form, (path) => {
+    disabled(path, () => !this.canEdit());
+    uplSourceLengthLimits(path);
+    applyWhen(
+      path,
+      () => this.submitted(),
+      (checked) => uplSourceRequisiteRules(checked, this.ruleMessage),
+    );
+  });
 
   /** Opens the source named by the route. */
   open(sourceId: string | null): void {
@@ -117,7 +132,10 @@ export class SourceCardStore {
     if (!source || !id || this.isSaving()) {
       return;
     }
-    if (!this.validate()) {
+    this.submitted.set(true);
+    markSMTFormFieldsTouched(this.requisites);
+    this.fieldErrors.set({});
+    if (!this.requisites().valid()) {
       return;
     }
     const form = this.form();
@@ -226,6 +244,7 @@ export class SourceCardStore {
       slaDays: source.slaDays,
       reconciliationStrictness: source.reconciliationStrictness,
     });
+    this.submitted.set(false);
     this.fieldErrors.set({});
     this.saveError.set(null);
   }
@@ -235,26 +254,6 @@ export class SourceCardStore {
     if (wanted && this.canEdit() && !this.draftVersion()) {
       this.openDraftDialog();
     }
-  }
-
-  private validate(): boolean {
-    const form = this.form();
-    const errors: Record<string, string> = {};
-    const name = form.name.trim();
-    if (name.length === 0) {
-      errors['name'] = 'upl.source.err.required';
-    } else if (name.length > 200) {
-      errors['name'] = 'upl.source.err.name_length';
-    }
-    if (form.ownerOrg.trim().length === 0) {
-      errors['ownerOrg'] = 'upl.source.err.required';
-    }
-    const sla = Number(form.slaDays);
-    if (form.slaDays === null || !Number.isInteger(sla) || sla < 0 || sla > 366) {
-      errors['slaDays'] = 'upl.source.err.sla_range';
-    }
-    this.fieldErrors.set(errors);
-    return Object.keys(errors).length === 0;
   }
 
   private handleSaveError(problem: ProblemDetail): void {
