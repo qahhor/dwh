@@ -91,13 +91,13 @@ describe('Notification action lifecycle', () => {
   });
 
   it('cancels an obsolete inbox read and clamps the page after the list shrinks', () => {
-    fixture.componentInstance.currentPage = 5;
+    fixture.componentInstance.currentPage.set(5);
     fixture.componentInstance.loadNotifications();
     const old = http.expectOne('/api/v1/notifications/inbox?limit=50');
     fixture.componentInstance.loadNotifications();
     expect(old.cancelled).toBe(true);
     http.expectOne('/api/v1/notifications/inbox?limit=50').flush([record]);
-    expect(fixture.componentInstance.currentPage).toBe(1);
+    expect(fixture.componentInstance.currentPage()).toBe(1);
     expect(fixture.componentInstance.paginatedItems()).toHaveLength(1);
     http.verify();
   });

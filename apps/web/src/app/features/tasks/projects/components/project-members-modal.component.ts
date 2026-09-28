@@ -1,4 +1,15 @@
-import { Component, Signal, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
@@ -24,6 +35,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-project-members-modal',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -68,7 +80,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                       [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
                       [(ngModel)]="userSearchQuery"
                       (ngModelChange)="onSearchInput($event)"
-                      (focusin)="isUserDropdownOpen = true"
+                      (focusin)="isUserDropdownOpen.set(true)"
                     />
                     @if (selectedUser) {
                       <button
@@ -83,9 +95,9 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                   </div>
 
                   <!-- User Search Results Dropdown -->
-                  @if (isUserDropdownOpen && foundUsers.length > 0) {
+                  @if (isUserDropdownOpen() && foundUsers().length > 0) {
                     <div class="user-dropdown-list">
-                      @for (u of foundUsers; track u) {
+                      @for (u of foundUsers(); track u) {
                         <button
                           type="button"
                           class="user-dropdown-item"
@@ -456,6 +468,9 @@ export class ProjectMembersModalComponent {
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
 
+  readonly foundUsers = signal<User[]>([]);
+  readonly isUserDropdownOpen = signal(false);
+
   readonly rows = computed<ProjectMember[]>(() => this.members() ?? []);
 
   /** The remove column is there only for someone who may change the project. */
@@ -486,11 +501,9 @@ export class ProjectMembersModalComponent {
   };
 
   userSearchQuery = '';
-  foundUsers: User[] = [];
   selectedUser: User | null = null;
   selectedAccessKind = 'MEMBER';
   private readonly accessKindMemo = optionsMemo<SMTSelectOption<string>[]>();
-  isUserDropdownOpen = false;
 
   private searchSubject = new Subject<string>();
 
@@ -513,11 +526,11 @@ export class ProjectMembersModalComponent {
       )
       .subscribe({
         next: (res) => {
-          this.foundUsers = res.items || [];
-          this.isUserDropdownOpen = true;
+          this.foundUsers.set(res.items || []);
+          this.isUserDropdownOpen.set(true);
         },
         error: () => {
-          this.foundUsers = [];
+          this.foundUsers.set([]);
         },
       });
   }
@@ -541,14 +554,14 @@ export class ProjectMembersModalComponent {
   selectUser(user: User): void {
     this.selectedUser = user;
     this.userSearchQuery = user.name;
-    this.isUserDropdownOpen = false;
+    this.isUserDropdownOpen.set(false);
   }
 
   clearSelectedUser(): void {
     this.selectedUser = null;
     this.userSearchQuery = '';
-    this.foundUsers = [];
-    this.isUserDropdownOpen = false;
+    this.foundUsers.set([]);
+    this.isUserDropdownOpen.set(false);
   }
 
   accessVariant(kind: string): 'info' | 'success' | 'neutral' {

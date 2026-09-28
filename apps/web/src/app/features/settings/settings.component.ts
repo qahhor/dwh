@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, HostListener, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { FormsModule } from '@angular/forms';
@@ -25,6 +25,7 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-settings',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTabBarComponent,
     FormsModule,
@@ -65,7 +66,7 @@ export class SettingsComponent implements OnInit {
   readonly legacyLanguageCount = signal(0);
   readonly isMigratingLegacyLanguages = signal(false);
 
-  activeTab: SettingsTab = 'general';
+  readonly activeTab = signal<SettingsTab>('general');
   newLangCode = '';
   newLangName = '';
   newLangJson = '';
@@ -84,13 +85,13 @@ export class SettingsComponent implements OnInit {
       this.route.queryParams.subscribe((params) => {
         const tabParam = params['tab'];
         if (tabParam && this.isTabAvailable(tabParam)) {
-          this.activeTab = tabParam as any;
+          this.activeTab.set(tabParam as any);
         } else if (!this.canManageSystemSettings()) {
-          this.activeTab = 'preferences';
+          this.activeTab.set('preferences');
         }
       });
     } else if (!this.canManageSystemSettings()) {
-      this.activeTab = 'preferences';
+      this.activeTab.set('preferences');
     }
     this.legacyLanguageCount.set(Object.keys(readLegacyLanguages()).length);
     this.loadAllSettings();
@@ -301,7 +302,7 @@ export class SettingsComponent implements OnInit {
 
   setTab(tab: SettingsTab): void {
     if (!this.isTabAvailable(tab)) return;
-    this.activeTab = tab;
+    this.activeTab.set(tab);
     if (this.router && this.route) {
       this.router.navigate([], {
         relativeTo: this.route,
@@ -316,11 +317,11 @@ export class SettingsComponent implements OnInit {
   handleGlobalKeydown(event: KeyboardEvent): void {
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's' && !event.altKey && !event.shiftKey) {
       event.preventDefault();
-      if (['general', 'security', 'storage'].includes(this.activeTab)) {
+      if (['general', 'security', 'storage'].includes(this.activeTab())) {
         if (this.canUpdateSystemSettings() && !this.isSaving()) {
           this.saveSystemSettings();
         }
-      } else if (this.activeTab === 'preferences') {
+      } else if (this.activeTab() === 'preferences') {
         if (!this.isSaving()) {
           this.saveUserSettings();
         }

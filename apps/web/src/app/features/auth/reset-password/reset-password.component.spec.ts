@@ -33,8 +33,8 @@ describe('ResetPasswordComponent', () => {
     const component = fixture.componentInstance;
 
     expect(window.location.hash).toBe('');
-    component.newPassword = 'New-Password-2026';
-    component.confirmPassword = 'New-Password-2026';
+    component.newPassword.set('New-Password-2026');
+    component.confirmPassword.set('New-Password-2026');
     component.submit();
 
     expect(api.post).toHaveBeenCalledWith(
@@ -43,7 +43,7 @@ describe('ResetPasswordComponent', () => {
       { notifyError: false },
     );
     expect(component.state()).toBe('done');
-    expect(component.newPassword).toBe('');
+    expect(component.newPassword()).toBe('');
   });
 
   it('shows an invalid link without a token and sends nothing', async () => {
@@ -58,13 +58,13 @@ describe('ResetPasswordComponent', () => {
     const fixture = await open('#token=link-token');
     const component = fixture.componentInstance;
 
-    component.newPassword = 'short';
-    component.confirmPassword = 'short';
+    component.newPassword.set('short');
+    component.confirmPassword.set('short');
     component.submit();
     expect(component.formError()).not.toBe('');
 
-    component.newPassword = 'New-Password-2026';
-    component.confirmPassword = 'Other-Password-2026';
+    component.newPassword.set('New-Password-2026');
+    component.confirmPassword.set('Other-Password-2026');
     component.submit();
     expect(component.formError()).not.toBe('');
     expect(api.post).not.toHaveBeenCalled();
@@ -75,8 +75,8 @@ describe('ResetPasswordComponent', () => {
     const fixture = await open('#token=used-token');
     const component = fixture.componentInstance;
 
-    component.newPassword = 'New-Password-2026';
-    component.confirmPassword = 'New-Password-2026';
+    component.newPassword.set('New-Password-2026');
+    component.confirmPassword.set('New-Password-2026');
     component.submit();
 
     expect(component.state()).toBe('invalid');
@@ -87,8 +87,8 @@ describe('ResetPasswordComponent', () => {
     const fixture = await open('#token=link-token');
     const component = fixture.componentInstance;
 
-    component.newPassword = 'New-Password-2026';
-    component.confirmPassword = 'New-Password-2026';
+    component.newPassword.set('New-Password-2026');
+    component.confirmPassword.set('New-Password-2026');
     component.submit();
 
     expect(component.state()).toBe('form');

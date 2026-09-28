@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   DestroyRef,
   ElementRef,
@@ -30,6 +31,7 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
 
 @Component({
   selector: 'app-command-palette',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, FormsModule, A11yModule, CommandPaletteResultsComponent, CommandPaletteFooterComponent],
   template: `
     @if (paletteService.isOpen()) {
@@ -63,7 +65,7 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
               aria-autocomplete="list"
               [attr.aria-expanded]="results().length > 0"
               [attr.aria-controls]="results().length > 0 ? listboxId : null"
-              [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex) : null"
+              [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex()) : null"
               [placeholder]="'layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr' | t"
               [(ngModel)]="searchQuery"
               (ngModelChange)="onSearchChange($event)"
@@ -129,7 +131,7 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
             [metadata]="metadata()"
             [results]="results()"
             [recentSearches]="recentSearches()"
-            [selectedIndex]="selectedIndex"
+            [selectedIndex]="selectedIndex()"
             [listboxId]="listboxId"
             [validQuery]="validQuery(searchQuery)"
             (retry)="retrySearch()"
@@ -159,6 +161,7 @@ export class CommandPaletteComponent implements OnDestroy {
   readonly results = signal<SearchHit[]>([]);
   readonly errorMessage = signal<string>('');
   readonly recentSearches = signal<string[]>([]);
+  readonly selectedIndex = signal(0);
 
   readonly categories = computed<CategoryItem[]>(() => {
     const list: CategoryItem[] = [
@@ -179,7 +182,6 @@ export class CommandPaletteComponent implements OnDestroy {
   entityType = 'ALL';
   private retryUntil = 0;
   private cooldownTimer?: ReturnType<typeof setInterval>;
-  selectedIndex = 0;
   private readonly searchSubject = new Subject<string | null>();
   private readonly componentId = CommandPaletteComponent.nextId++;
   readonly titleId = `command-palette-title-${this.componentId}`;
@@ -245,7 +247,7 @@ export class CommandPaletteComponent implements OnDestroy {
         });
         this.results.set(hits);
         this.metadata.set(res);
-        this.selectedIndex = 0;
+        this.selectedIndex.set(0);
         this.isLoading.set(false);
       });
   }
@@ -278,13 +280,13 @@ export class CommandPaletteComponent implements OnDestroy {
     ) {
       if (event.key === 'ArrowDown') {
         event.preventDefault();
-        this.selectedIndex = (this.selectedIndex + 1) % this.results().length;
+        this.selectedIndex.set((this.selectedIndex() + 1) % this.results().length);
       } else if (event.key === 'ArrowUp') {
         event.preventDefault();
-        this.selectedIndex = (this.selectedIndex - 1 + this.results().length) % this.results().length;
+        this.selectedIndex.set((this.selectedIndex() - 1 + this.results().length) % this.results().length);
       } else if (event.key === 'Enter') {
         event.preventDefault();
-        const hit = this.results()[this.selectedIndex];
+        const hit = this.results()[this.selectedIndex()];
         if (hit) {
           this.navigateTo(hit);
         }
@@ -296,7 +298,7 @@ export class CommandPaletteComponent implements OnDestroy {
     const normalized = query.trim();
     this.results.set([]);
     this.metadata.set(null);
-    this.selectedIndex = 0;
+    this.selectedIndex.set(0);
     this.errorMessage.set(
       this.retryUntil > Date.now()
         ? this.uiI18n.translate('search.rate_limited')

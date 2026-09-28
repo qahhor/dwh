@@ -1,4 +1,13 @@
-import { afterNextRender, Component, DestroyRef, ElementRef, Injector, signal, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  afterNextRender,
+  Component,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  signal,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
@@ -18,6 +27,7 @@ export * from './login.models';
 
 @Component({
   selector: 'app-login',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -272,17 +282,17 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
   readonly formError = signal<string>('');
+  readonly password = signal('');
+  readonly otpCode = signal('');
+  readonly otpToken = signal('');
+  readonly newPassword = signal('');
+  readonly confirmNewPassword = signal('');
+  readonly tempOldPassword = signal('');
 
   readonly passwordPolicy = PASSWORD_POLICY;
   private readonly uiI18n = this.i18n;
 
   login = '';
-  password = '';
-  otpCode = '';
-  otpToken = '';
-  newPassword = '';
-  confirmNewPassword = '';
-  tempOldPassword = '';
 
   constructor(
     private authService: AuthService,
@@ -295,7 +305,7 @@ export class LoginComponent {
 
   onLoginSubmit() {
     if (this.isLoading() || this.step() !== 'credentials' || this.isResetModalOpen()) return;
-    if (!this.login || !this.password) {
+    if (!this.login || !this.password()) {
       this.formError.set(this.uiI18n.translate('auth.enter_login_and_password'));
       this.focusInput(!this.login ? 'login' : 'password');
       return;
@@ -305,19 +315,19 @@ export class LoginComponent {
     this.capsLockField.set(null);
     this.isLoading.set(true);
     this.authService
-      .login(this.login, this.password, navigator.userAgent)
+      .login(this.login, this.password(), navigator.userAgent)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.isLoading.set(false);
           if (res.step === 'otp') {
-            this.otpToken = res.otp_token || '';
-            this.otpCode = '';
+            this.otpToken.set(res.otp_token || '');
+            this.otpCode.set('');
             this.changeStep('otp');
           } else if (res.step === 'success' && res.user?.forcePasswordChange) {
-            this.tempOldPassword = this.password;
-            this.newPassword = '';
-            this.confirmNewPassword = '';
+            this.tempOldPassword.set(this.password());
+            this.newPassword.set('');
+            this.confirmNewPassword.set('');
             this.changeStep('must_change_password');
           }
         },
@@ -332,8 +342,8 @@ export class LoginComponent {
   }
 
   onOtpSubmit() {
-    if (this.isLoading() || this.step() !== 'otp' || !this.otpToken) return;
-    if (!/^[0-9]{6}$/.test(this.otpCode)) {
+    if (this.isLoading() || this.step() !== 'otp' || !this.otpToken()) return;
+    if (!/^[0-9]{6}$/.test(this.otpCode())) {
       this.formError.set(this.uiI18n.translate('auth.enter_six_digit_code'));
       this.focusInput('otp-code');
       return;
@@ -342,15 +352,15 @@ export class LoginComponent {
     this.formError.set('');
     this.isLoading.set(true);
     this.authService
-      .verifyOtp(this.otpToken, this.otpCode, navigator.userAgent)
+      .verifyOtp(this.otpToken(), this.otpCode(), navigator.userAgent)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.isLoading.set(false);
           if (res.step === 'success' && res.user?.forcePasswordChange) {
-            this.tempOldPassword = this.password;
-            this.newPassword = '';
-            this.confirmNewPassword = '';
+            this.tempOldPassword.set(this.password());
+            this.newPassword.set('');
+            this.confirmNewPassword.set('');
             this.changeStep('must_change_password');
           }
         },
@@ -366,17 +376,17 @@ export class LoginComponent {
 
   onChangePasswordSubmit() {
     if (this.isLoading() || this.step() !== 'must_change_password') return;
-    if (!this.newPassword || !this.confirmNewPassword) {
+    if (!this.newPassword() || !this.confirmNewPassword()) {
       this.formError.set(this.uiI18n.translate('auth.enter_and_confirm_new_password'));
-      this.focusInput(!this.newPassword ? 'new-password' : 'confirm-new-password');
+      this.focusInput(!this.newPassword() ? 'new-password' : 'confirm-new-password');
       return;
     }
-    if (!fitsPasswordPolicy(this.newPassword)) {
+    if (!fitsPasswordPolicy(this.newPassword())) {
       this.formError.set(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
       this.focusInput('new-password');
       return;
     }
-    if (this.newPassword !== this.confirmNewPassword) {
+    if (this.newPassword() !== this.confirmNewPassword()) {
       this.formError.set(this.uiI18n.translate('auth.vvedennye_paroli_ne_sovpadayut'));
       this.focusInput('confirm-new-password');
       return;
@@ -391,20 +401,20 @@ export class LoginComponent {
       .post(
         '/auth/password',
         {
-          oldPassword: this.tempOldPassword || this.password,
-          newPassword: this.newPassword,
+          oldPassword: this.tempOldPassword() || this.password(),
+          newPassword: this.newPassword(),
         },
         { notifyError: false },
       )
       .subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.password = '';
-          this.tempOldPassword = '';
-          this.newPassword = '';
-          this.confirmNewPassword = '';
-          this.otpToken = '';
-          this.otpCode = '';
+          this.password.set('');
+          this.tempOldPassword.set('');
+          this.newPassword.set('');
+          this.confirmNewPassword.set('');
+          this.otpToken.set('');
+          this.otpCode.set('');
           this.changeStep('credentials');
           this.authService.onPasswordChanged();
         },
@@ -438,12 +448,12 @@ export class LoginComponent {
 
   backToCredentials(): void {
     if (this.isLoading()) return;
-    this.password = '';
-    this.tempOldPassword = '';
-    this.otpToken = '';
-    this.otpCode = '';
-    this.newPassword = '';
-    this.confirmNewPassword = '';
+    this.password.set('');
+    this.tempOldPassword.set('');
+    this.otpToken.set('');
+    this.otpCode.set('');
+    this.newPassword.set('');
+    this.confirmNewPassword.set('');
     this.changeStep('credentials');
   }
 

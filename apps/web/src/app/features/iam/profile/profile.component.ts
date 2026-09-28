@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, signal, computed, inject, viewChild } from '@angular/core';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { ApiService } from '../../../core/services/api.service';
@@ -33,6 +33,7 @@ export * from './profile.models';
 
 @Component({
   selector: 'app-profile',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     UserProfileCardComponent,
@@ -58,8 +59,8 @@ export * from './profile.models';
       <div class="sections-grid">
         <!-- Change Password Card -->
         <app-profile-password-card
-          [passwordForm]="passwordForm"
-          [isPasswordSubmitted]="isPasswordSubmitted"
+          [passwordForm]="passwordForm()"
+          [isPasswordSubmitted]="isPasswordSubmitted()"
           [isChangingPassword]="isChangingPassword()"
           [passwordStrength]="passwordStrength()"
           [hasMinLength]="hasMinLength()"
@@ -102,17 +103,17 @@ export * from './profile.models';
           [isCreatingToken]="isCreatingToken()"
           [isCreateTokenModalOpen]="isCreateTokenModalOpen()"
           [isTokenSecretModalOpen]="isTokenSecretModalOpen()"
-          [isTokenSubmitted]="isTokenSubmitted"
-          [newTokenName]="newTokenName"
-          [selectedTokenExpiration]="selectedTokenExpiration"
-          [createdTokenSecret]="createdTokenSecret"
+          [isTokenSubmitted]="isTokenSubmitted()"
+          [newTokenName]="newTokenName()"
+          [selectedTokenExpiration]="selectedTokenExpiration()"
+          [createdTokenSecret]="createdTokenSecret()"
           [copiedSecret]="copiedSecret()"
           [tokenExpirationOptions]="tokenExpirationOptions"
           (openCreateTokenModal)="openCreateTokenModal()"
           (closeCreateTokenModal)="isCreateTokenModalOpen.set(false)"
           (createTokenSubmit)="createTokenSubmit()"
-          (nameChange)="newTokenName = $event"
-          (expirationChange)="selectedTokenExpiration = $event"
+          (nameChange)="newTokenName.set($event)"
+          (expirationChange)="selectedTokenExpiration.set($event)"
           (closeSecretModal)="isTokenSecretModalOpen.set(false)"
           (copySecret)="copySecret()"
           (requestRevoke)="requestRevokeToken($event)"
@@ -205,14 +206,20 @@ export class ProfileComponent implements OnInit {
   readonly isTokenSecretModalOpen = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
 
+  readonly isPasswordSubmitted = signal(false);
+  readonly isTokenSubmitted = signal(false);
+
+  readonly newTokenName = signal('');
+  readonly selectedTokenExpiration = signal('90');
+  readonly createdTokenSecret = signal('');
+
+  readonly passwordForm = signal<PasswordForm>({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
   readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
-
-  isPasswordSubmitted = false;
-  isTokenSubmitted = false;
-
-  newTokenName = '';
-  selectedTokenExpiration = '90';
-  createdTokenSecret = '';
 
   tokenExpirationOptions: TokenExpirationOption[] = [
     { value: '30', labelKey: 'iam.srok_30_dney' },
@@ -221,12 +228,6 @@ export class ProfileComponent implements OnInit {
     { value: 'never', labelKey: 'iam.bessrochno' },
   ];
 
-  passwordForm: PasswordForm = {
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  };
-
   constructor(
     public authService: AuthService,
     private api: ApiService,
@@ -234,7 +235,7 @@ export class ProfileComponent implements OnInit {
   ) {}
 
   passwordStrength(): PasswordStrength {
-    const pwd = this.passwordForm.newPassword;
+    const pwd = this.passwordForm().newPassword;
     if (!pwd) return { score: 0, label: '', percent: 0, colorClass: '' };
     let score = 0;
     if (pwd.length >= PASSWORD_MIN_LENGTH) score++;
@@ -264,22 +265,22 @@ export class ProfileComponent implements OnInit {
   }
 
   hasMinLength(): boolean {
-    return fitsPasswordPolicy(this.passwordForm.newPassword);
+    return fitsPasswordPolicy(this.passwordForm().newPassword);
   }
 
   hasLettersAndNumbers(): boolean {
-    const pwd = this.passwordForm.newPassword || '';
+    const pwd = this.passwordForm().newPassword || '';
     return /[a-zA-Z\u0400-\u04FF]/.test(pwd) && /\d/.test(pwd);
   }
 
   hasMixedCase(): boolean {
-    const pwd = this.passwordForm.newPassword || '';
+    const pwd = this.passwordForm().newPassword || '';
     return /[a-z\u0430-\u044f]/.test(pwd) && /[A-Z\u0410-\u042f]/.test(pwd);
   }
 
   passwordsMatch(): boolean {
-    const p1 = this.passwordForm.newPassword;
-    const p2 = this.passwordForm.confirmPassword;
+    const p1 = this.passwordForm().newPassword;
+    const p2 = this.passwordForm().confirmPassword;
     return !!p1 && !!p2 && p1 === p2;
   }
 
@@ -398,19 +399,19 @@ export class ProfileComponent implements OnInit {
 
   submitChangePassword(event: Event) {
     event.preventDefault();
-    this.isPasswordSubmitted = true;
+    this.isPasswordSubmitted.set(true);
 
-    if (!this.passwordForm.oldPassword || !this.passwordForm.newPassword || !this.passwordForm.confirmPassword) {
+    if (!this.passwordForm().oldPassword || !this.passwordForm().newPassword || !this.passwordForm().confirmPassword) {
       this.toast.warning(this.uiI18n.translate('iam.zapolnite_vse_polya_smeny_parolya'));
       return;
     }
 
-    if (!fitsPasswordPolicy(this.passwordForm.newPassword)) {
+    if (!fitsPasswordPolicy(this.passwordForm().newPassword)) {
       this.toast.warning(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
       return;
     }
 
-    if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+    if (this.passwordForm().newPassword !== this.passwordForm().confirmPassword) {
       this.toast.warning(this.uiI18n.translate('iam.novyy_parol_i_podtverzhdenie_ne_sovpadayut'));
       return;
     }
@@ -418,14 +419,14 @@ export class ProfileComponent implements OnInit {
     this.isChangingPassword.set(true);
     this.api
       .post('/iam/users/me/password', {
-        oldPassword: this.passwordForm.oldPassword,
-        newPassword: this.passwordForm.newPassword,
+        oldPassword: this.passwordForm().oldPassword,
+        newPassword: this.passwordForm().newPassword,
       })
       .subscribe({
         next: () => {
           this.isChangingPassword.set(false);
-          this.passwordForm = { oldPassword: '', newPassword: '', confirmPassword: '' };
-          this.isPasswordSubmitted = false;
+          this.passwordForm.set({ oldPassword: '', newPassword: '', confirmPassword: '' });
+          this.isPasswordSubmitted.set(false);
           this.authService.onPasswordChanged();
         },
         error: () => {
@@ -448,41 +449,41 @@ export class ProfileComponent implements OnInit {
   }
 
   openCreateTokenModal() {
-    this.newTokenName = '';
-    this.selectedTokenExpiration = '90';
-    this.isTokenSubmitted = false;
+    this.newTokenName.set('');
+    this.selectedTokenExpiration.set('90');
+    this.isTokenSubmitted.set(false);
     this.isCreateTokenModalOpen.set(true);
   }
 
   createTokenSubmit() {
-    this.isTokenSubmitted = true;
-    if (!this.newTokenName.trim()) {
+    this.isTokenSubmitted.set(true);
+    if (!this.newTokenName().trim()) {
       this.toast.warning(this.uiI18n.translate('iam.vvedite_nazvanie_api_tokena.bfec35d'));
       return;
     }
 
     let expiresAt: string | null = null;
     const now = new Date();
-    if (this.selectedTokenExpiration === '30') {
+    if (this.selectedTokenExpiration() === '30') {
       expiresAt = new Date(now.getTime() + 30 * 86400000).toISOString();
-    } else if (this.selectedTokenExpiration === '90') {
+    } else if (this.selectedTokenExpiration() === '90') {
       expiresAt = new Date(now.getTime() + 90 * 86400000).toISOString();
-    } else if (this.selectedTokenExpiration === '365') {
+    } else if (this.selectedTokenExpiration() === '365') {
       expiresAt = new Date(now.getTime() + 365 * 86400000).toISOString();
     }
 
     this.isCreatingToken.set(true);
     this.api
       .post<CreatedTokenResponse>('/iam/profile/tokens', {
-        name: this.newTokenName.trim(),
+        name: this.newTokenName().trim(),
         expiresAt,
       })
       .subscribe({
         next: (res) => {
           this.isCreatingToken.set(false);
           this.isCreateTokenModalOpen.set(false);
-          this.isTokenSubmitted = false;
-          this.createdTokenSecret = res.rawSecretToken;
+          this.isTokenSubmitted.set(false);
+          this.createdTokenSecret.set(res.rawSecretToken);
           this.copiedSecret.set(false);
           this.isTokenSecretModalOpen.set(true);
           this.loadTokens();
@@ -510,8 +511,8 @@ export class ProfileComponent implements OnInit {
   }
 
   copySecret() {
-    if (!this.createdTokenSecret) return;
-    navigator.clipboard.writeText(this.createdTokenSecret);
+    if (!this.createdTokenSecret()) return;
+    navigator.clipboard.writeText(this.createdTokenSecret());
     this.copiedSecret.set(true);
     this.toast.success(this.uiI18n.translate('iam.token_skopirovan_v_bufer_obmena'));
     setTimeout(() => this.copiedSecret.set(false), 2000);

@@ -135,20 +135,20 @@ describe('ProfileComponent UI contracts', () => {
     const { fixture } = await createFixture();
     const comp = fixture.componentInstance;
 
-    comp.passwordForm.newPassword = 'short';
+    comp.passwordForm().newPassword = 'short';
     expect(comp.passwordStrength().score).toBeLessThan(2);
     expect(comp.hasMinLength()).toBe(false);
 
-    comp.passwordForm.newPassword = 'CorrectP@ssword123';
+    comp.passwordForm().newPassword = 'CorrectP@ssword123';
     expect(comp.passwordStrength().score).toBe(4);
     expect(comp.hasMinLength()).toBe(true);
     expect(comp.hasLettersAndNumbers()).toBe(true);
     expect(comp.hasMixedCase()).toBe(true);
 
-    comp.passwordForm.confirmPassword = 'DifferentPassword123';
+    comp.passwordForm().confirmPassword = 'DifferentPassword123';
     expect(comp.passwordsMatch()).toBe(false);
 
-    comp.passwordForm.confirmPassword = 'CorrectP@ssword123';
+    comp.passwordForm().confirmPassword = 'CorrectP@ssword123';
     expect(comp.passwordsMatch()).toBe(true);
   });
 
@@ -193,8 +193,8 @@ describe('ProfileComponent UI contracts', () => {
     const comp = fixture.componentInstance;
 
     comp.openCreateTokenModal();
-    comp.newTokenName = 'Deploy Bot';
-    comp.selectedTokenExpiration = '30';
+    comp.newTokenName.set('Deploy Bot');
+    comp.selectedTokenExpiration.set('30');
     comp.createTokenSubmit();
 
     expect(apiMock.post).toHaveBeenCalledWith(
@@ -206,7 +206,7 @@ describe('ProfileComponent UI contracts', () => {
     );
 
     expect(comp.isTokenSecretModalOpen()).toBe(true);
-    expect(comp.createdTokenSecret).toBe('dwh_secret_xyz');
+    expect(comp.createdTokenSecret()).toBe('dwh_secret_xyz');
   });
 
   it('requests and confirms session termination', async () => {

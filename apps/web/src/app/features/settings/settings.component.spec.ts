@@ -170,7 +170,7 @@ describe('SettingsComponent UI contracts', () => {
 
   it('names security values and switches', async () => {
     const fixture = await createFixture();
-    fixture.componentInstance.activeTab = 'security';
+    fixture.componentInstance.activeTab.set('security');
     redraw(fixture);
 
     // The length is the password policy (8..20): shown, not edited.
@@ -347,7 +347,7 @@ describe('SettingsComponent UI contracts', () => {
 
   it('opens add language modal with isOpen=true and closes it cleanly', async () => {
     const fixture = await createFixture();
-    fixture.componentInstance.activeTab = 'languages';
+    fixture.componentInstance.activeTab.set('languages');
     redraw(fixture);
 
     expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();

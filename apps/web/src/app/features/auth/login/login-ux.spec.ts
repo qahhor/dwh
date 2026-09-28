@@ -65,7 +65,7 @@ describe('Login form interactions', () => {
 
   function fillCredentials(): void {
     component.login = 'login-ux';
-    component.password = 'Synthetic-pass-26!';
+    component.password.set('Synthetic-pass-26!');
     fixture.detectChanges();
   }
 
@@ -180,7 +180,7 @@ describe('Login form interactions', () => {
   it('rejects incomplete and non-numeric OTP locally', async () => {
     await enterStep('otp');
     for (const code of ['', '123', 'abc123']) {
-      component.otpCode = code;
+      component.otpCode.set(code);
       submit();
       expect(fixture.nativeElement.querySelector('[role="alert"]')).not.toBeNull();
       http.expectNone('/api/v1/auth/otp');
@@ -189,7 +189,7 @@ describe('Login form interactions', () => {
 
   it('blocks duplicate OTP submits and Back while verification is pending', async () => {
     await enterStep('otp');
-    component.otpCode = '246810';
+    component.otpCode.set('246810');
     submit();
     submit();
     const requests = http.match('/api/v1/auth/otp');
@@ -208,7 +208,7 @@ describe('Login form interactions', () => {
 
   it('moves from OTP to forced change with an empty, masked password draft', async () => {
     await enterStep('otp');
-    component.otpCode = '246810';
+    component.otpCode.set('246810');
     submit();
     http.expectOne('/api/v1/auth/otp').flush({ step: 'success', user: forcedUser });
     fixture.detectChanges();
@@ -221,8 +221,8 @@ describe('Login form interactions', () => {
 
   it('focuses confirmation and associates a password mismatch with its error', async () => {
     await enterStep('must_change_password');
-    component.newPassword = 'Synthetic-pass-26!';
-    component.confirmNewPassword = 'Different-pass-26!';
+    component.newPassword.set('Synthetic-pass-26!');
+    component.confirmNewPassword.set('Different-pass-26!');
     submit();
     await fixture.whenStable();
     expect(document.activeElement).toBe(input('confirm-new-password'));
@@ -232,8 +232,8 @@ describe('Login form interactions', () => {
 
   it('blocks duplicate password saves and cancellation, and keeps failures inline', async () => {
     await enterStep('must_change_password');
-    component.newPassword = 'Synth-new-pass-26!';
-    component.confirmNewPassword = component.newPassword;
+    component.newPassword.set('Synth-new-pass-26!');
+    component.confirmNewPassword.set(component.newPassword());
     submit();
     submit();
     const requests = http.match('/api/v1/auth/password');
@@ -251,9 +251,9 @@ describe('Login form interactions', () => {
     'clears abandoned secrets and errors when returning from %s',
     async (step) => {
       await enterStep(step);
-      component.otpCode = '246810';
-      component.newPassword = 'Synthetic-draft';
-      component.confirmNewPassword = 'Synthetic-draft';
+      component.otpCode.set('246810');
+      component.newPassword.set('Synthetic-draft');
+      component.confirmNewPassword.set('Synthetic-draft');
       component.formError.set('Previous step error');
       fixture.detectChanges();
       fixture.nativeElement.querySelector('.smt-button--ghost').click();
@@ -262,12 +262,12 @@ describe('Login form interactions', () => {
       expect(component.step()).toBe('credentials');
       expect(component.login).toBe('login-ux');
       expect([
-        component.password,
-        component.tempOldPassword,
-        component.otpToken,
-        component.otpCode,
-        component.newPassword,
-        component.confirmNewPassword,
+        component.password(),
+        component.tempOldPassword(),
+        component.otpToken(),
+        component.otpCode(),
+        component.newPassword(),
+        component.confirmNewPassword(),
       ]).toEqual(['', '', '', '', '', '']);
       expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
       expect(document.activeElement).toBe(input('login'));
@@ -285,8 +285,8 @@ describe('Login form interactions', () => {
   it('ends the authenticated session if password saving succeeds after the form is destroyed', async () => {
     await enterStep('must_change_password');
     const auth = TestBed.inject(AuthService);
-    component.newPassword = 'Synth-new-pass-26!';
-    component.confirmNewPassword = component.newPassword;
+    component.newPassword.set('Synth-new-pass-26!');
+    component.confirmNewPassword.set(component.newPassword());
     submit();
     const request = http.expectOne('/api/v1/auth/password');
     fixture.destroy();

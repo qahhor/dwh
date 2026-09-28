@@ -88,7 +88,7 @@ describe('LoginComponent', () => {
     authService.login.mockReturnValue(throwError(() => ({ detail: 'Неверный логин или пароль' })));
     const fixture = TestBed.createComponent(LoginComponent);
     fixture.componentInstance.login = 'user';
-    fixture.componentInstance.password = 'wrong';
+    fixture.componentInstance.password.set('wrong');
     fixture.detectChanges();
 
     fixture.componentInstance.onLoginSubmit();
@@ -96,6 +96,6 @@ describe('LoginComponent', () => {
 
     const error = fixture.nativeElement.querySelector('.form-error[role="alert"]') as HTMLElement;
     expect(error.textContent).toContain('Неверный логин или пароль');
-    expect(fixture.componentInstance.password).toBe('wrong');
+    expect(fixture.componentInstance.password()).toBe('wrong');
   });
 });

@@ -41,7 +41,7 @@ describe('CustomFieldsComponent', () => {
     addButton.click();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.showModal).toBe(true);
+    expect(fixture.componentInstance.showModal()).toBe(true);
     // smt-checkbox keeps a hidden native box (aria-hidden); the person meets its role="checkbox" instead.
     const controls = Array.from(
       inScreen(fixture.nativeElement).querySelectorAll(
@@ -61,11 +61,11 @@ describe('CustomFieldsComponent', () => {
     }
     expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Обновить поля"]')).not.toBeNull();
 
-    expect(fixture.componentInstance.formData.isRequired).toBe(false);
+    expect(fixture.componentInstance.formData().isRequired).toBe(false);
     await fixture.whenStable(); // NgForm registers its ngModel controls a tick after render
     required.click();
     await fixture.whenStable();
-    expect(fixture.componentInstance.formData.isRequired).toBe(true);
+    expect(fixture.componentInstance.formData().isRequired).toBe(true);
   });
 
   it('configures select values and sends them to the existing API', async () => {
@@ -80,7 +80,7 @@ describe('CustomFieldsComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.componentInstance.showModal).toBe(true);
+    expect(fixture.componentInstance.showModal()).toBe(true);
 
     const code = inScreen(fixture.nativeElement).querySelector('#custom-field-code') as HTMLInputElement;
     const name = inScreen(fixture.nativeElement).querySelector('#custom-field-name') as HTMLInputElement;
@@ -94,7 +94,7 @@ describe('CustomFieldsComponent', () => {
     (Array.from(document.querySelectorAll('.smt-select__option')) as HTMLElement[])[4].click();
     await fixture.whenStable();
     fixture.detectChanges();
-    expect(fixture.componentInstance.formData.fieldType).toBe('select');
+    expect(fixture.componentInstance.formData().fieldType).toBe('select');
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -105,7 +105,7 @@ describe('CustomFieldsComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.formData).toEqual(
+    expect(fixture.componentInstance.formData()).toEqual(
       expect.objectContaining({
         code: 'status_kind',
         name: 'Тип статуса',
@@ -311,7 +311,7 @@ describe('CustomFieldsComponent', () => {
     const event = { target: input } as unknown as Event;
 
     fixture.componentInstance.onCodeInput(event);
-    expect(fixture.componentInstance.formData.code).toBe('my_special_code');
+    expect(fixture.componentInstance.formData().code).toBe('my_special_code');
   });
 
   it('validates reserved codes and rejects them', async () => {
@@ -319,11 +319,10 @@ describe('CustomFieldsComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.openCreateModal();
-    fixture.componentInstance.formData.code = 'status';
-    fixture.componentInstance.formData.name = 'Test';
+    fixture.componentInstance.formData.update((data) => ({ ...data, code: 'status', name: 'Test' }));
     fixture.componentInstance.saveField();
 
-    expect(fixture.componentInstance.formError).not.toBe('');
+    expect(fixture.componentInstance.formError()).not.toBe('');
     expect(toast.error).toHaveBeenCalled();
   });
 
