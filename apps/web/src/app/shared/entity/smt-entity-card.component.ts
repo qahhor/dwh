@@ -1,9 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
 import type { FormFieldMeta, FormMeta, FormValues } from '../../core/models/form-meta.models';
-import { ApiService } from '../../core/services/api.service';
 import { fieldLabel, optionLabel } from '../../core/services/form-meta.service';
 import { I18nService } from '../../core/services/i18n.service';
-import { refLookup } from '../lookups/ref-lookup';
+import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
 
 interface CardLine {
@@ -72,7 +71,7 @@ interface CardLine {
 export class SMTEntityCardComponent {
   private readonly i18n = inject(I18nService);
 
-  private readonly api = inject(ApiService);
+  private readonly refLookups = inject(RefLookups);
 
   private readonly destroyRef = inject(DestroyRef);
 
@@ -130,7 +129,8 @@ export class SMTEntityCardComponent {
         const wanted = nameKey(field.key, id);
         if (this.asked.has(wanted)) continue;
         this.asked.add(wanted);
-        const subscription = refLookup(this.api, ref)
+        const subscription = this.refLookups
+          .source(ref)
           .resolve?.([id as string | number])
           .subscribe((rows) => {
             const row = rows[0] as Record<string, unknown> | undefined;

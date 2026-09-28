@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, model, out
 import { Observable, tap } from 'rxjs';
 import type { FormMeta } from '../../core/models/form-meta.models';
 import type { QueryListMeta } from '../../core/models/query-meta.models';
-import { ApiService } from '../../core/services/api.service';
+import { EntitiesApi } from './entities.api';
 import { canDo, hasCapability } from '../../core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { BULK_MAX_IDS, BulkResult } from '../bulk/bulk';
@@ -55,7 +55,7 @@ import { SMTModalService } from '../ui-kit/components/modal';
   styles: [':host { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }'],
 })
 export class SMTEntityToolbarComponent {
-  private readonly api = inject(ApiService);
+  private readonly entities = inject(EntitiesApi);
 
   private readonly i18n = inject(I18nService);
 
@@ -109,18 +109,16 @@ export class SMTEntityToolbarComponent {
 
   private runDelete(code: string, ids: number[]): Observable<BulkResult> {
     this.busy.set(true);
-    return this.api
-      .post<BulkResult>(`/entities/${encodeURIComponent(code)}/bulk`, { action: 'delete', ids }, { notifyError: false })
-      .pipe(
-        tap({
-          next: (result) => {
-            this.busy.set(false);
-            this.selected.set([]);
-            this.result.set(result.failed > 0 ? result : null);
-            this.bulkDone.emit(result);
-          },
-          error: () => this.busy.set(false),
-        }),
-      );
+    return this.entities.bulkDelete(code, ids).pipe(
+      tap({
+        next: (result) => {
+          this.busy.set(false);
+          this.selected.set([]);
+          this.result.set(result.failed > 0 ? result : null);
+          this.bulkDone.emit(result);
+        },
+        error: () => this.busy.set(false),
+      }),
+    );
   }
 }

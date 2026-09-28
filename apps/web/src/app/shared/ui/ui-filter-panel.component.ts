@@ -7,8 +7,7 @@ import {
   QueryMatch,
   QueryOp,
 } from '../../core/models/query-meta.models';
-import { ApiService } from '../../core/services/api.service';
-import { refLookup } from '../lookups/ref-lookup';
+import { RefLookups } from '../lookups/ref-lookup';
 import { SMTDataSelectComponent } from '../ui-kit/components/forms/data-select/data-select.component';
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
 import { SMTRadioGroupComponent, SMTRadioOption } from '../ui-kit/components/forms/radio-group';
@@ -402,7 +401,7 @@ export class UiFilterPanelComponent {
   private readonly drawer = inject<SMTDrawerRef<FilterPanelResult>>(SMT_DRAWER_REF);
   private readonly i18n = inject(I18nService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
-  private readonly api = inject(ApiService);
+  private readonly refLookups = inject(RefLookups);
 
   readonly rows = signal<FilterDraft[]>(this.data.conditions.map(fromCondition));
   /** How the rows combine; offered once there are two of them. */
@@ -511,7 +510,7 @@ export class UiFilterPanelComponent {
   refSource(field: QueryFieldMeta): SMTLookupSource<Record<string, unknown>, SMTLookupKey> {
     let source = this.refSources.get(field.key);
     if (!source) {
-      source = refLookup(this.api, field.ref!);
+      source = this.refLookups.source(field.ref!);
       this.refSources.set(field.key, source);
     }
     return source;

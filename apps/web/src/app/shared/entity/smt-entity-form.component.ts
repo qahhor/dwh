@@ -18,11 +18,10 @@ import type {
   FormSectionMeta,
   FormValues,
 } from '../../core/models/form-meta.models';
-import { ApiService } from '../../core/services/api.service';
 import { fieldLabel, optionLabel } from '../../core/services/form-meta.service';
 import { I18nService } from '../../core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
-import { refLookup } from '../lookups/ref-lookup';
+import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';
 import { SMTControlComponent } from '../ui-kit/components/forms/control/control.component';
 import {
@@ -157,7 +156,7 @@ interface DrawnSection {
 export class SMTEntityFormComponent {
   private readonly i18n = inject(I18nService);
 
-  private readonly api = inject(ApiService);
+  private readonly refLookups = inject(RefLookups);
 
   private readonly lookups = inject(LookupSources);
 
@@ -241,7 +240,7 @@ export class SMTEntityFormComponent {
     };
     let source: SMTLookupSource<unknown, SMTLookupKey> | null = null;
     if (field.ref) {
-      source = field.ref.path === '/iam/users' ? this.lookups.activeUsers : refLookup(this.api, field.ref);
+      source = field.ref.path === '/iam/users' ? this.lookups.activeUsers : this.refLookups.source(field.ref);
     }
     return { meta: field, def, label, source };
   }
