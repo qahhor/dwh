@@ -47,7 +47,7 @@ describe('RolesComponent UI contracts', () => {
       modifiedAt: '2026-08-30T00:00:00Z',
     };
     fixture.componentInstance.roles.set([role]);
-    fixture.componentInstance.selectedRole.set(role);
+    fixture.componentInstance.matrix.selectedRole.set(role);
     fixture.componentInstance.moduleGroups = [
       {
         moduleCode: 'audit',
@@ -83,8 +83,8 @@ describe('RolesComponent UI contracts', () => {
 
   it('connects the required role name to inline validation', async () => {
     const fixture = await createFixture();
-    fixture.componentInstance.openCreateModal();
-    (fixture.componentInstance as any).isCreateSubmitted = true;
+    fixture.componentInstance.roleForms.openCreateModal();
+    fixture.componentInstance.roleForms.isCreateSubmitted = true;
     fixture.detectChanges();
 
     const name = inScreen(fixture.nativeElement).querySelector('#role-create-name') as HTMLInputElement;
@@ -108,14 +108,14 @@ describe('RolesComponent UI contracts', () => {
     panel.selectRule('SELF');
     fixture.componentInstance.selectRole(second);
     fixture.detectChanges();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(true);
 
     panel.discard.cancel();
     fixture.componentInstance.selectRole(second);
     panel.discard.confirm();
     fixture.detectChanges();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(second.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(second.id);
     expect(fixture.debugElement.query(By.directive(RoleScopePanelComponent)).componentInstance.roleId()).toBe(
       second.id,
     );
@@ -145,11 +145,11 @@ describe('RolesComponent UI contracts', () => {
     fixture.componentInstance.selectRole(second);
     fixture.componentInstance.openDeleteRoleModal(second);
     fixture.detectChanges();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
-    expect(fixture.componentInstance.isDeleteModalOpen()).toBe(false);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.roleForms.isDeleteModalOpen()).toBe(false);
 
-    fixture.componentInstance.rolePermissions.set(new Set(['audit.log.view']));
-    fixture.componentInstance.savePermissions();
+    fixture.componentInstance.matrix.rolePermissions.set(new Set(['audit.log.view']));
+    fixture.componentInstance.matrix.savePermissions();
     expect(api.put).toHaveBeenCalledWith('/rbac/roles/1/permissions', [{ formCode: 'audit.log', action: 'view' }]);
 
     scopeWrite.error({ status: 409, detail: 'retry' });
@@ -199,8 +199,8 @@ describe('RolesComponent UI contracts', () => {
 
       fixture.componentInstance.selectRole(second);
       fixture.componentInstance.openDeleteRoleModal(first);
-      expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
-      expect(fixture.componentInstance.isDeleteModalOpen()).toBe(false);
+      expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
+      expect(fixture.componentInstance.roleForms.isDeleteModalOpen()).toBe(false);
 
       permissions.setPermissions(['*.*']);
       fixture.detectChanges();
@@ -256,7 +256,7 @@ describe('RolesComponent UI contracts', () => {
     fixture.detectChanges();
 
     expect(api.delete).toHaveBeenCalledWith('/rbac/roles/2');
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
     expect(panel.hasUnsavedWork()).toBe(true);
   });
 
@@ -280,19 +280,19 @@ describe('RolesComponent UI contracts', () => {
     fixture.componentInstance.openDeleteRoleModal(first);
     fixture.componentInstance.openDeleteRoleModal(second);
     fixture.componentInstance.confirmDeleteRole();
-    expect(fixture.componentInstance.deletingRole?.id).toBe(first.id);
+    expect(fixture.componentInstance.roleForms.deletingRole?.id).toBe(first.id);
     expect(api.delete).not.toHaveBeenCalled();
     expect(panel.discard.open()).toBe(true);
 
     panel.discard.confirm();
     expect(api.delete).toHaveBeenCalledWith('/rbac/roles/1');
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
     api.get.mockImplementation((path: string) => roleResponse(path, [second]));
     deletion.next();
     deletion.complete();
     fixture.detectChanges();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(second.id);
-    expect(fixture.componentInstance.deletingRole).toBeNull();
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(second.id);
+    expect(fixture.componentInstance.roleForms.deletingRole).toBeNull();
   });
 
   it('does not apply a create-triggered leave callback after destruction', async () => {
@@ -311,16 +311,16 @@ describe('RolesComponent UI contracts', () => {
     const panel = fixture.debugElement.query(By.directive(RoleScopePanelComponent))
       .componentInstance as RoleScopePanelComponent;
     panel.selectRule('SELF');
-    fixture.componentInstance.newRoleForm = { name: third.name, orderNo: 0 };
+    fixture.componentInstance.roleForms.newRoleForm = { name: third.name, orderNo: 0 };
     fixture.componentInstance.submitCreateRole();
 
     created.next(third);
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(true);
 
     fixture.destroy();
     panel.discard.confirm();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
   });
 
   it('tracks dirty permissions and prevents silent role change without confirmation', async () => {
@@ -338,39 +338,39 @@ describe('RolesComponent UI contracts', () => {
 
     fixture.componentInstance.selectRole(first);
     fixture.detectChanges();
-    expect(fixture.componentInstance.isPermissionsDirty()).toBe(false);
+    expect(fixture.componentInstance.matrix.isPermissionsDirty()).toBe(false);
 
     // Modify permissions to dirty state
-    fixture.componentInstance.rolePermissions.set(new Set(['audit.events.view', 'audit.events.edit']));
+    fixture.componentInstance.matrix.rolePermissions.set(new Set(['audit.events.view', 'audit.events.edit']));
     fixture.detectChanges();
-    expect(fixture.componentInstance.isPermissionsDirty()).toBe(true);
-    expect(fixture.componentInstance.dirtyPermissionsCount()).toBe(1);
-    expect(fixture.componentInstance.isPermissionDirty('audit.events', 'edit')).toBe(true);
-    expect(fixture.componentInstance.isPermissionDirty('audit.events', 'view')).toBe(false);
+    expect(fixture.componentInstance.matrix.isPermissionsDirty()).toBe(true);
+    expect(fixture.componentInstance.matrix.dirtyPermissionsCount()).toBe(1);
+    expect(fixture.componentInstance.matrix.isPermissionDirty('audit.events', 'edit')).toBe(true);
+    expect(fixture.componentInstance.matrix.isPermissionDirty('audit.events', 'view')).toBe(false);
 
     // Attempt to switch to second role while dirty
     fixture.componentInstance.selectRole(second);
     fixture.detectChanges();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
     expect(fixture.componentInstance.isDiscardPermissionsModalOpen()).toBe(true);
 
     // Cancel modal keeps on first role
     fixture.componentInstance.closeDiscardModal();
     expect(fixture.componentInstance.isDiscardPermissionsModalOpen()).toBe(false);
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(first.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(first.id);
 
     // Discard & switch switches to second role
     fixture.componentInstance.selectRole(second);
     fixture.componentInstance.confirmDiscardAndSwitch();
     fixture.detectChanges();
-    expect(fixture.componentInstance.selectedRole()?.id).toBe(second.id);
+    expect(fixture.componentInstance.matrix.selectedRole()?.id).toBe(second.id);
   });
 
   it('auto-expands collapsed modules when searching permissions matrix', async () => {
     const fixture = await createFixture();
     const first = role(1, 'Первая');
     fixture.componentInstance.roles.set([first]);
-    fixture.componentInstance.selectedRole.set(first);
+    fixture.componentInstance.matrix.selectedRole.set(first);
     fixture.componentInstance.moduleGroups = [
       {
         moduleCode: 'audit',
@@ -400,8 +400,8 @@ describe('RolesComponent UI contracts', () => {
     const fixture = await createFixture();
     const first = role(1, 'Первая');
     fixture.componentInstance.roles.set([first]);
-    fixture.componentInstance.selectedRole.set(first);
-    (fixture.componentInstance as any).loadedPermissionsRoleId.set(first.id);
+    fixture.componentInstance.matrix.selectedRole.set(first);
+    (fixture.componentInstance.matrix as any).loadedPermissionsRoleId.set(first.id);
     fixture.componentInstance.moduleGroups = [
       {
         moduleCode: 'audit',
@@ -420,26 +420,26 @@ describe('RolesComponent UI contracts', () => {
         ],
       },
     ];
-    fixture.componentInstance.originalRolePermissions.set(new Set(['audit.events.view']));
-    fixture.componentInstance.rolePermissions.set(new Set(['audit.events.view']));
+    fixture.componentInstance.matrix.originalRolePermissions.set(new Set(['audit.events.view']));
+    fixture.componentInstance.matrix.rolePermissions.set(new Set(['audit.events.view']));
 
     // Global Grant All
     fixture.componentInstance.toggleAllPermissions(true);
-    expect(fixture.componentInstance.rolePermissions().has('audit.events.view')).toBe(true);
-    expect(fixture.componentInstance.rolePermissions().has('audit.events.edit')).toBe(true);
-    expect(fixture.componentInstance.isPermissionsDirty()).toBe(true);
+    expect(fixture.componentInstance.matrix.rolePermissions().has('audit.events.view')).toBe(true);
+    expect(fixture.componentInstance.matrix.rolePermissions().has('audit.events.edit')).toBe(true);
+    expect(fixture.componentInstance.matrix.isPermissionsDirty()).toBe(true);
 
     // Global Read-Only
     fixture.componentInstance.toggleReadOnlyAllPermissions();
-    expect(fixture.componentInstance.rolePermissions().has('audit.events.view')).toBe(true);
-    expect(fixture.componentInstance.rolePermissions().has('audit.events.edit')).toBe(false);
+    expect(fixture.componentInstance.matrix.rolePermissions().has('audit.events.view')).toBe(true);
+    expect(fixture.componentInstance.matrix.rolePermissions().has('audit.events.edit')).toBe(false);
 
     // Reset matrix changes
     fixture.componentInstance.toggleAllPermissions(true);
-    expect(fixture.componentInstance.isPermissionsDirty()).toBe(true);
-    fixture.componentInstance.resetMatrixChanges();
-    expect(fixture.componentInstance.isPermissionsDirty()).toBe(false);
-    expect(fixture.componentInstance.rolePermissions().size).toBe(1);
+    expect(fixture.componentInstance.matrix.isPermissionsDirty()).toBe(true);
+    fixture.componentInstance.matrix.resetMatrixChanges();
+    expect(fixture.componentInstance.matrix.isPermissionsDirty()).toBe(false);
+    expect(fixture.componentInstance.matrix.rolePermissions().size).toBe(1);
   });
 
   it('navigates to users list with role filter when user count button is clicked', async () => {

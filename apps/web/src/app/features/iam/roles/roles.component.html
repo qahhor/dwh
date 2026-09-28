@@ -2,7 +2,14 @@
   <!-- Top Page Header -->
   <ui-page-header [title]="'iam.roli_i_matrica_prav' | t" [count]="roles().length">
     @if (canCreateRole()) {
-      <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+      <button
+        smt-button
+        type="button"
+        smtVariant="primary"
+        smtSize="md"
+        smtIcon="add"
+        (click)="roleForms.openCreateModal()"
+      >
         {{ 'iam.novaya_rol' | t }}
       </button>
     }
@@ -11,50 +18,50 @@
   <!-- Roles Horizontal Bar -->
   <app-role-cards-bar
     [roles]="filteredRoles()"
-    [selectedRole]="selectedRole()"
+    [selectedRole]="matrix.selectedRole()"
     [roleUserCounts]="roleUserCounts()"
     [searchQuery]="roleSearchQuery"
     (searchQueryChange)="roleSearchQuery = $event"
-    [isSaving]="isSaving()"
+    [isSaving]="matrix.isSaving()"
     [scopePanelBusy]="scopePanelBusy()"
-    [isSubmittingRole]="isSubmittingRole()"
+    [isSubmittingRole]="roleForms.isSubmittingRole()"
     [canCreateRole]="canCreateRole()"
     [canUpdateRole]="canUpdateRole()"
     [canDeleteRole]="canDeleteRole()"
     (selectRole)="selectRole($event)"
     (navigateToUsers)="navigateToUsersWithRole($event.role, $event.event)"
-    (openEdit)="openEditRoleModal($event)"
+    (openEdit)="roleForms.openEditRoleModal($event)"
     (openDelete)="openDeleteRoleModal($event)"
-    (openCreate)="openCreateModal()"
+    (openCreate)="roleForms.openCreateModal()"
   ></app-role-cards-bar>
 
   <!-- Main Permission Matrix Section -->
-  @if (selectedRole(); as role) {
-    <div class="matrix-card" [attr.aria-busy]="isLoading() || isSaving()">
+  @if (matrix.selectedRole(); as role) {
+    <div class="matrix-card" [attr.aria-busy]="matrix.isLoading() || matrix.isSaving()">
       <app-role-permissions-matrix
         [role]="role"
-        [isLoading]="isLoading()"
-        [isSaving]="isSaving()"
-        [permissionsError]="permissionsError()"
+        [isLoading]="matrix.isLoading()"
+        [isSaving]="matrix.isSaving()"
+        [permissionsError]="matrix.permissionsError()"
         [activePermissionsCount]="activePermissionsCount()"
         [totalActionsCount]="totalActionsCount()"
         [permissionPercentage]="permissionPercentage()"
-        [isPermissionsDirty]="isPermissionsDirty()"
-        [dirtyPermissionsCount]="dirtyPermissionsCount()"
-        [canGrant]="canGrant()"
-        [canEditPermissions]="canEditPermissions()"
+        [isPermissionsDirty]="matrix.isPermissionsDirty()"
+        [dirtyPermissionsCount]="matrix.dirtyPermissionsCount()"
+        [canGrant]="matrix.canGrant()"
+        [canEditPermissions]="matrix.canEditPermissions()"
         [matrixSearchQuery]="matrixSearchQuery"
         [matchingFormsCount]="matchingFormsCount()"
         [formsCount]="forms().length"
         [selectedModuleTab]="selectedModuleTab"
         [moduleGroups]="moduleGroups"
         [visibleModuleGroups]="visibleModuleGroups()"
-        [hasPermission]="hasPermissionFn"
-        [isPermissionDirty]="isPermissionDirtyFn"
-        [getModuleIcon]="getModuleIconFn"
-        [getModuleActionsCount]="getModuleActionsCountFn"
-        (resetChanges)="resetMatrixChanges()"
-        (savePermissions)="savePermissions()"
+        [hasPermission]="matrix.hasPermission"
+        [isPermissionDirty]="matrix.isPermissionDirty"
+        [getModuleIcon]="getModuleIcon"
+        [getModuleActionsCount]="getModuleActionsCount"
+        (resetChanges)="matrix.resetMatrixChanges()"
+        (savePermissions)="matrix.savePermissions()"
         (refreshRole)="selectRole($event)"
         (matrixSearchQueryChange)="matrixSearchQuery = $event"
         (selectedModuleTabChange)="selectedModuleTab = $event"
@@ -62,10 +69,10 @@
         (toggleAllPermissions)="toggleAllPermissions($event)"
         (toggleReadOnlyAllPermissions)="toggleReadOnlyAllPermissions()"
         (toggleModuleExpand)="toggleModuleExpand($event)"
-        (toggleReadOnlyModule)="toggleReadOnlyModule($event)"
-        (toggleAllModule)="toggleAllModule($event.mod, $event.select)"
-        (toggleAllForm)="toggleAllForm($event.form, $event.select)"
-        (togglePermission)="togglePermission($event.formCode, $event.action, $event.checked)"
+        (toggleReadOnlyModule)="matrix.toggleReadOnlyModule($event)"
+        (toggleAllModule)="matrix.toggleAllModule($event.mod, $event.select)"
+        (toggleAllForm)="matrix.toggleAllForm($event.form, $event.select)"
+        (togglePermission)="matrix.togglePermission($event.formCode, $event.action, $event.checked)"
       ></app-role-permissions-matrix>
       @if (canViewOrgUnits() && safeRoleId(role.id)) {
         <app-role-scope-panel [roleId]="role.id" (busyChange)="scopePanelBusy.set($event)"></app-role-scope-panel>
@@ -76,25 +83,25 @@
 
 <!-- Modals (Create, Edit, Delete, Discard) -->
 <app-role-modals
-  [isCreateModalOpen]="isCreateModalOpen()"
-  [isCreateSubmitted]="isCreateSubmitted"
-  [newRoleForm]="newRoleForm"
-  [isEditModalOpen]="isEditModalOpen()"
-  [isEditSubmitted]="isEditSubmitted"
-  [editingRole]="editingRole"
-  [editRoleForm]="editRoleForm"
-  [isDeleteModalOpen]="isDeleteModalOpen()"
-  [deletingRole]="deletingRole"
+  [isCreateModalOpen]="roleForms.isCreateModalOpen()"
+  [isCreateSubmitted]="roleForms.isCreateSubmitted"
+  [newRoleForm]="roleForms.newRoleForm"
+  [isEditModalOpen]="roleForms.isEditModalOpen()"
+  [isEditSubmitted]="roleForms.isEditSubmitted"
+  [editingRole]="roleForms.editingRole"
+  [editRoleForm]="roleForms.editRoleForm"
+  [isDeleteModalOpen]="roleForms.isDeleteModalOpen()"
+  [deletingRole]="roleForms.deletingRole"
   [isDiscardPermissionsModalOpen]="isDiscardPermissionsModalOpen()"
-  [selectedRole]="selectedRole()"
-  [dirtyPermissionsCount]="dirtyPermissionsCount()"
-  [isSubmittingRole]="isSubmittingRole()"
-  [isSaving]="isSaving()"
-  (closeCreate)="isCreateModalOpen.set(false)"
+  [selectedRole]="matrix.selectedRole()"
+  [dirtyPermissionsCount]="matrix.dirtyPermissionsCount()"
+  [isSubmittingRole]="roleForms.isSubmittingRole()"
+  [isSaving]="matrix.isSaving()"
+  (closeCreate)="roleForms.isCreateModalOpen.set(false)"
   (submitCreate)="submitCreateRole()"
-  (closeEdit)="isEditModalOpen.set(false)"
+  (closeEdit)="roleForms.isEditModalOpen.set(false)"
   (submitEdit)="submitEditRole()"
-  (closeDelete)="closeDeleteRoleModal()"
+  (closeDelete)="roleForms.closeDeleteRoleModal()"
   (confirmDelete)="confirmDeleteRole()"
   (closeDiscard)="closeDiscardModal()"
   (confirmDiscardAndSwitch)="confirmDiscardAndSwitch()"
