@@ -17,6 +17,7 @@ import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { Role } from '@core/models/rbac.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
+import { UserCreateForm, createDefaultUserCreateForm } from '../users.models';
 
 /** The time zones offered; their names are not translated. */
 const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
@@ -268,7 +269,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-tag-group
                   [options]="roleOptions()"
                   [value]="createForm().roleIds || []"
-                  (valueChange)="createForm().roleIds = $event"
+                  (valueChange)="createForm().roleIds = [...$event]"
                 />
               </smt-control>
             }
@@ -468,7 +469,7 @@ export class UserCreateModalComponent {
   readonly hasUpperAndLower = input(false);
   readonly hasDigitsOrSymbols = input(false);
   readonly doesNotContainLogin = input(false);
-  readonly createForm = input<any>({});
+  readonly createForm = input<UserCreateForm>(createDefaultUserCreateForm());
   readonly customFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

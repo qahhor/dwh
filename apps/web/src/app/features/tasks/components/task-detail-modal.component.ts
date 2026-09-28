@@ -14,6 +14,7 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { RecordAttributes } from '../tasks.models';
 
 @Component({
   selector: 'app-task-detail-modal',
@@ -577,13 +578,13 @@ export class TaskDetailModalComponent {
     }
   }
 
-  hasAttributes(attrs: any): boolean {
+  hasAttributes(attrs: RecordAttributes): attrs is Record<string, unknown> {
     if (!attrs || typeof attrs !== 'object') return false;
     const keys = Object.keys(attrs).filter((k) => k !== 'task_type');
     return keys.length > 0;
   }
 
-  formatAttributes(attrs: any): Array<{ key: string; value: string }> {
+  formatAttributes(attrs: RecordAttributes): Array<{ key: string; value: string }> {
     if (!this.hasAttributes(attrs)) return [];
     const fields = this.taskCustomFields();
     return Object.entries(attrs)

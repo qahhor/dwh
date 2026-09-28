@@ -59,9 +59,9 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/**/*.spec.ts'],
+    files: ['src/**/*.spec.ts', 'src/testing/**/*.ts'],
     rules: {
-      // A spec builds fakes of any shape; the production rules above still hold for the code under test.
+      // A spec and its helpers build fakes of any shape; the production rules above still hold for the code under test.
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },

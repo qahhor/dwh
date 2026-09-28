@@ -17,6 +17,7 @@ import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { User } from '@core/models/auth.models';
 import { Role } from '@core/models/rbac.models';
 import { CustomField } from '@core/models/custom-field.models';
+import { UserEditForm } from '../users.models';
 
 /** The time zones offered; their names are not translated. */
 const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
@@ -126,7 +127,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                   <smt-tag-group
                     [options]="roleOptions(u)"
                     [value]="editForm().roleIds || []"
-                    (valueChange)="editForm().roleIds = $event"
+                    (valueChange)="editForm().roleIds = [...$event]"
                   />
                 </smt-control>
               }
@@ -218,6 +219,8 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 export class UserEditModalComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly editForm = input.required<UserEditForm>();
+
   readonly isOpen = input(false);
   readonly isSubmitting = input(false);
   readonly isEditSubmitted = input(false);
@@ -229,7 +232,6 @@ export class UserEditModalComponent {
       name: string;
     }>
   >([]);
-  readonly editForm = input<any>({});
   readonly customFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

@@ -124,7 +124,7 @@ export class ProjectFormsService {
     const requestId = ++this.createSaveRequestId;
     this.createSaveError.set(null);
     this.isSubmitting.set(true);
-    const payload: any = {
+    const payload: { name: string; description: string; attributes?: Record<string, unknown> } = {
       name: this.createForm.name.trim(),
       description: this.createForm.description.trim(),
     };

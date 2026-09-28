@@ -195,8 +195,8 @@ export class NavigationSettingsComponent implements OnInit {
         this.items.set(data || []);
         this.isLoading.set(false);
       },
-      error: (err: any) => {
-        const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+      error: (err: unknown) => {
+        const msg = problemText(err) || this.i18n.translate('common.error');
         this.toast.error(msg);
         this.isLoading.set(false);
       },
@@ -340,8 +340,8 @@ export class NavigationSettingsComponent implements OnInit {
           this.closeModal();
           this.loadItems();
         },
-        error: (err: any) => {
-          const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+        error: (err: unknown) => {
+          const msg = problemText(err) || this.i18n.translate('common.error');
           this.toast.error(msg);
           this.isSubmitting.set(false);
         },
@@ -365,8 +365,8 @@ export class NavigationSettingsComponent implements OnInit {
           this.closeModal();
           this.loadItems();
         },
-        error: (err: any) => {
-          const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+        error: (err: unknown) => {
+          const msg = problemText(err) || this.i18n.translate('common.error');
           this.toast.error(msg);
           this.isSubmitting.set(false);
         },
@@ -377,8 +377,8 @@ export class NavigationSettingsComponent implements OnInit {
   toggleItem(item: CustomNavigationItem): void {
     this.navService.toggleItem(item.id).subscribe({
       next: () => this.loadItems(),
-      error: (err: any) => {
-        const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+      error: (err: unknown) => {
+        const msg = problemText(err) || this.i18n.translate('common.error');
         this.toast.error(msg);
       },
     });

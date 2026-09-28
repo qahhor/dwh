@@ -65,7 +65,7 @@ describe('NavigationService', () => {
 
     const result = await firstValueFrom(service.loadAllItems());
 
-    expect(api.get).toHaveBeenCalledWith('/navigation/items');
+    expect(api.get).toHaveBeenCalledWith('/navigation/items', undefined, { notifyError: false });
     expect(result).toEqual([sampleItem]);
   });
 
@@ -93,7 +93,7 @@ describe('NavigationService', () => {
 
     const created = await firstValueFrom(service.createItem(payload));
 
-    expect(api.post).toHaveBeenCalledWith('/navigation/items', payload);
+    expect(api.post).toHaveBeenCalledWith('/navigation/items', payload, { notifyError: false });
     expect(created.code).toBe('new-report');
   });
 
@@ -107,7 +107,7 @@ describe('NavigationService', () => {
 
     const updated = await firstValueFrom(service.updateItem(1, payload));
 
-    expect(api.put).toHaveBeenCalledWith('/navigation/items/1', payload);
+    expect(api.put).toHaveBeenCalledWith('/navigation/items/1', payload, { notifyError: false });
     expect(updated.title).toBe('Обновленное название');
   });
 
@@ -118,7 +118,7 @@ describe('NavigationService', () => {
 
     const toggled = await firstValueFrom(service.toggleItem(1));
 
-    expect(api.post).toHaveBeenCalledWith('/navigation/items/1/toggle', {});
+    expect(api.post).toHaveBeenCalledWith('/navigation/items/1/toggle', {}, { notifyError: false });
     expect(toggled.state).toBe('P');
   });
 

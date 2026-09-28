@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { NavSection } from '../app-shell.models';
+import { User } from '@core/models/auth.models';
 
 @Component({
   selector: 'app-sidebar-flyout',
@@ -320,7 +321,7 @@ export class AppSidebarFlyoutComponent {
   readonly hoveredFlyoutSection = input<NavSection | null>(null);
   readonly flyoutAnchorTop = input(0);
   readonly isProfileFlyoutVisible = input(false);
-  readonly currentUser = input<any>(null);
+  readonly currentUser = input<User | null>(null);
 
   readonly flyoutMouseEnter = output<void>();
   readonly flyoutMouseLeave = output<void>();

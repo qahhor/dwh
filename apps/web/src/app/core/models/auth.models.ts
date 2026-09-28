@@ -9,7 +9,7 @@ export interface User {
   language: string;
   timezone: string;
   avatarFileId?: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   is2faEnabled: boolean;
   forcePasswordChange: boolean;
   roleIds?: number[];

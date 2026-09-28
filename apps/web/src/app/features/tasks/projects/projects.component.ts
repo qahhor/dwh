@@ -420,9 +420,9 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
         this.loadProjectMembers(event.projectId);
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isAddingMember.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
       },
     });
   }

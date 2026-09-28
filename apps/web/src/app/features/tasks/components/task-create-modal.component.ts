@@ -16,6 +16,7 @@ import { UiMarkdownEditorComponent } from '@shared/ui/ui-markdown-editor.compone
 import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { CustomField } from '@core/models/custom-field.models';
 import { Project, TaskType } from '@core/models/task.models';
+import { TaskCreateFormValue, createDefaultTaskCreateForm } from '../tasks.models';
 
 @Component({
   selector: 'app-task-create-modal',
@@ -45,7 +46,7 @@ import { Project, TaskType } from '@core/models/task.models';
       [open]="isOpen()"
       [smtTitle]="
         createForm().parentTaskId
-          ? ('tasks.create_subtask_for' | t: { id: createForm().parentTaskId })
+          ? ('tasks.create_subtask_for' | t: { id: createForm().parentTaskId ?? '' })
           : ('tasks.create_new_task' | t)
       "
       smtSize="lg"
@@ -383,7 +384,7 @@ export class TaskCreateModalComponent {
   readonly isCreateSubmitted = input(false);
   readonly taskTypes = input<TaskType[]>([]);
   readonly projects = input<Project[]>([]);
-  readonly createForm = input<any>({});
+  readonly createForm = input<TaskCreateFormValue>(createDefaultTaskCreateForm());
   readonly taskCustomFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

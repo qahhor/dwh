@@ -133,11 +133,15 @@ describe('WebhooksSettingsComponent', () => {
 
     component.submitCreate();
 
-    expect(api.post).toHaveBeenCalledWith('/webhooks/subscriptions', {
-      name: 'New CRM Webhook',
-      targetUrl: 'https://crm.corp/hook',
-      subscribedEvents: ['task.created', 'task.completed'],
-    });
+    expect(api.post).toHaveBeenCalledWith(
+      '/webhooks/subscriptions',
+      {
+        name: 'New CRM Webhook',
+        targetUrl: 'https://crm.corp/hook',
+        subscribedEvents: ['task.created', 'task.completed'],
+      },
+      { notifyError: false },
+    );
 
     expect(toast.success).toHaveBeenCalled();
     expect(component.isCreateModalOpen()).toBe(false);

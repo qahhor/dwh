@@ -365,7 +365,7 @@ export class UserDetailModalComponent {
 
   private readonly i18n = inject(I18nService);
 
-  readonly safeRecordId = input.required<(id: any) => boolean>();
+  readonly safeRecordId = input.required<(id: unknown) => boolean>();
   readonly getUserRoleNames = input.required<(u: User) => string[]>();
   readonly getManagerName = input.required<(u: User) => string | null>();
 

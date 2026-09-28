@@ -3,7 +3,7 @@ export interface Project {
   name: string;
   description?: string;
   state: 'A' | 'P';
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
   createdAt: string;
   modifiedAt?: string;
   createdBy?: number;
@@ -57,7 +57,7 @@ export interface Task {
   statusId: number;
   priority: 'low' | 'medium' | 'high' | 'critical' | string;
   reporterId?: number;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
   beginTime?: string | null;
   endTime?: string | null;
   resolvedTime?: string | null;

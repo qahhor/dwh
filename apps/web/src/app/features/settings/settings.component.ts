@@ -85,7 +85,7 @@ export class SettingsComponent implements OnInit {
       this.route.queryParams.subscribe((params) => {
         const tabParam = params['tab'];
         if (tabParam && this.isTabAvailable(tabParam)) {
-          this.activeTab.set(tabParam as any);
+          this.activeTab.set(tabParam);
         } else if (!this.canManageSystemSettings()) {
           this.activeTab.set('preferences');
         }
@@ -280,7 +280,7 @@ export class SettingsComponent implements OnInit {
       });
   }
 
-  isTabAvailable(tab: string): boolean {
+  isTabAvailable(tab: string): tab is SettingsTab {
     switch (tab) {
       case 'general':
       case 'security':

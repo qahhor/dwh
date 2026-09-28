@@ -17,6 +17,15 @@ export interface QueuedUpload {
   readonly error?: string;
 }
 
+/** What the upload endpoint answers: the stored file. */
+interface UploadedFile {
+  id: string;
+  originalName?: string;
+  sizeBytes?: number;
+  mimeType?: string;
+  createdAt?: string;
+}
+
 @Component({
   selector: 'ui-file-upload',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -292,7 +301,7 @@ export class UiFileUploadComponent {
     const formData = new FormData();
     formData.append('file', next.file);
     this.current = this.http
-      .post<any>('/api/v1/files/upload', formData, {
+      .post<UploadedFile>('/api/v1/files/upload', formData, {
         reportProgress: true,
         observe: 'events',
         withCredentials: true,
@@ -302,9 +311,9 @@ export class UiFileUploadComponent {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             this.patch(next.id, { progress: Math.round((100 * event.loaded) / event.total) });
           } else if (event.type === HttpEventType.Response) {
-            const body = event.body;
+            const body: Partial<UploadedFile> = event.body ?? {};
             const taskFile: TaskFile = {
-              fileId: body.id,
+              fileId: body.id ?? '',
               fileName: body.originalName || next.file.name,
               sizeBytes: body.sizeBytes || next.file.size,
               mimeType: body.mimeType || next.file.type,

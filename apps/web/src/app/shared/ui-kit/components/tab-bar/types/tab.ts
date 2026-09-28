@@ -13,7 +13,7 @@ export interface Tab {
   badgeVariant?: TBadgeVariant;
   badgeValue?: number | string;
   disabled?: boolean;
-  routerLink?: any[];
+  routerLink?: unknown[];
   routerNavigationExtras?: NavigationExtras;
   exact?: boolean;
   active?: boolean;

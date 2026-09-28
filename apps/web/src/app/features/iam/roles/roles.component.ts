@@ -41,7 +41,7 @@ import {
   filterRoles,
   filterModuleGroups,
 } from './roles.models';
-import { RoleFormsService } from './services/role-forms.service';
+import { EditRoleForm, NewRoleForm, RoleFormsService } from './services/role-forms.service';
 
 @Component({
   selector: 'app-roles',
@@ -136,14 +136,14 @@ export class RolesComponent implements OnInit {
   get newRoleForm() {
     return this.roleForms.newRoleForm;
   }
-  set newRoleForm(v: any) {
+  set newRoleForm(v: NewRoleForm) {
     this.roleForms.newRoleForm = v;
   }
 
   get editRoleForm() {
     return this.roleForms.editRoleForm;
   }
-  set editRoleForm(v: any) {
+  set editRoleForm(v: EditRoleForm) {
     this.roleForms.editRoleForm = v;
   }
 

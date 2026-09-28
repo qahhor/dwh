@@ -5,6 +5,19 @@ import { I18nService } from '@core/services/i18n.service';
 import { Role } from '@core/models/rbac.models';
 import { safeNumericRecordId } from '@core/services/search-target';
 
+/** The create dialog's fields. */
+export interface NewRoleForm {
+  name: string;
+  orderNo: number;
+}
+
+/** The edit dialog's fields. */
+export interface EditRoleForm {
+  name: string;
+  state: string;
+  orderNo: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RoleFormsService {
   private readonly api = inject(ApiService);
@@ -22,12 +35,12 @@ export class RoleFormsService {
   editingRole: Role | null = null;
   deletingRole: Role | null = null;
 
-  newRoleForm = {
+  newRoleForm: NewRoleForm = {
     name: '',
     orderNo: 0,
   };
 
-  editRoleForm = {
+  editRoleForm: EditRoleForm = {
     name: '',
     state: 'A',
     orderNo: 0,

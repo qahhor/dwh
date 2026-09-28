@@ -69,6 +69,8 @@ import { TaskFormsService } from './services/task-forms.service';
 import { TaskKanbanService } from './services/task-kanban.service';
 import { TaskFilterService } from './services/task-filter.service';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { TaskStatus, TaskType } from '@core/models/task.models';
+import { RecordAttributes } from './tasks.models';
 
 export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
 
@@ -657,19 +659,19 @@ export class TasksComponent implements OnInit, OnDestroy {
   openSettingsModal() {
     this.dictService.openSettingsModal();
   }
-  handleCreateType(e: any) {
+  handleCreateType(e: Parameters<TaskDictionariesService['handleCreateType']>[0]) {
     this.dictService.handleCreateType(e);
   }
-  handleCreateStatus(e: any) {
+  handleCreateStatus(e: Parameters<TaskDictionariesService['handleCreateStatus']>[0]) {
     this.dictService.handleCreateStatus(e);
   }
-  handleDeleteDictionaryItem(t: any) {
+  handleDeleteDictionaryItem(t: Parameters<TaskDictionariesService['handleDeleteDictionaryItem']>[0]) {
     this.dictService.handleDeleteDictionaryItem(t);
   }
-  handleReorderTypes(l: any) {
+  handleReorderTypes(l: TaskType[]) {
     this.dictService.handleReorderTypes(l);
   }
-  handleReorderStatuses(l: any) {
+  handleReorderStatuses(l: TaskStatus[]) {
     this.dictService.handleReorderStatuses(l);
   }
 
@@ -713,10 +715,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   getInitials(name: string | undefined) {
     return getInitials(name);
   }
-  hasAttributes(attrs: any) {
+  hasAttributes(attrs: RecordAttributes) {
     return hasAttributes(attrs);
   }
-  formatAttributes(attrs: any) {
+  formatAttributes(attrs: RecordAttributes) {
     return formatAttributes(attrs, this.taskCustomFields(), (id) => this.lookupsService.nameOf(id), this.uiI18n);
   }
 

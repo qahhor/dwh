@@ -17,6 +17,7 @@ import { UiMarkdownEditorComponent } from '@shared/ui/ui-markdown-editor.compone
 import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { CustomField } from '@core/models/custom-field.models';
 import { Project, Task, TaskType } from '@core/models/task.models';
+import { TaskEditFormValue } from '../tasks.models';
 
 @Component({
   selector: 'app-task-edit-modal',
@@ -365,6 +366,8 @@ export class TaskEditModalComponent {
   readonly lookups = inject(TaskLookupsService);
   private readonly i18n = inject(I18nService);
 
+  readonly editForm = input.required<TaskEditFormValue>();
+
   readonly isOpen = input(false);
   readonly editingTask = input<Task | null>(null);
   readonly editLoading = input(false);
@@ -374,7 +377,6 @@ export class TaskEditModalComponent {
   readonly isEditDiscardConfirmationOpen = input(false);
   readonly taskTypes = input<TaskType[]>([]);
   readonly projects = input<Project[]>([]);
-  readonly editForm = input<any>({});
   readonly taskCustomFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

@@ -7,7 +7,7 @@ import { Pipe, PipeTransform } from '@angular/core';
   name: 'cb',
 })
 export class CbPipe implements PipeTransform {
-  transform(callback: (...args: any[]) => any, a1?: unknown, a2?: unknown, a3?: unknown): any {
-    return callback(a1, a2, a3);
+  transform<A extends unknown[], R>(callback: (...args: A) => R, ...args: A): R {
+    return callback(...args);
   }
 }

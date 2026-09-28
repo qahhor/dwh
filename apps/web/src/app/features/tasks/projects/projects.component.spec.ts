@@ -784,7 +784,11 @@ describe('ProjectsComponent UI contracts', () => {
 
     // 2. Add member
     component.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
-    expect(api.post).toHaveBeenCalledWith('/tasks/projects/42/members', { userId: 20, accessKind: 'MEMBER' });
+    expect(api.post).toHaveBeenCalledWith(
+      '/tasks/projects/42/members',
+      { userId: 20, accessKind: 'MEMBER' },
+      { notifyError: false },
+    );
     expect(toast.success).toHaveBeenCalled();
 
     // 3. Remove member

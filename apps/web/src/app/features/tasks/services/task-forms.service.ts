@@ -191,7 +191,7 @@ export class TaskFormsService {
         this.editingTask = freshTask;
         this.editForm = {
           title: freshTask.title,
-          taskType: (freshTask.attributes && freshTask.attributes['task_type']) || 'task',
+          taskType: stringAttribute(freshTask.attributes, 'task_type') || 'task',
           descriptionMarkdown: freshTask.descriptionMarkdown || '',
           projectId: freshTask.projectId ?? null,
           priority: freshTask.priority || 'medium',
@@ -363,4 +363,10 @@ export class TaskFormsService {
     this.editRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();
   }
+}
+
+/** A text attribute of a record, or '' when it is missing or not text. */
+function stringAttribute(attributes: Record<string, unknown> | undefined, key: string): string {
+  const value = attributes?.[key];
+  return typeof value === 'string' ? value : '';
 }

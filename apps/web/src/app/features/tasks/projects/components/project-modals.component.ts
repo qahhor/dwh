@@ -13,6 +13,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
 import { Project } from '@core/models/task.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
+import { RecordAttributes } from '@features/tasks/tasks.models';
 
 @Component({
   selector: 'app-project-modals',
@@ -467,12 +468,12 @@ export class ProjectModalsComponent {
     ]);
   }
 
-  hasAttributes(attrs: any): boolean {
+  hasAttributes(attrs: RecordAttributes): attrs is Record<string, unknown> {
     if (!attrs || typeof attrs !== 'object') return false;
     return Object.keys(attrs).length > 0;
   }
 
-  formatAttributes(attrs: any): ProjectAttributeItem[] {
+  formatAttributes(attrs: RecordAttributes): ProjectAttributeItem[] {
     if (!this.hasAttributes(attrs)) return [];
     const fields = this.projectCustomFields();
     return Object.entries(attrs).map(([k, v]) => {

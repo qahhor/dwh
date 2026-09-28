@@ -42,7 +42,7 @@ export class NavigationService {
   }
 
   loadAllItems(): Observable<CustomNavigationItem[]> {
-    return this.api.get<CustomNavigationItem[]>('/navigation/items');
+    return this.api.get<CustomNavigationItem[]>('/navigation/items', undefined, { notifyError: false });
   }
 
   /** Catalog pairs an administrator can limit a menu item to. */
@@ -60,19 +60,19 @@ export class NavigationService {
 
   createItem(payload: CreateNavigationItemPayload): Observable<CustomNavigationItem> {
     return this.api
-      .post<CustomNavigationItem>('/navigation/items', payload)
+      .post<CustomNavigationItem>('/navigation/items', payload, { notifyError: false })
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
   updateItem(id: number, payload: UpdateNavigationItemPayload): Observable<CustomNavigationItem> {
     return this.api
-      .put<CustomNavigationItem>(`/navigation/items/${id}`, payload)
+      .put<CustomNavigationItem>(`/navigation/items/${id}`, payload, { notifyError: false })
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
   toggleItem(id: number): Observable<CustomNavigationItem> {
     return this.api
-      .post<CustomNavigationItem>(`/navigation/items/${id}/toggle`, {})
+      .post<CustomNavigationItem>(`/navigation/items/${id}/toggle`, {}, { notifyError: false })
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 

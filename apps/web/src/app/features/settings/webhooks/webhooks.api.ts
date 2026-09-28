@@ -17,7 +17,7 @@ export class WebhooksApi {
   }
 
   create(body: CreateWebhookSubscriptionDto): Observable<CreatedWebhookSubscription> {
-    return this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body);
+    return this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body, { notifyError: false });
   }
 
   setState(id: number, state: string): Observable<void> {

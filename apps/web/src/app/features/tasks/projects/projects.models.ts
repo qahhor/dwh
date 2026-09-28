@@ -25,14 +25,14 @@ export interface AddProjectMemberDto {
 export interface ProjectCreateForm {
   name: string;
   description: string;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 export interface ProjectEditForm {
   name: string;
   description: string;
   state: 'A' | 'P';
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
 }
 
 export interface ProjectAttributeItem {

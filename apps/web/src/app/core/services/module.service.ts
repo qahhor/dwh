@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface InstalledModule {
@@ -12,12 +12,15 @@ export interface InstalledModule {
   isSystem: boolean;
   status: 'ACTIVE' | 'DISABLED';
   sortOrder?: number;
-  attributes?: Record<string, any>;
+  attributes?: Record<string, unknown>;
   createdAt?: string;
   modifiedAt?: string;
   isActive?: boolean;
   moduleCode?: string;
 }
+
+/** A module as the server may send it: older answers name the code `moduleCode` and carry `isActive`, not `status`. */
+type RawModule = Partial<Omit<InstalledModule, 'status'>> & { status?: string };
 
 const SYSTEM_MODULES = new Set(['iam', 'tasks', 'files', 'audit', 'search']);
 
@@ -35,10 +38,10 @@ export class ModuleService {
 
   loadActiveModules(): Observable<InstalledModule[]> {
     this.isLoading.set(true);
-    return this.api.get<any[]>('/modules/active').pipe(
+    return this.api.get<RawModule[]>('/modules/active').pipe(
+      map((data) => this.normalizeModules(data || [])),
       tap({
-        next: (data) => {
-          const list = this.normalizeModules(data || []);
+        next: (list) => {
           const activeSet = new Set<string>(SYSTEM_MODULES);
           for (const m of list) {
             if (m.isActive) {
@@ -59,10 +62,10 @@ export class ModuleService {
 
   loadAllModules(): Observable<InstalledModule[]> {
     this.isLoading.set(true);
-    return this.api.get<any[]>('/modules').pipe(
+    return this.api.get<RawModule[]>('/modules').pipe(
+      map((data) => this.normalizeModules(data || [])),
       tap({
-        next: (data) => {
-          const list = this.normalizeModules(data || []);
+        next: (list) => {
           const activeSet = new Set<string>(SYSTEM_MODULES);
           for (const m of list) {
             if (m.isActive) {
@@ -100,9 +103,9 @@ export class ModuleService {
 
   toggleModule(code: string, enabled: boolean): Observable<InstalledModule> {
     const normalizedCode = code.toLowerCase().trim();
-    return this.api.post<any>(`/modules/${encodeURIComponent(normalizedCode)}/toggle`, { enabled }).pipe(
-      tap((updated) => {
-        const normalized = this.normalizeSingle(updated, normalizedCode, enabled);
+    return this.api.post<RawModule | null>(`/modules/${encodeURIComponent(normalizedCode)}/toggle`, { enabled }).pipe(
+      map((updated) => this.normalizeSingle(updated, normalizedCode, enabled)),
+      tap((normalized) => {
         this.modules.update((list) => {
           const existing = list.some((m) => m.code === normalizedCode);
           if (existing) {
@@ -124,24 +127,17 @@ export class ModuleService {
     );
   }
 
-  private normalizeModules(data: any[]): InstalledModule[] {
-    return data.map((m) => {
-      const code = (m.code || m.moduleCode || '').toLowerCase().trim();
-      const isActive = m.status ? m.status === 'ACTIVE' : (m.isActive ?? true);
-      return {
-        ...m,
-        code,
-        moduleCode: code,
-        isActive,
-        status: isActive ? 'ACTIVE' : 'DISABLED',
-      };
-    });
+  private normalizeModules(data: RawModule[]): InstalledModule[] {
+    return data.map((m) => this.normalizeSingle(m, '', true));
   }
 
-  private normalizeSingle(m: any, fallbackCode: string, fallbackActive: boolean): InstalledModule {
+  private normalizeSingle(m: RawModule | null, fallbackCode: string, fallbackActive: boolean): InstalledModule {
     const code = (m?.code || m?.moduleCode || fallbackCode).toLowerCase().trim();
     const isActive = m?.status ? m.status === 'ACTIVE' : (m?.isActive ?? fallbackActive);
     return {
+      name: '',
+      version: '',
+      isSystem: false,
       ...m,
       code,
       moduleCode: code,

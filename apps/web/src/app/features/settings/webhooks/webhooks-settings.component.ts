@@ -754,9 +754,9 @@ export class WebhooksSettingsComponent implements OnInit {
         this.createdSecretModalOpen.set(true);
         this.loadSubscriptions();
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isSaving.set(false);
-        this.toast.error(err?.error?.detail || err?.message || 'Error creating subscription');
+        this.toast.error(problemText(err) || this.uiI18n.translate('common.error'));
       },
     });
   }

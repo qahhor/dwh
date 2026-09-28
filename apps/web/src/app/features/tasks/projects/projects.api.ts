@@ -37,7 +37,7 @@ export class ProjectsApi {
   }
 
   addMember(projectId: number, userId: number, accessKind: string): Observable<void> {
-    return this.api.post<void>(`/tasks/projects/${projectId}/members`, { userId, accessKind });
+    return this.api.post<void>(`/tasks/projects/${projectId}/members`, { userId, accessKind }, { notifyError: false });
   }
 
   /** The confirmation shows the failure, so no general error toast. */

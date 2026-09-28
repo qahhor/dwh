@@ -11,6 +11,19 @@ export interface ApiRequestOptions {
   notifyError?: boolean;
 }
 
+/** Query parameters of a GET: anything that has a text form. */
+export type QueryParams = Record<string, string | number | boolean | null | undefined>;
+
+/** An error body as the server sends it (RFC 9457 problem detail, possibly with older fields). */
+interface RawProblem {
+  title?: string;
+  detail?: string;
+  message?: string;
+  code?: string;
+  errors?: ProblemDetail['errors'];
+  invalid_params?: ProblemDetail['invalid_params'];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -23,14 +36,13 @@ export class ApiService {
     private i18n: I18nService,
   ) {}
 
-  get<T>(path: string, params?: Record<string, any>, options: ApiRequestOptions = {}): Observable<T> {
+  /** Parameters that are undefined, null or empty are left out; the others are sent as text. */
+  get<T>(path: string, params?: QueryParams, options: ApiRequestOptions = {}): Observable<T> {
     let httpParams = new HttpParams();
-    if (params) {
-      Object.keys(params).forEach((key) => {
-        if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
-          httpParams = httpParams.set(key, params[key].toString());
-        }
-      });
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== undefined && value !== null && value !== '') {
+        httpParams = httpParams.set(key, String(value));
+      }
     }
 
     return this.http
@@ -42,7 +54,7 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err, options)));
   }
 
-  post<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
+  post<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .post<T>(`${this.baseUrl}${path}`, body || {}, {
         headers: this.getHeaders(),
@@ -51,7 +63,7 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err, options)));
   }
 
-  patch<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
+  patch<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .patch<T>(`${this.baseUrl}${path}`, body || {}, {
         headers: this.getHeaders(),
@@ -60,7 +72,7 @@ export class ApiService {
       .pipe(catchError((err) => this.handleError(err, options)));
   }
 
-  put<T>(path: string, body?: any, options: ApiRequestOptions = {}): Observable<T> {
+  put<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .put<T>(`${this.baseUrl}${path}`, body || {}, {
         headers: this.getHeaders(),
@@ -101,7 +113,7 @@ export class ApiService {
     let problem: ProblemDetail;
 
     if (error.error && typeof error.error === 'object') {
-      const p = error.error as any;
+      const p = error.error as RawProblem;
       let detail = p.detail || p.message;
       const errorCode = String(p.code || 'API_ERROR').toLowerCase();
       const errorKey = `error.${errorCode}`;
@@ -110,7 +122,7 @@ export class ApiService {
         detail = localizedDetail;
       }
       if (Array.isArray(p.invalid_params) && p.invalid_params.length > 0) {
-        const fieldMsgs = p.invalid_params.map((ip: any) => `${ip.name}: ${ip.reason || ip.code}`).join('; ');
+        const fieldMsgs = p.invalid_params.map((ip) => `${ip.name}: ${ip.reason || ip.code}`).join('; ');
         detail = detail ? `${detail} (${fieldMsgs})` : fieldMsgs;
       }
       problem = {

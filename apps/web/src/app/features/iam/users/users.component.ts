@@ -125,7 +125,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   private recordRequest?: Subscription;
   private panelLeaveSubscription?: Subscription;
   private recordRequestId = 0;
-  private searchDebounceTimer: any = null;
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
   readonly safeRecordId = safeNumericRecordId;
 
@@ -283,7 +283,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.queryParamSubscription?.unsubscribe();
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
-    clearTimeout(this.searchDebounceTimer);
+    clearTimeout(this.searchDebounceTimer ?? undefined);
   }
 
   // Permissions
@@ -412,7 +412,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.filterService.setStateFilter(state, () => this.loadUsers(true));
   }
   onSearchInput() {
-    clearTimeout(this.searchDebounceTimer);
+    clearTimeout(this.searchDebounceTimer ?? undefined);
     // The search text has already changed: an answer or a next page of the
     // old query must not land (or page) under it while the user types.
     this.userPager.invalidate();

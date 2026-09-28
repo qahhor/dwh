@@ -431,7 +431,7 @@ export class AuditModalsComponent {
     );
   }
 
-  formatValue(val: any): string {
+  formatValue(val: unknown): string {
     if (val === undefined || val === null) return '—';
     if (typeof val === 'object') return JSON.stringify(val, null, 2);
     return String(val);

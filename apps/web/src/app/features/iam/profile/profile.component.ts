@@ -309,9 +309,9 @@ export class ProfileComponent implements OnInit {
         this.channelsCard()?.openConfirmModal(res.verifyToken, event.address);
         this.loadChannels();
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isBindingChannel.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_privyazki_kanala'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('iam.oshibka_privyazki_kanala'));
       },
     });
   }
@@ -325,9 +325,9 @@ export class ProfileComponent implements OnInit {
         this.channelsCard()?.closeConfirmModal();
         this.loadChannels();
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isConfirmingChannel.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_podtverzhdeniya_kanala'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('iam.oshibka_podtverzhdeniya_kanala'));
       },
     });
   }
@@ -475,9 +475,9 @@ export class ProfileComponent implements OnInit {
         this.isTokenSecretModalOpen.set(true);
         this.loadTokens();
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isCreatingToken.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
       },
     });
   }
