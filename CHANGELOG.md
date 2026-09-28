@@ -686,6 +686,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The web app speaks one Angular dialect (plan 10/10, item 2.2): block
+  control flow instead of `*ngIf`/`*ngFor`, `input()`/`model()`/`output()`
+  instead of `@Input`/`@Output`, signal queries instead of `@ViewChild`,
+  the pipes and directives a component uses instead of `CommonModule`, and
+  no `standalone: true`. Mostly Angular's own migrations; where a component
+  wrote into its input it now declares a `model()`. Two defects the
+  conversion would have introduced are fixed and tested: the pagination
+  bar reported the page it left, and six counters would have read the
+  length of a function. The lint baseline shrinks from 1,861 suppressions
+  to 652.
 - The notes screen is the reference for every entity screen (plan 10/10,
   item 2.1): a typed data service (`notes.api.ts`) holds the requests,
   the form, the list metadata and the first page are `rxResource`s, the
