@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import {
   CustomNavigationItem,
@@ -20,7 +19,6 @@ import { NavigationSettingsStore } from './navigation-settings.store';
   selector: 'app-navigation-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     RouterModule,
     TranslatePipe,
     SMTButtonComponent,

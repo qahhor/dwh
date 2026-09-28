@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { Role } from '@core/models/rbac.models';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
@@ -8,7 +7,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 @Component({
   selector: 'app-role-cards-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTInputComponent, FormsModule, TranslatePipe],
+  imports: [SMTInputComponent, TranslatePipe],
   template: `
     <div class="roles-strip-container">
       <div class="roles-strip-header">

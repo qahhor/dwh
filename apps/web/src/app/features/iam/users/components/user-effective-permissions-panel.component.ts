@@ -10,7 +10,6 @@ import {
   input,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { UsersApi } from '../users.api';
 import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
@@ -43,14 +42,7 @@ export interface GroupedPermissionModule {
 @Component({
   selector: 'app-user-effective-permissions-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTRadioGroupComponent,
-    SMTSelectComponent,
-    SMTInputComponent,
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent,
-  ],
+  imports: [SMTRadioGroupComponent, SMTSelectComponent, SMTInputComponent, TranslatePipe, SMTButtonComponent],
   templateUrl: './user-effective-permissions-panel.component.html',
   styleUrl: './user-effective-permissions-panel.component.css',
 })

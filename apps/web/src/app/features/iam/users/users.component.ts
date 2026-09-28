@@ -13,7 +13,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription } from 'rxjs';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
 
-import { FormsModule } from '@angular/forms';
 import { UsersApi } from './users.api';
 import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -40,7 +39,6 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   imports: [
     UiPageHeaderComponent,
     TranslatePipe,
-    FormsModule,
     SMTButtonComponent,
     SMTAlertComponent,
     UserFilterBarComponent,

@@ -9,7 +9,6 @@ import {
   untracked,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { canonicalRecordId, safeNumericRecordId } from '@core/services/search-target';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
@@ -50,7 +49,6 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
     UiPageHeaderComponent,
     SMTRadioGroupComponent,
     TranslatePipe,
-    FormsModule,
     SMTButtonComponent,
     UiPaginationComponent,
     SMTAlertComponent,
