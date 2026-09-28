@@ -6,7 +6,19 @@ import { User } from '@core/models/auth.models';
 import { Role } from '@core/models/rbac.models';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
-import { UserCreateForm, UserEditForm, createDefaultUserCreateForm, createDefaultUserEditForm } from '../users.models';
+import {
+  UserCreateForm,
+  UserEditForm,
+  calculatePasswordStrength,
+  copyPasswordToClipboard,
+  createDefaultUserCreateForm,
+  createDefaultUserEditForm,
+  doesNotContainLogin,
+  generateSecurePassword,
+  hasDigitsOrSymbols,
+  hasMinLength,
+  hasUpperAndLower,
+} from '../users.models';
 
 @Injectable({
   providedIn: 'root',
@@ -109,5 +121,30 @@ export class UserFormsService {
         }
       },
     });
+  }
+
+  /** Fills the create form with a generated password that avoids the login. */
+  generateSecurePassword(): string {
+    const pwd = generateSecurePassword(this.createForm.login);
+    this.createForm.password = pwd;
+    return pwd;
+  }
+  copyGeneratedPassword(): Promise<void> {
+    return copyPasswordToClipboard(this.createForm.password, this.toast, this.uiI18n);
+  }
+  passwordStrength() {
+    return calculatePasswordStrength(this.createForm.password, this.createForm.login, this.uiI18n);
+  }
+  hasMinLength(): boolean {
+    return hasMinLength(this.createForm.password);
+  }
+  hasUpperAndLower(): boolean {
+    return hasUpperAndLower(this.createForm.password);
+  }
+  hasDigitsOrSymbols(): boolean {
+    return hasDigitsOrSymbols(this.createForm.password);
+  }
+  doesNotContainLogin(): boolean {
+    return doesNotContainLogin(this.createForm.password, this.createForm.login);
   }
 }
