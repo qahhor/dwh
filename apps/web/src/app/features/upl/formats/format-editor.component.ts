@@ -6,7 +6,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import { RecordNavigationDecision, RecordNavigationPage } from '@core/guards/record-navigation.guard';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
@@ -31,7 +31,7 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     SMTDatePickerComponent,
     SMTDatePickerValueAccessor,
     SMTProgressStepperComponent,

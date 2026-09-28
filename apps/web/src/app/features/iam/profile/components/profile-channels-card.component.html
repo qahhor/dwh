@@ -42,7 +42,9 @@
   ><span class="tabular-nums text-muted">{{ c.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span></ng-template
 >
 <ng-template #channelStatusCell let-c>
-  <ui-badge [variant]="c.isVerified ? 'success' : 'warning'" [dot]="true">{{ channelStatus(c) }}</ui-badge>
+  <smt-badge smtSize="SM" [smtVariant]="c.isVerified ? 'success' : 'warning'" smtHasDot>{{
+    channelStatus(c)
+  }}</smt-badge>
 </ng-template>
 <ng-template #channelActionCell let-c>
   <div class="row-actions">

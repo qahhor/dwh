@@ -147,7 +147,7 @@
   <span class="overview__code">{{ f.code }}</span>
 </ng-template>
 <ng-template #stateCell let-f
-  ><ui-badge [variant]="stateVariant(f)" [dot]="true">{{ stateText(f) }}</ui-badge></ng-template
+  ><smt-badge smtSize="SM" [smtVariant]="stateVariant(f)" smtHasDot>{{ stateText(f) }}</smt-badge></ng-template
 >
 <ng-template #lastCell let-f>{{ f.lastPeriodTo ? (f.lastPeriodTo | date: 'dd.MM.yyyy') : '—' }}</ng-template>
 <ng-template #dueCell let-f>{{ f.dueBy ? (f.dueBy | date: 'dd.MM.yyyy') : '—' }}</ng-template>

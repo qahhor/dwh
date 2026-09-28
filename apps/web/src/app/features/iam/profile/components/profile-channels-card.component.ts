@@ -12,7 +12,7 @@ import {
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
@@ -32,7 +32,7 @@ import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@sh
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,

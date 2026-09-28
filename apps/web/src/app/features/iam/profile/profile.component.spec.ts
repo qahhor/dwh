@@ -179,7 +179,7 @@ describe('ProfileComponent UI contracts', () => {
     const { fixture } = await createFixture({ sessions });
     fixture.detectChanges();
 
-    const currentBadge = inScreen(fixture.nativeElement).querySelector('.session-ip-cell ui-badge');
+    const currentBadge = inScreen(fixture.nativeElement).querySelector('.session-ip-cell smt-badge');
     expect(currentBadge).not.toBeNull();
     expect(currentBadge.textContent).toContain('Текущая сессия');
 
@@ -264,10 +264,10 @@ describe('ProfileComponent UI contracts', () => {
     const rows = cardEl.querySelectorAll('[role="rowgroup"] > [role="row"]');
     expect(rows.length).toBe(2);
 
-    const verifiedBadge = rows[0].querySelector('ui-badge');
+    const verifiedBadge = rows[0].querySelector('smt-badge');
     expect(verifiedBadge?.textContent).toContain('Подтверждён');
 
-    const pendingBadge = rows[1].querySelector('ui-badge');
+    const pendingBadge = rows[1].querySelector('smt-badge');
     expect(pendingBadge?.textContent).toContain('Ожидает подтверждения');
 
     const unbindLabels = [...cardEl.querySelectorAll('button')]

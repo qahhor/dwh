@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
@@ -20,7 +20,7 @@ import { UserSession } from '../profile.models';
 @Component({
   selector: 'app-profile-sessions-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [UiLocalTableComponent, TranslatePipe, SMTButtonComponent, UiBadgeComponent, DatePipe],
+  imports: [UiLocalTableComponent, TranslatePipe, SMTButtonComponent, SMTBadgeComponent, DatePipe],
   template: `
     <div class="card section-card full-width">
       <div class="section-header">
@@ -75,7 +75,7 @@ import { UserSession } from '../profile.models';
       <div class="session-ip-cell tabular-nums font-mono">
         <span>{{ s.ip }}</span>
         @if (s.current) {
-          <ui-badge variant="active" [dot]="true" size="sm">{{ 'iam.tekuschaya_sessiya' | t }}</ui-badge>
+          <smt-badge smtSize="SM" smtVariant="success" smtHasDot>{{ 'iam.tekuschaya_sessiya' | t }}</smt-badge>
         }
       </div>
     </ng-template>

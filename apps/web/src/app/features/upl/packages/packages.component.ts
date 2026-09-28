@@ -18,7 +18,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
@@ -44,6 +44,7 @@ import {
   uplPackageRowsText,
 } from './packages-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 /** Поля формы «Новая загрузка»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface PackageUploadForm {
@@ -71,7 +72,7 @@ function emptyFormErrors(): UplPackageFormErrors {
     SMTControlComponent,
     FormsModule,
     TranslatePipe,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     SMTButtonComponent,
     PackageCardComponent,
     SMTDatePickerComponent,
@@ -313,7 +314,7 @@ export class PackagesComponent implements OnInit {
       });
   }
 
-  variantOf(item: UplPackageItem): string {
+  variantOf(item: UplPackageItem): TBadgeVariant {
     return this.statusVariant[item.status];
   }
 

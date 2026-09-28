@@ -224,7 +224,7 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-source-row')).toHaveLength(2);
     const links = [...inScreen(fixture.nativeElement).querySelectorAll('a.upl-link')] as HTMLAnchorElement[];
     expect(links.map((link) => link.getAttribute('href'))).toEqual(['/upl/sources/1', '/upl/sources/5']);
-    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="rowgroup"] ui-badge')).toHaveLength(1);
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="rowgroup"] smt-badge')).toHaveLength(1);
     expect(inScreen(fixture.nativeElement).textContent).toContain(PACKAGED_RUSSIAN['upl.periodicity.quarter']);
     expect(testId(fixture, 'upl-count')[0].textContent?.trim()).toBe('2');
   });

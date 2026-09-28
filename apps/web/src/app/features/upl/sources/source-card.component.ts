@@ -6,7 +6,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -25,6 +25,7 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
 import { DraftMode, SourceCardStore } from './source-card.store';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 @Component({
   selector: 'app-upl-source-card',
@@ -43,7 +44,7 @@ import { DraftMode, SourceCardStore } from './source-card.store';
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     SMTRadioGroupComponent,
     DatePipe,
   ],
@@ -148,10 +149,10 @@ export class SourceCardComponent {
     return this.versionStatusKey[version.status];
   }
 
-  statusVariant(status: UplVersionStatus): 'success' | 'info' | 'neutral' {
+  statusVariant(status: UplVersionStatus): TBadgeVariant {
     if (status === 'published') {
       return 'success';
     }
-    return status === 'draft' ? 'info' : 'neutral';
+    return status === 'draft' ? 'blue' : 'gray';
   }
 }

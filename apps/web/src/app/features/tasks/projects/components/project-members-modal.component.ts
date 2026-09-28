@@ -18,7 +18,7 @@ import { ProjectsApi } from '../projects.api';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { Project } from '@core/models/task.models';
@@ -28,6 +28,7 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
 @Component({
   selector: 'app-project-members-modal',
@@ -43,7 +44,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
-    UiBadgeComponent,
+    SMTBadgeComponent,
     UiLocalTableComponent,
   ],
   templateUrl: './project-members-modal.component.html',
@@ -174,8 +175,8 @@ export class ProjectMembersModalComponent {
     this.isUserDropdownOpen.set(false);
   }
 
-  accessVariant(kind: string): 'info' | 'success' | 'neutral' {
-    return kind === 'MANAGER' ? 'info' : kind === 'MEMBER' ? 'success' : 'neutral';
+  accessVariant(kind: string): TBadgeVariant {
+    return kind === 'MANAGER' ? 'blue' : kind === 'MEMBER' ? 'success' : 'gray';
   }
 
   /** The role's name; a kind this screen does not know shows as it came. */

@@ -138,7 +138,7 @@
   ><span class="text-muted tabular-nums">{{ m.userEmail || '—' }}</span></ng-template
 >
 <ng-template #memberAccessCell let-m>
-  <ui-badge [variant]="accessVariant(m.accessKind)">{{ accessLabel(m.accessKind) }}</ui-badge>
+  <smt-badge smtSize="SM" [smtVariant]="accessVariant(m.accessKind)">{{ accessLabel(m.accessKind) }}</smt-badge>
 </ng-template>
 <ng-template #memberActionCell let-m>
   <div class="text-right">

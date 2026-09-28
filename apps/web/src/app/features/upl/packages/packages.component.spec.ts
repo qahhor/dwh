@@ -619,7 +619,7 @@ describe('PackagesComponent', () => {
     const received = item({ status: 'received', rowsTotal: null, rowsAccepted: null, rowsRejected: null });
     const { fixture } = await createFixture({ pages: [of(page([received, item({ id: 'c' })]))] });
 
-    const badges = tableRows(fixture).map((row) => row.querySelector('ui-badge') as HTMLElement);
+    const badges = tableRows(fixture).map((row) => row.querySelector('smt-badge') as HTMLElement);
     expect(badges[0].getAttribute('title')).toBe(PACKAGED_RUSSIAN['upl.pkg.status.received_hint']);
     expect(badges[1].getAttribute('title')).toBeNull();
   });

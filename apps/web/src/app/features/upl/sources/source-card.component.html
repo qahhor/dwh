@@ -27,10 +27,10 @@
     <h1 class="upl-title">{{ s.name }}</h1>
     <code class="upl-code">{{ s.code }}</code>
     @if (s.lastPublishedVersion !== null) {
-      <ui-badge variant="success">{{ activeVersionLabel(s) }}</ui-badge>
+      <smt-badge smtSize="SM" smtVariant="success">{{ activeVersionLabel(s) }}</smt-badge>
     }
     @if (s.hasDraft) {
-      <ui-badge variant="info">{{ 'upl.list.has_draft' | t }}</ui-badge>
+      <smt-badge smtSize="SM" smtVariant="blue">{{ 'upl.list.has_draft' | t }}</smt-badge>
     }
   </header>
 
@@ -190,7 +190,7 @@
     >
   </ng-template>
   <ng-template #versionStatusCell let-v>
-    <ui-badge [variant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</ui-badge>
+    <smt-badge smtSize="SM" [smtVariant]="statusVariant(v.status)">{{ statusKeyOf(v) | t }}</smt-badge>
   </ng-template>
   <ng-template #validFromCell let-v>{{ v.validFrom ? (v.validFrom | date: 'dd.MM.yyyy') : dash }}</ng-template>
   <ng-template #validToCell let-v>{{ v.validTo ? (v.validTo | date: 'dd.MM.yyyy') : dash }}</ng-template>

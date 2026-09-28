@@ -163,10 +163,11 @@
 >
 <ng-template #periodCell let-item>{{ period(item) }}</ng-template>
 <ng-template #statusCell let-item>
-  <ui-badge
-    [variant]="variantOf(item)"
+  <smt-badge
+    smtSize="SM"
+    [smtVariant]="variantOf(item)"
     [attr.title]="item.status === 'received' ? ('upl.pkg.status.received_hint' | t) : null"
-    >{{ statusKeyOf(item) | t }}</ui-badge
+    >{{ statusKeyOf(item) | t }}</smt-badge
   >
 </ng-template>
 <ng-template #rowsCell let-item>{{ rowsText(item) }}</ng-template>

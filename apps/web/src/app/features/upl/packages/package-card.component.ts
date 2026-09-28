@@ -14,7 +14,7 @@ import {
 } from '@angular/core';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
@@ -35,7 +35,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
 @Component({
   selector: 'app-upl-package-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTAlertComponent, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
+  imports: [SMTAlertComponent, TranslatePipe, SMTBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">
@@ -68,7 +68,9 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
 
       <div class="upl-pkg-card-title">
         <span class="upl-pkg-file">{{ item().fileName }}</span>
-        <ui-badge [variant]="statusVariant[item().status]">{{ statusKey[item().status] | t }}</ui-badge>
+        <smt-badge smtSize="SM" [smtVariant]="statusVariant[item().status]">{{
+          statusKey[item().status] | t
+        }}</smt-badge>
       </div>
       <div class="upl-pkg-card-meta" data-testid="upl-pkg-card-meta">{{ metaText() }}</div>
       @if (applyError(); as message) {
