@@ -52,7 +52,7 @@ export interface QueuedUpload {
             <div class="progress-track"><div class="progress-fill" [style.width.%]="item.progress"></div></div>
           </div>
           <span *ngIf="item.status === 'queued'" class="queue-state">{{ 'ui.file_upload.queued' | t }}</span>
-          <span *ngIf="item.status === 'failed'" class="queue-state queue-error">{{ item.error }}</span>
+          <span *ngIf="item.status === 'failed'" class="queue-state queue-error" role="alert">{{ item.error }}</span>
           <div class="file-actions">
             <button
               *ngIf="item.status === 'failed'"
@@ -310,8 +310,9 @@ export class UiFileUploadComponent {
           const msg =
             err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.oshibka_zagruzki_fayla');
           this.current = null;
+          // The failure is an alert on the file's own row, beside its retry button. Not a toast: inside a modal
+          // dialog the rest of the page is aria-hidden, so a toast would never be announced there, and it fades.
           this.patch(next.id, { status: 'failed', error: msg });
-          this.toast.error(msg, this.uiI18n.translate('ui.file_upload.zagruzka_ne_udalas'));
           this.pump();
         },
       });

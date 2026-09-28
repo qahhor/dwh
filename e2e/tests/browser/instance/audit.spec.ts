@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { loginToInstance } from '../../../support/auth.js';
-import { chooseOption } from '../../../support/select.js';
+import { chooseOption, choosePeriod } from '../../../support/select.js';
 
 const stats = {
   totalAuditLogs: 41,
@@ -117,7 +117,8 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('password_hash');
   await expect(dialog).toContainText('[REDACTED]');
-  await dialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  // The header has a "Закрыть" icon button too; the footer action is the one a reader reaches last.
+  await dialog.getByRole('button', { name: 'Закрыть', exact: true }).last().click();
 
   await page.getByRole('button', { name: 'Следующая страница' }).click();
   await expect(page.getByRole('button', { name: 'Просмотреть изменение #101' })).toBeVisible();
@@ -129,8 +130,9 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
 
   await page.getByLabel('Ключ записи (PK)').fill('42');
   await page.getByLabel('ID пользователя').fill('7');
-  await page.getByLabel('Дата с (UTC)').fill('2026-09-01');
-  await page.getByLabel('Дата по (UTC)').fill('2026-09-04');
+  // One period picker replaced the two date fields: its trigger is named "Период (UTC): <summary>".
+  const period = page.getByRole('button', { name: /^Период \(UTC\):/ });
+  await choosePeriod(period, '2026-09-01', '2026-09-04');
   await chooseOption(page.getByLabel('Фильтр журнала по действию'), 'U');
   await page.getByRole('button', { name: 'Применить' }).click();
 
@@ -145,8 +147,7 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await page.getByRole('button', { name: 'Сбросить фильтры' }).click();
   await expect(page.getByLabel('Ключ записи (PK)')).toHaveValue('');
   await expect(page.getByLabel('ID пользователя')).toHaveValue('');
-  await expect(page.getByLabel('Дата с (UTC)')).toHaveValue('');
-  await expect(page.getByLabel('Дата по (UTC)')).toHaveValue('');
+  await expect(period).toHaveAccessibleName('Период (UTC): Любой период');
   await expect(page.getByLabel('Фильтр журнала по действию')).not.toHaveAttribute('data-value');
 
   const resetRequest = requestedLogUrls.at(-1);
@@ -234,6 +235,10 @@ test('live audit API preserves the page contract and rejects a malformed cursor'
     expect(response.body).toHaveProperty('nextCursor');
   }
 
-  expect(result.malformed.status).toBe(400);
-  expect(result.malformed.body).toEqual(expect.objectContaining({ code: 'bad_request' }));
+  // ADR-0016: every query error is 422 VALIDATION_FAILED, addressed to its parameter.
+  expect(result.malformed.status).toBe(422);
+  expect(result.malformed.body).toEqual(expect.objectContaining({
+    code: 'validation_failed',
+    errors: expect.arrayContaining([expect.objectContaining({ field: 'cursor', code: 'INVALID_CURSOR' })]),
+  }));
 });

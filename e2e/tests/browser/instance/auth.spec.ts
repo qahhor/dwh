@@ -120,7 +120,8 @@ test('administrator can create and remove a user and upload and delete a file', 
   const userName = `E2E User ${suffix}`;
   const login = `e2e${suffix}`.toLowerCase();
   const email = `${login}@example.test`;
-  const temporaryPassword = `E2e!${suffix}Safe`;
+  // 8..20 characters (the password policy): 4 + 10 + 2.
+  const temporaryPassword = `E2e!${suffix.slice(-10)}Sf`;
   const fileName = `smartupcms-${suffix}.txt`;
 
   await loginToInstance(page);
@@ -155,8 +156,10 @@ test('administrator can create and remove a user and upload and delete a file', 
   expect((await refreshedUsers).ok()).toBe(true);
   await expect(page.getByRole('button', { name: `Открыть профиль пользователя ${userName}` })).toBeVisible();
 
-  await page.getByRole('button', { name: `Удалить пользователя ${userName}` }).click();
-  const deleteDialog = page.getByRole('dialog', { name: 'Удаление пользователя' });
+  // Delete lives in the row's "more actions" menu; the confirmation is an alertdialog (modal.confirm).
+  await page.getByRole('button', { name: `Ещё действия: ${userName}` }).click();
+  await page.getByRole('menuitem', { name: 'Удалить', exact: true }).click();
+  const deleteDialog = page.getByRole('alertdialog', { name: 'Удаление пользователя' });
   const deleteUserResponse = page.waitForResponse(response =>
     response.request().method() === 'DELETE' && /\/api\/v1\/iam\/users\/\d+$/u.test(response.url())
   );
@@ -178,13 +181,14 @@ test('administrator can create and remove a user and upload and delete a file', 
   const uploadedFile = await uploadResponse;
   expect(uploadedFile.ok()).toBe(true);
   expect(new URL(uploadedFile.url()).origin).toBe(origin);
-  await expect(uploadDialog.getByRole('button', { name: `Скачать ${fileName}` }).first()).toBeVisible();
-  await uploadDialog.getByRole('button', { name: 'Закрыть', exact: true }).click();
+  await expect(uploadDialog.getByRole('button', { name: `Скачать «${fileName}»` }).first()).toBeVisible();
+  // The header has a "Закрыть" icon button too; the footer action is the last one.
+  await uploadDialog.getByRole('button', { name: 'Закрыть', exact: true }).last().click();
 
   const fileTable = page.getByRole('region', { name: 'Таблица файлов' });
   await expect(fileTable.getByRole('button', { name: `Скачать файл ${fileName}` }).first()).toBeVisible();
   await fileTable.getByRole('button', { name: `Удалить файл ${fileName}` }).click();
-  const deleteFileDialog = page.getByRole('dialog', { name: 'Подтверждение удаления' });
+  const deleteFileDialog = page.getByRole('alertdialog', { name: 'Подтверждение удаления' });
   const deleteFileResponse = page.waitForResponse(response =>
     response.request().method() === 'DELETE'
       && /\/api\/v1\/files\/[0-9a-f-]{36}$/u.test(response.url())

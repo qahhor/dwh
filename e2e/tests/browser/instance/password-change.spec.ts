@@ -29,7 +29,8 @@ const rotatedInstancePassword = `E2e!${createHash('sha256')
 type LoginOutcome = 'alert' | 'mandatory-change' | 'tasks';
 
 function deriveSecret(label: string, seed: string): string {
-  return `${label}!${createHash('sha256').update(seed).digest('base64url').slice(0, 24)}`;
+  // At most 20 characters (the password policy): the longest label is 5, the digest part 12.
+  return `${label}!${createHash('sha256').update(seed).digest('base64url').slice(0, 12)}`;
 }
 
 function collectConsoleHealth(page: Page, allowedForbiddenPaths: readonly string[] = []): () => void {

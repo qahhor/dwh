@@ -86,7 +86,9 @@ describe('UiFileUploadComponent', () => {
       .expectOne('/api/v1/files/upload')
       .flush({ detail: 'Размер файла превышает допустимые 50 МБ' }, { status: 413, statusText: 'Payload Too Large' });
     fixture.detectChanges();
-    expect(toast.error).toHaveBeenCalledWith('Размер файла превышает допустимые 50 МБ', 'Загрузка не удалась');
+    expect(toast.error).not.toHaveBeenCalled();
+    const alert = fixture.nativeElement.querySelector('[role="alert"]') as HTMLElement;
+    expect(alert.textContent).toContain('Размер файла превышает допустимые 50 МБ');
     expect(fixture.nativeElement.querySelector('.queue-error')?.textContent).toContain('50 МБ');
 
     // The next file starts while the failed one waits for the user.

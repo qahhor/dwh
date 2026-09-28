@@ -42,7 +42,7 @@ test('administrator creates, publishes, and archives a local announcement', asyn
   await expect(card).toContainText(body);
 
   await card.getByRole('button', { name: 'Опубликовать' }).click();
-  const publishDialog = page.getByRole('dialog', { name: 'Опубликовать объявление?' });
+  const publishDialog = page.getByRole('alertdialog', { name: 'Опубликовать объявление?' });
   const publishResponse = page.waitForResponse(response =>
     response.request().method() === 'POST' && response.url().endsWith('/publish')
   );
@@ -65,7 +65,7 @@ test('administrator creates, publishes, and archives a local announcement', asyn
   await expect(banner).toBeHidden();
 
   await card.getByRole('button', { name: 'Архивировать' }).click();
-  const archiveDialog = page.getByRole('dialog', { name: 'Архивировать объявление?' });
+  const archiveDialog = page.getByRole('alertdialog', { name: 'Архивировать объявление?' });
   const archiveResponse = page.waitForResponse(response =>
     response.request().method() === 'POST' && response.url().endsWith('/archive')
   );

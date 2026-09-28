@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 
 import { expect, type Page } from '@playwright/test';
 
@@ -11,7 +13,18 @@ const rotatedInstancePassword = `E2e!${createHash('sha256')
   .update(environment.instance.password)
   .digest('base64url')
   .slice(0, 16)}`;
-let activeInstancePassword = environment.instance.password;
+// Playwright restarts the worker after a failed test, which resets module state. Without a record of the
+// rotation, every restart would first try the retired bootstrap password: one more failed sign-in each time,
+// until the server locks the address (10 failures) and every later test fails at login. The record is a flag,
+// never the password, in the output directory that each run starts empty.
+const rotationRecord = path.join(process.cwd(), 'test-results', '.instance-password-rotated');
+let activeInstancePassword = existsSync(rotationRecord) ? rotatedInstancePassword : environment.instance.password;
+
+function recordRotation(): void {
+  activeInstancePassword = rotatedInstancePassword;
+  mkdirSync(path.dirname(rotationRecord), { recursive: true });
+  writeFileSync(rotationRecord, '');
+}
 
 type LoginOutcome = 'tasks' | 'mandatory-change' | 'alert';
 
@@ -49,7 +62,7 @@ async function completeMandatoryPasswordChange(page: Page): Promise<void> {
   } finally {
     await Promise.all([clearSecret(newPassword), clearSecret(confirmation)]);
   }
-  activeInstancePassword = rotatedInstancePassword;
+  recordRotation();
   await submitInstanceCredentials(page, activeInstancePassword);
 }
 
@@ -60,7 +73,7 @@ export async function loginToInstance(page: Page): Promise<void> {
     await completeMandatoryPasswordChange(page);
   } else if (outcome === 'alert'
     && activeInstancePassword !== rotatedInstancePassword) {
-    activeInstancePassword = rotatedInstancePassword;
+    recordRotation();
     await submitInstanceCredentials(page, activeInstancePassword);
   }
 
