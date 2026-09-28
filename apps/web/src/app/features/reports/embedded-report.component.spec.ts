@@ -89,7 +89,7 @@ describe('EmbeddedReportComponent', () => {
   });
 
   it('handles error when report cannot be loaded', () => {
-    const { fixture, navService } = setup(
+    const { fixture } = setup(
       'not-found',
       throwError(() => new Error('Not found')),
     );

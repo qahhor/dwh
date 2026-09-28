@@ -6,7 +6,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
 import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
-import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
+import { AnnouncementBannerType } from '../announcements.models';
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';

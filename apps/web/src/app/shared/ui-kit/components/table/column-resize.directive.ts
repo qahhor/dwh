@@ -33,31 +33,31 @@ const RESIZE_LINE_WIDTH_PX = 1;
 export class ColumnResizeDirective implements OnInit, OnDestroy {
   private el = inject(ElementRef<HTMLElement>);
 
-  smtColumnResize = input(true, { transform: booleanAttribute });
+  readonly smtColumnResize = input(true, { transform: booleanAttribute });
 
-  smtColumnResizeMin = input(60);
+  readonly smtColumnResizeMin = input(60);
 
-  smtColumnResizeMax = input(2000);
+  readonly smtColumnResizeMax = input(2000);
 
-  smtColumnResizeContainerWidth = input(1);
+  readonly smtColumnResizeContainerWidth = input(1);
 
   /**
    * Full hit-area width in px, centered on the column’s right edge
    * (half extends into this column, half into the next). Default 10 → 5px each side.
    */
-  smtColumnResizeHandleWidth = input(10);
+  readonly smtColumnResizeHandleWidth = input(10);
 
   /**
    * If true (default), resize won't create horizontal overflow when table
    * initially fits into its scroll container.
    */
-  smtColumnResizePreventOverflow = input(true, { transform: booleanAttribute });
+  readonly smtColumnResizePreventOverflow = input(true, { transform: booleanAttribute });
 
   /**
    * If true, width is expected to be applied continuously while dragging,
    * so the visual guide should stay on the current edge.
    */
-  smtColumnResizeLive = input(false, { transform: booleanAttribute });
+  readonly smtColumnResizeLive = input(false, { transform: booleanAttribute });
 
   resizeChange = output<{ widthPx: number; widthPercent: string }>();
 

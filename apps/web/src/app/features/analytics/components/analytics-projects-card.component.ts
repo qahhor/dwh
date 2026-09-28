@@ -89,15 +89,15 @@ export class AnalyticsProjectsCardComponent {
 
   readonly projectClick = output<number>();
 
-  searchProjectQuery = signal('');
+  readonly searchProjectQuery = signal('');
 
-  filteredProjects = computed(() => {
+  readonly filteredProjects = computed(() => {
     const query = this.searchProjectQuery().trim().toLowerCase();
     const list = this._projects();
     if (!query) return list;
     return list.filter((p) => p.projectName.toLowerCase().includes(query));
   });
-  private _projects = computed<ProjectDistribution[]>(() => this.projects() || []);
+  private readonly _projects = computed<ProjectDistribution[]>(() => this.projects() || []);
 
   getProgressColor(pct: number): string {
     if (pct >= 100) return 'var(--success)';

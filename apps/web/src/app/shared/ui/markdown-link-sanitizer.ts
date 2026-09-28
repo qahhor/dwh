@@ -1,5 +1,7 @@
 const ALLOWED_ABSOLUTE_SCHEMES = /^(?:https?:\/\/|mailto:)/i;
 const ALLOWED_RELATIVE_TARGET = /^(?:\/(?!\/)|\.\.?\/(?!\/)|#[^\s]*)/;
+// Control characters are exactly what this pattern looks for (they hide a scheme from the check).
+// eslint-disable-next-line no-control-regex
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 export function replaceMarkdownLinksWithSafeAnchors(html: string): string {

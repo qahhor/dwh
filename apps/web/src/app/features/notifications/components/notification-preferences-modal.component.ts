@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, input, output } from '@angular/core';
 
 import { NotificationPrefItem } from '@core/models/notification.models';
 import { TranslatePipe } from '@core/services/i18n.service';

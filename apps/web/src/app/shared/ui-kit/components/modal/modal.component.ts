@@ -43,11 +43,11 @@ export class SMTModalComponent {
 
   private readonly data = inject<SMTModalData | null>(DIALOG_DATA, { optional: true });
 
-  title = input<string>('', { alias: 'smtTitle' });
+  readonly title = input<string>('', { alias: 'smtTitle' });
 
-  showCloseButton = input<boolean>(true, { alias: 'smtShowCloseButton' });
+  readonly showCloseButton = input<boolean>(true, { alias: 'smtShowCloseButton' });
 
-  bodyClass = input<string>('', { alias: 'smtBodyClass' });
+  readonly bodyClass = input<string>('', { alias: 'smtBodyClass' });
 
   /** Template from service data - used when opened programmatically */
   readonly contentTemplate = computed(() => this.data?.content ?? null);

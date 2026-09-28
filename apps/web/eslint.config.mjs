@@ -60,6 +60,11 @@ export default tseslint.config(
       '@angular-eslint/prefer-signals': 'error',
       '@angular-eslint/prefer-output-emitter-ref': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      // A leading underscore marks a parameter kept for the signature (fakes, callbacks).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'no-restricted-imports': ['error', { paths: [TEMPLATE_FORMS], patterns: [DEEP_RELATIVE_IMPORT] }],
     },
   },

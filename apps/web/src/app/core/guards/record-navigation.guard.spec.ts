@@ -496,7 +496,7 @@ describe('Record routes with the actual router and actual templates', () => {
     ['/iam/users', '/iam/users', UsersComponent],
   ] as const)(
     'cancels old detail requests and shows a localized 404 with a working list action for %s',
-    async (route, endpoint, type) => {
+    async (route, endpoint, _type) => {
       const { harness, requests, router } = await setup();
       await harness.navigateByUrl(`${route}/41`);
       const old = requests.get(`${endpoint}/41`)!;

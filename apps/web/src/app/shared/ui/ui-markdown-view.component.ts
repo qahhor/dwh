@@ -47,7 +47,7 @@ export class UiMarkdownViewComponent {
     );
 
     // Lists
-    html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+    html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
     // Links [text](url)

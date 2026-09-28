@@ -55,22 +55,22 @@ export class SMTSkeletonDirective implements OnDestroy {
   /**
    * Enable/disable the skeleton state (true = show skeleton, false = show content)
    */
-  smtSkeleton = input<boolean>(true);
+  readonly smtSkeleton = input<boolean>(true);
 
   /**
    * Custom width for the skeleton (e.g., '100px', '200px')
    */
-  smtSkeletonWidth = input<string>('100%');
+  readonly smtSkeletonWidth = input<string>('100%');
 
   /**
    * Custom height for the skeleton (e.g., '20px', '40px')
    */
-  smtSkeletonHeight = input<string>('20px');
+  readonly smtSkeletonHeight = input<string>('20px');
 
   /**
    * Custom border-radius for the skeleton (e.g., '4px', '50%')
    */
-  smtSkeletonRadius = input<string>('4px');
+  readonly smtSkeletonRadius = input<string>('4px');
 
   /**
    * Как у полей формы: светлая/тёмная поверхность; `auto` — из SMTThemeService.
@@ -82,18 +82,18 @@ export class SMTSkeletonDirective implements OnDestroy {
    *
    * Примеры: `appearance: 'dark'` в `*smtSkeleton`, либо явно `[smtSkeletonAppearance]="'dark'"` на `ng-template`.
    */
-  smtSkeletonAppearance = input<SMTInputAppearance>('light');
+  readonly smtSkeletonAppearance = input<SMTInputAppearance>('light');
 
   /**
    * Уточнение на **светлой** поверхности: более контрастные полоски при `dark`.
    * На тёмой поверхности (`smtAppearance` разрешился в dark) не используется.
    */
-  smtSkeletonVariant = input<TSkeletonVariant>('light');
+  readonly smtSkeletonVariant = input<TSkeletonVariant>('light');
 
   /**
    * Animation duration in milliseconds
    */
-  smtSkeletonDuration = input<number>(1500);
+  readonly smtSkeletonDuration = input<number>(1500);
 
   private readonly resolvedAppearance = computed<'light' | 'dark'>(() => {
     const mode = this.smtSkeletonAppearance();

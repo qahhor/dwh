@@ -25,7 +25,7 @@ import { SMTIconComponent } from '@shared/ui-kit/components/icon/icon';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SMTSortIconComponent {
-  sort = input<'ASC' | 'DESC' | undefined>(undefined, { alias: 'smtSort' });
+  readonly sort = input<'ASC' | 'DESC' | undefined>(undefined, { alias: 'smtSort' });
 
   protected readonly symbol = computed(() => {
     const sort = this.sort();

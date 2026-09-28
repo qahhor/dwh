@@ -299,7 +299,9 @@ export function loadCollapsedSections(): Set<string> {
         if (Array.isArray(parsed)) return new Set<string>(parsed);
       }
     }
-  } catch {}
+  } catch {
+    // storage unavailable: nothing is expanded
+  }
   return new Set<string>();
 }
 
@@ -308,7 +310,9 @@ export function loadCollapsedState(): boolean {
     if (typeof window !== 'undefined' && window.localStorage) {
       return localStorage.getItem(COLLAPSED_STATE_KEY) === 'true';
     }
-  } catch {}
+  } catch {
+    // storage unavailable: the sidebar starts expanded
+  }
   return false;
 }
 

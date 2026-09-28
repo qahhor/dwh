@@ -97,16 +97,19 @@ describe('SMTTableComponent virtual rows', () => {
 
     const component = TestBed.runInInjectionContext(() => new SMTTableComponent<Row>());
 
-    component.data = signal(overrides.rows ?? makeRows(1000)) as never;
-    component.config = signal(baseConfig(overrides.rowHeight)) as never;
-    component.isLoading = signal(false) as never;
-    component.rowDndEnabled = signal(overrides.rowDndEnabled ?? false) as never;
-    component.rowDndControlled = signal(false) as never;
-    component.virtualRowsEnabled = signal(overrides.virtualRowsEnabled ?? true) as never;
-    component.detailRowTemplate = signal(overrides.detailRowTemplate ?? undefined) as never;
-    component.expandedRow = signal(overrides.expandedRow ?? null) as never;
-    component.detailClosing = signal(false) as never;
-    component.skeletonRowCount = signal(10) as never;
+    // Inputs and queries are readonly signals; outside a template the test swaps them for plain ones.
+    Object.assign(component, {
+      data: signal(overrides.rows ?? makeRows(1000)),
+      config: signal(baseConfig(overrides.rowHeight)),
+      isLoading: signal(false),
+      rowDndEnabled: signal(overrides.rowDndEnabled ?? false),
+      rowDndControlled: signal(false),
+      virtualRowsEnabled: signal(overrides.virtualRowsEnabled ?? true),
+      detailRowTemplate: signal(overrides.detailRowTemplate ?? undefined),
+      expandedRow: signal(overrides.expandedRow ?? null),
+      detailClosing: signal(false),
+      skeletonRowCount: signal(10),
+    });
 
     return component;
   }
@@ -314,22 +317,25 @@ describe('SMTTableComponent primitive cells and column window', () => {
     }
 
     const component = TestBed.runInInjectionContext(() => new SMTTableComponent<Row>());
-    component.data = signal(makeRows(overrides.rowCount ?? 50)) as never;
-    component.config = signal({
-      columns,
-      columnsOrder,
-      trackBy: (_index: number, item: Row) => item.id,
-      biruniGridLayout: true,
-      hasMultipleSelection: overrides.hasMultipleSelection ?? true,
-    }) as never;
-    component.isLoading = signal(false) as never;
-    component.rowDndEnabled = signal(overrides.rowDndEnabled ?? false) as never;
-    component.rowDndControlled = signal(false) as never;
-    component.virtualRowsEnabled = signal(true) as never;
-    component.detailRowTemplate = signal(undefined) as never;
-    component.expandedRow = signal(null) as never;
-    component.detailClosing = signal(false) as never;
-    component.skeletonRowCount = signal(10) as never;
+    // Inputs and queries are readonly signals; outside a template the test swaps them for plain ones.
+    Object.assign(component, {
+      data: signal(makeRows(overrides.rowCount ?? 50)),
+      config: signal({
+        columns,
+        columnsOrder,
+        trackBy: (_index: number, item: Row) => item.id,
+        biruniGridLayout: true,
+        hasMultipleSelection: overrides.hasMultipleSelection ?? true,
+      }),
+      isLoading: signal(false),
+      rowDndEnabled: signal(overrides.rowDndEnabled ?? false),
+      rowDndControlled: signal(false),
+      virtualRowsEnabled: signal(true),
+      detailRowTemplate: signal(undefined),
+      expandedRow: signal(null),
+      detailClosing: signal(false),
+      skeletonRowCount: signal(10),
+    });
     component['scrollContainerClientWidth'].set(400);
     return component;
   }

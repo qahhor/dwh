@@ -5,7 +5,6 @@ import { Router, provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Observable } from 'rxjs';
-import { AuthService } from '@core/services/auth.service';
 import { I18nService } from '@core/services/i18n.service';
 import { NotificationService } from '@core/services/notification.service';
 import { PermissionService } from '@core/services/permission.service';

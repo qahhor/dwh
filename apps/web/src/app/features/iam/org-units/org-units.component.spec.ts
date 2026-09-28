@@ -352,7 +352,8 @@ describe('OrgUnitsComponent lifecycle', () => {
     (action) => {
       const { fixture, page, api } = setup();
       page.select(child);
-      action === 'create' ? page.create() : page.edit();
+      if (action === 'create') page.create();
+      else page.edit();
       fixture.detectChanges();
       const editor = page.editor()!;
       editor.draft.name = 'Unsaved';

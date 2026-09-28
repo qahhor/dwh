@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnChanges, SimpleChanges, input, model, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnChanges, input, model, output } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -167,7 +167,7 @@ export class UiPaginationComponent implements OnChanges {
     );
   }
 
-  ngOnChanges(changes: SimpleChanges): void {
+  ngOnChanges(): void {
     this.calculatePagination();
   }
 

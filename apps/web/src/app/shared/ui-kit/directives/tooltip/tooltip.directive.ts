@@ -52,15 +52,15 @@ export class SMTTooltipDirective implements OnDestroy {
 
   private ariaDescriber = inject(AriaDescriber);
 
-  text = input('', { alias: 'smtTooltip' });
+  readonly text = input('', { alias: 'smtTooltip' });
 
-  supportingText = input('', { alias: 'smtTooltipSupportingText' });
+  readonly supportingText = input('', { alias: 'smtTooltipSupportingText' });
 
-  theme = input<TTooltipTheme>('dark', { alias: 'smtTooltipTheme' });
+  readonly theme = input<TTooltipTheme>('dark', { alias: 'smtTooltipTheme' });
 
-  position = input<TTooltipPosition>('auto', { alias: 'smtTooltipPosition' });
+  readonly position = input<TTooltipPosition>('auto', { alias: 'smtTooltipPosition' });
 
-  disabled = input(false, { alias: 'smtTooltipDisabled', transform: booleanAttribute });
+  readonly disabled = input(false, { alias: 'smtTooltipDisabled', transform: booleanAttribute });
 
   private overlayRef?: OverlayRef;
 

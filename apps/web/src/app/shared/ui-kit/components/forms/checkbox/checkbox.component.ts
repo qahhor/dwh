@@ -44,35 +44,35 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
    * Item identity for `smt-checkbox-group` selections. Named `groupItemValue` (not `value`) so this
    * control can implement {@link FormCheckboxControl} for `[formField]` (signal forms).
    */
-  groupItemValue = input<T | null>(null, { alias: 'smtValue' });
+  readonly groupItemValue = input<T | null>(null, { alias: 'smtValue' });
 
-  autoFocus = input(false, { alias: 'smtAutoFocus' });
+  readonly autoFocus = input(false, { alias: 'smtAutoFocus' });
 
-  id = input<string | null>(null);
+  readonly id = input<string | null>(null);
 
-  preventDefault = input(true, { alias: 'smtPreventDefault' });
+  readonly preventDefault = input(true, { alias: 'smtPreventDefault' });
 
   /** Template / `[formField]` disable; merged with {@link setGroupDisabled} from `smt-checkbox-group`. */
-  disabled = input(false, { transform: booleanAttribute });
+  readonly disabled = input(false, { transform: booleanAttribute });
 
-  invalid = input(false, { transform: booleanAttribute });
+  readonly invalid = input(false, { transform: booleanAttribute });
 
-  errors = input<readonly WithOptionalFieldTree<ValidationError>[]>([]);
+  readonly errors = input<readonly WithOptionalFieldTree<ValidationError>[]>([]);
 
-  required = input(false, { transform: booleanAttribute });
+  readonly required = input(false, { transform: booleanAttribute });
 
-  isHalfChecked = input<boolean>(false, { alias: 'smtIsHalfChecked' });
+  readonly isHalfChecked = input<boolean>(false, { alias: 'smtIsHalfChecked' });
 
-  size = input<SMTCheckboxSize>('md', { alias: 'smtSize' });
+  readonly size = input<SMTCheckboxSize>('md', { alias: 'smtSize' });
 
-  variant = input<SMTCheckboxVariant>('brand', { alias: 'smtVariant' });
+  readonly variant = input<SMTCheckboxVariant>('brand', { alias: 'smtVariant' });
 
-  hideLabel = input(false, { alias: 'smtHideLabel', transform: booleanAttribute });
+  readonly hideLabel = input(false, { alias: 'smtHideLabel', transform: booleanAttribute });
 
   /** Accessible name when the visible label is hidden (`smtHideLabel`). */
-  ariaLabel = input('', { alias: 'smtAriaLabel' });
+  readonly ariaLabel = input('', { alias: 'smtAriaLabel' });
 
-  hint = input<string | null>(null, { alias: 'smtHint' });
+  readonly hint = input<string | null>(null, { alias: 'smtHint' });
 
   /** Bound by Signal Forms; the field's touched state. */
   readonly touched = input(false, { transform: booleanAttribute });
@@ -88,16 +88,16 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
   readonly touch = output<void>();
 
   /** Two-way checked state; use `[(checked)]` or `[formField]` (emits `checkedChange`). */
-  checked = model(false);
+  readonly checked = model(false);
 
   /** Touched here or by the form; follows the form again when it resets `touched`. */
   protected readonly wasTouched = linkedSignal(() => this.touched());
 
   /** Internal: `smt-checkbox-group` disables projected children via `contentChildren` (projection breaks DI). */
-  private groupDisabled = signal(false);
+  private readonly groupDisabled = signal(false);
 
   /** Disabled by a reactive form or ngModel through SMTCheckboxValueAccessor. */
-  private formsDisabled = signal(false);
+  private readonly formsDisabled = signal(false);
 
   readonly hasError = computed(() =>
     shouldShowSMTFormControlError({
@@ -115,7 +115,7 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
     return typeof h === 'string' && h.trim().length > 0;
   });
 
-  isDisabled = computed(() => this.disabled() || this.groupDisabled() || this.formsDisabled());
+  readonly isDisabled = computed(() => this.disabled() || this.groupDisabled() || this.formsDisabled());
 
   readonly resolvedAriaLabel = computed(() => {
     const label = this.ariaLabel().trim();

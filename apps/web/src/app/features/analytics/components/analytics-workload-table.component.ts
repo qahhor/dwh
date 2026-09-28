@@ -114,13 +114,13 @@ export class AnalyticsWorkloadTableComponent {
   private readonly completedCell = viewChild.required<TemplateRef<unknown>>('completedCell');
   private readonly efficiencyCell = viewChild.required<TemplateRef<unknown>>('efficiencyCell');
 
-  searchUserQuery = signal('');
+  readonly searchUserQuery = signal('');
 
   /**
    * The people matching the search, busiest first (by name on a tie). This is
    * the order the table falls back to when a header click switches sorting off.
    */
-  filteredWorkload = computed(() => {
+  readonly filteredWorkload = computed(() => {
     const query = this.searchUserQuery().trim().toLowerCase();
     let list = this._workload();
     if (query) {
@@ -146,7 +146,7 @@ export class AnalyticsWorkloadTableComponent {
       columnsOrder: ['name', 'login', 'assigned', 'completed', 'efficiency'],
     };
   });
-  private _workload = computed<UserWorkload[]>(() => this.workload() || []);
+  private readonly _workload = computed<UserWorkload[]>(() => this.workload() || []);
 
   /** The whole team is loaded, so a header click sorts every person, not a page. */
   readonly sortValues = {

@@ -30,21 +30,21 @@ import { SMTI18nService } from '@shared/ui-kit/i18n';
 export class SMTCellContentComponent<T> {
   readonly i18n = inject(SMTI18nService);
 
-  data = input.required<ColumnContentType<T>>({ alias: 'smtData' });
+  readonly data = input.required<ColumnContentType<T>>({ alias: 'smtData' });
 
-  row = input.required<T>({ alias: 'smtRow' });
+  readonly row = input.required<T>({ alias: 'smtRow' });
 
-  hasSelection = input(false, { alias: 'smtHasSelection' });
+  readonly hasSelection = input(false, { alias: 'smtHasSelection' });
 
-  isSelected = input(false, { alias: 'smtIsSelected' });
+  readonly isSelected = input(false, { alias: 'smtIsSelected' });
 
   /** Biruni column `align` — mirrors header alignment. */
-  align = input<'left' | 'center' | 'right'>('left', { alias: 'smtAlign' });
+  readonly align = input<'left' | 'center' | 'right'>('left', { alias: 'smtAlign' });
 
   isSelectedChange = output<boolean>({ alias: 'smtIsSelectedChange' });
 
   /** Dedicated Biruni checkbox column: selection UI only, no cell value. */
-  protected selectionOnly = computed(() => {
+  protected readonly selectionOnly = computed(() => {
     if (!this.hasSelection()) return false;
     const data = this.data();
     if (data.type !== 'primitive') return false;
