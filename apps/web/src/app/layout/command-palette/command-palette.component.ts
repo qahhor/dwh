@@ -13,7 +13,6 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
 import { CommandPaletteService } from '@core/services/command-palette.service';
@@ -32,7 +31,7 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
 @Component({
   selector: 'app-command-palette',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, FormsModule, A11yModule, CommandPaletteResultsComponent, CommandPaletteFooterComponent],
+  imports: [TranslatePipe, A11yModule, CommandPaletteResultsComponent, CommandPaletteFooterComponent],
   templateUrl: './command-palette.component.html',
   styleUrl: './command-palette.component.css',
 })
@@ -53,6 +52,8 @@ export class CommandPaletteComponent implements OnDestroy {
   readonly recentSearches = signal<string[]>([]);
   readonly selectedIndex = signal(0);
 
+  readonly searchQuery = signal('');
+
   readonly categories = computed<CategoryItem[]>(() => {
     const list: CategoryItem[] = [
       { value: 'ALL', label: 'search.entity.all', icon: 'apps' },
@@ -67,8 +68,6 @@ export class CommandPaletteComponent implements OnDestroy {
   });
 
   private static nextId = 0;
-
-  searchQuery = '';
   entityType = 'ALL';
   private retryUntil = 0;
   private cooldownTimer?: ReturnType<typeof setInterval>;
@@ -181,6 +180,12 @@ export class CommandPaletteComponent implements OnDestroy {
     }
   }
 
+  /** What the person typed; each keystroke restarts the debounced search. */
+  onQueryInput(event: Event): void {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+    this.onSearchChange(this.searchQuery());
+  }
+
   onSearchChange(query: string) {
     const normalized = query.trim();
     this.results.set([]);
@@ -199,24 +204,24 @@ export class CommandPaletteComponent implements OnDestroy {
 
   setCategory(category: string) {
     this.entityType = category;
-    this.onSearchChange(this.searchQuery);
+    this.onSearchChange(this.searchQuery());
   }
 
   clearQuery() {
-    this.searchQuery = '';
+    this.searchQuery.set('');
     this.onSearchChange('');
     this.searchInput()?.nativeElement.focus();
   }
 
   applySuggestion(suggestion: string) {
-    this.searchQuery = suggestion;
+    this.searchQuery.set(suggestion);
     this.onSearchChange(suggestion);
     this.searchInput()?.nativeElement.focus();
   }
 
   retrySearch() {
     if (this.retryUntil > Date.now()) return;
-    this.onSearchChange(this.searchQuery);
+    this.onSearchChange(this.searchQuery());
   }
 
   optionId(index: number): string {
@@ -226,15 +231,15 @@ export class CommandPaletteComponent implements OnDestroy {
   navigateTo(hit: SearchHit) {
     const target = searchTarget(hit);
     if (!target) return;
-    if (this.searchQuery.trim().length >= 2) {
-      this.saveRecentSearch(this.searchQuery.trim());
+    if (this.searchQuery().trim().length >= 2) {
+      this.saveRecentSearch(this.searchQuery().trim());
     }
     this.paletteService.close();
     this.router.navigate(target);
   }
 
   selectRecent(query: string) {
-    this.searchQuery = query;
+    this.searchQuery.set(query);
     this.onSearchChange(query);
     this.searchInput()?.nativeElement.focus();
   }
@@ -264,7 +269,7 @@ export class CommandPaletteComponent implements OnDestroy {
   }
 
   private resetSearch(): void {
-    this.searchQuery = '';
+    this.searchQuery.set('');
     this.onSearchChange('');
   }
 

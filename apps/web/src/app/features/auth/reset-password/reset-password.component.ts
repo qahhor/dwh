@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PasswordApi } from '../password.api';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { LoginHeaderComponent } from '../login/components/login-header.component';
 import { LoginTopBarComponent } from '../login/components/login-top-bar.component';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
@@ -20,15 +19,7 @@ type ResetState = 'form' | 'done' | 'invalid';
 @Component({
   selector: 'app-reset-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent,
-    SMTInputComponent,
-    SMTInputValueAccessor,
-    LoginHeaderComponent,
-    LoginTopBarComponent,
-  ],
+  imports: [TranslatePipe, SMTButtonComponent, SMTInputComponent, LoginHeaderComponent, LoginTopBarComponent],
   styleUrl: '../login/login.component.css',
   template: `
     <main class="login-wrapper">
@@ -37,7 +28,12 @@ type ResetState = 'form' | 'done' | 'invalid';
         <app-login-header></app-login-header>
 
         @if (state() === 'form') {
-          <form (ngSubmit)="submit()" class="login-form" [attr.aria-busy]="isLoading()">
+          <form
+            (submit)="$event.preventDefault(); submit()"
+            novalidate
+            class="login-form"
+            [attr.aria-busy]="isLoading()"
+          >
             <div class="otp-banner">
               <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
               <div>
@@ -51,8 +47,8 @@ type ResetState = 'form' | 'done' | 'invalid';
               <smt-input
                 smtFieldId="reset-new-password"
                 type="password"
-                [(ngModel)]="newPassword"
-                (ngModelChange)="formError.set('')"
+                [(value)]="newPassword"
+                (edited)="formError.set('')"
                 name="newPassword"
                 required
                 [minLength]="passwordPolicy.min"
@@ -70,8 +66,8 @@ type ResetState = 'form' | 'done' | 'invalid';
               <smt-input
                 smtFieldId="reset-confirm-password"
                 type="password"
-                [(ngModel)]="confirmPassword"
-                (ngModelChange)="formError.set('')"
+                [(value)]="confirmPassword"
+                (edited)="formError.set('')"
                 name="confirmPassword"
                 required
                 [minLength]="passwordPolicy.min"

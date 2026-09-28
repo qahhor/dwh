@@ -42,6 +42,23 @@ describe('UiMarkdownEditorComponent', () => {
     ).not.toBeNull();
   });
 
+  it('shows the bound text and writes what is typed back to value', async () => {
+    await TestBed.configureTestingModule({ imports: [UiMarkdownEditorComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiMarkdownEditorComponent);
+    fixture.componentRef.setInput('value', 'Draft');
+    fixture.detectChanges();
+
+    const textarea = fixture.nativeElement.querySelector('textarea') as HTMLTextAreaElement;
+    expect(textarea.value).toBe('Draft');
+
+    textarea.value = 'Draft **bold**';
+    textarea.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.value()).toBe('Draft **bold**');
+    expect(textarea.value).toBe('Draft **bold**');
+  });
+
   it('does not create executable links in preview mode', async () => {
     await TestBed.configureTestingModule({ imports: [UiMarkdownEditorComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiMarkdownEditorComponent);

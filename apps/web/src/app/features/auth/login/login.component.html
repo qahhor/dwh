@@ -4,14 +4,20 @@
     <app-login-header></app-login-header>
 
     <!-- Step 1: Login & Password Form -->
+    <!-- novalidate on each step: the screen shows its own errors instead of the browser's required/minlength bubbles. -->
     @if (step() === 'credentials') {
-      <form (ngSubmit)="onLoginSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+      <form
+        (submit)="$event.preventDefault(); onLoginSubmit()"
+        novalidate
+        class="login-form"
+        [attr.aria-busy]="isLoading()"
+      >
         <div class="form-group">
           <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
           <smt-input
             smtFieldId="login"
-            [(ngModel)]="login"
-            (ngModelChange)="formError.set('')"
+            [(value)]="login"
+            (edited)="formError.set('')"
             name="login"
             required
             autocomplete="username"
@@ -31,8 +37,8 @@
           <smt-input
             smtFieldId="password"
             type="password"
-            [(ngModel)]="password"
-            (ngModelChange)="formError.set('')"
+            [(value)]="password"
+            (edited)="formError.set('')"
             (keydown)="checkCapsLock($event, 'password')"
             (keyup)="checkCapsLock($event, 'password')"
             (touch)="capsLockField.set(null)"
@@ -72,7 +78,12 @@
 
     <!-- Step 2: 2FA OTP Code Verification -->
     @if (step() === 'otp') {
-      <form (ngSubmit)="onOtpSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+      <form
+        (submit)="$event.preventDefault(); onOtpSubmit()"
+        novalidate
+        class="login-form"
+        [attr.aria-busy]="isLoading()"
+      >
         <div class="otp-banner">
           <span class="material-symbols-outlined" aria-hidden="true">shield_person</span>
           <div>
@@ -86,8 +97,8 @@
           <smt-input
             class="otp-input tabular-nums"
             smtFieldId="otp-code"
-            [(ngModel)]="otpCode"
-            (ngModelChange)="formError.set('')"
+            [(value)]="otpCode"
+            (edited)="formError.set('')"
             name="otpCode"
             required
             [maxLength]="6"
@@ -133,7 +144,12 @@
 
     <!-- Step 3: Mandatory Password Change on First Login -->
     @if (step() === 'must_change_password') {
-      <form (ngSubmit)="onChangePasswordSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+      <form
+        (submit)="$event.preventDefault(); onChangePasswordSubmit()"
+        novalidate
+        class="login-form"
+        [attr.aria-busy]="isLoading()"
+      >
         <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning)">
           <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
           <div>
@@ -147,8 +163,8 @@
           <smt-input
             smtFieldId="new-password"
             type="password"
-            [(ngModel)]="newPassword"
-            (ngModelChange)="formError.set('')"
+            [(value)]="newPassword"
+            (edited)="formError.set('')"
             (keydown)="checkCapsLock($event, 'new-password')"
             (keyup)="checkCapsLock($event, 'new-password')"
             (touch)="capsLockField.set(null)"
@@ -172,8 +188,8 @@
           <smt-input
             smtFieldId="confirm-new-password"
             type="password"
-            [(ngModel)]="confirmNewPassword"
-            (ngModelChange)="formError.set('')"
+            [(value)]="confirmNewPassword"
+            (edited)="formError.set('')"
             (keydown)="checkCapsLock($event, 'confirm-new-password')"
             (keyup)="checkCapsLock($event, 'confirm-new-password')"
             (touch)="capsLockField.set(null)"

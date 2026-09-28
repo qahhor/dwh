@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, signal, ElementRef, inject, input, model, viewChild } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../ui-kit/components/tab-bar';
@@ -9,7 +8,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 @Component({
   selector: 'ui-markdown-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTTabBarComponent, TranslatePipe, FormsModule],
+  imports: [SMTTabBarComponent, TranslatePipe],
   templateUrl: './ui-markdown-editor.component.html',
   styleUrl: './ui-markdown-editor.component.css',
 })
@@ -40,6 +39,11 @@ export class UiMarkdownEditorComponent {
   readonly previewPanelId = `ui-markdown-preview-panel-${this.componentId}`;
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'edit' | 'preview'>[]>();
+
+  /** What the person typed; the textarea shows value() through a plain [value] binding. */
+  onTextInput(event: Event): void {
+    this.onTextChange((event.target as HTMLTextAreaElement).value);
+  }
 
   onTextChange(newVal: string) {
     this.value.set(newVal);

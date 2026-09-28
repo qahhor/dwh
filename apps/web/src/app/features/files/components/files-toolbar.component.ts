@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { I18nService } from '@core/services/i18n.service';
@@ -9,7 +8,7 @@ import { I18nService } from '@core/services/i18n.service';
 @Component({
   selector: 'app-files-toolbar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe],
+  imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe],
   template: `
     <div class="filter-toolbar">
       <div class="toolbar-left">
@@ -34,8 +33,8 @@ import { I18nService } from '@core/services/i18n.service';
             smtIcon="search"
             clearable
             [placeholder]="'files.poisk_faylov_po_imeni' | t"
-            [ngModel]="searchQuery()"
-            (ngModelChange)="searchQueryChange.emit($event)"
+            [value]="searchQuery()"
+            (edited)="searchQueryChange.emit($event === null ? '' : '' + $event)"
             (keyup.enter)="search.emit()"
             (cleared)="clear.emit()"
           />
