@@ -312,7 +312,8 @@ test('a late search response cannot replace the current task query', async ({ pa
   const oldCompleted = new Promise<{ error: unknown | null }>(resolve => { markOldCompleted = resolve; });
 
   await routeTaskList(page, async (route, url) => {
-    const search = url.searchParams.get('search');
+    // The list searches through the query DSL parameter q (ADR-0016).
+    const search = url.searchParams.get('q');
     if (search === 'old') {
       markOldStarted?.();
       await oldGate;
@@ -377,11 +378,12 @@ test('kanban keeps visible filters and the 390px page contains horizontal overfl
   await page.setViewportSize({ width: 390, height: 844 });
   await loginToInstance(page);
   await page.goto('/tasks');
-  await page.getByRole('button', { name: 'Канбан' }).click();
+  // The view switch and the status filter are segmented radio groups (smt-radio-group).
+  await page.getByRole('radio', { name: 'Канбан' }).click();
   await expect(page.getByRole('region', { name: 'Канбан-доска задач' })).toBeVisible();
-  const filterGroup = page.getByRole('group', { name: 'Фильтр по статусу' });
-  await expect(filterGroup.getByRole('button', { name: 'Активные' })).toBeVisible();
-  await expect(filterGroup.getByRole('button', { name: 'Все', exact: true })).toBeVisible();
+  const filterGroup = page.getByRole('radiogroup', { name: 'Фильтр по статусу' });
+  await expect(filterGroup.getByRole('radio', { name: 'Активные' })).toBeVisible();
+  await expect(filterGroup.getByRole('radio', { name: 'Все', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Новая задача' })).toBeVisible();
 
   await expect.poll(async () => page.evaluate(() => ({

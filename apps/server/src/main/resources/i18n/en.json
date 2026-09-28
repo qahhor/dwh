@@ -1135,7 +1135,6 @@
   "tasks.uchastnik": "Participant",
   "layout.command_palette.ne_udalos_vypolnit_poisk_proverte_soedinenie_i_p": "Search failed. Check your connection and try again.",
   "ui.file_upload.oshibka_zagruzki_fayla": "File download error",
-  "ui.file_upload.zagruzka_ne_udalas": "Upload failed",
   "ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow": "Write the task text (Markdown supported)...",
   "ui.markdown_editor.tekst_v_formate_markdown": "Text in Markdown format",
   "ui.markdown_editor.zhirnyy_tekst": "**bold text**",

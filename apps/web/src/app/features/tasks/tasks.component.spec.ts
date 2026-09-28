@@ -1224,7 +1224,8 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       'Показано 51–100 из 125',
       'Показано 101–125 из 125',
     ]);
-  });
+    // 125 rows through the DOM: slower than the default 5 s budget when coverage instruments the run.
+  }, 20_000);
 
   it('resets cursor history on a filter change and ignores the old page response', async () => {
     const oldPage = new Subject<unknown>();

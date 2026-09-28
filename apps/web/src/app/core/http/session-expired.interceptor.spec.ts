@@ -134,6 +134,25 @@ describe('sessionExpiredInterceptor', () => {
     http.verify();
   });
 
+  it('keeps the session and shows the error when a wrong current password answers 401', () => {
+    const failed = vi.fn();
+    api
+      .post('/iam/users/me/password', { oldPassword: 'typo', newPassword: 'Next-Pass-26!' })
+      .subscribe({ error: failed });
+    http
+      .expectOne('/api/v1/iam/users/me/password')
+      .flush(
+        { code: 'invalid_credentials', detail: 'Неверный текущий пароль' },
+        { status: 401, statusText: 'Unauthorized' },
+      );
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(failed).toHaveBeenCalledTimes(1);
+    expect(toast.toasts().map((item) => item.message)).toEqual(['Неверный текущий пароль']);
+    http.verify();
+  });
+
   it('knows which calls need a session', () => {
     expect(isSessionBound('/api/v1/ms/tasks?page=1')).toBe(true);
     expect(isSessionBound('https://dwh.example.test/api/v1/md/users')).toBe(true);

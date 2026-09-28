@@ -65,12 +65,13 @@ test('critical pages and create forms fit a mobile viewport', async ({ page }) =
 
   await page.goto('/tasks');
   await page.locator('.view-header').getByRole('button', { name: 'Новая задача', exact: true }).click();
-  await page.waitForSelector('.modal-body');
-  await expect.poll(() => page.locator('.modal-body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  // Dialogs are smt-dialog: the scrolling body is .smt-dialog__body.
+  await page.waitForSelector('.smt-dialog__body');
+  await expect.poll(() => page.locator('.smt-dialog__body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 
   await page.goto('/iam/users');
   await page.getByRole('button', { name: 'Новый пользователь', exact: true }).click();
-  await expect.poll(() => page.locator('.modal-body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await expect.poll(() => page.locator('.smt-dialog__body').evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
 });
 
 test('compact administration actions preserve a 28px minimum hit target', async ({ page }) => {
@@ -78,7 +79,8 @@ test('compact administration actions preserve a 28px minimum hit target', async 
   await page.goto('/iam/roles');
   await expect(page.getByRole('heading', { level: 1, name: 'Роли и матрица прав' })).toBeVisible();
 
-  for (const selector of ['.mini-btn', '.text-link', '.mod-pill-btn', '.batch-btn']) {
+  // The module pills are chips of an smt-radio-group now (roadmap item 38).
+  for (const selector of ['.mini-btn', '.text-link', '.module-filter [role="radio"]', '.batch-btn']) {
     const control = page.locator(selector).first();
     await expect(control).toBeVisible();
     const box = await control.boundingBox();

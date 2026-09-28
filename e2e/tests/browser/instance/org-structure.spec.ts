@@ -403,7 +403,7 @@ async function primaryButtonContrast(page: Page): Promise<{
   fontWeight: string;
   ratio: number;
 }> {
-  const button = page.locator('button.btn-primary').filter({ hasText: /Создать/u }).first();
+  const button = page.locator('button.smt-button--primary').filter({ hasText: /Создать/u }).first();
   await expect(button).toBeVisible();
   await page.mouse.move(0, 0);
   await button.evaluate(async element => {
@@ -426,7 +426,7 @@ async function primaryButtonContrast(page: Page): Promise<{
     const background = luminance(style.backgroundColor);
     return {
       text: element.textContent?.trim() ?? '',
-      selector: 'button.btn-primary',
+      selector: 'button.smt-button--primary',
       foreground: style.color,
       background: style.backgroundColor,
       fontSize: style.fontSize,
@@ -610,7 +610,11 @@ test.describe.serial('organization structure vertical acceptance', () => {
       && new URL(value.url()).pathname === `/api/v1/iam/org-units/${seeded.other.id}`);
     await confirmation.getByRole('button', { name: 'Удалить', exact: true }).click();
     expect((await response).status()).toBe(409);
+    // The refusal stays in the open confirmation; the tree behind the modal is hidden from the accessibility tree
+    // until the person closes it, and then the unit is still selected.
     await expect(confirmation.getByRole('alert')).toBeVisible();
+    await confirmation.getByRole('button', { name: 'Отмена', exact: true }).click();
+    await expect(confirmation).toBeHidden();
     await expect(orgUnitRow(page, seeded.other.name)).toHaveAttribute('aria-selected', 'true');
     expect(conflicts.map(value => ({ method: value.request().method(), path: new URL(value.url()).pathname }))).toEqual([
       { method: 'DELETE', path: `/api/v1/iam/org-units/${seeded.other.id}` },
@@ -677,7 +681,7 @@ test.describe.serial('organization structure vertical acceptance', () => {
         theme: current.theme,
         reading: contrast,
       });
-      await page.locator('button.btn-primary').filter({ hasText: /Создать/u }).first().scrollIntoViewIfNeeded();
+      await page.locator('button.smt-button--primary').filter({ hasText: /Создать/u }).first().scrollIntoViewIfNeeded();
       await page.screenshot({
         path: testInfo.outputPath(`org-structure-detail-${current.theme}-${current.width}x${current.height}.png`),
         fullPage: false,
@@ -687,7 +691,8 @@ test.describe.serial('organization structure vertical acceptance', () => {
       await expect(panel.getByRole('heading', { name: 'Историческая привязка', exact: true })).toBeVisible();
       const modal = page.getByRole('dialog', { name: 'Профиль пользователя', exact: true });
       expect(await modal.evaluate(element => {
-        const body = element.querySelector<HTMLElement>('.modal-body');
+        // smt-dialog: the scrolling body is .smt-dialog__body.
+        const body = element.querySelector<HTMLElement>('.smt-dialog__body');
         const rect = element.getBoundingClientRect();
         return {
           withinViewport: rect.left >= 0 && rect.right <= window.innerWidth,

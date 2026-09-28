@@ -2,7 +2,7 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { Injector, inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
-import { isSessionBound } from './session-bound';
+import { isSessionLoss } from './session-bound';
 
 /**
  * A 401 from the API while someone is signed in means the server session is
@@ -17,7 +17,7 @@ export const sessionExpiredInterceptor: HttpInterceptorFn = (request, next) => {
   const injector = inject(Injector);
   return next(request).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && error.status === 401 && isSessionBound(request.url)) {
+      if (error instanceof HttpErrorResponse && isSessionLoss(error, request.url)) {
         // Looked up only now: AuthService itself sends requests through this interceptor.
         injector.get(AuthService).sessionExpired();
       }

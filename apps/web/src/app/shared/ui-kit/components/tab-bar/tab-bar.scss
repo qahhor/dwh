@@ -12,6 +12,10 @@
   overflow-x: auto;
   border-bottom: 1px solid var(--border-color);
   scrollbar-width: thin;
+  /* A scroller clips what leaves its padding box: room for a tab's 2px focus ring and its 2px offset at both
+     ends, also when a tab is scrolled into view at an edge. */
+  padding-inline: 4px;
+  scroll-padding-inline: 4px;
 }
 
 .smt-tab-bar__tab {
