@@ -105,6 +105,24 @@ const screens: Screen[] = [
       await expect(page.getByRole('listbox').first()).toBeVisible();
     },
   },
+  {
+    name: 'notes board',
+    path: '/notes',
+    open: async page => {
+      await expect(page.getByText('Планёрка филиала 6', { exact: true })).toBeVisible();
+    },
+  },
+  {
+    name: 'note edit form with its history',
+    path: '/notes',
+    open: async page => {
+      await page.locator('app-note-card').first().getByRole('button', { name: 'Редактировать' }).click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('textbox').first()).toHaveValue('Планёрка филиала 1');
+      await dialog.getByTestId('record-history-toggle').click();
+      await expect(dialog.getByText('Иван Петров').first()).toBeVisible();
+    },
+  },
 ];
 
 for (const theme of ['light', 'dark'] as const) {

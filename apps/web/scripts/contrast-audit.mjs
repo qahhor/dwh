@@ -41,7 +41,7 @@ const LITERAL_ALLOWED = new Map([
     'the palette a person picks a status or task type colour from; the chosen colour is stored data',
   ],
   [
-    'src/app/features/notes/notes.component.css',
+    'src/app/features/notes/note-card.component.css',
     'the note card palette the author picks from, each class named for its colour',
   ],
 ]);

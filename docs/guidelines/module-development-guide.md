@@ -83,39 +83,63 @@ Problem Details формате, описанном в
 ### Экран сущности: пример
 
 Форма целиком приходит с сервера; экран только загружает `form-meta`, держит
-значения и сохраняет. Полный образец — `apps/web/src/app/features/notes`.
+значения и сохраняет. Эталонный экран — `apps/web/src/app/features/notes`:
+новый экран копирует его устройство, а не старые фичи.
+
+| Файл | Что в нём |
+|---|---|
+| `notes.api.ts` | типизированный сервис данных: модель записи и все запросы фичи; компонент не зовёт `ApiService` сам |
+| `notes.component.ts` + `.html` | экран: `rxResource` для формы, метаданных списка и первой страницы; `linkedSignal` для догружаемых страниц; `OnPush`; `@if`/`@for` |
+| `note-card.component.ts` | одна запись: `input()`/`output()`, действия по `actions` из `form-meta` |
+| `note-form-dialog.component.ts` | создание и правка через `smt-entity-form`; экран создаёт диалог на одно открытие |
+| `*.spec.ts` | по спеке на компонент: загрузка, пусто, ошибка, права, сохранение, отказ сервера |
+
+Удаление подтверждается общим `SMTModalService.confirm()` с `action`, а не
+своим диалогом. Сокращённо:
 
 ```ts
+@Injectable({ providedIn: 'root' })
+export class InventoryApi {
+  private readonly api = inject(ApiService);
+  save(id: number | null, payload: Record<string, unknown>): Observable<Item> {
+    return id === null
+      ? this.api.post<Item>('/inventory', payload, { notifyError: false })
+      : this.api.put<Item>(`/inventory/${id}`, payload, { notifyError: false });
+  }
+}
+
 @Component({
   selector: 'app-inventory',
-  standalone: true,
-  imports: [SMTEntityFormComponent, SMTEntityToolbarComponent, SMTButtonComponent, TranslatePipe],
-  template: `
-    @if (meta(); as form) {
-      <smt-entity-toolbar [meta]="form" />
-      <smt-entity-form [meta]="form" [(value)]="values" [problems]="problems()" />
-      @if (canDo(form, 'create')) {
-        <button smt-button smtVariant="primary" (click)="save(form)">{{ 'common.save' | t }}</button>
-      }
-    }
-  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTEntityFormComponent, SMTButtonComponent, TranslatePipe],
+  templateUrl: './inventory.component.html',
 })
 export class InventoryComponent {
-  private readonly api = inject(ApiService);
+  private readonly items = inject(InventoryApi);
   private readonly i18n = inject(I18nService);
-  readonly meta = toSignal(inject(FormMetaService).get('ms.inventory'));
+  private readonly formMeta = inject(FormMetaService);
+  private readonly form = rxResource({ stream: () => this.formMeta.get('ms.inventory') });
+  readonly meta = computed(() => this.form.value() ?? null);
+  readonly canCreate = computed(() => canDo(this.meta(), 'create'));
   readonly values = signal<FormValues>({});
   readonly problems = signal<FormProblems>({});
-  readonly canDo = canDo;
 
   save(meta: FormMeta): void {
     const t = (key: string, params?: Record<string, string | number>) => this.i18n.translate(key, params);
-    const problems = formProblems(meta, this.values(), t);   // те же правила, что на сервере
-    this.problems.set(problems);
-    if (Object.keys(problems).length) return;
-    this.api.post('/inventory', recordPayload(meta, this.values()), { notifyError: false }).subscribe({
-      error: problem => this.problems.set(serverProblems(meta, problem?.errors, t)),  // 422 — на поля
+    this.problems.set(formProblems(meta, this.values(), t)); // те же правила, что на сервере
+    if (Object.keys(this.problems()).length) return;
+    this.items.save(null, recordPayload(meta, this.values())).subscribe({
+      error: (problem: ProblemDetail) => this.problems.set(serverProblems(meta, problem?.errors, t)), // 422 — на поля
     });
+  }
+}
+```
+
+```html
+@if (meta(); as form) {
+  <smt-entity-form [meta]="form" [(value)]="values" [problems]="problems()" />
+  @if (canCreate()) {
+    <button smt-button smtVariant="primary" (click)="save(form)">{{ 'common.save' | t }}</button>
   }
 }
 ```

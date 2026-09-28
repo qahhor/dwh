@@ -686,6 +686,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The notes screen is the reference for every entity screen (plan 10/10,
+  item 2.1): a typed data service (`notes.api.ts`) holds the requests,
+  the form, the list metadata and the first page are `rxResource`s, the
+  screen is `OnPush` with `@if`/`@for`, and the card and the form dialog are
+  components of their own; deleting asks through the shared confirmation.
+  The screen no longer says there are no notes before the list has
+  answered, and a failed reload keeps the notes on screen. The module guide
+  describes the layout; the notes files have no lint suppressions left.
+- The engines fields of the web app and the E2E suite name Node 24.21.0,
+  the version of `.node-version`.
 - Dependencies updated from the first Dependabot run, each checked locally
   (backend, web, accessibility, E2E, image scans): Angular 22.2.0, vitest and
   its coverage 5.0.2, Playwright 1.63.0, TypeScript 7.0.2 for the E2E suite,

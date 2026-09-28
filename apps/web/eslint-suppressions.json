@@ -578,17 +578,6 @@
       "count": 1
     }
   },
-  "src/app/features/notes/notes.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 14
-    },
-    "@angular-eslint/template/prefer-control-flow": {
-      "count": 7
-    },
-    "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    }
-  },
   "src/app/features/notifications/components/notification-preferences-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
