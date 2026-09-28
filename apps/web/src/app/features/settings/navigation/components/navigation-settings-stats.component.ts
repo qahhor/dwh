@@ -1,29 +1,23 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
+import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
 
 @Component({
   selector: 'app-navigation-settings-stats',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe],
+  imports: [UiKpiCardComponent, TranslatePipe],
   template: `
     <div class="stats-grid">
-      <div class="stat-card">
-        <span class="stat-value">{{ totalCount() }}</span>
-        <span class="stat-label">{{ 'nav.settings.stat_total' | t }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value stat-active">{{ activeCount() }}</span>
-        <span class="stat-label">{{ 'nav.settings.stat_active' | t }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value stat-embedded">{{ embeddedCount() }}</span>
-        <span class="stat-label">{{ 'nav.settings.stat_embedded' | t }}</span>
-      </div>
-      <div class="stat-card">
-        <span class="stat-value stat-external">{{ externalCount() }}</span>
-        <span class="stat-label">{{ 'nav.settings.stat_external' | t }}</span>
-      </div>
+      <ui-kpi-card [label]="'nav.settings.stat_total' | t" [value]="totalCount()" icon="menu" tone="primary" />
+      <ui-kpi-card
+        [label]="'nav.settings.stat_active' | t"
+        [value]="activeCount()"
+        icon="check_circle"
+        tone="success"
+      />
+      <ui-kpi-card [label]="'nav.settings.stat_embedded' | t" [value]="embeddedCount()" icon="web" tone="info" />
+      <ui-kpi-card [label]="'nav.settings.stat_external' | t" [value]="externalCount()" icon="open_in_new" />
     </div>
   `,
   styles: [
@@ -31,45 +25,10 @@ import { TranslatePipe } from '@core/services/i18n.service';
       :host {
         display: block;
       }
-
       .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         gap: 14px;
-      }
-
-      .stat-card {
-        background-color: var(--bg-surface);
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        padding: 14px 18px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        box-shadow: var(--shadow-sm);
-      }
-
-      .stat-value {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--text-main);
-        line-height: 1.2;
-      }
-
-      .stat-value.stat-active {
-        color: var(--success-text);
-      }
-      .stat-value.stat-embedded {
-        color: var(--info-text);
-      }
-      .stat-value.stat-external {
-        color: var(--accent-violet-text);
-      }
-
-      .stat-label {
-        font-size: 12px;
-        color: var(--text-muted);
-        font-weight: 500;
       }
     `,
   ],

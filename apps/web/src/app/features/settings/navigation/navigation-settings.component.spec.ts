@@ -65,6 +65,7 @@ describe('NavigationSettingsComponent', () => {
 
     const i18n = {
       translate: translateTest,
+      currentLang: () => 'ru',
     };
 
     TestBed.configureTestingModule({

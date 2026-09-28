@@ -12,6 +12,20 @@ const DEEP_RELATIVE_IMPORT = {
   message: 'Import code two or more levels up by its alias (@core, @shared, @features, @layout, @app, @testing).',
 };
 
+/** Screens and their parts are app-*, kit primitives and the entity framework smt-*, shared blocks ui-*. */
+function prefixRule(files, ignores, prefix) {
+  return [
+    {
+      files,
+      ignores: ['src/**/*.spec.ts', ...ignores],
+      rules: {
+        '@angular-eslint/component-selector': ['error', { type: 'element', prefix, style: 'kebab-case' }],
+        '@angular-eslint/directive-selector': ['error', { type: 'attribute', prefix, style: 'camelCase' }],
+      },
+    },
+  ];
+}
+
 export default tseslint.config(
   {
     ignores: ['dist/**', 'node_modules/**', '.angular/**', 'coverage/**', 'scripts/**'],
@@ -38,6 +52,10 @@ export default tseslint.config(
       'no-restricted-imports': ['error', { patterns: [DEEP_RELATIVE_IMPORT] }],
     },
   },
+  // Plan 10/10, item 2.6: the prefix says where a component lives (see src/app/shared/README.md).
+  ...prefixRule(['src/app/features/**/*.ts', 'src/app/layout/**/*.ts', 'src/app/app.component.ts'], [], 'app'),
+  ...prefixRule(['src/app/shared/ui-kit/**/*.ts', 'src/app/shared/entity/**/*.ts'], [], 'smt'),
+  ...prefixRule(['src/app/shared/**/*.ts'], ['src/app/shared/ui-kit/**', 'src/app/shared/entity/**'], 'ui'),
   {
     // A component asks its feature's typed data service (<feature>.api.ts), never ApiService itself (plan 10/10,
     // item 2.4): the requests of a feature and their types stay in one place a spec can fake.

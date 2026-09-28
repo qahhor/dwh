@@ -12,8 +12,18 @@ import { I18nService } from '@core/services/i18n.service';
   selector: 'ui-kpi-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="kpi" [attr.aria-label]="sentence()" role="group">
-      <span class="kpi__label" aria-hidden="true">{{ label() }}</span>
+    <div class="kpi" [class.kpi--alert]="alert()" [attr.aria-label]="sentence()" role="group">
+      <span class="kpi__head">
+        <span class="kpi__label" aria-hidden="true">{{ label() }}</span>
+        @if (icon()) {
+          <span
+            class="material-symbols-outlined kpi__icon"
+            [class]="'material-symbols-outlined kpi__icon kpi__icon--' + tone()"
+            aria-hidden="true"
+            >{{ icon() }}</span
+          >
+        }
+      </span>
       <span class="kpi__value" aria-hidden="true">{{ shown() }}</span>
       @if (change(); as c) {
         <span
@@ -26,6 +36,7 @@ import { I18nService } from '@core/services/i18n.service';
           >{{ c.text }}
         </span>
       }
+      <span class="kpi__meta"><ng-content /></span>
     </div>
   `,
   styles: [
@@ -38,14 +49,52 @@ import { I18nService } from '@core/services/i18n.service';
         display: flex;
         flex-direction: column;
         gap: 4px;
-        padding: 12px;
-        border-radius: var(--radius-sm);
-        background: var(--bg-hover);
+        padding: 14px 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-color);
+        background: var(--bg-surface);
         height: 100%;
+      }
+      .kpi--alert {
+        box-shadow: inset 0 0 0 1px var(--danger-text);
+      }
+      .kpi__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
       }
       .kpi__label {
         font-size: 12px;
         color: var(--text-muted);
+      }
+      .kpi__icon {
+        font-size: 20px;
+      }
+      .kpi__icon--primary {
+        color: var(--primary);
+      }
+      .kpi__icon--success {
+        color: var(--success-text);
+      }
+      .kpi__icon--info {
+        color: var(--info-text);
+      }
+      .kpi__icon--warning {
+        color: var(--warning-text);
+      }
+      .kpi__icon--danger {
+        color: var(--danger-text);
+      }
+      .kpi__icon--neutral {
+        color: var(--text-muted);
+      }
+      .kpi__meta {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      .kpi__meta:empty {
+        display: none;
       }
       .kpi__value {
         font-size: 24px;
@@ -76,20 +125,29 @@ export class UiKpiCardComponent {
   private readonly i18n = inject(I18nService);
 
   readonly label = input.required<string>();
-  readonly value = input.required<number>();
+  /** A number is formatted for the language; text (a percentage, a size) is shown as it is. */
+  readonly value = input.required<number | string>();
 
   /** The same figure in the period before; none — no comparison. */
   readonly previous = input<number | null>(null);
   /** Which way is good for this figure. */
   readonly goodWhen = input<'up' | 'down' | 'neutral'>('up');
+  /** A Material Symbols icon at the top right, coloured by `tone`. */
+  readonly icon = input('');
+  readonly tone = input<'primary' | 'success' | 'info' | 'warning' | 'danger' | 'neutral'>('neutral');
+  /** Draws attention to a figure that needs it (failed sign-ins, a quota nearly used). */
+  readonly alert = input(false);
 
-  readonly shown = computed(() => this.number(this.value()));
+  readonly shown = computed(() => {
+    const value = this.value();
+    return typeof value === 'number' ? this.number(value) : value;
+  });
 
   /** The change as a percentage, or as a count when the period before had none. */
   readonly change = computed(() => {
     const previous = this.previous();
     const value = this.value();
-    if (previous === null || previous === undefined) return null;
+    if (previous === null || previous === undefined || typeof value !== 'number') return null;
     const diff = value - previous;
     if (diff === 0) {
       return { tone: 'same', icon: 'trending_flat', text: this.i18n.translate('ui.kpi.same') };
