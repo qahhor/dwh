@@ -2,6 +2,8 @@ package com.smartup24.cms.instance.support;
 
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.migration.FndMigrator;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -11,6 +13,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.Set;
 import javax.sql.DataSource;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -105,14 +108,28 @@ public final class TestDatabases {
         }
         // A small pool: on Windows every new connection to the embedded server starts a process, so a
         // connection per statement (DriverManagerDataSource) made statement-heavy tests several times slower.
-        var pool = new com.zaxxer.hikari.HikariConfig();
-        pool.setJdbcUrl(jdbcUrl(name));
-        pool.setUsername(USER);
-        pool.setMaximumPoolSize(4);
+        return pooled(jdbcUrl(name), USER, null, 4, name);
+    }
+
+    /**
+     * A small connection pool for a test database, instead of {@code DriverManagerDataSource}. A physical connection
+     * per transaction leaves a socket in TIME_WAIT each time; a full build on Windows opened enough of them to
+     * exhaust the ephemeral ports ({@code BindException: Address already in use}). The pool also keeps sessions alive
+     * as the production pool does, so session-owned objects (TEMP tables) must be dropped by the code, not by a
+     * disconnect. Connections open on demand and close after ten idle seconds; close the pool with its database.
+     */
+    public static HikariDataSource pooled(
+            String jdbcUrl, String user, @Nullable String password, int maximumSize, String name) {
+        var pool = new HikariConfig();
+        pool.setJdbcUrl(jdbcUrl);
+        pool.setUsername(user);
+        if (password != null) pool.setPassword(password);
+        pool.setMaximumPoolSize(maximumSize);
         pool.setMinimumIdle(0);
         pool.setIdleTimeout(10_000);
+        pool.setConnectionTimeout(10_000);
         pool.setPoolName(name);
-        return new com.zaxxer.hikari.HikariDataSource(pool);
+        return new HikariDataSource(pool);
     }
 
     public static DataSource oltp() {

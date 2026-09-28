@@ -20,11 +20,16 @@ import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
 import com.smartup24.cms.instance.search.service.SearchDeliveryWorker;
 import com.smartup24.cms.instance.search.typesense.*;
+import com.smartup24.cms.instance.support.TestDatabases;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -35,7 +40,6 @@ import org.junit.jupiter.api.*;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -51,7 +55,7 @@ abstract class SearchDeliveryTestSupport {
             .withPassword("test_pass");
 
     static JdbcClient jdbc;
-    static DriverManagerDataSource database;
+    static HikariDataSource database;
     static DataSourceTransactionManager manager;
     static TransactionTemplate tx;
     final ObjectMapper mapper = new ObjectMapper();
@@ -91,7 +95,10 @@ abstract class SearchDeliveryTestSupport {
 
     @BeforeAll
     static void migrate() {
-        database = new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+        // Delivery and job cycles run a transaction each; a pool keeps them off new sockets. Ten covers the test's
+        // own sessions, the proof's dedicated connection and two concurrent cycles with room to spare.
+        database = TestDatabases.pooled(
+                postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword(), 10, "search-delivery");
         FlywayUtcConfiguration.configure(Flyway.configure())
                 .dataSource(database)
                 .load()
@@ -99,6 +106,19 @@ abstract class SearchDeliveryTestSupport {
         jdbc = JdbcClient.create(database);
         manager = new DataSourceTransactionManager(database);
         tx = new TransactionTemplate(manager);
+    }
+
+    @AfterAll
+    static void closePool() {
+        if (database != null) database.close();
+    }
+
+    /**
+     * Another session outside the pool, for a test that plants its own session objects (TEMP tables) next to the
+     * code under test: closing it drops them, so nothing planted returns to the pool the code draws from.
+     */
+    static Connection separateSession() throws SQLException {
+        return DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
     }
 
     @BeforeEach

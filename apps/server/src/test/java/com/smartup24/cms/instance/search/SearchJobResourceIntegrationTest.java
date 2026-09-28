@@ -55,7 +55,7 @@ class SearchJobResourceIntegrationTest extends SearchDeliveryTestSupport {
                 .start(new StartJobRequest(UUID.randomUUID(), "CHECK", null))
                 .id();
         jobWorker.runOnce();
-        try (var connection = database.getConnection()) {
+        try (var connection = separateSession()) {
             var other = JdbcClient.create(new SingleConnectionDataSource(connection, true));
             other.sql("create temporary table search_reconcile_sentinel(id int)")
                     .update();
