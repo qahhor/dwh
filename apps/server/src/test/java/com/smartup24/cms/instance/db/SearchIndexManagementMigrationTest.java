@@ -12,14 +12,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @Testcontainers
 class SearchIndexManagementMigrationTest {
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine");
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine");
 
     @Test
     void upgradePreservesBusinessRowsAndEnforcesSearchManagementContracts() {
@@ -176,7 +176,7 @@ class SearchIndexManagementMigrationTest {
 
     @Test
     void emptyDatabaseMigratesLatestAndBecomesReady() {
-        try (var empty = new PostgreSQLContainer<>("postgres:18-alpine")) {
+        try (var empty = new PostgreSQLContainer("postgres:18-alpine")) {
             empty.start();
             var ds = new DriverManagerDataSource(empty.getJdbcUrl(), empty.getUsername(), empty.getPassword());
             assertThat(FlywayUtcConfiguration.configure(Flyway.configure())

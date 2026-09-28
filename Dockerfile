@@ -5,7 +5,7 @@
 # кода приложения — пересборка после правки кода не тянет заново ~100 МБ библиотек.
 
 # ---------------------------------------------------------------- build
-FROM maven:3.9-eclipse-temurin-25@sha256:d67198007bb4441b07d45587320f83154de80ece3608f80408ef14c6ea847753 AS build
+FROM maven:3.9-eclipse-temurin-25@sha256:93b8a14ea2f412782e4e842651273b4d903e35cc496284f178fbbe2d67d00976 AS build
 WORKDIR /build
 
 COPY pom.xml .
@@ -27,7 +27,7 @@ RUN java -Djarmode=tools -jar /build/app.jar extract --destination /layers \
  && mv /layers/app-*.jar /layers/run.jar 2>/dev/null || mv /layers/*.jar /layers/run.jar
 
 # ---------------------------------------------------------------- runtime
-FROM eclipse-temurin:25-jre@sha256:f9e65324a37f28209ce7dd0e5149a7aa954520ed936fb87813cf6ded2400a112 AS runtime
+FROM eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c75ac28146967bae984b5 AS runtime
 
 # Hardening:non-root пользователь, только необходимые пакеты, чистый apt-кэш
 RUN apt-get update && apt-get upgrade -y --no-install-recommends \

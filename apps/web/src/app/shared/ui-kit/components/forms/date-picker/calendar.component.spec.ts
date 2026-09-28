@@ -24,6 +24,9 @@ describe('SMTCalendarComponent', () => {
     fixture.componentInstance.picked.subscribe((date) => picked.push(date));
     fixture.componentInstance.focusDay();
     fixture.detectChanges();
+    // With Angular 22.2 the focus that focusDay moves in a render hook lands on the application tick, not on
+    // the fixture's detectChanges alone.
+    tickInZone();
     const element = fixture.nativeElement as HTMLElement;
     const grid = element.querySelector('[role="grid"]') as HTMLTableElement;
     const key = (name: string, shiftKey = false) => {

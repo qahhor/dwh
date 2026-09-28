@@ -465,9 +465,9 @@ describe('Record routes with the actual router and actual templates', () => {
       exited = value;
       return value;
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // The exit completes by itself, the discard question unanswered (the router takes a few turns since 22.2).
+    await vi.waitFor(() => expect(exited).toBe(true));
     expect(await pending).toBe(false);
-    expect(exited).toBe(true);
     expect(await exit).toBe(true);
     expect(router.url).toBe('/login?reason=expired#session');
     expect(page.isCreateDiscardConfirmationOpen()).toBe(false);
@@ -484,8 +484,8 @@ describe('Record routes with the actual router and actual templates', () => {
       exited = value;
       return value;
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(exited).toBe(true);
+    // The exit completes by itself, without asking (the router takes a few turns since 22.2).
+    await vi.waitFor(() => expect(exited).toBe(true));
     expect(await exit).toBe(true);
     expect(page.isEditDiscardConfirmationOpen()).toBe(false);
   });
