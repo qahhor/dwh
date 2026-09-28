@@ -1,0 +1,165 @@
+<div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">
+  <!-- Filter Toolbar -->
+  <div class="filter-toolbar">
+    <div class="filter-group">
+      <label class="sr-only" for="audit-table-filter">{{ 'audit.filtr_zhurnala_po_tablice' | t }}</label>
+      <smt-select
+        smtTriggerId="audit-table-filter"
+        class="filter-select"
+        [options]="tableOptions()"
+        [placeholder]="'audit.vse_tablicy' | t"
+        [emptyLabel]="'audit.vse_tablicy' | t"
+        [value]="tableFilter() || null"
+        (valueChange)="tableFilterChange.emit($event ?? ''); applyFilters.emit()"
+      />
+
+      <label class="sr-only" for="audit-event-filter">{{ 'audit.filtr_zhurnala_po_deystviyu' | t }}</label>
+      <smt-select
+        smtTriggerId="audit-event-filter"
+        class="filter-select"
+        [options]="eventOptions()"
+        [placeholder]="'audit.vse_deystviya' | t"
+        [emptyLabel]="'audit.vse_deystviya' | t"
+        [value]="eventFilter() || null"
+        (valueChange)="eventFilterChange.emit($event ?? ''); applyFilters.emit()"
+      />
+
+      <div class="compact-filter">
+        <label for="audit-row-pk-filter">{{ 'audit.row_pk' | t }}</label>
+        <smt-input
+          smtFieldId="audit-row-pk-filter"
+          name="auditRowPkFilter"
+          type="text"
+          smtSize="sm"
+          [ngModel]="rowPkFilter()"
+          (ngModelChange)="rowPkFilterChange.emit($event)"
+          (keyup.enter)="applyFilters.emit()"
+        />
+      </div>
+
+      <div class="compact-filter compact-filter-narrow">
+        <label for="audit-user-filter">{{ 'audit.user_id' | t }}</label>
+        <smt-input
+          smtFieldId="audit-user-filter"
+          name="auditUserFilter"
+          type="text"
+          inputmode="numeric"
+          smtSize="sm"
+          smtPattern="[0-9]*"
+          [ngModel]="auditUserFilter()"
+          (ngModelChange)="auditUserFilterChange.emit($event)"
+          (keyup.enter)="applyFilters.emit()"
+        />
+      </div>
+
+      <div class="compact-filter compact-filter-period">
+        <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>
+        <smt-date-range-picker
+          data-testid="audit-period-filter"
+          [smtAriaLabel]="'audit.period_utc' | t"
+          [value]="period()"
+          (valueChange)="onPeriodChange($event)"
+        />
+      </div>
+
+      <button
+        smt-button
+        type="button"
+        id="audit-apply-filters"
+        smtVariant="primary"
+        smtSize="sm"
+        smtIcon="filter_alt"
+        (click)="applyFilters.emit()"
+      >
+        {{ 'audit.apply_filters' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        id="audit-reset-filters"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="filter_alt_off"
+        (click)="resetFilters.emit()"
+      >
+        {{ 'audit.reset_filters' | t }}
+      </button>
+    </div>
+  </div>
+
+  <!-- The region keeps the page's scroll landmark; the table inside names itself. -->
+  <div
+    class="table-container"
+    role="region"
+    [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t"
+    [attr.aria-busy]="pager().loading()"
+  >
+    @if (tableConfig(); as config) {
+      <ui-server-table
+        [pager]="pager()"
+        [config]="config"
+        [views]="views()"
+        [filterMeta]="meta()"
+        [exportable]="true"
+        [exportOptions]="exportOptions()"
+        [lockedColumns]="['id', 'diff']"
+        [loadingLabel]="'audit.loading_log' | t"
+        [errorLabel]="'audit.load_log_error' | t"
+        errorId="audit-load-error"
+        [emptyTemplate]="emptyState()"
+        (sortChange)="sortChange.emit($event)"
+      />
+    }
+  </div>
+
+  <ng-template #idCell let-item
+    ><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template
+  >
+  <ng-template #tableCell let-item
+    ><span class="table-tag font-mono">{{ item.tableName }}</span></ng-template
+  >
+  <ng-template #pkCell let-item
+    ><span class="pk-pill font-mono">{{ item.rowPk }}</span></ng-template
+  >
+  <ng-template #eventCell let-item>
+    <span class="event-badge" [ngClass]="getEventBadgeClass(item.event)">{{ getEventName(item.event) }}</span>
+  </ng-template>
+  <ng-template #userCell let-item>
+    @if (item.changedByName) {
+      <div class="user-cell">
+        <span class="user-name">{{ item.changedByName }}</span>
+        <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
+      </div>
+    }
+    @if (!item.changedByName) {
+      <span class="text-muted">{{ 'audit.sistema' | t }}</span>
+    }
+  </ng-template>
+  <ng-template #channelCell let-item>
+    <span class="channel-pill" [class.api-pill]="item.isApi">
+      <span class="material-symbols-outlined" aria-hidden="true">{{ item.isApi ? 'terminal' : 'web' }}</span>
+      {{ item.isApi ? 'REST API' : 'Web UI' }}
+    </span>
+  </ng-template>
+  <ng-template #dateCell let-item
+    ><span class="date-cell tabular-nums">{{ item.changedAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span></ng-template
+  >
+  <ng-template #diffCell let-item>
+    <button
+      type="button"
+      class="diff-btn"
+      [attr.aria-label]="'audit.view_change_number' | t: { id: item.id }"
+      [title]="'audit.prosmotr_izmeneniy' | t"
+      (click)="selectRecord.emit(item)"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">difference</span>
+    </button>
+  </ng-template>
+  <ng-template #emptyStateTpl>
+    <div class="empty-state-box">
+      <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
+      <h3>{{ 'audit.zapisey_audita_ne_naydeno' | t }}</h3>
+      <p>{{ 'audit.poprobuyte_sbrosit_vybrannye_filtry' | t }}</p>
+    </div>
+  </ng-template>
+</div>

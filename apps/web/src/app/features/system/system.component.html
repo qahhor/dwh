@@ -1,0 +1,190 @@
+<section class="system-page" aria-labelledby="system-title">
+  <ui-page-header
+    [title]="'system.sostoyanie_sistemy' | t"
+    [eyebrow]="'system.lokalnaya_ustanovka' | t"
+    [subtitle]="'system.diagnostika_etoy_ustanovki_bez_vneshney_telemetr' | t"
+    titleId="system-title"
+  >
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="isLoading()"
+      [attr.aria-label]="'system.obnovit_sostoyanie_sistemy' | t"
+      (click)="loadSystemInfo()"
+    >
+      {{ 'common.refresh' | t }}
+    </button>
+  </ui-page-header>
+
+  @if (isLoading() && !systemInfo()) {
+    <div class="state-panel" aria-busy="true" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>{{ 'system.proveryaem_lokalnye_komponenty' | t }}</span>
+    </div>
+  }
+
+  @if (loadError() && !systemInfo()) {
+    <div class="state-panel error-state" role="alert">
+      <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
+      <div>
+        <h2>{{ 'system.ne_udalos_zagruzit_sostoyanie_sistemy' | t }}</h2>
+        <p>{{ 'system.proverte_dostupnost_servera_i_povtorite_zapros' | t }}</p>
+      </div>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+        (click)="loadSystemInfo()"
+      >
+        {{ 'announcements.povtorit' | t }}
+      </button>
+    </div>
+  }
+
+  @if (systemInfo(); as info) {
+    @if (loadError()) {
+      <div class="stale-state" data-testid="stale-status" role="status">
+        <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
+        <div>
+          <strong>{{ 'system.refresh_failed' | t }}</strong>
+          <p>
+            {{ 'system.showing_data_from' | t }}
+            <time [attr.datetime]="info.checkedAt">{{ info.checkedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}</time>
+          </p>
+        </div>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+          (click)="loadSystemInfo()"
+        >
+          {{ 'announcements.povtorit' | t }}
+        </button>
+      </div>
+    }
+
+    <section
+      class="overall-status"
+      data-testid="overall-status"
+      [attr.data-status]="overallStatus(info)"
+      aria-labelledby="overall-status-title"
+    >
+      <span class="overall-icon material-symbols-outlined" aria-hidden="true">{{ overallStatusIcon(info) }}</span>
+      <div class="overall-copy">
+        <span class="overall-kicker">{{ 'system.overall_status' | t }}</span>
+        <h2 id="overall-status-title">{{ overallStatusLabel(info) }}</h2>
+        <p>{{ overallStatusDescription(info) }}</p>
+      </div>
+      <time class="checked-at" [attr.datetime]="info.checkedAt">
+        {{ 'system.checked_at' | t }} {{ info.checkedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}
+      </time>
+    </section>
+
+    <div class="content-grid">
+      <article class="panel">
+        <div class="panel-heading">
+          <div>
+            <h2>{{ 'system.komponenty' | t }}</h2>
+            <p>{{ 'system.tekuschee_sostoyanie_obyazatelnyh_i_opcionalnyh_' | t }}</p>
+          </div>
+        </div>
+        <dl class="component-list" [attr.aria-label]="'system.sostoyanie_komponentov' | t">
+          @for (component of componentEntries(info); track component) {
+            <div class="component-row">
+              <dt>{{ componentLabel(component.name) }}</dt>
+              <dd>
+                <span
+                  class="status-pill"
+                  [attr.data-status]="component.status"
+                  [class]="'status-pill status-' + statusClass(component.status)"
+                >
+                  <span class="status-dot" aria-hidden="true"></span>
+                  {{ statusLabel(component.status) }}
+                </span>
+              </dd>
+            </div>
+          }
+        </dl>
+      </article>
+
+      <article class="panel" data-testid="backup-status" [attr.data-severity]="backupSeverity(info.backup)">
+        <div class="panel-heading">
+          <div>
+            <h2>{{ 'system.rezervnoe_kopirovanie' | t }}</h2>
+            <p>{{ 'system.posledniy_rezultat_lokalnogo_backup_sidecar' | t }}</p>
+          </div>
+          <span class="material-symbols-outlined panel-icon" aria-hidden="true">database</span>
+        </div>
+        <div class="backup-result" role="status">
+          <span class="backup-icon material-symbols-outlined" aria-hidden="true">{{ backupIcon(info.backup) }}</span>
+          <div>
+            <strong>{{ backupStatusLabel(info.backup) }}</strong>
+            @if (info.backup.completedAt) {
+              <p>{{ info.backup.completedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}</p>
+            }
+            @if (
+              info.backup.status === 'SUCCESS' &&
+              info.backup.ageSeconds !== null &&
+              info.backup.ageSeconds !== undefined
+            ) {
+              <p>
+                {{ 'system.backup_age' | t: { duration: formatDuration(info.backup.ageSeconds) } }}
+              </p>
+            }
+            @if (info.backup.maxAgeSeconds !== null && info.backup.maxAgeSeconds !== undefined) {
+              <p>
+                {{ 'system.backup_max_age' | t: { duration: formatDuration(info.backup.maxAgeSeconds) } }}
+              </p>
+            }
+            @if (info.backup.status === 'FAILED' && info.backup.failureCode) {
+              <p class="failure-code mono">
+                {{ 'system.error_code_value' | t: { code: info.backup.failureCode } }}
+              </p>
+            }
+          </div>
+        </div>
+        <div class="cli-note">
+          <span class="material-symbols-outlined" aria-hidden="true">terminal</span>
+          <p>
+            <strong>{{ 'system.operacii_dostupny_tolko_administratoram_hosta' | t }}</strong>
+            {{ 'system.rezervnoe_kopirovanie_vosstanovlenie_i_obnovleni' | t }}
+          </p>
+        </div>
+      </article>
+    </div>
+
+    <section class="summary-section" aria-labelledby="installation-summary-title">
+      <h2 id="installation-summary-title" class="sr-only">{{ 'system.svodka_ustanovki' | t }}</h2>
+      <div class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-label">{{ 'system.organizaciya' | t }}</span>
+          <strong>{{ info.organization.name }}</strong>
+          <span class="summary-meta mono">{{ info.organization.code }}</span>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">{{ 'system.profil_resursov' | t }}</span>
+          <strong>{{ info.organization.resourceProfile }}</strong>
+          <span class="summary-meta">{{ 'system.profil_tekuschey_ustanovki' | t }}</span>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">{{ 'system.hranilische_faylov' | t }}</span>
+          <strong>{{ storageProviderLabel(info.storageProvider) }}</strong>
+          <span class="summary-meta mono">{{ info.storageProvider }}</span>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">{{ 'system.versii' | t }}</span>
+          <strong class="mono">{{ info.appVersion }}</strong>
+          <span class="summary-meta mono">{{
+            'system.database_schema_version' | t: { version: info.schemaVersion }
+          }}</span>
+        </article>
+      </div>
+    </section>
+  }
+
+  <p class="sr-only" aria-live="polite">{{ refreshAnnouncement() }}</p>
+</section>

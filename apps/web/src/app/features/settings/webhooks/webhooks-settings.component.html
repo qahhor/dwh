@@ -1,0 +1,265 @@
+<div class="webhooks-container">
+  <!-- Section Header -->
+  <div class="webhooks-header">
+    <div class="header-left">
+      <h3 class="section-title">{{ 'settings.webhooks.title' | t }}</h3>
+      <p class="section-subtitle">{{ 'settings.webhooks.subtitle' | t }}</p>
+    </div>
+    <div class="header-right">
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        smtIcon="refresh"
+        [smtLoading]="isLoading()"
+        (click)="loadSubscriptions()"
+      >
+        {{ 'common.refresh' | t }}
+      </button>
+      @if (canManageWebhooks()) {
+        <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="openCreateModal()">
+          {{ 'settings.webhooks.add' | t }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state" role="status">
+      <span class="material-symbols-outlined spin-icon" aria-hidden="true">sync</span>
+      <span>{{ 'common.loading' | t }}</span>
+    </div>
+  }
+
+  <!-- Error State -->
+  @if (!isLoading() && loadError()) {
+    <div class="error-banner" role="alert">
+      <span class="material-symbols-outlined" aria-hidden="true">error</span>
+      <span>{{ 'common.error' | t }}</span>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="loadSubscriptions()">
+        {{ 'common.retry' | t }}
+      </button>
+    </div>
+  }
+
+  <!-- Subscriptions Content -->
+  @if (!isLoading() && !loadError()) {
+    <div>
+      <!-- Empty State -->
+      @if (subscriptions().length === 0) {
+        <div class="empty-card">
+          <span class="material-symbols-outlined empty-icon" aria-hidden="true">webhook</span>
+          <h4>{{ 'settings.webhooks.empty' | t }}</h4>
+          <p class="empty-desc">{{ 'settings.webhooks.subtitle' | t }}</p>
+          @if (canManageWebhooks()) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              smtSize="sm"
+              smtIcon="add"
+              (click)="openCreateModal()"
+            >
+              {{ 'settings.webhooks.add' | t }}
+            </button>
+          }
+        </div>
+      }
+
+      <!-- Subscriptions Table -->
+      @if (subscriptions().length > 0) {
+        <div class="table-card">
+          <ui-local-table [rows]="subscriptions()" [config]="tableConfig()" [sortValues]="sortValues" />
+        </div>
+      }
+    </div>
+  }
+
+  <ng-template #idCell let-sub
+    ><span class="font-mono text-muted text-xs">#{{ sub.id }}</span></ng-template
+  >
+  <ng-template #nameCell let-sub>
+    <span class="sub-name-cell">
+      <strong>{{ sub.name }}</strong>
+      <span class="text-xs text-muted">{{ sub.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+    </span>
+  </ng-template>
+  <ng-template #urlCell let-sub>
+    <span class="url-cell"
+      ><span class="url-text font-mono text-xs" [title]="sub.targetUrl">{{ sub.targetUrl }}</span></span
+    >
+  </ng-template>
+  <ng-template #eventsCell let-sub>
+    <div class="events-wrap">
+      @for (ev of sub.subscribedEvents; track ev) {
+        <span class="event-pill">{{ ev }}</span>
+      }
+    </div>
+  </ng-template>
+  <ng-template #statusCell let-sub>
+    <span class="status-badge" [class.active]="sub.state === 'A'" [class.paused]="sub.state !== 'A'">
+      <span class="status-dot" aria-hidden="true"></span>
+      {{ (sub.state === 'A' ? 'settings.webhooks.active' : 'settings.webhooks.paused') | t }}
+    </span>
+  </ng-template>
+  <ng-template #actionsCell let-sub>
+    <div class="actions-cell">
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIconOnly
+        [smtIcon]="sub.state === 'A' ? 'pause_circle' : 'play_circle'"
+        [title]="(sub.state === 'A' ? 'settings.webhooks.paused' : 'settings.webhooks.active') | t"
+        [attr.aria-label]="
+          (sub.state === 'A' ? 'settings.webhooks.pause_named' : 'settings.webhooks.resume_named')
+            | t: { name: sub.name }
+        "
+        (click)="toggleState(sub)"
+      ></button>
+      <button
+        smt-button
+        type="button"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIconOnly
+        smtIcon="delete"
+        class="danger"
+        [title]="'common.delete' | t"
+        [attr.aria-label]="'settings.webhooks.delete_named' | t: { name: sub.name }"
+        (click)="confirmDelete(sub)"
+      ></button>
+    </div>
+  </ng-template>
+
+  <!-- Create Modal -->
+  <smt-dialog
+    [open]="isCreateModalOpen()"
+    [smtTitle]="'settings.webhooks.add' | t"
+    smtSize="md"
+    (closed)="closeCreateModal()"
+  >
+    <ng-template smtDialogContent>
+      <div body class="create-form-body">
+        <div class="form-row">
+          <label for="webhook-name" class="form-lbl">{{ 'settings.webhooks.name' | t }} *</label>
+          <smt-input
+            smtFieldId="webhook-name"
+            [placeholder]="'settings.webhooks.name_placeholder' | t"
+            [(ngModel)]="createName"
+            [maxLength]="100"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="webhook-url" class="form-lbl">{{ 'settings.webhooks.target_url' | t }} *</label>
+          <smt-input
+            class="font-mono"
+            smtFieldId="webhook-url"
+            type="url"
+            [placeholder]="'settings.webhooks.url_placeholder' | t"
+            [(ngModel)]="createTargetUrl"
+            [maxLength]="500"
+            required
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="events-header">
+            <span class="form-lbl" id="webhook-events-label">{{ 'settings.webhooks.events' | t }} *</span>
+            <button type="button" class="link-btn text-xs" (click)="toggleAllEvents()">
+              {{ isAllEventsSelected() ? ('iam.snyat_vse' | t) : ('iam.vybrat_vse' | t) }}
+            </button>
+          </div>
+          <div class="events-grid" role="group" aria-labelledby="webhook-events-label">
+            @for (opt of availableEvents; track opt) {
+              <div
+                smt-checkbox
+                class="event-checkbox-label"
+                [checked]="selectedEvents.has(opt.code)"
+                [smtHint]="opt.descKey | t"
+                (smtCheckedChange)="onEventCheck(opt.code, $event)"
+              >
+                <span class="event-opt-code font-mono">{{ opt.code }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div footer>
+        <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeCreateModal()">
+          {{ 'common.cancel' | t }}
+        </button>
+        <button
+          smt-button
+          type="button"
+          smtVariant="primary"
+          smtSize="md"
+          [disabled]="!isCreateValid()"
+          [smtLoading]="isSaving()"
+          (click)="submitCreate()"
+        >
+          {{ 'common.save' | t }}
+        </button>
+      </div>
+    </ng-template>
+  </smt-dialog>
+
+  <!-- Secret Key Reveal Modal (Shown once after creation) -->
+  <smt-dialog
+    [open]="createdSecretModalOpen()"
+    [smtTitle]="'settings.webhooks.secret_modal_title' | t"
+    smtSize="md"
+    (closed)="closeSecretModal()"
+  >
+    <ng-template smtDialogContent>
+      @if (recentlyCreatedSubscription(); as sub) {
+        <div body class="secret-modal-body">
+          <div class="warning-callout">
+            <span class="material-symbols-outlined callout-icon" aria-hidden="true">warning</span>
+            <p>{{ 'settings.webhooks.secret_modal_warning' | t }}</p>
+          </div>
+
+          <div class="secret-field-box">
+            <label class="form-lbl" for="webhook-secret">{{ 'settings.webhooks.secret_modal_title' | t }}</label>
+            <div class="secret-input-row">
+              <smt-input
+                smtFieldId="webhook-secret"
+                class="font-mono secret-input"
+                [value]="sub.secretToken"
+                readonly
+                smtAriaLabel="Secret token"
+              />
+              <button
+                smt-button
+                type="button"
+                smtVariant="secondary"
+                smtSize="sm"
+                smtIcon="content_copy"
+                (click)="copySecret(sub.secretToken)"
+              >
+                {{ 'settings.webhooks.copy_secret' | t }}
+              </button>
+            </div>
+          </div>
+
+          <div class="hmac-info-box">
+            <span class="text-xs text-muted">
+              {{ 'settings.webhooks.request_headers' | t }}: <code>X-Hub-Signature-256: sha256=&lt;hmac-hex&gt;</code>,
+              <code>X-Webhook-Event: &lt;event_type&gt;</code>.
+            </span>
+          </div>
+        </div>
+      }
+      <div footer>
+        <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="closeSecretModal()">
+          {{ 'common.confirm' | t }}
+        </button>
+      </div>
+    </ng-template>
+  </smt-dialog>
+</div>
