@@ -686,6 +686,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- No web screen component is longer than 400 lines (plan 10/10, item 2.7):
+  templates over 150 lines and style blocks over 50 lines live in their
+  own files, and the 15 largest screens hand their state and requests to
+  feature stores and presenters provided with the screen (tasks, projects,
+  users, roles, profile, organisation panel, settings, search settings,
+  navigation settings, application shell, command palette, announcements,
+  audit, format editor, source card). The kit's own table, select and tree
+  select stay as vendored.
 - Shared web components are one per task (plan 10/10, item 2.6): every
   screen header is `ui-page-header` (the title looks the same on every
   screen), every key-figure tile is `ui-kpi-card`, `shared/README.md` maps
@@ -886,6 +894,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Escape on the users screen's filter menu returns focus to the filter
+  button; it fell to the page.
 - A failed profile channel binding or confirmation, token creation,
   webhook creation, project member addition or navigation item change
   showed a generic message after the general one: the handlers read a
