@@ -15,9 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * I-02 / Finding S-02 / CWE-250 / ADR-0008:
@@ -27,7 +27,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class DatabaseLeastPrivilegeIntegrationTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("smartupcms")
             .withUsername("postgres_admin")
             .withPassword("admin_secret");

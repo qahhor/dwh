@@ -50,7 +50,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -85,7 +85,7 @@ abstract class SearchSettingsIntegrationTestSupport {
     static volatile Runnable beforeEngine = () -> {};
     static final AtomicLong actorSequence = new AtomicLong(1000);
     long actorId;
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
+    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("search_management_test")
             .withUsername("fixture")
             .withPassword("fixture-only");

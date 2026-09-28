@@ -21,19 +21,19 @@
         <spring-boot.version>4.1.1</spring-boot.version>
         <!-- Boot 4.1.1 manages 11.0.24; 11.0.25 fixes the August 2026
              security-constraint and authentication vulnerabilities. -->
-        <tomcat.version>11.0.25</tomcat.version>
+        <tomcat.version>11.0.26</tomcat.version>
         <postgresql.version>42.7.5</postgresql.version>
         <archunit.version>1.5.0</archunit.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
-        <argon2.version>2.11</argon2.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
+        <argon2.version>2.12</argon2.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <typesense.version>0.6.0</typesense.version>
-        <aws.sdk.version>2.54.7</aws.sdk.version>
+        <aws.sdk.version>2.55.5</aws.sdk.version>
 
         <!-- Plugin Versions -->
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
-        <maven-failsafe-plugin.version>3.5.2</maven-failsafe-plugin.version>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
         <jacoco.version>0.8.15</jacoco.version>
         <spotless.version>3.10.3</spotless.version>
         <palantir-java-format.version>2.99.0</palantir-java-format.version>

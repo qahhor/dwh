@@ -34,9 +34,9 @@ import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
 import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.ObjectMapper;
 
 @Testcontainers
@@ -52,7 +52,7 @@ class SearchRevisionIntegrationTest {
     }
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("search_revisions")
             .withUsername("test_user")
             .withPassword("test_pass");

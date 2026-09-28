@@ -686,6 +686,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Dependencies updated from the first Dependabot run, each checked locally
+  (backend, web, accessibility, E2E, image scans): Angular 22.2.0, vitest and
+  its coverage 5.0.2, Playwright 1.63.0, TypeScript 7.0.2 for the E2E suite,
+  Testcontainers 2.0.5 (new `testcontainers-postgresql` and
+  `testcontainers-junit-jupiter` artifacts and the `org.testcontainers.postgresql`
+  container), Tomcat 11.0.26, argon2-jvm 2.12, AWS SDK 2.55.5, the Maven
+  compiler 3.16.0 and surefire/failsafe 3.6.0 plugins, the docker, cache,
+  attestation, SBOM and cosign actions, Node 24.21.0 (LTS) for the web build
+  and fresh digests of the Maven, JRE and PostgreSQL base images. Not taken:
+  TypeScript 7 for the web (Angular 22 compiles with 6.0), Node 26 and
+  `@types/node` 26 (not LTS yet), nginx 1.29 (mainline; 1.28 is the stable
+  line) and a Maven image on Java 24 that Dependabot proposed as newer. The
+  Dependabot configuration now ignores those, and groups vitest as it groups
+  Angular, whose packages only resolve together.
 - The audit log is archived weekly or at 100 MB (decision of 2026-09-27).
   V127 makes its partitions daily (the empty future months V011 created are
   replaced; current and past months stay monthly and are archived whole).

@@ -46,12 +46,19 @@ updates:
     commit-message:
       prefix: build(deps)
     groups:
+      # Angular's packages require each other at the exact same version: one of them alone cannot resolve.
       angular:
         patterns: ["@angular/*", "@angular-devkit/*", "@schematics/angular", "angular-eslint", "@angular-eslint/*"]
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
       lint:
         patterns: ["eslint", "@eslint/*", "typescript-eslint", "stylelint*", "prettier"]
       patch:
         update-types: [patch]
+    ignore:
+      # Angular declares the TypeScript range it compiles with (22.x: >=6.0 <6.1): a new major waits for Angular.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major, version-update:semver-minor]
 
   - package-ecosystem: npm
     directory: /e2e
@@ -68,6 +75,10 @@ updates:
         patterns: ["@playwright/*", "playwright*", "@axe-core/*", "axe-core"]
       patch:
         update-types: [patch]
+    ignore:
+      # The types follow the Node the suite runs on (.node-version, an LTS line), not the newest Node.
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
@@ -109,3 +120,14 @@ updates:
     groups:
       base-images:
         update-types: [minor, patch]
+    ignore:
+      # The build image is pinned to Java 25 by its tag (3.9-eclipse-temurin-25); Dependabot read
+      # 3-eclipse-temurin-24 as newer. Only its digest moves.
+      - dependency-name: maven
+        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
+      # nginx: the even minor is the stable line (1.28); the odd one is mainline.
+      - dependency-name: nginx
+        update-types: [version-update:semver-minor]
+      # Node: the LTS line of .node-version; a new major waits for its LTS.
+      - dependency-name: node
+        update-types: [version-update:semver-major]

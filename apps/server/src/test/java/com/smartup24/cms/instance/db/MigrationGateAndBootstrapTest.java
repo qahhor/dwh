@@ -18,9 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R4 (ремедиация, NFR-10 / FR-INST-1 / FR-INST-2, AUDIT-03 C-1/C-2):
@@ -35,7 +35,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 class MigrationGateAndBootstrapTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine")
+    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
             .withDatabaseName("dwh_gate_test")
             .withUsername("test_user")
             .withPassword("test_pass");
