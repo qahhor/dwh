@@ -48,11 +48,13 @@ import { sortFromHeader } from '@shared/ui/registry-table-config';
 import { OrderBy } from '@shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-projects',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTRadioGroupComponent,
     FormsModule,
     RouterModule,

@@ -1,18 +1,12 @@
 <div class="roles-page">
   <!-- Top Page Header -->
-  <div class="view-header">
-    <div class="header-left">
-      <h1 class="view-title">{{ 'iam.roli_i_matrica_prav' | t }}</h1>
-      <span class="count-badge">{{ roles().length }}</span>
-    </div>
-    <div class="header-right">
-      @if (canCreateRole()) {
-        <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
-          {{ 'iam.novaya_rol' | t }}
-        </button>
-      }
-    </div>
-  </div>
+  <ui-page-header [title]="'iam.roli_i_matrica_prav' | t" [count]="roles().length">
+    @if (canCreateRole()) {
+      <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+        {{ 'iam.novaya_rol' | t }}
+      </button>
+    }
+  </ui-page-header>
 
   <!-- Roles Horizontal Bar -->
   <app-role-cards-bar

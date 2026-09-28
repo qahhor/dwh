@@ -27,11 +27,13 @@ import { ProfileSessionsCardComponent } from './components/profile-sessions-card
 import { ProfileTokensCardComponent } from './components/profile-tokens-card.component';
 
 export * from './profile.models';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-profile',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     TranslatePipe,
     UserProfileCardComponent,
     ProfilePasswordCardComponent,
@@ -42,12 +44,7 @@ export * from './profile.models';
   ],
   template: `
     <div class="profile-container">
-      <div class="view-header">
-        <div class="header-left">
-          <h1 class="view-title">{{ 'nav.profile' | t }}</h1>
-          <span class="count-badge">{{ 'iam.bezopasnost_i_nastroyki' | t }}</span>
-        </div>
-      </div>
+      <ui-page-header [title]="'nav.profile' | t" [count]="'iam.bezopasnost_i_nastroyki' | t"></ui-page-header>
 
       <!-- User Info Card -->
       <app-user-profile-card [user]="authService.currentUser()"></app-user-profile-card>
@@ -131,38 +128,6 @@ export * from './profile.models';
         gap: 16px;
         max-width: 1400px;
         min-width: 0;
-      }
-
-      .view-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 4px;
-      }
-
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-
-      .view-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-main);
-        margin: 0;
-      }
-
-      .count-badge {
-        background-color: var(--bg-hover);
-        color: var(--text-muted);
-        font-size: 12px;
-        font-weight: 500;
-        padding: 3px 10px;
-        border-radius: 12px;
-        border: 1px solid var(--border-color);
       }
 
       .sections-grid {

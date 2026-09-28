@@ -162,7 +162,9 @@ describe('TasksComponent UI contracts', () => {
     component.requestCloseEdit();
 
     const kanbanToggle = Array.from(
-      inScreen(fixture.nativeElement).querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>,
+      inScreen(fixture.nativeElement).querySelectorAll(
+        '.view-header__title-row [role="radio"]',
+      ) as NodeListOf<HTMLElement>,
     ).find((button) => button.textContent?.includes('Канбан'))!;
     kanbanToggle.click();
     redraw(fixture);
@@ -970,7 +972,9 @@ describe('TasksComponent asynchronous detail and editing state', () => {
       'Сбросить все фильтры',
     );
     const kanbanToggle = Array.from(
-      inScreen(fixture.nativeElement).querySelectorAll('.header-left [role="radio"]') as NodeListOf<HTMLElement>,
+      inScreen(fixture.nativeElement).querySelectorAll(
+        '.view-header__title-row [role="radio"]',
+      ) as NodeListOf<HTMLElement>,
     ).find((button) => button.textContent?.includes('Канбан'))!;
     kanbanToggle.click();
     redraw(fixture);

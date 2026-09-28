@@ -42,11 +42,13 @@ import {
   filterModuleGroups,
 } from './roles.models';
 import { EditRoleForm, NewRoleForm, RoleFormsService } from './services/role-forms.service';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-roles',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     TranslatePipe,
     FormsModule,
     SMTButtonComponent,

@@ -27,6 +27,7 @@ import { SMTFilePreviewService } from '@shared/ui-kit/components/file-preview';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 export type { FileDetail, StorageStats } from './files.models';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 function formatBytes(bytes: number): string {
   if (!bytes || bytes === 0) return '0 B';
@@ -40,6 +41,7 @@ function formatBytes(bytes: number): string {
   selector: 'app-files',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTAlertComponent,
     SMTButtonComponent,
     TranslatePipe,
@@ -51,23 +53,17 @@ function formatBytes(bytes: number): string {
   template: `
     <div class="files-page">
       <!-- Page Header -->
-      <div class="view-header">
-        <div class="header-left">
-          <h1 class="view-title">{{ 'files.faylovoe_hranilische' | t }}</h1>
-          <span class="count-badge" data-testid="files-count">{{ pager.total() }}</span>
-        </div>
-        <div class="header-right">
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            smtIcon="cloud_upload"
-            (click)="isUploadModalOpen.set(true)"
-          >
-            {{ 'files.zagruzit_fayl' | t }}
-          </button>
-        </div>
-      </div>
+      <ui-page-header [title]="'files.faylovoe_hranilische' | t" [count]="pager.total()" countTestId="files-count">
+        <button
+          smt-button
+          type="button"
+          smtVariant="primary"
+          smtIcon="cloud_upload"
+          (click)="isUploadModalOpen.set(true)"
+        >
+          {{ 'files.zagruzit_fayl' | t }}
+        </button>
+      </ui-page-header>
 
       <!-- Storage Quotas & Metrics Dashboard -->
       <app-files-metrics-cards [stats]="stats()"></app-files-metrics-cards>
@@ -125,34 +121,6 @@ function formatBytes(bytes: number): string {
         padding: 0;
         max-width: 1400px;
         margin: 0 auto;
-      }
-
-      .view-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .view-title {
-        font-size: 24px;
-        font-weight: 700;
-        color: var(--text-main);
-        margin: 0;
-      }
-
-      .count-badge {
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        background: var(--primary-subtle);
-        color: var(--primary-text);
       }
     `,
   ],

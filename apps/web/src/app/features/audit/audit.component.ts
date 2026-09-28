@@ -25,11 +25,13 @@ import { I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 export * from './audit.models';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-audit',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTButtonComponent,
     SMTAlertComponent,
     SMTTabBarComponent,
@@ -42,25 +44,19 @@ export * from './audit.models';
   template: `
     <div class="audit-page">
       <!-- Page Header -->
-      <div class="view-header">
-        <div class="header-left">
-          <h1 class="view-title">{{ 'nav.audit' | t }}</h1>
-          <span class="count-badge">WORM Log</span>
-        </div>
-        <div class="header-right">
-          <button
-            smt-button
-            smtVariant="secondary"
-            type="button"
-            [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t"
-            (click)="refreshAll()"
-            [title]="'audit.obnovit_zhurnal' | t"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
-            <span>{{ 'common.refresh' | t }}</span>
-          </button>
-        </div>
-      </div>
+      <ui-page-header [title]="'nav.audit' | t" [count]="'WORM Log'">
+        <button
+          smt-button
+          smtVariant="secondary"
+          type="button"
+          [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t"
+          (click)="refreshAll()"
+          [title]="'audit.obnovit_zhurnal' | t"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          <span>{{ 'common.refresh' | t }}</span>
+        </button>
+      </ui-page-header>
 
       <!-- Stats Cards -->
       <app-audit-stats-tiles

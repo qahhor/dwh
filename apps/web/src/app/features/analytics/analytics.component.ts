@@ -16,11 +16,13 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
 export * from './analytics.models';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-analytics',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTRadioGroupComponent,
     SMTAlertComponent,
     TranslatePipe,
@@ -33,49 +35,40 @@ export * from './analytics.models';
   template: `
     <div class="analytics-container">
       <!-- Header -->
-      <div class="view-header">
-        <div class="header-left">
-          <h1 class="view-title">{{ 'analytics.analitika_i_dashbordy' | t }}</h1>
-          <span class="count-badge">PostgreSQL 18 Analytics</span>
-        </div>
-
-        <div class="header-right">
-          <!-- Time Range Selector -->
-          <smt-radio-group
-            smtAppearance="segmented"
-            class="range-picker"
-            [options]="rangeOptions()"
-            [value]="selectedRange"
-            [smtAriaLabel]="'analytics.period_analitiki' | t"
-            (valueChange)="setRange($event ?? selectedRange)"
-          />
-
-          <button
-            smt-button
-            type="button"
-            smtVariant="secondary"
-            smtSize="sm"
-            smtIcon="download"
-            (click)="exportReport()"
-            [title]="'analytics.eksport_spiska_zadach_v_excel' | t"
-          >
-            {{ 'analytics.eksport' | t }}
-          </button>
-
-          <button
-            smt-button
-            type="button"
-            smtVariant="secondary"
-            smtSize="sm"
-            smtIcon="refresh"
-            [smtLoading]="loading()"
-            [title]="'common.refresh' | t"
-            (click)="loadAll()"
-          >
-            {{ 'common.refresh' | t }}
-          </button>
-        </div>
-      </div>
+      <ui-page-header [title]="'analytics.analitika_i_dashbordy' | t" [count]="'PostgreSQL 18 Analytics'">
+        <!-- Time Range Selector -->
+        <smt-radio-group
+          smtAppearance="segmented"
+          class="range-picker"
+          [options]="rangeOptions()"
+          [value]="selectedRange"
+          [smtAriaLabel]="'analytics.period_analitiki' | t"
+          (valueChange)="setRange($event ?? selectedRange)"
+        />
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="download"
+          (click)="exportReport()"
+          [title]="'analytics.eksport_spiska_zadach_v_excel' | t"
+        >
+          {{ 'analytics.eksport' | t }}
+        </button>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="refresh"
+          [smtLoading]="loading()"
+          [title]="'common.refresh' | t"
+          (click)="loadAll()"
+        >
+          {{ 'common.refresh' | t }}
+        </button>
+      </ui-page-header>
 
       <!-- Error Alert -->
       @if (error()) {
@@ -144,48 +137,6 @@ export * from './analytics.models';
         gap: 0;
       }
 
-      .view-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        gap: 16px;
-        flex-wrap: wrap;
-      }
-
-      .header-left {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        min-width: 0;
-        max-width: 100%;
-        gap: 10px;
-      }
-
-      .view-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-main);
-        letter-spacing: -0.3px;
-        overflow-wrap: anywhere;
-      }
-
-      .count-badge {
-        font-size: 12px;
-        font-weight: 600;
-        padding: 2px 8px;
-        border-radius: 9999px;
-        background-color: var(--bg-hover);
-        color: var(--text-muted);
-        border: 1px solid var(--border-color);
-      }
-
-      .header-right {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-
       .analytics-grid {
         display: grid;
         grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
@@ -199,14 +150,6 @@ export * from './analytics.models';
       }
 
       @media (max-width: 640px) {
-        .view-header {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-        .header-right {
-          width: 100%;
-          flex-wrap: wrap;
-        }
         .range-picker {
           max-width: 100%;
           overflow-x: auto;

@@ -1,17 +1,12 @@
 <div class="users-view">
   <!-- Minimal Header -->
-  <div class="view-header">
-    <div class="header-left">
-      <h1 class="view-title">{{ 'nav.users' | t }}</h1>
-    </div>
-    <div class="header-right">
-      @if (canCreateUser()) {
-        <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
-          {{ 'iam.novyy_polzovatel' | t }}
-        </button>
-      }
-    </div>
-  </div>
+  <ui-page-header [title]="'nav.users' | t">
+    @if (canCreateUser()) {
+      <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+        {{ 'iam.novyy_polzovatel' | t }}
+      </button>
+    }
+  </ui-page-header>
 
   <!-- Toolbar and Active Filters (Delegated Component) -->
   <app-user-filter-bar

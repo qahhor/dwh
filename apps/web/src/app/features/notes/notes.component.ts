@@ -17,6 +17,7 @@ import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-ba
 import { NoteCardComponent } from './note-card.component';
 import { NoteFormDialogComponent } from './note-form-dialog.component';
 import { NOTE_ENTITY, Note, NotesApi } from './notes.api';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 type NoteTab = 'all' | 'pinned';
 
@@ -39,6 +40,7 @@ interface NoteList {
   selector: 'app-notes',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     NgTemplateOutlet,
     NoteCardComponent,
     NoteFormDialogComponent,

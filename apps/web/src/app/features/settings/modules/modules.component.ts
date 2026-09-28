@@ -10,36 +10,42 @@ import { InstalledModule, ModuleFilterTab } from './modules.models';
 import { ModulesStatsComponent } from './components/modules-stats.component';
 import { ModulesToolbarComponent } from './components/modules-toolbar.component';
 import { ModulesTableComponent } from './components/modules-table.component';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 export type { InstalledModule, ModuleFilterTab };
 
 @Component({
   selector: 'app-modules',
-  imports: [TranslatePipe, SMTButtonComponent, ModulesStatsComponent, ModulesToolbarComponent, ModulesTableComponent],
+  imports: [
+    UiPageHeaderComponent,
+    TranslatePipe,
+    SMTButtonComponent,
+    ModulesStatsComponent,
+    ModulesToolbarComponent,
+    ModulesTableComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="modules-page" aria-labelledby="modules-title">
       <!-- Header -->
-      <header class="view-header">
-        <div>
-          <p class="eyebrow">{{ 'modules.subtitle' | t }}</p>
-          <h1 id="modules-title">{{ 'modules.title' | t }}</h1>
-          <p class="subtitle">{{ 'modules.description' | t }}</p>
-        </div>
-        <div class="header-actions">
-          <button
-            smt-button
-            type="button"
-            smtVariant="secondary"
-            smtIcon="refresh"
-            [smtLoading]="isLoading()"
-            [attr.aria-label]="'common.refresh' | t"
-            (click)="loadModules()"
-          >
-            {{ 'common.refresh' | t }}
-          </button>
-        </div>
-      </header>
+      <ui-page-header
+        [title]="'modules.title' | t"
+        [eyebrow]="'modules.subtitle' | t"
+        [subtitle]="'modules.description' | t"
+        titleId="modules-title"
+      >
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtIcon="refresh"
+          [smtLoading]="isLoading()"
+          [attr.aria-label]="'common.refresh' | t"
+          (click)="loadModules()"
+        >
+          {{ 'common.refresh' | t }}
+        </button>
+      </ui-page-header>
 
       <!-- Stats overview cards -->
       <app-modules-stats
@@ -100,20 +106,7 @@ export type { InstalledModule, ModuleFilterTab };
         max-width: 1200px;
         margin: 0 auto;
       }
-      .view-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 16px;
-      }
-      .eyebrow {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--primary);
-        margin: 0 0 4px;
-      }
+
       h1 {
         font-size: 24px;
         font-weight: 700;
@@ -121,17 +114,7 @@ export type { InstalledModule, ModuleFilterTab };
         margin: 0 0 6px;
         line-height: 1.2;
       }
-      .subtitle {
-        font-size: 13px;
-        color: var(--text-muted);
-        margin: 0;
-        line-height: 1.4;
-      }
-      .header-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+
       .developer-info-card {
         background: var(--bg-surface);
         border: 1px dashed var(--border-color);

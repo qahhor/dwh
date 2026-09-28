@@ -99,8 +99,8 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   }
 
   function refresh() {
-    const button = Array.from(host.querySelectorAll<HTMLButtonElement>('.header-right button')).find((candidate) =>
-      candidate.textContent?.includes('Обновить'),
+    const button = Array.from(host.querySelectorAll<HTMLButtonElement>('.view-header__actions button')).find(
+      (candidate) => candidate.textContent?.includes('Обновить'),
     )!;
     button.click();
     fixture.detectChanges();
