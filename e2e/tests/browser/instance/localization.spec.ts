@@ -11,9 +11,20 @@ test('translation override repaints live, persists across sessions, and keeps Ru
   let originalGerman = '';
   let overrideSaved = false;
 
-  const openGermanEditor = async () => {
+  const openGermanEditor = async (addIfMissing = false) => {
     await page.goto('/settings');
     await page.locator('#settings-languages-tab').click();
+    // German is no built-in language since V122 (ru, uz, en): an installation adds it, as an administrator
+    // would, and its missing translations fall back to Russian.
+    await expect(page.getByTestId('edit-language-ru')).toBeVisible();
+    if (addIfMissing && (await page.getByTestId('edit-language-de').count()) === 0) {
+      await page.getByRole('button', { name: 'Добавить язык', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Добавление нового языка', exact: true });
+      await dialog.locator('#new-lang-code').fill('de');
+      await dialog.locator('#new-lang-name').fill('Deutsch');
+      await dialog.getByRole('button', { name: 'Сохранить язык', exact: true }).click();
+      await expect(dialog).toBeHidden();
+    }
     await page.getByTestId('edit-language-de').click();
     return page.locator('[data-translation-key="common.save"] input');
   };
@@ -38,7 +49,7 @@ test('translation override repaints live, persists across sessions, and keeps Ru
   };
 
   try {
-    const translation = await openGermanEditor();
+    const translation = await openGermanEditor(true);
     originalGerman = await translation.inputValue();
     await translation.fill(marker);
     await page.getByTestId('language-editor-save').click();

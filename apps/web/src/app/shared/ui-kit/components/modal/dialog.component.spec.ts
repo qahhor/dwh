@@ -49,6 +49,35 @@ class Host {
   asks = 0;
 }
 
+@Component({
+  standalone: true,
+  imports: [SMTDialogComponent, SMTDialogContentDirective],
+  template: `
+    <smt-dialog [open]="open()" [smtTitle]="title()">
+      <ng-template smtDialogContent><p>Body</p></ng-template>
+    </smt-dialog>
+  `,
+})
+class LateTitleHost {
+  readonly open = signal(true);
+  readonly title = signal('');
+}
+
+@Component({
+  standalone: true,
+  imports: [SMTDialogComponent, SMTDialogContentDirective],
+  template: `
+    @if (shown()) {
+      <smt-dialog [open]="shown()" smtTitle="Add a language">
+        <ng-template smtDialogContent><p>Body</p></ng-template>
+      </smt-dialog>
+    }
+  `,
+})
+class RemovedHost {
+  readonly shown = signal(true);
+}
+
 describe('SMTDialogComponent', () => {
   afterEach(() => {
     TestBed.resetTestingModule();
@@ -123,5 +152,42 @@ describe('SMTDialogComponent', () => {
     );
     await settle();
     expect(fixture.componentInstance.asks).toBe(0);
+  });
+
+  it('is named by a title that arrives after it opened', async () => {
+    TestBed.configureTestingModule({ providers: [{ provide: SMTI18nService, useValue: testI18n() }] });
+    const fixture = TestBed.createComponent(LateTitleHost);
+    document.body.appendChild(fixture.nativeElement);
+    tickInZone();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    fixture.componentInstance.title.set('New project');
+    tickInZone();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const dialog = document.querySelector('[role="dialog"]') as HTMLElement;
+    const title = document.getElementById(dialog.getAttribute('aria-labelledby')!);
+    expect(title?.textContent).toBe('New project');
+  });
+
+  it('takes its panel and backdrop away when the screen removes it while open', async () => {
+    TestBed.configureTestingModule({ providers: [{ provide: SMTI18nService, useValue: testI18n() }] });
+    const fixture = TestBed.createComponent(RemovedHost);
+    document.body.appendChild(fixture.nativeElement);
+    const settle = async () => {
+      tickInZone();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+    await settle();
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+
+    fixture.componentInstance.shown.set(false);
+    await settle();
+
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.querySelector('.cdk-overlay-backdrop')).toBeNull();
   });
 });

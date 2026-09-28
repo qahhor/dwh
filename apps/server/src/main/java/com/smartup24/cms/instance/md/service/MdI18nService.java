@@ -15,6 +15,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
@@ -136,25 +137,44 @@ public class MdI18nService {
             throw ApiException.badRequest(
                     ErrorCode.I18N_LANGUAGE_INVALID, "Название языка должно содержать от 1 до 100 символов");
         }
-        if (repository.findLanguage(code).isPresent()) {
-            throw ApiException.conflict(ErrorCode.I18N_LANGUAGE_EXISTS, "Язык с кодом " + code + " уже существует");
-        }
-
         Map<String, String> overrides = validatedOverrides(request.translations());
-        LanguageRecord created = repository.insertLanguage(code, name, userId);
-        long revision = created.revision();
-        if (!overrides.isEmpty()) {
-            revision = repository.replaceOverrides(code, overrides, revision, userId);
+        Optional<LanguageRecord> existing = repository.findLanguage(code);
+        LanguageRecord created;
+        Map<String, String> previousOverrides = Map.of();
+        if (existing.isPresent()) {
+            // A switched-off custom language (German after V122, or one an administrator switched off) comes back
+            // on with the overrides the installation made; an active or built-in one is a conflict.
+            created = repository
+                    .reactivateLanguage(code, name, userId)
+                    .orElseThrow(() -> ApiException.conflict(
+                            ErrorCode.I18N_LANGUAGE_EXISTS, "Язык с кодом " + code + " уже существует"));
+            previousOverrides = repository.findOverrides(code);
+            auditLogService.logChange(
+                    "md_i18n_languages",
+                    code,
+                    "U",
+                    List.of("name", "is_active"),
+                    Map.of("name", existing.get().name(), "is_active", false),
+                    Map.of("name", name, "is_active", true));
+        } else {
+            created = repository.insertLanguage(code, name, userId);
+            auditLogService.logChange(
+                    "md_i18n_languages",
+                    code,
+                    "I",
+                    List.of("code", "name", "is_active"),
+                    Map.of(),
+                    Map.of("code", code, "name", name, "is_active", true));
         }
-
-        auditLogService.logChange(
-                "md_i18n_languages",
-                code,
-                "I",
-                List.of("code", "name", "is_active"),
-                Map.of(),
-                Map.of("code", code, "name", name, "is_active", true));
-        auditTranslationChanges(code, Map.of(), overrides);
+        long revision = created.revision();
+        Map<String, String> finalOverrides = previousOverrides;
+        if (!overrides.isEmpty()) {
+            Map<String, String> merged = new LinkedHashMap<>(previousOverrides);
+            merged.putAll(overrides);
+            revision = repository.replaceOverrides(code, merged, revision, userId);
+            finalOverrides = merged;
+        }
+        auditTranslationChanges(code, previousOverrides, finalOverrides);
         cache.remove(code);
 
         LanguageRecord saved = new LanguageRecord(

@@ -57,7 +57,8 @@ async function completeMandatoryPasswordChange(page: Page): Promise<void> {
     await fillSecret(newPassword, rotatedInstancePassword);
     await fillSecret(confirmation, rotatedInstancePassword);
     await page.getByRole('button', { name: 'Сменить пароль', exact: true }).click();
-    await expect(page.getByText('Пароль изменён. Войдите снова с новым паролем.', { exact: true })).toBeVisible();
+    // The toast shows it and the live announcer repeats it for screen readers: the toast is the visible one.
+    await expect(page.locator('ui-toast-container').getByText('Пароль изменён. Войдите снова с новым паролем.', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Пароль', { exact: true })).toBeVisible();
   } finally {
     await Promise.all([clearSecret(newPassword), clearSecret(confirmation)]);

@@ -90,4 +90,22 @@ class MdI18nRepositoryIntegrationTest {
                 .containsEntry("nav.tasks", "Tâches")
                 .containsEntry("common.save", "Enregistrer");
     }
+
+    @Test
+    @DisplayName("Выключенный пользовательский язык включается снова; активный и встроенный — нет")
+    void reactivatesOnlyASwitchedOffCustomLanguage() {
+        try {
+            var reactivated = repository.reactivateLanguage("kk", "Qazaq", actorId);
+            assertThat(reactivated).hasValueSatisfying(language -> {
+                assertThat(language.active()).isTrue();
+                assertThat(language.name()).isEqualTo("Qazaq");
+            });
+            assertThat(repository.reactivateLanguage("kk", "Again", actorId)).isEmpty();
+            assertThat(repository.reactivateLanguage("uz", "Uzbek", actorId)).isEmpty();
+        } finally {
+            // The seeding test expects every former built-in switched off.
+            jdbc.sql("update md_i18n_languages set is_active = false where code = 'kk'")
+                    .update();
+        }
+    }
 }

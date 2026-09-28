@@ -151,7 +151,8 @@ export class SMTModalService {
           takeUntil(dialogRef.closed),
         )
         .subscribe((event) => {
-          // Marks the key as handled, so nothing underneath that listens on the          // document closes as well.
+          // Marks the key as handled, so nothing underneath that listens on the
+          // document closes as well.
           event.preventDefault();
           if (canDismiss()) dialogRef.close();
         });

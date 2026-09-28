@@ -103,6 +103,30 @@ public class MdI18nRepository {
     }
 
     /**
+     * Switches an administrator's language back on under the given name; its overrides stay. Built-in languages
+     * are always on, so only a switched-off custom language matches.
+     */
+    public Optional<LanguageRecord> reactivateLanguage(String code, String name, Long userId) {
+        return jdbcClient
+                .sql("""
+                        update md_i18n_languages
+                        set name = :name,
+                            is_active = true,
+                            revision = revision + 1,
+                            modified_by = :userId,
+                            modified_at = now()
+                        where code = :code and not is_builtin and not is_active
+                        returning code, name, is_builtin, is_active, revision,
+                                  created_by, modified_by, created_at, modified_at
+                        """)
+                .param("code", code)
+                .param("name", name)
+                .param("userId", userId)
+                .query((rs, rowNum) -> mapLanguage(rs))
+                .optional();
+    }
+
+    /**
      * Replaces the complete override set. The surrounding service transaction
      * makes revision claim, delete and insert one atomic operation.
      */
