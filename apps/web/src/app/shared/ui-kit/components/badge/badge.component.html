@@ -12,7 +12,7 @@
 }
 
 {{ label() }}
-<ng-content />
+<span #projected class="contents"><ng-content /></span>
 
 @if (rightIcon(); as icon) {
   <!-- Icon with text on right -->

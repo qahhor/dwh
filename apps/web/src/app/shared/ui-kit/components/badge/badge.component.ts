@@ -8,6 +8,7 @@
  * - A badge is icon-only when it has an icon and neither label nor content, not merely
  *   when the label is empty. */
 import {
+  afterEveryRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -16,6 +17,8 @@ import {
   inject,
   input,
   output,
+  signal,
+  viewChild,
 } from '@angular/core';
 
 type TBadgeAppearance = 'light' | 'dark';
@@ -50,6 +53,9 @@ export type TBadgeVariant =
 })
 export class SMTBadgeComponent {
   private host = inject(ElementRef<HTMLElement>);
+  private readonly projected = viewChild<ElementRef<HTMLElement>>('projected');
+  /** Whether the projected content has anything to show; checked only when there is an icon. */
+  private readonly hasContent = signal(false);
 
   readonly size = input<TBadgeSize>('MD', { alias: 'smtSize' });
   readonly variant = input<TBadgeVariant>('primary', { alias: 'smtVariant' });
@@ -123,7 +129,7 @@ export class SMTBadgeComponent {
     const size = this.size();
     const variant = this.variant();
     const type = this.type();
-    const isOnlyIcon = !this.label() && (!!this.leftIcon() || !!this.rightIcon());
+    const isOnlyIcon = !this.label() && !this.hasContent() && (!!this.leftIcon() || !!this.rightIcon());
     const leftImgSrc = this.leftImgSrc();
 
     if (isOnlyIcon) {
@@ -183,6 +189,14 @@ export class SMTBadgeComponent {
 
   constructor() {
     manageComponentClasses(this.host, this.badgeClassList);
+    // Projected text is not a signal: look at it after each render, and only for badges with an icon.
+    afterEveryRender({
+      read: () => {
+        if (!this.leftIcon() && !this.rightIcon()) return;
+        const node = this.projected()?.nativeElement;
+        this.hasContent.set(!!node && (node.children.length > 0 || !!node.textContent?.trim()));
+      },
+    });
   }
 
   private getVariantColorClasses(variant: TBadgeVariant, appearance: TBadgeAppearance, emphasized: boolean): string[] {

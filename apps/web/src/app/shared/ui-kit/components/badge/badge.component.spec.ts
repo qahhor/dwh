@@ -87,6 +87,22 @@ describe('SMTBadgeComponent', () => {
     expect(badge().classList).toContain('rounded-2xl');
   });
 
+  it('is a text badge when an icon comes with projected content, and icon-only again once the content goes', async () => {
+    const { fixture, badge, update } = render((host) => {
+      host.icon.set('verified_user');
+      host.content.set('Подтверждён');
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(badge().classList).not.toContain('rounded-full');
+    expect(badge().textContent).toContain('Подтверждён');
+
+    update((host) => host.content.set(''));
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(badge().classList).toContain('rounded-full');
+  });
+
   it('is a text badge, not an icon-only one, when it holds only projected content', () => {
     const { badge } = render((host) => host.content.set('Черновик'));
 

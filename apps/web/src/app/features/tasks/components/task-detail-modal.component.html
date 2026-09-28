@@ -414,7 +414,7 @@
               <div class="side-card">
                 <h5 class="side-card-title">{{ 'nav.custom_fields' | t }}</h5>
                 <div class="attributes-stack">
-                  @for (item of formatAttributes(t.attributes); track item) {
+                  @for (item of formatAttributes(t.attributes); track $index) {
                     <div class="attr-stack-item">
                       <span class="attr-k">{{ item.key }}:</span>
                       <span class="attr-v">{{ item.value }}</span>
