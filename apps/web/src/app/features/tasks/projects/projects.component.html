@@ -73,7 +73,7 @@
       [statsLoaded]="statsLoaded()"
       (viewTasks)="viewProjectTasks($event)"
       (editProject)="openEditModal($event)"
-      (manageMembers)="openMembersModal($event)"
+      (manageMembers)="members.openMembersModal($event)"
       (sortChange)="onSort($event)"
     ></app-project-table-view>
   }
@@ -94,7 +94,7 @@
       [statsLoaded]="statsLoaded()"
       (viewTasks)="viewProjectTasks($event)"
       (editProject)="openEditModal($event)"
-      (manageMembers)="openMembersModal($event)"
+      (manageMembers)="members.openMembersModal($event)"
       (pageChange)="goToPage($event)"
     ></app-project-cards-view>
   }
@@ -135,14 +135,14 @@
 ></app-project-modals>
 
 <app-project-members-modal
-  [isOpen]="selectedProjectForMembers() !== null"
-  [project]="selectedProjectForMembers()"
-  [members]="projectMembers()"
-  [isLoadingMembers]="isLoadingMembers()"
-  [isAddingMember]="isAddingMember()"
-  [removingUserId]="removingMemberId()"
+  [isOpen]="members.selectedProjectForMembers() !== null"
+  [project]="members.selectedProjectForMembers()"
+  [members]="members.projectMembers()"
+  [isLoadingMembers]="members.isLoadingMembers()"
+  [isAddingMember]="members.isAddingMember()"
+  [removingUserId]="members.removingMemberId()"
   [canUpdateProject]="canUpdateProject()"
-  (close)="closeMembersModal()"
-  (addMember)="onAddProjectMember($event)"
-  (removeMember)="onRemoveProjectMember($event)"
+  (close)="members.closeMembersModal()"
+  (addMember)="members.onAddProjectMember($event)"
+  (removeMember)="members.onRemoveProjectMember($event)"
 ></app-project-members-modal>

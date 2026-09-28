@@ -13,23 +13,19 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
-import { Subscription, Observable, finalize, tap } from 'rxjs';
-import { SMTModalService } from '@shared/ui-kit/components/modal';
-import { problemText } from '@shared/ui/problem-text';
+import { Subscription, Observable } from 'rxjs';
 import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { ProjectsApi } from './projects.api';
 import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { Project, ProjectTaskStats } from '@core/models/task.models';
 import { CustomField } from '@core/models/custom-field.models';
-import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import {
   ProjectCreateForm,
   ProjectEditForm,
   ProjectViewState,
   ProjectStateFilter,
-  ProjectMember,
   ProjectListItem,
 } from './projects.models';
 import { ProjectFilterBarComponent } from './components/project-filter-bar.component';
@@ -38,6 +34,7 @@ import { ProjectCardsViewComponent } from './components/project-cards-view.compo
 import { ProjectModalsComponent } from './components/project-modals.component';
 import { ProjectMembersModalComponent } from './components/project-members-modal.component';
 import { ProjectFormsService } from './services/project-forms.service';
+import { ProjectMembersService } from './services/project-members.service';
 import { KeysetPager } from '@shared/paging/keyset-pager';
 
 import { QueryListMeta } from '@core/models/query-meta.models';
@@ -67,21 +64,20 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     ProjectModalsComponent,
     ProjectMembersModalComponent,
   ],
-  providers: [ProjectFormsService],
+  providers: [ProjectFormsService, ProjectMembersService],
   templateUrl: './projects.component.html',
   styleUrl: './projects.component.css',
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   readonly forms = inject(ProjectFormsService);
+  /** The members dialog: whose members are shown, adding and removing them. */
+  readonly members = inject(ProjectMembersService);
   private readonly projectsApi = inject(ProjectsApi);
   private readonly customFieldsApi = inject(CustomFieldsApi);
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
 
-  private readonly toast = inject(ToastService);
-  private readonly uiI18n = inject(I18nService);
-  private readonly modal = inject(SMTModalService);
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -90,12 +86,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly recordLoading = signal(false);
   readonly recordError = signal(false);
   readonly recordNotFound = signal(false);
-
-  readonly selectedProjectForMembers = signal<Project | null>(null);
-  readonly projectMembers = signal<ProjectMember[]>([]);
-  readonly isLoadingMembers = signal<boolean>(false);
-  readonly isAddingMember = signal<boolean>(false);
-  readonly removingMemberId = signal<number | null>(null);
 
   /** Field metadata of the list (`query-meta/ms.projects`), roadmap item 51. */
   readonly meta = signal<QueryListMeta | null>(null);
@@ -168,8 +158,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly isSubmitting = this.forms.isSubmitting;
   readonly editLoading = this.forms.editLoading;
   readonly editLoadError = this.forms.editLoadError;
-  readonly createSaveError = this.forms.createSaveError;
-  readonly editSaveError = this.forms.editSaveError;
 
   viewMode: ProjectViewState = 'list';
   searchQuery = '';
@@ -194,27 +182,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
   set editForm(val: ProjectEditForm) {
     this.forms.editForm = val;
-  }
-
-  get isCreateSubmitted(): boolean {
-    return this.forms.isCreateSubmitted;
-  }
-  set isCreateSubmitted(val: boolean) {
-    this.forms.isCreateSubmitted = val;
-  }
-
-  get isEditSubmitted(): boolean {
-    return this.forms.isEditSubmitted;
-  }
-  set isEditSubmitted(val: boolean) {
-    this.forms.isEditSubmitted = val;
-  }
-
-  get editingProject(): Project | null {
-    return this.forms.editingProject;
-  }
-  set editingProject(val: Project | null) {
-    this.forms.editingProject = val;
   }
 
   ngOnInit() {
@@ -388,70 +355,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   closeRecordView() {
     this.router.navigate(['/tasks/projects'], { queryParamsHandling: 'preserve' });
-  }
-
-  openMembersModal(project: Project): void {
-    this.selectedProjectForMembers.set(project);
-    this.loadProjectMembers(project.id);
-  }
-
-  closeMembersModal(): void {
-    this.selectedProjectForMembers.set(null);
-    this.projectMembers.set([]);
-  }
-
-  loadProjectMembers(projectId: number): void {
-    this.isLoadingMembers.set(true);
-    this.projectsApi.members(projectId).subscribe({
-      next: (res) => {
-        this.projectMembers.set(res || []);
-        this.isLoadingMembers.set(false);
-      },
-      error: () => {
-        this.isLoadingMembers.set(false);
-        this.toast.error(this.uiI18n.translate('projects.oshibka_zagruzki_uchastnikov'));
-      },
-    });
-  }
-
-  onAddProjectMember(event: { projectId: number; userId: number; accessKind: string }): void {
-    this.isAddingMember.set(true);
-    this.projectsApi.addMember(event.projectId, event.userId, event.accessKind).subscribe({
-      next: () => {
-        this.isAddingMember.set(false);
-        this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
-        this.loadProjectMembers(event.projectId);
-      },
-      error: (err: unknown) => {
-        this.isAddingMember.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
-      },
-    });
-  }
-
-  /** Asks before removing a member; the dialog stays open until the server answers. */
-  onRemoveProjectMember(event: { projectId: number; userId: number; userName: string }): void {
-    const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
-    this.modal
-      .confirm({
-        title: t('projects.udalit_iz_proekta'),
-        message: t('projects.vy_uvereny_chto_hotite_udalit_uchastnika', { name: event.userName }),
-        yesLabel: t('projects.udalit_iz_proekta'),
-        noLabel: t('common.cancel'),
-        destructive: true,
-        action: () => {
-          this.removingMemberId.set(event.userId);
-          return this.projectsApi.removeMember(event.projectId, event.userId).pipe(
-            tap(() => {
-              this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
-              this.loadProjectMembers(event.projectId);
-            }),
-            finalize(() => this.removingMemberId.set(null)),
-          );
-        },
-        actionError: (error) => problemText(error) || t('projects.oshibka_udaleniya_uchastnika'),
-      })
-      .subscribe();
   }
 
   loadProjectCustomFields() {

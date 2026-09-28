@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   OnDestroy,
   OnInit,
   effect,
@@ -9,31 +8,19 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { canonicalRecordId, safeNumericRecordId } from '@core/services/search-target';
-import { KeysetPager } from '@shared/paging/keyset-pager';
-import { QueryListMeta } from '@core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
-import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
-import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
-import { sortFromHeader } from '@shared/ui/registry-table-config';
-import { OrderBy } from '@shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { CustomFieldsApi } from '@core/services/custom-fields.api';
-import { TasksApi } from './tasks.api';
 import { PermissionService } from '@core/services/permission.service';
-import { ToastService } from '@core/services/toast.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 import { UiPaginationComponent } from '@shared/ui/ui-pagination.component';
-import { Task, Project, TaskFile } from '@core/models/task.models';
-import { CustomField } from '@core/models/custom-field.models';
+import { Task, TaskFile } from '@core/models/task.models';
 
-import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { Subscription } from 'rxjs';
 import { TaskDictionariesModalComponent } from './components/task-dictionaries-modal.component';
 import { TaskKanbanViewComponent } from './components/task-kanban-view.component';
@@ -42,35 +29,16 @@ import { TaskFilterBarComponent } from './components/task-filter-bar.component';
 import { TaskDetailModalComponent } from './components/task-detail-modal.component';
 import { TaskCreateModalComponent } from './components/task-create-modal.component';
 import { TaskEditModalComponent } from './components/task-edit-modal.component';
-import {
-  TaskDeadlineInfo,
-  TaskCreateFormValue,
-  TaskEditFormValue,
-  getTypeObj,
-  getTypeLabel,
-  getTypeIcon,
-  getTypeColor,
-  getTypeBg,
-  getProjectName,
-  getStatusName,
-  getStatusColor,
-  getPriorityLabel,
-  isOverdue,
-  getDeadlineInfo,
-  getInvolveKindLabel,
-  getInitials,
-  hasAttributes,
-  formatAttributes,
-} from './tasks.models';
+import { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue } from './tasks.models';
 import { TaskDictionariesService } from './services/task-dictionaries.service';
 import { TaskLookupsService } from './services/task-lookups.service';
 import { TaskDetailsService } from './services/task-details.service';
 import { TaskFormsService } from './services/task-forms.service';
 import { TaskKanbanService } from './services/task-kanban.service';
 import { TaskFilterService } from './services/task-filter.service';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
-import { TaskStatus, TaskType } from '@core/models/task.models';
-import { RecordAttributes } from './tasks.models';
+import { TaskListStore } from './services/task-list.store';
+import { TaskPresenter } from './services/task-presenter';
+import { SMTRadioGroupComponent } from '@shared/ui-kit/components/forms/radio-group';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
@@ -94,6 +62,8 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
     TaskCreateModalComponent,
     TaskEditModalComponent,
   ],
+  // The list and its labels belong to this screen: a new visit starts a new pager.
+  providers: [TaskListStore, TaskPresenter],
   templateUrl: './tasks.component.html',
   styleUrl: './tasks.component.css',
 })
@@ -104,137 +74,51 @@ export class TasksComponent implements OnInit, OnDestroy {
   public readonly formsService = inject(TaskFormsService);
   public readonly kanbanService = inject(TaskKanbanService);
   public readonly filterService = inject(TaskFilterService);
-  /** Texts of the radio options below; translated again when the language changes. */
-  private readonly optionText = inject(I18nService);
-  private readonly tasksApi = inject(TasksApi);
-  private readonly customFieldsApi = inject(CustomFieldsApi);
-
-  private readonly uiI18n = inject(I18nService);
+  /** The list: metadata, views, pages, quick filters, projects and custom fields. */
+  readonly list = inject(TaskListStore);
+  /** Labels and colours of types, statuses, projects, priorities and deadlines. */
+  readonly presenter = inject(TaskPresenter);
+  readonly permService = inject(PermissionService);
+  private readonly route = inject(ActivatedRoute);
   private readonly recordRouter = inject(Router, { optional: true });
-  private readonly queryMeta = inject(QueryMetaService);
-  private readonly destroyRef = inject(DestroyRef);
 
   readonly routeRecordId = signal<string | null>(null);
-  readonly projects = signal<Project[]>([]);
-  readonly taskCustomFields = signal<CustomField[]>([]);
-
-  /** Field metadata of the list (`query-meta/ms.tasks`), roadmap item 49. */
-  readonly meta = signal<QueryListMeta | null>(null);
-  readonly metaError = signal(false);
 
   /** A user-typed custom field on the open card shows a name: unknown ones are asked for once. */
   private readonly userFieldNames = effect(() => {
     const attributes = this.selectedTask()?.attributes;
     if (!attributes) return;
-    const ids = this.taskCustomFields()
+    const ids = this.list
+      .customFields()
       .filter((field) => field.fieldType === 'user_ref')
       .map((field) => Number(attributes[field.code]))
       .filter((id) => Number.isSafeInteger(id) && id > 0);
     untracked(() => this.lookupsService.resolveUserNames(ids));
   });
 
-  readonly detailNotFound = this.detailsService.detailNotFound;
-  readonly safeRecordId = safeNumericRecordId;
   private recordRouteSubscription?: Subscription;
   private routeSubscription?: Subscription;
-  private exportFilters: Record<string, string> = {};
 
-  /** Sort, filter and columns of the list; saved views keep them under a name. */
-  readonly views = new ListViewState('ms.tasks', inject(ListViewsApi), {
-    defaultSort: () => {
-      const meta = this.meta();
-      return meta ? parseSort(meta.defaultSort) : null;
-    },
-    onApply: () => this.taskPager.first(),
-    columnsStore: inject(TableColumnStateStore),
-  });
-
-  /* Page-by-page over the keyset API. The pager cancels a superseded request,
-     moves the page only when it arrives and retries exactly the failed one;
-     the quick filters, the search, the sort and the filter are read when each request is made. */
-  readonly taskPager = new KeysetPager<Task>(
-    (cursor, limit) =>
-      this.tasksApi.page(this.filterService.buildListParams(cursor, limit), {
-        sort: this.views.sort(),
-        conditions: this.views.filter(),
-        match: this.views.match(),
-        search: this.filterService.searchQuery,
-      }),
-    // One page size: the pager's, which is also the limit each request sends.
-    { pageSize: this.filterService.pageSize, destroyRef: this.destroyRef },
-  );
   /** Writable: kanban and inline edits update rows in place. */
-  readonly tasks = this.taskPager.items;
-
-  readonly isLoading = this.taskPager.loading;
-  readonly listLoadError = this.taskPager.failed;
-  readonly hasMore = this.taskPager.canGoForward;
-
-  // Delegated signals from Dictionaries Service
+  readonly tasks = this.list.tasks;
   readonly statuses = this.dictService.statuses;
   readonly taskTypes = this.dictService.taskTypes;
-  readonly isSettingsModalOpen = this.dictService.isSettingsModalOpen;
 
-  // Delegated signals from Lookups Service
-
-  // Delegated signals from Details Service
   readonly selectedTask = this.detailsService.selectedTask;
   readonly taskMembers = this.detailsService.taskMembers;
   readonly taskSubtasks = this.detailsService.taskSubtasks;
-  readonly taskAncestors = this.detailsService.taskAncestors;
   readonly taskFiles = this.detailsService.taskFiles;
   readonly comments = this.detailsService.comments;
-  readonly detailLoading = this.detailsService.detailLoading;
-  readonly detailLoadError = this.detailsService.detailLoadError;
-  readonly commentsLoading = this.detailsService.commentsLoading;
-  readonly commentsLoadError = this.detailsService.commentsLoadError;
   readonly isCommentSubmitting = this.detailsService.isCommentSubmitting;
 
-  // Delegated signals from Forms Service
-  readonly isCreateModalOpen = this.formsService.isCreateModalOpen;
   readonly isEditModalOpen = this.formsService.isEditModalOpen;
   readonly isEditDiscardConfirmationOpen = this.formsService.isEditDiscardConfirmationOpen;
-  readonly editLoading = this.formsService.editLoading;
-  readonly editLoadError = this.formsService.editLoadError;
-  readonly isSubmitting = this.formsService.isSubmitting;
-
-  // Function delegates for templates
-  readonly getDeadlineInfoFn = (e: string | null | undefined, id: number) => this.getDeadlineInfo(e, id);
-  readonly getPriorityLabelFn = (p: string) => this.getPriorityLabel(p);
-  readonly getTypeColorFn = (t: Task) => this.getTypeColor(t);
-  readonly getTypeIconFn = (t: Task) => this.getTypeIcon(t);
-  readonly getProjectNameFn = (id: number | null | undefined) => this.getProjectName(id);
-  readonly isOverdueFn = (e: string | null | undefined, id: number) => this.isOverdue(e, id);
-  readonly getTypeLabelFn = (t: Task) => this.getTypeLabel(t);
-  readonly getTypeBgFn = (t: Task) => this.getTypeBg(t);
-  readonly getStatusColorFn = (id: number | null | undefined) => this.getStatusColor(id);
-  readonly getStatusNameFn = (id: number | null | undefined) => this.getStatusName(id);
-
-  private readonly viewMemo = optionsMemo<SMTRadioOption<'table' | 'kanban'>[]>();
-
-  constructor(
-    public permService: PermissionService,
-    private toast: ToastService,
-    private route: ActivatedRoute,
-  ) {}
 
   detailRecordId(): string | null {
     return this.routeRecordId() ?? (this.selectedTask() ? String(this.selectedTask()!.id) : null);
   }
 
-  // Filter delegates
-  get activePreset() {
-    return this.filterService.activePreset;
-  }
-  set activePreset(v) {
-    this.filterService.activePreset = v;
-  }
-  get viewMode() {
-    return this.filterService.viewMode;
-  }
-  set viewMode(v) {
-    this.filterService.viewMode = v;
-  }
+  // Kept on the page: the record-navigation tests reach them through it. The values live in root services.
   get searchQuery() {
     return this.filterService.searchQuery;
   }
@@ -247,84 +131,28 @@ export class TasksComponent implements OnInit, OnDestroy {
   set selectedPriority(v) {
     this.filterService.selectedPriority = v;
   }
-  get selectedProjectId() {
-    return this.filterService.selectedProjectId;
-  }
-  set selectedProjectId(v) {
-    this.filterService.selectedProjectId = v;
-  }
-  get statusFilterMode() {
-    return this.filterService.statusFilterMode;
-  }
-  set statusFilterMode(v) {
-    this.filterService.statusFilterMode = v;
-  }
-  get currentPage() {
-    return this.taskPager.page();
-  }
-  get pageSize() {
-    return this.taskPager.pageSize();
-  }
-  get showExportMenu() {
-    return this.filterService.showExportMenu;
-  }
-  set showExportMenu(v) {
-    this.filterService.showExportMenu = v;
-  }
   get commentDraft() {
     return this.detailsService.commentDraft;
   }
   set commentDraft(v: string) {
     this.detailsService.commentDraft = v;
   }
-  get isCreateSubmitted() {
-    return this.formsService.isCreateSubmitted;
-  }
-  set isCreateSubmitted(v: boolean) {
-    this.formsService.isCreateSubmitted = v;
-  }
-  get createForm() {
+  get createForm(): TaskCreateFormValue {
     return this.formsService.createForm;
   }
-  set createForm(f: TaskCreateFormValue) {
-    this.formsService.createForm = f;
-  }
-  get isEditSubmitted() {
-    return this.formsService.isEditSubmitted;
-  }
-  set isEditSubmitted(v: boolean) {
-    this.formsService.isEditSubmitted = v;
-  }
-  get editingTask() {
-    return this.formsService.editingTask;
-  }
-  set editingTask(t: Task | null) {
-    this.formsService.editingTask = t;
-  }
-  get editForm() {
+  get editForm(): TaskEditFormValue {
     return this.formsService.editForm;
-  }
-  set editForm(f: TaskEditFormValue) {
-    this.formsService.editForm = f;
-  }
-
-  // Delegated getters from Kanban Service
-  get draggedTask() {
-    return this.kanbanService.draggedTask;
-  }
-  set draggedTask(t: Task | null) {
-    this.kanbanService.draggedTask = t;
   }
 
   ngOnInit() {
     this.routeSubscription = this.route.queryParams.subscribe((params) => {
-      if (params['project_id']) this.selectedProjectId = Number(params['project_id']);
+      if (params['project_id']) this.filterService.selectedProjectId = Number(params['project_id']);
     });
     this.dictService.loadStatuses();
     this.dictService.loadTypes();
-    this.loadProjects();
-    this.loadTaskCustomFields();
-    this.loadTasks(true);
+    this.list.loadProjects();
+    this.list.loadCustomFields();
+    this.list.loadTasks(true);
 
     this.recordRouteSubscription = this.route.paramMap?.subscribe((params) => {
       this.detailsService.clearTaskDetails();
@@ -332,7 +160,7 @@ export class TasksComponent implements OnInit, OnDestroy {
       this.routeRecordId.set(id);
       if (id === null) return;
       if (!canonicalRecordId(id)) {
-        this.detailNotFound.set(true);
+        this.detailsService.detailNotFound.set(true);
         this.detailsService.detailLoadError.set(true);
         return;
       }
@@ -370,104 +198,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     );
   }
 
-  loadProjects() {
-    this.tasksApi.projects().subscribe({ next: (res) => this.projects.set(res || []), error: () => {} });
-  }
-
-  loadTaskCustomFields() {
-    this.customFieldsApi
-      .list('TASK')
-      .subscribe({ next: (res) => this.taskCustomFields.set(res || []), error: () => {} });
-  }
-
-  /** The first page for the current filters; without `reset`, the page on screen again. The metadata comes first, once. */
-  loadTasks(reset: boolean = false) {
-    clearTimeout(this.filterService.taskSearchTimer);
-    if (!this.meta()) {
-      this.metaError.set(false);
-      this.queryMeta
-        .get('ms.tasks')
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe({
-          next: (meta) => {
-            this.meta.set(meta);
-            this.views.load().subscribe(() => this.taskPager.first());
-          },
-          error: () => this.metaError.set(true),
-        });
-      return;
-    }
-    if (reset) this.taskPager.first();
-    else this.taskPager.reload();
-  }
-
-  /** A header click sorts the whole list on the server. */
-  onSort(event: { column: string; sortBy: OrderBy } | undefined) {
-    if (!this.meta()) return;
-    this.views.setSort(sortFromHeader(event));
-    this.taskPager.first();
-  }
-
-  /** The quick filters as export options; the same object while they stay, so the button is not re-rendered. */
-  exportOptions(): Record<string, string> {
-    const next: Record<string, string> = {};
-    const { limit: _limit, cursor: _cursor, ...filters } = this.filterService.buildListParams(null);
-    for (const [key, value] of Object.entries(filters)) {
-      if (value !== undefined && value !== null && value !== '') next[key] = String(value);
-    }
-    const same =
-      Object.keys(next).length === Object.keys(this.exportFilters).length &&
-      Object.entries(next).every(([key, value]) => this.exportFilters[key] === value);
-    if (!same) this.exportFilters = next;
-    return this.exportFilters;
-  }
-
-  onTaskSearchChange(query: string) {
-    this.searchQuery = query;
-    clearTimeout(this.filterService.taskSearchTimer);
-    this.cancelListRequestForFilterChange();
-    this.filterService.taskSearchTimer = setTimeout(() => this.loadTasks(true), 350);
-  }
-
-  applyTaskSearchImmediately() {
-    clearTimeout(this.filterService.taskSearchTimer);
-    this.loadTasks(true);
-  }
-
-  retryTaskList() {
-    if (this.isLoading()) return;
-    this.taskPager.retry();
-  }
-
-  goToTaskPage(page: number) {
-    if (this.isLoading() || this.listLoadError()) return;
-    this.taskPager.goTo(page);
-  }
-
-  hasActiveFilters(): boolean {
-    return this.filterService.hasActiveFilters();
-  }
-  clearSearch() {
-    this.cancelListRequestForFilterChange();
-    this.filterService.clearSearch(() => this.loadTasks(true));
-  }
-  setPreset(preset: 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue') {
-    this.filterService.setPreset(preset, () => this.loadTasks(true));
-  }
-  setStatusFilterMode(mode: 'active' | 'all' | number) {
-    this.filterService.setStatusFilterMode(mode, () => this.loadTasks(true));
-  }
-  onProjectFilterChange(projectId: number | null) {
-    this.filterService.onProjectFilterChange(projectId, () => this.loadTasks(true));
-  }
-  onPriorityFilterChange(priority: string) {
-    this.filterService.onPriorityFilterChange(priority, () => this.loadTasks(true));
-  }
-  resetFilters() {
-    this.cancelListRequestForFilterChange();
-    this.filterService.resetFilters(() => this.loadTasks(true));
-  }
-
   updatePriority(taskId: number, newPriority: string) {
     this.kanbanService.updatePriority(taskId, newPriority, () => {
       this.tasks.update((list) => list.map((t) => (t.id === taskId ? { ...t, priority: newPriority } : t)));
@@ -494,36 +224,25 @@ export class TasksComponent implements OnInit, OnDestroy {
     this.kanbanService.executeStatusChange(
       task,
       targetStatusId,
-      this.getStatusName(targetStatusId),
+      this.presenter.getStatusName(targetStatusId),
       () => this.applyStatusToVisibleTasks(task.id, targetStatusId),
       () => {
         if (this.selectedTask()?.id === task.id) {
           this.selectedTask.update((t) => (t ? { ...t, statusId: targetStatusId } : null));
         }
       },
-      () => this.loadTasks(true),
+      () => this.list.loadTasks(true),
     );
   }
 
   exportTasks(format: 'xlsx' | 'csv'): void {
-    this.showExportMenu = false;
+    this.filterService.showExportMenu = false;
     window.open(`/api/v1/reports/tasks/export?format=${format}`, '_blank');
   }
-
-  // Lookups methods
 
   // Details methods
   openTaskDetails(task: Task) {
     this.detailsService.openTaskDetails(
-      task,
-      () => this.isEditModalOpen(),
-      () => this.routeRecordId(),
-      (id) => this.recordRouter?.navigate(['/tasks/items', id], { queryParamsHandling: 'preserve' }),
-    );
-  }
-  onTaskContainerClick(event: MouseEvent, task: Task) {
-    this.detailsService.onTaskContainerClick(
-      event,
       task,
       () => this.isEditModalOpen(),
       () => this.routeRecordId(),
@@ -546,9 +265,6 @@ export class TasksComponent implements OnInit, OnDestroy {
   onTaskFileRemoved(file: TaskFile) {
     this.detailsService.onTaskFileRemoved(file);
   }
-  loadComments(taskId: number | string) {
-    this.detailsService.loadComments(taskId, () => this.routeRecordId());
-  }
   retryComments() {
     this.detailsService.retryComments(() => this.routeRecordId());
   }
@@ -562,7 +278,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   // Forms methods
   openCreateTaskModal() {
     const defaultType = this.taskTypes().length > 0 ? this.taskTypes()[0].code : 'task';
-    this.formsService.openCreateTaskModal(defaultType, this.selectedProjectId);
+    this.formsService.openCreateTaskModal(defaultType, this.filterService.selectedProjectId);
   }
   openAddSubtaskModal(parentTask: Task) {
     const defaultType = this.taskTypes().length > 0 ? this.taskTypes()[0].code : 'task';
@@ -575,7 +291,7 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
   submitCreateTask() {
     this.formsService.submitCreateTask((parentId) => {
-      this.loadTasks(true);
+      this.list.loadTasks(true);
       if (this.selectedTask() && parentId === this.selectedTask()?.id) {
         this.detailsService.loadTaskFullDetails(this.selectedTask()!.id, () => this.routeRecordId());
       }
@@ -617,136 +333,24 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
   submitEditTask() {
     this.formsService.submitEditTask((returnTask, editedTaskId) => {
-      this.loadTasks(true);
+      this.list.loadTasks(true);
       if (returnTask) this.openTaskDetails({ ...returnTask, id: editedTaskId });
     });
   }
 
-  // Kanban / Drag & Drop
   onTaskDrop(event: CdkDragDrop<Task[]>, targetStatusId: number) {
     this.kanbanService.onTaskDrop(event, targetStatusId, this.canUpdateTask(), (task, sId) =>
       this.executeStatusChange(task, sId),
     );
   }
-  onHtml5DragStart(event: DragEvent, task: Task) {
-    this.kanbanService.onHtml5DragStart(event, task, this.canUpdateTask());
-  }
-  onHtml5DragOver(event: DragEvent) {
-    this.kanbanService.onHtml5DragOver(event, this.canUpdateTask());
-  }
-  onHtml5DragLeave(event: DragEvent) {
-    this.kanbanService.onHtml5DragLeave(event, this.canUpdateTask());
-  }
-  onHtml5Drop(event: DragEvent, targetStatusId: number) {
-    this.kanbanService.onHtml5Drop(event, targetStatusId, this.canUpdateTask(), (task, sId) =>
-      this.executeStatusChange(task, sId),
-    );
-  }
-  getTasksByStatus(statusId: number) {
-    return this.kanbanService.getTasksByStatus(statusId, this.tasks());
-  }
-  isFirstStatus(statusId: number) {
-    return this.kanbanService.isFirstStatus(statusId, this.statuses());
-  }
-  isLastStatus(statusId: number) {
-    return this.kanbanService.isLastStatus(statusId, this.statuses());
-  }
-  moveTaskStatus(task: Task, direction: -1 | 1) {
-    this.kanbanService.moveTaskStatus(task, direction, this.statuses(), this.canUpdateTask(), (id, sId) =>
-      this.updateStatus(id, sId),
-    );
-  }
-
-  // Dictionaries methods
-  openSettingsModal() {
-    this.dictService.openSettingsModal();
-  }
-  handleCreateType(e: Parameters<TaskDictionariesService['handleCreateType']>[0]) {
-    this.dictService.handleCreateType(e);
-  }
-  handleCreateStatus(e: Parameters<TaskDictionariesService['handleCreateStatus']>[0]) {
-    this.dictService.handleCreateStatus(e);
-  }
-  handleDeleteDictionaryItem(t: Parameters<TaskDictionariesService['handleDeleteDictionaryItem']>[0]) {
-    this.dictService.handleDeleteDictionaryItem(t);
-  }
-  handleReorderTypes(l: TaskType[]) {
-    this.dictService.handleReorderTypes(l);
-  }
-  handleReorderStatuses(l: TaskStatus[]) {
-    this.dictService.handleReorderStatuses(l);
-  }
-
-  // Helpers
-  getTypeObj(task: Task) {
-    return getTypeObj(task, this.taskTypes());
-  }
-  getTypeLabel(task: Task) {
-    return getTypeLabel(task, this.taskTypes(), this.uiI18n);
-  }
-  getTypeIcon(task: Task) {
-    return getTypeIcon(task, this.taskTypes());
-  }
-  getTypeColor(task: Task) {
-    return getTypeColor(task, this.taskTypes());
-  }
-  getTypeBg(task: Task) {
-    return getTypeBg(task, this.taskTypes());
-  }
-  getProjectName(projectId: number | null | undefined) {
-    return getProjectName(projectId, this.projects());
-  }
-  getStatusName(statusId: number | null | undefined) {
-    return getStatusName(statusId, this.statuses(), this.uiI18n);
-  }
-  getStatusColor(statusId: number | null | undefined) {
-    return getStatusColor(statusId, this.statuses());
-  }
-  getPriorityLabel(priority: string) {
-    return getPriorityLabel(priority, this.uiI18n);
-  }
-  isOverdue(endTime: string | null | undefined, statusId: number) {
-    return isOverdue(endTime, statusId, this.statuses());
-  }
-  getDeadlineInfo(endTime: string | null | undefined, statusId: number) {
-    return getDeadlineInfo(endTime, statusId, this.statuses(), this.uiI18n);
-  }
-  getInvolveKindLabel(kind: string | undefined) {
-    return getInvolveKindLabel(kind, this.uiI18n);
-  }
-  getInitials(name: string | undefined) {
-    return getInitials(name);
-  }
-  hasAttributes(attrs: RecordAttributes) {
-    return hasAttributes(attrs);
-  }
-  formatAttributes(attrs: RecordAttributes) {
-    return formatAttributes(attrs, this.taskCustomFields(), (id) => this.lookupsService.nameOf(id), this.uiI18n);
-  }
-
-  viewOptions(): SMTRadioOption<'table' | 'kanban'>[] {
-    return this.viewMemo([this.optionText.currentLang()], () => [
-      {
-        value: 'table',
-        label: this.optionText.translate('projects.spisok'),
-        icon: 'table_rows',
-        title: this.optionText.translate('tasks.tablichnyy_vid'),
-      },
-      {
-        value: 'kanban',
-        label: this.optionText.translate('tasks.kanban'),
-        icon: 'view_kanban',
-        title: this.optionText.translate('tasks.kanban_doska'),
-      },
-    ]);
-  }
-
-  /** The answer in flight is for the old query: drop it and show the list as busy. */
-  private cancelListRequestForFilterChange() {
-    this.taskPager.invalidate();
-  }
 
   private applyStatusToVisibleTasks(taskId: number, statusId: number) {
-    this.kanbanService.applyStatusToVisibleTasks(taskId, statusId, this.statuses(), this.statusFilterMode, this.tasks);
+    this.kanbanService.applyStatusToVisibleTasks(
+      taskId,
+      statusId,
+      this.statuses(),
+      this.filterService.statusFilterMode,
+      this.tasks,
+    );
   }
 }
