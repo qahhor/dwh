@@ -1,16 +1,14 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   Signal,
   TemplateRef,
-  ViewChild,
   computed,
   inject,
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
@@ -386,6 +384,22 @@ export class UserDetailModalComponent {
 
   readonly isSubmitting = input(false);
 
+  readonly closeRecordView = output<void>();
+  readonly retryRecordView = output<string | null>();
+  readonly switchTab = output<{
+    tab: 'info' | 'security' | 'orgUnits' | 'permissions';
+    userId: number;
+  }>();
+  readonly openEdit = output<void>();
+  readonly forcePasswordChange = output<number>();
+  readonly reset2fa = output<number>();
+  readonly terminateAllSessions = output<number>();
+  readonly terminateSingleSession = output<{
+    sessionId: number;
+    userId: number;
+  }>();
+  readonly orgPanelBusy = output<boolean>();
+
   private readonly sessionIpCell = viewChild.required<TemplateRef<unknown>>('sessionIpCell');
   private readonly sessionAgentCell = viewChild.required<TemplateRef<unknown>>('sessionAgentCell');
   private readonly sessionCreatedCell = viewChild.required<TemplateRef<unknown>>('sessionCreatedCell');
@@ -395,6 +409,8 @@ export class UserDetailModalComponent {
   private readonly attemptIpCell = viewChild.required<TemplateRef<unknown>>('attemptIpCell');
   private readonly attemptStatusCell = viewChild.required<TemplateRef<unknown>>('attemptStatusCell');
   private readonly attemptReasonCell = viewChild.required<TemplateRef<unknown>>('attemptReasonCell');
+
+  readonly orgUnitsPanel = viewChild(UserOrgUnitsPanelComponent);
 
   private readonly security = signal<UserSecuritySummary | null>(null);
 
@@ -444,18 +460,6 @@ export class UserDetailModalComponent {
   @Input() viewingUser: User | null = null;
   @Input() routeRecordId: string | null = null;
 
-  @Output() closeRecordView = new EventEmitter<void>();
-  @Output() retryRecordView = new EventEmitter<string | null>();
-  @Output() switchTab = new EventEmitter<{ tab: 'info' | 'security' | 'orgUnits' | 'permissions'; userId: number }>();
-  @Output() openEdit = new EventEmitter<void>();
-  @Output() forcePasswordChange = new EventEmitter<number>();
-  @Output() reset2fa = new EventEmitter<number>();
-  @Output() terminateAllSessions = new EventEmitter<number>();
-  @Output() terminateSingleSession = new EventEmitter<{ sessionId: number; userId: number }>();
-  @Output() orgPanelBusy = new EventEmitter<boolean>();
-
-  @ViewChild(UserOrgUnitsPanelComponent) orgUnitsPanel?: UserOrgUnitsPanelComponent;
-
   /** The summary carries every open session, so a header click sorts them all. */
   readonly sessionSortValues = {
     ip: (s: UserSession) => s.ip,
@@ -491,7 +495,7 @@ export class UserDetailModalComponent {
   }
 
   canLeave(): boolean | Observable<boolean> {
-    return this.orgUnitsPanel?.canLeave() ?? true;
+    return this.orgUnitsPanel()?.canLeave() ?? true;
   }
 
   /** The card's sections; org units and effective rights only with the right to see them. */

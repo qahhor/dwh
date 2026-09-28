@@ -76,9 +76,6 @@
     }
   },
   "src/app/features/analytics/components/analytics-projects-card.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@angular-eslint/prefer-signals": {
       "count": 4
     },
@@ -120,39 +117,22 @@
     }
   },
   "src/app/features/audit/components/audit-logs-table.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 10
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     }
   },
   "src/app/features/audit/components/audit-modals.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
   },
   "src/app/features/audit/components/audit-security-table.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 9
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     }
   },
-  "src/app/features/audit/components/audit-stats-tiles.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    }
-  },
   "src/app/features/auth/login/components/login-reset-modal.component.ts": {
     "@angular-eslint/no-output-native": {
-      "count": 1
-    },
-    "@angular-eslint/prefer-output-emitter-ref": {
       "count": 1
     }
   },
@@ -161,22 +141,9 @@
       "count": 2
     }
   },
-  "src/app/features/files/components/files-modals.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
-    }
-  },
-  "src/app/features/files/components/files-table.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 4
-    }
-  },
   "src/app/features/files/components/files-toolbar.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
-    },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 5
     }
   },
   "src/app/features/files/files.component.ts": {
@@ -185,32 +152,18 @@
     }
   },
   "src/app/features/iam/custom-fields/components/custom-fields-modals.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
-    },
     "@angular-eslint/prefer-signals": {
       "count": 3
     }
   },
   "src/app/features/iam/custom-fields/components/custom-fields-table.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 5
-    },
     "@angular-eslint/prefer-signals": {
       "count": 5
-    }
-  },
-  "src/app/features/iam/custom-fields/components/custom-fields-toolbar.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
     }
   },
   "src/app/features/iam/org-units/org-unit-editor.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
-    },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
     },
     "@angular-eslint/prefer-signals": {
       "count": 1
@@ -221,68 +174,37 @@
       "count": 1
     }
   },
-  "src/app/features/iam/org-units/org-units.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
   "src/app/features/iam/org-units/role-scope-panel.component.spec.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 5
     }
   },
-  "src/app/features/iam/org-units/role-scope-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    }
-  },
   "src/app/features/iam/org-units/user-org-units-panel.component.spec.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 6
     }
   },
   "src/app/features/iam/org-units/user-org-units-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@typescript-eslint/no-unused-expressions": {
       "count": 1
     }
   },
   "src/app/features/iam/profile/components/profile-channels-card.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
   "src/app/features/iam/profile/components/profile-password-card.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
   "src/app/features/iam/profile/components/profile-sessions-card.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
   "src/app/features/iam/profile/components/profile-tokens-card.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 8
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     }
@@ -296,9 +218,6 @@
     "@angular-eslint/prefer-inject": {
       "count": 3
     },
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 3
     },
@@ -306,23 +225,12 @@
       "count": 1
     }
   },
-  "src/app/features/iam/roles/components/role-cards-bar.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 6
-    }
-  },
   "src/app/features/iam/roles/components/role-modals.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 9
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     }
   },
   "src/app/features/iam/roles/components/role-permissions-matrix.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 13
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     }
@@ -342,9 +250,6 @@
     "@angular-eslint/no-output-native": {
       "count": 2
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 4
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     },
@@ -353,11 +258,8 @@
     }
   },
   "src/app/features/iam/users/components/user-detail-modal.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 9
-    },
     "@angular-eslint/prefer-signals": {
-      "count": 4
+      "count": 3
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
@@ -365,9 +267,6 @@
   },
   "src/app/features/iam/users/components/user-edit-modal.component.ts": {
     "@angular-eslint/no-output-native": {
-      "count": 2
-    },
-    "@angular-eslint/prefer-output-emitter-ref": {
       "count": 2
     },
     "@angular-eslint/prefer-signals": {
@@ -391,9 +290,6 @@
     }
   },
   "src/app/features/iam/users/components/user-filter-bar.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 13
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     },
@@ -401,17 +297,9 @@
       "count": 1
     }
   },
-  "src/app/features/iam/users/components/user-table-view.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 5
-    }
-  },
   "src/app/features/iam/users/users.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 5
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 2
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
@@ -424,9 +312,6 @@
     "@angular-eslint/no-output-native": {
       "count": 1
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
@@ -437,38 +322,21 @@
     }
   },
   "src/app/features/settings/components/settings-general-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
   "src/app/features/settings/components/settings-languages-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 12
-    },
     "@angular-eslint/prefer-signals": {
       "count": 6
     }
   },
-  "src/app/features/settings/components/settings-preferences-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 4
-    }
-  },
   "src/app/features/settings/components/settings-security-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
   "src/app/features/settings/components/settings-storage-panel.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
@@ -476,9 +344,6 @@
   "src/app/features/settings/language-editor.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 4
-    },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
     }
   },
   "src/app/features/settings/modules/components/modules-table.component.ts": {
@@ -492,9 +357,6 @@
     }
   },
   "src/app/features/settings/navigation/components/navigation-settings-modal.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 12
-    },
     "@angular-eslint/prefer-signals": {
       "count": 3
     },
@@ -503,9 +365,6 @@
     }
   },
   "src/app/features/settings/navigation/components/navigation-settings-table.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 6
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
@@ -566,9 +425,6 @@
     "@angular-eslint/no-output-native": {
       "count": 2
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     },
@@ -583,9 +439,6 @@
     "@angular-eslint/prefer-inject": {
       "count": 1
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 11
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     },
@@ -597,9 +450,6 @@
     "@angular-eslint/no-output-native": {
       "count": 1
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 6
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
@@ -608,9 +458,6 @@
     "@angular-eslint/no-output-native": {
       "count": 2
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 5
-    },
     "@angular-eslint/prefer-signals": {
       "count": 2
     },
@@ -618,15 +465,7 @@
       "count": 1
     }
   },
-  "src/app/features/tasks/components/task-filter-bar.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 8
-    }
-  },
   "src/app/features/tasks/components/task-kanban-view.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 6
-    },
     "@angular-eslint/template/click-events-have-key-events": {
       "count": 2
     },
@@ -640,38 +479,19 @@
     }
   },
   "src/app/features/tasks/components/task-table-view.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 7
-    },
     "@angular-eslint/prefer-signals": {
       "count": 11
-    }
-  },
-  "src/app/features/tasks/projects/components/project-cards-view.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 4
-    }
-  },
-  "src/app/features/tasks/projects/components/project-filter-bar.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
     }
   },
   "src/app/features/tasks/projects/components/project-members-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
-    },
     "@angular-eslint/prefer-signals": {
       "count": 4
     }
   },
   "src/app/features/tasks/projects/components/project-modals.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 10
-    },
     "@angular-eslint/prefer-signals": {
       "count": 6
     },
@@ -680,9 +500,6 @@
     }
   },
   "src/app/features/tasks/projects/components/project-table-view.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 4
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
@@ -742,18 +559,8 @@
       "count": 1
     }
   },
-  "src/app/features/upl/packages/package-card.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 3
-    }
-  },
   "src/app/features/upl/packages/packages.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/app/features/upl/packages/packages.component.ts": {
-    "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
@@ -770,9 +577,6 @@
   "src/app/layout/app-shell/app-shell.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 9
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 3
     }
   },
   "src/app/layout/app-shell/app-shell.models.ts": {
@@ -780,36 +584,17 @@
       "count": 2
     }
   },
-  "src/app/layout/app-shell/components/app-header.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 4
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    }
-  },
   "src/app/layout/app-shell/components/app-sidebar-flyout.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 7
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
-    }
-  },
-  "src/app/layout/app-shell/components/app-sidebar-nav-sections.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
     }
   },
   "src/app/layout/app-shell/components/app-sidebar.component.ts": {
     "@angular-eslint/no-output-on-prefix": {
       "count": 1
     },
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 17
-    },
     "@angular-eslint/prefer-signals": {
-      "count": 3
+      "count": 1
     },
     "@angular-eslint/template/click-events-have-key-events": {
       "count": 1
@@ -842,9 +627,6 @@
   "src/app/layout/command-palette/command-palette.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 2
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 1
     },
     "@angular-eslint/template/click-events-have-key-events": {
       "count": 1
@@ -1335,18 +1117,12 @@
     }
   },
   "src/app/shared/ui/ui-custom-fields.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
   "src/app/shared/ui/ui-file-upload.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 2
-    },
-    "@angular-eslint/prefer-output-emitter-ref": {
       "count": 2
     },
     "@angular-eslint/prefer-signals": {
@@ -1370,11 +1146,8 @@
     }
   },
   "src/app/shared/ui/ui-markdown-editor.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 1
-    },
     "@angular-eslint/prefer-signals": {
-      "count": 2
+      "count": 1
     },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -1392,9 +1165,6 @@
     }
   },
   "src/app/shared/ui/ui-pagination.component.ts": {
-    "@angular-eslint/prefer-output-emitter-ref": {
-      "count": 2
-    },
     "@angular-eslint/prefer-signals": {
       "count": 5
     },

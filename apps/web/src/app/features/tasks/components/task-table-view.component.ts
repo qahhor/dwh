@@ -1,15 +1,14 @@
 import {
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
   Input,
-  Output,
   Signal,
   signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -491,6 +490,26 @@ export class TaskTableViewComponent {
   readonly canCreateTask = input(false);
   readonly hasActiveFilters = input(false);
 
+  readonly openTaskDetails = output<Task>();
+  readonly openEditModal = output<Task>();
+  readonly updatePriority = output<{
+    taskId: number;
+    priority: string;
+  }>();
+  readonly updateStatus = output<{
+    taskId: number;
+    statusId: number;
+  }>();
+  readonly resetFilters = output<void>();
+  readonly createTask = output<void>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
@@ -582,14 +601,6 @@ export class TaskTableViewComponent {
   @Input() getProjectName!: (projectId: number | null | undefined) => string | null;
   @Input() getStatusColor!: (statusId: number | null | undefined) => string;
   @Input() getDeadlineInfo!: (endTime: string | null | undefined, statusId: number) => { state: string; label: string };
-
-  @Output() openTaskDetails = new EventEmitter<Task>();
-  @Output() openEditModal = new EventEmitter<Task>();
-  @Output() updatePriority = new EventEmitter<{ taskId: number; priority: string }>();
-  @Output() updateStatus = new EventEmitter<{ taskId: number; statusId: number }>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() createTask = new EventEmitter<void>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Titles of the tasks sent, so the result can name a task after the page reloads. */
   private bulkTitles = new Map<number, string>();
   readonly bulkItemLabel = (id: number) => {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, inject, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -139,11 +139,11 @@ export class FilesToolbarComponent {
   readonly scope = input<'all' | 'mine'>('all');
   readonly searchQuery = input('');
 
-  @Output() scopeChange = new EventEmitter<'all' | 'mine'>();
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() search = new EventEmitter<void>();
-  @Output() clear = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
+  readonly scopeChange = output<'all' | 'mine'>();
+  readonly searchQueryChange = output<string>();
+  readonly search = output<void>();
+  readonly clear = output<void>();
+  readonly refresh = output<void>();
 
   private readonly scopeMemo = optionsMemo<SMTRadioOption<'all' | 'mine'>[]>();
 

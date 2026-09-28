@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 import { TaskFile } from '../../../core/models/task.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -59,7 +59,7 @@ export class FilesModalsComponent {
   readonly isUploadModalOpen = input(false);
   readonly uploadedBatch = input<TaskFile[]>([]);
 
-  @Output() closeUpload = new EventEmitter<void>();
-  @Output() batchFileUploaded = new EventEmitter<TaskFile>();
-  @Output() batchFileRemoved = new EventEmitter<TaskFile>();
+  readonly closeUpload = output<void>();
+  readonly batchFileUploaded = output<TaskFile>();
+  readonly batchFileRemoved = output<TaskFile>();
 }

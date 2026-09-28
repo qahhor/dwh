@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { Component, Input, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -350,22 +350,32 @@ export class RolePermissionsMatrixComponent {
   readonly moduleGroups = input<ModuleGroup[]>([]);
   readonly visibleModuleGroups = input<ModuleGroup[]>([]);
 
+  readonly resetChanges = output<void>();
+  readonly savePermissions = output<void>();
+  readonly refreshRole = output<Role>();
+  readonly matrixSearchQueryChange = output<string>();
+  readonly selectedModuleTabChange = output<string>();
+  readonly setAllModulesExpanded = output<boolean>();
+  readonly toggleAllPermissions = output<boolean>();
+  readonly toggleReadOnlyAllPermissions = output<void>();
+  readonly toggleModuleExpand = output<ModuleGroup>();
+  readonly toggleReadOnlyModule = output<ModuleGroup>();
+  readonly toggleAllModule = output<{
+    mod: ModuleGroup;
+    select: boolean;
+  }>();
+  readonly toggleAllForm = output<{
+    form: GroupedForm;
+    select: boolean;
+  }>();
+  readonly togglePermission = output<{
+    formCode: string;
+    action: string;
+    checked: boolean;
+  }>();
+
   @Input({ required: true }) role!: Role;
   @Input() permissionsError = '';
-
-  @Output() resetChanges = new EventEmitter<void>();
-  @Output() savePermissions = new EventEmitter<void>();
-  @Output() refreshRole = new EventEmitter<Role>();
-  @Output() matrixSearchQueryChange = new EventEmitter<string>();
-  @Output() selectedModuleTabChange = new EventEmitter<string>();
-  @Output() setAllModulesExpanded = new EventEmitter<boolean>();
-  @Output() toggleAllPermissions = new EventEmitter<boolean>();
-  @Output() toggleReadOnlyAllPermissions = new EventEmitter<void>();
-  @Output() toggleModuleExpand = new EventEmitter<ModuleGroup>();
-  @Output() toggleReadOnlyModule = new EventEmitter<ModuleGroup>();
-  @Output() toggleAllModule = new EventEmitter<{ mod: ModuleGroup; select: boolean }>();
-  @Output() toggleAllForm = new EventEmitter<{ form: GroupedForm; select: boolean }>();
-  @Output() togglePermission = new EventEmitter<{ formCode: string; action: string; checked: boolean }>();
 
   private readonly moduleMemo = optionsMemo<SMTRadioOption<string>[]>();
 

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Component, ViewChild } from '@angular/core';
+import { Component, viewChild } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -16,9 +16,9 @@ import { inScreen } from '../../../../testing/in-screen';
 })
 class RolePanelHost {
   selectedRoleId = 5;
-  @ViewChild(RoleScopePanelComponent) panel!: RoleScopePanelComponent;
+  readonly panel = viewChild.required(RoleScopePanelComponent);
   requestTarget(roleId: number): void {
-    const decision = this.panel.canLeave();
+    const decision = this.panel().canLeave();
     if (typeof decision === 'boolean') {
       if (decision) this.selectedRoleId = roleId;
     } else
@@ -290,21 +290,21 @@ describe('RoleScopePanelComponent', () => {
     const fixture = TestBed.createComponent(RolePanelHost);
     fixture.detectChanges();
     const host = fixture.componentInstance;
-    host.panel.selectRule('SELF');
+    host.panel().selectRule('SELF');
     host.requestTarget(6);
     fixture.detectChanges();
     expect(host.selectedRoleId).toBe(5);
-    expect(host.panel.discard.open()).toBe(true);
-    host.panel.discard.cancel();
+    expect(host.panel().discard.open()).toBe(true);
+    host.panel().discard.cancel();
     fixture.detectChanges();
     expect(host.selectedRoleId).toBe(5);
-    expect(host.panel.selectedRule()).toBe('SELF');
+    expect(host.panel().selectedRule()).toBe('SELF');
     expect(api.roleRule).toHaveBeenCalledTimes(1);
     host.requestTarget(6);
-    host.panel.discard.confirm();
+    host.panel().discard.confirm();
     fixture.detectChanges();
     expect(host.selectedRoleId).toBe(6);
-    expect(host.panel.selectedRule()).toBe('UNITS');
+    expect(host.panel().selectedRule()).toBe('UNITS');
   });
 
   it('marks a successful save clean before a failed refresh and does not resubmit it', () => {

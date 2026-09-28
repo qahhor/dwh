@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiPaginationComponent } from '../../../../shared/ui/ui-pagination.component';
@@ -356,10 +356,10 @@ export class ProjectCardsViewComponent {
   readonly statsLoadError = input(false);
   readonly statsLoaded = input(false);
 
-  @Output() viewTasks = new EventEmitter<Project>();
-  @Output() editProject = new EventEmitter<Project>();
-  @Output() manageMembers = new EventEmitter<Project>();
-  @Output() pageChange = new EventEmitter<number>();
+  readonly viewTasks = output<Project>();
+  readonly editProject = output<Project>();
+  readonly manageMembers = output<Project>();
+  readonly pageChange = output<number>();
 
   hasProjectStats(projectId: number): boolean {
     return (

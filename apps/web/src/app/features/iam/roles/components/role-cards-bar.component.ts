@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -331,10 +331,13 @@ export class RoleCardsBarComponent {
   readonly canUpdateRole = input(false);
   readonly canDeleteRole = input(false);
 
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() selectRole = new EventEmitter<Role>();
-  @Output() navigateToUsers = new EventEmitter<{ role: Role; event: MouseEvent }>();
-  @Output() openEdit = new EventEmitter<Role>();
-  @Output() openDelete = new EventEmitter<Role>();
-  @Output() openCreate = new EventEmitter<void>();
+  readonly searchQueryChange = output<string>();
+  readonly selectRole = output<Role>();
+  readonly navigateToUsers = output<{
+    role: Role;
+    event: MouseEvent;
+  }>();
+  readonly openEdit = output<Role>();
+  readonly openDelete = output<Role>();
+  readonly openCreate = output<void>();
 }

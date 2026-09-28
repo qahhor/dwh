@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { Component, Input, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -314,24 +314,24 @@ export class NavigationSettingsModalComponent {
   readonly formIcon = input('analytics');
   readonly popularIcons = input<string[]>([]);
 
+  readonly formTitleChange = output<string>();
+  readonly formCodeChange = output<string>();
+  readonly formTargetTypeChange = output<NavigationTargetType>();
+  readonly formSectionIdChange = output<string>();
+  readonly formSortOrderChange = output<number>();
+  readonly formUrlChange = output<string>();
+  readonly formIconChange = output<string>();
+  readonly formRequiredPermissionChange = output<string | null>();
+
+  readonly titleChange = output<void>();
+  readonly urlBlur = output<void>();
+  readonly closeModal = output<void>();
+  readonly saveItem = output<void>();
+
   @Input() isModalOpen = false;
   /** `form.action` pair the item is limited to; null shows it to everyone. */
   @Input() formRequiredPermission: string | null = null;
   @Input() permissionChoices: NavigationPermissionChoice[] = [];
-
-  @Output() formTitleChange = new EventEmitter<string>();
-  @Output() formCodeChange = new EventEmitter<string>();
-  @Output() formTargetTypeChange = new EventEmitter<NavigationTargetType>();
-  @Output() formSectionIdChange = new EventEmitter<string>();
-  @Output() formSortOrderChange = new EventEmitter<number>();
-  @Output() formUrlChange = new EventEmitter<string>();
-  @Output() formIconChange = new EventEmitter<string>();
-  @Output() formRequiredPermissionChange = new EventEmitter<string | null>();
-
-  @Output() titleChange = new EventEmitter<void>();
-  @Output() urlBlur = new EventEmitter<void>();
-  @Output() closeModal = new EventEmitter<void>();
-  @Output() saveItem = new EventEmitter<void>();
 
   private readonly targetTypeMemo = optionsMemo<SMTSelectOption<NavigationTargetType>[]>();
 

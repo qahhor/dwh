@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, inject, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ProjectStateFilter } from '../projects.models';
@@ -77,9 +77,9 @@ export class ProjectFilterBarComponent {
 
   readonly searchQuery = input('');
   readonly selectedState = input<ProjectStateFilter>('all');
-  @Output() searchChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() stateChange = new EventEmitter<ProjectStateFilter>();
+  readonly searchChange = output<string>();
+  readonly clearSearch = output<void>();
+  readonly stateChange = output<ProjectStateFilter>();
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<ProjectStateFilter>[]>();
 

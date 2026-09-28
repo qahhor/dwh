@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { Component, Input, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
@@ -430,26 +430,27 @@ export class ProjectModalsComponent {
   // Shared
   readonly isSubmitting = input(false);
 
+  readonly closeRecordView = output<void>();
+  readonly loadRecordView = output<string | null>();
+  readonly requestCloseCreate = output<void>();
+  readonly confirmDiscardCreate = output<void>();
+  readonly submitCreateProject = output<void>();
+  readonly requestCloseEdit = output<void>();
+  readonly confirmDiscardEdit = output<void>();
+  readonly submitEditProject = output<void>();
+  readonly retryEditLoad = output<void>();
+
+  // Discard helper
+  readonly cancelNavigationDiscard = output<'create' | 'edit'>();
+
   private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   // Record View
   @Input() routeRecordId: string | null = null;
-  @Output() closeRecordView = new EventEmitter<void>();
-  @Output() loadRecordView = new EventEmitter<string | null>();
   @Input() createSaveError: string | null = null;
   @Input() createForm: ProjectCreateForm = { name: '', description: '', attributes: {} };
-  @Output() requestCloseCreate = new EventEmitter<void>();
-  @Output() confirmDiscardCreate = new EventEmitter<void>();
-  @Output() submitCreateProject = new EventEmitter<void>();
   @Input() editSaveError: string | null = null;
   @Input() editForm: ProjectEditForm = { name: '', description: '', state: 'A', attributes: {} };
-  @Output() requestCloseEdit = new EventEmitter<void>();
-  @Output() confirmDiscardEdit = new EventEmitter<void>();
-  @Output() submitEditProject = new EventEmitter<void>();
-  @Output() retryEditLoad = new EventEmitter<void>();
-
-  // Discard helper
-  @Output() cancelNavigationDiscard = new EventEmitter<'create' | 'edit'>();
   @Input() projectCustomFields: CustomField[] = [];
 
   /** Project states for the edit form; translated again when the language changes. */

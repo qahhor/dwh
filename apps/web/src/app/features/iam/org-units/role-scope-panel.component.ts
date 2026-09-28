@@ -4,14 +4,13 @@ import {
   computed,
   DestroyRef,
   effect,
-  EventEmitter,
   HostListener,
   inject,
   OnChanges,
-  Output,
   signal,
   SimpleChanges,
   input,
+  output,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -48,6 +47,8 @@ export class RoleScopePanelComponent implements OnChanges {
 
   readonly roleId = input.required<number>();
 
+  readonly busyChange = output<boolean>();
+
   readonly selectedRule = signal<ScopeRule>('ALL');
 
   /** The rules as radio items, translated; each description says what the rule lets the role see. */
@@ -59,7 +60,6 @@ export class RoleScopePanelComponent implements OnChanges {
     })),
   );
 
-  @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private readRequest?: Subscription;
   private activeTarget: number | null = null;

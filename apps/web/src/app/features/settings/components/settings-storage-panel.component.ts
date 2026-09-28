@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { Component, Input, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -172,8 +172,9 @@ export class SettingsStoragePanelComponent {
   readonly canUpdateSystemSettings = input(false);
   readonly isSaving = input(false);
 
+  readonly save = output<void>();
+
   @Input() systemSettings: Record<string, string> = {};
-  @Output() save = new EventEmitter<void>();
 
   formatQuotaMb(mb: string | number | undefined): string {
     if (mb === undefined || mb === '') return '';

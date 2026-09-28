@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, computed, signal, input } from '@angular/core';
+import { Component, Input, computed, signal, input, output } from '@angular/core';
 
 import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -226,6 +226,8 @@ export class AnalyticsProjectsCardComponent {
   readonly loading = input(false);
   readonly error = input('');
 
+  readonly projectClick = output<number>();
+
   searchProjectQuery = signal('');
   private _projects = signal<ProjectDistribution[]>([]);
 
@@ -235,8 +237,6 @@ export class AnalyticsProjectsCardComponent {
     if (!query) return list;
     return list.filter((p) => p.projectName.toLowerCase().includes(query));
   });
-
-  @Output() projectClick = new EventEmitter<number>();
 
   @Input() set projects(value: ProjectDistribution[]) {
     this._projects.set(value || []);

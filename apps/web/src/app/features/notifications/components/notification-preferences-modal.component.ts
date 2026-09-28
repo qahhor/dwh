@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, OnInit, signal, input } from '@angular/core';
+import { Component, OnInit, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
@@ -168,8 +168,8 @@ export class NotificationPreferencesModalComponent implements OnInit {
   readonly initialPreferences = input<NotificationPrefItem[]>([]);
   readonly isSaving = input(false);
 
-  @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<NotificationPrefItem[]>();
+  readonly close = output<void>();
+  readonly save = output<NotificationPrefItem[]>();
 
   readonly eventRows: EventTypeRow[] = [
     { code: 'task_assigned', titleKey: 'notifications.pref_task_assigned' },

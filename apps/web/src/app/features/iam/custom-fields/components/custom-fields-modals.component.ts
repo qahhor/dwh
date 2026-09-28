@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, Output, input } from '@angular/core';
+import { Component, inject, Input, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
@@ -328,13 +328,13 @@ export class CustomFieldsModalsComponent {
   readonly editingField = input<CustomField | null>(null);
   readonly saving = input(false);
 
+  readonly closeModal = output<void>();
+  readonly saveField = output<void>();
+  readonly codeInput = output<Event>();
+
   @Input() showModal = false;
   @Input() formData!: CustomFieldFormData;
   @Input() formError = '';
-
-  @Output() closeModal = new EventEmitter<void>();
-  @Output() saveField = new EventEmitter<void>();
-  @Output() codeInput = new EventEmitter<Event>();
   private readonly entityMemo = optionsMemo<SMTSelectOption<string>[]>();
   private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
 

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, signal, inject, input } from '@angular/core';
+import { Component, signal, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -375,12 +375,25 @@ export class TaskDictionariesModalComponent {
   readonly taskTypes = input<TaskType[]>([]);
   readonly statuses = input<TaskStatus[]>([]);
 
-  @Output() close = new EventEmitter<void>();
-  @Output() createType = new EventEmitter<{ code: string; name: string; icon: string; color: string }>();
-  @Output() createStatus = new EventEmitter<{ name: string; color: string; isTerminal: boolean }>();
-  @Output() deleteItem = new EventEmitter<{ kind: 'type' | 'status'; id: number; name: string }>();
-  @Output() reorderTypes = new EventEmitter<TaskType[]>();
-  @Output() reorderStatuses = new EventEmitter<TaskStatus[]>();
+  readonly close = output<void>();
+  readonly createType = output<{
+    code: string;
+    name: string;
+    icon: string;
+    color: string;
+  }>();
+  readonly createStatus = output<{
+    name: string;
+    color: string;
+    isTerminal: boolean;
+  }>();
+  readonly deleteItem = output<{
+    kind: 'type' | 'status';
+    id: number;
+    name: string;
+  }>();
+  readonly reorderTypes = output<TaskType[]>();
+  readonly reorderStatuses = output<TaskStatus[]>();
 
   settingsTab: 'types' | 'statuses' = 'types';
   newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#2563eb' };

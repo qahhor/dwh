@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -305,6 +305,12 @@ export class AppSidebarNavSectionsComponent {
 
   readonly navSections = input<NavSection[]>([]);
 
-  @Output() toggleSection = new EventEmitter<{ id: string; event: MouseEvent }>();
-  @Output() toggleSubmenu = new EventEmitter<{ id: string; event: MouseEvent }>();
+  readonly toggleSection = output<{
+    id: string;
+    event: MouseEvent;
+  }>();
+  readonly toggleSubmenu = output<{
+    id: string;
+    event: MouseEvent;
+  }>();
 }

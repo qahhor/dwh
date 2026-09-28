@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges, input } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, input, output } from '@angular/core';
 
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -272,6 +272,9 @@ export class UiPaginationComponent implements OnChanges {
   readonly cursorItemsArePageLength = input<boolean>(false);
   readonly disabled = input<boolean>(false);
 
+  readonly pageChange = output<number>();
+  readonly pageSizeChange = output<number>();
+
   private static nextId = 0;
 
   @Input() totalItems: number = 0;
@@ -279,9 +282,6 @@ export class UiPaginationComponent implements OnChanges {
   @Input() pageSize: number = 10;
   @Input() cursorMode: boolean = false;
   @Input() hasNextPage: boolean = false;
-
-  @Output() pageChange = new EventEmitter<number>();
-  @Output() pageSizeChange = new EventEmitter<number>();
 
   totalPages: number = 1;
   startItem: number = 0;

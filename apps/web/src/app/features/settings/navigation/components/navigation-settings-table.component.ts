@@ -1,8 +1,6 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
@@ -10,6 +8,7 @@ import {
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -292,6 +291,13 @@ export class NavigationSettingsTableComponent {
   readonly isLoading = input(false);
   readonly searchQuery = input('');
 
+  readonly searchQueryChange = output<string>();
+  readonly clearSearch = output<void>();
+  readonly toggleItem = output<CustomNavigationItem>();
+  readonly previewItem = output<CustomNavigationItem>();
+  readonly editItem = output<CustomNavigationItem>();
+  readonly deleteItem = output<CustomNavigationItem>();
+
   private readonly iconCell = viewChild.required<TemplateRef<unknown>>('iconCell');
   private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
@@ -328,13 +334,6 @@ export class NavigationSettingsTableComponent {
       columnsOrder: ['icon', 'title', 'type', 'section', 'target', 'order', 'status', 'actions'],
     };
   });
-
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() toggleItem = new EventEmitter<CustomNavigationItem>();
-  @Output() previewItem = new EventEmitter<CustomNavigationItem>();
-  @Output() editItem = new EventEmitter<CustomNavigationItem>();
-  @Output() deleteItem = new EventEmitter<CustomNavigationItem>();
 
   readonly sortValues = {
     title: (item: CustomNavigationItem) => item.title,

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -217,12 +217,15 @@ export class TaskKanbanViewComponent {
   readonly isLoading = input(false);
   readonly listLoadError = input(false);
 
-  @Output() openTaskDetails = new EventEmitter<Task>();
-  @Output() taskStatusChange = new EventEmitter<{ task: Task; targetStatusId: number }>();
-  @Output() taskDragStart = new EventEmitter<Task>();
-  @Output() taskDragEnd = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() createTask = new EventEmitter<void>();
+  readonly openTaskDetails = output<Task>();
+  readonly taskStatusChange = output<{
+    task: Task;
+    targetStatusId: number;
+  }>();
+  readonly taskDragStart = output<Task>();
+  readonly taskDragEnd = output<void>();
+  readonly resetFilters = output<void>();
+  readonly createTask = output<void>();
 
   private draggedTask: Task | null = null;
 

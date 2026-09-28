@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, inject, input, output } from '@angular/core';
 import { CustomField } from '../../core/models/custom-field.models';
 import { I18nService } from '../../core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
@@ -47,11 +47,11 @@ export class UiCustomFieldsComponent {
 
   readonly fields = input<CustomField[]>([]);
 
+  readonly valuesChange = output<Record<string, unknown>>();
+
   readonly users = inject(LookupSources).activeUsers;
 
   @Input() values: Record<string, unknown> = {};
-
-  @Output() valuesChange = new EventEmitter<Record<string, unknown>>();
 
   private cache: { fields: CustomField[]; lang: string; definitions: SMTDynamicFieldDef[] } | null = null;
 

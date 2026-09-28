@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, TemplateRef, computed, inject, viewChild, input } from '@angular/core';
+import { Component, Input, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -427,6 +427,19 @@ export class SettingsLanguagesPanelComponent {
   readonly newLangName = input('');
   readonly newLangJson = input('');
 
+  readonly openLanguageEditor = output<string>();
+  readonly closeLanguageEditor = output<void>();
+  readonly languageSaved = output<void>();
+  readonly migrateLegacyLanguages = output<void>();
+  readonly openAddLangModal = output<void>();
+  readonly closeAddLangModal = output<void>();
+  readonly saveNewLanguage = output<void>();
+  readonly exportLangJson = output<string>();
+  readonly switchLanguage = output<string>();
+  readonly newLangCodeChange = output<string>();
+  readonly newLangNameChange = output<string>();
+  readonly newLangJsonChange = output<string>();
+
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
   private readonly coverageCell = viewChild.required<TemplateRef<unknown>>('coverageCell');
@@ -492,17 +505,4 @@ export class SettingsLanguagesPanelComponent {
   @Input() languages: LanguageInfo[] = [];
   @Input() currentLang = '';
   @Input() isAddLangModalOpen = false;
-
-  @Output() openLanguageEditor = new EventEmitter<string>();
-  @Output() closeLanguageEditor = new EventEmitter<void>();
-  @Output() languageSaved = new EventEmitter<void>();
-  @Output() migrateLegacyLanguages = new EventEmitter<void>();
-  @Output() openAddLangModal = new EventEmitter<void>();
-  @Output() closeAddLangModal = new EventEmitter<void>();
-  @Output() saveNewLanguage = new EventEmitter<void>();
-  @Output() exportLangJson = new EventEmitter<string>();
-  @Output() switchLanguage = new EventEmitter<string>();
-  @Output() newLangCodeChange = new EventEmitter<string>();
-  @Output() newLangNameChange = new EventEmitter<string>();
-  @Output() newLangJsonChange = new EventEmitter<string>();
 }

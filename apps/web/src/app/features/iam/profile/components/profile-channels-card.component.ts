@@ -1,8 +1,6 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
@@ -10,6 +8,7 @@ import {
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -478,6 +477,17 @@ export class ProfileChannelsCardComponent {
   readonly isConfirmingChannel = input(false);
   readonly canManageChannels = input(true);
 
+  readonly bindChannel = output<{
+    channel: string;
+    address: string;
+  }>();
+  readonly confirmChannel = output<{
+    verifyToken: string;
+    code: string;
+  }>();
+  /** Asks the page to unbind a channel; the page confirms it first. */
+  readonly unbindChannel = output<UserChannel>();
+
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('channelTypeCell');
   private readonly addressCell = viewChild.required<TemplateRef<unknown>>('channelAddressCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('channelCreatedCell');
@@ -512,11 +522,6 @@ export class ProfileChannelsCardComponent {
       { id: 'sms', label: this.i18n.translate('iam.kanal_sms') },
     ];
   });
-
-  @Output() bindChannel = new EventEmitter<{ channel: string; address: string }>();
-  @Output() confirmChannel = new EventEmitter<{ verifyToken: string; code: string }>();
-  /** Asks the page to unbind a channel; the page confirms it first. */
-  @Output() unbindChannel = new EventEmitter<UserChannel>();
 
   isBindModalOpen = false;
   isConfirmModalOpen = false;

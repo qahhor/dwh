@@ -1,4 +1,4 @@
-import { Component, DestroyRef, EventEmitter, Input, Output, signal, inject, input } from '@angular/core';
+import { Component, DestroyRef, Input, signal, inject, input, output } from '@angular/core';
 
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
@@ -209,13 +209,13 @@ export class UiFileUploadComponent {
   readonly canDelete = input(true);
   readonly multiple = input(true);
 
+  readonly fileAttached = output<TaskFile>();
+  readonly fileRemoved = output<TaskFile>();
+
   /** Files waiting, uploading or failed; a file leaves the queue once it is attached. */
   readonly queue = signal<QueuedUpload[]>([]);
 
   @Input() files: TaskFile[] = [];
-
-  @Output() fileAttached = new EventEmitter<TaskFile>();
-  @Output() fileRemoved = new EventEmitter<TaskFile>();
   private nextQueueId = 0;
   private current: Subscription | null = null;
 

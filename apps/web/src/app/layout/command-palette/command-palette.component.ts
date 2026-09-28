@@ -4,11 +4,11 @@ import {
   ElementRef,
   HostListener,
   OnDestroy,
-  ViewChild,
   effect,
   signal,
   computed,
   inject,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -152,6 +152,8 @@ export class CommandPaletteComponent implements OnDestroy {
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
+  private readonly searchInput = viewChild<ElementRef<HTMLInputElement>>('searchInput');
+
   readonly metadata = signal<SearchResult | null>(null);
   readonly retrySeconds = signal(0);
   readonly isLoading = signal<boolean>(false);
@@ -187,8 +189,6 @@ export class CommandPaletteComponent implements OnDestroy {
   private previouslyFocusedElement: HTMLElement | null = null;
   private wasOpen = false;
 
-  @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
-
   constructor(
     public paletteService: CommandPaletteService,
     private router: Router,
@@ -203,7 +203,7 @@ export class CommandPaletteComponent implements OnDestroy {
         this.previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         document.body.classList.add('palette-open');
         queueMicrotask(() => {
-          if (!this.destroyRef.destroyed && this.paletteService.isOpen()) this.searchInput?.nativeElement.focus();
+          if (!this.destroyRef.destroyed && this.paletteService.isOpen()) this.searchInput()?.nativeElement.focus();
         });
       } else if (!isOpen && this.wasOpen) {
         this.resetSearch();
@@ -274,7 +274,7 @@ export class CommandPaletteComponent implements OnDestroy {
       this.paletteService.close();
     } else if (
       this.paletteService.isOpen() &&
-      event.target === this.searchInput?.nativeElement &&
+      event.target === this.searchInput()?.nativeElement &&
       this.results().length > 0
     ) {
       if (event.key === 'ArrowDown') {
@@ -317,13 +317,13 @@ export class CommandPaletteComponent implements OnDestroy {
   clearQuery() {
     this.searchQuery = '';
     this.onSearchChange('');
-    this.searchInput?.nativeElement.focus();
+    this.searchInput()?.nativeElement.focus();
   }
 
   applySuggestion(suggestion: string) {
     this.searchQuery = suggestion;
     this.onSearchChange(suggestion);
-    this.searchInput?.nativeElement.focus();
+    this.searchInput()?.nativeElement.focus();
   }
 
   retrySearch() {
@@ -348,7 +348,7 @@ export class CommandPaletteComponent implements OnDestroy {
   selectRecent(query: string) {
     this.searchQuery = query;
     this.onSearchChange(query);
-    this.searchInput?.nativeElement.focus();
+    this.searchInput()?.nativeElement.focus();
   }
 
   clearRecentSearches() {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, input } from '@angular/core';
+import { Component, Input, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -532,21 +532,24 @@ export class TaskDetailModalComponent {
   readonly canUpdateTask = input(false);
   readonly canCommentTask = input(false);
 
+  readonly close = output<void>();
+  readonly retryTaskDetails = output<void>();
+  readonly openTaskDetails = output<Task>();
+  readonly openAddSubtask = output<Task>();
+  readonly openEditModal = output<Task>();
+  readonly statusChange = output<{
+    taskId: number;
+    statusId: number;
+  }>();
+  readonly fileAttached = output<TaskFile>();
+  readonly fileRemoved = output<TaskFile>();
+  readonly retryComments = output<void>();
+  readonly commentDraftChange = output<string>();
+  readonly submitComment = output<void>();
+
   readonly safeRecordId = safeNumericRecordId;
   @Input() taskAncestors: Task[] = [];
   @Input() taskSubtasks: Task[] = [];
-
-  @Output() close = new EventEmitter<void>();
-  @Output() retryTaskDetails = new EventEmitter<void>();
-  @Output() openTaskDetails = new EventEmitter<Task>();
-  @Output() openAddSubtask = new EventEmitter<Task>();
-  @Output() openEditModal = new EventEmitter<Task>();
-  @Output() statusChange = new EventEmitter<{ taskId: number; statusId: number }>();
-  @Output() fileAttached = new EventEmitter<TaskFile>();
-  @Output() fileRemoved = new EventEmitter<TaskFile>();
-  @Output() retryComments = new EventEmitter<void>();
-  @Output() commentDraftChange = new EventEmitter<string>();
-  @Output() submitComment = new EventEmitter<void>();
 
   private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
 

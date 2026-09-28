@@ -1,4 +1,4 @@
-import { Component, EventEmitter, HostListener, OnInit, Output, computed, signal, inject, input } from '@angular/core';
+import { Component, HostListener, OnInit, computed, signal, inject, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import {
@@ -208,6 +208,9 @@ export class LanguageEditorComponent implements OnInit {
 
   readonly languageCode = input.required<string>();
 
+  readonly closed = output<void>();
+  readonly saved = output<string>();
+
   readonly editor = signal<TranslationEditor | null>(null);
   readonly isLoading = signal(false);
   readonly isSaving = signal(false);
@@ -238,9 +241,6 @@ export class LanguageEditorComponent implements OnInit {
       );
     });
   });
-
-  @Output() readonly closed = new EventEmitter<void>();
-  @Output() readonly saved = new EventEmitter<string>();
 
   readonly canEdit: boolean;
 

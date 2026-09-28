@@ -5,9 +5,9 @@ import {
   signal,
   HostListener,
   ElementRef,
-  ViewChild,
   inject,
   DestroyRef,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -90,6 +90,9 @@ export class UsersComponent implements OnInit, OnDestroy {
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
+  private readonly filterTrigger = viewChild<ElementRef<HTMLButtonElement>>('filterTrigger');
+  private readonly userDetailModal = viewChild(UserDetailModalComponent);
+
   readonly routeRecordId = signal<string | null>(null);
   readonly recordLoading = signal(false);
   readonly recordError = signal(false);
@@ -141,9 +144,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly isLoading = this.userPager.loading;
 
   viewingUser: User | null = null;
-
-  @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
-  @ViewChild(UserDetailModalComponent) private userDetailModal?: UserDetailModalComponent;
 
   constructor(
     public permService: PermissionService,
@@ -233,7 +233,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.filterService.selected2fa = v;
   }
   get userOrgUnitsPanel(): UserOrgUnitsPanelComponent | undefined {
-    return this.userDetailModal?.orgUnitsPanel;
+    return this.userDetailModal()?.orgUnitsPanel();
   }
 
   @HostListener('document:click', ['$event'])
@@ -250,7 +250,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   onEscape() {
     if (!this.isFilterMenuOpen()) return;
     this.isFilterMenuOpen.set(false);
-    queueMicrotask(() => this.filterTrigger?.nativeElement.focus());
+    queueMicrotask(() => this.filterTrigger()?.nativeElement.focus());
   }
 
   ngOnInit() {

@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Output, ViewChild, inject, input } from '@angular/core';
+import { Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -400,14 +400,14 @@ export class AppHeaderComponent {
   readonly canReadNotifications = input(false);
   readonly canReadAnnouncements = input(false);
 
-  @ViewChild('mobileMenuBtn') mobileMenuBtn?: ElementRef<HTMLButtonElement>;
+  readonly toggleMobileMenu = output<void>();
+  readonly changeLanguage = output<LanguageChangeRequest>();
+  readonly dismissAnnouncement = output<void>();
+  readonly logout = output<void>();
 
-  @ViewChild(SMTSelectComponent) languagePicker?: SMTSelectComponent<string>;
+  readonly mobileMenuBtn = viewChild<ElementRef<HTMLButtonElement>>('mobileMenuBtn');
 
-  @Output() toggleMobileMenu = new EventEmitter<void>();
-  @Output() changeLanguage = new EventEmitter<LanguageChangeRequest>();
-  @Output() dismissAnnouncement = new EventEmitter<void>();
-  @Output() logout = new EventEmitter<void>();
+  readonly languagePicker = viewChild(SMTSelectComponent);
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 
@@ -423,7 +423,7 @@ export class AppHeaderComponent {
 
   /** A pick hands the shell the code and a way to show the current language again when it refuses or the save fails. */
   onLanguagePick(code: string | null): void {
-    const picker = this.languagePicker;
+    const picker = this.languagePicker();
     if (!code || !picker || this.restoringLanguage) return;
     this.changeLanguage.emit({
       code,

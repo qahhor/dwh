@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, input } from '@angular/core';
+import { Component, Input, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -239,8 +239,9 @@ export class SettingsGeneralPanelComponent {
     }>
   >([]);
 
+  readonly save = output<void>();
+
   @Input() systemSettings: Record<string, string> = {};
-  @Output() save = new EventEmitter<void>();
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 

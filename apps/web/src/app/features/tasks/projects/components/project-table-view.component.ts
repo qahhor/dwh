@@ -1,15 +1,14 @@
 import {
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
   Input,
-  Output,
   Signal,
   signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -366,6 +365,17 @@ export class ProjectTableViewComponent {
   readonly projectStats = input<Record<number, ProjectTaskStats>>({});
   readonly statsLoaded = input(false);
 
+  readonly viewTasks = output<ProjectListItem>();
+  readonly editProject = output<ProjectListItem>();
+  readonly manageMembers = output<ProjectListItem>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -422,11 +432,6 @@ export class ProjectTableViewComponent {
       columnsOrder: [...base.columnsOrder, 'actions'],
     };
   });
-
-  @Output() viewTasks = new EventEmitter<ProjectListItem>();
-  @Output() editProject = new EventEmitter<ProjectListItem>();
-  @Output() manageMembers = new EventEmitter<ProjectListItem>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   @Input() set canViewTasks(value: boolean) {
     this.viewTasksAllowed.set(value);

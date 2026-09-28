@@ -1,14 +1,4 @@
-import {
-  Component,
-  EventEmitter,
-  Output,
-  Signal,
-  TemplateRef,
-  computed,
-  inject,
-  input,
-  viewChild,
-} from '@angular/core';
+import { Component, Signal, TemplateRef, computed, inject, input, viewChild, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FileDetail } from '../files.models';
 import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
@@ -336,6 +326,18 @@ export class FilesTableComponent {
   readonly isDeleting = input<boolean>(false);
   readonly canDeleteFn = input<(file: FileDetail) => boolean>(() => false);
 
+  readonly download = output<FileDetail>();
+  /** An image asked to be shown in the preview. */
+  readonly preview = output<FileDetail>();
+  readonly delete = output<FileDetail>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
   private readonly sizeCell = viewChild.required<TemplateRef<unknown>>('sizeCell');
   private readonly mimeCell = viewChild.required<TemplateRef<unknown>>('mimeCell');
@@ -378,12 +380,6 @@ export class FilesTableComponent {
       columnsOrder: [...base.columnsOrder, 'actions'],
     };
   });
-
-  @Output() download = new EventEmitter<FileDetail>();
-  /** An image asked to be shown in the preview. */
-  @Output() preview = new EventEmitter<FileDetail>();
-  @Output() delete = new EventEmitter<FileDetail>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   kindOf(file: FileDetail): SMTFileKind {
     return fileKind(file.mimeType, file.originalName);

@@ -1,14 +1,4 @@
-import {
-  Component,
-  computed,
-  EventEmitter,
-  inject,
-  input,
-  Output,
-  Signal,
-  TemplateRef,
-  viewChild,
-} from '@angular/core';
+import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -329,6 +319,21 @@ export class UserTableViewComponent {
   readonly canUnblockUser = input(false);
   readonly canDeleteUser = input(false);
 
+  readonly viewUser = output<User>();
+  readonly editUser = output<User>();
+  readonly toggleState = output<{
+    user: User;
+    action: 'block' | 'unblock';
+  }>();
+  readonly deleteUser = output<User>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly identityCell = viewChild.required<TemplateRef<unknown>>('identityCell');
   private readonly contactsCell = viewChild.required<TemplateRef<unknown>>('contactsCell');
@@ -394,11 +399,6 @@ export class UserTableViewComponent {
     };
   });
 
-  @Output() viewUser = new EventEmitter<User>();
-  @Output() editUser = new EventEmitter<User>();
-  @Output() toggleState = new EventEmitter<{ user: User; action: 'block' | 'unblock' }>();
-  @Output() deleteUser = new EventEmitter<User>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
   private readonly actionMenus = new WeakMap<User, { key: string; items: SMTMenuItem<UserMenuAction>[] | null }>();
 

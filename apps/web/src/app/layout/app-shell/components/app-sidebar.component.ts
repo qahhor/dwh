@@ -1,4 +1,4 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, input } from '@angular/core';
+import { Component, ElementRef, Input, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -196,25 +196,38 @@ export class AppSidebarComponent {
   readonly isProfileFlyoutVisible = input(false);
   readonly currentUser = input<any>(null);
 
-  @ViewChild('sidebarElement') sidebarElement?: ElementRef<HTMLElement>;
-  @ViewChild('mobileDrawerClose') mobileDrawerClose?: ElementRef<HTMLButtonElement>;
-  @Input() getSectionBadge!: (section: NavSection) => number;
+  readonly toggleSidebar = output<void>();
+  readonly closeMobileMenu = output<boolean>();
+  readonly onNavClick = output<void>();
+  readonly toggleSection = output<{
+    id: string;
+    event: MouseEvent;
+  }>();
+  readonly toggleSubmenu = output<{
+    id: string;
+    event: MouseEvent;
+  }>();
+  readonly categoryClick = output<{
+    section: NavSection;
+    event: MouseEvent;
+  }>();
+  readonly categoryMouseEnter = output<{
+    section: NavSection;
+    event: MouseEvent;
+  }>();
+  readonly categoryMouseLeave = output<void>();
+  readonly profileMouseEnter = output<MouseEvent>();
+  readonly profileMouseLeave = output<void>();
+  readonly flyoutMouseEnter = output<void>();
+  readonly flyoutMouseLeave = output<void>();
+  readonly flyoutItemClick = output<void>();
+  readonly profileFlyoutMouseEnter = output<void>();
+  readonly profileFlyoutMouseLeave = output<void>();
+  readonly profileFlyoutClick = output<void>();
+  readonly logout = output<void>();
 
-  @Output() toggleSidebar = new EventEmitter<void>();
-  @Output() closeMobileMenu = new EventEmitter<boolean>();
-  @Output() onNavClick = new EventEmitter<void>();
-  @Output() toggleSection = new EventEmitter<{ id: string; event: MouseEvent }>();
-  @Output() toggleSubmenu = new EventEmitter<{ id: string; event: MouseEvent }>();
-  @Output() categoryClick = new EventEmitter<{ section: NavSection; event: MouseEvent }>();
-  @Output() categoryMouseEnter = new EventEmitter<{ section: NavSection; event: MouseEvent }>();
-  @Output() categoryMouseLeave = new EventEmitter<void>();
-  @Output() profileMouseEnter = new EventEmitter<MouseEvent>();
-  @Output() profileMouseLeave = new EventEmitter<void>();
-  @Output() flyoutMouseEnter = new EventEmitter<void>();
-  @Output() flyoutMouseLeave = new EventEmitter<void>();
-  @Output() flyoutItemClick = new EventEmitter<void>();
-  @Output() profileFlyoutMouseEnter = new EventEmitter<void>();
-  @Output() profileFlyoutMouseLeave = new EventEmitter<void>();
-  @Output() profileFlyoutClick = new EventEmitter<void>();
-  @Output() logout = new EventEmitter<void>();
+  readonly sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
+  readonly mobileDrawerClose = viewChild<ElementRef<HTMLButtonElement>>('mobileDrawerClose');
+
+  @Input() getSectionBadge!: (section: NavSection) => number;
 }

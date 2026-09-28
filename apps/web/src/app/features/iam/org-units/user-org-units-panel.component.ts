@@ -4,14 +4,13 @@ import {
   computed,
   DestroyRef,
   effect,
-  EventEmitter,
   HostListener,
   inject,
   OnChanges,
-  Output,
   signal,
   SimpleChanges,
   input,
+  output,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -52,6 +51,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   readonly userId = input.required<number>();
 
+  readonly busyChange = output<boolean>();
+
   readonly selectedOrgUnitIds = signal<readonly number[]>([]);
   readonly search = signal('');
 
@@ -59,7 +60,6 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
   readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
 
-  @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private treeRequest?: Subscription;
   private assignmentsRequest?: Subscription;

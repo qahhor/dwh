@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { Component, Input, inject, input, output } from '@angular/core';
 
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
@@ -251,9 +251,10 @@ export class SettingsSecurityPanelComponent {
   readonly canUpdateSystemSettings = input(false);
   readonly isSaving = input(false);
 
+  readonly save = output<void>();
+  readonly toggleRequire2fa = output<boolean>();
+
   @Input() systemSettings: Record<string, string> = {};
-  @Output() save = new EventEmitter<void>();
-  @Output() toggleRequire2fa = new EventEmitter<boolean>();
 
   readonly passwordPolicy = PASSWORD_POLICY;
 

@@ -8,7 +8,7 @@ import {
   inject,
   OnInit,
   signal,
-  ViewChild,
+  viewChild,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -48,6 +48,8 @@ export class OrgUnitsComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  readonly editor = viewChild(OrgUnitEditorComponent);
+
   readonly search = signal('');
 
   readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
@@ -59,7 +61,6 @@ export class OrgUnitsComponent implements OnInit {
   private detailRequest?: Subscription;
   private detailId: number | null = null;
   private viewEpoch = 0;
-  @ViewChild(OrgUnitEditorComponent) editor?: OrgUnitEditorComponent;
   units: OrgUnit[] = [];
   selected: OrgUnit | null = null;
   editorInitial: OrgUnit | OrgUnitCreate | null = null;
@@ -77,7 +78,7 @@ export class OrgUnitsComponent implements OnInit {
   private readonly treeRowCache = new OrgUnitTreeRows();
   readonly searchText = orgUnitSearchText((key) => this.i18n.translate(key));
   readonly discard = new OrgUnitDraft(
-    () => this.editorOpen && !!this.editor?.dirty,
+    () => this.editorOpen && !!this.editor()?.dirty,
     () => this.pending,
     () => this.clearEditor(),
   );
@@ -304,7 +305,7 @@ export class OrgUnitsComponent implements OnInit {
   }
   @HostListener('window:beforeunload', ['$event'])
   beforeUnload(event: BeforeUnloadEvent): void {
-    if (this.pending || (this.editorOpen && this.editor?.dirty)) {
+    if (this.pending || (this.editorOpen && this.editor()?.dirty)) {
       event.preventDefault();
       event.returnValue = '';
     }

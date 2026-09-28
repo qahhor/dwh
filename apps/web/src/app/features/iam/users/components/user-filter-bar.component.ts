@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, inject, input } from '@angular/core';
+import { Component, Input, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -416,22 +416,22 @@ export class UserFilterBarComponent {
   readonly hasAnyActiveFilters = input(false);
   readonly selectedRoleName = input('');
 
+  readonly searchQueryChange = output<string>();
+  readonly searchInput = output<void>();
+  readonly clearSearch = output<void>();
+  readonly stateFilterChange = output<string>();
+  readonly toggleFilterMenu = output<MouseEvent>();
+  readonly resetExtraFilters = output<void>();
+  readonly roleFilterChange = output<number | null>();
+  readonly twoFactorFilterChange = output<boolean | null>();
+  readonly refresh = output<void>();
+  readonly clearStateFilter = output<void>();
+  readonly clearRoleFilter = output<void>();
+  readonly clear2faFilter = output<void>();
+  readonly resetAllFilters = output<void>();
+
   @Input() selectedState = '';
   @Input() selected2fa: boolean | null = null;
-
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() searchInput = new EventEmitter<void>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() stateFilterChange = new EventEmitter<string>();
-  @Output() toggleFilterMenu = new EventEmitter<MouseEvent>();
-  @Output() resetExtraFilters = new EventEmitter<void>();
-  @Output() roleFilterChange = new EventEmitter<number | null>();
-  @Output() twoFactorFilterChange = new EventEmitter<boolean | null>();
-  @Output() refresh = new EventEmitter<void>();
-  @Output() clearStateFilter = new EventEmitter<void>();
-  @Output() clearRoleFilter = new EventEmitter<void>();
-  @Output() clear2faFilter = new EventEmitter<void>();
-  @Output() resetAllFilters = new EventEmitter<void>();
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<string>[]>();
   private readonly roleMemo = optionsMemo<SMTSelectOption<number>[]>();

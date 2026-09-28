@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, Output, input } from '@angular/core';
+import { Component, inject, Input, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -319,22 +319,22 @@ export class RoleModalsComponent {
   readonly isSubmittingRole = input(false);
   readonly isSaving = input(false);
 
+  readonly closeCreate = output<void>();
+  readonly submitCreate = output<void>();
+
+  readonly closeEdit = output<void>();
+  readonly submitEdit = output<void>();
+
+  readonly closeDelete = output<void>();
+  readonly confirmDelete = output<void>();
+
+  readonly closeDiscard = output<void>();
+  readonly confirmDiscardAndSwitch = output<void>();
+  readonly saveAndSwitch = output<void>();
+
   private readonly stateMemo = optionsMemo<SMTSelectOption<string>[]>();
   @Input() newRoleForm = { name: '', orderNo: 0 };
   @Input() editRoleForm = { name: '', state: 'A', orderNo: 0 };
-
-  @Output() closeCreate = new EventEmitter<void>();
-  @Output() submitCreate = new EventEmitter<void>();
-
-  @Output() closeEdit = new EventEmitter<void>();
-  @Output() submitEdit = new EventEmitter<void>();
-
-  @Output() closeDelete = new EventEmitter<void>();
-  @Output() confirmDelete = new EventEmitter<void>();
-
-  @Output() closeDiscard = new EventEmitter<void>();
-  @Output() confirmDiscardAndSwitch = new EventEmitter<void>();
-  @Output() saveAndSwitch = new EventEmitter<void>();
 
   stateOptions(): SMTSelectOption<string>[] {
     return this.stateMemo([this.i18n.currentLang()], () => [

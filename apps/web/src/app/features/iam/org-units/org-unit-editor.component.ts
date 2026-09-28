@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, OnInit, Output, input } from '@angular/core';
+import { Component, inject, Input, OnInit, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
@@ -44,11 +44,14 @@ export class OrgUnitEditorComponent implements OnInit {
   private readonly i18n = inject(I18nService);
 
   readonly initial = input.required<OrgUnit | OrgUnitCreate>();
+
   readonly units = input<OrgUnit[]>([]);
   readonly pending = input(false);
+
+  readonly save = output<OrgUnitSubmission>();
+  readonly cancel = output<void>();
+
   @Input() error: ProblemDetail | null = null;
-  @Output() save = new EventEmitter<OrgUnitSubmission>();
-  @Output() cancel = new EventEmitter<void>();
   draft: OrgUnitCreate & { state: 'A' | 'P' } = {
     parentId: null,
     code: '',

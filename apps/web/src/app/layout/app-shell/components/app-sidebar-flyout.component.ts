@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -322,11 +322,11 @@ export class AppSidebarFlyoutComponent {
   readonly isProfileFlyoutVisible = input(false);
   readonly currentUser = input<any>(null);
 
-  @Output() flyoutMouseEnter = new EventEmitter<void>();
-  @Output() flyoutMouseLeave = new EventEmitter<void>();
-  @Output() flyoutItemClick = new EventEmitter<void>();
-  @Output() profileFlyoutMouseEnter = new EventEmitter<void>();
-  @Output() profileFlyoutMouseLeave = new EventEmitter<void>();
-  @Output() profileFlyoutClick = new EventEmitter<void>();
-  @Output() logout = new EventEmitter<void>();
+  readonly flyoutMouseEnter = output<void>();
+  readonly flyoutMouseLeave = output<void>();
+  readonly flyoutItemClick = output<void>();
+  readonly profileFlyoutMouseEnter = output<void>();
+  readonly profileFlyoutMouseLeave = output<void>();
+  readonly profileFlyoutClick = output<void>();
+  readonly logout = output<void>();
 }

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Component, ViewChild } from '@angular/core';
+import { Component, viewChild } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -51,9 +51,9 @@ const units: OrgUnit[] = [
 })
 class UserPanelHost {
   selectedUserId = 42;
-  @ViewChild(UserOrgUnitsPanelComponent) panel!: UserOrgUnitsPanelComponent;
+  readonly panel = viewChild.required(UserOrgUnitsPanelComponent);
   requestTarget(userId: number): void {
-    const decision = this.panel.canLeave();
+    const decision = this.panel().canLeave();
     if (typeof decision === 'boolean') {
       if (decision) this.selectedUserId = userId;
     } else
@@ -432,21 +432,21 @@ describe('UserOrgUnitsPanelComponent', () => {
     const fixture = TestBed.createComponent(UserPanelHost);
     fixture.detectChanges();
     const host = fixture.componentInstance;
-    host.panel.toggleAssignment(units[1]);
+    host.panel().toggleAssignment(units[1]);
     host.requestTarget(43);
     fixture.detectChanges();
     expect(host.selectedUserId).toBe(42);
-    expect(host.panel.discard.open()).toBe(true);
-    host.panel.discard.cancel();
+    expect(host.panel().discard.open()).toBe(true);
+    host.panel().discard.cancel();
     fixture.detectChanges();
     expect(host.selectedUserId).toBe(42);
-    expect(host.panel.selectedOrgUnitIds()).toEqual([7, 8]);
+    expect(host.panel().selectedOrgUnitIds()).toEqual([7, 8]);
     expect(api.assignments).toHaveBeenCalledTimes(1);
     host.requestTarget(43);
-    host.panel.discard.confirm();
+    host.panel().discard.confirm();
     fixture.detectChanges();
     expect(host.selectedUserId).toBe(43);
-    expect(host.panel.selectedOrgUnitIds()).toEqual([9]);
+    expect(host.panel().selectedOrgUnitIds()).toEqual([9]);
   });
 
   it('marks a completed save clean before isolated effective-scope refresh failure', () => {

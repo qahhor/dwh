@@ -5,11 +5,11 @@ import {
   ElementRef,
   HostListener,
   OnDestroy,
-  ViewChild,
   computed,
   effect,
   signal,
   inject,
+  viewChild,
 } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -63,6 +63,10 @@ export class AppShellComponent implements OnDestroy {
 
   private readonly flyout = inject(AppShellFlyoutService);
 
+  readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
+  readonly appHeader = viewChild(AppHeaderComponent);
+  readonly appSidebar = viewChild(AppSidebarComponent);
+
   readonly isCollapsed = signal<boolean>(loadCollapsedState());
 
   readonly isMobile = signal<boolean>(false);
@@ -103,10 +107,6 @@ export class AppShellComponent implements OnDestroy {
       unreadCount: () => this.notifService.unreadCount(),
     }),
   );
-
-  @ViewChild('mainContent') mainContent?: ElementRef<HTMLElement>;
-  @ViewChild(AppHeaderComponent) appHeader?: AppHeaderComponent;
-  @ViewChild(AppSidebarComponent) appSidebar?: AppSidebarComponent;
 
   readonly isSectionActiveFn = (section: NavSection) => this.isSectionActive(section);
   readonly isRouteActiveFn = (route: string, exact: boolean = false) => this.isRouteActive(route, exact);
@@ -186,9 +186,9 @@ export class AppShellComponent implements OnDestroy {
             if (this.isMobileMenuOpen()) {
               this.isMobileMenuOpen.set(false);
             }
-            this.mainContent?.nativeElement?.focus();
+            this.mainContent()?.nativeElement?.focus();
             setTimeout(() => {
-              this.mainContent?.nativeElement?.focus();
+              this.mainContent()?.nativeElement?.focus();
             }, 0);
           }
         });
@@ -224,13 +224,13 @@ export class AppShellComponent implements OnDestroy {
   }
 
   get mobileMenuBtn(): ElementRef<HTMLButtonElement> | undefined {
-    return this.appHeader?.mobileMenuBtn;
+    return this.appHeader()?.mobileMenuBtn();
   }
   get sidebarElement(): ElementRef<HTMLElement> | undefined {
-    return this.appSidebar?.sidebarElement;
+    return this.appSidebar()?.sidebarElement();
   }
   get mobileDrawerClose(): ElementRef<HTMLButtonElement> | undefined {
-    return this.appSidebar?.mobileDrawerClose;
+    return this.appSidebar()?.mobileDrawerClose();
   }
 
   @HostListener('keydown', ['$event'])
@@ -268,7 +268,7 @@ export class AppShellComponent implements OnDestroy {
 
   skipToContent(event: MouseEvent) {
     event.preventDefault();
-    this.mainContent?.nativeElement?.focus();
+    this.mainContent()?.nativeElement?.focus();
   }
 
   hasVisibleItems(section: NavSection): boolean {

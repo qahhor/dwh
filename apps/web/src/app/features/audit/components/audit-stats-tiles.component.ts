@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -174,5 +174,5 @@ export class AuditStatsTilesComponent {
   readonly stats = input<AuditStats | null>(null);
   readonly statsError = input(false);
 
-  @Output() retryStats = new EventEmitter<void>();
+  readonly retryStats = output<void>();
 }

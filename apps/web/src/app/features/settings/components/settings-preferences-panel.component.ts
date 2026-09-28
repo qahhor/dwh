@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, inject, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
@@ -189,10 +189,10 @@ export class SettingsPreferencesPanelComponent {
   >([]);
   readonly userThemePreference = input('');
 
-  @Output() save = new EventEmitter<void>();
-  @Output() changeLanguage = new EventEmitter<string>();
-  @Output() themeChange = new EventEmitter<string>();
-  @Output() toggleSound = new EventEmitter<boolean>();
+  readonly save = output<void>();
+  readonly changeLanguage = output<string>();
+  readonly themeChange = output<string>();
+  readonly toggleSound = output<boolean>();
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 

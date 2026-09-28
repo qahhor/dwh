@@ -1,4 +1,4 @@
-import { Component, inject, EventEmitter, Input, Output, input } from '@angular/core';
+import { Component, inject, Input, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -381,18 +381,18 @@ export class TaskEditModalComponent {
   readonly taskTypes = input<TaskType[]>([]);
   readonly projects = input<Project[]>([]);
 
+  readonly close = output<void>();
+  readonly submit = output<void>();
+  readonly retryEditLoad = output<void>();
+  readonly cancelDiscard = output<void>();
+  readonly confirmDiscard = output<void>();
+
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
   /** A task cannot be its own parent. */
   readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask()?.id;
   @Input() editForm: any = {};
   @Input() taskCustomFields: CustomField[] = [];
-
-  @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<void>();
-  @Output() retryEditLoad = new EventEmitter<void>();
-  @Output() cancelDiscard = new EventEmitter<void>();
-  @Output() confirmDiscard = new EventEmitter<void>();
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {

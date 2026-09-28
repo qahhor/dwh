@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, inject, signal, input } from '@angular/core';
+import { Component, inject, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -124,10 +124,10 @@ export class LoginResetModalComponent {
 
   readonly isOpen = input(false);
 
+  readonly close = output<void>();
+
   readonly resetError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
-
-  @Output() close = new EventEmitter<void>();
 
   resetEmail = '';
 

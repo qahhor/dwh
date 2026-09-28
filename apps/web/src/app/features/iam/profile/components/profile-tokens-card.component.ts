@@ -1,8 +1,6 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
@@ -10,6 +8,7 @@ import {
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -218,6 +217,15 @@ export class ProfileTokensCardComponent {
   readonly createdTokenSecret = input('');
   readonly copiedSecret = input(false);
 
+  readonly openCreateTokenModal = output<void>();
+  readonly closeCreateTokenModal = output<void>();
+  readonly createTokenSubmit = output<void>();
+  readonly nameChange = output<string>();
+  readonly expirationChange = output<string>();
+  readonly closeSecretModal = output<void>();
+  readonly copySecret = output<void>();
+  readonly requestRevoke = output<ApiToken>();
+
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('tokenNameCell');
   private readonly prefixCell = viewChild.required<TemplateRef<unknown>>('tokenPrefixCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('tokenCreatedCell');
@@ -255,15 +263,6 @@ export class ProfileTokensCardComponent {
     created: (t: ApiToken) => new Date(t.createdAt),
     expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null),
   };
-
-  @Output() openCreateTokenModal = new EventEmitter<void>();
-  @Output() closeCreateTokenModal = new EventEmitter<void>();
-  @Output() createTokenSubmit = new EventEmitter<void>();
-  @Output() nameChange = new EventEmitter<string>();
-  @Output() expirationChange = new EventEmitter<string>();
-  @Output() closeSecretModal = new EventEmitter<void>();
-  @Output() copySecret = new EventEmitter<void>();
-  @Output() requestRevoke = new EventEmitter<ApiToken>();
 
   @Input() set tokens(tokens: ApiToken[]) {
     this.rows.set(tokens ?? []);

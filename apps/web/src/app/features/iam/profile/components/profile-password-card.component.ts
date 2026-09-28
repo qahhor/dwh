@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output, input } from '@angular/core';
+import { Component, Input, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -428,8 +428,9 @@ export class ProfilePasswordCardComponent {
   readonly hasMixedCase = input(false);
   readonly passwordsMatch = input(false);
 
+  readonly submitPassword = output<Event>();
+
   @Input() passwordForm!: PasswordForm;
-  @Output() submitPassword = new EventEmitter<Event>();
 
   readonly passwordPolicy = PASSWORD_POLICY;
   readonly fitsPolicy = fitsPasswordPolicy;

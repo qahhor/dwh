@@ -1,15 +1,14 @@
 import {
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
   Input,
-  Output,
   Signal,
   signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -213,6 +212,23 @@ export class AuditSecurityTableComponent {
   readonly secIpFilter = input('');
   readonly securityUserFilter = input('');
 
+  readonly secEventTypeFilterChange = output<string>();
+  readonly secIpFilterChange = output<string>();
+  readonly securityUserFilterChange = output<string>();
+  readonly securityFromFilterChange = output<string>();
+  readonly securityToFilterChange = output<string>();
+
+  readonly applyFilters = output<void>();
+  readonly resetFilters = output<void>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+  readonly selectEvent = output<SecurityEventRecord>();
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly eventCell = viewChild.required<TemplateRef<unknown>>('eventCell');
@@ -274,17 +290,6 @@ export class AuditSecurityTableComponent {
   });
 
   private readonly eventTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
-
-  @Output() secEventTypeFilterChange = new EventEmitter<string>();
-  @Output() secIpFilterChange = new EventEmitter<string>();
-  @Output() securityUserFilterChange = new EventEmitter<string>();
-  @Output() securityFromFilterChange = new EventEmitter<string>();
-  @Output() securityToFilterChange = new EventEmitter<string>();
-
-  @Output() applyFilters = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
-  @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
 
   eventTypeOptions(): SMTSelectOption<string>[] {
     return this.eventTypeMemo([this.i18n.currentLang()], () => [

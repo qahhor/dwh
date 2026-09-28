@@ -1,8 +1,6 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
@@ -10,6 +8,7 @@ import {
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -333,6 +332,10 @@ export class ProfileSessionsCardComponent {
   readonly isLoadingSessions = input(false);
   readonly isTerminatingSession = input(false);
 
+  readonly loadSessions = output<void>();
+  readonly terminateSession = output<UserSession>();
+  readonly terminateOtherSessions = output<void>();
+
   private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
   private readonly deviceCell = viewChild.required<TemplateRef<unknown>>('deviceCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
@@ -359,10 +362,6 @@ export class ProfileSessionsCardComponent {
       columnsOrder: ['ip', 'device', 'created', 'seen', 'action'],
     };
   });
-
-  @Output() loadSessions = new EventEmitter<void>();
-  @Output() terminateSession = new EventEmitter<UserSession>();
-  @Output() terminateOtherSessions = new EventEmitter<void>();
 
   readonly sortValues = {
     ip: (s: UserSession) => s.ip,

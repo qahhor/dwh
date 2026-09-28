@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject, ViewChild } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, viewChild } from '@angular/core';
 
 import { AuthService } from '../../../core/services/auth.service';
 import { ApiService } from '../../../core/services/api.service';
@@ -187,6 +187,8 @@ export class ProfileComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
+  readonly channelsCard = viewChild<ProfileChannelsCardComponent>('channelsCard');
+
   readonly sessions = signal<UserSession[]>([]);
   readonly tokens = signal<ApiToken[]>([]);
   readonly channels = signal<UserChannel[]>([]);
@@ -205,8 +207,6 @@ export class ProfileComponent implements OnInit {
   readonly isChangingPassword = signal<boolean>(false);
 
   readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
-
-  @ViewChild('channelsCard') channelsCard?: ProfileChannelsCardComponent;
 
   isPasswordSubmitted = false;
   isTokenSubmitted = false;
@@ -309,7 +309,7 @@ export class ProfileComponent implements OnInit {
       next: (res) => {
         this.isBindingChannel.set(false);
         this.toast.info(this.uiI18n.translate('iam.kod_podtverzhdeniya_otpravlen', { address: event.address }));
-        this.channelsCard?.openConfirmModal(res.verifyToken, event.address);
+        this.channelsCard()?.openConfirmModal(res.verifyToken, event.address);
         this.loadChannels();
       },
       error: (err: any) => {
@@ -325,7 +325,7 @@ export class ProfileComponent implements OnInit {
       next: () => {
         this.isConfirmingChannel.set(false);
         this.toast.success(this.uiI18n.translate('iam.kanal_uspeshno_privyazan'));
-        this.channelsCard?.closeConfirmModal();
+        this.channelsCard()?.closeConfirmModal();
         this.loadChannels();
       },
       error: (err: any) => {
@@ -337,7 +337,8 @@ export class ProfileComponent implements OnInit {
 
   onUnbindChannel(channel: UserChannel) {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
-    const label = this.channelsCard ? this.channelsCard.channelLabel(channel.channel) : channel.channel;
+    const channelsCard = this.channelsCard();
+    const label = channelsCard ? channelsCard.channelLabel(channel.channel) : channel.channel;
     this.askThenRun({
       title: t('iam.otvyazat_kanal'),
       message: `${t('iam.vy_uvereny_chto_hotite_otvyazat_kanal', { channel: label, address: channel.address })}\n${t('iam.otvyazat_kanal_preduprezhdenie')}`,

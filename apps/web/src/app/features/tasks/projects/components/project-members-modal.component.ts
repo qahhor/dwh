@@ -1,8 +1,6 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
@@ -10,6 +8,7 @@ import {
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
@@ -445,6 +444,19 @@ export class ProjectMembersModalComponent {
   /** The member whose removal is running, so only that row's button shows it. */
   readonly removingUserId = input<number | null>(null);
 
+  readonly close = output<void>();
+  readonly addMember = output<{
+    projectId: number;
+    userId: number;
+    accessKind: string;
+  }>();
+  /** Asks the page to remove a member; the page confirms it first. */
+  readonly removeMember = output<{
+    projectId: number;
+    userId: number;
+    userName: string;
+  }>();
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('memberUserCell');
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
@@ -481,11 +493,6 @@ export class ProjectMembersModalComponent {
     email: (m: ProjectMember) => m.userEmail,
     access: (m: ProjectMember) => this.accessLabel(m.accessKind),
   };
-
-  @Output() close = new EventEmitter<void>();
-  @Output() addMember = new EventEmitter<{ projectId: number; userId: number; accessKind: string }>();
-  /** Asks the page to remove a member; the page confirms it first. */
-  @Output() removeMember = new EventEmitter<{ projectId: number; userId: number; userName: string }>();
 
   userSearchQuery = '';
   foundUsers: User[] = [];

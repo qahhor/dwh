@@ -1,8 +1,6 @@
 import {
   Component,
-  EventEmitter,
   Input,
-  Output,
   inject,
   Signal,
   TemplateRef,
@@ -10,6 +8,7 @@ import {
   signal,
   viewChild,
   input,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
@@ -361,6 +360,12 @@ export class CustomFieldsTableComponent {
 
   readonly isLoading = input(false);
 
+  readonly copyCode = output<string>();
+  readonly editField = output<CustomField>();
+  readonly deleteField = output<CustomField>();
+  readonly clearSearch = output<void>();
+  readonly createField = output<void>();
+
   private readonly orderCell = viewChild.required<TemplateRef<unknown>>('orderCell');
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -408,12 +413,6 @@ export class CustomFieldsTableComponent {
   });
 
   @Input() searchQuery = '';
-
-  @Output() copyCode = new EventEmitter<string>();
-  @Output() editField = new EventEmitter<CustomField>();
-  @Output() deleteField = new EventEmitter<CustomField>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() createField = new EventEmitter<void>();
 
   /** Every field is loaded, so a header click (by keyboard too) sorts the whole list. */
   readonly sortValues = {

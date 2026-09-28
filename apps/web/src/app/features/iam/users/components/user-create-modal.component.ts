@@ -1,4 +1,4 @@
-import { Component, inject, EventEmitter, Input, Output, input } from '@angular/core';
+import { Component, inject, Input, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -476,6 +476,11 @@ export class UserCreateModalComponent {
   readonly hasDigitsOrSymbols = input(false);
   readonly doesNotContainLogin = input(false);
 
+  readonly close = output<void>();
+  readonly submit = output<void>();
+  readonly generatePassword = output<void>();
+  readonly copyPassword = output<void>();
+
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
   readonly timezoneOptions = TIMEZONE_OPTIONS;
@@ -485,11 +490,6 @@ export class UserCreateModalComponent {
   private roleOptionsCache: { roles: Role[]; lang: string; options: SMTTagOption<number>[] } | null = null;
   @Input() createForm: any = {};
   @Input() customFields: CustomField[] = [];
-
-  @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<void>();
-  @Output() generatePassword = new EventEmitter<void>();
-  @Output() copyPassword = new EventEmitter<void>();
 
   /** The languages as options, labelled as they are named in the data. */
   languageOptions(): SMTSelectOption<string>[] {

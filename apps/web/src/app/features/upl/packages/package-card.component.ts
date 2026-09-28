@@ -1,17 +1,16 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  EventEmitter,
   Signal,
   TemplateRef,
   computed,
   viewChild,
   OnChanges,
-  Output,
   SimpleChanges,
   inject,
   signal,
   input,
+  output,
 } from '@angular/core';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -304,6 +303,10 @@ export class PackageCardComponent implements OnChanges {
 
   readonly canApply = input(false);
 
+  readonly back = output<void>();
+  readonly refresh = output<void>();
+  readonly applied = output<UplPackageItem>();
+
   private readonly errorValueCell = viewChild.required<TemplateRef<unknown>>('errorValueCell');
   private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
 
@@ -342,10 +345,6 @@ export class PackageCardComponent implements OnChanges {
       columnsOrder: ['sheet', 'row', 'column', 'value', 'what'],
     };
   });
-
-  @Output() back = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
-  @Output() applied = new EventEmitter<UplPackageItem>();
 
   /** The stored errors are all on screen, so a header click sorts them all: by sheet, row, column or reason. */
   readonly errorSortValues = {

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, inject, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
@@ -83,9 +83,9 @@ export class CustomFieldsToolbarComponent {
   readonly searchQuery = input('');
   readonly entityCounts = input<Record<string, number>>({});
 
-  @Output() entityChange = new EventEmitter<string>();
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
+  readonly entityChange = output<string>();
+  readonly searchQueryChange = output<string>();
+  readonly clearSearch = output<void>();
 
   private readonly entityMemo = optionsMemo<SMTRadioOption<string>[]>();
 

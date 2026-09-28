@@ -1,15 +1,14 @@
 import {
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
   Input,
-  Output,
   Signal,
   signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -439,6 +438,24 @@ export class AuditLogsTableComponent {
   readonly rowPkFilter = input('');
   readonly auditUserFilter = input('');
 
+  readonly tableFilterChange = output<string>();
+  readonly eventFilterChange = output<string>();
+  readonly rowPkFilterChange = output<string>();
+  readonly auditUserFilterChange = output<string>();
+  readonly auditFromFilterChange = output<string>();
+  readonly auditToFilterChange = output<string>();
+
+  readonly applyFilters = output<void>();
+  readonly resetFilters = output<void>();
+  readonly selectRecord = output<AuditRecord>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly tableCell = viewChild.required<TemplateRef<unknown>>('tableCell');
@@ -502,18 +519,6 @@ export class AuditLogsTableComponent {
       columnsOrder: [...base.columnsOrder, 'diff'],
     };
   });
-
-  @Output() tableFilterChange = new EventEmitter<string>();
-  @Output() eventFilterChange = new EventEmitter<string>();
-  @Output() rowPkFilterChange = new EventEmitter<string>();
-  @Output() auditUserFilterChange = new EventEmitter<string>();
-  @Output() auditFromFilterChange = new EventEmitter<string>();
-  @Output() auditToFilterChange = new EventEmitter<string>();
-
-  @Output() applyFilters = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() selectRecord = new EventEmitter<AuditRecord>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   private readonly tableOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
 

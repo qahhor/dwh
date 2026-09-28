@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef, inject, input } from '@angular/core';
+import { Component, Input, signal, ElementRef, inject, input, output, viewChild } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
@@ -378,12 +378,13 @@ export class UiMarkdownEditorComponent {
   readonly rows = input(4);
   readonly ariaLabel = input('');
 
+  readonly valueChange = output<string>();
+
+  readonly textareaRef = viewChild<ElementRef<HTMLTextAreaElement>>('textareaRef');
+
   private static nextId = 0;
 
   @Input() value = '';
-  @Output() valueChange = new EventEmitter<string>();
-
-  @ViewChild('textareaRef') textareaRef?: ElementRef<HTMLTextAreaElement>;
 
   mode: 'edit' | 'preview' = 'edit';
   isFocused = false;
@@ -412,7 +413,7 @@ export class UiMarkdownEditorComponent {
   }
 
   insertFormat(type: string) {
-    const el = this.textareaRef?.nativeElement;
+    const el = this.textareaRef()?.nativeElement;
     if (!el) {
       if (type === 'bold')
         this.onTextChange((this.value || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));

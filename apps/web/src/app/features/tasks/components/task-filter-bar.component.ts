@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, inject, input } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { Project, TaskStatus } from '../../../core/models/task.models';
@@ -186,14 +186,14 @@ export class TaskFilterBarComponent {
   readonly selectedPriority = input('');
   readonly hasActiveFilters = input(false);
 
-  @Output() activePresetChange = new EventEmitter<TaskPreset>();
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() searchApply = new EventEmitter<void>();
-  @Output() searchClear = new EventEmitter<void>();
-  @Output() statusFilterModeChange = new EventEmitter<'active' | 'all' | number>();
-  @Output() selectedProjectIdChange = new EventEmitter<number | null>();
-  @Output() selectedPriorityChange = new EventEmitter<string>();
-  @Output() resetFilters = new EventEmitter<void>();
+  readonly activePresetChange = output<TaskPreset>();
+  readonly searchQueryChange = output<string>();
+  readonly searchApply = output<void>();
+  readonly searchClear = output<void>();
+  readonly statusFilterModeChange = output<'active' | 'all' | number>();
+  readonly selectedProjectIdChange = output<number | null>();
+  readonly selectedPriorityChange = output<string>();
+  readonly resetFilters = output<void>();
 
   private readonly presetMemo = optionsMemo<SMTRadioOption<TaskPreset>[]>();
 

@@ -1,4 +1,4 @@
-import { Component, computed, EventEmitter, inject, Output, TemplateRef, viewChild, input } from '@angular/core';
+import { Component, computed, inject, TemplateRef, viewChild, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -340,6 +340,9 @@ export class AuditModalsComponent {
   readonly selectedAudit = input<AuditRecord | null>(null);
   readonly selectedSecEvent = input<SecurityEventRecord | null>(null);
 
+  readonly closeAuditModal = output<void>();
+  readonly closeSecModal = output<void>();
+
   private readonly fieldCell = viewChild.required<TemplateRef<unknown>>('diffFieldCell');
 
   private readonly beforeCell = viewChild.required<TemplateRef<unknown>>('diffBeforeCell');
@@ -367,9 +370,6 @@ export class AuditModalsComponent {
   });
 
   private readonly diffMemo = optionsMemo<DiffRow[]>();
-
-  @Output() closeAuditModal = new EventEmitter<void>();
-  @Output() closeSecModal = new EventEmitter<void>();
 
   getEventName(event: string): string {
     switch (event) {
