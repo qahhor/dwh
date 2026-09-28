@@ -1,4 +1,4 @@
-import { Component, inject, Input, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -64,13 +64,13 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               <smt-control
                 class="form-group span-2"
                 [smtLabel]="'iam.fio' | t"
-                [smtError]="isEditSubmitted() && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+                [smtError]="isEditSubmitted() && !editForm().name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
               >
                 <smt-input
                   smtFieldId="user-edit-name"
                   name="userEditName"
                   required
-                  [(ngModel)]="editForm.name"
+                  [(ngModel)]="editForm().name"
                   [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
                 />
               </smt-control>
@@ -84,7 +84,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               </smt-control>
 
               <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-                <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm.phone" />
+                <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm().phone" />
               </smt-control>
 
               <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
@@ -92,8 +92,8 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-data-select
                   [source]="users"
                   [exclude]="notThisUser"
-                  [value]="editForm.managerId"
-                  (valueChange)="editForm.managerId = $event"
+                  [value]="editForm().managerId"
+                  (valueChange)="editForm().managerId = $event"
                   [placeholder]="'iam.bez_rukovoditelya' | t"
                   [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
                   [emptyLabel]="'iam.bez_rukovoditelya' | t"
@@ -104,7 +104,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-select
                   smtTriggerId="user-edit-language"
                   name="userEditLanguage"
-                  [(ngModel)]="editForm.language"
+                  [(ngModel)]="editForm().language"
                   [options]="languageOptions()"
                   [allowClear]="false"
                 />
@@ -114,14 +114,14 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-select
                   smtTriggerId="user-edit-timezone"
                   name="userEditTimezone"
-                  [(ngModel)]="editForm.timezone"
+                  [(ngModel)]="editForm().timezone"
                   [options]="timezoneOptions"
                   [allowClear]="false"
                 />
               </smt-control>
 
               <div class="form-group span-2">
-                <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm.is2faEnabled">
+                <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm().is2faEnabled">
                   {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
                 </div>
               </div>
@@ -131,17 +131,17 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
                   <smt-tag-group
                     [options]="roleOptions(u)"
-                    [value]="editForm.roleIds || []"
-                    (valueChange)="editForm.roleIds = $event"
+                    [value]="editForm().roleIds || []"
+                    (valueChange)="editForm().roleIds = $event"
                   />
                 </smt-control>
               }
 
               <!-- Custom Fields -->
-              @if (customFields.length > 0) {
+              @if (customFields().length > 0) {
                 <div class="form-group span-2">
                   <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
-                  <ui-custom-fields [fields]="customFields" [(values)]="editForm.attributes"></ui-custom-fields>
+                  <ui-custom-fields [fields]="customFields()" [(values)]="editForm().attributes"></ui-custom-fields>
                 </div>
               }
             </div>
@@ -235,6 +235,8 @@ export class UserEditModalComponent {
       name: string;
     }>
   >([]);
+  readonly editForm = input<any>({});
+  readonly customFields = input<CustomField[]>([]);
 
   readonly close = output<void>();
   readonly submit = output<void>();
@@ -247,8 +249,6 @@ export class UserEditModalComponent {
     null;
   /** A user cannot be their own manager. */
   readonly notThisUser = (candidate: UserRef) => candidate.id === this.editingUser()?.id;
-  @Input() editForm: any = {};
-  @Input() customFields: CustomField[] = [];
 
   /** The languages as options, labelled as they are named in the data. */
   languageOptions(): SMTSelectOption<string>[] {

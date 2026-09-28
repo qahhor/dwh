@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, SimpleChanges, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, inject, signal, computed, input } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
@@ -75,11 +75,11 @@ export interface GroupedPermissionModule {
         <div class="perms-content">
           <!-- Overview Stats & Roles -->
           <div class="overview-section">
-            @if (userRoleNames.length > 0) {
+            @if (userRoleNames().length > 0) {
               <div class="user-roles-banner">
                 <span class="banner-lbl">{{ 'iam.roli' | t }}:</span>
                 <div class="roles-chips">
-                  @for (roleName of userRoleNames; track roleName) {
+                  @for (roleName of userRoleNames(); track roleName) {
                     <span class="role-chip">
                       <span class="material-symbols-outlined" aria-hidden="true">shield</span>
                       {{ roleName }}
@@ -106,7 +106,7 @@ export interface GroupedPermissionModule {
           </div>
 
           <!-- Add Personal Grant Section (when canAssign) -->
-          @if (canAssign) {
+          @if (canAssign()) {
             <div class="add-grant-card">
               <div class="add-grant-header">
                 <span class="material-symbols-outlined" aria-hidden="true">add_moderator</span>
@@ -235,7 +235,7 @@ export interface GroupedPermissionModule {
                               >
                                 {{ (act.source === 'role' ? 'iam.istochnik_rol' : 'iam.istochnik_personal') | t }}
                               </span>
-                              @if (canAssign && act.source === 'personal') {
+                              @if (canAssign() && act.source === 'personal') {
                                 <button
                                   type="button"
                                   class="remove-grant-btn"
@@ -564,6 +564,11 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
 
+  readonly userId = input.required<number>();
+
+  readonly canAssign = input<boolean>(false);
+  readonly userRoleNames = input<string[]>([]);
+
   readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
   readonly loadError = signal<boolean>(false);
@@ -680,10 +685,6 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     ];
   });
 
-  @Input({ required: true }) userId!: number;
-  @Input() canAssign: boolean = false;
-  @Input() userRoleNames: string[] = [];
-
   ngOnInit(): void {
     this.loadAll();
   }
@@ -696,12 +697,13 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   }
 
   loadAll(): void {
-    if (!this.userId) return;
+    const userId = this.userId();
+    if (!userId) return;
     this.isLoading.set(true);
     this.loadError.set(false);
 
     // 1. Effective permissions
-    this.api.get<EffectivePermissionsResponse>(`/iam/users/${this.userId}/effective-permissions`).subscribe({
+    this.api.get<EffectivePermissionsResponse>(`/iam/users/${userId}/effective-permissions`).subscribe({
       next: (res) => {
         this.effectiveItems.set(res?.items || []);
         this.isLoading.set(false);
@@ -713,7 +715,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     });
 
     // 2. Personal grants
-    this.api.get<PersonalPermissionsResponse>(`/iam/users/${this.userId}/permissions`).subscribe({
+    this.api.get<PersonalPermissionsResponse>(`/iam/users/${userId}/permissions`).subscribe({
       next: (res) => {
         this.personalGrants.set(res?.grants || []);
       },
@@ -775,7 +777,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
 
   savePersonalGrants(): void {
     this.isSaving.set(true);
-    this.api.put<void>(`/iam/users/${this.userId}/permissions`, { grants: this.personalGrants() }).subscribe({
+    this.api.put<void>(`/iam/users/${this.userId()}/permissions`, { grants: this.personalGrants() }).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.hasUnsavedChanges.set(false);

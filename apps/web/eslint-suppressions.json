@@ -151,21 +151,13 @@
       "count": 3
     }
   },
-  "src/app/features/iam/custom-fields/components/custom-fields-modals.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 3
-    }
-  },
   "src/app/features/iam/custom-fields/components/custom-fields-table.component.ts": {
     "@angular-eslint/prefer-signals": {
-      "count": 5
+      "count": 4
     }
   },
   "src/app/features/iam/org-units/org-unit-editor.component.ts": {
     "@angular-eslint/no-output-native": {
-      "count": 1
-    },
-    "@angular-eslint/prefer-signals": {
       "count": 1
     }
   },
@@ -194,11 +186,6 @@
       "count": 1
     }
   },
-  "src/app/features/iam/profile/components/profile-password-card.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
   "src/app/features/iam/profile/components/profile-sessions-card.component.ts": {
     "@angular-eslint/prefer-signals": {
       "count": 1
@@ -207,11 +194,6 @@
   "src/app/features/iam/profile/components/profile-tokens-card.component.ts": {
     "@angular-eslint/prefer-signals": {
       "count": 2
-    }
-  },
-  "src/app/features/iam/profile/components/user-profile-card.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
     }
   },
   "src/app/features/iam/profile/profile.component.ts": {
@@ -223,16 +205,6 @@
     },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
-    }
-  },
-  "src/app/features/iam/roles/components/role-modals.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    }
-  },
-  "src/app/features/iam/roles/components/role-permissions-matrix.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 2
     }
   },
   "src/app/features/iam/roles/roles.component.ts": {
@@ -250,16 +222,13 @@
     "@angular-eslint/no-output-native": {
       "count": 2
     },
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
   },
   "src/app/features/iam/users/components/user-detail-modal.component.ts": {
     "@angular-eslint/prefer-signals": {
-      "count": 3
+      "count": 1
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
@@ -267,9 +236,6 @@
   },
   "src/app/features/iam/users/components/user-edit-modal.component.ts": {
     "@angular-eslint/no-output-native": {
-      "count": 2
-    },
-    "@angular-eslint/prefer-signals": {
       "count": 2
     },
     "@typescript-eslint/no-explicit-any": {
@@ -282,17 +248,11 @@
     }
   },
   "src/app/features/iam/users/components/user-effective-permissions-panel.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 3
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
   },
   "src/app/features/iam/users/components/user-filter-bar.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    },
     "@angular-eslint/template/click-events-have-key-events": {
       "count": 1
     }
@@ -321,26 +281,6 @@
       "count": 1
     }
   },
-  "src/app/features/settings/components/settings-general-panel.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
-  "src/app/features/settings/components/settings-languages-panel.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 6
-    }
-  },
-  "src/app/features/settings/components/settings-security-panel.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
-  "src/app/features/settings/components/settings-storage-panel.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
   "src/app/features/settings/language-editor.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 4
@@ -357,9 +297,6 @@
     }
   },
   "src/app/features/settings/navigation/components/navigation-settings-modal.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 3
-    },
     "@angular-eslint/template/label-has-associated-control": {
       "count": 1
     }
@@ -425,9 +362,6 @@
     "@angular-eslint/no-output-native": {
       "count": 2
     },
-    "@angular-eslint/prefer-signals": {
-      "count": 2
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
     }
@@ -438,9 +372,6 @@
     },
     "@angular-eslint/prefer-inject": {
       "count": 1
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 2
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 2
@@ -456,9 +387,6 @@
   },
   "src/app/features/tasks/components/task-edit-modal.component.ts": {
     "@angular-eslint/no-output-native": {
-      "count": 2
-    },
-    "@angular-eslint/prefer-signals": {
       "count": 2
     },
     "@typescript-eslint/no-explicit-any": {
@@ -478,23 +406,15 @@
       "count": 1
     }
   },
-  "src/app/features/tasks/components/task-table-view.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 11
-    }
-  },
   "src/app/features/tasks/projects/components/project-members-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
     },
     "@angular-eslint/prefer-signals": {
-      "count": 4
+      "count": 2
     }
   },
   "src/app/features/tasks/projects/components/project-modals.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 6
-    },
     "@typescript-eslint/no-explicit-any": {
       "count": 2
     }
@@ -591,9 +511,6 @@
   },
   "src/app/layout/app-shell/components/app-sidebar.component.ts": {
     "@angular-eslint/no-output-on-prefix": {
-      "count": 1
-    },
-    "@angular-eslint/prefer-signals": {
       "count": 1
     },
     "@angular-eslint/template/click-events-have-key-events": {
@@ -1116,17 +1033,9 @@
       "count": 1
     }
   },
-  "src/app/shared/ui/ui-custom-fields.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    }
-  },
   "src/app/shared/ui/ui-file-upload.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 2
-    },
-    "@angular-eslint/prefer-signals": {
-      "count": 1
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
@@ -1146,9 +1055,6 @@
     }
   },
   "src/app/shared/ui/ui-markdown-editor.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 1
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     },
@@ -1165,9 +1071,6 @@
     }
   },
   "src/app/shared/ui/ui-pagination.component.ts": {
-    "@angular-eslint/prefer-signals": {
-      "count": 5
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }

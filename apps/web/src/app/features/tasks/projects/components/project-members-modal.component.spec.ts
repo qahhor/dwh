@@ -18,8 +18,8 @@ async function createFixture(canUpdateProject: boolean, list: ProjectMember[] = 
   }).compileComponents();
   const fixture = TestBed.createComponent(ProjectMembersModalComponent);
   const component = fixture.componentInstance;
-  component.isOpen = true;
-  component.project = { id: 7, name: 'Склад' } as never;
+  fixture.componentRef.setInput('isOpen', true);
+  fixture.componentRef.setInput('project', { id: 7, name: 'Склад' } as never);
   component.members = list;
   component.canUpdateProject = canUpdateProject;
   fixture.detectChanges();

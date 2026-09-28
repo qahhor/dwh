@@ -109,11 +109,11 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
       </div>
     </ng-template>
     <ng-template #emptyState>
-      @if (searchQuery) {
+      @if (searchQuery()) {
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
           <p>
-            {{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery }}</strong
+            {{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery() }}</strong
             >»
           </p>
           <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="clearSearch.emit()">
@@ -359,6 +359,8 @@ export class CustomFieldsTableComponent {
 
   readonly isLoading = input(false);
 
+  readonly searchQuery = input('');
+
   readonly copyCode = output<string>();
   readonly editField = output<CustomField>();
   readonly deleteField = output<CustomField>();
@@ -410,8 +412,6 @@ export class CustomFieldsTableComponent {
       columnsOrder: order,
     };
   });
-
-  @Input() searchQuery = '';
 
   /** Every field is loaded, so a header click (by keyboard too) sorts the whole list. */
   readonly sortValues = {

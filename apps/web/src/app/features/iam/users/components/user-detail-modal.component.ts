@@ -48,7 +48,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
       [smtSize]="
         activeViewTab() === 'security' ||
         activeViewTab() === 'permissions' ||
-        (canViewOrgUnits() && viewingUser && safeRecordId()(viewingUser.id))
+        (canViewOrgUnits() && !!viewingUser() && safeRecordId()(viewingUser()!.id))
           ? 'xl'
           : 'sm'
       "
@@ -62,16 +62,16 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           <div body role="alert">
             <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
             @if (!recordNotFound()) {
-              <button smt-button type="button" smtVariant="secondary" (click)="retryRecordView.emit(routeRecordId)">
+              <button smt-button type="button" smtVariant="secondary" (click)="retryRecordView.emit(routeRecordId())">
                 {{ 'audit.retry' | t }}
               </button>
             }
           </div>
         }
-        @if (viewingUser; as u) {
-          <div body class="view-body" [attr.data-record-id]="routeRecordId || (viewingUser ? viewingUser.id : '')">
-            @if (routeRecordId) {
-              <p>#{{ routeRecordId }}</p>
+        @if (viewingUser(); as u) {
+          <div body class="view-body" [attr.data-record-id]="routeRecordId() || viewingUser()?.id || ''">
+            @if (routeRecordId()) {
+              <p>#{{ routeRecordId() }}</p>
             }
             @if (!safeRecordId()(u.id)) {
               <p role="status">{{ 'search.record_readonly_id' | t }}</p>
@@ -301,9 +301,9 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
         }
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeRecordView.emit()">
-            {{ (routeRecordId ? 'search.back_to_list' : 'audit.zakryt') | t }}
+            {{ (routeRecordId() ? 'search.back_to_list' : 'audit.zakryt') | t }}
           </button>
-          @if (canUpdateUser() && viewingUser && safeRecordId()(viewingUser.id)) {
+          @if (canUpdateUser() && viewingUser() && safeRecordId()(viewingUser()!.id)) {
             <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="openEdit.emit()">
               {{ 'common.edit' | t }}
             </button>
@@ -383,6 +383,9 @@ export class UserDetailModalComponent {
 
   readonly isSubmitting = input(false);
 
+  readonly viewingUser = input<User | null>(null);
+  readonly routeRecordId = input<string | null>(null);
+
   readonly closeRecordView = output<void>();
   readonly retryRecordView = output<string | null>();
   readonly switchTab = output<{
@@ -456,9 +459,6 @@ export class UserDetailModalComponent {
     };
   });
 
-  @Input() viewingUser: User | null = null;
-  @Input() routeRecordId: string | null = null;
-
   /** The summary carries every open session, so a header click sorts them all. */
   readonly sessionSortValues = {
     ip: (s: UserSession) => s.ip,
@@ -489,8 +489,9 @@ export class UserDetailModalComponent {
   }
 
   terminateSession(session: UserSession): void {
-    if (!this.viewingUser) return;
-    this.terminateSingleSession.emit({ sessionId: session.id, userId: this.viewingUser.id });
+    const viewingUser = this.viewingUser();
+    if (!viewingUser) return;
+    this.terminateSingleSession.emit({ sessionId: session.id, userId: viewingUser.id });
   }
 
   canLeave(): boolean | Observable<boolean> {

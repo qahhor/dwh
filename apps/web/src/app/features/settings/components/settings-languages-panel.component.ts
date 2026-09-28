@@ -1,4 +1,4 @@
-import { Component, Input, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
+import { Component, TemplateRef, computed, inject, viewChild, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -27,23 +27,23 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     SMTTableComponent,
   ],
   template: `
-    @if (editingLanguageCode) {
+    @if (editingLanguageCode(); as languageCode) {
       <app-language-editor
-        [languageCode]="editingLanguageCode"
+        [languageCode]="languageCode"
         (closed)="closeLanguageEditor.emit()"
         (saved)="languageSaved.emit()"
       />
     }
 
-    @if (!editingLanguageCode) {
+    @if (!editingLanguageCode()) {
       <div class="settings-card">
-        @if (legacyLanguageCount > 0) {
+        @if (legacyLanguageCount() > 0) {
           <div class="legacy-import" role="status">
             <div>
-              <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount } }}</strong>
+              <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount() } }}</strong>
               <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
             </div>
-            @if (canUpdateSystemSettings) {
+            @if (canUpdateSystemSettings()) {
               <button
                 smt-button
                 smtVariant="secondary"
@@ -66,7 +66,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
               <p class="card-desc">{{ 'settings.dinamicheskoe_dobavlenie_novyh_yazykov_i_import_' | t }}</p>
             </div>
           </div>
-          @if (canUpdateSystemSettings) {
+          @if (canUpdateSystemSettings()) {
             <button smt-button type="button" (click)="openAddLangModal.emit()">
               <span class="material-symbols-outlined" aria-hidden="true">add</span>
               <span>{{ 'settings.dobavit_yazyk' | t }}</span>
@@ -74,7 +74,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
           }
         </div>
 
-        <smt-table class="languages-table" [smtData]="languages" [smtConfig]="tableConfig()" />
+        <smt-table class="languages-table" [smtData]="languages()" [smtConfig]="tableConfig()" />
 
         <ng-template #codeCell let-lang>
           <span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span>
@@ -95,7 +95,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
         </ng-template>
 
         <ng-template #statusCell let-lang>
-          @if (currentLang === lang.code) {
+          @if (currentLang() === lang.code) {
             <span class="badge badge-active">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
           } @else {
             <span class="badge badge-neutral">{{ 'settings.dostupen' | t }}</span>
@@ -126,7 +126,7 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
               <span class="material-symbols-outlined" aria-hidden="true">download</span>
               <span>JSON</span>
             </button>
-            @if (currentLang !== lang.code) {
+            @if (currentLang() !== lang.code) {
               <button
                 smt-button
                 smtSize="sm"
@@ -143,9 +143,9 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     }
 
     <!-- Modal: Add New Custom Language -->
-    @if (isAddLangModalOpen) {
+    @if (isAddLangModalOpen()) {
       <smt-dialog
-        [open]="isAddLangModalOpen"
+        [open]="isAddLangModalOpen()"
         [smtTitle]="'settings.dobavlenie_novogo_yazyka' | t"
         [smtAriaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
         (closed)="closeAddLangModal.emit()"
@@ -426,6 +426,13 @@ export class SettingsLanguagesPanelComponent {
   readonly newLangName = input('');
   readonly newLangJson = input('');
 
+  readonly canUpdateSystemSettings = input(false);
+  readonly editingLanguageCode = input<string | null>(null);
+  readonly legacyLanguageCount = input(0);
+  readonly languages = input<LanguageInfo[]>([]);
+  readonly currentLang = input('');
+  readonly isAddLangModalOpen = input(false);
+
   readonly openLanguageEditor = output<string>();
   readonly closeLanguageEditor = output<void>();
   readonly languageSaved = output<void>();
@@ -497,11 +504,4 @@ export class SettingsLanguagesPanelComponent {
       },
     };
   });
-
-  @Input() canUpdateSystemSettings = false;
-  @Input() editingLanguageCode: string | null = null;
-  @Input() legacyLanguageCount = 0;
-  @Input() languages: LanguageInfo[] = [];
-  @Input() currentLang = '';
-  @Input() isAddLangModalOpen = false;
 }

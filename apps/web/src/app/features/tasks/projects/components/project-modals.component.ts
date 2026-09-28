@@ -1,4 +1,4 @@
-import { Component, Input, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
@@ -37,7 +37,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
   ],
   template: `
     <!-- Record View Modal -->
-    @if (routeRecordId !== null) {
+    @if (routeRecordId() !== null) {
       <smt-dialog [open]="true" [smtTitle]="'projects.proekt' | t" smtSize="sm" (closed)="closeRecordView.emit()">
         <ng-template smtDialogContent>
           <div body>
@@ -48,15 +48,20 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
               <div role="alert">
                 <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
                 @if (!recordNotFound()) {
-                  <button smt-button type="button" smtVariant="secondary" (click)="loadRecordView.emit(routeRecordId)">
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="secondary"
+                    (click)="loadRecordView.emit(routeRecordId())"
+                  >
                     {{ 'audit.retry' | t }}
                   </button>
                 }
               </div>
             }
             @if (viewingProject(); as project) {
-              <div [attr.data-record-id]="routeRecordId">
-                <p>#{{ routeRecordId }}</p>
+              <div [attr.data-record-id]="routeRecordId()">
+                <p>#{{ routeRecordId() }}</p>
                 <h3>{{ project.name }}</h3>
                 <p>{{ project.description }}</p>
                 <p>{{ (project.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}</p>
@@ -98,7 +103,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
               class="form-group"
               [smtLabel]="'projects.nazvanie_proekta' | t"
               [smtError]="
-                isCreateSubmitted() && !createForm.name.trim()
+                isCreateSubmitted() && !createForm().name.trim()
                   ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t)
                   : ''
               "
@@ -107,7 +112,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
                 smtFieldId="project-create-name"
                 name="projectCreateName"
                 required
-                [(ngModel)]="createForm.name"
+                [(ngModel)]="createForm().name"
                 [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
               />
             </smt-control>
@@ -115,22 +120,22 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
               <smt-textarea
                 smtFieldId="project-create-description"
                 name="projectCreateDescription"
-                [(ngModel)]="createForm.description"
+                [(ngModel)]="createForm().description"
                 [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
               />
             </smt-control>
-            @if (projectCustomFields.length > 0) {
+            @if (projectCustomFields().length > 0) {
               <div class="form-group">
                 <ui-custom-fields
-                  [fields]="projectCustomFields"
-                  [values]="createForm.attributes || {}"
-                  (valuesChange)="createForm.attributes = $event"
+                  [fields]="projectCustomFields()"
+                  [values]="createForm().attributes || {}"
+                  (valuesChange)="createForm().attributes = $event"
                 ></ui-custom-fields>
               </div>
             }
-            @if (createSaveError) {
+            @if (createSaveError()) {
               <div class="request-state request-error" data-testid="project-create-save-error" role="alert">
-                {{ createSaveError }}
+                {{ createSaveError() }}
               </div>
             }
           </fieldset>
@@ -223,18 +228,23 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
                 class="form-group"
                 [smtLabel]="'projects.nazvanie_proekta' | t"
                 [smtError]="
-                  isEditSubmitted() && !editForm.name.trim()
+                  isEditSubmitted() && !editForm().name.trim()
                     ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t)
                     : ''
                 "
               >
-                <smt-input smtFieldId="project-edit-name" name="projectEditName" required [(ngModel)]="editForm.name" />
+                <smt-input
+                  smtFieldId="project-edit-name"
+                  name="projectEditName"
+                  required
+                  [(ngModel)]="editForm().name"
+                />
               </smt-control>
               <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
                 <smt-select
                   smtTriggerId="project-edit-state"
                   name="projectEditState"
-                  [(ngModel)]="editForm.state"
+                  [(ngModel)]="editForm().state"
                   [options]="stateOptions()"
                   [allowClear]="false"
                 ></smt-select>
@@ -243,21 +253,21 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
                 <smt-textarea
                   smtFieldId="project-edit-description"
                   name="projectEditDescription"
-                  [(ngModel)]="editForm.description"
+                  [(ngModel)]="editForm().description"
                 />
               </smt-control>
-              @if (projectCustomFields.length > 0) {
+              @if (projectCustomFields().length > 0) {
                 <div class="form-group">
                   <ui-custom-fields
-                    [fields]="projectCustomFields"
-                    [values]="editForm.attributes || {}"
-                    (valuesChange)="editForm.attributes = $event"
+                    [fields]="projectCustomFields()"
+                    [values]="editForm().attributes || {}"
+                    (valuesChange)="editForm().attributes = $event"
                   ></ui-custom-fields>
                 </div>
               }
-              @if (editSaveError) {
+              @if (editSaveError()) {
                 <div class="request-state request-error" data-testid="project-edit-save-error" role="alert">
-                  {{ editSaveError }}
+                  {{ editSaveError() }}
                 </div>
               }
             </fieldset>
@@ -429,6 +439,14 @@ export class ProjectModalsComponent {
   // Shared
   readonly isSubmitting = input(false);
 
+  // Record View
+  readonly routeRecordId = input<string | null>(null);
+  readonly createSaveError = input<string | null>(null);
+  readonly createForm = input<ProjectCreateForm>({ name: '', description: '', attributes: {} });
+  readonly editSaveError = input<string | null>(null);
+  readonly editForm = input<ProjectEditForm>({ name: '', description: '', state: 'A', attributes: {} });
+  readonly projectCustomFields = input<CustomField[]>([]);
+
   readonly closeRecordView = output<void>();
   readonly loadRecordView = output<string | null>();
   readonly requestCloseCreate = output<void>();
@@ -443,14 +461,6 @@ export class ProjectModalsComponent {
   readonly cancelNavigationDiscard = output<'create' | 'edit'>();
 
   private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
-
-  // Record View
-  @Input() routeRecordId: string | null = null;
-  @Input() createSaveError: string | null = null;
-  @Input() createForm: ProjectCreateForm = { name: '', description: '', attributes: {} };
-  @Input() editSaveError: string | null = null;
-  @Input() editForm: ProjectEditForm = { name: '', description: '', state: 'A', attributes: {} };
-  @Input() projectCustomFields: CustomField[] = [];
 
   /** Project states for the edit form; translated again when the language changes. */
   stateOptions(): SMTSelectOption<'A' | 'P'>[] {
@@ -467,7 +477,7 @@ export class ProjectModalsComponent {
 
   formatAttributes(attrs: any): ProjectAttributeItem[] {
     if (!this.hasAttributes(attrs)) return [];
-    const fields = this.projectCustomFields;
+    const fields = this.projectCustomFields();
     return Object.entries(attrs).map(([k, v]) => {
       const field = fields.find((f) => f.code === k);
       const keyLabel = field ? field.name : k;

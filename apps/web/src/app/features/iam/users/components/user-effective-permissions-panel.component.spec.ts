@@ -62,9 +62,9 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     }).compileComponents();
 
     const fixture = TestBed.createComponent(UserEffectivePermissionsPanelComponent);
-    fixture.componentInstance.userId = options.userId ?? 10;
-    fixture.componentInstance.canAssign = options.canAssign ?? true;
-    fixture.componentInstance.userRoleNames = ['Администратор'];
+    fixture.componentRef.setInput('userId', options.userId ?? 10);
+    fixture.componentRef.setInput('canAssign', options.canAssign ?? true);
+    fixture.componentRef.setInput('userRoleNames', ['Администратор']);
     fixture.detectChanges();
 
     return { fixture, api, toast, i18n };

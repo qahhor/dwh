@@ -1,4 +1,4 @@
-import { Component, Input, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -27,7 +27,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
         <div class="form-group">
           <label class="form-label" for="settings-user-quota">
             {{ 'settings.default_user_quota' | t }}
-            @if (formatQuotaMb(systemSettings['storage.default_user_quota_mb']); as quotaBadge) {
+            @if (formatQuotaMb(systemSettings()['storage.default_user_quota_mb']); as quotaBadge) {
               <span class="unit-badge">
                 {{ quotaBadge }}
               </span>
@@ -41,7 +41,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             [smtMax]="102400"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-user-quota-hint"
-            [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
+            [(ngModel)]="systemSettings()['storage.default_user_quota_mb']"
           />
           <span id="settings-user-quota-hint" class="hint-text">{{
             'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t
@@ -171,9 +171,9 @@ export class SettingsStoragePanelComponent {
   readonly canUpdateSystemSettings = input(false);
   readonly isSaving = input(false);
 
-  readonly save = output<void>();
+  readonly systemSettings = input<Record<string, string>>({});
 
-  @Input() systemSettings: Record<string, string> = {};
+  readonly save = output<void>();
 
   formatQuotaMb(mb: string | number | undefined): string {
     if (mb === undefined || mb === '') return '';

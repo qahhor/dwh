@@ -1,4 +1,4 @@
-import { Component, inject, Input, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -75,7 +75,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
               class="form-group"
               [smtLabel]="'task.title' | t"
               [smtError]="
-                isEditSubmitted() && !editForm.title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
+                isEditSubmitted() && !editForm().title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
               "
             >
               <smt-input
@@ -83,7 +83,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                 name="taskEditTitle"
                 class="title-input"
                 required
-                [(ngModel)]="editForm.title"
+                [(ngModel)]="editForm().title"
               />
             </smt-control>
 
@@ -95,9 +95,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
               <smt-radio-group
                 smtAppearance="chips"
                 [options]="typeOptions()"
-                [value]="editForm.taskType"
+                [value]="editForm().taskType"
                 [smtAriaLabel]="'tasks.tip_zadachi' | t"
-                (valueChange)="editForm.taskType = $event ?? editForm.taskType"
+                (valueChange)="editForm().taskType = $event ?? editForm().taskType"
               />
             </div>
 
@@ -109,9 +109,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
               <smt-radio-group
                 smtAppearance="segmented"
                 [options]="priorityOptions()"
-                [value]="editForm.priority"
+                [value]="editForm().priority"
                 [smtAriaLabel]="'tasks.prioritet_zadachi' | t"
-                (valueChange)="editForm.priority = $event ?? editForm.priority"
+                (valueChange)="editForm().priority = $event ?? editForm().priority"
               />
             </div>
 
@@ -121,7 +121,7 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                 <smt-select
                   smtTriggerId="task-edit-project"
                   name="taskEditProject"
-                  [(ngModel)]="editForm.projectId"
+                  [(ngModel)]="editForm().projectId"
                   [options]="projects() | projectOptions"
                   [placeholder]="'tasks.bez_proekta' | t"
                   [searchPlaceholder]="'tasks.search_project' | t"
@@ -138,9 +138,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                   [source]="lookups.tasks"
                   [knownRows]="lookups.knownParentRows()"
                   [exclude]="notThisTask"
-                  [value]="editForm.parentTaskId"
+                  [value]="editForm().parentTaskId"
                   [ariaLabel]="'task.parent' | t"
-                  (valueChange)="editForm.parentTaskId = $event"
+                  (valueChange)="editForm().parentTaskId = $event"
                   [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
                   [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
                   [emptyLabel]="'tasks.without_parent' | t"
@@ -157,9 +157,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                 <smt-data-select
                   [source]="lookups.users"
                   [knownRows]="lookups.knownUserRows()"
-                  [value]="editForm.responsibleUserId"
+                  [value]="editForm().responsibleUserId"
                   [ariaLabel]="'task.responsible' | t"
-                  (valueChange)="editForm.responsibleUserId = $event"
+                  (valueChange)="editForm().responsibleUserId = $event"
                   [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
                   [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
                   [emptyLabel]="'common.not_assigned' | t"
@@ -172,8 +172,8 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                   smtInputId="task-edit-deadline"
                   name="taskEditDeadline"
                   smtWithTime
-                  [ngModel]="editForm.endTime"
-                  (ngModelChange)="editForm.endTime = $event ?? ''"
+                  [ngModel]="editForm().endTime"
+                  (ngModelChange)="editForm().endTime = $event ?? ''"
                 />
               </smt-control>
             </div>
@@ -186,9 +186,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
               <smt-multi-data-select
                 [source]="lookups.users"
                 [knownRows]="lookups.knownUserRows()"
-                [value]="editForm.executorUserIds"
+                [value]="editForm().executorUserIds"
                 [ariaLabel]="'tasks.soispolniteli' | t"
-                (valueChange)="editForm.executorUserIds = [...$event]"
+                (valueChange)="editForm().executorUserIds = [...$event]"
                 [placeholder]="'tasks.nazhmite_dlya_dobavleniya_soispolniteley' | t"
                 [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
               />
@@ -202,9 +202,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
               <smt-multi-data-select
                 [source]="lookups.users"
                 [knownRows]="lookups.knownUserRows()"
-                [value]="editForm.observerUserIds"
+                [value]="editForm().observerUserIds"
                 [ariaLabel]="'tasks.nablyudateli' | t"
-                (valueChange)="editForm.observerUserIds = [...$event]"
+                (valueChange)="editForm().observerUserIds = [...$event]"
                 [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
                 [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
               />
@@ -216,18 +216,18 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
                 <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
               </div>
               <ui-markdown-editor
-                [value]="editForm.descriptionMarkdown"
+                [value]="editForm().descriptionMarkdown"
                 [ariaLabel]="'projects.opisanie' | t"
-                (valueChange)="editForm.descriptionMarkdown = $event"
+                (valueChange)="editForm().descriptionMarkdown = $event"
                 [rows]="4"
               ></ui-markdown-editor>
             </div>
 
             <!-- Custom Dynamic Fields -->
-            @if (taskCustomFields.length > 0) {
+            @if (taskCustomFields().length > 0) {
               <div class="custom-fields-section">
                 <h4 class="custom-fields-title">{{ 'nav.custom_fields' | t }}</h4>
-                <ui-custom-fields [fields]="taskCustomFields" [(values)]="editForm.attributes"></ui-custom-fields>
+                <ui-custom-fields [fields]="taskCustomFields()" [(values)]="editForm().attributes"></ui-custom-fields>
               </div>
             }
           </fieldset>
@@ -379,6 +379,8 @@ export class TaskEditModalComponent {
   readonly isEditDiscardConfirmationOpen = input(false);
   readonly taskTypes = input<TaskType[]>([]);
   readonly projects = input<Project[]>([]);
+  readonly editForm = input<any>({});
+  readonly taskCustomFields = input<CustomField[]>([]);
 
   readonly close = output<void>();
   readonly submit = output<void>();
@@ -390,8 +392,6 @@ export class TaskEditModalComponent {
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
   /** A task cannot be its own parent. */
   readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask()?.id;
-  @Input() editForm: any = {};
-  @Input() taskCustomFields: CustomField[] = [];
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {

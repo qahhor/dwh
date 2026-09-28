@@ -19,9 +19,9 @@ const LANGUAGES = [language('ru', 'Русский'), language('en', 'English'), 
 async function render(currentLang = 'ru', languages = LANGUAGES) {
   await TestBed.configureTestingModule({ imports: [SettingsLanguagesPanelComponent] }).compileComponents();
   const fixture = TestBed.createComponent(SettingsLanguagesPanelComponent);
-  fixture.componentInstance.languages = languages;
-  fixture.componentInstance.currentLang = currentLang;
-  fixture.componentInstance.canUpdateSystemSettings = true;
+  fixture.componentRef.setInput('languages', languages);
+  fixture.componentRef.setInput('currentLang', currentLang);
+  fixture.componentRef.setInput('canUpdateSystemSettings', true);
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();

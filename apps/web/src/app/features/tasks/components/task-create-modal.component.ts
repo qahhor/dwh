@@ -1,4 +1,4 @@
-import { Component, inject, Input, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -49,8 +49,8 @@ import { Project, TaskType } from '../../../core/models/task.models';
     <smt-dialog
       [open]="isOpen()"
       [smtTitle]="
-        createForm.parentTaskId
-          ? ('tasks.create_subtask_for' | t: { id: createForm.parentTaskId })
+        createForm().parentTaskId
+          ? ('tasks.create_subtask_for' | t: { id: createForm().parentTaskId })
           : ('tasks.create_new_task' | t)
       "
       smtSize="lg"
@@ -64,7 +64,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
             class="form-group"
             [smtLabel]="'task.title' | t"
             [smtError]="
-              isCreateSubmitted() && !createForm.title.trim() ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t) : ''
+              isCreateSubmitted() && !createForm().title.trim()
+                ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t)
+                : ''
             "
           >
             <smt-input
@@ -72,7 +74,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
               name="taskCreateTitle"
               class="title-input"
               required
-              [(ngModel)]="createForm.title"
+              [(ngModel)]="createForm().title"
               [placeholder]="'tasks.kratkaya_i_yasnaya_formulirovka_zadachi' | t"
             />
           </smt-control>
@@ -85,9 +87,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
             <smt-radio-group
               smtAppearance="chips"
               [options]="typeOptions()"
-              [value]="createForm.taskType"
+              [value]="createForm().taskType"
               [smtAriaLabel]="'tasks.tip_zadachi' | t"
-              (valueChange)="createForm.taskType = $event ?? createForm.taskType"
+              (valueChange)="createForm().taskType = $event ?? createForm().taskType"
             />
           </div>
 
@@ -99,9 +101,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
             <smt-radio-group
               smtAppearance="segmented"
               [options]="priorityOptions()"
-              [value]="createForm.priority"
+              [value]="createForm().priority"
               [smtAriaLabel]="'tasks.prioritet_zadachi' | t"
-              (valueChange)="createForm.priority = $event ?? createForm.priority"
+              (valueChange)="createForm().priority = $event ?? createForm().priority"
             />
           </div>
 
@@ -111,7 +113,7 @@ import { Project, TaskType } from '../../../core/models/task.models';
               <smt-select
                 smtTriggerId="task-create-project"
                 name="taskCreateProject"
-                [(ngModel)]="createForm.projectId"
+                [(ngModel)]="createForm().projectId"
                 [options]="projects() | projectOptions"
                 [placeholder]="'tasks.bez_proekta' | t"
                 [searchPlaceholder]="'tasks.search_project' | t"
@@ -127,9 +129,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
               <smt-data-select
                 [source]="lookups.tasks"
                 [knownRows]="lookups.knownParentRows()"
-                [value]="createForm.parentTaskId"
+                [value]="createForm().parentTaskId"
                 [ariaLabel]="'task.parent' | t"
-                (valueChange)="createForm.parentTaskId = $event"
+                (valueChange)="createForm().parentTaskId = $event"
                 [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
                 [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
                 [emptyLabel]="'tasks.without_parent' | t"
@@ -146,9 +148,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
               <smt-data-select
                 [source]="lookups.users"
                 [knownRows]="lookups.knownUserRows()"
-                [value]="createForm.responsibleUserId"
+                [value]="createForm().responsibleUserId"
                 [ariaLabel]="'task.responsible' | t"
-                (valueChange)="createForm.responsibleUserId = $event"
+                (valueChange)="createForm().responsibleUserId = $event"
                 [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
                 [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
                 [emptyLabel]="'common.not_assigned' | t"
@@ -161,8 +163,8 @@ import { Project, TaskType } from '../../../core/models/task.models';
                 smtInputId="task-create-deadline"
                 name="taskCreateDeadline"
                 smtWithTime
-                [ngModel]="createForm.endTime"
-                (ngModelChange)="createForm.endTime = $event ?? ''"
+                [ngModel]="createForm().endTime"
+                (ngModelChange)="createForm().endTime = $event ?? ''"
               />
             </smt-control>
           </div>
@@ -175,9 +177,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
             <smt-multi-data-select
               [source]="lookups.users"
               [knownRows]="lookups.knownUserRows()"
-              [value]="createForm.executorUserIds"
+              [value]="createForm().executorUserIds"
               [ariaLabel]="'tasks.soispolniteli' | t"
-              (valueChange)="createForm.executorUserIds = [...$event]"
+              (valueChange)="createForm().executorUserIds = [...$event]"
               [placeholder]="'tasks.nazhmite_dlya_dobavleniya_soispolniteley' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
             />
@@ -191,9 +193,9 @@ import { Project, TaskType } from '../../../core/models/task.models';
             <smt-multi-data-select
               [source]="lookups.users"
               [knownRows]="lookups.knownUserRows()"
-              [value]="createForm.observerUserIds"
+              [value]="createForm().observerUserIds"
               [ariaLabel]="'tasks.nablyudateli' | t"
-              (valueChange)="createForm.observerUserIds = [...$event]"
+              (valueChange)="createForm().observerUserIds = [...$event]"
               [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
               [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
             />
@@ -205,25 +207,25 @@ import { Project, TaskType } from '../../../core/models/task.models';
               <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
             </div>
             <ui-markdown-editor
-              [value]="createForm.descriptionMarkdown"
+              [value]="createForm().descriptionMarkdown"
               [ariaLabel]="'projects.opisanie' | t"
-              (valueChange)="createForm.descriptionMarkdown = $event"
+              (valueChange)="createForm().descriptionMarkdown = $event"
               [placeholder]="'tasks.kontekst_kriterii_gotovnosti_zadachi_ssylki_podd' | t"
               [rows]="4"
             ></ui-markdown-editor>
           </div>
 
           <!-- Custom Dynamic Fields -->
-          @if (taskCustomFields.length > 0) {
+          @if (taskCustomFields().length > 0) {
             <div class="custom-fields-section">
               <h4 class="custom-fields-title">
                 <span>{{ 'nav.custom_fields' | t }}</span>
               </h4>
-              <ui-custom-fields [fields]="taskCustomFields" [(values)]="createForm.attributes"></ui-custom-fields>
+              <ui-custom-fields [fields]="taskCustomFields()" [(values)]="createForm().attributes"></ui-custom-fields>
             </div>
           }
 
-          @if (taskCustomFields.length === 0) {
+          @if (taskCustomFields().length === 0) {
             <div class="custom-fields-empty-tip">
               <span class="material-symbols-outlined tip-icon" aria-hidden="true">extension</span>
               <span class="tip-text"
@@ -386,14 +388,14 @@ export class TaskCreateModalComponent {
   readonly isCreateSubmitted = input(false);
   readonly taskTypes = input<TaskType[]>([]);
   readonly projects = input<Project[]>([]);
+  readonly createForm = input<any>({});
+  readonly taskCustomFields = input<CustomField[]>([]);
 
   readonly close = output<void>();
   readonly submit = output<void>();
 
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
-  @Input() createForm: any = {};
-  @Input() taskCustomFields: CustomField[] = [];
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {

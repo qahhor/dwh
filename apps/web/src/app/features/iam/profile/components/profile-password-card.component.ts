@@ -1,4 +1,4 @@
-import { Component, Input, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -30,16 +30,16 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             type="password"
             class="font-mono"
             autocomplete="current-password"
-            [(ngModel)]="passwordForm.oldPassword"
+            [(ngModel)]="passwordForm().oldPassword"
             name="oldPassword"
-            [smtInvalid]="isPasswordSubmitted() && !passwordForm.oldPassword"
+            [smtInvalid]="isPasswordSubmitted() && !passwordForm().oldPassword"
             [smtDescribedBy]="
-              isPasswordSubmitted() && !passwordForm.oldPassword ? 'profile-current-password-error' : null
+              isPasswordSubmitted() && !passwordForm().oldPassword ? 'profile-current-password-error' : null
             "
             [placeholder]="'iam.vvedite_tekuschiy_parol' | t"
             required
           />
-          @if (isPasswordSubmitted() && !passwordForm.oldPassword) {
+          @if (isPasswordSubmitted() && !passwordForm().oldPassword) {
             <span id="profile-current-password-error" class="field-error">
               {{ 'iam.vvedite_tekuschiy_parol' | t }}
             </span>
@@ -58,11 +58,11 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             autocomplete="new-password"
             [minLength]="passwordPolicy.min"
             [maxLength]="passwordPolicy.max"
-            [(ngModel)]="passwordForm.newPassword"
+            [(ngModel)]="passwordForm().newPassword"
             name="newPassword"
-            [smtInvalid]="isPasswordSubmitted() && !fitsPolicy(passwordForm.newPassword)"
+            [smtInvalid]="isPasswordSubmitted() && !fitsPolicy(passwordForm().newPassword)"
             [smtDescribedBy]="
-              isPasswordSubmitted() && !fitsPolicy(passwordForm.newPassword)
+              isPasswordSubmitted() && !fitsPolicy(passwordForm().newPassword)
                 ? 'profile-new-password-hint profile-new-password-error'
                 : 'profile-new-password-hint'
             "
@@ -72,14 +72,14 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
           <span id="profile-new-password-hint" class="field-hint">{{
             'password.policy.hint' | t: passwordPolicy
           }}</span>
-          @if (isPasswordSubmitted() && !fitsPolicy(passwordForm.newPassword)) {
+          @if (isPasswordSubmitted() && !fitsPolicy(passwordForm().newPassword)) {
             <span id="profile-new-password-error" class="field-error">
               {{ 'password.policy.length_error' | t: passwordPolicy }}
             </span>
           }
 
           <!-- Live Password Strength Meter -->
-          @if (passwordForm.newPassword) {
+          @if (passwordForm().newPassword) {
             <div class="strength-meter-container">
               <div class="strength-header">
                 <span class="strength-label">{{ 'iam.nadezhnost_parolya' | t }}:</span>
@@ -137,22 +137,22 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
             type="password"
             class="font-mono"
             autocomplete="new-password"
-            [(ngModel)]="passwordForm.confirmPassword"
+            [(ngModel)]="passwordForm().confirmPassword"
             name="confirmPassword"
             [smtInvalid]="
               isPasswordSubmitted() &&
-              (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)
+              (!passwordForm().confirmPassword || passwordForm().newPassword !== passwordForm().confirmPassword)
             "
             [smtDescribedBy]="
               isPasswordSubmitted() &&
-              (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)
+              (!passwordForm().confirmPassword || passwordForm().newPassword !== passwordForm().confirmPassword)
                 ? 'profile-confirm-password-error'
                 : null
             "
             [placeholder]="'auth.povtorite_novyy_parol' | t"
             required
           />
-          @if (passwordForm.confirmPassword && passwordForm.newPassword) {
+          @if (passwordForm().confirmPassword && passwordForm().newPassword) {
             <div class="password-match-hint">
               @if (passwordsMatch()) {
                 <span class="match-badge match-ok">
@@ -170,10 +170,10 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
           }
           @if (
             isPasswordSubmitted() &&
-            (!passwordForm.confirmPassword || passwordForm.newPassword !== passwordForm.confirmPassword)
+            (!passwordForm().confirmPassword || passwordForm().newPassword !== passwordForm().confirmPassword)
           ) {
             <span id="profile-confirm-password-error" class="field-error">
-              {{ (!passwordForm.confirmPassword ? 'iam.confirm_new_password' : 'iam.passwords_do_not_match') | t }}
+              {{ (!passwordForm().confirmPassword ? 'iam.confirm_new_password' : 'iam.passwords_do_not_match') | t }}
             </span>
           }
         </div>
@@ -419,6 +419,8 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
   ],
 })
 export class ProfilePasswordCardComponent {
+  readonly passwordForm = input.required<PasswordForm>();
+
   readonly isPasswordSubmitted = input(false);
   readonly isChangingPassword = input(false);
   readonly passwordStrength = input<PasswordStrength>({ score: 0, label: '', percent: 0, colorClass: '' });
@@ -428,8 +430,6 @@ export class ProfilePasswordCardComponent {
   readonly passwordsMatch = input(false);
 
   readonly submitPassword = output<Event>();
-
-  @Input() passwordForm!: PasswordForm;
 
   readonly passwordPolicy = PASSWORD_POLICY;
   readonly fitsPolicy = fitsPasswordPolicy;

@@ -51,8 +51,8 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
-      [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project?.name || '' }"
+      [open]="isOpen()"
+      [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project()?.name || '' }"
       smtSize="lg"
       (closed)="close.emit()"
     >
@@ -443,6 +443,9 @@ export class ProjectMembersModalComponent {
   /** The member whose removal is running, so only that row's button shows it. */
   readonly removingUserId = input<number | null>(null);
 
+  readonly isOpen = input(false);
+  readonly project = input<Project | null>(null);
+
   readonly close = output<void>();
   readonly addMember = output<{
     projectId: number;
@@ -482,9 +485,6 @@ export class ProjectMembersModalComponent {
       columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access'],
     };
   });
-
-  @Input() isOpen = false;
-  @Input() project: Project | null = null;
 
   /** Every member of the project is loaded, so a header click sorts them all. */
   readonly sortValues = {
@@ -595,9 +595,10 @@ export class ProjectMembersModalComponent {
   }
 
   submitAddMember(): void {
-    if (!this.project || !this.selectedUser) return;
+    const project = this.project();
+    if (!project || !this.selectedUser) return;
     this.addMember.emit({
-      projectId: this.project.id,
+      projectId: project.id,
       userId: this.selectedUser.id,
       accessKind: this.selectedAccessKind,
     });

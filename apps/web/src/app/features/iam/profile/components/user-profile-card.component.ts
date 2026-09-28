@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, input } from '@angular/core';
 
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -9,7 +9,7 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
   selector: 'app-user-profile-card',
   imports: [SMTAvatarComponent, TranslatePipe, UiBadgeComponent],
   template: `
-    @if (user) {
+    @if (user(); as user) {
       <div class="card user-card">
         <smt-avatar class="user-avatar-large" [name]="user.name" smtSize="xl" />
         <div class="user-details">
@@ -148,5 +148,5 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
   ],
 })
 export class UserProfileCardComponent {
-  @Input() user: User | null = null;
+  readonly user = input<User | null>(null);
 }

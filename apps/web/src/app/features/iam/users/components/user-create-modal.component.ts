@@ -1,4 +1,4 @@
-import { Component, inject, Input, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -63,13 +63,13 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             <smt-control
               class="form-group span-2"
               [smtLabel]="'iam.fio' | t"
-              [smtError]="isCreateSubmitted() && !createForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+              [smtError]="isCreateSubmitted() && !createForm().name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
             >
               <smt-input
                 smtFieldId="user-create-name"
                 name="userCreateName"
                 required
-                [(ngModel)]="createForm.name"
+                [(ngModel)]="createForm().name"
                 [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
               />
             </smt-control>
@@ -77,7 +77,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             <smt-control
               class="form-group"
               [smtLabel]="'analytics.login' | t"
-              [smtError]="isCreateSubmitted() && !createForm.login.trim() ? ('iam.ukazhite_login' | t) : ''"
+              [smtError]="isCreateSubmitted() && !createForm().login.trim() ? ('iam.ukazhite_login' | t) : ''"
             >
               <smt-input
                 smtFieldId="user-create-login"
@@ -85,7 +85,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 class="font-mono"
                 required
                 autocomplete="username"
-                [(ngModel)]="createForm.login"
+                [(ngModel)]="createForm().login"
                 placeholder="ivanov"
               />
             </smt-control>
@@ -93,7 +93,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             <smt-control
               class="form-group"
               smtLabel="Email"
-              [smtError]="isCreateSubmitted() && !createForm.email.trim() ? ('iam.ukazhite_email' | t) : ''"
+              [smtError]="isCreateSubmitted() && !createForm().email.trim() ? ('iam.ukazhite_email' | t) : ''"
             >
               <smt-input
                 smtFieldId="user-create-email"
@@ -102,21 +102,21 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 class="font-mono"
                 required
                 autocomplete="email"
-                [(ngModel)]="createForm.email"
+                [(ngModel)]="createForm().email"
                 placeholder="ivanov@company.local"
               />
             </smt-control>
 
             <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-              <smt-phone-input smtFieldId="user-create-phone" name="userCreatePhone" [(ngModel)]="createForm.phone" />
+              <smt-phone-input smtFieldId="user-create-phone" name="userCreatePhone" [(ngModel)]="createForm().phone" />
             </smt-control>
 
             <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
               <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
               <smt-data-select
                 [source]="users"
-                [value]="createForm.managerId"
-                (valueChange)="createForm.managerId = $event"
+                [value]="createForm().managerId"
+                (valueChange)="createForm().managerId = $event"
                 [placeholder]="'iam.bez_rukovoditelya' | t"
                 [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
                 [emptyLabel]="'iam.bez_rukovoditelya' | t"
@@ -126,9 +126,9 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             <smt-control
               class="form-group span-2"
               [smtLabel]="'iam.vremennyy_parol' | t"
-              [smtHint]="createForm.password ? '' : ('password.policy.hint' | t: passwordPolicy)"
+              [smtHint]="createForm().password ? '' : ('password.policy.hint' | t: passwordPolicy)"
               [smtError]="
-                isCreateSubmitted() && !fitsPolicy(createForm.password)
+                isCreateSubmitted() && !fitsPolicy(createForm().password)
                   ? ('password.policy.length_error' | t: passwordPolicy)
                   : ''
               "
@@ -144,7 +144,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                   [minLength]="passwordPolicy.min"
                   [maxLength]="passwordPolicy.max"
                   autocomplete="new-password"
-                  [(ngModel)]="createForm.password"
+                  [(ngModel)]="createForm().password"
                   [placeholder]="'password.policy.range' | t: passwordPolicy"
                 />
                 <div class="pwd-actions">
@@ -157,7 +157,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">auto_fix_high</span>
                   </button>
-                  @if (createForm.password) {
+                  @if (createForm().password) {
                     <button
                       type="button"
                       class="pwd-btn"
@@ -171,7 +171,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 </div>
               </div>
               <!-- Dynamic Password Strength Meter -->
-              @if (createForm.password) {
+              @if (createForm().password) {
                 <div class="pwd-strength-container">
                   <div class="pwd-meter-header">
                     <div class="pwd-meter-bars">
@@ -246,7 +246,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               <smt-select
                 smtTriggerId="user-create-language"
                 name="userCreateLanguage"
-                [(ngModel)]="createForm.language"
+                [(ngModel)]="createForm().language"
                 [options]="languageOptions()"
                 [allowClear]="false"
               />
@@ -256,14 +256,14 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               <smt-select
                 smtTriggerId="user-create-timezone"
                 name="userCreateTimezone"
-                [(ngModel)]="createForm.timezone"
+                [(ngModel)]="createForm().timezone"
                 [options]="timezoneOptions"
                 [allowClear]="false"
               />
             </smt-control>
 
             <div class="form-group span-2">
-              <div smt-checkbox name="userCreate2fa" [(ngModel)]="createForm.is2faEnabled">
+              <div smt-checkbox name="userCreate2fa" [(ngModel)]="createForm().is2faEnabled">
                 {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
               </div>
             </div>
@@ -273,17 +273,17 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
                 <smt-tag-group
                   [options]="roleOptions()"
-                  [value]="createForm.roleIds || []"
-                  (valueChange)="createForm.roleIds = $event"
+                  [value]="createForm().roleIds || []"
+                  (valueChange)="createForm().roleIds = $event"
                 />
               </smt-control>
             }
 
             <!-- Custom Fields -->
-            @if (customFields.length > 0) {
+            @if (customFields().length > 0) {
               <div class="form-group span-2">
                 <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
-                <ui-custom-fields [fields]="customFields" [(values)]="createForm.attributes"></ui-custom-fields>
+                <ui-custom-fields [fields]="customFields()" [(values)]="createForm().attributes"></ui-custom-fields>
               </div>
             }
           </div>
@@ -474,6 +474,8 @@ export class UserCreateModalComponent {
   readonly hasUpperAndLower = input(false);
   readonly hasDigitsOrSymbols = input(false);
   readonly doesNotContainLogin = input(false);
+  readonly createForm = input<any>({});
+  readonly customFields = input<CustomField[]>([]);
 
   readonly close = output<void>();
   readonly submit = output<void>();
@@ -487,8 +489,6 @@ export class UserCreateModalComponent {
   readonly fitsPolicy = fitsPasswordPolicy;
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
   private roleOptionsCache: { roles: Role[]; lang: string; options: SMTTagOption<number>[] } | null = null;
-  @Input() createForm: any = {};
-  @Input() customFields: CustomField[] = [];
 
   /** The languages as options, labelled as they are named in the data. */
   languageOptions(): SMTSelectOption<string>[] {

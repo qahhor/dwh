@@ -1,4 +1,4 @@
-import { Component, Input, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import {
@@ -27,9 +27,9 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   ],
   template: `
     <!-- Create/Edit Modal -->
-    @if (isModalOpen) {
+    @if (isModalOpen()) {
       <smt-dialog
-        [open]="isModalOpen"
+        [open]="isModalOpen()"
         [smtTitle]="editingItem() ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
         (closed)="closeModal.emit()"
       >
@@ -115,7 +115,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
                 [allowClear]="true"
                 smtDescribedBy="nav-permission-hint"
                 [placeholder]="'nav.settings.permission_everyone' | t"
-                [value]="formRequiredPermission"
+                [value]="formRequiredPermission()"
                 (valueChange)="formRequiredPermissionChange.emit($event ?? null)"
               />
               <span class="form-hint" id="nav-permission-hint">{{ 'nav.settings.permission_hint' | t }}</span>
@@ -313,6 +313,11 @@ export class NavigationSettingsModalComponent {
   readonly formIcon = input('analytics');
   readonly popularIcons = input<string[]>([]);
 
+  readonly isModalOpen = input(false);
+  /** `form.action` pair the item is limited to; null shows it to everyone. */
+  readonly formRequiredPermission = input<string | null>(null);
+  readonly permissionChoices = input<NavigationPermissionChoice[]>([]);
+
   readonly formTitleChange = output<string>();
   readonly formCodeChange = output<string>();
   readonly formTargetTypeChange = output<NavigationTargetType>();
@@ -327,11 +332,6 @@ export class NavigationSettingsModalComponent {
   readonly closeModal = output<void>();
   readonly saveItem = output<void>();
 
-  @Input() isModalOpen = false;
-  /** `form.action` pair the item is limited to; null shows it to everyone. */
-  @Input() formRequiredPermission: string | null = null;
-  @Input() permissionChoices: NavigationPermissionChoice[] = [];
-
   private readonly targetTypeMemo = optionsMemo<SMTSelectOption<NavigationTargetType>[]>();
 
   private readonly sectionMemo = optionsMemo<SMTSelectOption<string>[]>();
@@ -340,12 +340,12 @@ export class NavigationSettingsModalComponent {
 
   /** Catalog pairs by name; a stored pair missing from the list stays visible by its key. */
   permissionOptions(): SMTSelectOption<string>[] {
-    return this.permissionMemo([this.permissionChoices, this.formRequiredPermission], () => {
-      const options = this.permissionChoices.map((choice) => ({
+    return this.permissionMemo([this.permissionChoices(), this.formRequiredPermission()], () => {
+      const options = this.permissionChoices().map((choice) => ({
         id: choice.permission,
         label: `${choice.formName} — ${choice.actionName}`,
       }));
-      const stored = this.formRequiredPermission;
+      const stored = this.formRequiredPermission();
       return stored && !options.some((option) => option.id === stored)
         ? [{ id: stored, label: stored }, ...options]
         : options;

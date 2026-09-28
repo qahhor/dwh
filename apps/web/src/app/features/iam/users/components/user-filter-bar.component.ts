@@ -1,4 +1,4 @@
-import { Component, Input, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -49,9 +49,9 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           smtAppearance="segmented"
           class="status-filter"
           [options]="stateOptions()"
-          [value]="selectedState"
+          [value]="selectedState()"
           [smtAriaLabel]="'iam.filtr_polzovateley_po_statusu' | t"
-          (valueChange)="stateFilterChange.emit($event ?? selectedState)"
+          (valueChange)="stateFilterChange.emit($event ?? selectedState())"
         />
 
         <!-- Grouped Filter Popover Trigger -->
@@ -110,7 +110,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
                   }}</label>
                   <smt-select
                     smtTriggerId="user-2fa-filter"
-                    [value]="selected2fa"
+                    [value]="selected2fa()"
                     (valueChange)="twoFactorFilterChange.emit($event)"
                     [options]="twoFactorOptions()"
                     [placeholder]="'iam.lyuboy_status_2fa' | t"
@@ -142,11 +142,11 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
         <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
 
         <!-- Status Filter Pill -->
-        @if (selectedState) {
+        @if (selectedState()) {
           <div class="filter-pill">
             <span>{{
               'iam.filtr_status'
-                | t: { status: selectedState === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
+                | t: { status: selectedState() === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
             }}</span>
             <button
               type="button"
@@ -175,10 +175,10 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
         }
 
         <!-- 2FA Filter Pill -->
-        @if (selected2fa !== null) {
+        @if (selected2fa() !== null) {
           <div class="filter-pill">
             <span>{{
-              'iam.filtr_2fa' | t: { status: selected2fa ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
+              'iam.filtr_2fa' | t: { status: selected2fa() ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
             }}</span>
             <button
               type="button"
@@ -415,6 +415,9 @@ export class UserFilterBarComponent {
   readonly hasAnyActiveFilters = input(false);
   readonly selectedRoleName = input('');
 
+  readonly selectedState = input('');
+  readonly selected2fa = input<boolean | null>(null);
+
   readonly searchQueryChange = output<string>();
   readonly searchInput = output<void>();
   readonly clearSearch = output<void>();
@@ -428,9 +431,6 @@ export class UserFilterBarComponent {
   readonly clearRoleFilter = output<void>();
   readonly clear2faFilter = output<void>();
   readonly resetAllFilters = output<void>();
-
-  @Input() selectedState = '';
-  @Input() selected2fa: boolean | null = null;
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<string>[]>();
   private readonly roleMemo = optionsMemo<SMTSelectOption<number>[]>();

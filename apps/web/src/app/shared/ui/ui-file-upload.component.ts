@@ -1,4 +1,4 @@
-import { Component, DestroyRef, Input, signal, inject, input, output } from '@angular/core';
+import { Component, DestroyRef, signal, inject, input, output } from '@angular/core';
 
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
@@ -85,9 +85,9 @@ export interface QueuedUpload {
       }
 
       <!-- File Attachment List -->
-      @if (files && files.length > 0) {
+      @if (files() && files().length > 0) {
         <div class="attachments-list" role="list" [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t">
-          @for (file of files; track trackFile($index, file)) {
+          @for (file of files(); track trackFile($index, file)) {
             <smt-file-card
               role="listitem"
               [name]="file.fileName"
@@ -102,7 +102,7 @@ export interface QueuedUpload {
         </div>
       }
 
-      @if ((!files || files.length === 0) && !canUpload()) {
+      @if ((!files() || files().length === 0) && !canUpload()) {
         <div class="empty-files">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
           <span>{{ 'ui.file_upload.net_prikreplennyh_faylov' | t }}</span>
@@ -208,13 +208,14 @@ export class UiFileUploadComponent {
   readonly canDelete = input(true);
   readonly multiple = input(true);
 
+  readonly files = input<TaskFile[]>([]);
+
   readonly fileAttached = output<TaskFile>();
   readonly fileRemoved = output<TaskFile>();
 
   /** Files waiting, uploading or failed; a file leaves the queue once it is attached. */
   readonly queue = signal<QueuedUpload[]>([]);
 
-  @Input() files: TaskFile[] = [];
   private nextQueueId = 0;
   private current: Subscription | null = null;
 
@@ -265,7 +266,7 @@ export class UiFileUploadComponent {
 
   /** Opens the attached images in the preview, starting at this one. */
   previewFile(file: TaskFile) {
-    const previews = this.files.map((item) => ({
+    const previews = this.files().map((item) => ({
       name: item.fileName,
       mimeType: item.mimeType,
       url: `/api/v1/files/${item.fileId}/download`,

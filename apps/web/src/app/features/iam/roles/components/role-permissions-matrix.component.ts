@@ -1,4 +1,4 @@
-import { Component, Input, inject, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { Role } from '../../../../core/models/rbac.models';
@@ -31,16 +31,16 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     <div class="matrix-header-bar">
       <div class="role-summary-box">
         <div class="role-name-row">
-          <h2 class="role-name-text">{{ role.name }}</h2>
-          @if (role.pcode) {
-            <span class="role-code-badge font-mono">{{ 'iam.system_code' | t: { code: role.pcode } }}</span>
+          <h2 class="role-name-text">{{ role().name }}</h2>
+          @if (role().pcode) {
+            <span class="role-code-badge font-mono">{{ 'iam.system_code' | t: { code: role().pcode ?? '' } }}</span>
           }
-          <span class="status-pill" [class.active]="role.state === 'A'">
-            {{ (role.state === 'A' ? 'common.active_feminine' : 'common.disabled_feminine') | t }}
+          <span class="status-pill" [class.active]="role().state === 'A'">
+            {{ (role().state === 'A' ? 'common.active_feminine' : 'common.disabled_feminine') | t }}
           </span>
         </div>
 
-        @if (!isLoading() && !permissionsError) {
+        @if (!isLoading() && !permissionsError()) {
           <div class="role-meter-row">
             <span class="meter-text">
               {{ 'iam.permissions_ratio' | t: { active: activePermissionsCount(), total: totalActionsCount() } }}
@@ -97,17 +97,17 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     @if (isLoading()) {
       <div class="matrix-load-status" role="status">{{ 'common.loading' | t }}</div>
     }
-    @if (permissionsError) {
+    @if (permissionsError()) {
       <smt-alert smtTone="danger">
-        <span>{{ permissionsError }}</span>
-        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refreshRole.emit(role)">
+        <span>{{ permissionsError() }}</span>
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="refreshRole.emit(role())">
           {{ 'common.refresh' | t }}
         </button>
       </smt-alert>
     }
 
     <!-- Superadmin Shield Banner -->
-    @if (role.pcode === 'admin') {
+    @if (role().pcode === 'admin') {
       <div class="admin-notice">
         <span class="material-symbols-outlined icon" aria-hidden="true">verified_user</span>
         <span>{{ 'iam.rol_superadministratora_obladaet_absolyutnymi_pr' | t }}</span>
@@ -115,7 +115,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     }
 
     <!-- Auditor Read-Only Banner -->
-    @if (role.pcode === 'auditor') {
+    @if (role().pcode === 'auditor') {
       <div class="admin-notice auditor-notice">
         <span class="material-symbols-outlined icon" aria-hidden="true">visibility</span>
         <span>{{ 'iam.rol_auditora_prednaznachena_dlya_proveryayuschih' | t }}</span>
@@ -255,7 +255,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
                         <div class="form-title-wrap">
                           <span class="form-name-text">{{ f.formName }}</span>
                           <span class="form-code-text font-mono">{{ f.formCode }}</span>
-                          @if (role.pcode !== 'admin') {
+                          @if (role().pcode !== 'admin') {
                             <div class="form-quick-toggles">
                               <button
                                 type="button"
@@ -333,6 +333,8 @@ export class RolePermissionsMatrixComponent {
   readonly getModuleIcon = input.required<(moduleCode: string) => string>();
   readonly getModuleActionsCount = input.required<(mod: ModuleGroup) => number>();
 
+  readonly role = input.required<Role>();
+
   readonly isLoading = input(false);
   readonly isSaving = input(false);
   readonly activePermissionsCount = input(0);
@@ -348,6 +350,7 @@ export class RolePermissionsMatrixComponent {
   readonly selectedModuleTab = input('all');
   readonly moduleGroups = input<ModuleGroup[]>([]);
   readonly visibleModuleGroups = input<ModuleGroup[]>([]);
+  readonly permissionsError = input('');
 
   readonly resetChanges = output<void>();
   readonly savePermissions = output<void>();
@@ -372,9 +375,6 @@ export class RolePermissionsMatrixComponent {
     action: string;
     checked: boolean;
   }>();
-
-  @Input({ required: true }) role!: Role;
-  @Input() permissionsError = '';
 
   private readonly moduleMemo = optionsMemo<SMTRadioOption<string>[]>();
 

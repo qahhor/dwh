@@ -1,4 +1,4 @@
-import { Component, Input, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -77,7 +77,7 @@ function withCurrent(
             smtFieldId="settings-company-name"
             name="settingsCompanyName"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings['system.company_name']"
+            [(ngModel)]="systemSettings()['system.company_name']"
             placeholder="SmartupCMS"
           />
         </div>
@@ -90,7 +90,7 @@ function withCurrent(
             [options]="languageOptions()"
             [allowClear]="false"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings['system.default_language']"
+            [(ngModel)]="systemSettings()['system.default_language']"
           />
         </div>
 
@@ -102,7 +102,7 @@ function withCurrent(
             [options]="timezoneOptions()"
             [allowClear]="false"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings['system.default_timezone']"
+            [(ngModel)]="systemSettings()['system.default_timezone']"
           />
         </div>
 
@@ -114,7 +114,7 @@ function withCurrent(
             [options]="dateFormatOptions()"
             [allowClear]="false"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings['system.date_format']"
+            [(ngModel)]="systemSettings()['system.date_format']"
           />
         </div>
       </div>
@@ -238,9 +238,9 @@ export class SettingsGeneralPanelComponent {
     }>
   >([]);
 
-  readonly save = output<void>();
+  readonly systemSettings = input<Record<string, string>>({});
 
-  @Input() systemSettings: Record<string, string> = {};
+  readonly save = output<void>();
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 
@@ -255,12 +255,12 @@ export class SettingsGeneralPanelComponent {
   }
 
   timezoneOptions(): readonly SMTSelectOption<string>[] {
-    const current = this.systemSettings['system.default_timezone'];
+    const current = this.systemSettings()['system.default_timezone'];
     return this.timezoneMemo([current], () => withCurrent(TIMEZONES, current));
   }
 
   dateFormatOptions(): readonly SMTSelectOption<string>[] {
-    const current = this.systemSettings['system.date_format'];
+    const current = this.systemSettings()['system.date_format'];
     return this.dateFormatMemo([current], () => withCurrent(DATE_FORMATS, current));
   }
 }

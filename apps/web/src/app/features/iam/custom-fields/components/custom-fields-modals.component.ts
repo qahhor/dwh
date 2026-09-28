@@ -1,4 +1,4 @@
-import { Component, inject, Input, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
@@ -50,9 +50,9 @@ const FIELD_TYPES: readonly [string, string][] = [
   ],
   template: `
     <!-- Create / Edit Modal -->
-    @if (showModal) {
+    @if (showModal()) {
       <smt-dialog
-        [open]="showModal"
+        [open]="showModal()"
         [smtTitle]="(editingField() ? 'iam.edit_field' : 'iam.new_custom_field') | t"
         (closed)="closeModal.emit()"
       >
@@ -67,7 +67,7 @@ const FIELD_TYPES: readonly [string, string][] = [
                 <smt-select
                   smtTriggerId="custom-field-entity"
                   name="entityType"
-                  [(ngModel)]="formData.entityType"
+                  [(ngModel)]="formData().entityType"
                   [options]="entityOptions()"
                   [allowClear]="false"
                   required
@@ -86,14 +86,14 @@ const FIELD_TYPES: readonly [string, string][] = [
                   class="font-mono"
                   smtFieldId="custom-field-code"
                   name="code"
-                  [(ngModel)]="formData.code"
+                  [(ngModel)]="formData().code"
                   (input)="codeInput.emit($event)"
                   [disabled]="!!editingField()"
                   [placeholder]="'iam.naprimer_inn_budget' | t"
                   [maxLength]="64"
                   autocomplete="off"
-                  [smtInvalid]="!!formError"
-                  [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
+                  [smtInvalid]="!!formError()"
+                  [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
                   required
                 />
                 @if (!editingField()) {
@@ -111,11 +111,11 @@ const FIELD_TYPES: readonly [string, string][] = [
                 <smt-input
                   smtFieldId="custom-field-name"
                   name="name"
-                  [(ngModel)]="formData.name"
+                  [(ngModel)]="formData().name"
                   [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
                   [maxLength]="100"
-                  [smtInvalid]="!!formError"
-                  [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
+                  [smtInvalid]="!!formError()"
+                  [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
                   required
                 />
               </div>
@@ -131,7 +131,7 @@ const FIELD_TYPES: readonly [string, string][] = [
                   <smt-select
                     smtTriggerId="custom-field-type"
                     name="fieldType"
-                    [(ngModel)]="formData.fieldType"
+                    [(ngModel)]="formData().fieldType"
                     [options]="fieldTypeOptions()"
                     [allowClear]="false"
                     required
@@ -146,7 +146,7 @@ const FIELD_TYPES: readonly [string, string][] = [
                 <smt-input
                   smtFieldId="custom-field-default"
                   name="defaultValue"
-                  [(ngModel)]="formData.defaultValue"
+                  [(ngModel)]="formData().defaultValue"
                   [placeholder]="'iam.ne_obyazatelno' | t"
                   [maxLength]="255"
                 />
@@ -161,7 +161,7 @@ const FIELD_TYPES: readonly [string, string][] = [
                   smtFieldId="custom-field-order"
                   name="orderNo"
                   type="number"
-                  [(ngModel)]="formData.orderNo"
+                  [(ngModel)]="formData().orderNo"
                   [placeholder]="'iam.poryadok_sortirovki_hint' | t"
                   [smtMin]="0"
                   [smtMax]="99999"
@@ -170,7 +170,7 @@ const FIELD_TYPES: readonly [string, string][] = [
             </div>
 
             <!-- Options for select type -->
-            @if (formData.fieldType === 'select') {
+            @if (formData().fieldType === 'select') {
               <div class="form-group">
                 <label class="form-label" for="custom-field-options">
                   {{ 'iam.varianty_spiska' | t }} <span class="req" aria-hidden="true">*</span>
@@ -178,11 +178,11 @@ const FIELD_TYPES: readonly [string, string][] = [
                 <smt-textarea
                   smtFieldId="custom-field-options"
                   name="optionsText"
-                  [(ngModel)]="formData.optionsText"
+                  [(ngModel)]="formData().optionsText"
                   [rows]="4"
                   [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
-                  [smtInvalid]="!!formError"
-                  [smtDescribedBy]="formError ? 'custom-field-form-error' : ''"
+                  [smtInvalid]="!!formError()"
+                  [smtDescribedBy]="formError() ? 'custom-field-form-error' : ''"
                   required
                 />
                 <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
@@ -191,13 +191,13 @@ const FIELD_TYPES: readonly [string, string][] = [
 
             <!-- Required flag, saved with the form -->
             <div class="form-group checkbox-group">
-              <div smt-checkbox name="isRequired" [(ngModel)]="formData.isRequired">
+              <div smt-checkbox name="isRequired" [(ngModel)]="formData().isRequired">
                 {{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}
               </div>
             </div>
 
-            @if (formError) {
-              <p id="custom-field-form-error" class="form-error" role="alert">{{ formError }}</p>
+            @if (formError()) {
+              <p id="custom-field-form-error" class="form-error" role="alert">{{ formError() }}</p>
             }
           </form>
 
@@ -324,16 +324,18 @@ const FIELD_TYPES: readonly [string, string][] = [
 export class CustomFieldsModalsComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly formData = input.required<CustomFieldFormData>();
+
   readonly editingField = input<CustomField | null>(null);
   readonly saving = input(false);
+
+  readonly showModal = input(false);
+  readonly formError = input('');
 
   readonly closeModal = output<void>();
   readonly saveField = output<void>();
   readonly codeInput = output<Event>();
 
-  @Input() showModal = false;
-  @Input() formData!: CustomFieldFormData;
-  @Input() formError = '';
   private readonly entityMemo = optionsMemo<SMTSelectOption<string>[]>();
   private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
 

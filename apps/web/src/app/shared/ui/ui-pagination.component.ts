@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, SimpleChanges, input, output } from '@angular/core';
+import { Component, OnChanges, SimpleChanges, input, model, output } from '@angular/core';
 
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -8,16 +8,16 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
   selector: 'ui-pagination',
   imports: [TranslatePipe, SMTSelectComponent],
   template: `
-    @if (totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))) {
+    @if (totalItems() > 0 || (cursorMode() && (currentPage() > 1 || hasNextPage()))) {
       <nav class="pagination-bar" [attr.aria-label]="'ui.pagination.paginaciya' | t">
         <!-- Left: Item Range & Total Counter -->
-        @if (totalItems > 0) {
+        @if (totalItems() > 0) {
           <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
             <span class="range-text">
               {{ 'ui.pagination.pokazano' | t }}
               <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
-              @if (!cursorMode || !cursorItemsArePageLength()) {
-                {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems }}</strong>
+              @if (!cursorMode() || !cursorItemsArePageLength()) {
+                {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems() }}</strong>
               }
             </span>
           </div>
@@ -35,7 +35,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                 [options]="pageSizeChoices()"
                 [allowClear]="false"
                 [disabled]="disabled()"
-                [value]="pageSize"
+                [value]="pageSize()"
                 (valueChange)="onPageSizeChange($event)"
               />
             </div>
@@ -44,13 +44,13 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
           <!-- Navigation Buttons & Page Numbers -->
           <div class="page-nav">
             <!-- First Page -->
-            @if (!cursorMode) {
+            @if (!cursorMode()) {
               <button
                 type="button"
                 class="nav-btn"
                 [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
                 [title]="'ui.pagination.pervaya_stranica' | t"
-                [disabled]="disabled() || currentPage === 1"
+                [disabled]="disabled() || currentPage() === 1"
                 (click)="goToPage(1)"
               >
                 <span class="material-symbols-outlined icon" aria-hidden="true">first_page</span>
@@ -63,14 +63,14 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               class="nav-btn"
               [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
               [title]="'ui.pagination.predyduschaya_stranica' | t"
-              [disabled]="disabled() || currentPage === 1"
-              (click)="goToPage(currentPage - 1)"
+              [disabled]="disabled() || currentPage() === 1"
+              (click)="goToPage(currentPage() - 1)"
             >
               <span class="material-symbols-outlined icon" aria-hidden="true">chevron_left</span>
             </button>
 
             <!-- Page Numbers -->
-            @if (!cursorMode) {
+            @if (!cursorMode()) {
               <div class="page-numbers">
                 @for (p of visiblePages; track p) {
                   @if (p === -1) {
@@ -80,9 +80,9 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
                     <button
                       type="button"
                       class="page-btn font-mono"
-                      [class.active]="p === currentPage"
+                      [class.active]="p === currentPage()"
                       [attr.aria-label]="'ui.pagination.page_number' | t: { page: p }"
-                      [attr.aria-current]="p === currentPage ? 'page' : null"
+                      [attr.aria-current]="p === currentPage() ? 'page' : null"
                       [disabled]="disabled()"
                       (click)="goToPage(p)"
                     >
@@ -94,10 +94,10 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
             }
 
             <!-- aria-label is ignored on a span without a role, so the name is real text. -->
-            @if (cursorMode) {
+            @if (cursorMode()) {
               <span class="current-page-indicator font-mono" aria-current="page">
-                <span aria-hidden="true">{{ currentPage }}</span>
-                <span class="sr-only">{{ 'ui.pagination.page_number' | t: { page: currentPage } }}</span>
+                <span aria-hidden="true">{{ currentPage() }}</span>
+                <span class="sr-only">{{ 'ui.pagination.page_number' | t: { page: currentPage() } }}</span>
               </span>
             }
 
@@ -107,20 +107,20 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               class="nav-btn"
               [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
               [title]="'ui.pagination.sleduyuschaya_stranica' | t"
-              [disabled]="disabled() || (cursorMode ? !hasNextPage : currentPage >= totalPages)"
-              (click)="goToPage(currentPage + 1)"
+              [disabled]="disabled() || (cursorMode() ? !hasNextPage() : currentPage() >= totalPages)"
+              (click)="goToPage(currentPage() + 1)"
             >
               <span class="material-symbols-outlined icon" aria-hidden="true">chevron_right</span>
             </button>
 
             <!-- Last Page -->
-            @if (!cursorMode) {
+            @if (!cursorMode()) {
               <button
                 type="button"
                 class="nav-btn"
                 [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
                 [title]="'ui.pagination.poslednyaya_stranica' | t"
-                [disabled]="disabled() || currentPage >= totalPages"
+                [disabled]="disabled() || currentPage() >= totalPages"
                 (click)="goToPage(totalPages)"
               >
                 <span class="material-symbols-outlined icon" aria-hidden="true">last_page</span>
@@ -271,16 +271,18 @@ export class UiPaginationComponent implements OnChanges {
   readonly cursorItemsArePageLength = input<boolean>(false);
   readonly disabled = input<boolean>(false);
 
+  readonly totalItems = input<number>(0);
+  readonly cursorMode = input<boolean>(false);
+  readonly hasNextPage = input<boolean>(false);
+
   readonly pageChange = output<number>();
-  readonly pageSizeChange = output<number>();
+
+  /** The page on screen; the bar moves it itself in numbered mode and reports it through pageChange. */
+  readonly currentPage = model<number>(1);
+  /** Rows per page; choosing another size sets it and emits pageSizeChange. */
+  readonly pageSize = model<number>(10);
 
   private static nextId = 0;
-
-  @Input() totalItems: number = 0;
-  @Input() currentPage: number = 1;
-  @Input() pageSize: number = 10;
-  @Input() cursorMode: boolean = false;
-  @Input() hasNextPage: boolean = false;
 
   totalPages: number = 1;
   startItem: number = 0;
@@ -301,7 +303,7 @@ export class UiPaginationComponent implements OnChanges {
   }
 
   calculatePagination() {
-    if (this.totalItems <= 0) {
+    if (this.totalItems() <= 0) {
       this.totalPages = 1;
       this.startItem = 0;
       this.endItem = 0;
@@ -309,53 +311,53 @@ export class UiPaginationComponent implements OnChanges {
       return;
     }
 
-    if (this.cursorMode) {
-      this.currentPage = Math.max(1, this.currentPage);
-      this.totalPages = this.currentPage + (this.hasNextPage ? 1 : 0);
-      this.startItem = (this.currentPage - 1) * this.pageSize + 1;
+    if (this.cursorMode()) {
+      this.currentPage.set(Math.max(1, this.currentPage()));
+      this.totalPages = this.currentPage() + (this.hasNextPage() ? 1 : 0);
+      this.startItem = (this.currentPage() - 1) * this.pageSize() + 1;
       this.endItem = this.cursorItemsArePageLength()
-        ? this.startItem + this.totalItems - 1
-        : Math.min(this.currentPage * this.pageSize, this.totalItems);
+        ? this.startItem + this.totalItems() - 1
+        : Math.min(this.currentPage() * this.pageSize(), this.totalItems());
       this.visiblePages = [];
       return;
     }
 
-    this.totalPages = Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+    this.totalPages = Math.max(1, Math.ceil(this.totalItems() / this.pageSize()));
 
-    if (this.currentPage > this.totalPages) {
-      this.currentPage = this.totalPages;
-    } else if (this.currentPage < 1) {
-      this.currentPage = 1;
+    if (this.currentPage() > this.totalPages) {
+      this.currentPage.set(this.totalPages);
+    } else if (this.currentPage() < 1) {
+      this.currentPage.set(1);
     }
 
-    this.startItem = (this.currentPage - 1) * this.pageSize + 1;
-    this.endItem = Math.min(this.currentPage * this.pageSize, this.totalItems);
+    this.startItem = (this.currentPage() - 1) * this.pageSize() + 1;
+    this.endItem = Math.min(this.currentPage() * this.pageSize(), this.totalItems());
 
-    this.visiblePages = this.generatePageNumbers(this.currentPage, this.totalPages);
+    this.visiblePages = this.generatePageNumbers(this.currentPage(), this.totalPages);
   }
 
   goToPage(page: number) {
     if (this.disabled()) return;
+    const currentPage = this.currentPage();
     const isCursorStep =
-      this.cursorMode && (page === this.currentPage - 1 || (page === this.currentPage + 1 && this.hasNextPage));
-    const isNumberedPage = !this.cursorMode && page >= 1 && page <= this.totalPages;
-    if (page >= 1 && page !== this.currentPage && (isCursorStep || isNumberedPage)) {
-      if (this.cursorMode) {
+      this.cursorMode() && (page === currentPage - 1 || (page === currentPage + 1 && this.hasNextPage()));
+    const isNumberedPage = !this.cursorMode() && page >= 1 && page <= this.totalPages;
+    if (page >= 1 && page !== currentPage && (isCursorStep || isNumberedPage)) {
+      if (this.cursorMode()) {
         this.pageChange.emit(page);
         return;
       }
-      this.currentPage = page;
+      this.currentPage.set(page);
       this.calculatePagination();
-      this.pageChange.emit(this.currentPage);
+      this.pageChange.emit(this.currentPage());
     }
   }
 
   onPageSizeChange(newSize: number | null) {
     if (newSize === null) return;
-    this.pageSize = newSize;
-    this.currentPage = 1;
+    this.pageSize.set(newSize);
+    this.currentPage.set(1);
     this.calculatePagination();
-    this.pageSizeChange.emit(this.pageSize);
   }
 
   private generatePageNumbers(current: number, total: number): number[] {

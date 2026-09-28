@@ -1,5 +1,5 @@
 <form [id]="formId" (submit)="$event.preventDefault()" (ngSubmit)="submit()">
-  @if (error) {
+  @if (error(); as error) {
     <p role="alert">{{ error.detail || ('iam.org_units.save_error' | t) }}</p>
   }
   @if (attempted && !valid) {

@@ -1,4 +1,4 @@
-import { Component, Input, signal, ElementRef, inject, input, output, viewChild } from '@angular/core';
+import { Component, signal, ElementRef, inject, input, model, viewChild } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
@@ -145,7 +145,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
               [placeholder]="
                 placeholder() || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)
               "
-              [ngModel]="value"
+              [ngModel]="value()"
               (ngModelChange)="onTextChange($event)"
               (focus)="isFocused = true"
               (blur)="isFocused = false"
@@ -161,7 +161,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
             role="tabpanel"
             [id]="previewPanelId"
             [attr.aria-labelledby]="previewTabId"
-            [innerHTML]="renderMarkdown(value)"
+            [innerHTML]="renderMarkdown(value())"
           ></div>
         }
       </div>
@@ -377,13 +377,12 @@ export class UiMarkdownEditorComponent {
   readonly rows = input(4);
   readonly ariaLabel = input('');
 
-  readonly valueChange = output<string>();
+  /** The text, two-way: typing sets it and emits valueChange. */
+  readonly value = model('');
 
   readonly textareaRef = viewChild<ElementRef<HTMLTextAreaElement>>('textareaRef');
 
   private static nextId = 0;
-
-  @Input() value = '';
 
   mode: 'edit' | 'preview' = 'edit';
   isFocused = false;
@@ -397,8 +396,7 @@ export class UiMarkdownEditorComponent {
   private readonly tabsMemo = optionsMemo<SMTTabItem<'edit' | 'preview'>[]>();
 
   onTextChange(newVal: string) {
-    this.value = newVal;
-    this.valueChange.emit(newVal);
+    this.value.set(newVal);
   }
 
   handleKeydown(event: KeyboardEvent) {
@@ -415,13 +413,13 @@ export class UiMarkdownEditorComponent {
     const el = this.textareaRef()?.nativeElement;
     if (!el) {
       if (type === 'bold')
-        this.onTextChange((this.value || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
+        this.onTextChange((this.value() || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
       return;
     }
 
     const start = el.selectionStart;
     const end = el.selectionEnd;
-    const current = this.value || '';
+    const current = this.value() || '';
     const selected = current.substring(start, end);
 
     let replacement = '';

@@ -1,4 +1,4 @@
-import { Component, Input, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
@@ -74,10 +74,10 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               <p role="status">{{ 'search.record_readonly_id' | t }}</p>
             }
             <!-- Ancestor Breadcrumbs Trail -->
-            @if (taskAncestors.length > 0) {
+            @if (taskAncestors().length > 0) {
               <div class="ancestor-trail">
                 <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
-                @for (anc of taskAncestors; track anc) {
+                @for (anc of taskAncestors(); track anc) {
                   <button
                     type="button"
                     class="anc-link"
@@ -127,7 +127,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                 <!-- Subtasks Section -->
                 <div class="detail-section">
                   <div class="section-header-between">
-                    <h4 class="section-label">{{ 'tasks.subtasks_count' | t: { count: taskSubtasks.length } }}</h4>
+                    <h4 class="section-label">{{ 'tasks.subtasks_count' | t: { count: taskSubtasks().length } }}</h4>
                     @if (canCreateTask() && safeRecordId(t.id)) {
                       <button type="button" class="add-subtask-btn" (click)="openAddSubtask.emit(t)">
                         <span class="material-symbols-outlined" aria-hidden="true">add</span>
@@ -136,9 +136,9 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                     }
                   </div>
 
-                  @if (taskSubtasks.length > 0) {
+                  @if (taskSubtasks().length > 0) {
                     <div class="subtasks-list">
-                      @for (sub of taskSubtasks; track sub) {
+                      @for (sub of taskSubtasks(); track sub) {
                         <button
                           type="button"
                           class="subtask-row"
@@ -172,7 +172,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
                       }
                     </div>
                   }
-                  @if (taskSubtasks.length === 0) {
+                  @if (taskSubtasks().length === 0) {
                     <div class="no-subtasks-hint text-muted">
                       {{ 'tasks.u_etoy_zadachi_poka_net_podzadach' | t }}
                     </div>
@@ -530,6 +530,8 @@ export class TaskDetailModalComponent {
   readonly canCreateTask = input(false);
   readonly canUpdateTask = input(false);
   readonly canCommentTask = input(false);
+  readonly taskAncestors = input<Task[]>([]);
+  readonly taskSubtasks = input<Task[]>([]);
 
   readonly close = output<void>();
   readonly retryTaskDetails = output<void>();
@@ -547,8 +549,6 @@ export class TaskDetailModalComponent {
   readonly submitComment = output<void>();
 
   readonly safeRecordId = safeNumericRecordId;
-  @Input() taskAncestors: Task[] = [];
-  @Input() taskSubtasks: Task[] = [];
 
   private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
 

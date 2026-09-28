@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, input, output, viewChild } from '@angular/core';
+import { Component, ElementRef, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -101,8 +101,8 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
                     @if (isSectionActive()(section)) {
                       <span class="rail-category-active-bar" aria-hidden="true"></span>
                     }
-                    @if (getSectionBadge(section) > 0) {
-                      <span class="rail-category-badge">{{ getSectionBadge(section) }}</span>
+                    @if (getSectionBadge()(section) > 0) {
+                      <span class="rail-category-badge">{{ getSectionBadge()(section) }}</span>
                     }
                     <div class="nav-tooltip" role="tooltip">
                       <span>{{ section.titleKey | t }}</span>
@@ -184,6 +184,8 @@ export class AppSidebarComponent {
   readonly isSectionExpanded = input.required<(sectionId: string) => boolean>();
   readonly isSubmenuExpanded = input.required<(itemId: string) => boolean>();
 
+  readonly getSectionBadge = input.required<(section: NavSection) => number>();
+
   readonly sidebarId = input('app-sidebar');
   readonly isMobile = input(false);
   readonly isMobileMenuOpen = input(false);
@@ -227,6 +229,4 @@ export class AppSidebarComponent {
 
   readonly sidebarElement = viewChild<ElementRef<HTMLElement>>('sidebarElement');
   readonly mobileDrawerClose = viewChild<ElementRef<HTMLButtonElement>>('mobileDrawerClose');
-
-  @Input() getSectionBadge!: (section: NavSection) => number;
 }

@@ -31,7 +31,7 @@ describe('UiCustomFieldsComponent', () => {
     fixture.componentRef.setInput('fields', fields);
     fixture.componentRef.setInput('values', values);
     let emitted: Record<string, unknown> | undefined;
-    fixture.componentInstance.valuesChange.subscribe((value) => (emitted = value));
+    fixture.componentInstance.values.subscribe((value) => (emitted = value));
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();

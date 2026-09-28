@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnInit, input, output } from '@angular/core';
+import { Component, inject, OnInit, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
@@ -47,10 +47,11 @@ export class OrgUnitEditorComponent implements OnInit {
   readonly units = input<OrgUnit[]>([]);
   readonly pending = input(false);
 
+  readonly error = input<ProblemDetail | null>(null);
+
   readonly save = output<OrgUnitSubmission>();
   readonly cancel = output<void>();
 
-  @Input() error: ProblemDetail | null = null;
   draft: OrgUnitCreate & { state: 'A' | 'P' } = {
     parentId: null,
     code: '',
@@ -128,9 +129,10 @@ export class OrgUnitEditorComponent implements OnInit {
     );
   }
   fieldError(field: string): string | null {
+    const error = this.error();
     return (
-      this.error?.invalid_params?.find((item) => item.name === field)?.reason ??
-      this.error?.errors?.find((item) => item.field === field)?.message ??
+      error?.invalid_params?.find((item) => item.name === field)?.reason ??
+      error?.errors?.find((item) => item.field === field)?.message ??
       null
     );
   }

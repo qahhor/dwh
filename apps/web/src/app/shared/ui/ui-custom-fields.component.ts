@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, model } from '@angular/core';
 import { CustomField } from '../../core/models/custom-field.models';
 import { I18nService } from '../../core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
@@ -23,7 +23,7 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
           <smt-dynamic-field
             [field]="field"
             [userSource]="users"
-            [value]="values[field.code] ?? null"
+            [value]="values()[field.code] ?? null"
             (valueChange)="onValueChange(field.code, $event)"
           />
         }
@@ -46,11 +46,10 @@ export class UiCustomFieldsComponent {
 
   readonly fields = input<CustomField[]>([]);
 
-  readonly valuesChange = output<Record<string, unknown>>();
+  /** The values by field code, two-way: a change sets it and emits valuesChange. */
+  readonly values = model<Record<string, unknown>>({});
 
   readonly users = inject(LookupSources).activeUsers;
-
-  @Input() values: Record<string, unknown> = {};
 
   private cache: { fields: CustomField[]; lang: string; definitions: SMTDynamicFieldDef[] } | null = null;
 
@@ -65,8 +64,7 @@ export class UiCustomFieldsComponent {
   }
 
   onValueChange(code: string, value: unknown): void {
-    this.values = { ...this.values, [code]: value };
-    this.valuesChange.emit(this.values);
+    this.values.set({ ...this.values(), [code]: value });
   }
 
   private definitionOf(field: CustomField): SMTDynamicFieldDef {
