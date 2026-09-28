@@ -158,6 +158,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
         <section class="upl-block" id="upl-step-sheets" data-testid="upl-step-sheets" [hidden]="step() !== 'sheets'">
           <app-upl-format-sheets-step
             [model]="model"
+            [shown]="step() === 'sheets'"
             [editable]="editable()"
             [units]="units()"
             [(activeSheet)]="activeSheet"
@@ -169,6 +170,7 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
           <app-upl-format-publish-step
             [version]="version()"
             [model]="model"
+            [shown]="step() === 'publish'"
             [errorCount]="errors().length"
             [dirty]="isDirty()"
             [previousValidFrom]="previousValidFrom()"

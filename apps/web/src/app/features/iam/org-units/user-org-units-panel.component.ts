@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
@@ -30,6 +31,7 @@ import { OrgUnit, UserScope } from './org-units.models';
 
 @Component({
   selector: 'app-user-org-units-panel',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     SMTButtonComponent,
@@ -54,6 +56,22 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
 
   readonly selectedOrgUnitIds = signal<readonly number[]>([]);
   readonly search = signal('');
+  readonly units = signal<OrgUnit[]>([]);
+  readonly legacyOrgUnitId = signal<number | null>(null);
+  readonly effectiveScope = signal<UserScope | null>(null);
+  readonly pending = signal(false);
+  readonly treeLoading = signal(false);
+  readonly treeLoaded = signal(false);
+  readonly treeError = signal<ProblemDetail | null>(null);
+  readonly assignmentsLoading = signal(false);
+  readonly assignmentsLoaded = signal(false);
+  readonly assignmentsError = signal<ProblemDetail | null>(null);
+  readonly scopeLoading = signal(false);
+  readonly scopeLoaded = signal(false);
+  readonly scopeError = signal<ProblemDetail | null>(null);
+  readonly saveError = signal<ProblemDetail | null>(null);
+  readonly savedRefreshFailed = signal(false);
+  private readonly originalOrgUnitIds = signal<readonly number[]>([]);
 
   /** The tree table identifies rows by string id. */
   readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
@@ -66,27 +84,11 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private activeTarget: number | null = null;
   private deferredTarget: number | null = null;
   private viewEpoch = 0;
-  private originalOrgUnitIds: readonly number[] = [];
   private readonly treeRowCache = new OrgUnitTreeRows();
   readonly searchText = orgUnitSearchText((key) => this.i18n.translate(key));
-  units: OrgUnit[] = [];
-  legacyOrgUnitId: number | null = null;
-  effectiveScope: UserScope | null = null;
-  pending = false;
-  treeLoading = false;
-  treeLoaded = false;
-  treeError: ProblemDetail | null = null;
-  assignmentsLoading = false;
-  assignmentsLoaded = false;
-  assignmentsError: ProblemDetail | null = null;
-  scopeLoading = false;
-  scopeLoaded = false;
-  scopeError: ProblemDetail | null = null;
-  saveError: ProblemDetail | null = null;
-  savedRefreshFailed = false;
   readonly discard = new OrgUnitDraft(
     () => this.dirty,
-    () => this.pending,
+    () => this.pending(),
     () => this.restoreDraft(),
   );
 
@@ -105,7 +107,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
 
   get treeRows(): TreeRow<OrgUnit>[] {
-    return this.treeRowCache.of(this.units);
+    return this.treeRowCache.of(this.units());
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -119,24 +121,24 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     );
   }
   get dirty(): boolean {
-    return this.assignmentsLoaded && !sameIds(this.selectedOrgUnitIds(), this.originalOrgUnitIds);
+    return this.assignmentsLoaded() && !sameIds(this.selectedOrgUnitIds(), this.originalOrgUnitIds());
   }
   get inactiveAssignments(): OrgUnit[] {
     const selected = new Set(this.selectedOrgUnitIds());
-    return this.units.filter((unit) => selected.has(unit.id) && unit.state === 'P');
+    return this.units().filter((unit) => selected.has(unit.id) && unit.state === 'P');
   }
   get unresolvedAssignmentIds(): number[] {
-    if (!this.treeLoaded) return [];
-    const known = new Set(this.units.map((unit) => unit.id));
+    if (!this.treeLoaded()) return [];
+    const known = new Set(this.units().map((unit) => unit.id));
     return this.selectedOrgUnitIds().filter((id) => !known.has(id));
   }
 
   toggleAssignment(unit: OrgUnit): void {
-    if (!this.can('assign') || !this.assignmentsLoaded || this.pending || !safeNumericRecordId(unit.id)) return;
+    if (!this.can('assign') || !this.assignmentsLoaded() || this.pending() || !safeNumericRecordId(unit.id)) return;
     const selected = new Set(this.selectedOrgUnitIds());
     selected.has(unit.id) ? selected.delete(unit.id) : selected.add(unit.id);
     this.selectedOrgUnitIds.set([...selected].sort((a, b) => a - b));
-    this.saveError = null;
+    this.saveError.set(null);
   }
 
   save(): void {
@@ -144,9 +146,9 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     const ids = [...this.selectedOrgUnitIds()];
     if (
       !this.can('assign') ||
-      !this.assignmentsLoaded ||
+      !this.assignmentsLoaded() ||
       !this.dirty ||
-      this.pending ||
+      this.pending() ||
       target === null ||
       target !== this.userId() ||
       !safeNumericRecordId(target) ||
@@ -155,7 +157,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
       return;
     const epoch = this.viewEpoch;
     this.setPending(true);
-    this.saveError = null;
+    this.saveError.set(null);
     this.changeDetector.markForCheck();
     this.writes.add(
       this.api.saveAssignments(target, ids).subscribe({
@@ -165,15 +167,15 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
             this.loadDeferredTarget();
             return;
           }
-          this.originalOrgUnitIds = [...ids];
+          this.originalOrgUnitIds.set([...ids]);
           this.selectedOrgUnitIds.set([...ids]);
-          this.assignmentsLoaded = true;
+          this.assignmentsLoaded.set(true);
           this.toast.success(this.i18n.translate('iam.org_units.assignments_saved'));
           this.reloadScope(true);
         },
         error: (error) => {
           this.setPending(false);
-          if (this.currentView(epoch, target)) this.saveError = error;
+          if (this.currentView(epoch, target)) this.saveError.set(error);
           else this.loadDeferredTarget();
           this.changeDetector.markForCheck();
         },
@@ -182,7 +184,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
 
   reloadAll(): void {
-    if (this.pending || !this.can('view')) return;
+    if (this.pending() || !this.can('view')) return;
     const userId = this.userId();
     if (this.activeTarget !== userId) {
       this.activateTarget(userId);
@@ -194,25 +196,25 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
   reloadTree(): void {
     const target = this.activeTarget;
-    if (!this.can('view') || this.pending || target === null || !safeNumericRecordId(target)) return;
+    if (!this.can('view') || this.pending() || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
     this.treeRequest?.unsubscribe();
-    this.treeLoading = true;
-    this.treeLoaded = false;
-    this.treeError = null;
+    this.treeLoading.set(true);
+    this.treeLoaded.set(false);
+    this.treeError.set(null);
     this.treeRequest = this.api.list().subscribe({
       next: (units) => {
         if (!this.currentView(epoch, target)) return;
-        this.units = units;
-        this.treeLoading = false;
-        this.treeLoaded = true;
+        this.units.set(units);
+        this.treeLoading.set(false);
+        this.treeLoaded.set(true);
         this.changeDetector.markForCheck();
       },
       error: (error) => {
         if (this.currentView(epoch, target)) {
-          this.treeLoading = false;
-          this.treeLoaded = false;
-          this.treeError = error;
+          this.treeLoading.set(false);
+          this.treeLoaded.set(false);
+          this.treeError.set(error);
           this.changeDetector.markForCheck();
         }
       },
@@ -220,35 +222,35 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
   reloadAssignments(): void {
     const target = this.activeTarget;
-    if (!this.can('view') || this.pending || this.dirty || target === null || !safeNumericRecordId(target)) return;
+    if (!this.can('view') || this.pending() || this.dirty || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
     this.assignmentsRequest?.unsubscribe();
-    this.assignmentsLoading = true;
-    this.assignmentsLoaded = false;
-    this.assignmentsError = null;
-    this.saveError = null;
+    this.assignmentsLoading.set(true);
+    this.assignmentsLoaded.set(false);
+    this.assignmentsError.set(null);
+    this.saveError.set(null);
     this.assignmentsRequest = this.api.assignments(target).subscribe({
       next: (snapshot) => {
         if (!this.currentView(epoch, target)) return;
-        this.assignmentsLoading = false;
+        this.assignmentsLoading.set(false);
         if (snapshot.userId !== target || !snapshot.orgUnitIds.every(safeNumericRecordId)) {
-          this.assignmentsError = this.unavailable();
-          this.assignmentsLoaded = false;
+          this.assignmentsError.set(this.unavailable());
+          this.assignmentsLoaded.set(false);
           this.changeDetector.markForCheck();
           return;
         }
         const ids = normalizedIds(snapshot.orgUnitIds);
-        this.originalOrgUnitIds = ids;
+        this.originalOrgUnitIds.set(ids);
         this.selectedOrgUnitIds.set([...ids]);
-        this.legacyOrgUnitId = snapshot.legacyOrgUnitId ?? null;
-        this.assignmentsLoaded = true;
+        this.legacyOrgUnitId.set(snapshot.legacyOrgUnitId ?? null);
+        this.assignmentsLoaded.set(true);
         this.changeDetector.markForCheck();
       },
       error: (error) => {
         if (this.currentView(epoch, target)) {
-          this.assignmentsLoading = false;
-          this.assignmentsLoaded = false;
-          this.assignmentsError = error;
+          this.assignmentsLoading.set(false);
+          this.assignmentsLoaded.set(false);
+          this.assignmentsError.set(error);
           this.changeDetector.markForCheck();
         }
       },
@@ -256,27 +258,27 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
   reloadScope(afterSave = false): void {
     const target = this.activeTarget;
-    if (!this.can('view') || this.pending || target === null || !safeNumericRecordId(target)) return;
+    if (!this.can('view') || this.pending() || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
     this.scopeRequest?.unsubscribe();
-    this.scopeLoading = true;
-    this.scopeLoaded = false;
-    this.scopeError = null;
+    this.scopeLoading.set(true);
+    this.scopeLoaded.set(false);
+    this.scopeError.set(null);
     this.scopeRequest = this.api.scope(target).subscribe({
       next: (scope) => {
         if (!this.currentView(epoch, target)) return;
-        this.effectiveScope = scope;
-        this.scopeLoading = false;
-        this.scopeLoaded = true;
-        this.savedRefreshFailed = false;
+        this.effectiveScope.set(scope);
+        this.scopeLoading.set(false);
+        this.scopeLoaded.set(true);
+        this.savedRefreshFailed.set(false);
         this.changeDetector.markForCheck();
       },
       error: (error) => {
         if (this.currentView(epoch, target)) {
-          this.scopeLoading = false;
-          this.scopeLoaded = false;
-          this.scopeError = error;
-          this.savedRefreshFailed = afterSave || this.savedRefreshFailed;
+          this.scopeLoading.set(false);
+          this.scopeLoaded.set(false);
+          this.scopeError.set(error);
+          this.savedRefreshFailed.set(afterSave || this.savedRefreshFailed());
           this.changeDetector.markForCheck();
         }
       },
@@ -284,15 +286,15 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   }
 
   unitLabel(id: number): string {
-    const unit = this.units.find((item) => item.id === id);
+    const unit = this.units().find((item) => item.id === id);
     return unit ? `${unit.code} · ${unit.name}` : String(id);
   }
   scopeRuleKey(): string {
-    return `iam.data_scope.rule_${this.effectiveScope?.rule.toLowerCase() ?? 'all'}`;
+    return `iam.data_scope.rule_${this.effectiveScope()?.rule.toLowerCase() ?? 'all'}`;
   }
   emptyScopeKey(): string {
-    if (this.effectiveScope?.rule === 'ALL') return 'iam.data_scope.all_empty';
-    if (this.effectiveScope?.rule === 'SELF') return 'iam.data_scope.self_empty';
+    if (this.effectiveScope()?.rule === 'ALL') return 'iam.data_scope.all_empty';
+    if (this.effectiveScope()?.rule === 'SELF') return 'iam.data_scope.self_empty';
     return 'iam.data_scope.units_empty';
   }
   cancelEdits(): void {
@@ -302,7 +304,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     return this.discard.canLeave();
   }
   hasUnsavedWork(): boolean {
-    return this.pending || this.dirty;
+    return this.pending() || this.dirty;
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -319,7 +321,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.discard.cancel();
     this.resetProtectedState();
     this.activeTarget = target;
-    if (this.pending) {
+    if (this.pending()) {
       this.deferredTarget = target;
       this.changeDetector.markForCheck();
       return;
@@ -331,7 +333,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     const target = this.activeTarget;
     if (target === null) return;
     if (!this.can('view') || !safeNumericRecordId(target)) {
-      if (this.can('view')) this.assignmentsError = this.unavailable();
+      if (this.can('view')) this.assignmentsError.set(this.unavailable());
       this.changeDetector.markForCheck();
       return;
     }
@@ -348,26 +350,26 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.changeDetector.markForCheck();
   }
   private resetProtectedState(): void {
-    this.units = [];
-    this.treeLoading = false;
-    this.treeLoaded = false;
-    this.treeError = null;
-    this.originalOrgUnitIds = [];
+    this.units.set([]);
+    this.treeLoading.set(false);
+    this.treeLoaded.set(false);
+    this.treeError.set(null);
+    this.originalOrgUnitIds.set([]);
     this.selectedOrgUnitIds.set([]);
-    this.legacyOrgUnitId = null;
-    this.assignmentsLoading = false;
-    this.assignmentsLoaded = false;
-    this.assignmentsError = null;
-    this.effectiveScope = null;
-    this.scopeLoading = false;
-    this.scopeLoaded = false;
-    this.scopeError = null;
-    this.saveError = null;
-    this.savedRefreshFailed = false;
+    this.legacyOrgUnitId.set(null);
+    this.assignmentsLoading.set(false);
+    this.assignmentsLoaded.set(false);
+    this.assignmentsError.set(null);
+    this.effectiveScope.set(null);
+    this.scopeLoading.set(false);
+    this.scopeLoaded.set(false);
+    this.scopeError.set(null);
+    this.saveError.set(null);
+    this.savedRefreshFailed.set(false);
   }
   private restoreDraft(): void {
-    this.selectedOrgUnitIds.set([...this.originalOrgUnitIds]);
-    this.saveError = null;
+    this.selectedOrgUnitIds.set([...this.originalOrgUnitIds()]);
+    this.saveError.set(null);
     this.changeDetector.markForCheck();
   }
   private cancelReads(): void {
@@ -392,8 +394,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.loadActiveTarget();
   }
   private setPending(value: boolean): void {
-    if (this.pending === value) return;
-    this.pending = value;
+    if (this.pending() === value) return;
+    this.pending.set(value);
     this.busyChange.emit(value);
     this.changeDetector.markForCheck();
   }

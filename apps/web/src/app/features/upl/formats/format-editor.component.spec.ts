@@ -914,6 +914,27 @@ describe('FormatEditorComponent', () => {
       expect(stepButton(fixture, 'sheets').hasAttribute('aria-current')).toBe(false);
     });
 
+    it('shows on each step what another step changed in the shared draft', async () => {
+      const { fixture, component } = await createFixture();
+      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('1');
+      expect(one(fixture, 'upl-sheet-name')).not.toBeNull();
+
+      click(one(fixture, 'upl-add-sheet'));
+      fixture.detectChanges();
+      click(stepButton(fixture, 'publish'));
+      fixture.detectChanges();
+      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('2');
+
+      // The file step edits the draft in place; the sheets step shows it once it is on screen again.
+      click(stepButton(fixture, 'file'));
+      fixture.detectChanges();
+      component.model.fileKind = 'csv';
+      component.model.matchColumnsBy = 'position';
+      click(stepButton(fixture, 'sheets'));
+      fixture.detectChanges();
+      expect(one(fixture, 'upl-sheet-name')).toBeNull();
+    });
+
     it('opens an empty draft on the file step', async () => {
       const { fixture } = await createFixture({ version: { ...draftVersion(), sheets: [] } });
 

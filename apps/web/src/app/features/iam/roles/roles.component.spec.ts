@@ -153,7 +153,7 @@ describe('RolesComponent UI contracts', () => {
     expect(api.put).toHaveBeenCalledWith('/rbac/roles/1/permissions', [{ formCode: 'audit.log', action: 'view' }]);
 
     scopeWrite.error({ status: 409, detail: 'retry' });
-    expect(panel.pending).toBe(false);
+    expect(panel.pending()).toBe(false);
   });
 
   it.each(['success', 'error'] as const)(
@@ -178,7 +178,7 @@ describe('RolesComponent UI contracts', () => {
         .componentInstance as RoleScopePanelComponent;
       panel.selectRule('SELF');
       panel.save();
-      expect(panel.confirmationOpen).toBe(true);
+      expect(panel.confirmationOpen()).toBe(true);
       panel.confirmSave();
       const readsBeforeRevocation = api.get.mock.calls.filter(([path]) =>
         String(path).includes('/iam/org-units/roles/'),
@@ -189,10 +189,10 @@ describe('RolesComponent UI contracts', () => {
 
       const retained = fixture.debugElement.query(By.directive(RoleScopePanelComponent));
       expect(retained?.componentInstance).toBe(panel);
-      expect(panel.pending).toBe(true);
+      expect(panel.pending()).toBe(true);
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.scopePanelBusy()).toBe(true);
-      expect(panel.confirmationOpen).toBe(false);
+      expect(panel.confirmationOpen()).toBe(false);
       expect(inScreen(fixture.nativeElement).querySelector('app-role-scope-panel [role="radio"]')).toBeNull();
       expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
       expect(fixture.componentInstance.canLeaveRecordPage()).toBe(false);
@@ -219,10 +219,10 @@ describe('RolesComponent UI contracts', () => {
       }
       fixture.detectChanges();
 
-      expect(panel.pending).toBe(false);
+      expect(panel.pending()).toBe(false);
       expect(fixture.componentInstance.scopePanelBusy()).toBe(false);
-      expect(panel.loaded).toBe(false);
-      expect(panel.saveError).toBeNull();
+      expect(panel.loaded()).toBe(false);
+      expect(panel.saveError()).toBeNull();
       expect(toast.success).not.toHaveBeenCalled();
       expect(fixture.nativeElement.textContent).not.toContain('Late revoked rule failure');
 
@@ -231,7 +231,7 @@ describe('RolesComponent UI contracts', () => {
       expect(api.get.mock.calls.filter(([path]) => String(path).includes('/iam/org-units/roles/'))).toHaveLength(
         readsBeforeRevocation + 1,
       );
-      expect(panel.loaded).toBe(true);
+      expect(panel.loaded()).toBe(true);
     },
   );
 

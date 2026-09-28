@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
@@ -28,6 +29,7 @@ import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';
 @Component({
   selector: 'app-org-units',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     SMTButtonComponent,
@@ -50,8 +52,32 @@ export class OrgUnitsComponent implements OnInit {
   readonly editor = viewChild(OrgUnitEditorComponent);
 
   readonly search = signal('');
+  readonly units = signal<OrgUnit[]>([]);
+  readonly selected = signal<OrgUnit | null>(null);
+  readonly editorInitial = signal<OrgUnit | OrgUnitCreate | null>(null);
+  readonly editorOpen = signal(false);
+  readonly pending = signal(false);
+  readonly loading = signal(false);
+  readonly loaded = signal(false);
+  readonly treeError = signal<ProblemDetail | null>(null);
+  readonly detailLoading = signal(false);
+  readonly detailError = signal<ProblemDetail | null>(null);
+  readonly saveError = signal<ProblemDetail | null>(null);
+  readonly savedRefreshFailed = signal(false);
+  readonly deleteTarget = signal<OrgUnit | null>(null);
+  readonly deleteError = signal<ProblemDetail | null>(null);
 
   readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
+  /** The tree's selected row id, as the tree takes it. */
+  readonly selectedId = computed(() => {
+    const selected = this.selected();
+    return selected ? '' + selected.id : null;
+  });
+  /** The editor's record as a one-item list: the editor is created anew for each record. */
+  readonly editorInitials = computed(() => {
+    const initial = this.editorInitial();
+    return initial ? [initial] : [];
+  });
 
   readonly kindKeys = orgUnitKindKeys;
   readonly safeId = safeNumericRecordId;
@@ -60,25 +86,11 @@ export class OrgUnitsComponent implements OnInit {
   private detailRequest?: Subscription;
   private detailId: number | null = null;
   private viewEpoch = 0;
-  units: OrgUnit[] = [];
-  selected: OrgUnit | null = null;
-  editorInitial: OrgUnit | OrgUnitCreate | null = null;
-  editorOpen = false;
-  pending = false;
-  loading = false;
-  loaded = false;
-  treeError: ProblemDetail | null = null;
-  detailLoading = false;
-  detailError: ProblemDetail | null = null;
-  saveError: ProblemDetail | null = null;
-  savedRefreshFailed = false;
-  deleteTarget: OrgUnit | null = null;
-  deleteError: ProblemDetail | null = null;
   private readonly treeRowCache = new OrgUnitTreeRows();
   readonly searchText = orgUnitSearchText((key) => this.i18n.translate(key));
   readonly discard = new OrgUnitDraft(
-    () => this.editorOpen && !!this.editor()?.dirty,
-    () => this.pending,
+    () => this.editorOpen() && !!this.editor()?.dirty,
+    () => this.pending(),
     () => this.clearEditor(),
   );
 
@@ -95,7 +107,7 @@ export class OrgUnitsComponent implements OnInit {
   }
 
   get treeRows(): TreeRow<OrgUnit>[] {
-    return this.treeRowCache.of(this.units);
+    return this.treeRowCache.of(this.units());
   }
   ngOnInit(): void {
     this.reload();
@@ -108,43 +120,43 @@ export class OrgUnitsComponent implements OnInit {
   get canCreate(): boolean {
     return (
       this.can('create') &&
-      this.loaded &&
-      !this.loading &&
-      !this.treeError &&
-      (!this.units.length || (!!this.selected && safeNumericRecordId(this.selected.id)))
+      this.loaded() &&
+      !this.loading() &&
+      !this.treeError() &&
+      (!this.units().length || safeNumericRecordId(this.selected()?.id))
     );
   }
   get hasChildren(): boolean {
-    return !!this.selected && this.units.some((unit) => unit.parentId === this.selected!.id);
+    return !!this.selected() && this.units().some((unit) => unit.parentId === this.selected()!.id);
   }
   parentName(unit: OrgUnit): string {
     if (unit.parentId === null) return this.i18n.translate('iam.org_units.root');
-    const parent = this.units.find((item) => item.id === unit.parentId);
+    const parent = this.units().find((item) => item.id === unit.parentId);
     return parent ? `${parent.code} · ${parent.name}` : String(unit.parentId);
   }
   reload(afterSave = false): void {
-    if (!this.can('view') || this.pending || this.editorOpen || this.deleteTarget) return;
+    if (!this.can('view') || this.pending() || this.editorOpen() || this.deleteTarget()) return;
     const epoch = this.viewEpoch;
     this.treeRequest?.unsubscribe();
-    this.loading = true;
-    this.treeError = null;
+    this.loading.set(true);
+    this.treeError.set(null);
     this.changeDetector.markForCheck();
     this.treeRequest = this.api.list().subscribe({
       next: (units) => {
         if (!this.currentView(epoch)) return;
-        const id = this.selected?.id;
-        this.units = units;
-        this.loaded = true;
-        this.loading = false;
-        this.savedRefreshFailed = false;
-        this.selected = units.find((unit) => unit.id === id) ?? units[0] ?? null;
+        const id = this.selected()?.id;
+        this.units.set(units);
+        this.loaded.set(true);
+        this.loading.set(false);
+        this.savedRefreshFailed.set(false);
+        this.selected.set(units.find((unit) => unit.id === id) ?? units[0] ?? null);
         this.changeDetector.markForCheck();
       },
       error: (error) => {
         if (this.currentView(epoch)) {
-          this.loading = false;
-          this.treeError = error;
-          this.savedRefreshFailed = afterSave || this.savedRefreshFailed;
+          this.loading.set(false);
+          this.treeError.set(error);
+          this.savedRefreshFailed.set(afterSave || this.savedRefreshFailed());
           this.changeDetector.markForCheck();
         }
       },
@@ -154,59 +166,60 @@ export class OrgUnitsComponent implements OnInit {
     if (!this.can('view')) return;
     this.discard.request(() => {
       this.clearEditor();
-      this.deleteTarget = null;
-      this.selected = unit;
+      this.deleteTarget.set(null);
+      this.selected.set(unit);
     });
   }
   create(): void {
-    if (!this.canCreate || this.pending) return;
-    const parentId = this.units.length ? this.selected!.id : null;
+    if (!this.canCreate || this.pending()) return;
+    const parentId = this.units().length ? this.selected()!.id : null;
     this.discard.request(() => {
       this.clearEditor();
-      this.editorOpen = true;
-      this.editorInitial = {
+      this.editorOpen.set(true);
+      this.editorInitial.set({
         parentId,
         code: '',
         name: '',
         kind: parentId === null ? 'company' : 'department',
         orderNo: 0,
-      };
+      });
     });
   }
   edit(): void {
-    if (!this.can('update') || !this.selected || !safeNumericRecordId(this.selected.id) || this.pending || this.loading)
+    const selected = this.selected();
+    if (!this.can('update') || !selected || !safeNumericRecordId(selected.id) || this.pending() || this.loading())
       return;
-    const id = this.selected.id;
+    const id = selected.id;
     this.discard.request(() => {
       this.clearEditor();
-      this.editorOpen = true;
+      this.editorOpen.set(true);
       this.detailId = id;
       this.loadDetail();
     });
   }
   loadDetail(): void {
     const id = this.detailId;
-    if (id === null || this.pending || !this.can('view')) return;
+    if (id === null || this.pending() || !this.can('view')) return;
     const epoch = this.viewEpoch;
     this.detailRequest?.unsubscribe();
-    this.detailLoading = true;
-    this.detailError = null;
+    this.detailLoading.set(true);
+    this.detailError.set(null);
     this.changeDetector.markForCheck();
     this.detailRequest = this.api.get(id).subscribe({
       next: (unit) => {
-        if (!this.currentView(epoch) || this.detailId !== id || !this.editorOpen) return;
-        this.detailLoading = false;
+        if (!this.currentView(epoch) || this.detailId !== id || !this.editorOpen()) return;
+        this.detailLoading.set(false);
         this.changeDetector.markForCheck();
         if (unit.id !== id || !safeNumericRecordId(unit.id)) {
-          this.detailError = this.unavailable();
+          this.detailError.set(this.unavailable());
           return;
         }
-        this.editorInitial = { ...unit };
+        this.editorInitial.set({ ...unit });
       },
       error: (error) => {
         if (this.currentView(epoch) && this.detailId === id) {
-          this.detailLoading = false;
-          this.detailError = error;
+          this.detailLoading.set(false);
+          this.detailError.set(error);
           this.changeDetector.markForCheck();
         }
       },
@@ -216,85 +229,87 @@ export class OrgUnitsComponent implements OnInit {
     this.discard.request(() => this.clearEditor());
   }
   save(submission: OrgUnitSubmission): void {
-    if (!this.can('view') || this.pending || !this.editorOpen || !this.editorInitial) return;
+    const initial = this.editorInitial();
+    if (!this.can('view') || this.pending() || !this.editorOpen() || !initial) return;
     let request: Observable<unknown>;
     if (submission.mode === 'edit') {
       if (
         !this.can('update') ||
-        !('id' in this.editorInitial) ||
-        submission.id !== this.editorInitial.id ||
+        !('id' in initial) ||
+        submission.id !== initial.id ||
         !safeNumericRecordId(submission.id)
       )
         return;
       request = this.api.update(submission.id, submission.patch);
     } else {
-      if (!this.can('create') || 'id' in this.editorInitial || submission.body.parentId !== this.editorInitial.parentId)
-        return;
+      if (!this.can('create') || 'id' in initial || submission.body.parentId !== initial.parentId) return;
       request = this.api.create(submission.body);
     }
     const epoch = this.viewEpoch;
-    this.pending = true;
-    this.saveError = null;
+    this.pending.set(true);
+    this.saveError.set(null);
     this.changeDetector.markForCheck();
     this.subscriptions.add(
       request.subscribe({
         next: (value) => {
           if (!this.finishMutation(epoch)) return;
-          if (submission.mode === 'create') this.selected = value as OrgUnit;
+          if (submission.mode === 'create') this.selected.set(value as OrgUnit);
           this.clearEditor();
           this.toast.success(this.i18n.translate('iam.org_units.saved'));
           this.reload(true);
         },
         error: (error) => {
-          if (this.finishMutation(epoch)) this.saveError = error;
+          if (this.finishMutation(epoch)) this.saveError.set(error);
         },
       }),
     );
   }
   requestDelete(): void {
+    const selected = this.selected();
     if (
       !this.can('delete') ||
-      !this.selected ||
-      !safeNumericRecordId(this.selected.id) ||
+      !selected ||
+      !safeNumericRecordId(selected.id) ||
       this.hasChildren ||
-      this.pending ||
-      this.loading
+      this.pending() ||
+      this.loading()
     )
       return;
-    const target = { ...this.selected };
+    const target = { ...selected };
     this.discard.request(() => {
       this.clearEditor();
-      this.deleteTarget = target;
-      this.deleteError = null;
+      this.deleteTarget.set(target);
+      this.deleteError.set(null);
     });
   }
   closeDelete(): void {
-    if (!this.pending) {
-      this.deleteTarget = null;
-      this.deleteError = null;
+    if (!this.pending()) {
+      this.deleteTarget.set(null);
+      this.deleteError.set(null);
       this.changeDetector.markForCheck();
     }
   }
   confirmDelete(): void {
-    if (!this.deleteTarget || this.pending || !this.can('delete') || !safeNumericRecordId(this.deleteTarget.id)) return;
+    const target = this.deleteTarget();
+    if (!target || this.pending() || !this.can('delete') || !safeNumericRecordId(target.id)) return;
     const epoch = this.viewEpoch;
-    const targetId = this.deleteTarget.id;
-    this.pending = true;
-    this.deleteError = null;
+    const targetId = target.id;
+    this.pending.set(true);
+    this.deleteError.set(null);
     this.changeDetector.markForCheck();
     this.subscriptions.add(
       this.api.remove(targetId).subscribe({
         next: () => {
           if (this.finishMutation(epoch)) {
-            if (this.selected?.id === targetId) this.selected = null;
-            this.units = this.units.filter((unit) => unit.id !== targetId);
-            this.deleteTarget = null;
+            if (this.selected()?.id === targetId) this.selected.set(null);
+            this.units.set(this.units().filter((unit) => unit.id !== targetId));
+            this.deleteTarget.set(null);
             this.toast.success(this.i18n.translate('iam.org_units.deleted'));
             this.reload(true);
           }
         },
         error: (error) => {
-          if (this.finishMutation(epoch)) this.deleteError = error;
+          if (this.finishMutation(epoch)) this.deleteError.set(error);
         },
       }),
     );
@@ -304,7 +319,7 @@ export class OrgUnitsComponent implements OnInit {
   }
   @HostListener('window:beforeunload', ['$event'])
   beforeUnload(event: BeforeUnloadEvent): void {
-    if (this.pending || (this.editorOpen && this.editor()?.dirty)) {
+    if (this.pending() || (this.editorOpen() && this.editor()?.dirty)) {
       event.preventDefault();
       event.returnValue = '';
     }
@@ -314,14 +329,14 @@ export class OrgUnitsComponent implements OnInit {
     this.treeRequest?.unsubscribe();
     this.discard.cancel();
     this.clearEditor();
-    this.units = [];
-    this.selected = null;
-    this.loaded = false;
-    this.loading = false;
-    this.treeError = null;
-    this.savedRefreshFailed = false;
-    this.deleteTarget = null;
-    this.deleteError = null;
+    this.units.set([]);
+    this.selected.set(null);
+    this.loaded.set(false);
+    this.loading.set(false);
+    this.treeError.set(null);
+    this.savedRefreshFailed.set(false);
+    this.deleteTarget.set(null);
+    this.deleteError.set(null);
     // An issued write remains pending until its HTTP result; revocation is not rollback.
     this.changeDetector.markForCheck();
   }
@@ -329,18 +344,18 @@ export class OrgUnitsComponent implements OnInit {
     return this.can('view') && epoch === this.viewEpoch;
   }
   private finishMutation(epoch: number): boolean {
-    this.pending = false;
+    this.pending.set(false);
     this.changeDetector.markForCheck();
     return this.currentView(epoch);
   }
   private clearEditor(): void {
     this.detailRequest?.unsubscribe();
     this.detailId = null;
-    this.detailLoading = false;
-    this.detailError = null;
-    this.editorOpen = false;
-    this.editorInitial = null;
-    this.saveError = null;
+    this.detailLoading.set(false);
+    this.detailError.set(null);
+    this.editorOpen.set(false);
+    this.editorInitial.set(null);
+    this.saveError.set(null);
     this.changeDetector.markForCheck();
   }
   private unavailable(): ProblemDetail {

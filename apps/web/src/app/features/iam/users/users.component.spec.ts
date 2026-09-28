@@ -253,7 +253,7 @@ describe('UsersComponent UI contracts', () => {
     panel.save();
     fixture.componentInstance.openViewModal(second);
     redraw(fixture);
-    expect(panel.pending).toBe(true);
+    expect(panel.pending()).toBe(true);
     expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(false);
 
@@ -299,7 +299,7 @@ describe('UsersComponent UI contracts', () => {
 
       const retained = fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent));
       expect(retained?.componentInstance).toBe(panel);
-      expect(panel.pending).toBe(true);
+      expect(panel.pending()).toBe(true);
       expect(write.observed).toBe(true);
       expect(fixture.componentInstance.orgPanelBusy()).toBe(true);
       expect(panel.discard.open()).toBe(false);
@@ -334,11 +334,11 @@ describe('UsersComponent UI contracts', () => {
       }
       redraw(fixture);
 
-      expect(panel.pending).toBe(false);
+      expect(panel.pending()).toBe(false);
       expect(fixture.componentInstance.orgPanelBusy()).toBe(false);
-      expect(panel.units).toEqual([]);
+      expect(panel.units()).toEqual([]);
       expect(panel.selectedOrgUnitIds()).toEqual([]);
-      expect(panel.saveError).toBeNull();
+      expect(panel.saveError()).toBeNull();
       expect(toast.success).not.toHaveBeenCalled();
       expect(inScreen(fixture.nativeElement).textContent).not.toContain('Late revoked assignment failure');
 
@@ -347,7 +347,7 @@ describe('UsersComponent UI contracts', () => {
       expect(api.get.mock.calls.filter(([path]) => String(path).startsWith('/iam/org-units'))).toHaveLength(
         readsBeforeRevocation + 3,
       );
-      expect(panel.units.map((unit) => unit.id)).toEqual([1, 2]);
+      expect(panel.units().map((unit) => unit.id)).toEqual([1, 2]);
     },
   );
 
@@ -442,7 +442,7 @@ describe('UsersComponent UI contracts', () => {
       expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance).toBe(newerPanel);
       expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
       expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeProfileSettlement);
-      expect(newerPanel.pending).toBe(panelState === 'pending');
+      expect(newerPanel.pending()).toBe(panelState === 'pending');
       expect(newerPanel.hasUnsavedWork()).toBe(true);
     },
   );

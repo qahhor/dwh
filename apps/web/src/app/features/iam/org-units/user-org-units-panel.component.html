@@ -14,16 +14,16 @@
           type="button"
           data-action="retry-assignments"
           smtVariant="secondary"
-          [disabled]="pending || dirty || assignmentsLoading"
+          [disabled]="pending() || dirty || assignmentsLoading()"
           (click)="reloadAssignments()"
         >
           {{ 'iam.org_units.retry' | t }}
         </button>
       </div>
-      @if (treeLoading || assignmentsLoading) {
+      @if (treeLoading() || assignmentsLoading()) {
         <p role="status">{{ 'iam.org_units.assignments_loading' | t }}</p>
       }
-      @if (treeError) {
+      @if (treeError(); as treeError) {
         <div role="alert">
           <p>{{ treeError.detail || ('iam.org_units.load_error' | t) }}</p>
           <button
@@ -31,17 +31,17 @@
             type="button"
             data-action="retry-assignment-tree"
             smtVariant="secondary"
-            [disabled]="pending || treeLoading"
+            [disabled]="pending() || treeLoading()"
             (click)="reloadTree()"
           >
             {{ 'iam.org_units.retry' | t }}
           </button>
         </div>
       }
-      @if (assignmentsError) {
+      @if (assignmentsError(); as assignmentsError) {
         <p role="alert">{{ assignmentsError.detail || ('iam.org_units.assignments_load_error' | t) }}</p>
       }
-      @if (assignmentsLoaded) {
+      @if (assignmentsLoaded()) {
         @if (!can('assign')) {
           <p role="status">{{ 'iam.org_units.assignments_view_only' | t }}</p>
         }
@@ -53,7 +53,7 @@
             {{ 'iam.org_units.unknown_assignment_warning' | t: { ids: unresolvedAssignmentIds.join(', ') } }}
           </p>
         }
-        @if (units.length) {
+        @if (units().length) {
           <smt-input
             type="search"
             smtIcon="search"
@@ -70,19 +70,20 @@
             [smtCheckedIds]="checkedRowIds()"
             [smtSearch]="search()"
             [smtSearchText]="searchText"
-            [smtDisabled]="pending || !can('assign')"
+            [smtDisabled]="pending() || !can('assign')"
             (smtToggle)="toggleAssignment($event.data)"
           />
         }
-        @if (!units.length && treeLoaded) {
+        @if (!units().length && treeLoaded()) {
           <p>{{ 'iam.org_units.empty' | t }}</p>
         }
         <div class="legacy">
           <h5>{{ 'iam.org_units.legacy_title' | t }}</h5>
-          <p>{{ legacyOrgUnitId === null ? ('iam.org_units.legacy_none' | t) : unitLabel(legacyOrgUnitId) }}</p>
+          @let legacy = legacyOrgUnitId();
+          <p>{{ legacy === null ? ('iam.org_units.legacy_none' | t) : unitLabel(legacy) }}</p>
           <p class="help">{{ 'iam.org_units.legacy_help' | t }}</p>
         </div>
-        @if (saveError) {
+        @if (saveError(); as saveError) {
           <p role="alert">{{ saveError.detail || ('iam.org_units.assignments_save_error' | t) }}</p>
         }
         <div class="actions">
@@ -91,7 +92,7 @@
               smt-button
               type="button"
               smtVariant="secondary"
-              [disabled]="pending || !dirty"
+              [disabled]="pending() || !dirty"
               (click)="cancelEdits()"
             >
               {{ 'iam.org_units.cancel' | t }}
@@ -100,7 +101,7 @@
               smt-button
               type="button"
               data-action="save-assignments"
-              [smtLoading]="pending"
+              [smtLoading]="pending()"
               [disabled]="!dirty"
               (click)="save()"
             >
@@ -118,23 +119,23 @@
           smt-button
           type="button"
           smtVariant="secondary"
-          [disabled]="pending || scopeLoading"
+          [disabled]="pending() || scopeLoading()"
           (click)="reloadScope()"
         >
           {{ 'iam.org_units.retry' | t }}
         </button>
       </div>
       <p class="help">{{ 'iam.org_units.effective_scope_help' | t }}</p>
-      @if (scopeLoading) {
+      @if (scopeLoading()) {
         <p role="status">{{ 'iam.data_scope.loading' | t }}</p>
       }
-      @if (scopeError) {
+      @if (scopeError(); as scopeError) {
         <p role="alert">
-          {{ (savedRefreshFailed ? 'iam.data_scope.saved_refresh_error' : 'iam.data_scope.load_error') | t }}
+          {{ (savedRefreshFailed() ? 'iam.data_scope.saved_refresh_error' : 'iam.data_scope.load_error') | t }}
           {{ scopeError.detail }}
         </p>
       }
-      @if (scopeLoaded && effectiveScope; as scope) {
+      @if (scopeLoaded() && effectiveScope(); as scope) {
         <dl>
           <dt>{{ 'iam.data_scope.rule' | t }}</dt>
           <dd>{{ scopeRuleKey() | t }}</dd>
