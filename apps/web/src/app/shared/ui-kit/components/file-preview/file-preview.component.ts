@@ -20,7 +20,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { SMTModalService } from '../modal/modal.service';
 import { canPreview } from './file-kind';
 

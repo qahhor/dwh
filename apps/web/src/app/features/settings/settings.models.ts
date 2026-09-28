@@ -1,4 +1,4 @@
-import { TranslationDictionary } from '../../core/models/i18n.models';
+import { TranslationDictionary } from '@core/models/i18n.models';
 
 export type SettingsTab =
   'general' | 'security' | 'storage' | 'preferences' | 'languages' | 'search' | 'navigation' | 'webhooks';

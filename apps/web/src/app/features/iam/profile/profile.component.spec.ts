@@ -2,13 +2,13 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { User, UserSession, ApiToken, UserChannel } from './profile.models';
 import { ProfileComponent } from './profile.component';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 /** The confirmation dialog lives in the overlay; Yes is its last button. */
 async function answerYes(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }): Promise<string> {

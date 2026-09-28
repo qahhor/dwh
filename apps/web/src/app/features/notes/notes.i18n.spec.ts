@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems, serverLiteralKeys } from '../../../testing/feature-i18n';
+import { featureI18nProblems, serverLiteralKeys } from '@testing/feature-i18n';
 
 /** MsNoteEntity.COLORS. */
 const NOTE_COLORS = ['default', 'blue', 'green', 'yellow', 'purple', 'red'];

@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { CustomField } from '../../core/models/custom-field.models';
-import { ApiService } from '../../core/services/api.service';
+import { CustomField } from '@core/models/custom-field.models';
+import { ApiService } from '@core/services/api.service';
 import { UiCustomFieldsComponent, selectOptions } from './ui-custom-fields.component';
 
 const baseField: Omit<CustomField, 'id' | 'code' | 'name' | 'fieldType'> = {

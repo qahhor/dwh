@@ -1,4 +1,4 @@
-import { NotificationItem } from '../../core/models/notification.models';
+import { NotificationItem } from '@core/models/notification.models';
 
 export type NotificationFilterTab = 'all' | 'unread';
 

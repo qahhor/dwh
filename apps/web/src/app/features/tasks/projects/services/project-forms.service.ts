@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subscription, Observable } from 'rxjs';
-import { ApiService } from '../../../../core/services/api.service';
-import { PermissionService } from '../../../../core/services/permission.service';
-import { ToastService } from '../../../../core/services/toast.service';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { RecordNavigationDecision } from '../../../../core/guards/record-navigation.guard';
-import { safeNumericRecordId } from '../../../../core/services/search-target';
-import { Project } from '../../../../core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { Project } from '@core/models/task.models';
 import { ProjectCreateForm, ProjectEditForm } from '../projects.models';
 
 @Injectable()

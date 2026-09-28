@@ -9,21 +9,21 @@ import {
   signal,
 } from '@angular/core';
 import { finalize } from 'rxjs';
-import { ProblemDetail } from '../../core/models/common.models';
-import { FormMeta, FormProblems } from '../../core/models/form-meta.models';
+import { ProblemDetail } from '@core/models/common.models';
+import { FormMeta, FormProblems } from '@core/models/form-meta.models';
 import {
   formProblems,
   hasCapability,
   recordPayload,
   recordValues,
   serverProblems,
-} from '../../core/services/form-meta.service';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-import { ToastService } from '../../core/services/toast.service';
-import { SMTEntityFormComponent } from '../../shared/entity/smt-entity-form.component';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../shared/ui-kit/components/modal';
-import { UiRecordHistoryComponent } from '../../shared/ui/ui-record-history.component';
+} from '@core/services/form-meta.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTEntityFormComponent } from '@shared/entity/smt-entity-form.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
 import { Note, NotesApi } from './notes.api';
 
 /** What a new note starts with. */

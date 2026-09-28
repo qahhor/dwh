@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { NavSection } from '../app-shell.models';
 
 @Component({

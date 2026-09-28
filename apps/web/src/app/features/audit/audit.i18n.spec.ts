@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems, serverLiteralKeys } from '../../../testing/feature-i18n';
+import { featureI18nProblems, serverLiteralKeys } from '@testing/feature-i18n';
 
 describe('i18n: audit', () => {
   it('uses only translated keys, in Russian and English, and none of its keys is dead', () => {

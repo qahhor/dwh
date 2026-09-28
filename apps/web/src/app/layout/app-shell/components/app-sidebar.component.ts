@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { NavItem, NavSection } from '../app-shell.models';
 import { AppSidebarNavSectionsComponent } from './app-sidebar-nav-sections.component';
 import { AppSidebarFlyoutComponent } from './app-sidebar-flyout.component';
-import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-sidebar',

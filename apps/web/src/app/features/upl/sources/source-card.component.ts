@@ -13,21 +13,17 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../shared/ui-kit/components/forms/radio-group';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
+import { ProblemDetail } from '@core/models/common.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import {
   UPL_PERIODICITIES,
   UPL_STRICTNESSES,
@@ -41,13 +37,9 @@ import {
 } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, UPL_VERSION_STATUS_KEY, uplProblemText } from '../upl-labels';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../shared/ui-kit/components/forms/select';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
 interface SourceForm {

@@ -21,7 +21,7 @@ import {
   output,
   ViewEncapsulation,
 } from '@angular/core';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind';
 
 @Component({

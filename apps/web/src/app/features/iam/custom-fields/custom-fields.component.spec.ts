@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { CustomField } from '../../../core/models/custom-field.models';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { CustomField } from '@core/models/custom-field.models';
 import { CustomFieldsComponent } from './custom-fields.component';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 describe('CustomFieldsComponent', () => {
   async function createFixture(initialFields: CustomField[] = []) {

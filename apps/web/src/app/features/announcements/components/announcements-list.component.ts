@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } from '../announcements.models';
 
 @Component({

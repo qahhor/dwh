@@ -1,10 +1,10 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { Task, TaskMember, TaskFile, TaskComment, TaskDetailResponse } from '../../../core/models/task.models';
-import { recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { Task, TaskMember, TaskFile, TaskComment, TaskDetailResponse } from '@core/models/task.models';
+import { recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
 
 @Injectable({
   providedIn: 'root',

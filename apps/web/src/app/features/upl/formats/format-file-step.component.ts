@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import {
   UPL_ENCODINGS,
   UPL_FILE_KINDS,
@@ -12,13 +12,9 @@ import {
 } from '../upl-api';
 import { UPL_ENCODING_KEY, UPL_FILE_KIND_KEY, UPL_MATCH_BY_KEY } from '../upl-labels';
 import { isFilled } from './upl-format-model';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Шаг «Файл» анкеты: вид файла, кодировка и разделитель CSV, сопоставление колонок. Правит модель на месте. */
 @Component({

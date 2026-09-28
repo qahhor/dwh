@@ -19,11 +19,11 @@ import {
   viewChild,
 } from '@angular/core';
 import { ColumnHeaderType, OrderBy } from '../table.types';
-import { SMTCheckboxComponent } from '../../forms/checkbox/checkbox.component';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox/checkbox.component';
 import { SMTSortIconComponent } from '../sort-icon/sort-icon.component';
 import { DatePipe, formatDate, NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
-import { SMTTooltipDirective } from '../../../directives/tooltip/tooltip.directive';
-import { SMTI18nService } from '../../../i18n';
+import { SMTTooltipDirective } from '@shared/ui-kit/directives/tooltip/tooltip.directive';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 @Component({
   selector: 'smt-cell-header',

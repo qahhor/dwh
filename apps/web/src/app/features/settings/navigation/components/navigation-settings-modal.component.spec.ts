@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { NavigationSettingsModalComponent } from './navigation-settings-modal.component';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { translateTest } from '../../../../../testing/i18n-test.stub';
+import { I18nService } from '@core/services/i18n.service';
+import { translateTest } from '@testing/i18n-test.stub';
 
 describe('NavigationSettingsModalComponent — who sees the item', () => {
   function create() {

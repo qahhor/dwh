@@ -20,7 +20,7 @@ import {
   untracked,
   ViewEncapsulation,
 } from '@angular/core';
-import { SMTI18nService } from '../../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { fullDateLabel, monthLabel, weekdayNames } from './date-format';
 import {
   addDays,

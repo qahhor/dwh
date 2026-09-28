@@ -16,12 +16,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
 import { Router } from '@angular/router';
-import { CommandPaletteService } from '../../core/services/command-palette.service';
-import { ModuleService } from '../../core/services/module.service';
-import { SearchHit, SearchResult } from '../../core/models/search.models';
-import { searchTarget } from '../../core/services/search-target';
+import { CommandPaletteService } from '@core/services/command-palette.service';
+import { ModuleService } from '@core/services/module.service';
+import { SearchHit, SearchResult } from '@core/models/search.models';
+import { searchTarget } from '@core/services/search-target';
 import { EMPTY, Subject, catchError, of, switchMap, timer } from 'rxjs';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
 import { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, CategoryItem } from './command-palette.models';
 import { CommandPaletteResultsComponent } from './components/command-palette-results.component';

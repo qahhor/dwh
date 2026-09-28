@@ -4,19 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable, forkJoin } from 'rxjs';
-import { FieldErrorItem, ProblemDetail } from '../../../core/models/common.models';
-import { RecordNavigationDecision, RecordNavigationPage } from '../../../core/guards/record-navigation.guard';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import {
-  SMTDatePickerComponent,
-  SMTDatePickerValueAccessor,
-} from '../../../shared/ui-kit/components/forms/date-picker';
-import { SMTProgressStep, SMTProgressStepperComponent } from '../../../shared/ui-kit/components/progress-stepper';
+import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
+import { RecordNavigationDecision, RecordNavigationPage } from '@core/guards/record-navigation.guard';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
+import { SMTProgressStep, SMTProgressStepperComponent } from '@shared/ui-kit/components/progress-stepper';
 import {
   UplApiService,
   UplFileKind,
@@ -32,7 +29,7 @@ import { FormatPublishStepComponent } from './format-publish-step.component';
 import { FormatSheetsStepComponent } from './format-sheets-step.component';
 import { UplFieldError, parseUplFieldErrors, parseUplProblem, uplFieldErrorText } from './upl-format-errors';
 import { UplFormatStep, emptyModel, trimToNull, uplErrorStep } from './upl-format-model';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 const TARGET_FIELD_PATTERN = /^[a-z][a-z0-9_]{0,62}$/;
 

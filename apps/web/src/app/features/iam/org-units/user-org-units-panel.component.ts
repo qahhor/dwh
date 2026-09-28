@@ -14,17 +14,17 @@ import {
   output,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { safeNumericRecordId } from '../../../core/services/search-target';
-import { ToastService } from '../../../core/services/toast.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
+import { ProblemDetail } from '@core/models/common.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { OrgUnitDraft } from './org-unit-draft';
-import { SMTTreeTableComponent } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
-import { TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
-import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
+import { SMTTreeTableComponent } from '@shared/ui-kit/components/tree-table/tree-table.component';
+import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { OrgUnitTreeRows, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnit, UserScope } from './org-units.models';

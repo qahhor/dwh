@@ -11,15 +11,9 @@ import {
   TemplateRef,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
-import type {
-  FormFieldMeta,
-  FormMeta,
-  FormProblems,
-  FormSectionMeta,
-  FormValues,
-} from '../../core/models/form-meta.models';
-import { fieldLabel, optionLabel } from '../../core/services/form-meta.service';
-import { I18nService } from '../../core/services/i18n.service';
+import type { FormFieldMeta, FormMeta, FormProblems, FormSectionMeta, FormValues } from '@core/models/form-meta.models';
+import { fieldLabel, optionLabel } from '@core/services/form-meta.service';
+import { I18nService } from '@core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';

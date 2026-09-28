@@ -10,11 +10,11 @@ import {
   output,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { UserSession } from '../profile.models';
 
 @Component({

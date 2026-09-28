@@ -3,15 +3,15 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { Observable, Subject, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { Project, ProjectTaskStats } from '../../../core/models/task.models';
-import { ApiService } from '../../../core/services/api.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { SMTDialogComponent } from '../../../shared/ui-kit/components/modal';
+import { Project, ProjectTaskStats } from '@core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTDialogComponent } from '@shared/ui-kit/components/modal';
 import { ProjectsComponent } from './projects.component';
-import { inScreen, redraw } from '../../../../testing/in-screen';
-import { PROJECTS_META, registryProviders } from '../../../../testing/registry-meta';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
+import { inScreen, redraw } from '@testing/in-screen';
+import { PROJECTS_META, registryProviders } from '@testing/registry-meta';
+import { QueryListMeta } from '@core/models/query-meta.models';
 import { ProjectListItem } from './projects.models';
 
 /** A page of the project list as the server answers it. */

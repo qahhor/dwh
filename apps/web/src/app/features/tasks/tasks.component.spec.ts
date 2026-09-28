@@ -2,14 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
-import { Task, TaskStatus } from '../../core/models/task.models';
-import { User } from '../../core/models/auth.models';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { Task, TaskStatus } from '@core/models/task.models';
+import { User } from '@core/models/auth.models';
 import { TasksComponent } from './tasks.component';
-import { inScreen, redraw } from '../../../testing/in-screen';
-import { registryProviders, TASKS_META } from '../../../testing/registry-meta';
+import { inScreen, redraw } from '@testing/in-screen';
+import { registryProviders, TASKS_META } from '@testing/registry-meta';
 
 describe('TasksComponent UI contracts', () => {
   async function createFixture() {

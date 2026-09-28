@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { AuditStats } from '../audit.models';
 
 @Component({

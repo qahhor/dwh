@@ -1,27 +1,21 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import {
-  SMTDataSelectComponent,
-  SMTMultiDataSelectComponent,
-} from '../../../shared/ui-kit/components/forms/data-select';
+import { SMTDataSelectComponent, SMTMultiDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
 import { TaskLookupsService } from '../services/task-lookups.service';
-import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { ProjectOptionsPipe } from './project-options.pipe';
-import {
-  SMTDatePickerComponent,
-  SMTDatePickerValueAccessor,
-} from '../../../shared/ui-kit/components/forms/date-picker';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
-import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
-import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
-import { CustomField } from '../../../core/models/custom-field.models';
-import { Project, TaskType } from '../../../core/models/task.models';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTSelectComponent, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { UiMarkdownEditorComponent } from '@shared/ui/ui-markdown-editor.component';
+import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
+import { CustomField } from '@core/models/custom-field.models';
+import { Project, TaskType } from '@core/models/task.models';
 
 @Component({
   selector: 'app-task-create-modal',

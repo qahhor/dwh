@@ -25,7 +25,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { DRAWER_ANIMATION_MS, drawerShouldAnimate } from './drawer-motion';
 import { SMT_DRAWER_CONFIG, SMT_DRAWER_REF, SMTDrawerConfig } from './drawer.types';
 

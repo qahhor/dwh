@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 
 /** Uploads of the period by status and the rows that reached the warehouse. */
 export interface UplOverviewTotals {

@@ -1,8 +1,8 @@
 import { OrgUnit } from './org-units.models';
-import { safeNumericRecordId } from '../../../core/services/search-target';
-import { TreeTableColumns } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
-import { flattenTree, TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
-import type { SMTTreeOption } from '../../../shared/ui-kit/components/forms/tree-select';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { TreeTableColumns } from '@shared/ui-kit/components/tree-table/tree-table.component';
+import { flattenTree, TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
+import type { SMTTreeOption } from '@shared/ui-kit/components/forms/tree-select';
 export interface OrgUnitNode {
   unit: OrgUnit;
   children: OrgUnitNode[];

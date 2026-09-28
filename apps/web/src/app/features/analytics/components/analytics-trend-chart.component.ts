@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, signal, input } from '@angular/core';
 
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
 
 @Component({

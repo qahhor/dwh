@@ -1,8 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { map, Observable, throwError } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { safeNumericRecordId } from '../../../core/services/search-target';
+import { ApiService } from '@core/services/api.service';
+import { I18nService } from '@core/services/i18n.service';
+import { safeNumericRecordId } from '@core/services/search-target';
 import {
   OrgUnit,
   OrgUnitCreate,

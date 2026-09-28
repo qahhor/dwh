@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-import { LanguageInfo } from '../../../core/models/i18n.models';
+import { LanguageInfo } from '@core/models/i18n.models';
 import { SettingsLanguagesPanelComponent } from './settings-languages-panel.component';
 
 const language = (code: string, name: string, builtin = true, coverage = 100): LanguageInfo => ({

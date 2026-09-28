@@ -11,11 +11,11 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 
 @Component({
   selector: 'app-custom-fields-table',

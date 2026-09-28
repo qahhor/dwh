@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
+import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { PASSWORD_POLICY } from '../../../core/security/password-policy';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { PASSWORD_POLICY } from '@core/security/password-policy';
 
 @Component({
   selector: 'app-settings-security-panel',

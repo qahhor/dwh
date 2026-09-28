@@ -11,17 +11,17 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../../../core/services/auth.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
+import { AuthService } from '@core/services/auth.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { PasswordApi } from '../password.api';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { ThemeService } from '../../../core/services/theme.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { ThemeService } from '@core/services/theme.service';
 import { LoginStep, PasswordField } from './login.models';
 import { LoginTopBarComponent } from './components/login-top-bar.component';
 import { LoginHeaderComponent } from './components/login-header.component';
 import { LoginResetModalComponent } from './components/login-reset-modal.component';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../core/security/password-policy';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 
 export * from './login.models';
 

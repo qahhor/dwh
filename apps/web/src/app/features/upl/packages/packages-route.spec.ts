@@ -2,11 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, CanActivateFn, Route, Router, RouterStateSnapshot } from '@angular/router';
 import { firstValueFrom, isObservable, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { routes } from '../../../app.routes';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ModuleService } from '../../../core/services/module.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
+import { routes } from '@app/app.routes';
+import { PermissionService } from '@core/services/permission.service';
+import { ModuleService } from '@core/services/module.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
 
 function packagesRoute(): Route | undefined {
   const shell = routes.find((route) => route.path === '');

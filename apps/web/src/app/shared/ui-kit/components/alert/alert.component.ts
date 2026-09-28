@@ -20,7 +20,7 @@ import {
   output,
   ViewEncapsulation,
 } from '@angular/core';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 export type SMTAlertTone = 'danger' | 'warning' | 'success' | 'info';
 

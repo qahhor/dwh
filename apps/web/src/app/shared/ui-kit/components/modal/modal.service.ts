@@ -19,7 +19,7 @@ import { filter, map, Observable, take, takeUntil } from 'rxjs';
 import { DOCUMENT, Injectable, inject, TemplateRef, Type } from '@angular/core';
 import { Dialog, DialogRef } from '@angular/cdk/dialog';
 import { SMTModalConfirmComponent } from './modal-confirm/modal-confirm.component';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { SMTModalConfig, SMTModalConfirmConfig } from './types/modal.types';
 import type {
   SMTModalConfirmAction,

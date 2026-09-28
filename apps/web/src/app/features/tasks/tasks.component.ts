@@ -13,27 +13,27 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { canonicalRecordId, safeNumericRecordId } from '../../core/services/search-target';
-import { KeysetPager } from '../../shared/paging/keyset-pager';
-import { QueryListMeta } from '../../core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '../../core/services/query-meta.service';
-import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
-import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
-import { sortFromHeader } from '../../shared/ui/registry-table-config';
-import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
-import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
+import { canonicalRecordId, safeNumericRecordId } from '@core/services/search-target';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
+import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '@shared/ui/registry-table-config';
+import { OrderBy } from '@shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { CustomFieldsApi } from '../../core/services/custom-fields.api';
+import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { TasksApi } from './tasks.api';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
-import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
-import { Task, Project, TaskFile } from '../../core/models/task.models';
-import { CustomField } from '../../core/models/custom-field.models';
+import { UiPaginationComponent } from '@shared/ui/ui-pagination.component';
+import { Task, Project, TaskFile } from '@core/models/task.models';
+import { CustomField } from '@core/models/custom-field.models';
 
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { Subscription } from 'rxjs';
 import { TaskDictionariesModalComponent } from './components/task-dictionaries-modal.component';
 import { TaskKanbanViewComponent } from './components/task-kanban-view.component';
@@ -68,7 +68,7 @@ import { TaskDetailsService } from './services/task-details.service';
 import { TaskFormsService } from './services/task-forms.service';
 import { TaskKanbanService } from './services/task-kanban.service';
 import { TaskFilterService } from './services/task-filter.service';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../shared/ui-kit/components/forms/radio-group';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
 export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
 

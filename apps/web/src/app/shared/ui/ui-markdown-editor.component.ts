@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, signal, ElementRef, inject, input, 
 
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../ui-kit/components/tab-bar';
 import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 

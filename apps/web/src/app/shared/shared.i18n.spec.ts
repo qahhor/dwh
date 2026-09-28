@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems, serverLiteralKeys } from '../../testing/feature-i18n';
+import { featureI18nProblems, serverLiteralKeys } from '@testing/feature-i18n';
 import { QUERY_OPS } from '../core/models/query-meta.models';
 
 describe('i18n: shared UI and kit', () => {

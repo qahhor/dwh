@@ -1,5 +1,5 @@
-import { Project, ProjectTaskStats } from '../../../core/models/task.models';
-import { CustomField } from '../../../core/models/custom-field.models';
+import { Project, ProjectTaskStats } from '@core/models/task.models';
+import { CustomField } from '@core/models/custom-field.models';
 
 /** A project as the registry list answers it (ms.projects): the counts are over the viewer's tasks, empty without the task right. */
 export interface ProjectListItem extends Project {

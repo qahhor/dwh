@@ -1,4 +1,4 @@
-import { ProblemDetail } from '../../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import {
   SearchEntityType,
   SearchJobAction,
@@ -6,7 +6,7 @@ import {
   SearchRetryJobRequest,
   SearchSettingsSnapshot,
   SearchStartJobRequest,
-} from '../../../core/models/search-management.models';
+} from '@core/models/search-management.models';
 
 export type PendingMutation =
   | { kind: 'start'; request: SearchStartJobRequest }

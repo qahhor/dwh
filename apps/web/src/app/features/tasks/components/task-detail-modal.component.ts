@@ -1,27 +1,19 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiMarkdownViewComponent } from '../../../shared/ui/ui-markdown-view.component';
-import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
-import { UiRecordHistoryComponent } from '../../../shared/ui/ui-record-history.component';
-import { CustomField } from '../../../core/models/custom-field.models';
-import {
-  Task,
-  Project,
-  TaskStatus,
-  TaskType,
-  TaskMember,
-  TaskComment,
-  TaskFile,
-} from '../../../core/models/task.models';
-import { safeNumericRecordId } from '../../../core/services/search-target';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiMarkdownViewComponent } from '@shared/ui/ui-markdown-view.component';
+import { UiFileUploadComponent } from '@shared/ui/ui-file-upload.component';
+import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
+import { CustomField } from '@core/models/custom-field.models';
+import { Task, Project, TaskStatus, TaskType, TaskMember, TaskComment, TaskFile } from '@core/models/task.models';
+import { safeNumericRecordId } from '@core/services/search-target';
 import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
-import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { SMTTextareaComponent } from '../../../shared/ui-kit/components/forms/textarea';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-task-detail-modal',

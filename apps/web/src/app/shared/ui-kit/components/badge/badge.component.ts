@@ -14,9 +14,9 @@ import {
 
 type TBadgeAppearance = 'light' | 'dark';
 import { SMTIconComponent } from '../icon/icon';
-import { SMTIcons } from '../../types/svg-icons.type';
+import { SMTIcons } from '@shared/ui-kit/types/svg-icons.type';
 import { NgOptimizedImage } from '@angular/common';
-import { manageComponentClasses } from '../../utils/manage-component-classes';
+import { manageComponentClasses } from '@shared/ui-kit/utils/manage-component-classes';
 
 export type TBadgeSize = 'SM' | 'MD' | 'LG';
 export type TBadgeType = 'badge' | 'pill' | 'modern';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ProblemDetail } from '../../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import {
   parseUplFieldErrors,
   parseUplProblem,

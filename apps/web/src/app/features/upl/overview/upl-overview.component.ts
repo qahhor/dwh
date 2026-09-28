@@ -13,15 +13,15 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, filter, interval } from 'rxjs';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { RouterLink } from '@angular/router';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { BarChartPoint, BarChartSeries, UiBarChartComponent } from '../../../shared/ui/ui-bar-chart.component';
-import { UiKpiCardComponent } from '../../../shared/ui/ui-kpi-card.component';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { UiDashboardCardComponent } from '../../../shared/ui/ui-dashboard-card.component';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { BarChartPoint, BarChartSeries, UiBarChartComponent } from '@shared/ui/ui-bar-chart.component';
+import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { UiDashboardCardComponent } from '@shared/ui/ui-dashboard-card.component';
 import {
   UPL_OVERVIEW_PERIODS,
   UplAttentionItem,
@@ -31,11 +31,7 @@ import {
   UplOverviewPeriod,
   UplSourceFreshness,
 } from './overview-api';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../shared/ui-kit/components/forms/radio-group';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
 /** How often an open, visible overview asks for fresh figures. */
 const REFRESH_MS = 5 * 60 * 1000;

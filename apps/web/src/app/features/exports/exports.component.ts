@@ -13,13 +13,13 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, timer } from 'rxjs';
-import { ExportItem, ExportsService } from '../../core/services/exports.service';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-import { UiBadgeComponent } from '../../shared/ui/ui-badge.component';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { UiLocalTableComponent } from '../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../shared/ui-kit/components/table/table.types';
-import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
+import { ExportItem, ExportsService } from '@core/services/exports.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 /** Titles of the lists that can be exported; an unknown code is shown as it is. */
 const LIST_TITLES: Record<string, string> = {

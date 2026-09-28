@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject } from 'rxjs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../../core/services/api.service';
-import { User } from '../../../../core/models/auth.models';
+import { ApiService } from '@core/services/api.service';
+import { User } from '@core/models/auth.models';
 import { getManagerName } from '../users.models';
 import { UserDirectoryService } from './user-directory.service';
 

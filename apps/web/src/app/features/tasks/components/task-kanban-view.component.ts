@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.models';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { Task, Project, TaskStatus, TaskType } from '@core/models/task.models';
 
 @Component({
   selector: 'app-task-kanban-view',

@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
-import type { FormMeta } from '../../core/models/form-meta.models';
-import type { QueryListMeta } from '../../core/models/query-meta.models';
+import type { FormMeta } from '@core/models/form-meta.models';
+import type { QueryListMeta } from '@core/models/query-meta.models';
 import { EntitiesApi } from './entities.api';
-import { canDo, hasCapability } from '../../core/services/form-meta.service';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
+import { canDo, hasCapability } from '@core/services/form-meta.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { BULK_MAX_IDS, BulkResult } from '../bulk/bulk';
 import type { ListViewState } from '../list-views/list-views';
 import { UiBulkResultComponent } from '../ui/ui-bulk-result.component';

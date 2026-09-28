@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiPaginationComponent } from '../../../../shared/ui/ui-pagination.component';
-import { Project, ProjectTaskStats } from '../../../../core/models/task.models';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { UiPaginationComponent } from '@shared/ui/ui-pagination.component';
+import { Project, ProjectTaskStats } from '@core/models/task.models';
 
 @Component({
   selector: 'app-project-cards-view',

@@ -1,4 +1,4 @@
-import { ProblemDetail } from '../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import {
   UplDataType,
   UplEncoding,

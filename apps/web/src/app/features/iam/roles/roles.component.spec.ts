@@ -3,13 +3,13 @@ import { By } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { Role } from '../../../core/models/rbac.models';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { Role } from '@core/models/rbac.models';
 import { RolesComponent } from './roles.component';
 import { RoleScopePanelComponent } from '../org-units/public-api';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 describe('RolesComponent UI contracts', () => {
   async function createFixture() {

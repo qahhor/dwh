@@ -35,8 +35,8 @@ import {
 } from '@angular/core';
 import { NgControl, Validators } from '@angular/forms';
 import { FormField } from '@angular/forms/signals';
-import { SMTI18nService } from '../../../i18n';
-import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
+import { shouldShowSMTFormControlError } from '@shared/ui-kit/forms/form-control-validation';
 import { fromLegacyErrors, messageForError, type SMTControlError } from './control-messages';
 
 // A radio group, a switch and a tag group are fields too (smt-radio-group, smt-switch, smt-tag-group): the label names them.

@@ -2,20 +2,20 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { User } from '../../../core/models/auth.models';
-import { I18nService } from '../../../core/services/i18n.service';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { User } from '@core/models/auth.models';
+import { I18nService } from '@core/services/i18n.service';
 import { signal } from '@angular/core';
 import { UsersComponent } from './users.component';
-import { translateTest } from '../../../../testing/i18n-test.stub';
+import { translateTest } from '@testing/i18n-test.stub';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
-import { inScreen, redraw } from '../../../../testing/in-screen';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService } from '../../../core/services/query-meta.service';
-import { ListViewsApi } from '../../../shared/list-views/list-views';
-import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
+import { inScreen, redraw } from '@testing/in-screen';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService } from '@core/services/query-meta.service';
+import { ListViewsApi } from '@shared/list-views/list-views';
+import { OrderBy } from '@shared/ui-kit/components/table/table.types';
 
 const field = (
   key: string,

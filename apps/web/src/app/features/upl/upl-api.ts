@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../core/services/api.service';
-import { KeysetPage } from '../../core/models/common.models';
-import { ListQuery } from '../../core/models/query-meta.models';
-import { toQueryParams } from '../../core/services/query-meta.service';
+import { ApiService } from '@core/services/api.service';
+import { KeysetPage } from '@core/models/common.models';
+import { ListQuery } from '@core/models/query-meta.models';
+import { toQueryParams } from '@core/services/query-meta.service';
 
 export type UplPeriodicity = 'month' | 'quarter' | 'year' | 'adhoc';
 export type UplStrictness = 'error' | 'warning';

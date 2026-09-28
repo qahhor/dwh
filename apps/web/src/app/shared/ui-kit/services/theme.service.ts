@@ -4,7 +4,7 @@
  * which owns `data-theme` and the cross-tab synchronisation, so this exposes
  * the single member the vendored skeleton directive reads, backed by ours. */
 import { Injectable, computed, inject } from '@angular/core';
-import { ThemeService } from '../../../core/services/theme.service';
+import { ThemeService } from '@core/services/theme.service';
 
 @Injectable({ providedIn: 'root' })
 export class SMTThemeService {

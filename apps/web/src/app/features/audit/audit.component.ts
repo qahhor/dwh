@@ -1,16 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 
-import { ToastService } from '../../core/services/toast.service';
-import { TranslatePipe } from '../../core/services/i18n.service';
-import { KeysetPager } from '../../shared/paging/keyset-pager';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { KeysetPager } from '@shared/paging/keyset-pager';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { QueryListMeta } from '../../core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '../../core/services/query-meta.service';
-import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
-import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
-import { sortFromHeader } from '../../shared/ui/registry-table-config';
-import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
-import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
+import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '@shared/ui/registry-table-config';
+import { OrderBy } from '@shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 import { AuditRecord, SecurityEventRecord, AuditStats } from './audit.models';
 import { AuditApi } from './audit.api';
@@ -19,10 +19,10 @@ import { AuditStatsTilesComponent } from './components/audit-stats-tiles.compone
 import { AuditLogsTableComponent } from './components/audit-logs-table.component';
 import { AuditSecurityTableComponent } from './components/audit-security-table.component';
 import { AuditModalsComponent } from './components/audit-modals.component';
-import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 export * from './audit.models';
 

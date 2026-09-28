@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { LanguageInfo, TranslationDictionary, TranslationEditor } from '../../core/models/i18n.models';
-import { ApiService } from '../../core/services/api.service';
+import { LanguageInfo, TranslationDictionary, TranslationEditor } from '@core/models/i18n.models';
+import { ApiService } from '@core/services/api.service';
 
 /** Settings as the server keeps them: key to value. */
 export type SettingsValues = Record<string, string>;

@@ -2,15 +2,15 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
 
 import { FormsModule } from '@angular/forms';
 import { A11yModule } from '@angular/cdk/a11y';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/ui-kit/components/forms/textarea';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '@shared/ui-kit/components/forms/textarea';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 import { AnnouncementAdminRecord, AnnouncementBannerType, Confirmation } from '../announcements.models';
-import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-announcements-modals',

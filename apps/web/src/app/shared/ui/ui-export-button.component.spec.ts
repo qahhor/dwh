@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { QueryListMeta } from '../../core/models/query-meta.models';
-import { ExportsService } from '../../core/services/exports.service';
-import { ToastService } from '../../core/services/toast.service';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { ExportsService } from '@core/services/exports.service';
+import { ToastService } from '@core/services/toast.service';
 import { ListViewsApi, ListViewState } from '../list-views/list-views';
 import { UiExportButtonComponent } from './ui-export-button.component';
 

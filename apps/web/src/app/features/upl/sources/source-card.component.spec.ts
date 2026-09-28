@@ -3,13 +3,13 @@ import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { UplApiService, UplFormatVersion, UplSource, UplVersionItem } from '../upl-api';
 import { SourceCardComponent } from './source-card.component';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 /** The error smt-control shows for a field, found the way assistive technology finds it: through aria-describedby. */
 function fieldError(root: HTMLElement, fieldId: string): HTMLElement | null {

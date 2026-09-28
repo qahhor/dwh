@@ -1,15 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 const TIMEZONES: readonly SMTSelectOption<string>[] = [
   { id: 'Asia/Tashkent', label: 'Asia/Tashkent (UTC+5)' },

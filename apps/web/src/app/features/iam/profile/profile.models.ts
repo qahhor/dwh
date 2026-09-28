@@ -1,4 +1,4 @@
-export type { User, UserSession, ApiToken, CreatedTokenResponse } from '../../../core/models/auth.models';
+export type { User, UserSession, ApiToken, CreatedTokenResponse } from '@core/models/auth.models';
 
 export interface UserChannel {
   id: number;

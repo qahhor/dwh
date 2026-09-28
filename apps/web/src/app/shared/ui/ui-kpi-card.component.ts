@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { I18nService } from '../../core/services/i18n.service';
+import { I18nService } from '@core/services/i18n.service';
 
 /**
  * One key figure with its change against the period before (roadmap item 26).

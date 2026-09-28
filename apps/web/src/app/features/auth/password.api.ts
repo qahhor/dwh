@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 
 /**
  * Password endpoints of the sign-in pages: the change a first sign-in requires, and the reset by a one-time link.

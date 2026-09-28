@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
 import { AuditComponent, AuditRecord, SecurityEventRecord } from './audit.component';
-import { AUDIT_LOGS_META, registryProviders, SECURITY_EVENTS_META } from '../../../testing/registry-meta';
+import { AUDIT_LOGS_META, registryProviders, SECURITY_EVENTS_META } from '@testing/registry-meta';
 
 /** The button that opens a tab's period picker. */
 function periodTrigger(fixture: { nativeElement: HTMLElement }, tab: 'audit' | 'security'): HTMLButtonElement | null {

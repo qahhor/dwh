@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.models';
-import { PACKAGED_RUSSIAN } from '../../core/i18n/packaged-russian';
+import { QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { SMTDrawerService } from '../ui-kit/components/drawer';
 import { UiFilterBarComponent } from './ui-filter-bar.component';
 import { UiFilterPanelComponent } from './ui-filter-panel.component';

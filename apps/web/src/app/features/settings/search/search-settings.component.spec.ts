@@ -3,19 +3,19 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ProblemDetail } from '../../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import {
   SearchManagementStatus,
   SearchQueryPolicy,
   SearchSettingsSnapshot,
-} from '../../../core/models/search-management.models';
-import { I18nService } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { SearchManagementService } from '../../../core/services/search-management.service';
-import { translateTest } from '../../../../testing/i18n-test.stub';
+} from '@core/models/search-management.models';
+import { I18nService } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { SearchManagementService } from '@core/services/search-management.service';
+import { translateTest } from '@testing/i18n-test.stub';
 import { SearchSettingsComponent } from './search-settings.component';
-import { SMTSelectComponent } from '../../../shared/ui-kit/components/forms/select';
-import { inScreen } from '../../../../testing/in-screen';
+import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
+import { inScreen } from '@testing/in-screen';
 
 /** The smt-select whose trigger has the given id. */
 function picker(fixture: ComponentFixture<SearchSettingsComponent>, triggerId: string): SMTSelectComponent<string> {

@@ -1,18 +1,18 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
 
-import { CustomFieldsApi } from '../../../core/services/custom-fields.api';
-import { ToastService } from '../../../core/services/toast.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
+import { CustomFieldsApi } from '@core/services/custom-fields.api';
+import { ToastService } from '@core/services/toast.service';
+import { PermissionService } from '@core/services/permission.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { CustomField, CustomFieldFormData } from './custom-fields.models';
 import { CustomFieldsToolbarComponent } from './components/custom-fields-toolbar.component';
 import { CustomFieldsTableComponent } from './components/custom-fields-table.component';
 import { CustomFieldsModalsComponent } from './components/custom-fields-modals.component';
 import { CustomFieldsFormService } from './services/custom-fields-form.service';
 import { finalize, tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
 
 @Component({
   selector: 'app-custom-fields',

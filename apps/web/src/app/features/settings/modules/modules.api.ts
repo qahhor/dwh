@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 import { InstalledModule } from './modules.models';
 
 /** The installed modules and switching one on or off. */

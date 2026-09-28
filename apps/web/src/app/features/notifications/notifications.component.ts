@@ -3,17 +3,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, finalize } from 'rxjs';
 
 import { Router } from '@angular/router';
-import { NotificationService } from '../../core/services/notification.service';
-import { ToastService } from '../../core/services/toast.service';
-import { NotificationItem } from '../../core/models/notification.models';
-import { I18nService } from '../../core/services/i18n.service';
+import { NotificationService } from '@core/services/notification.service';
+import { ToastService } from '@core/services/toast.service';
+import { NotificationItem } from '@core/models/notification.models';
+import { I18nService } from '@core/services/i18n.service';
 
 import { NotificationFilterTab, resolveNotificationIcon } from './notifications.models';
 import { NotificationsHeaderComponent } from './components/notifications-header.component';
 import { NotificationsTabsComponent } from './components/notifications-tabs.component';
 import { NotificationsListComponent } from './components/notifications-list.component';
 import { NotificationPreferencesModalComponent } from './components/notification-preferences-modal.component';
-import { NotificationPrefItem } from '../../core/models/notification.models';
+import { NotificationPrefItem } from '@core/models/notification.models';
 
 export type { NotificationFilterTab };
 export { resolveNotificationIcon };

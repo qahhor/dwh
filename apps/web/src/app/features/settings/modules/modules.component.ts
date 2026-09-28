@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 
 import { ModulesApi } from './modules.api';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 import { InstalledModule, ModuleFilterTab } from './modules.models';
 import { ModulesStatsComponent } from './components/modules-stats.component';

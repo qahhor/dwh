@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal }
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, Subscription, forkJoin } from 'rxjs';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
 import { AnalyticsSummary, TrendDataPoint, ProjectDistribution, UserWorkload } from './analytics.models';
 
@@ -12,8 +12,8 @@ import { AnalyticsMetricsTilesComponent } from './components/analytics-metrics-t
 import { AnalyticsTrendChartComponent } from './components/analytics-trend-chart.component';
 import { AnalyticsProjectsCardComponent } from './components/analytics-projects-card.component';
 import { AnalyticsWorkloadTableComponent } from './components/analytics-workload-table.component';
-import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
-import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '../../shared/ui-kit/components/forms/radio-group';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
 export * from './analytics.models';
 

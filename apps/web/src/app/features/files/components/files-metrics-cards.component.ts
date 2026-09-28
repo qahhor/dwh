@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 import { StorageStats } from '../files.models';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'app-files-metrics-cards',

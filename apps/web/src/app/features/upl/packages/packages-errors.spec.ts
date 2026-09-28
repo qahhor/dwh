@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
-import { FieldErrorItem, ProblemDetail } from '../../../core/models/common.models';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
+import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
 import { UplPackageParams } from './packages-api';
 import {
   UPL_PACKAGE_CODES,

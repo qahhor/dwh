@@ -1,10 +1,10 @@
 import { Injectable, inject, WritableSignal } from '@angular/core';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { ApiService } from '../../../core/services/api.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { Task, TaskStatus } from '../../../core/models/task.models';
-import { safeNumericRecordId } from '../../../core/services/search-target';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { Task, TaskStatus } from '@core/models/task.models';
+import { safeNumericRecordId } from '@core/services/search-target';
 
 @Injectable({
   providedIn: 'root',

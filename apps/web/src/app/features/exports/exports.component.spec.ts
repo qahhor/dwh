@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ExportItem, ExportsService } from '../../core/services/exports.service';
+import { ExportItem, ExportsService } from '@core/services/exports.service';
 import { ExportsComponent } from './exports.component';
 
 const item = (patch: Partial<ExportItem>): ExportItem => ({

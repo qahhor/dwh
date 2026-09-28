@@ -2,12 +2,12 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { PasswordApi } from '../password.api';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 import { LoginHeaderComponent } from '../login/components/login-header.component';
 import { LoginTopBarComponent } from '../login/components/login-top-bar.component';
-import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../core/security/password-policy';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 
 type ResetState = 'form' | 'done' | 'invalid';
 

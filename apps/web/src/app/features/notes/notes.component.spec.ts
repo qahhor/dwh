@@ -2,14 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { ToastService } from '../../core/services/toast.service';
-import { FormMeta } from '../../core/models/form-meta.models';
-import { SMTModalConfirmConfig, SMTModalService } from '../../shared/ui-kit/components/modal';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { FormMeta } from '@core/models/form-meta.models';
+import { SMTModalConfirmConfig, SMTModalService } from '@shared/ui-kit/components/modal';
 import { NotesComponent } from './notes.component';
 import { Note } from './notes.api';
-import { inScreen } from '../../../testing/in-screen';
-import { NOTES_FORM_META } from '../../../testing/form-meta';
+import { inScreen } from '@testing/in-screen';
+import { NOTES_FORM_META } from '@testing/form-meta';
 
 describe('NotesComponent', () => {
   const note: Note = {

@@ -1,14 +1,14 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, computed, inject, viewChild } from '@angular/core';
 
-import { AuthService } from '../../../core/services/auth.service';
+import { AuthService } from '@core/services/auth.service';
 import { ProfileApi } from './profile.api';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { Observable, finalize, tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
-import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH, PASSWORD_POLICY } from '../../../core/security/password-policy';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
+import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH, PASSWORD_POLICY } from '@core/security/password-policy';
 
 import {
   UserSession,

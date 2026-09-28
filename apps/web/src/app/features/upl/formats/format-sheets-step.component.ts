@@ -1,21 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet, UplUnit } from '../upl-api';
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/ui-kit/components/forms/checkbox';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
  * Шаг «Листы и колонки» анкеты: вкладки листов, параметры листа и таблица колонок.

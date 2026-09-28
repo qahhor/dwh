@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { TranslatePipe } from '../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '../ui-kit/components/button';
 
 let nextCardId = 0;

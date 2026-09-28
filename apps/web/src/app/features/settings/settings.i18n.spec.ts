@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems, serverCodeKeys } from '../../../testing/feature-i18n';
-import { SEARCH_ENTITIES } from '../../core/models/search-management.models';
+import { featureI18nProblems, serverCodeKeys } from '@testing/feature-i18n';
+import { SEARCH_ENTITIES } from '@core/models/search-management.models';
 
 describe('i18n: settings', () => {
   it('uses only translated keys, in Russian and English, and none of its keys is dead', () => {

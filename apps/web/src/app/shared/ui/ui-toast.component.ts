@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-import { ToastService, ToastMessage } from '../../core/services/toast.service';
-import { TranslatePipe } from '../../core/services/i18n.service';
+import { ToastService, ToastMessage } from '@core/services/toast.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'ui-toast-container',

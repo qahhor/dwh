@@ -29,7 +29,7 @@ import {
 import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
 import { CdkTrapFocus } from '@angular/cdk/a11y';
 import type { FormValueControl } from '@angular/forms/signals';
-import { SMTI18nService } from '../../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { SMTCalendarComponent } from './calendar.component';
 import { datePattern, formatDate, parseDate } from './date-format';
 import { CalendarDate, isWithin, parseIsoDate, parseIsoTime, toIsoDate } from './date-utils';

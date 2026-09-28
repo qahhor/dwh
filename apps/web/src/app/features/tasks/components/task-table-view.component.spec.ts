@@ -1,13 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
-import { Task, TaskStatus } from '../../../core/models/task.models';
-import { ApiService } from '../../../core/services/api.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
+import { Task, TaskStatus } from '@core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { KeysetPager } from '@shared/paging/keyset-pager';
 import { TaskTableViewComponent } from './task-table-view.component';
-import { TASKS_META } from '../../../../testing/registry-meta';
+import { TASKS_META } from '@testing/registry-meta';
 
 const TASKS = [
   {

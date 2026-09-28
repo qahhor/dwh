@@ -3,10 +3,10 @@ import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { EmbeddedReportComponent } from './embedded-report.component';
-import { NavigationService } from '../../core/services/navigation.service';
-import { I18nService } from '../../core/services/i18n.service';
-import { translateTest } from '../../../testing/i18n-test.stub';
-import { CustomNavigationItem } from '../../core/models/navigation.models';
+import { NavigationService } from '@core/services/navigation.service';
+import { I18nService } from '@core/services/i18n.service';
+import { translateTest } from '@testing/i18n-test.stub';
+import { CustomNavigationItem } from '@core/models/navigation.models';
 
 describe('EmbeddedReportComponent', () => {
   const sampleReport: CustomNavigationItem = {

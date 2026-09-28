@@ -11,19 +11,14 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
-import {
-  LanguageInfo,
-  TranslationDictionary,
-  TranslationEditor,
-  TranslationEntry,
-} from '../../core/models/i18n.models';
+import { LanguageInfo, TranslationDictionary, TranslationEditor, TranslationEntry } from '@core/models/i18n.models';
 import { SettingsApi } from './settings.api';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
-import { SMTModalService } from '../../shared/ui-kit/components/modal';
-import { SMTSwitchComponent } from '../../shared/ui-kit/components/forms/switch';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/components/forms/input';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-language-editor',

@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, exhaustMap, timer } from 'rxjs';
-import { ProblemDetail } from '../../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import {
   SEARCH_ENTITIES,
   SearchEntityType,
@@ -27,12 +27,12 @@ import {
   SearchRetryJobRequest,
   SearchSettingsSnapshot,
   SearchStartJobRequest,
-} from '../../../core/models/search-management.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+} from '@core/models/search-management.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** The name of each indexed entity, as the entity sections of this screen show it. */
 const ENTITY_LABEL_KEYS: Record<SearchEntityType, string> = {
@@ -41,11 +41,11 @@ const ENTITY_LABEL_KEYS: Record<SearchEntityType, string> = {
   USER: 'settings.search.entity.user',
   NOTE: 'settings.search.entity.note',
 };
-import { PermissionService } from '../../../core/services/permission.service';
-import { SearchManagementService } from '../../../core/services/search-management.service';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { PermissionService } from '@core/services/permission.service';
+import { SearchManagementService } from '@core/services/search-management.service';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 
 import {
   PendingMutation,
@@ -57,7 +57,7 @@ import {
   formatBytes,
   formatJobError,
 } from './search-settings.models';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-search-settings',

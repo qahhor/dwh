@@ -16,18 +16,18 @@ import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router } from '@angular/router';
-import { AuthService } from '../../core/services/auth.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ThemeService } from '../../core/services/theme.service';
-import { I18nService, TranslatePipe, Language } from '../../core/services/i18n.service';
-import { NotificationService } from '../../core/services/notification.service';
-import { CommandPaletteService } from '../../core/services/command-palette.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ThemeService } from '@core/services/theme.service';
+import { I18nService, TranslatePipe, Language } from '@core/services/i18n.service';
+import { NotificationService } from '@core/services/notification.service';
+import { CommandPaletteService } from '@core/services/command-palette.service';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
 import { AppHeaderComponent, LanguageChangeRequest } from './components/app-header.component';
 import { AppSidebarComponent } from './components/app-sidebar.component';
-import { ToastService } from '../../core/services/toast.service';
-import { ModuleService } from '../../core/services/module.service';
-import { NavigationService } from '../../core/services/navigation.service';
+import { ToastService } from '@core/services/toast.service';
+import { ModuleService } from '@core/services/module.service';
+import { NavigationService } from '@core/services/navigation.service';
 import { finalize } from 'rxjs';
 
 export type { NavItem, NavSection } from './app-shell.models';

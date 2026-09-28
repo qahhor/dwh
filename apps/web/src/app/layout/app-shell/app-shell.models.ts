@@ -1,5 +1,5 @@
-import { InstalledModule } from '../../core/services/module.service';
-import { CustomNavigationItem, EntityMenuItem } from '../../core/models/navigation.models';
+import { InstalledModule } from '@core/services/module.service';
+import { CustomNavigationItem, EntityMenuItem } from '@core/models/navigation.models';
 
 export interface NavItem {
   id: string;

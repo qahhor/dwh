@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 
 import { AnnouncementsApi } from './announcements.api';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
 import {
   AnnouncementState,
@@ -19,7 +19,7 @@ import { AnnouncementsToolbarComponent } from './components/announcements-toolba
 import { AnnouncementsListComponent } from './components/announcements-list.component';
 import { AnnouncementsModalsComponent } from './components/announcements-modals.component';
 import { EMPTY, catchError, finalize, tap } from 'rxjs';
-import { SMTModalService } from '../../shared/ui-kit/components/modal';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 
 export type {
   AnnouncementState,

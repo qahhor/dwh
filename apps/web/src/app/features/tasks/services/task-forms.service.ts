@@ -1,11 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { Task, TaskDetailResponse, TaskMember } from '../../../core/models/task.models';
-import { RecordNavigationDecision } from '../../../core/guards/record-navigation.guard';
-import { safeNumericRecordId } from '../../../core/services/search-target';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { Task, TaskDetailResponse, TaskMember } from '@core/models/task.models';
+import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
+import { safeNumericRecordId } from '@core/services/search-target';
 import { toLocalDateTime, toTaskInstant } from '../task-form-value';
 import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sameIdSet } from '../tasks.models';
 

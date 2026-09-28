@@ -12,12 +12,12 @@ import {
   input,
   output,
 } from '@angular/core';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { ProblemDetail } from '@core/models/common.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { uplErrorKey } from '../upl-labels';
 import { UplPackageErrorItem, UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages-api';
 import { UplTranslate, uplPackageCodeText } from './packages-errors';
@@ -27,7 +27,7 @@ import {
   formatUplDateTime,
   formatUplPeriod,
 } from './packages-labels';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 /** Подкод ответа, при котором показываем «Загрузка не найдена», а не общий текст сбоя. */
 const NOT_FOUND = 'UPL_PKG_NOT_FOUND';

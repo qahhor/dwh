@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'app-command-palette-footer',

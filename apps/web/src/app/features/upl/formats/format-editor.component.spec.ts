@@ -3,13 +3,13 @@ import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl-api';
 import { FormatEditorComponent } from './format-editor.component';
 import { FormatSheetsStepComponent } from './format-sheets-step.component';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 const SOURCE: UplSource = {
   id: 7,

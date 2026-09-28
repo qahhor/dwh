@@ -9,10 +9,10 @@ import {
   output,
   viewChild,
 } from '@angular/core';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { SMTSwitchComponent } from '../../../../shared/ui-kit/components/forms/switch';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { InstalledModule } from '../modules.models';
 
 /**

@@ -3,8 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { SearchResult } from '../../core/models/search.models';
-import { CommandPaletteService } from '../../core/services/command-palette.service';
+import { SearchResult } from '@core/models/search.models';
+import { CommandPaletteService } from '@core/services/command-palette.service';
 import { CommandPaletteComponent } from './command-palette.component';
 
 const metadata = { foundHits: 0, hasMore: false, source: 'TYPESENSE' as const, degraded: false };

@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { map, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import type { FormMeta } from '../../core/models/form-meta.models';
-import { ApiService } from '../../core/services/api.service';
-import { NOTES_FORM_META } from '../../../testing/form-meta';
+import type { FormMeta } from '@core/models/form-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { NOTES_FORM_META } from '@testing/form-meta';
 import { SMTModalService, type SMTModalConfirmConfig } from '../ui-kit/components/modal';
 import { ListViewState, ListViewsApi } from '../list-views/list-views';
 import { SMTEntityToolbarComponent } from './smt-entity-toolbar.component';

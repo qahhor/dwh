@@ -12,15 +12,15 @@ import {
 
 import { FormsModule } from '@angular/forms';
 import { UsersApi } from '../users.api';
-import { ToastService } from '../../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { FormTreeItem } from '../../../../core/models/rbac.models';
-import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '../../roles/roles.models';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { FormTreeItem } from '@core/models/rbac.models';
+import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '@features/iam/roles/roles.models';
 import { EffectivePermissionItem, PersonalGrant } from '../users.models';
-import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
-import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
-import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 export interface GroupedPermissionAction {
   action: string;

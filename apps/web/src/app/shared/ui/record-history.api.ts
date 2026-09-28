@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { KeysetPage } from '../../core/models/common.models';
-import { ApiService } from '../../core/services/api.service';
+import { KeysetPage } from '@core/models/common.models';
+import { ApiService } from '@core/services/api.service';
 
 /** A field's value before and after one change. */
 export interface HistoryChange {

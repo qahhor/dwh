@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output } from '@angular/core';
-import { QueryCondition, QueryListMeta, QueryMatch } from '../../core/models/query-meta.models';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
+import { QueryCondition, QueryListMeta, QueryMatch } from '@core/models/query-meta.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { describeCondition, filterableFields } from '../list-views/filter-conditions';
 import { SMTDrawerService } from '../ui-kit/components/drawer';
 import { FilterPanelData, FilterPanelResult, UiFilterPanelComponent } from './ui-filter-panel.component';

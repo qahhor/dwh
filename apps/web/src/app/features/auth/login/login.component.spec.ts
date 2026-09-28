@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { throwError } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
+import { ToastService } from '@core/services/toast.service';
 import { LoginComponent } from './login.component';
 
 describe('LoginComponent', () => {

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnChanges, SimpleChanges, input, model, output } from '@angular/core';
 
-import { TranslatePipe } from '../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../ui-kit/components/forms/select';
 import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-options';
 

@@ -6,12 +6,12 @@ import {
   QueryListMeta,
   QueryMatch,
   QueryOp,
-} from '../../core/models/query-meta.models';
+} from '@core/models/query-meta.models';
 import { RefLookups } from '../lookups/ref-lookup';
 import { SMTDataSelectComponent } from '../ui-kit/components/forms/data-select/data-select.component';
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
 import { SMTRadioGroupComponent, SMTRadioOption } from '../ui-kit/components/forms/radio-group';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import {
   FilterDraft,
   changeField,

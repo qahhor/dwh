@@ -4,9 +4,9 @@ import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SMTDropzoneComponent } from '../ui-kit/components/dropzone';
 import { SMTFileCardComponent, SMTFilePreviewService } from '../ui-kit/components/file-preview';
-import { TaskFile } from '../../core/models/task.models';
-import { ToastService } from '../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { TaskFile } from '@core/models/task.models';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
 /** One file in the upload queue. */
 export interface QueuedUpload {

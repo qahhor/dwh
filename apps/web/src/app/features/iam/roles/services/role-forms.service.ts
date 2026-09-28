@@ -1,9 +1,9 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { ApiService } from '../../../../core/services/api.service';
-import { ToastService } from '../../../../core/services/toast.service';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { Role } from '../../../../core/models/rbac.models';
-import { safeNumericRecordId } from '../../../../core/services/search-target';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { Role } from '@core/models/rbac.models';
+import { safeNumericRecordId } from '@core/services/search-target';
 
 @Injectable({ providedIn: 'root' })
 export class RoleFormsService {

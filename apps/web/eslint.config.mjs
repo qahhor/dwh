@@ -6,6 +6,12 @@ import eslint from '@eslint/js';
 import angular from 'angular-eslint';
 import tseslint from 'typescript-eslint';
 
+/** Plan 10/10, item 2.5: code two levels away is reached by its alias (@core, @shared, @features, @layout, @app, @testing). */
+const DEEP_RELATIVE_IMPORT = {
+  regex: '^\\.\\./\\.\\./',
+  message: 'Import code two or more levels up by its alias (@core, @shared, @features, @layout, @app, @testing).',
+};
+
 export default tseslint.config(
   {
     ignores: ['dist/**', 'node_modules/**', '.angular/**', 'coverage/**', 'scripts/**'],
@@ -29,6 +35,7 @@ export default tseslint.config(
       '@angular-eslint/prefer-signals': 'error',
       '@angular-eslint/prefer-output-emitter-ref': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      'no-restricted-imports': ['error', { patterns: [DEEP_RELATIVE_IMPORT] }],
     },
   },
   {
@@ -41,8 +48,9 @@ export default tseslint.config(
         'error',
         {
           patterns: [
+            DEEP_RELATIVE_IMPORT,
             {
-              group: ['**/core/services/api.service'],
+              group: ['@core/services/api.service', '**/core/services/api.service'],
               message: 'Call the feature data service (<feature>.api.ts); only data services use ApiService.',
             },
           ],

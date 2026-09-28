@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildNavSections, BuildNavSectionsOptions, NavItem } from './app-shell.models';
-import { CustomNavigationItem, EntityMenuItem } from '../../core/models/navigation.models';
+import { CustomNavigationItem, EntityMenuItem } from '@core/models/navigation.models';
 
 function item(code: string, requiredPermission: string | null): CustomNavigationItem {
   return {

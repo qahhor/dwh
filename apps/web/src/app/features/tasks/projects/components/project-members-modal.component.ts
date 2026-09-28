@@ -15,23 +15,19 @@ import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ProjectsApi } from '../projects.api';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
-import { Project } from '../../../../core/models/task.models';
-import { User } from '../../../../core/models/auth.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { Project } from '@core/models/task.models';
+import { User } from '@core/models/auth.models';
 import { ProjectMember } from '../projects.models';
-import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-project-members-modal',

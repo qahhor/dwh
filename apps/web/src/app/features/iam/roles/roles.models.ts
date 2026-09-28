@@ -1,4 +1,4 @@
-import { FormTreeItem, Role } from '../../../core/models/rbac.models';
+import { FormTreeItem, Role } from '@core/models/rbac.models';
 
 export interface FormActionItem {
   action: string;

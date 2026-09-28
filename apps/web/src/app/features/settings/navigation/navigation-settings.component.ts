@@ -2,24 +2,24 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } 
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { NavigationService } from '../../../core/services/navigation.service';
+import { NavigationService } from '@core/services/navigation.service';
 import {
   CustomNavigationItem,
   NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload,
   NavigationTargetType,
-} from '../../../core/models/navigation.models';
-import { ToastService } from '../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { transliterateToCode } from '../../../core/utils/transliteration';
+} from '@core/models/navigation.models';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { transliterateToCode } from '@core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
 import { NavigationSettingsTableComponent } from './components/navigation-settings-table.component';
 import { NavigationSettingsModalComponent } from './components/navigation-settings-modal.component';
 import { tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
 
 @Component({
   selector: 'app-navigation-settings',

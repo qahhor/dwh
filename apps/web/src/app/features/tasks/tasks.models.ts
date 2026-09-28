@@ -1,8 +1,8 @@
-import { Task, Project, TaskStatus, TaskType, TaskMember } from '../../core/models/task.models';
-import { CustomField } from '../../core/models/custom-field.models';
-import { User } from '../../core/models/auth.models';
-import { SMTSelectOption } from '../../shared/ui-kit/components/forms/select';
-import { I18nService } from '../../core/services/i18n.service';
+import { Task, Project, TaskStatus, TaskType, TaskMember } from '@core/models/task.models';
+import { CustomField } from '@core/models/custom-field.models';
+import { User } from '@core/models/auth.models';
+import { SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { I18nService } from '@core/services/i18n.service';
 
 export interface TaskDeadlineInfo {
   state: 'none' | 'overdue' | 'today' | 'tomorrow' | 'upcoming';

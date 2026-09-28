@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { NgClass } from '@angular/common';
-import { SearchHit, SearchResult } from '../../../core/models/search.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { SearchHit, SearchResult } from '@core/models/search.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'app-command-palette-results',

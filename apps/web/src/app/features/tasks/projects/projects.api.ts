@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { User } from '../../../core/models/auth.models';
-import { KeysetPage } from '../../../core/models/common.models';
-import { ListQuery } from '../../../core/models/query-meta.models';
-import { Project } from '../../../core/models/task.models';
-import { ApiService } from '../../../core/services/api.service';
-import { toQueryParams } from '../../../core/services/query-meta.service';
+import { User } from '@core/models/auth.models';
+import { KeysetPage } from '@core/models/common.models';
+import { ListQuery } from '@core/models/query-meta.models';
+import { Project } from '@core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { toQueryParams } from '@core/services/query-meta.service';
 import { ProjectListItem, ProjectMember } from './projects.models';
 
 /** Projects: the list with task counts, one project and its members. */

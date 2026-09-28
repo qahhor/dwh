@@ -13,31 +13,24 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import {
-  SMTDatePickerComponent,
-  SMTDatePickerValueAccessor,
-} from '../../../shared/ui-kit/components/forms/date-picker';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../shared/ui-kit/components/forms/select';
-import { LookupChannel } from '../../../shared/paging/lookup-channel';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
-import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
-import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { registryTableConfig, sortFromHeader } from '../../../shared/ui/registry-table-config';
-import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
+import { ProblemDetail } from '@core/models/common.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { LookupChannel } from '@shared/paging/lookup-channel';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
+import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { registryTableConfig, sortFromHeader } from '@shared/ui/registry-table-config';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
 import { UPL_PERIODICITY_KEY } from '../upl-labels';
 import { UplSource, UplSourceItem } from '../upl-api';
 import { PackageCardComponent } from './package-card.component';
@@ -50,7 +43,7 @@ import {
   formatUplPeriod,
   uplPackageRowsText,
 } from './packages-labels';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 /** Поля формы «Новая загрузка»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface PackageUploadForm {

@@ -11,21 +11,21 @@ import {
   output,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { UiBulkResultComponent } from '../../../shared/ui/ui-bulk-result.component';
-import { BulkResult } from '../../../shared/bulk/bulk';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { UiBulkResultComponent } from '@shared/ui/ui-bulk-result.component';
+import { BulkResult } from '@shared/bulk/bulk';
 import { TasksApi } from '../tasks.api';
-import { ToastService } from '../../../core/services/toast.service';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { ListViewState } from '../../../shared/list-views/list-views';
-import { registryTableConfig } from '../../../shared/ui/registry-table-config';
-import { Task, Project, TaskStatus, TaskType } from '../../../core/models/task.models';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { ToastService } from '@core/services/toast.service';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { ListViewState } from '@shared/list-views/list-views';
+import { registryTableConfig } from '@shared/ui/registry-table-config';
+import { Task, Project, TaskStatus, TaskType } from '@core/models/task.models';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
  * The task list, a page at a time from the server, on the shared server table.

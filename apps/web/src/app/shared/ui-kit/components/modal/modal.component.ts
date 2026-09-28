@@ -20,7 +20,7 @@ import {
 import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { CdkDialogContainer, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import type { SMTModalData } from './types/modal.types';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 let nextTitleId = 0;
 

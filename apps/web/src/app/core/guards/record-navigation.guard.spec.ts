@@ -3,14 +3,14 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { routes } from '../../app.routes';
+import { routes } from '@app/app.routes';
 import { ApiService } from '../services/api.service';
-import { PROJECTS_META, TASKS_META } from '../../../testing/registry-meta';
+import { PROJECTS_META, TASKS_META } from '@testing/registry-meta';
 import { PermissionService } from '../services/permission.service';
 import { AuthService } from '../services/auth.service';
-import { TasksComponent } from '../../features/tasks/tasks.component';
-import { ProjectsComponent } from '../../features/tasks/projects/projects.component';
-import { UsersComponent } from '../../features/iam/users/users.component';
+import { TasksComponent } from '@features/tasks/tasks.component';
+import { ProjectsComponent } from '@features/tasks/projects/projects.component';
+import { UsersComponent } from '@features/iam/users/users.component';
 
 describe('Record routes with the actual router and actual templates', () => {
   async function setup() {

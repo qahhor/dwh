@@ -35,7 +35,7 @@ import {
 } from '@angular/core';
 import { CdkConnectedOverlay, CdkOverlayOrigin, ConnectedPosition } from '@angular/cdk/overlay';
 import type { FormValueControl } from '@angular/forms/signals';
-import { SMTI18nService } from '../../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 export interface SMTSelectOption<T = unknown> {
   readonly id: T;

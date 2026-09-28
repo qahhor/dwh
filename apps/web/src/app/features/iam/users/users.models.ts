@@ -1,8 +1,8 @@
-import { User } from '../../../core/models/auth.models';
-import { Role } from '../../../core/models/rbac.models';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH } from '../../../core/security/password-policy';
+import { User } from '@core/models/auth.models';
+import { Role } from '@core/models/rbac.models';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH } from '@core/security/password-policy';
 
 export interface UserCreateForm {
   name: string;

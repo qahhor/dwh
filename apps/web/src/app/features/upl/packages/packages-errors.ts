@@ -1,4 +1,4 @@
-import { ProblemDetail } from '../../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import { uplErrorKey, uplProblemText } from '../upl-labels';
 import { UplPackageParams } from './packages-api';
 

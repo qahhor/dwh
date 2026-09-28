@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 import { SystemComponent, SystemInfo } from './system.component';
 
 describe('SystemComponent', () => {

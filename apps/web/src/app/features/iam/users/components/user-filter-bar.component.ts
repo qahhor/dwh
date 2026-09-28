@@ -1,17 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { Role } from '../../../../core/models/rbac.models';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
-import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { Role } from '@core/models/rbac.models';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-user-filter-bar',

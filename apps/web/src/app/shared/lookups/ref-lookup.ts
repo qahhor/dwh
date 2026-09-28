@@ -1,9 +1,9 @@
 import { Observable, catchError, forkJoin, map, of, shareReplay } from 'rxjs';
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
-import type { QueryRefMeta } from '../../core/models/query-meta.models';
-import type { KeysetPage } from '../../core/models/common.models';
+import type { QueryRefMeta } from '@core/models/query-meta.models';
+import type { KeysetPage } from '@core/models/common.models';
 import { Injectable, inject } from '@angular/core';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 
 type Row = Record<string, unknown>;
 

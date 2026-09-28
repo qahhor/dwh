@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'app-navigation-settings-stats',

@@ -14,7 +14,7 @@
  *   <smt-progress-stepper smtLabel="Format steps" [smtSteps]="steps()"
  *     [(smtCurrent)]="step" /> */
 import { ChangeDetectionStrategy, Component, inject, input, model, ViewEncapsulation } from '@angular/core';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 /** What the caller knows about a step: nothing yet, done, or holding errors. */
 export type SMTProgressStepStatus = 'none' | 'complete' | 'error';

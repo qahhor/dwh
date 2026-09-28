@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { TaskMember } from '../../../core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { TaskMember } from '@core/models/task.models';
 import { TaskLookupsService } from './task-lookups.service';
 
 const member = (userId: number, userName: string): TaskMember =>

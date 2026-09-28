@@ -11,19 +11,15 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { UserChannel } from '../profile.models';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/select';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-profile-channels-card',

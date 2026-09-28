@@ -11,11 +11,11 @@ import {
 } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
-import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { CustomNavigationItem, NavigationTargetType } from '@core/models/navigation.models';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 
 /**
  * Custom menu items on the kit table: the whole list is loaded, so a header
