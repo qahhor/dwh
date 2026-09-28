@@ -1,0 +1,130 @@
+.settings-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-tabs {
+  display: flex;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.dict-item-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dict-ico {
+  font-size: 16px;
+}
+.dict-name {
+  font-weight: 500;
+  color: var(--text-main);
+}
+.sys-badge {
+  font-size: 10px;
+  background-color: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.term-badge {
+  font-size: 10px;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.mini-del-btn {
+  border: none;
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+.mini-del-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+.add-dict-box {
+  background-color: var(--bg-hover);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.add-dict-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0;
+}
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.dict-form-field,
+.color-field {
+  grid-column: 1 / -1;
+}
+.clean-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.terminal-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.add-dict-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+.dictionary-delete-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dictionary-delete-body p {
+  margin: 0;
+}
+.dictionary-delete-body span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.font-mono {
+  font-family: ui-monospace, monospace;
+}
+.text-muted {
+  color: var(--text-muted);
+}
+.text-xs {
+  font-size: 11px;
+}

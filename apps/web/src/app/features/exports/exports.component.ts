@@ -131,63 +131,7 @@ const POLL_MS = 3000;
       ><p class="exports-empty">{{ 'exports.empty' | t }}</p></ng-template
     >
   `,
-  styles: [
-    `
-      .exports-page {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-        padding: 24px;
-        min-width: 0;
-      }
-      .exports-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        flex-wrap: wrap;
-      }
-      .exports-title {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-main);
-      }
-      .exports-subtitle {
-        margin: 4px 0 0;
-        font-size: 13px;
-        color: var(--text-muted);
-      }
-      .exports-list {
-        font-weight: 500;
-      }
-      .exports-note {
-        display: block;
-        margin-top: 2px;
-        font-size: 12px;
-        color: var(--text-muted);
-      }
-      .exports-muted {
-        color: var(--text-muted);
-      }
-      .exports-download {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        color: var(--primary-text, var(--primary));
-        font-size: 13px;
-      }
-      .exports-download .material-symbols-outlined {
-        font-size: 16px;
-      }
-      .exports-empty {
-        margin: 0;
-        padding: 24px;
-        text-align: center;
-        color: var(--text-muted);
-      }
-    `,
-  ],
+  styleUrl: './exports.component.css',
 })
 export class ExportsComponent implements OnInit {
   private readonly exports = inject(ExportsService);

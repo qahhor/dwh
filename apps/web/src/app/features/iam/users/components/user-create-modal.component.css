@@ -1,0 +1,141 @@
+.clean-modal-body {
+  padding: 4px 0;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.span-2 {
+  grid-column: 1 / -1;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* The same as the smt-control label, so wrapped and plain fields read alike. */
+.clean-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.font-mono {
+  font-family: monospace;
+}
+.req {
+  color: var(--danger);
+}
+.field-error {
+  font-size: 10px;
+  color: var(--danger);
+}
+.clean-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.pwd-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.pwd-field {
+  flex: 1;
+}
+.pwd-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.pwd-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+.pwd-btn:hover {
+  color: var(--text-main);
+  background-color: var(--bg-hover);
+}
+.pwd-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+.pwd-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* Password Strength Meter */
+.pwd-strength-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background-color: var(--bg-hover);
+  border-radius: var(--radius-sm);
+}
+.pwd-meter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pwd-meter-bars {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+.pwd-bar {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  background-color: var(--border-color);
+  transition: background-color 0.2s ease;
+}
+.pwd-strength-label {
+  font-size: 11px;
+  font-weight: 600;
+}
+.pwd-checklist {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.check-item.valid {
+  color: var(--success);
+}
+.check-ico {
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .modal-form,
+  .form-group {
+    min-width: 0;
+  }
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .span-2 {
+    grid-column: auto;
+  }
+}

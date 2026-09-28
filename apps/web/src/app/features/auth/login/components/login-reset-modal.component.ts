@@ -60,62 +60,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/compone
       </ng-template>
     </smt-dialog>
   `,
-  styles: [
-    `
-      .reset-body {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .reset-hint {
-        font-size: 12px;
-        color: var(--text-muted);
-        line-height: 1.4;
-      }
-
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-      }
-
-      .form-label {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--text-main);
-      }
-
-      .form-input {
-        height: 36px;
-        padding: 6px 12px;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-sm);
-        background-color: var(--bg-surface);
-        color: var(--text-main);
-        font-size: 13px;
-        font-family: inherit;
-        outline: none;
-        transition: border-color 0.15s ease;
-      }
-
-      .form-input:focus {
-        border-color: var(--primary);
-        outline: 2px solid var(--focus-ring, var(--primary));
-        outline-offset: 2px;
-      }
-
-      .form-input[aria-invalid='true'] {
-        border-color: var(--danger);
-      }
-
-      .form-error {
-        color: var(--danger);
-        font-size: 12px;
-        line-height: 1.4;
-      }
-    `,
-  ],
+  styleUrl: './login-reset-modal.component.css',
 })
 export class LoginResetModalComponent {
   private readonly passwordApi = inject(PasswordApi);

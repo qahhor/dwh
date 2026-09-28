@@ -1,0 +1,133 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.table-container {
+  min-width: 0;
+}
+
+/* Identity */
+.user-identity {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+.identity-info {
+  display: flex;
+  flex-direction: column;
+}
+.full-name {
+  font-weight: 500;
+}
+.login-handle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.contacts-cell {
+  display: flex;
+  flex-direction: column;
+}
+.contact-email {
+  font-size: 12px;
+}
+.contact-phone {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.roles-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.role-pill {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+}
+.manager-text {
+  font-size: 12px;
+}
+.muted-dash {
+  color: var(--text-light);
+}
+
+.twofa-dot {
+  font-size: 16px;
+  color: var(--text-light);
+}
+.twofa-dot.active {
+  color: var(--success);
+}
+
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.status-indicator .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-light);
+}
+.status-indicator.active {
+  color: var(--text-main);
+}
+.status-indicator.active .dot {
+  background-color: var(--success);
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 12px;
+  color: var(--text-muted);
+}
+.empty-ico {
+  font-size: 32px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+.empty-text {
+  font-size: 13px;
+  margin: 0;
+}
+
+.font-mono {
+  font-family: monospace;
+}
+.text-muted {
+  color: var(--text-muted);
+}
+.text-xs {
+  font-size: 11px;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.user-identity:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
