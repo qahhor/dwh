@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import '@angular/compiler';
 import { TestBed } from '@angular/core/testing';
-import { tickInZone } from '../../../testing/zone-tick';
+import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
 import { afterEach, describe, expect, it } from 'vitest';
-import { SMTI18nService } from '../../../i18n';
-import { testI18n } from '../../../i18n/test-messages';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
+import { testI18n } from '@shared/ui-kit/i18n/test-messages';
 import { SMTCalendarComponent } from './calendar.component';
 import { CalendarDate, parseIsoDate } from './date-utils';
 

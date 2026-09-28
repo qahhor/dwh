@@ -11,19 +11,19 @@ import {
 } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { DateRange, SMTDateRangePickerComponent } from '../../../shared/ui-kit/components/forms/date-picker';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { ListViewState } from '../../../shared/list-views/list-views';
-import { registryTableConfig } from '../../../shared/ui/registry-table-config';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { DateRange, SMTDateRangePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { ListViewState } from '@shared/list-views/list-views';
+import { registryTableConfig } from '@shared/ui/registry-table-config';
 import { SecurityEventRecord } from '../audit.models';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-audit-security-table',

@@ -11,7 +11,7 @@ import {
   TemplateRef,
   untracked,
 } from '@angular/core';
-import { TranslatePipe } from '../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTTableComponent } from '../ui-kit/components/table/table.component';
 import { TableColumnResizeEvent, TableConfig, OrderBy } from '../ui-kit/components/table/table.types';
 import {
@@ -28,7 +28,7 @@ import { ListViewState } from '../list-views/list-views';
 import { UiListViewsComponent } from './ui-list-views.component';
 import { UiFilterBarComponent } from './ui-filter-bar.component';
 import { UiExportButtonComponent } from './ui-export-button.component';
-import { QueryListMeta } from '../../core/models/query-meta.models';
+import { QueryListMeta } from '@core/models/query-meta.models';
 import { KeysetPager } from '../paging/keyset-pager';
 import { SMTButtonComponent } from '../ui-kit/components/button';
 import { UiPaginationComponent } from './ui-pagination.component';

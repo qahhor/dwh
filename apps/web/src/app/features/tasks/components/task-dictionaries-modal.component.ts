@@ -5,20 +5,17 @@ import {
   SMTSortableActionsDirective,
   SMTSortableItemDirective,
   SMTSortableListComponent,
-} from '../../../shared/ui-kit/components/sortable-list';
-import {
-  SMTColorInputComponent,
-  SMTColorInputValueAccessor,
-} from '../../../shared/ui-kit/components/forms/color-input';
-import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { TaskStatus, TaskType } from '../../../core/models/task.models';
-import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/ui-kit/components/forms/checkbox';
+} from '@shared/ui-kit/components/sortable-list';
+import { SMTColorInputComponent, SMTColorInputValueAccessor } from '@shared/ui-kit/components/forms/color-input';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { TaskStatus, TaskType } from '@core/models/task.models';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
 
 @Component({
   selector: 'app-task-dictionaries-modal',

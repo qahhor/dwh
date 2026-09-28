@@ -11,20 +11,20 @@ import {
 } from '@angular/core';
 import { NgClass, DatePipe } from '@angular/common';
 import { FileDetail } from '../files.models';
-import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
+import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '@core/services/i18n.service';
 import {
   canPreview,
   fileKind,
   fileKindIcon,
   formatFileSize,
   SMTFileKind,
-} from '../../../shared/ui-kit/components/file-preview';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { ListViewState } from '../../../shared/list-views/list-views';
-import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { registryTableConfig } from '../../../shared/ui/registry-table-config';
-import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+} from '@shared/ui-kit/components/file-preview';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { ListViewState } from '@shared/list-views/list-views';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { registryTableConfig } from '@shared/ui/registry-table-config';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
 
 /**
  * The file list, a page at a time from the server, on the registry table

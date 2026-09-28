@@ -2,24 +2,24 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } 
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { NavigationService } from '../../../core/services/navigation.service';
+import { NavigationService } from '@core/services/navigation.service';
 import {
   CustomNavigationItem,
   NavigationPermissionChoice,
   CreateNavigationItemPayload,
   UpdateNavigationItemPayload,
   NavigationTargetType,
-} from '../../../core/models/navigation.models';
-import { ToastService } from '../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { transliterateToCode } from '../../../core/utils/transliteration';
+} from '@core/models/navigation.models';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { transliterateToCode } from '@core/utils/transliteration';
 import { NavigationSettingsStatsComponent } from './components/navigation-settings-stats.component';
 import { NavigationSettingsTableComponent } from './components/navigation-settings-table.component';
 import { NavigationSettingsModalComponent } from './components/navigation-settings-modal.component';
 import { tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
 
 @Component({
   selector: 'app-navigation-settings',
@@ -195,8 +195,8 @@ export class NavigationSettingsComponent implements OnInit {
         this.items.set(data || []);
         this.isLoading.set(false);
       },
-      error: (err: any) => {
-        const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+      error: (err: unknown) => {
+        const msg = problemText(err) || this.i18n.translate('common.error');
         this.toast.error(msg);
         this.isLoading.set(false);
       },
@@ -340,8 +340,8 @@ export class NavigationSettingsComponent implements OnInit {
           this.closeModal();
           this.loadItems();
         },
-        error: (err: any) => {
-          const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+        error: (err: unknown) => {
+          const msg = problemText(err) || this.i18n.translate('common.error');
           this.toast.error(msg);
           this.isSubmitting.set(false);
         },
@@ -365,8 +365,8 @@ export class NavigationSettingsComponent implements OnInit {
           this.closeModal();
           this.loadItems();
         },
-        error: (err: any) => {
-          const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+        error: (err: unknown) => {
+          const msg = problemText(err) || this.i18n.translate('common.error');
           this.toast.error(msg);
           this.isSubmitting.set(false);
         },
@@ -377,8 +377,8 @@ export class NavigationSettingsComponent implements OnInit {
   toggleItem(item: CustomNavigationItem): void {
     this.navService.toggleItem(item.id).subscribe({
       next: () => this.loadItems(),
-      error: (err: any) => {
-        const msg = err?.error?.detail || err?.error?.message || this.i18n.translate('common.error');
+      error: (err: unknown) => {
+        const msg = problemText(err) || this.i18n.translate('common.error');
         this.toast.error(msg);
       },
     });

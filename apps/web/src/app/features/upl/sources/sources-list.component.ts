@@ -13,22 +13,22 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
-import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
-import { registryTableConfig, sortFromHeader } from '../../../shared/ui/registry-table-config';
-import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { ProblemDetail } from '@core/models/common.models';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
+import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { registryTableConfig, sortFromHeader } from '@shared/ui/registry-table-config';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
 import {
   UPL_PERIODICITIES,
   UPL_STRICTNESSES,
@@ -40,14 +40,10 @@ import {
 } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Модель окна «Новый источник»: обычный объект, чтобы работал `[(ngModel)]`. */
 interface SourceCreateForm {

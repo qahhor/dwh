@@ -2,12 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { Component, viewChild } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { RoleRuleSnapshot, ScopeRule } from './org-units.models';
 import { RoleScopePanelComponent } from './role-scope-panel.component';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 @Component({
   imports: [RoleScopePanelComponent],

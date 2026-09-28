@@ -1,11 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { ApiService } from '../../../../core/services/api.service';
-import { ToastService } from '../../../../core/services/toast.service';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { User } from '../../../../core/models/auth.models';
-import { Role } from '../../../../core/models/rbac.models';
-import { safeNumericRecordId } from '../../../../core/services/search-target';
-import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/password-policy';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { User } from '@core/models/auth.models';
+import { Role } from '@core/models/rbac.models';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 import { UserCreateForm, UserEditForm, createDefaultUserCreateForm, createDefaultUserEditForm } from '../users.models';
 
 @Injectable({

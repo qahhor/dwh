@@ -1,14 +1,10 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { ProjectStateFilter } from '../projects.models';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/components/forms/input';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-project-filter-bar',

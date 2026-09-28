@@ -3,8 +3,8 @@ import { DatePipe } from '@angular/common';
 import { SystemApi, SystemInfo } from './system.api';
 
 export type { SystemInfo };
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
 type OverallStatus = 'healthy' | 'attention' | 'unavailable';
 

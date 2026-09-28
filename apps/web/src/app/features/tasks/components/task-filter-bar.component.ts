@@ -1,16 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { Project, TaskStatus } from '../../../core/models/task.models';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { Project, TaskStatus } from '@core/models/task.models';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { ProjectOptionsPipe } from './project-options.pipe';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../../core/services/i18n.service';
-import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/components/forms/input';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 
 export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | 'overdue';
 

@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
-import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { User } from '../profile.models';
-import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-user-profile-card',

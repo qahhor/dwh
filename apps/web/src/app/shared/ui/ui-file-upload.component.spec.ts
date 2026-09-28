@@ -2,8 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TaskFile } from '../../core/models/task.models';
-import { ToastService } from '../../core/services/toast.service';
+import { TaskFile } from '@core/models/task.models';
+import { ToastService } from '@core/services/toast.service';
 import { UiFileUploadComponent } from './ui-file-upload.component';
 
 describe('UiFileUploadComponent', () => {

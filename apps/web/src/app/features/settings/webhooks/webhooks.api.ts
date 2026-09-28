@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 import {
   CreatedWebhookSubscription,
   CreateWebhookSubscriptionDto,
@@ -17,7 +17,7 @@ export class WebhooksApi {
   }
 
   create(body: CreateWebhookSubscriptionDto): Observable<CreatedWebhookSubscription> {
-    return this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body);
+    return this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body, { notifyError: false });
   }
 
   setState(id: number, state: string): Observable<void> {

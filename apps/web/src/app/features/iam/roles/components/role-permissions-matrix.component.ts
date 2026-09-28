@@ -1,19 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { Role } from '../../../../core/models/rbac.models';
-import { TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
+import { Role } from '@core/models/rbac.models';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { GroupedForm, ModuleGroup } from '../roles.models';
-import { SMTAlertComponent } from '../../../../shared/ui-kit/components/alert';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { SMTCheckboxComponent } from '../../../../shared/ui-kit/components/forms/checkbox';
-import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-role-permissions-matrix',

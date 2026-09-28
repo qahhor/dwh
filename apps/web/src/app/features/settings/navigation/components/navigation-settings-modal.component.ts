@@ -1,17 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import {
-  CustomNavigationItem,
-  NavigationPermissionChoice,
-  NavigationTargetType,
-} from '../../../../core/models/navigation.models';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { CustomNavigationItem, NavigationPermissionChoice, NavigationTargetType } from '@core/models/navigation.models';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-navigation-settings-modal',

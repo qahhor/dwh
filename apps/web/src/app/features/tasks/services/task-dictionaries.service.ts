@@ -1,11 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { ApiService } from '../../../core/services/api.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { TaskStatus, TaskType } from '../../../core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { TaskStatus, TaskType } from '@core/models/task.models';
 import { tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
 
 @Injectable({
   providedIn: 'root',

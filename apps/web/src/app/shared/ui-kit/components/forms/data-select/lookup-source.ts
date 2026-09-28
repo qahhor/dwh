@@ -5,8 +5,8 @@
  * per reference list, not once per screen. See ADR-0015 rule 2. */
 import { signal, type Signal } from '@angular/core';
 import type { Observable } from 'rxjs';
-import { LookupChannel } from '../../../../paging/lookup-channel';
-import type { KeysetResponse } from '../../../../paging/keyset-pager';
+import { LookupChannel } from '@shared/paging/lookup-channel';
+import type { KeysetResponse } from '@shared/paging/keyset-pager';
 import type { SMTSelectOption } from '../select/select.component';
 
 /** A key a data select stores: a record id. Compared with `===`, so a primitive. */

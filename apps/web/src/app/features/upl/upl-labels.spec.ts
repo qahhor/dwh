@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ProblemDetail } from '../../core/models/common.models';
+import { ProblemDetail } from '@core/models/common.models';
 import { uplProblemText } from './upl-labels';
 
 const translate = (key: string): string => (key === 'upl.err.UPL_NO_SHEETS' ? 'TEST-TEXT' : key);

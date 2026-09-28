@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { PACKAGED_RUSSIAN } from '../../core/i18n/packaged-russian';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 
 const UPL_DIR = 'src/app/features/upl';
 const SHELL_FILES = ['src/app/layout/app-shell/app-shell.component.ts', 'src/app/layout/app-shell/app-shell.models.ts'];

@@ -12,18 +12,18 @@ import {
   viewChild,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { safeNumericRecordId } from '../../../core/services/search-target';
-import { ToastService } from '../../../core/services/toast.service';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { ToastService } from '@core/services/toast.service';
+import { ProblemDetail } from '@core/models/common.models';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnitTreeRows, orgUnitKindKeys, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
-import { SMTTreeTableComponent } from '../../../shared/ui-kit/components/tree-table/tree-table.component';
-import { TreeRow } from '../../../shared/ui-kit/components/tree-table/tree.utils';
-import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
+import { SMTTreeTableComponent } from '@shared/ui-kit/components/tree-table/tree-table.component';
+import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';

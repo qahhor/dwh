@@ -1,13 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../../shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-custom-fields-toolbar',

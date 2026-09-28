@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { AuthService } from '../../../core/services/auth.service';
-import { IdleLockService } from '../../../core/services/idle-lock.service';
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
+import { AuthService } from '@core/services/auth.service';
+import { IdleLockService } from '@core/services/idle-lock.service';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 
 /**
  * The warning before an idle session is closed (roadmap item 28): the seconds

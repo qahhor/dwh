@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
+import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-settings-preferences-panel',

@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { Observable } from 'rxjs';
-import { RecordNavigationDecision } from '../../../core/guards/record-navigation.guard';
+import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
 
 /** Shared local discard decision; the host owns its modal and pending/dirty state. */
 export class OrgUnitDraft {

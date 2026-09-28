@@ -4,9 +4,9 @@ import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SMTDropzoneComponent } from '../ui-kit/components/dropzone';
 import { SMTFileCardComponent, SMTFilePreviewService } from '../ui-kit/components/file-preview';
-import { TaskFile } from '../../core/models/task.models';
-import { ToastService } from '../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
+import { TaskFile } from '@core/models/task.models';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
 /** One file in the upload queue. */
 export interface QueuedUpload {
@@ -15,6 +15,15 @@ export interface QueuedUpload {
   readonly status: 'queued' | 'uploading' | 'failed';
   readonly progress: number;
   readonly error?: string;
+}
+
+/** What the upload endpoint answers: the stored file. */
+interface UploadedFile {
+  id: string;
+  originalName?: string;
+  sizeBytes?: number;
+  mimeType?: string;
+  createdAt?: string;
 }
 
 @Component({
@@ -292,7 +301,7 @@ export class UiFileUploadComponent {
     const formData = new FormData();
     formData.append('file', next.file);
     this.current = this.http
-      .post<any>('/api/v1/files/upload', formData, {
+      .post<UploadedFile>('/api/v1/files/upload', formData, {
         reportProgress: true,
         observe: 'events',
         withCredentials: true,
@@ -302,9 +311,9 @@ export class UiFileUploadComponent {
           if (event.type === HttpEventType.UploadProgress && event.total) {
             this.patch(next.id, { progress: Math.round((100 * event.loaded) / event.total) });
           } else if (event.type === HttpEventType.Response) {
-            const body = event.body;
+            const body: Partial<UploadedFile> = event.body ?? {};
             const taskFile: TaskFile = {
-              fileId: body.id,
+              fileId: body.id ?? '',
               fileName: body.originalName || next.file.name,
               sizeBytes: body.sizeBytes || next.file.size,
               mimeType: body.mimeType || next.file.type,

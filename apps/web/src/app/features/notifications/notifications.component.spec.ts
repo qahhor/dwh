@@ -3,8 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NotificationService } from '../../core/services/notification.service';
-import { ToastService } from '../../core/services/toast.service';
+import { NotificationService } from '@core/services/notification.service';
+import { ToastService } from '@core/services/toast.service';
 import { NotificationsComponent } from './notifications.component';
 
 describe('NotificationsComponent UI contracts', () => {

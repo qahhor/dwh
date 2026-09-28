@@ -1,29 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
-import {
-  SMTPhoneInputComponent,
-  SMTPhoneInputValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/phone-input';
-import { LookupSources, UserRef } from '../../../../shared/lookups/lookup-sources';
-import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../../shared/ui-kit/components/forms/checkbox';
-import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
-import { User } from '../../../../core/models/auth.models';
-import { Role } from '../../../../core/models/rbac.models';
-import { CustomField } from '../../../../core/models/custom-field.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
+import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '@shared/ui-kit/components/forms/phone-input';
+import { LookupSources, UserRef } from '@shared/lookups/lookup-sources';
+import { SMTTagGroupComponent, SMTTagOption } from '@shared/ui-kit/components/tag';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
+import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
+import { User } from '@core/models/auth.models';
+import { Role } from '@core/models/rbac.models';
+import { CustomField } from '@core/models/custom-field.models';
+import { UserEditForm } from '../users.models';
 
 /** The time zones offered; their names are not translated. */
 const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
@@ -133,7 +127,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                   <smt-tag-group
                     [options]="roleOptions(u)"
                     [value]="editForm().roleIds || []"
-                    (valueChange)="editForm().roleIds = $event"
+                    (valueChange)="editForm().roleIds = [...$event]"
                   />
                 </smt-control>
               }
@@ -225,6 +219,8 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 export class UserEditModalComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly editForm = input.required<UserEditForm>();
+
   readonly isOpen = input(false);
   readonly isSubmitting = input(false);
   readonly isEditSubmitted = input(false);
@@ -236,7 +232,6 @@ export class UserEditModalComponent {
       name: string;
     }>
   >([]);
-  readonly editForm = input<any>({});
   readonly customFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

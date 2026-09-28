@@ -7,9 +7,7 @@ import { ChangeDetectorRef, type Injector } from '@angular/core';
  * Typed loosely, like `fixture.nativeElement`, so existing casts keep working.
  */
 export interface Screen {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   querySelector(selector: string): any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   querySelectorAll(selector: string): any;
   readonly textContent: string;
   contains(node: Node | null): boolean;

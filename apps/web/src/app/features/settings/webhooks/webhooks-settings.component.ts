@@ -12,16 +12,16 @@ import {
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { WebhooksApi } from './webhooks.api';
-import { ToastService } from '../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { finalize, tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
 import {
   WebhookSubscription,
   CreatedWebhookSubscription,
@@ -29,8 +29,8 @@ import {
   AVAILABLE_WEBHOOK_EVENTS,
   WebhookEventOption,
 } from './webhooks-settings.models';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 
 @Component({
   selector: 'app-webhooks-settings',
@@ -754,9 +754,9 @@ export class WebhooksSettingsComponent implements OnInit {
         this.createdSecretModalOpen.set(true);
         this.loadSubscriptions();
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isSaving.set(false);
-        this.toast.error(err?.error?.detail || err?.message || 'Error creating subscription');
+        this.toast.error(problemText(err) || this.uiI18n.translate('common.error'));
       },
     });
   }

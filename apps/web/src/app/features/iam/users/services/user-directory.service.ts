@@ -1,7 +1,7 @@
 import { DestroyRef, Injectable, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiService } from '../../../../core/services/api.service';
-import { User } from '../../../../core/models/auth.models';
+import { ApiService } from '@core/services/api.service';
+import { User } from '@core/models/auth.models';
 
 /**
  * The users the screen knows about, independent of the page on screen.

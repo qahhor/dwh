@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { NotificationPrefItem } from '../../../core/models/notification.models';
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/checkbox';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
+import { NotificationPrefItem } from '@core/models/notification.models';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 
 export interface EventTypeRow {
   code: string;

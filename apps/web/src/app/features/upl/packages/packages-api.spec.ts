@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { KeysetPage } from '../../../core/models/common.models';
-import { ApiService } from '../../../core/services/api.service';
+import { KeysetPage } from '@core/models/common.models';
+import { ApiService } from '@core/services/api.service';
 import { UplApiService, UplSourceItem } from '../upl-api';
 import { UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages-api';
 

@@ -14,14 +14,14 @@ import {
   output,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { ProblemDetail } from '../../../core/models/common.models';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { safeNumericRecordId } from '../../../core/services/search-target';
-import { ToastService } from '../../../core/services/toast.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
+import { ProblemDetail } from '@core/models/common.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { ScopeRule } from './org-units.models';

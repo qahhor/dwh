@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 
-import { TranslatePipe } from '../../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { ModuleFilterTab } from '../modules.models';
-import { SMTTabBarComponent, SMTTabItem } from '../../../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-modules-toolbar',

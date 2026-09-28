@@ -2,10 +2,10 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { NavigationService } from '../../core/services/navigation.service';
-import { CustomNavigationItem } from '../../core/models/navigation.models';
-import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
+import { NavigationService } from '@core/services/navigation.service';
+import { CustomNavigationItem } from '@core/models/navigation.models';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-embedded-report',

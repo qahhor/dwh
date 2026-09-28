@@ -22,7 +22,7 @@ import {
 import { NgTemplateOutlet } from '@angular/common';
 import { SMTTableComponent } from '../table/table.component';
 import { ColumnInfo, TableConfig, TableRowKeydownEvent } from '../table/table.types';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { expandableIds, searchTreeRows, TreeRow, treePositions, visibleTreeRows } from './tree.utils';
 
 export interface TreeTableColumns<T> {

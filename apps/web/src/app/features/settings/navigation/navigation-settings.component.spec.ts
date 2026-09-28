@@ -2,11 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { NavigationSettingsComponent } from './navigation-settings.component';
-import { NavigationService } from '../../../core/services/navigation.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { translateTest } from '../../../../testing/i18n-test.stub';
-import { CustomNavigationItem } from '../../../core/models/navigation.models';
+import { NavigationService } from '@core/services/navigation.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { translateTest } from '@testing/i18n-test.stub';
+import { CustomNavigationItem } from '@core/models/navigation.models';
 
 describe('NavigationSettingsComponent', () => {
   const sampleItems: CustomNavigationItem[] = [

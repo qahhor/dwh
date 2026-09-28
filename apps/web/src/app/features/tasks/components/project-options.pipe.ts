@@ -1,6 +1,6 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { Project } from '../../../core/models/task.models';
-import { SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
+import { Project } from '@core/models/task.models';
+import { SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 
 /**
  * Projects as options for smt-select, so a long project list can be searched

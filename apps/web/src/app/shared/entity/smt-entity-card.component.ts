@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
-import type { FormFieldMeta, FormMeta, FormValues } from '../../core/models/form-meta.models';
-import { fieldLabel, optionLabel } from '../../core/services/form-meta.service';
-import { I18nService } from '../../core/services/i18n.service';
+import type { FormFieldMeta, FormMeta, FormValues } from '@core/models/form-meta.models';
+import { fieldLabel, optionLabel } from '@core/services/form-meta.service';
+import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
 

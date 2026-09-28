@@ -2,12 +2,12 @@ import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { PACKAGED_RUSSIAN } from '../../core/i18n/packaged-russian';
-import { ToastService } from '../../core/services/toast.service';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
+import { ToastService } from '@core/services/toast.service';
 import { ListViewState, ListViewsApi, SavedListView } from '../list-views/list-views';
 import { SMTModalService } from '../ui-kit/components/modal';
 import { UiListViewsComponent } from './ui-list-views.component';
-import { inScreen } from '../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 const monthly: SavedListView = {
   id: 1,

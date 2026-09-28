@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, signal, input, output } from '@angular/core';
 
-import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { ProjectDistribution } from '../analytics.models';
 
 @Component({

@@ -4,8 +4,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { Router } from '@angular/router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CommandPaletteComponent } from './command-palette.component';
-import { CommandPaletteService } from '../../core/services/command-palette.service';
-import { ToastService } from '../../core/services/toast.service';
+import { CommandPaletteService } from '@core/services/command-palette.service';
+import { ToastService } from '@core/services/toast.service';
 
 describe('Reliable search through the real HTTP adapter and template', () => {
   afterEach(() => vi.useRealTimers());

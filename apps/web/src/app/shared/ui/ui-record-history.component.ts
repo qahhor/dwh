@@ -15,7 +15,7 @@ import { Subscription } from 'rxjs';
 import { HistoryChange, HistoryEntry, RecordHistoryApi } from './record-history.api';
 
 export type { HistoryChange, HistoryEntry };
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 
 const PAGE_SIZE = 20;
 const EVENT_KEYS: Record<HistoryEntry['event'], string> = {

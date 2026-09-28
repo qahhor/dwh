@@ -1,15 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.models';
-import { filterDsl, readFilterDsl, toQueryParams } from '../../core/services/query-meta.service';
-import { ApiService } from '../../core/services/api.service';
+import { QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
+import { filterDsl, readFilterDsl, toQueryParams } from '@core/services/query-meta.service';
+import { ApiService } from '@core/services/api.service';
 import { ListViewState, ListViewsApi, SavedListView } from './list-views';
 import { describeCondition, fromCondition, toCondition } from './filter-conditions';
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF } from '../ui-kit/components/drawer';
 import { UiFilterPanelComponent } from '../ui/ui-filter-panel.component';
 import { refLookup } from '../lookups/ref-lookup';
-import { metaField } from '../../../testing/registry-meta';
+import { metaField } from '@testing/registry-meta';
 import { firstValueFrom } from 'rxjs';
 
 /** Roadmap item 53: any-groups in the filter and fields that refer to another list. */

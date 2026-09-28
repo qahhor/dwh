@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { registryTableConfig } from './registry-table-config';
 import { describeCondition } from '../list-views/filter-conditions';
-import { QueryListMeta } from '../../core/models/query-meta.models';
-import { metaField } from '../../../testing/registry-meta';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { metaField } from '@testing/registry-meta';
 
 type Row = { id: number; name: string; attributes: Record<string, unknown> };
 

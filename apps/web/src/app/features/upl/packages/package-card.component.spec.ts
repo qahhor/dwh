@@ -2,8 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
-import { ProblemDetail } from '../../../core/models/common.models';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
+import { ProblemDetail } from '@core/models/common.models';
 import {
   UplPackageErrorItem,
   UplPackageErrors,

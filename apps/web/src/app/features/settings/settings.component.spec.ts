@@ -3,17 +3,17 @@ import { TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Observable, of, Subject } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { I18nService } from '../../core/services/i18n.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { SearchManagementService } from '../../core/services/search-management.service';
-import { ToastService } from '../../core/services/toast.service';
-import { ThemeService } from '../../core/services/theme.service';
-import { SMTModalService } from '../../shared/ui-kit/components/modal';
-import { SMTSelectComponent } from '../../shared/ui-kit/components/forms/select';
+import { ApiService } from '@core/services/api.service';
+import { I18nService } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { SearchManagementService } from '@core/services/search-management.service';
+import { ToastService } from '@core/services/toast.service';
+import { ThemeService } from '@core/services/theme.service';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 import { SettingsComponent } from './settings.component';
-import { translateTest } from '../../../testing/i18n-test.stub';
-import { inScreen, redraw } from '../../../testing/in-screen';
+import { translateTest } from '@testing/i18n-test.stub';
+import { inScreen, redraw } from '@testing/in-screen';
 
 describe('SettingsComponent UI contracts', () => {
   async function createFixture(

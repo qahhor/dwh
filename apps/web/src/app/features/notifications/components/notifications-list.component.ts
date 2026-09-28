@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
-import { NotificationItem } from '../../../core/models/notification.models';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiPaginationComponent } from '@shared/ui/ui-pagination.component';
+import { NotificationItem } from '@core/models/notification.models';
 import { NotificationFilterTab, resolveNotificationIcon } from '../notifications.models';
 
 @Component({

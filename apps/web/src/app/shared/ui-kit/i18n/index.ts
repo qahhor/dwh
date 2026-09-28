@@ -5,7 +5,7 @@
  * rather than carrying the kit's parallel translation system this exposes
  * the shape the components bind to, filled from ours. */
 import { Injectable, computed, inject } from '@angular/core';
-import { I18nService, LANGUAGE_LOCALES } from '../../../core/services/i18n.service';
+import { I18nService, LANGUAGE_LOCALES } from '@core/services/i18n.service';
 import type { SMTControlMessages } from '../components/forms/control/control-messages';
 import type { DateRangePresetKey } from '../components/forms/date-picker/date-utils';
 import type { SMTColorKey } from '../components/forms/color-input/color-input.component';

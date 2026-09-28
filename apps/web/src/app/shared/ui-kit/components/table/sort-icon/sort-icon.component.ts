@@ -2,7 +2,7 @@
  * Per ADR-0015 this copy is ours to change; the commit above is only the
  * base for comparing later work in the kit. See NOTICE. */
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
-import { SMTIconComponent } from '../../icon/icon';
+import { SMTIconComponent } from '@shared/ui-kit/components/icon/icon';
 
 /* The kit colours two strokes of an SVG sprite to show direction. Icons here
    are a font glyph with no strokes to colour, so that styling never applied

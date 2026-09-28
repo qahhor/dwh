@@ -32,9 +32,9 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import type { FormValueControl, ValidationError, WithOptionalFieldTree } from '@angular/forms/signals';
-import { SMTI18nService } from '../../../i18n';
-import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '../../../forms/field-registry';
-import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
+import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '@shared/ui-kit/forms/field-registry';
+import { shouldShowSMTFormControlError } from '@shared/ui-kit/forms/form-control-validation';
 
 /** The field types a person types into; everything else has its own control. */
 export type SMTInputType = 'text' | 'email' | 'url' | 'tel' | 'search' | 'password' | 'number';

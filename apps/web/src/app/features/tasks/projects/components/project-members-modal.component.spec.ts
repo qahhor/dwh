@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 import { ProjectMember } from '../projects.models';
 import { ProjectMembersModalComponent } from './project-members-modal.component';
 

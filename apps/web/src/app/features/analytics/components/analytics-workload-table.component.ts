@@ -10,13 +10,13 @@ import {
   input,
 } from '@angular/core';
 
-import { SMTInputComponent } from '../../../shared/ui-kit/components/forms/input';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { UiBadgeComponent } from '../../../shared/ui/ui-badge.component';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { UserWorkload } from '../analytics.models';
-import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-analytics-workload-table',

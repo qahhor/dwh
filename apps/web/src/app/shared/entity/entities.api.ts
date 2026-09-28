@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 import { BulkResult } from '../bulk/bulk';
 
 /** Actions every entity declared on the server offers (ADR-0019). */

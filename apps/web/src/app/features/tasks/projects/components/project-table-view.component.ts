@@ -10,14 +10,14 @@ import {
   output,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
-import { OrderBy, TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
-import { ProjectTaskStats } from '../../../../core/models/task.models';
-import { QueryListMeta } from '../../../../core/models/query-meta.models';
-import { KeysetPager } from '../../../../shared/paging/keyset-pager';
-import { ListViewState } from '../../../../shared/list-views/list-views';
-import { registryTableConfig } from '../../../../shared/ui/registry-table-config';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { ProjectTaskStats } from '@core/models/task.models';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { ListViewState } from '@shared/list-views/list-views';
+import { registryTableConfig } from '@shared/ui/registry-table-config';
 import { ProjectListItem } from '../projects.models';
 
 /**

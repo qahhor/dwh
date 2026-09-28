@@ -9,12 +9,12 @@ import {
   output,
 } from '@angular/core';
 import { NgClass, JsonPipe, DatePipe } from '@angular/common';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { UiLocalTableComponent } from '../../../shared/ui/ui-local-table.component';
-import { TableConfig } from '../../../shared/ui-kit/components/table/table.types';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
 import { AuditRecord, SecurityEventRecord } from '../audit.models';
 
 /** One changed field: its name and its value before and after, as shown. */
@@ -431,7 +431,7 @@ export class AuditModalsComponent {
     );
   }
 
-  formatValue(val: any): string {
+  formatValue(val: unknown): string {
     if (val === undefined || val === null) return '—';
     if (typeof val === 'object') return JSON.stringify(val, null, 2);
     return String(val);

@@ -4,7 +4,7 @@ import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { afterEach, describe, expect, it } from 'vitest';
-import { tickInZone } from '../../../testing/zone-tick';
+import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
 import { SMTCheckboxComponent } from './checkbox.component';
 import { SMTCheckboxValueAccessor } from './checkbox-value-accessor';
 

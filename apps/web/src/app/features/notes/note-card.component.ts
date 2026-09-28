@@ -1,11 +1,11 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { FormMeta } from '../../core/models/form-meta.models';
-import { canDo, recordValues } from '../../core/services/form-meta.service';
-import { TranslatePipe } from '../../core/services/i18n.service';
-import { SMTEntityCardComponent } from '../../shared/entity/smt-entity-card.component';
-import { SMTCheckboxComponent } from '../../shared/ui-kit/components/forms/checkbox';
-import { UiMarkdownViewComponent } from '../../shared/ui/ui-markdown-view.component';
+import { FormMeta } from '@core/models/form-meta.models';
+import { canDo, recordValues } from '@core/services/form-meta.service';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTEntityCardComponent } from '@shared/entity/smt-entity-card.component';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+import { UiMarkdownViewComponent } from '@shared/ui/ui-markdown-view.component';
 import { Note } from './notes.api';
 
 /** One note on the board: its text, its custom fields and the actions the note form allows the viewer. */

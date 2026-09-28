@@ -3,10 +3,10 @@
  * base for comparing later work in the kit. See NOTICE. */
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { ColumnContentType } from '../table.types';
-import { SMTCheckboxComponent } from '../../forms/checkbox/checkbox.component';
-import { CbPipe } from '../../../utils/cb.pipe';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox/checkbox.component';
+import { CbPipe } from '@shared/ui-kit/utils/cb.pipe';
 import { DatePipe, NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
-import { SMTI18nService } from '../../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 @Component({
   selector: 'smt-cell-content',

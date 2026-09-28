@@ -3,7 +3,7 @@ import '@angular/compiler';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { tickInZone } from '../../testing/zone-tick';
+import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
 import { SMTDropdownButtonComponent, SMTMenuItem } from './dropdown-button.component';
 
 type Action = 'edit' | 'copy' | 'archive' | 'delete';

@@ -26,9 +26,9 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import type { FormValueControl, ValidationError, WithOptionalFieldTree } from '@angular/forms/signals';
-import { SMTI18nService } from '../../../i18n';
-import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '../../../forms/field-registry';
-import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
+import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '@shared/ui-kit/forms/field-registry';
+import { shouldShowSMTFormControlError } from '@shared/ui-kit/forms/form-control-validation';
 
 /** ISO day of the week: 1 is Monday, 7 is Sunday. */
 export type SMTWeekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;

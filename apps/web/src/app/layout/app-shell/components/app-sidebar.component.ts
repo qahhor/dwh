@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { NavItem, NavSection } from '../app-shell.models';
 import { AppSidebarNavSectionsComponent } from './app-sidebar-nav-sections.component';
 import { AppSidebarFlyoutComponent } from './app-sidebar-flyout.component';
-import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
+import { User } from '@core/models/auth.models';
 
 @Component({
   selector: 'app-sidebar',
@@ -196,7 +197,7 @@ export class AppSidebarComponent {
   readonly hoveredFlyoutSection = input<NavSection | null>(null);
   readonly flyoutAnchorTop = input(0);
   readonly isProfileFlyoutVisible = input(false);
-  readonly currentUser = input<any>(null);
+  readonly currentUser = input<User | null>(null);
 
   readonly toggleSidebar = output<void>();
   readonly closeMobileMenu = output<boolean>();

@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { FormMeta } from '../../core/models/form-meta.models';
+import { FormMeta } from '@core/models/form-meta.models';
 import { NoteCardComponent } from './note-card.component';
 import { Note } from './notes.api';
-import { NOTES_FORM_META } from '../../../testing/form-meta';
+import { NOTES_FORM_META } from '@testing/form-meta';
 
 describe('NoteCardComponent', () => {
   const note: Note = {

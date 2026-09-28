@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { NOTES_FORM_META, formField, withCustomField } from '../../../testing/form-meta';
-import { translateTest } from '../../../testing/i18n-test.stub';
+import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
+import { translateTest } from '@testing/i18n-test.stub';
 import { canDo, formProblems, optionLabel, recordPayload, recordValues, serverProblems } from './form-meta.service';
 
 const BUDGET = formField('cfBudget', 'number', { labelKey: '', label: 'Бюджет', attribute: 'budget', required: true });

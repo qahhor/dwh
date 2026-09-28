@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, model } from '@angular/core';
-import { CustomField } from '../../core/models/custom-field.models';
-import { I18nService } from '../../core/services/i18n.service';
+import { CustomField } from '@core/models/custom-field.models';
+import { I18nService } from '@core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
 import { SMTDynamicFieldComponent, SMTDynamicFieldDef } from '../ui-kit/components/forms/dynamic-field';
 import type { SMTSelectOption } from '../ui-kit/components/forms/select';

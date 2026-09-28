@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { QueryListMeta } from '../../core/models/query-meta.models';
+import { QueryListMeta } from '@core/models/query-meta.models';
 import { changeField, describeCondition, draftError, fromCondition, newDraft, toCondition } from './filter-conditions';
 
 const META: QueryListMeta = {

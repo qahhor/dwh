@@ -4,15 +4,15 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { User } from '../../core/models/auth.models';
-import { ApiService } from '../../core/services/api.service';
-import { AuthService } from '../../core/services/auth.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
+import { User } from '@core/models/auth.models';
+import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { FileDetail, FilesComponent, StorageStats } from './files.component';
-import { QueryListMeta } from '../../core/models/query-meta.models';
-import { QueryMetaService } from '../../core/services/query-meta.service';
-import { ListViewsApi } from '../../shared/list-views/list-views';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService } from '@core/services/query-meta.service';
+import { ListViewsApi } from '@shared/list-views/list-views';
 
 const field = (
   key: string,

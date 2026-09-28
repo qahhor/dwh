@@ -2,14 +2,14 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { I18nService } from '../../core/services/i18n.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
-import { TranslationEditor } from '../../core/models/i18n.models';
-import { SMTModalService } from '../../shared/ui-kit/components/modal';
+import { ApiService } from '@core/services/api.service';
+import { I18nService } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { TranslationEditor } from '@core/models/i18n.models';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { LanguageEditorComponent } from './language-editor.component';
-import { translateTest } from '../../../testing/i18n-test.stub';
+import { translateTest } from '@testing/i18n-test.stub';
 
 describe('LanguageEditorComponent', () => {
   const editor: TranslationEditor = {

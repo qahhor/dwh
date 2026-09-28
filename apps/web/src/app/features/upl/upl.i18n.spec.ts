@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { featureI18nProblems, serverCodeKeys, serverLiteralKeys } from '../../../testing/feature-i18n';
+import { featureI18nProblems, serverCodeKeys, serverLiteralKeys } from '@testing/feature-i18n';
 import { UPL_PACKAGE_CODES } from './packages/packages-errors';
 
 describe('i18n: upl', () => {

@@ -2,13 +2,13 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { ToastService } from '../../core/services/toast.service';
-import { FormMeta } from '../../core/models/form-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { FormMeta } from '@core/models/form-meta.models';
 import { NoteFormDialogComponent } from './note-form-dialog.component';
 import { Note } from './notes.api';
-import { inScreen } from '../../../testing/in-screen';
-import { NOTES_FORM_META, formField, withCustomField } from '../../../testing/form-meta';
+import { inScreen } from '@testing/in-screen';
+import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
 
 describe('NoteFormDialogComponent', () => {
   const note: Note = {

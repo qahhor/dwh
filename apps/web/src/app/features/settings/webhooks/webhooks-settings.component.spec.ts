@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { ApiService } from '@core/services/api.service';
+import { I18nService } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { WebhooksSettingsComponent } from './webhooks-settings.component';
 import { WebhookSubscription, CreatedWebhookSubscription } from './webhooks-settings.models';
-import { translateTest } from '../../../../testing/i18n-test.stub';
+import { translateTest } from '@testing/i18n-test.stub';
 
 describe('WebhooksSettingsComponent', () => {
   const mockSubscriptions: WebhookSubscription[] = [
@@ -133,11 +133,15 @@ describe('WebhooksSettingsComponent', () => {
 
     component.submitCreate();
 
-    expect(api.post).toHaveBeenCalledWith('/webhooks/subscriptions', {
-      name: 'New CRM Webhook',
-      targetUrl: 'https://crm.corp/hook',
-      subscribedEvents: ['task.created', 'task.completed'],
-    });
+    expect(api.post).toHaveBeenCalledWith(
+      '/webhooks/subscriptions',
+      {
+        name: 'New CRM Webhook',
+        targetUrl: 'https://crm.corp/hook',
+        subscribedEvents: ['task.created', 'task.completed'],
+      },
+      { notifyError: false },
+    );
 
     expect(toast.success).toHaveBeenCalled();
     expect(component.isCreateModalOpen()).toBe(false);

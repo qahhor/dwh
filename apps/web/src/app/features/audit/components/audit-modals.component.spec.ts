@@ -3,8 +3,8 @@ import '@angular/compiler';
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
-import { tickInZone } from '../../../shared/ui-kit/testing/zone-tick';
-import { inScreen } from '../../../../testing/in-screen';
+import { tickInZone } from '@shared/ui-kit/testing/zone-tick';
+import { inScreen } from '@testing/in-screen';
 import { AuditRecord } from '../audit.models';
 import { AuditModalsComponent } from './audit-modals.component';
 

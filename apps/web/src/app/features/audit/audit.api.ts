@@ -1,8 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { ListQuery } from '../../core/models/query-meta.models';
-import { ApiService } from '../../core/services/api.service';
-import { toQueryParams } from '../../core/services/query-meta.service';
+import { ListQuery } from '@core/models/query-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { toQueryParams } from '@core/services/query-meta.service';
 import { AuditPage, AuditRecord, AuditStats, SecurityEventRecord } from './audit.models';
 
 /** The audit endpoints, typed: the change log, the security events and their counters. */

@@ -1,28 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import {
-  SMTDataSelectComponent,
-  SMTMultiDataSelectComponent,
-} from '../../../shared/ui-kit/components/forms/data-select';
+import { SMTDataSelectComponent, SMTMultiDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
 import { TaskLookupsService } from '../services/task-lookups.service';
-import { SMTRadioGroupComponent, SMTRadioOption } from '../../../shared/ui-kit/components/forms/radio-group';
-import { TaskRef } from '../../../shared/lookups/lookup-sources';
+import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { TaskRef } from '@shared/lookups/lookup-sources';
 import { ProjectOptionsPipe } from './project-options.pipe';
-import {
-  SMTDatePickerComponent,
-  SMTDatePickerValueAccessor,
-} from '../../../shared/ui-kit/components/forms/date-picker';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../shared/ui-kit/components/forms/control';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { SMTSelectComponent, SMTSelectValueAccessor } from '../../../shared/ui-kit/components/forms/select';
-import { UiMarkdownEditorComponent } from '../../../shared/ui/ui-markdown-editor.component';
-import { UiCustomFieldsComponent } from '../../../shared/ui/ui-custom-fields.component';
-import { CustomField } from '../../../core/models/custom-field.models';
-import { Project, Task, TaskType } from '../../../core/models/task.models';
+import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTSelectComponent, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { UiMarkdownEditorComponent } from '@shared/ui/ui-markdown-editor.component';
+import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
+import { CustomField } from '@core/models/custom-field.models';
+import { Project, Task, TaskType } from '@core/models/task.models';
+import { TaskEditFormValue } from '../tasks.models';
 
 @Component({
   selector: 'app-task-edit-modal',
@@ -371,6 +366,8 @@ export class TaskEditModalComponent {
   readonly lookups = inject(TaskLookupsService);
   private readonly i18n = inject(I18nService);
 
+  readonly editForm = input.required<TaskEditFormValue>();
+
   readonly isOpen = input(false);
   readonly editingTask = input<Task | null>(null);
   readonly editLoading = input(false);
@@ -380,7 +377,6 @@ export class TaskEditModalComponent {
   readonly isEditDiscardConfirmationOpen = input(false);
   readonly taskTypes = input<TaskType[]>([]);
   readonly projects = input<Project[]>([]);
-  readonly editForm = input<any>({});
   readonly taskCustomFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

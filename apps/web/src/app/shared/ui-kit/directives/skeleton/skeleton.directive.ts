@@ -13,8 +13,8 @@ import {
   TemplateRef,
   ViewContainerRef,
 } from '@angular/core';
-import { SMTInputAppearance } from '../../components/forms/input/types/types';
-import { SMTThemeService } from '../../services/theme.service';
+import { SMTInputAppearance } from '@shared/ui-kit/components/forms/input/types/types';
+import { SMTThemeService } from '@shared/ui-kit/services/theme.service';
 
 export type TSkeletonVariant = 'light' | 'dark';
 

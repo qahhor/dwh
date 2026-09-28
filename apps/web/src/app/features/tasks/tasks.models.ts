@@ -1,8 +1,8 @@
-import { Task, Project, TaskStatus, TaskType, TaskMember } from '../../core/models/task.models';
-import { CustomField } from '../../core/models/custom-field.models';
-import { User } from '../../core/models/auth.models';
-import { SMTSelectOption } from '../../shared/ui-kit/components/forms/select';
-import { I18nService } from '../../core/services/i18n.service';
+import { Task, Project, TaskStatus, TaskType, TaskMember } from '@core/models/task.models';
+import { CustomField } from '@core/models/custom-field.models';
+import { User } from '@core/models/auth.models';
+import { SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { I18nService } from '@core/services/i18n.service';
 
 export interface TaskDeadlineInfo {
   state: 'none' | 'overdue' | 'today' | 'tomorrow' | 'upcoming';
@@ -22,7 +22,7 @@ export interface TaskCreateFormValue {
   observerUserIds: number[];
   beginTime: string;
   endTime: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
 }
 
 export interface TaskEditFormValue {
@@ -37,7 +37,7 @@ export interface TaskEditFormValue {
   observerUserIds: number[];
   beginTime: string;
   endTime: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
 }
 
 export interface GroupedTaskMembers {
@@ -253,14 +253,17 @@ export function getInitials(name: string | undefined): string {
   return name.substring(0, 2).toUpperCase();
 }
 
-export function hasAttributes(attrs: any): boolean {
+/** Custom field values of a record by field code, as the server sends them. */
+export type RecordAttributes = Record<string, unknown> | null | undefined;
+
+export function hasAttributes(attrs: RecordAttributes): attrs is Record<string, unknown> {
   if (!attrs || typeof attrs !== 'object') return false;
   const keys = Object.keys(attrs).filter((k) => k !== 'task_type');
   return keys.length > 0;
 }
 
 export function formatAttributes(
-  attrs: any,
+  attrs: RecordAttributes,
   taskCustomFields: CustomField[],
   nameOf: (userId: number) => string | null,
   uiI18n: I18nService,

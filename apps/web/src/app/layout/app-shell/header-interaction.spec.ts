@@ -5,13 +5,13 @@ import { Router, provideRouter } from '@angular/router';
 import { By } from '@angular/platform-browser';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Observable } from 'rxjs';
-import { AuthService } from '../../core/services/auth.service';
-import { I18nService } from '../../core/services/i18n.service';
-import { NotificationService } from '../../core/services/notification.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
+import { AuthService } from '@core/services/auth.service';
+import { I18nService } from '@core/services/i18n.service';
+import { NotificationService } from '@core/services/notification.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { AppShellComponent } from './app-shell.component';
-import { SMTSelectComponent } from '../../shared/ui-kit/components/forms/select';
+import { SMTSelectComponent } from '@shared/ui-kit/components/forms/select';
 
 /** What the language tests read from the header's language picker. */
 interface LanguagePicker {

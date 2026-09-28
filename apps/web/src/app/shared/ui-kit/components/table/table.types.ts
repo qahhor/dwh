@@ -21,12 +21,12 @@ export type ColumnContentType<T> =
     }
   | {
       type: 'templateRef';
-      value: Signal<TemplateRef<any>>;
+      value: Signal<TemplateRef<unknown>>;
     }
   | {
       type: 'component';
       value: {
-        component: Type<any>;
+        component: Type<unknown>;
         inputs: (data: T) => Record<string, unknown>;
       };
     };
@@ -52,7 +52,7 @@ export type ColumnHeaderType =
   | {
       type: 'component';
       value: {
-        component: Type<any>;
+        component: Type<unknown>;
         inputs: Record<string, unknown>;
       };
     };

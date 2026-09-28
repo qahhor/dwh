@@ -1,8 +1,8 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
-import { QueryCondition, QueryMatch, QuerySort } from '../../core/models/query-meta.models';
-import { ApiService } from '../../core/services/api.service';
-import { filterDsl, formatSort, parseSort, readFilterDsl } from '../../core/services/query-meta.service';
+import { QueryCondition, QueryMatch, QuerySort } from '@core/models/query-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { filterDsl, formatSort, parseSort, readFilterDsl } from '@core/services/query-meta.service';
 import { EMPTY_COLUMN_STATE, TableColumnState } from '../ui-kit/components/table/column-state';
 import { TableColumnStateStore } from '../ui-kit/services/table-column-state.store';
 

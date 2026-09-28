@@ -1,13 +1,13 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../../../core/services/auth.service';
-import { ThemeService } from '../../../core/services/theme.service';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
-import { NotificationService } from '../../../core/services/notification.service';
-import { CommandPaletteService } from '../../../core/services/command-palette.service';
-import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group/radio-options';
+import { AuthService } from '@core/services/auth.service';
+import { ThemeService } from '@core/services/theme.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { NotificationService } from '@core/services/notification.service';
+import { CommandPaletteService } from '@core/services/command-palette.service';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** A language the person picked; `revert` shows the current one again. */
 export interface LanguageChangeRequest {

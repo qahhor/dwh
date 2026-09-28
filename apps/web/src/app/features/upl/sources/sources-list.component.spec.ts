@@ -3,16 +3,16 @@ import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { NEVER, Observable, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { KeysetPage, ProblemDetail } from '../../../core/models/common.models';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { PermissionService } from '../../../core/services/permission.service';
-import { QueryMetaService } from '../../../core/services/query-meta.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { PACKAGED_RUSSIAN } from '../../../core/i18n/packaged-russian';
+import { KeysetPage, ProblemDetail } from '@core/models/common.models';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { PermissionService } from '@core/services/permission.service';
+import { QueryMetaService } from '@core/services/query-meta.service';
+import { ToastService } from '@core/services/toast.service';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 import { SourcesListComponent } from './sources-list.component';
-import { ListViewsApi, SavedListView } from '../../../shared/list-views/list-views';
-import { inScreen } from '../../../../testing/in-screen';
+import { ListViewsApi, SavedListView } from '@shared/list-views/list-views';
+import { inScreen } from '@testing/in-screen';
 
 function page(
   items: UplSourceItem[],

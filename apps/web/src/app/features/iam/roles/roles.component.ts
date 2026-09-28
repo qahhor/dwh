@@ -14,13 +14,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
-import { RolesApi } from '../../../core/services/roles.api';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { Role, FormTreeItem, PermissionPair } from '../../../core/models/rbac.models';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
-import { safeNumericRecordId } from '../../../core/services/search-target';
+import { RolesApi } from '@core/services/roles.api';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { Role, FormTreeItem, PermissionPair } from '@core/models/rbac.models';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { safeNumericRecordId } from '@core/services/search-target';
 import { RoleScopePanelComponent } from '../org-units/public-api';
 import { RoleModalsComponent } from './components/role-modals.component';
 import { RoleCardsBarComponent } from './components/role-cards-bar.component';
@@ -41,7 +41,7 @@ import {
   filterRoles,
   filterModuleGroups,
 } from './roles.models';
-import { RoleFormsService } from './services/role-forms.service';
+import { EditRoleForm, NewRoleForm, RoleFormsService } from './services/role-forms.service';
 
 @Component({
   selector: 'app-roles',
@@ -136,14 +136,14 @@ export class RolesComponent implements OnInit {
   get newRoleForm() {
     return this.roleForms.newRoleForm;
   }
-  set newRoleForm(v: any) {
+  set newRoleForm(v: NewRoleForm) {
     this.roleForms.newRoleForm = v;
   }
 
   get editRoleForm() {
     return this.roleForms.editRoleForm;
   }
-  set editRoleForm(v: any) {
+  set editRoleForm(v: EditRoleForm) {
     this.roleForms.editRoleForm = v;
   }
 

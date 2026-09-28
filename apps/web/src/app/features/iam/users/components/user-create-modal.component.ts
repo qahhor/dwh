@@ -1,29 +1,23 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { SMTDataSelectComponent } from '../../../../shared/ui-kit/components/forms/data-select';
-import {
-  SMTPhoneInputComponent,
-  SMTPhoneInputValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/phone-input';
-import { LookupSources } from '../../../../shared/lookups/lookup-sources';
-import { SMTTagGroupComponent, SMTTagOption } from '../../../../shared/ui-kit/components/tag';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../../shared/ui-kit/components/forms/checkbox';
-import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
-import { Role } from '../../../../core/models/rbac.models';
-import { CustomField } from '../../../../core/models/custom-field.models';
-import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/password-policy';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
+import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '@shared/ui-kit/components/forms/phone-input';
+import { LookupSources } from '@shared/lookups/lookup-sources';
+import { SMTTagGroupComponent, SMTTagOption } from '@shared/ui-kit/components/tag';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
+import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
+import { Role } from '@core/models/rbac.models';
+import { CustomField } from '@core/models/custom-field.models';
+import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
+import { UserCreateForm, createDefaultUserCreateForm } from '../users.models';
 
 /** The time zones offered; their names are not translated. */
 const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
@@ -275,7 +269,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-tag-group
                   [options]="roleOptions()"
                   [value]="createForm().roleIds || []"
-                  (valueChange)="createForm().roleIds = $event"
+                  (valueChange)="createForm().roleIds = [...$event]"
                 />
               </smt-control>
             }
@@ -475,7 +469,7 @@ export class UserCreateModalComponent {
   readonly hasUpperAndLower = input(false);
   readonly hasDigitsOrSymbols = input(false);
   readonly doesNotContainLogin = input(false);
-  readonly createForm = input<any>({});
+  readonly createForm = input<UserCreateForm>(createDefaultUserCreateForm());
   readonly customFields = input<CustomField[]>([]);
 
   readonly close = output<void>();

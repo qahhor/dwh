@@ -1,22 +1,19 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiCustomFieldsComponent } from '../../../../shared/ui/ui-custom-fields.component';
-import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
-import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
-import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../../shared/ui-kit/components/forms/textarea';
-import {
-  SMTSelectComponent,
-  SMTSelectOption,
-  SMTSelectValueAccessor,
-} from '../../../../shared/ui-kit/components/forms/select';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
-import { Project } from '../../../../core/models/task.models';
-import { CustomField } from '../../../../core/models/custom-field.models';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTTextareaComponent, SMTTextareaValueAccessor } from '@shared/ui-kit/components/forms/textarea';
+import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { Project } from '@core/models/task.models';
+import { CustomField } from '@core/models/custom-field.models';
 import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../projects.models';
+import { RecordAttributes } from '@features/tasks/tasks.models';
 
 @Component({
   selector: 'app-project-modals',
@@ -471,12 +468,12 @@ export class ProjectModalsComponent {
     ]);
   }
 
-  hasAttributes(attrs: any): boolean {
+  hasAttributes(attrs: RecordAttributes): attrs is Record<string, unknown> {
     if (!attrs || typeof attrs !== 'object') return false;
     return Object.keys(attrs).length > 0;
   }
 
-  formatAttributes(attrs: any): ProjectAttributeItem[] {
+  formatAttributes(attrs: RecordAttributes): ProjectAttributeItem[] {
     if (!this.hasAttributes(attrs)) return [];
     const fields = this.projectCustomFields();
     return Object.entries(attrs).map(([k, v]) => {

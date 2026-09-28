@@ -8,8 +8,8 @@ export interface AuditRecord {
   isApi: boolean;
   changedAt: string;
   changedColumns: string[];
-  oldRow?: Record<string, any>;
-  newRow?: Record<string, any>;
+  oldRow?: Record<string, unknown>;
+  newRow?: Record<string, unknown>;
   changedByName?: string;
   changedByLogin?: string;
 }
@@ -20,7 +20,7 @@ export interface SecurityEventRecord {
   userId?: number;
   ip: string;
   userAgent?: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   createdAt: string;
   userName?: string;
   userLogin?: string;

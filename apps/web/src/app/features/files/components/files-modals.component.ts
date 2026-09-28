@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { TaskFile } from '../../../core/models/task.models';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { UiFileUploadComponent } from '../../../shared/ui/ui-file-upload.component';
-import { TranslatePipe } from '../../../core/services/i18n.service';
+import { TaskFile } from '@core/models/task.models';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiFileUploadComponent } from '@shared/ui/ui-file-upload.component';
+import { TranslatePipe } from '@core/services/i18n.service';
 
 @Component({
   selector: 'app-files-modals',

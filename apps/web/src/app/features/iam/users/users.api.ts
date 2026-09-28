@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { KeysetPage } from '../../../core/models/common.models';
-import { ListQuery } from '../../../core/models/query-meta.models';
-import { FormTreeItem } from '../../../core/models/rbac.models';
-import { User } from '../../../core/models/auth.models';
-import { ApiService } from '../../../core/services/api.service';
-import { toQueryParams } from '../../../core/services/query-meta.service';
+import { KeysetPage } from '@core/models/common.models';
+import { ListQuery } from '@core/models/query-meta.models';
+import { FormTreeItem } from '@core/models/rbac.models';
+import { User } from '@core/models/auth.models';
+import { ApiService } from '@core/services/api.service';
+import { toQueryParams } from '@core/services/query-meta.service';
 import { EffectivePermissionsResponse, PersonalGrant, PersonalPermissionsResponse } from './users.models';
 
 /** User administration: the list, one user, blocking, deleting and the personal permissions. */

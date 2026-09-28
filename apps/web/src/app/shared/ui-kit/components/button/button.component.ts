@@ -25,7 +25,7 @@ import {
   input,
   ViewEncapsulation,
 } from '@angular/core';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 
 export type SMTButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 

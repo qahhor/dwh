@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { KeysetPage } from '../../core/models/common.models';
-import { ListQuery } from '../../core/models/query-meta.models';
-import { Project, Task } from '../../core/models/task.models';
-import { ApiService } from '../../core/services/api.service';
-import { toQueryParams } from '../../core/services/query-meta.service';
-import { BulkResult } from '../../shared/bulk/bulk';
+import { KeysetPage } from '@core/models/common.models';
+import { ListQuery } from '@core/models/query-meta.models';
+import { Project, Task } from '@core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { toQueryParams } from '@core/services/query-meta.service';
+import { BulkResult } from '@shared/bulk/bulk';
 
 /** Tasks: the list, the projects to choose from and bulk changes. */
 @Injectable({ providedIn: 'root' })

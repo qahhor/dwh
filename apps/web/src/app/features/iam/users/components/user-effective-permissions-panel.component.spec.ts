@@ -2,9 +2,9 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../../core/services/api.service';
-import { ToastService } from '../../../../core/services/toast.service';
-import { I18nService } from '../../../../core/services/i18n.service';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
 
 describe('UserEffectivePermissionsPanelComponent', () => {

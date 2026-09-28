@@ -1,11 +1,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of } from 'rxjs';
-import { User } from '../../core/models/auth.models';
-import { Task } from '../../core/models/task.models';
-import { KeysetPage } from '../../core/models/common.models';
+import { User } from '@core/models/auth.models';
+import { Task } from '@core/models/task.models';
+import { KeysetPage } from '@core/models/common.models';
 import type { SMTLookupKey, SMTLookupSource } from '../ui-kit/components/forms/data-select/lookup-source';
 import type { SMTSelectOption } from '../ui-kit/components/forms/select/select.component';
-import { ApiService } from '../../core/services/api.service';
+import { ApiService } from '@core/services/api.service';
 
 export interface RestLookup<Row, K extends SMTLookupKey> {
   /** The list endpoint under /api/v1, answering keyset pages with `search`, `cursor` and `limit`. */

@@ -1,12 +1,12 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subscription, Observable } from 'rxjs';
-import { ApiService } from '../../../../core/services/api.service';
-import { PermissionService } from '../../../../core/services/permission.service';
-import { ToastService } from '../../../../core/services/toast.service';
-import { I18nService } from '../../../../core/services/i18n.service';
-import { RecordNavigationDecision } from '../../../../core/guards/record-navigation.guard';
-import { safeNumericRecordId } from '../../../../core/services/search-target';
-import { Project } from '../../../../core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
+import { safeNumericRecordId } from '@core/services/search-target';
+import { Project } from '@core/models/task.models';
 import { ProjectCreateForm, ProjectEditForm } from '../projects.models';
 
 @Injectable()
@@ -124,7 +124,7 @@ export class ProjectFormsService {
     const requestId = ++this.createSaveRequestId;
     this.createSaveError.set(null);
     this.isSubmitting.set(true);
-    const payload: any = {
+    const payload: { name: string; description: string; attributes?: Record<string, unknown> } = {
       name: this.createForm.name.trim(),
       description: this.createForm.description.trim(),
     };

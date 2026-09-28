@@ -11,18 +11,18 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Observable } from 'rxjs';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
-import { UiRecordHistoryComponent } from '../../../../shared/ui/ui-record-history.component';
-import { TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '../../../../core/models/auth.models';
-import { UserOrgUnitsPanelComponent } from '../../org-units/public-api';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
+import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
+import { TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { LoginAttemptRecord, User, UserSecuritySummary, UserSession } from '@core/models/auth.models';
+import { UserOrgUnitsPanelComponent } from '@features/iam/org-units/public-api';
 import { UserEffectivePermissionsPanelComponent } from './user-effective-permissions-panel.component';
-import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
-import { SMTTabBarComponent, SMTTabItem } from '../../../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-user-detail-modal',
@@ -365,7 +365,7 @@ export class UserDetailModalComponent {
 
   private readonly i18n = inject(I18nService);
 
-  readonly safeRecordId = input.required<(id: any) => boolean>();
+  readonly safeRecordId = input.required<(id: unknown) => boolean>();
   readonly getUserRoleNames = input.required<(u: User) => string[]>();
   readonly getManagerName = input.required<(u: User) => string | null>();
 

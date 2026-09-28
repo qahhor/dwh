@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { KeysetPage } from '../../core/models/common.models';
-import { ApiService } from '../../core/services/api.service';
+import { KeysetPage } from '@core/models/common.models';
+import { ApiService } from '@core/services/api.service';
 import { HistoryEntry, UiRecordHistoryComponent } from './ui-record-history.component';
 
 const update: HistoryEntry = {

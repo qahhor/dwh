@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { PasswordApi } from '../../password.api';
-import { ToastService } from '../../../../core/services/toast.service';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
-import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
+import { PasswordApi } from '@features/auth/password.api';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
+import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-login-reset-modal',

@@ -1,5 +1,5 @@
 import { TrackByFunction } from '@angular/core';
-import { fieldLabel, fieldValue, QueryFieldMeta, QueryListMeta, QuerySort } from '../../core/models/query-meta.models';
+import { fieldLabel, fieldValue, QueryFieldMeta, QueryListMeta, QuerySort } from '@core/models/query-meta.models';
 import { ColumnContentType, ColumnInfo, OrderBy, TableConfig } from '../ui-kit/components/table/table.types';
 
 export interface RegistryTableOptions<T> {

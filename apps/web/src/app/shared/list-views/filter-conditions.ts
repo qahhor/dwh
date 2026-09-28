@@ -5,7 +5,7 @@ import {
   QueryListMeta,
   QueryOp,
   QueryValue,
-} from '../../core/models/query-meta.models';
+} from '@core/models/query-meta.models';
 
 /**
  * One row of the filter builder while it is being edited. Values are kept as

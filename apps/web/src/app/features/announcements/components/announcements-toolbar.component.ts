@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 
-import { TranslatePipe } from '../../../core/services/i18n.service';
-import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
-import { I18nService } from '../../../core/services/i18n.service';
-import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/components/forms/input';
+import { TranslatePipe } from '@core/services/i18n.service';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { I18nService } from '@core/services/i18n.service';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-announcements-toolbar',

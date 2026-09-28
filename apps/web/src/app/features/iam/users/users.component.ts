@@ -13,30 +13,30 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, Subscription, finalize, tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
-import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
+import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
 
 import { FormsModule } from '@angular/forms';
-import { CustomFieldsApi } from '../../../core/services/custom-fields.api';
-import { RolesApi } from '../../../core/services/roles.api';
+import { CustomFieldsApi } from '@core/services/custom-fields.api';
+import { RolesApi } from '@core/services/roles.api';
 import { UsersApi } from './users.api';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { User } from '../../../core/models/auth.models';
-import { Role } from '../../../core/models/rbac.models';
-import { CustomField } from '../../../core/models/custom-field.models';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { User } from '@core/models/auth.models';
+import { Role } from '@core/models/rbac.models';
+import { CustomField } from '@core/models/custom-field.models';
 
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
-import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
-import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
-import { sortFromHeader } from '../../../shared/ui/registry-table-config';
-import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
-import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
+import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '@shared/ui/registry-table-config';
+import { OrderBy } from '@shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { UserOrgUnitsPanelComponent } from '../org-units/public-api';
 import { UserFilterBarComponent } from './components/user-filter-bar.component';
 import { UserTableViewComponent } from './components/user-table-view.component';
@@ -125,7 +125,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   private recordRequest?: Subscription;
   private panelLeaveSubscription?: Subscription;
   private recordRequestId = 0;
-  private searchDebounceTimer: any = null;
+  private searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
   readonly safeRecordId = safeNumericRecordId;
 
@@ -283,7 +283,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.queryParamSubscription?.unsubscribe();
     this.recordRequest?.unsubscribe();
     this.recordRequestId++;
-    clearTimeout(this.searchDebounceTimer);
+    clearTimeout(this.searchDebounceTimer ?? undefined);
   }
 
   // Permissions
@@ -412,7 +412,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.filterService.setStateFilter(state, () => this.loadUsers(true));
   }
   onSearchInput() {
-    clearTimeout(this.searchDebounceTimer);
+    clearTimeout(this.searchDebounceTimer ?? undefined);
     // The search text has already changed: an answer or a next page of the
     // old query must not land (or page) under it while the user types.
     this.userPager.invalidate();

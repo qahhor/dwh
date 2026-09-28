@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AuthService } from '../../../core/services/auth.service';
-import { IdleLockService } from '../../../core/services/idle-lock.service';
+import { AuthService } from '@core/services/auth.service';
+import { IdleLockService } from '@core/services/idle-lock.service';
 import { IdleLockDialogComponent } from './idle-lock-dialog.component';
 
 describe('IdleLockDialogComponent', () => {

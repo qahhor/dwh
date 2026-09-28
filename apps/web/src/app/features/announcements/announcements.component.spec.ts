@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../core/services/api.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ApiService } from '@core/services/api.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { AnnouncementAdminRecord, AnnouncementsComponent } from './announcements.component';
-import { inScreen } from '../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 describe('AnnouncementsComponent', () => {
   const draft: AnnouncementAdminRecord = {

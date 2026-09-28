@@ -12,18 +12,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
-import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
+import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
 import { Subscription, Observable, finalize, tap } from 'rxjs';
-import { SMTModalService } from '../../../shared/ui-kit/components/modal';
-import { problemText } from '../../../shared/ui/problem-text';
-import { CustomFieldsApi } from '../../../core/services/custom-fields.api';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { problemText } from '@shared/ui/problem-text';
+import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { ProjectsApi } from './projects.api';
-import { PermissionService } from '../../../core/services/permission.service';
-import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { Project, ProjectTaskStats } from '../../../core/models/task.models';
-import { CustomField } from '../../../core/models/custom-field.models';
-import { ToastService } from '../../../core/services/toast.service';
-import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { Project, ProjectTaskStats } from '@core/models/task.models';
+import { CustomField } from '@core/models/custom-field.models';
+import { ToastService } from '@core/services/toast.service';
+import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import {
   ProjectCreateForm,
   ProjectEditForm,
@@ -38,20 +38,16 @@ import { ProjectCardsViewComponent } from './components/project-cards-view.compo
 import { ProjectModalsComponent } from './components/project-modals.component';
 import { ProjectMembersModalComponent } from './components/project-members-modal.component';
 import { ProjectFormsService } from './services/project-forms.service';
-import { KeysetPager } from '../../../shared/paging/keyset-pager';
+import { KeysetPager } from '@shared/paging/keyset-pager';
 
-import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
-import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
-import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
-import { sortFromHeader } from '../../../shared/ui/registry-table-config';
-import { OrderBy } from '../../../shared/ui-kit/components/table/table.types';
-import { SMTAlertComponent } from '../../../shared/ui-kit/components/alert';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../shared/ui-kit/components/forms/radio-group';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
+import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
+import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
+import { sortFromHeader } from '@shared/ui/registry-table-config';
+import { OrderBy } from '@shared/ui-kit/components/table/table.types';
+import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
+import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-projects',
@@ -424,9 +420,9 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
         this.loadProjectMembers(event.projectId);
       },
-      error: (err: any) => {
+      error: (err: unknown) => {
         this.isAddingMember.set(false);
-        this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
       },
     });
   }

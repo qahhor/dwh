@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Role } from '../../../../core/models/rbac.models';
+import { Role } from '@core/models/rbac.models';
 
 @Injectable({
   providedIn: 'root',

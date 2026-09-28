@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
-import { TranslatePipe } from '../../core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { BulkResult, failedItems } from '../bulk/bulk';
 import { SMTButtonComponent } from '../ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/components/modal';

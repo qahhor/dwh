@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { QueryListMeta } from '../../core/models/query-meta.models';
-import { ExportsService } from '../../core/services/exports.service';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-import { toQueryParams } from '../../core/services/query-meta.service';
-import { ToastService } from '../../core/services/toast.service';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { ExportsService } from '@core/services/exports.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { toQueryParams } from '@core/services/query-meta.service';
+import { ToastService } from '@core/services/toast.service';
 import { ListViewState } from '../list-views/list-views';
 import { normalizeColumnState } from '../ui-kit/components/table/column-state';
 import { problemText } from './problem-text';

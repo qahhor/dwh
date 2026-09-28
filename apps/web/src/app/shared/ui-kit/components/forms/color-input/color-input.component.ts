@@ -27,7 +27,7 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import type { FormValueControl } from '@angular/forms/signals';
-import { SMTI18nService } from '../../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { SMTRadioGroupComponent, type SMTRadioOption } from '../radio-group/radio-group.component';
 
 /** The palette: distinct hues that stay apart for common colour blindness in pairs. */

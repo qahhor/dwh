@@ -1,4 +1,4 @@
-export type { CustomField } from '../../../core/models/custom-field.models';
+export type { CustomField } from '@core/models/custom-field.models';
 
 export interface CustomFieldFormData {
   entityType: string;

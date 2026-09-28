@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { KeysetPage } from '../../core/models/common.models';
-import { ListQuery } from '../../core/models/query-meta.models';
-import { ApiService } from '../../core/services/api.service';
-import { toQueryParams } from '../../core/services/query-meta.service';
+import { KeysetPage } from '@core/models/common.models';
+import { ListQuery } from '@core/models/query-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { toQueryParams } from '@core/services/query-meta.service';
 import { FileDetail, StorageStats } from './files.models';
 
 /** The file store: the list by scope, the storage counters and deleting a file. */

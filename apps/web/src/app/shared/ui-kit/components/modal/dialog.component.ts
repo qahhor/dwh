@@ -41,7 +41,7 @@ import {
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import type { DialogRef } from '@angular/cdk/dialog';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import { SMTModalService } from './modal.service';
 
 export type SMTDialogSize = 'sm' | 'md' | 'lg' | 'xl';

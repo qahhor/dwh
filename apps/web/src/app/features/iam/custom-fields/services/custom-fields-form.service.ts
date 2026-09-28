@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { I18nService } from '../../../../core/services/i18n.service';
+import { I18nService } from '@core/services/i18n.service';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
 
 export const RESERVED_CODES = new Set<string>([

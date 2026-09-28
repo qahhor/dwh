@@ -15,12 +15,12 @@ import {
 // Compatibility: Angular 22 renamed WithOptionalField to WithOptionalFieldTree.
 import type { FormCheckboxControl, ValidationError, WithOptionalFieldTree } from '@angular/forms/signals';
 import { NgClass } from '@angular/common';
-import { injectRegisterSMTIcons } from '../../../providers/svg-icon.provider';
-import { checkboxCheckIcon, checkboxMinusIcon } from '../../../svg-icons';
-import { SMTIconComponent } from '../../icon/icon';
-import type { SMTControlSize } from '../../../types/control-size';
-import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '../../../forms/field-registry';
-import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
+import { injectRegisterSMTIcons } from '@shared/ui-kit/providers/svg-icon.provider';
+import { checkboxCheckIcon, checkboxMinusIcon } from '@shared/ui-kit/svg-icons';
+import { SMTIconComponent } from '@shared/ui-kit/components/icon/icon';
+import type { SMTControlSize } from '@shared/ui-kit/types/control-size';
+import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '@shared/ui-kit/forms/field-registry';
+import { shouldShowSMTFormControlError } from '@shared/ui-kit/forms/form-control-validation';
 
 export type SMTCheckboxSize = SMTControlSize;
 

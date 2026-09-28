@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { describe, expect, it, vi } from 'vitest';
-import { QueryCondition, QueryListMeta } from '../../core/models/query-meta.models';
-import { PACKAGED_RUSSIAN } from '../../core/i18n/packaged-russian';
+import { QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF } from '../ui-kit/components/drawer';
 import { SMTSelectComponent } from '../ui-kit/components/forms/select';
 import { UiFilterPanelComponent } from './ui-filter-panel.component';

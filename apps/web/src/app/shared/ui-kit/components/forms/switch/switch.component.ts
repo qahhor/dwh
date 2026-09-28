@@ -26,8 +26,8 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import type { FormCheckboxControl, ValidationError, WithOptionalFieldTree } from '@angular/forms/signals';
-import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '../../../forms/field-registry';
-import { shouldShowSMTFormControlError } from '../../../forms/form-control-validation';
+import { SMT_FORM_FIELD_REGISTRY_HOST_DIRECTIVES } from '@shared/ui-kit/forms/field-registry';
+import { shouldShowSMTFormControlError } from '@shared/ui-kit/forms/form-control-validation';
 
 export type SMTSwitchSize = 'sm' | 'md';
 

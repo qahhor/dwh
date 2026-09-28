@@ -38,9 +38,9 @@ import {
 import { SMTCellHeaderComponent } from './cell-header/cell-header.component';
 import { SMTCellContentComponent } from './cell-content/cell-content.component';
 import { SMTIconComponent } from '../icon/icon';
-import { injectRegisterSMTIcons } from '../../providers/svg-icon.provider';
-import { chevronUpIcon, emptyStateIcon, leftArrowIcon, menu01Icon, rightArrowIcon } from '../../svg-icons';
-import { SMTSkeletonDirective } from '../../directives/skeleton/skeleton.directive';
+import { injectRegisterSMTIcons } from '@shared/ui-kit/providers/svg-icon.provider';
+import { chevronUpIcon, emptyStateIcon, leftArrowIcon, menu01Icon, rightArrowIcon } from '@shared/ui-kit/svg-icons';
+import { SMTSkeletonDirective } from '@shared/ui-kit/directives/skeleton/skeleton.directive';
 import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk/drag-drop';
 // Compatibility: tabs are not vendored. The tab bar pulls in the kit's
 // button, modal and alert-dialog trees — 42 further files — for a feature
@@ -48,7 +48,7 @@ import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray } from '@angular/cdk
 // template's tab block is removed; restoring tabs means vendoring the bar.
 import { Tab } from '../tab-bar/types/tab';
 import { ColumnResizeDirective } from './column-resize.directive';
-import { SMTI18nService } from '../../i18n';
+import { SMTI18nService } from '@shared/ui-kit/i18n';
 import {
   BIRUNI_GRID_MIN_WIDTH_PX,
   biruniPercentFromChipWidthPx,
@@ -56,7 +56,7 @@ import {
   biruniUnitsToPercent,
   getBiruniTableSizingBasisWidth,
   resolveBiruniTrackWidthPx,
-} from '../../utils/data-table-grid-sizing';
+} from '@shared/ui-kit/utils/data-table-grid-sizing';
 
 const DETAIL_CLOSE_FALLBACK_MS = 250;
 

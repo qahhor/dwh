@@ -1,8 +1,8 @@
 import { CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemRadio, CdkMenuTrigger } from '@angular/cdk/menu';
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal, viewChild } from '@angular/core';
-import { ProblemDetail } from '../../core/models/common.models';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-import { ToastService } from '../../core/services/toast.service';
+import { ProblemDetail } from '@core/models/common.models';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { ToastService } from '@core/services/toast.service';
 import { ListViewState, SavedListView } from '../list-views/list-views';
 import { SMTInputComponent } from '../ui-kit/components/forms/input';
 import { SMTModalService } from '../ui-kit/components/modal';

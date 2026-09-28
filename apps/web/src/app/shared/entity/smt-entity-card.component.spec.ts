@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import type { FormMeta, FormValues } from '../../core/models/form-meta.models';
-import { ApiService } from '../../core/services/api.service';
-import { NOTES_FORM_META, formField, withCustomField } from '../../../testing/form-meta';
-import { translateTest } from '../../../testing/i18n-test.stub';
+import type { FormMeta, FormValues } from '@core/models/form-meta.models';
+import { ApiService } from '@core/services/api.service';
+import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
+import { translateTest } from '@testing/i18n-test.stub';
 import { SMTEntityCardComponent } from './smt-entity-card.component';
 
 describe('SMTEntityCardComponent', () => {

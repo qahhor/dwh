@@ -10,17 +10,17 @@ import {
   output,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
-import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
-import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
-import { KeysetPager } from '../../../../shared/paging/keyset-pager';
-import { OrderBy, TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
-import { QueryListMeta } from '../../../../core/models/query-meta.models';
-import { ListViewState } from '../../../../shared/list-views/list-views';
-import { registryTableConfig } from '../../../../shared/ui/registry-table-config';
-import { User } from '../../../../core/models/auth.models';
-import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar';
-import { SMTDropdownButtonComponent, SMTMenuItem } from '../../../../shared/ui-kit/components/dropdown-button';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { UiServerTableComponent } from '@shared/ui/ui-server-table.component';
+import { KeysetPager } from '@shared/paging/keyset-pager';
+import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.types';
+import { QueryListMeta } from '@core/models/query-meta.models';
+import { ListViewState } from '@shared/list-views/list-views';
+import { registryTableConfig } from '@shared/ui/registry-table-config';
+import { User } from '@core/models/auth.models';
+import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
+import { SMTDropdownButtonComponent, SMTMenuItem } from '@shared/ui-kit/components/dropdown-button';
 
 type UserMenuAction = 'block' | 'unblock' | 'delete';
 

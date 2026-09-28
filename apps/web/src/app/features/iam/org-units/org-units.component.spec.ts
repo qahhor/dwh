@@ -3,10 +3,10 @@ import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { OrgUnitsComponent } from './org-units.component';
 import { OrgUnitsApiService } from './org-units-api.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { OrgUnit } from './org-units.models';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 const root: OrgUnit = {
   id: 1,

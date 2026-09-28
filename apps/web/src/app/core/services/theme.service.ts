@@ -49,8 +49,9 @@ export class ThemeService {
       };
       if (mediaQuery.addEventListener) {
         mediaQuery.addEventListener('change', listener);
-      } else if ((mediaQuery as any).addListener) {
-        (mediaQuery as any).addListener(listener);
+      } else {
+        // Safari before 14 has only the deprecated listener API.
+        mediaQuery.addListener(listener);
       }
     }
   }

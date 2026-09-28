@@ -9,9 +9,9 @@ export class AppShellFlyoutService {
   readonly isFlyoutVisible = signal<boolean>(false);
   readonly isProfileFlyoutVisible = signal<boolean>(false);
 
-  private flyoutOpenTimer: any = null;
-  private flyoutCloseTimer: any = null;
-  private profileFlyoutCloseTimer: any = null;
+  private flyoutOpenTimer: ReturnType<typeof setTimeout> | null = null;
+  private flyoutCloseTimer: ReturnType<typeof setTimeout> | null = null;
+  private profileFlyoutCloseTimer: ReturnType<typeof setTimeout> | null = null;
 
   onItemMouseEnter(section: NavSection, item: NavItem, event: MouseEvent, isCollapsed: boolean, isMobile: boolean) {
     if (!isCollapsed || isMobile) return;

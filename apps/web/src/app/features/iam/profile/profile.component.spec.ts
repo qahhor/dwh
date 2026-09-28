@@ -1,14 +1,14 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
+import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
 import { User, UserSession, ApiToken, UserChannel } from './profile.models';
 import { ProfileComponent } from './profile.component';
-import { inScreen } from '../../../../testing/in-screen';
+import { inScreen } from '@testing/in-screen';
 
 /** The confirmation dialog lives in the overlay; Yes is its last button. */
 async function answerYes(fixture: { detectChanges(): void; whenStable(): Promise<unknown> }): Promise<string> {
@@ -203,6 +203,7 @@ describe('ProfileComponent UI contracts', () => {
         name: 'Deploy Bot',
         expiresAt: expect.any(String),
       }),
+      { notifyError: false },
     );
 
     expect(comp.isTokenSecretModalOpen()).toBe(true);
@@ -281,15 +282,27 @@ describe('ProfileComponent UI contracts', () => {
 
     comp.onBindChannel({ channel: 'email', address: 'alex@example.test' });
 
-    expect(apiMock.post).toHaveBeenCalledWith('/iam/profile/channels', {
-      channel: 'email',
-      address: 'alex@example.test',
-    });
+    expect(apiMock.post).toHaveBeenCalledWith(
+      '/iam/profile/channels',
+      { channel: 'email', address: 'alex@example.test' },
+      { notifyError: false },
+    );
 
     const channelsCard = comp.channelsCard();
     expect(channelsCard?.isConfirmModalOpen).toBe(true);
     expect(channelsCard?.activeVerifyToken).toBe('mock_verify_token_123');
     expect(channelsCard?.activeVerifyAddress).toBe('alex@example.test');
+  });
+
+  it('shows the server reason of a failed channel binding in one message', async () => {
+    const { fixture, apiMock } = await createFixture();
+    const toast = TestBed.inject(ToastService) as unknown as { error: ReturnType<typeof vi.fn> };
+    apiMock.post.mockReturnValueOnce(throwError(() => ({ status: 409, detail: 'Этот адрес уже привязан' })));
+
+    fixture.componentInstance.onBindChannel({ channel: 'email', address: 'alex@example.test' });
+
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).toHaveBeenCalledWith('Этот адрес уже привязан');
   });
 
   it('confirms channel with OTP code and closes modal', async () => {
@@ -302,10 +315,11 @@ describe('ProfileComponent UI contracts', () => {
 
     comp.onConfirmChannel({ verifyToken: 'mock_verify_token_123', code: '123456' });
 
-    expect(apiMock.post).toHaveBeenCalledWith('/iam/profile/channels/confirm', {
-      verifyToken: 'mock_verify_token_123',
-      code: '123456',
-    });
+    expect(apiMock.post).toHaveBeenCalledWith(
+      '/iam/profile/channels/confirm',
+      { verifyToken: 'mock_verify_token_123', code: '123456' },
+      { notifyError: false },
+    );
     expect(channelsCard?.isConfirmModalOpen).toBe(false);
   });
 

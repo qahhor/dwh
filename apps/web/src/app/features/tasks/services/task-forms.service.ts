@@ -1,11 +1,11 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { I18nService } from '../../../core/services/i18n.service';
-import { Task, TaskDetailResponse, TaskMember } from '../../../core/models/task.models';
-import { RecordNavigationDecision } from '../../../core/guards/record-navigation.guard';
-import { safeNumericRecordId } from '../../../core/services/search-target';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService } from '@core/services/i18n.service';
+import { Task, TaskDetailResponse, TaskMember } from '@core/models/task.models';
+import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
+import { safeNumericRecordId } from '@core/services/search-target';
 import { toLocalDateTime, toTaskInstant } from '../task-form-value';
 import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sameIdSet } from '../tasks.models';
 
@@ -191,7 +191,7 @@ export class TaskFormsService {
         this.editingTask = freshTask;
         this.editForm = {
           title: freshTask.title,
-          taskType: (freshTask.attributes && freshTask.attributes['task_type']) || 'task',
+          taskType: stringAttribute(freshTask.attributes, 'task_type') || 'task',
           descriptionMarkdown: freshTask.descriptionMarkdown || '',
           projectId: freshTask.projectId ?? null,
           priority: freshTask.priority || 'medium',
@@ -363,4 +363,10 @@ export class TaskFormsService {
     this.editRequest?.unsubscribe();
     this.editSaveRequest?.unsubscribe();
   }
+}
+
+/** A text attribute of a record, or '' when it is missing or not text. */
+function stringAttribute(attributes: Record<string, unknown> | undefined, key: string): string {
+  const value = attributes?.[key];
+  return typeof value === 'string' ? value : '';
 }

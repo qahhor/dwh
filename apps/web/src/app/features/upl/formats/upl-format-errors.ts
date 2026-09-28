@@ -1,4 +1,4 @@
-import { FieldErrorItem, ProblemDetail } from '../../../core/models/common.models';
+import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
 import { uplErrorKey } from '../upl-labels';
 
 /** Ошибка сервера с адресом: sheet/column — индексы с нуля из `sheets[i].columns[j].<поле>`; null — уровень выше. */

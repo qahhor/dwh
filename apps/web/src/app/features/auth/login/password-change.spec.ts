@@ -2,12 +2,12 @@ import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { of, Subject } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MeResponse, User } from '../../../core/models/auth.models';
-import { ApiService } from '../../../core/services/api.service';
-import { AuthService } from '../../../core/services/auth.service';
-import { PermissionService } from '../../../core/services/permission.service';
-import { ToastService } from '../../../core/services/toast.service';
-import { ProfileComponent } from '../../iam/profile/profile.component';
+import { MeResponse, User } from '@core/models/auth.models';
+import { ApiService } from '@core/services/api.service';
+import { AuthService } from '@core/services/auth.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ToastService } from '@core/services/toast.service';
+import { ProfileComponent } from '@features/iam/profile/profile.component';
 import { LoginComponent } from './login.component';
 
 describe('Password change ends the old authenticated session', () => {

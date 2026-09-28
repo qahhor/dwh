@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { TaskMember } from '../../../core/models/task.models';
-import { LookupSources, TaskRef, UserRef } from '../../../shared/lookups/lookup-sources';
+import { TaskMember } from '@core/models/task.models';
+import { LookupSources, TaskRef, UserRef } from '@shared/lookups/lookup-sources';
 
 /**
  * What the task dialogs pick from and what they already know (roadmap item 35).

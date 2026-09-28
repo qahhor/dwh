@@ -8,7 +8,7 @@ import {
   signal,
   TemplateRef,
 } from '@angular/core';
-import { I18nService } from '../../core/services/i18n.service';
+import { I18nService } from '@core/services/i18n.service';
 import { SMTTableComponent } from '../ui-kit/components/table/table.component';
 import { TableConfig } from '../ui-kit/components/table/table.types';
 import { LocalSort, LocalSortValue, sortRows } from './local-sort';

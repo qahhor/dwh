@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LiveAnnouncerService } from '../../core/services/live-announcer.service';
-import { MAX_VISIBLE_TOASTS, ToastService } from '../../core/services/toast.service';
+import { LiveAnnouncerService } from '@core/services/live-announcer.service';
+import { MAX_VISIBLE_TOASTS, ToastService } from '@core/services/toast.service';
 import { UiToastContainerComponent } from './ui-toast.component';
 
 describe('UiToastContainerComponent', () => {

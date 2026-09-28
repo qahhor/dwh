@@ -3,14 +3,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { FormsModule } from '@angular/forms';
 import { Observable, concatMap, finalize, from, switchMap, toArray } from 'rxjs';
-import { TranslationDictionary } from '../../core/models/i18n.models';
+import { TranslationDictionary } from '@core/models/i18n.models';
 import { SettingsApi } from './settings.api';
-import { ToastService } from '../../core/services/toast.service';
-import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-import { PermissionService } from '../../core/services/permission.service';
-import { ThemeService } from '../../core/services/theme.service';
-import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { SMTModalService } from '../../shared/ui-kit/components/modal';
+import { ToastService } from '@core/services/toast.service';
+import { I18nService, TranslatePipe } from '@core/services/i18n.service';
+import { PermissionService } from '@core/services/permission.service';
+import { ThemeService } from '@core/services/theme.service';
+import { SMTButtonComponent } from '@shared/ui-kit/components/button';
+import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SearchSettingsComponent } from './search/search-settings.component';
 import { NavigationSettingsComponent } from './navigation/navigation-settings.component';
 import { SettingsTab, LegacyLanguage, filterKnownTranslations, readLegacyLanguages } from './settings.models';
@@ -20,8 +20,8 @@ import { SettingsStoragePanelComponent } from './components/settings-storage-pan
 import { SettingsPreferencesPanelComponent } from './components/settings-preferences-panel.component';
 import { SettingsLanguagesPanelComponent } from './components/settings-languages-panel.component';
 import { WebhooksSettingsComponent } from './webhooks/webhooks-settings.component';
-import { SMTTabBarComponent, SMTTabItem } from '../../shared/ui-kit/components/tab-bar';
-import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
+import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
+import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-settings',
@@ -85,7 +85,7 @@ export class SettingsComponent implements OnInit {
       this.route.queryParams.subscribe((params) => {
         const tabParam = params['tab'];
         if (tabParam && this.isTabAvailable(tabParam)) {
-          this.activeTab.set(tabParam as any);
+          this.activeTab.set(tabParam);
         } else if (!this.canManageSystemSettings()) {
           this.activeTab.set('preferences');
         }
@@ -280,7 +280,7 @@ export class SettingsComponent implements OnInit {
       });
   }
 
-  isTabAvailable(tab: string): boolean {
+  isTabAvailable(tab: string): tab is SettingsTab {
     switch (tab) {
       case 'general':
       case 'security':
