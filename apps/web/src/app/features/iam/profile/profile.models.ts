@@ -38,7 +38,7 @@ export function passwordStrengthOf(pwd: string): PasswordStrength {
   if (!pwd) return { score: 0, label: '', percent: 0, colorClass: '' };
   let score = 0;
   if (pwd.length >= PASSWORD_MIN_LENGTH) score++;
-  if (/[a-zа-я]/.test(pwd) && /[A-ZА-Я]/.test(pwd)) score++;
+  if (/[a-z\u0430-\u044f]/.test(pwd) && /[A-Z\u0410-\u042f]/.test(pwd)) score++;
   if (/\d/.test(pwd)) score++;
   if (/[^a-zA-ZЀ-ӿ0-9]/.test(pwd)) score++;
 

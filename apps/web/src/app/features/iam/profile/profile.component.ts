@@ -115,7 +115,7 @@ export class ProfileComponent implements OnInit {
 
   hasMixedCase(): boolean {
     const pwd = this.passwordForm().newPassword || '';
-    return /[a-zа-я]/.test(pwd) && /[A-ZА-Я]/.test(pwd);
+    return /[a-z\u0430-\u044f]/.test(pwd) && /[A-Z\u0410-\u042f]/.test(pwd);
   }
 
   passwordsMatch(): boolean {

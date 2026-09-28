@@ -73,19 +73,9 @@
       "count": 3
     }
   },
-  "src/app/features/announcements/announcements.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
-    }
-  },
   "src/app/features/announcements/components/announcements-modals.component.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
-    }
-  },
-  "src/app/features/audit/audit.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 1
     }
   },
   "src/app/features/auth/login/components/login-reset-modal.component.ts": {
@@ -140,7 +130,7 @@
   },
   "src/app/features/iam/roles/roles.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 3
+      "count": 2
     }
   },
   "src/app/features/iam/users/components/user-create-modal.component.ts": {
@@ -160,7 +150,7 @@
   },
   "src/app/features/iam/users/users.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 4
+      "count": 3
     }
   },
   "src/app/features/notifications/components/notification-preferences-modal.component.ts": {
@@ -204,16 +194,6 @@
   "src/app/features/settings/search/search-settings.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
-    }
-  },
-  "src/app/features/settings/search/search-settings.component.ts": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 2
-    }
-  },
-  "src/app/features/settings/settings.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
     }
   },
   "src/app/features/tasks/components/task-create-modal.component.ts": {
@@ -267,14 +247,6 @@
       "count": 2
     }
   },
-  "src/app/features/tasks/tasks.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 2
-    }
-  },
   "src/app/features/tasks/tasks.models.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
@@ -305,11 +277,6 @@
       "count": 5
     }
   },
-  "src/app/layout/app-shell/app-shell.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 9
-    }
-  },
   "src/app/layout/app-shell/app-shell.models.ts": {
     "no-empty": {
       "count": 2
@@ -330,17 +297,6 @@
   },
   "src/app/layout/command-palette/command-palette.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/app/layout/command-palette/command-palette.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
-    },
-    "@angular-eslint/template/click-events-have-key-events": {
-      "count": 1
-    },
-    "@angular-eslint/template/interactive-supports-focus": {
       "count": 1
     }
   },
