@@ -11,7 +11,6 @@ import {
   signal,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { ProjectsApi } from '../projects.api';
@@ -25,8 +24,8 @@ import { Project } from '@core/models/task.models';
 import { User } from '@core/models/auth.models';
 import { ProjectMember } from '../projects.models';
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
@@ -35,11 +34,8 @@ import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTAvatarComponent,
-    FormsModule,
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -86,6 +82,11 @@ export class ProjectMembersModalComponent {
   readonly foundUsers = signal<User[]>([]);
   readonly isUserDropdownOpen = signal(false);
 
+  /** Signals, since the search box, the result list and the role picker change them from callbacks. */
+  readonly userSearchQuery = signal('');
+  readonly selectedUser = signal<User | null>(null);
+  readonly selectedAccessKind = signal('MEMBER');
+
   readonly rows = computed<ProjectMember[]>(() => this.members() ?? []);
 
   /** The remove column is there only for someone who may change the project. */
@@ -115,9 +116,6 @@ export class ProjectMembersModalComponent {
     access: (m: ProjectMember) => this.accessLabel(m.accessKind),
   };
 
-  userSearchQuery = '';
-  selectedUser: User | null = null;
-  selectedAccessKind = 'MEMBER';
   private readonly accessKindMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   private searchSubject = new Subject<string>();
@@ -155,22 +153,25 @@ export class ProjectMembersModalComponent {
     ]);
   }
 
-  onSearchInput(query: string): void {
-    if (this.selectedUser && query !== this.selectedUser.name) {
-      this.selectedUser = null;
+  onSearchInput(value: SMTInputValue): void {
+    const query = value === null ? '' : String(value);
+    this.userSearchQuery.set(query);
+    const selected = this.selectedUser();
+    if (selected && query !== selected.name) {
+      this.selectedUser.set(null);
     }
     this.searchSubject.next(query);
   }
 
   selectUser(user: User): void {
-    this.selectedUser = user;
-    this.userSearchQuery = user.name;
+    this.selectedUser.set(user);
+    this.userSearchQuery.set(user.name);
     this.isUserDropdownOpen.set(false);
   }
 
   clearSelectedUser(): void {
-    this.selectedUser = null;
-    this.userSearchQuery = '';
+    this.selectedUser.set(null);
+    this.userSearchQuery.set('');
     this.foundUsers.set([]);
     this.isUserDropdownOpen.set(false);
   }
@@ -199,11 +200,12 @@ export class ProjectMembersModalComponent {
 
   submitAddMember(): void {
     const project = this.project();
-    if (!project || !this.selectedUser) return;
+    const user = this.selectedUser();
+    if (!project || !user) return;
     this.addMember.emit({
       projectId: project.id,
-      userId: this.selectedUser.id,
-      accessKind: this.selectedAccessKind,
+      userId: user.id,
+      accessKind: this.selectedAccessKind(),
     });
     this.clearSelectedUser();
   }

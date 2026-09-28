@@ -62,7 +62,8 @@
                   smtFieldId="task-type-code"
                   name="taskTypeCode"
                   [placeholder]="'tasks.naprimer_doc' | t"
-                  [(ngModel)]="newTypeForm.code"
+                  [value]="newTypeForm().code"
+                  (valueChange)="patchTypeForm({ code: text($event) })"
                 />
               </div>
               <div class="dict-form-field">
@@ -71,11 +72,17 @@
                   smtFieldId="task-type-name"
                   name="taskTypeName"
                   [placeholder]="'tasks.naprimer_dokument' | t"
-                  [(ngModel)]="newTypeForm.name"
+                  [value]="newTypeForm().name"
+                  (valueChange)="patchTypeForm({ name: text($event) })"
                 />
               </div>
               <smt-control class="color-field" [smtLabel]="'tasks.cvet_tipa' | t">
-                <smt-color-input smtFieldId="task-type-color" name="taskTypeColor" [(ngModel)]="newTypeForm.color" />
+                <smt-color-input
+                  smtFieldId="task-type-color"
+                  name="taskTypeColor"
+                  [value]="newTypeForm().color"
+                  (valueChange)="patchTypeForm({ color: $event })"
+                />
               </smt-control>
             </div>
             <div class="add-dict-actions">
@@ -134,21 +141,24 @@
                   smtFieldId="task-status-name"
                   name="taskStatusName"
                   [placeholder]="'tasks.nazvanie_statusa' | t"
-                  [(ngModel)]="newStatusForm.name"
+                  [value]="newStatusForm().name"
+                  (valueChange)="patchStatusForm({ name: text($event) })"
                 />
               </div>
               <smt-control class="color-field" [smtLabel]="'tasks.cvet_statusa' | t">
                 <smt-color-input
                   smtFieldId="task-status-color"
                   name="taskStatusColor"
-                  [(ngModel)]="newStatusForm.color"
+                  [value]="newStatusForm().color"
+                  (valueChange)="patchStatusForm({ color: $event })"
                 />
               </smt-control>
               <div
                 smt-checkbox
                 class="terminal-toggle-label"
                 name="taskStatusTerminal"
-                [(ngModel)]="newStatusForm.isTerminal"
+                [checked]="newStatusForm().isTerminal"
+                (checkedChange)="patchStatusForm({ isTerminal: $event })"
               >
                 {{ 'tasks.zavershayuschiy' | t }}
               </div>

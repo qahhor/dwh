@@ -54,7 +54,7 @@
   (closed)="requestCloseCreate.emit()"
 >
   <ng-template smtDialogContent>
-    <form body id="project-create-form" (ngSubmit)="submitCreateProject.emit()">
+    <form body id="project-create-form" novalidate (submit)="$event.preventDefault(); submitCreateProject.emit()">
       <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
         <smt-control
           class="form-group"
@@ -62,14 +62,18 @@
           [smtError]="
             isCreateSubmitted() && !createForm().name.trim()
               ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t)
-              : ''
+              : createNameTouched() && !createForm().name
+                ? ('ui.control.required' | t)
+                : ''
           "
         >
           <smt-input
             smtFieldId="project-create-name"
             name="projectCreateName"
             required
-            [(ngModel)]="createForm().name"
+            [value]="createForm().name"
+            (valueChange)="createForm().name = $event?.toString() ?? ''"
+            (touch)="createNameTouched.set(true)"
             [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
           />
         </smt-control>
@@ -77,7 +81,8 @@
           <smt-textarea
             smtFieldId="project-create-description"
             name="projectCreateDescription"
-            [(ngModel)]="createForm().description"
+            [value]="createForm().description"
+            (valueChange)="createForm().description = $event"
             [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
           />
         </smt-control>
@@ -179,22 +184,34 @@
       </div>
     }
     @if (editingProject(); as p) {
-      <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()">
+      <form body id="project-edit-form" novalidate (submit)="$event.preventDefault(); submitEditProject.emit()">
         <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
           <smt-control
             class="form-group"
             [smtLabel]="'projects.nazvanie_proekta' | t"
             [smtError]="
-              isEditSubmitted() && !editForm().name.trim() ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t) : ''
+              isEditSubmitted() && !editForm().name.trim()
+                ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t)
+                : editNameTouched() && !editForm().name
+                  ? ('ui.control.required' | t)
+                  : ''
             "
           >
-            <smt-input smtFieldId="project-edit-name" name="projectEditName" required [(ngModel)]="editForm().name" />
+            <smt-input
+              smtFieldId="project-edit-name"
+              name="projectEditName"
+              required
+              [value]="editForm().name"
+              (valueChange)="editForm().name = $event?.toString() ?? ''"
+              (touch)="editNameTouched.set(true)"
+            />
           </smt-control>
           <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
             <smt-select
               smtTriggerId="project-edit-state"
               name="projectEditState"
-              [(ngModel)]="editForm().state"
+              [value]="editForm().state"
+              (valueChange)="editForm().state = $event ?? editForm().state"
               [options]="stateOptions()"
               [allowClear]="false"
             ></smt-select>
@@ -203,7 +220,8 @@
             <smt-textarea
               smtFieldId="project-edit-description"
               name="projectEditDescription"
-              [(ngModel)]="editForm().description"
+              [value]="editForm().description"
+              (valueChange)="editForm().description = $event"
             />
           </smt-control>
           @if (projectCustomFields().length > 0) {

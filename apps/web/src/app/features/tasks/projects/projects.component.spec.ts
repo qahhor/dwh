@@ -188,7 +188,7 @@ describe('ProjectsComponent UI contracts', () => {
 
     (host.querySelector('.view-header__actions .smt-button') as HTMLButtonElement).click();
     redraw(fixture);
-    // The dialog's fields meet ngModel a microtask after it opens.
+    // Let the opened dialog settle before typing.
     await fixture.whenStable();
     redraw(fixture);
     const name = host.querySelector('#project-create-name') as HTMLInputElement;
@@ -285,7 +285,7 @@ describe('ProjectsComponent UI contracts', () => {
 
     (host.querySelector('.view-header__actions .smt-button') as HTMLButtonElement).click();
     redraw(fixture);
-    // The dialog's fields meet ngModel a microtask after it opens.
+    // Let the opened dialog settle before typing.
     await fixture.whenStable();
     redraw(fixture);
     const name = host.querySelector('#project-create-name') as HTMLInputElement;

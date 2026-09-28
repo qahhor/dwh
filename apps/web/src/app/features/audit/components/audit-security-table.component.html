@@ -22,8 +22,8 @@
           smtIcon="search"
           smtSize="sm"
           [placeholder]="'audit.poisk_po_ip' | t"
-          [ngModel]="secIpFilter()"
-          (ngModelChange)="secIpFilterChange.emit($event)"
+          [value]="secIpFilter()"
+          (valueChange)="secIpFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
       </div>
@@ -37,8 +37,8 @@
           inputmode="numeric"
           smtSize="sm"
           smtPattern="[0-9]*"
-          [ngModel]="securityUserFilter()"
-          (ngModelChange)="securityUserFilterChange.emit($event)"
+          [value]="securityUserFilter()"
+          (valueChange)="securityUserFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
         />
       </div>

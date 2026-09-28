@@ -26,7 +26,11 @@
           class="form-group"
           [smtLabel]="'task.title' | t"
           [smtError]="
-            isEditSubmitted() && !editForm().title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
+            isEditSubmitted() && !editForm().title.trim()
+              ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t)
+              : titleTouched() && !editForm().title
+                ? ('ui.control.required' | t)
+                : ''
           "
         >
           <smt-input
@@ -34,7 +38,9 @@
             name="taskEditTitle"
             class="title-input"
             required
-            [(ngModel)]="editForm().title"
+            [value]="editForm().title"
+            (valueChange)="editForm().title = $event?.toString() ?? ''"
+            (touch)="titleTouched.set(true)"
           />
         </smt-control>
 
@@ -72,7 +78,8 @@
             <smt-select
               smtTriggerId="task-edit-project"
               name="taskEditProject"
-              [(ngModel)]="editForm().projectId"
+              [value]="editForm().projectId"
+              (valueChange)="editForm().projectId = $event"
               [options]="projects() | projectOptions"
               [placeholder]="'tasks.bez_proekta' | t"
               [searchPlaceholder]="'tasks.search_project' | t"
@@ -123,8 +130,8 @@
               smtInputId="task-edit-deadline"
               name="taskEditDeadline"
               smtWithTime
-              [ngModel]="editForm().endTime"
-              (ngModelChange)="editForm().endTime = $event ?? ''"
+              [value]="editForm().endTime"
+              (valueChange)="editForm().endTime = $event ?? ''"
             />
           </smt-control>
         </div>

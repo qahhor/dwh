@@ -16,7 +16,11 @@
         class="form-group"
         [smtLabel]="'task.title' | t"
         [smtError]="
-          isCreateSubmitted() && !createForm().title.trim() ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t) : ''
+          isCreateSubmitted() && !createForm().title.trim()
+            ? ('tasks.pozhaluysta_ukazhite_nazvanie_zadachi' | t)
+            : titleTouched() && !createForm().title
+              ? ('ui.control.required' | t)
+              : ''
         "
       >
         <smt-input
@@ -24,7 +28,9 @@
           name="taskCreateTitle"
           class="title-input"
           required
-          [(ngModel)]="createForm().title"
+          [value]="createForm().title"
+          (valueChange)="createForm().title = $event?.toString() ?? ''"
+          (touch)="titleTouched.set(true)"
           [placeholder]="'tasks.kratkaya_i_yasnaya_formulirovka_zadachi' | t"
         />
       </smt-control>
@@ -63,7 +69,8 @@
           <smt-select
             smtTriggerId="task-create-project"
             name="taskCreateProject"
-            [(ngModel)]="createForm().projectId"
+            [value]="createForm().projectId"
+            (valueChange)="createForm().projectId = $event"
             [options]="projects() | projectOptions"
             [placeholder]="'tasks.bez_proekta' | t"
             [searchPlaceholder]="'tasks.search_project' | t"
@@ -113,8 +120,8 @@
             smtInputId="task-create-deadline"
             name="taskCreateDeadline"
             smtWithTime
-            [ngModel]="createForm().endTime"
-            (ngModelChange)="createForm().endTime = $event ?? ''"
+            [value]="createForm().endTime"
+            (valueChange)="createForm().endTime = $event ?? ''"
           />
         </smt-control>
       </div>
