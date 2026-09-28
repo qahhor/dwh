@@ -1,24 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
 import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
 import { PASSWORD_POLICY } from '@core/security/password-policy';
 import { formatSessionHours } from '../settings-format';
+import { SettingChange } from '../settings.models';
 
 @Component({
   selector: 'app-settings-security-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTInputComponent,
-    SMTInputValueAccessor,
-    SMTSwitchComponent,
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent,
-  ],
+  imports: [SMTInputComponent, SMTSwitchComponent, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -57,7 +50,8 @@ import { formatSessionHours } from '../settings-format';
             [smtMax]="8760"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-session-lifetime-hint"
-            [(ngModel)]="systemSettings()['security.session_lifetime_hours']"
+            [value]="systemSettings()['security.session_lifetime_hours']"
+            (valueChange)="changeSetting('security.session_lifetime_hours', $event)"
           />
           <span id="settings-session-lifetime-hint" class="hint-text">{{
             'settings.po_umolchaniyu_720_chasov_30_dney' | t
@@ -74,7 +68,8 @@ import { formatSessionHours } from '../settings-format';
             [smtMax]="1440"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-idle-lock-hint"
-            [(ngModel)]="systemSettings()['security.idle_lock_minutes']"
+            [value]="systemSettings()['security.idle_lock_minutes']"
+            (valueChange)="changeSetting('security.idle_lock_minutes', $event)"
           />
           <span id="settings-idle-lock-hint" class="hint-text">{{ 'settings.idle_lock_hint' | t }}</span>
         </div>
@@ -119,9 +114,16 @@ export class SettingsSecurityPanelComponent {
   readonly systemSettings = input<Record<string, string>>({});
 
   readonly save = output<void>();
+  /** The settings object belongs to the store, so an edit goes up and the store keeps it. */
+  readonly settingChange = output<SettingChange>();
   readonly toggleRequire2fa = output<boolean>();
 
   readonly passwordPolicy = PASSWORD_POLICY;
+
+  /** A number field gives a number, or null when empty; the settings keep text, validated on save. */
+  changeSetting(key: string, value: SMTInputValue): void {
+    this.settingChange.emit({ key, value: value === null ? '' : String(value) });
+  }
 
   formatSessionHours(hours: string | number | undefined): string {
     return formatSessionHours(hours, (key) => this.i18n.translate(key));

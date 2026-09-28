@@ -8,6 +8,8 @@ import { ToastService } from '@core/services/toast.service';
 import { WebhooksSettingsComponent } from './webhooks-settings.component';
 import { WebhookSubscription, CreatedWebhookSubscription } from './webhooks-settings.models';
 import { translateTest } from '@testing/i18n-test.stub';
+import { inScreen, redraw } from '@testing/in-screen';
+import { By } from '@angular/platform-browser';
 
 describe('WebhooksSettingsComponent', () => {
   const mockSubscriptions: WebhookSubscription[] = [
@@ -125,8 +127,7 @@ describe('WebhooksSettingsComponent', () => {
     component.openCreateModal();
     expect(component.isCreateModalOpen()).toBe(true);
 
-    component.createName = 'New CRM Webhook';
-    component.createTargetUrl = 'https://crm.corp/hook';
+    component.createModel.set({ name: 'New CRM Webhook', targetUrl: 'https://crm.corp/hook' });
     component.selectedEvents = new Set(['task.created', 'task.completed']);
 
     expect(component.isCreateValid()).toBe(true);
@@ -151,6 +152,41 @@ describe('WebhooksSettingsComponent', () => {
     component.closeSecretModal();
     expect(component.createdSecretModalOpen()).toBe(false);
     expect(component.recentlyCreatedSubscription()).toBeNull();
+  });
+
+  it('fills the create form from what is typed and opens it again blank and untouched', async () => {
+    const { fixture, component } = await createFixture();
+
+    component.openCreateModal();
+    redraw(fixture);
+    const name = inScreen(fixture.nativeElement).querySelector('#webhook-name') as HTMLInputElement;
+    const url = inScreen(fixture.nativeElement).querySelector('#webhook-url') as HTMLInputElement;
+    expect(name.required).toBe(true);
+    expect(name.maxLength).toBe(100);
+    expect(url.maxLength).toBe(500);
+
+    name.value = '   ';
+    name.dispatchEvent(new Event('input'));
+    name.dispatchEvent(new Event('blur'));
+    url.value = 'https://crm.corp/hook';
+    url.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    // Blank text is not a name: the save stays off and the field shows its error once left.
+    expect(component.isCreateValid()).toBe(false);
+    expect(fixture.debugElement.query(By.css('smt-input.smt-input--invalid'))).not.toBeNull();
+
+    name.value = 'CRM';
+    name.dispatchEvent(new Event('input'));
+    redraw(fixture);
+    expect(component.createModel()).toEqual({ name: 'CRM', targetUrl: 'https://crm.corp/hook' });
+    expect(component.isCreateValid()).toBe(true);
+
+    component.closeCreateModal();
+    component.openCreateModal();
+    redraw(fixture);
+    expect(component.createModel()).toEqual({ name: '', targetUrl: '' });
+    expect(component.createForm.name().touched()).toBe(false);
+    expect(fixture.debugElement.query(By.css('smt-input.smt-input--invalid'))).toBeNull();
   });
 
   it('should handle delete confirmation and deletion', async () => {

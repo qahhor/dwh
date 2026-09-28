@@ -9,7 +9,6 @@ import {
   input,
   output,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { LanguageInfo, TranslationDictionary, TranslationEditor, TranslationEntry } from '@core/models/i18n.models';
 import { SettingsApi } from './settings.api';
@@ -18,12 +17,12 @@ import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { SMTSwitchComponent } from '@shared/ui-kit/components/forms/switch';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-language-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SMTSwitchComponent, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, FormsModule],
+  imports: [SMTSwitchComponent, SMTInputComponent, TranslatePipe],
   templateUrl: './language-editor.component.html',
   styleUrl: './language-editor.component.css',
 })

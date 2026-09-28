@@ -165,6 +165,11 @@ export class SettingsStore {
     });
   }
 
+  /** A panel edited one setting; it is kept here and saved with the others. */
+  setSystemSetting(key: string, value: string): void {
+    this.systemSettings.update((settings) => ({ ...settings, [key]: value }));
+  }
+
   toggleRequire2fa(enabled: boolean): void {
     this.systemSettings.update((settings) => ({
       ...settings,

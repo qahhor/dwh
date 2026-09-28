@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { SettingChange } from '../settings.models';
 
 const TIMEZONES: readonly SMTSelectOption<string>[] = [
   { id: 'Asia/Tashkent', label: 'Asia/Tashkent (UTC+5)' },
@@ -43,15 +43,7 @@ function withCurrent(
 @Component({
   selector: 'app-settings-general-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTInputComponent,
-    SMTInputValueAccessor,
-    SMTSelectComponent,
-    SMTSelectValueAccessor,
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent,
-  ],
+  imports: [SMTInputComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -74,7 +66,8 @@ function withCurrent(
             smtFieldId="settings-company-name"
             name="settingsCompanyName"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings()['system.company_name']"
+            [value]="systemSettings()['system.company_name']"
+            (valueChange)="changeSetting('system.company_name', $event)"
             placeholder="SmartupCMS"
           />
         </div>
@@ -87,7 +80,8 @@ function withCurrent(
             [options]="languageOptions()"
             [allowClear]="false"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings()['system.default_language']"
+            [value]="systemSettings()['system.default_language']"
+            (valueChange)="changeSetting('system.default_language', $event)"
           />
         </div>
 
@@ -99,7 +93,8 @@ function withCurrent(
             [options]="timezoneOptions()"
             [allowClear]="false"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings()['system.default_timezone']"
+            [value]="systemSettings()['system.default_timezone']"
+            (valueChange)="changeSetting('system.default_timezone', $event)"
           />
         </div>
 
@@ -111,7 +106,8 @@ function withCurrent(
             [options]="dateFormatOptions()"
             [allowClear]="false"
             [disabled]="!canUpdateSystemSettings() || isSaving()"
-            [(ngModel)]="systemSettings()['system.date_format']"
+            [value]="systemSettings()['system.date_format']"
+            (valueChange)="changeSetting('system.date_format', $event)"
           />
         </div>
       </div>
@@ -140,12 +136,19 @@ export class SettingsGeneralPanelComponent {
   readonly systemSettings = input<Record<string, string>>({});
 
   readonly save = output<void>();
+  /** The settings object belongs to the store, so an edit goes up and the store keeps it. */
+  readonly settingChange = output<SettingChange>();
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   private readonly timezoneMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
 
   private readonly dateFormatMemo = optionsMemo<readonly SMTSelectOption<string>[]>();
+
+  /** The settings keep text; a select gives null only when cleared, which these do not allow. */
+  changeSetting(key: string, value: SMTInputValue): void {
+    this.settingChange.emit({ key, value: value === null ? '' : String(value) });
+  }
 
   languageOptions(): SMTSelectOption<string>[] {
     return this.languageMemo([this.languages()], () =>

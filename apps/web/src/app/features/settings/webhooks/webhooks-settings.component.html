@@ -149,9 +149,7 @@
           <smt-input
             smtFieldId="webhook-name"
             [placeholder]="'settings.webhooks.name_placeholder' | t"
-            [(ngModel)]="createName"
-            [maxLength]="100"
-            required
+            [formField]="createForm.name"
           />
         </div>
 
@@ -162,9 +160,7 @@
             smtFieldId="webhook-url"
             type="url"
             [placeholder]="'settings.webhooks.url_placeholder' | t"
-            [(ngModel)]="createTargetUrl"
-            [maxLength]="500"
-            required
+            [formField]="createForm.targetUrl"
           />
         </div>
 
