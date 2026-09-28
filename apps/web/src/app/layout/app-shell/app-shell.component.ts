@@ -1,4 +1,3 @@
-import { IdleLockDialogComponent } from './components/idle-lock-dialog.component';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,42 +5,33 @@ import {
   ElementRef,
   HostListener,
   OnDestroy,
-  computed,
-  effect,
-  signal,
   inject,
+  signal,
   viewChild,
 } from '@angular/core';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
-import { PermissionService } from '@core/services/permission.service';
-import { ThemeService } from '@core/services/theme.service';
-import { I18nService, TranslatePipe, Language } from '@core/services/i18n.service';
+import { TranslatePipe } from '@core/services/i18n.service';
 import { NotificationService } from '@core/services/notification.service';
-import { CommandPaletteService } from '@core/services/command-palette.service';
 import { CommandPaletteComponent } from '../command-palette/command-palette.component';
-import { AppHeaderComponent, LanguageChangeRequest } from './components/app-header.component';
+import { AppHeaderComponent } from './components/app-header.component';
 import { AppSidebarComponent } from './components/app-sidebar.component';
-import { ToastService } from '@core/services/toast.service';
-import { ModuleService } from '@core/services/module.service';
-import { NavigationService } from '@core/services/navigation.service';
-import { finalize } from 'rxjs';
+import { IdleLockDialogComponent } from './components/idle-lock-dialog.component';
+import { NavSection } from './app-shell.models';
+import { AppShellFlyoutService } from './services/app-shell-flyout.service';
+import { AppShellNavService } from './services/app-shell-nav.service';
+import { AppShellSessionService } from './services/app-shell-session.service';
 
 export type { NavItem, NavSection } from './app-shell.models';
-import {
-  NavItem,
-  NavSection,
-  buildNavSections,
-  loadCollapsedSections,
-  loadCollapsedState,
-  COLLAPSED_STATE_KEY,
-  COLLAPSED_SECTIONS_KEY,
-  SECTION_ICON_MAP,
-} from './app-shell.models';
-import { AppShellFlyoutService } from './services/app-shell-flyout.service';
+
+/**
+ * Frame around every signed-in page. Navigation state lives in
+ * AppShellNavService, session reads in AppShellSessionService and the rail
+ * flyouts in AppShellFlyoutService; the shell itself keeps the mobile drawer,
+ * whose focus handling needs the rendered header and sidebar.
+ */
 @Component({
   selector: 'app-shell',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,129 +43,29 @@ import { AppShellFlyoutService } from './services/app-shell-flyout.service';
     AppHeaderComponent,
     AppSidebarComponent,
   ],
+  providers: [AppShellNavService, AppShellSessionService],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
 })
 export class AppShellComponent implements OnDestroy {
-  private readonly uiI18n = inject(I18nService);
-  private readonly toast = inject(ToastService);
+  readonly authService = inject(AuthService);
+  readonly nav = inject(AppShellNavService);
+  readonly session = inject(AppShellSessionService);
+  readonly flyout = inject(AppShellFlyoutService);
+  private readonly notifService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly breakpointObserver = inject(BreakpointObserver, { optional: true });
-
-  private readonly flyout = inject(AppShellFlyoutService);
 
   readonly mainContent = viewChild<ElementRef<HTMLElement>>('mainContent');
   readonly appHeader = viewChild(AppHeaderComponent);
   readonly appSidebar = viewChild(AppSidebarComponent);
 
-  readonly isCollapsed = signal<boolean>(loadCollapsedState());
-
   readonly isMobile = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
-  readonly isChangingLanguage = signal(false);
-  readonly isDismissingAnnouncement = signal(false);
-  readonly collapsedSections = signal<Set<string>>(loadCollapsedSections());
-  readonly expandedSubmenus = signal<Set<string>>(new Set<string>());
-  private readonly announcementRevision = signal(0);
-
-  readonly canReadNotifications = computed(() => this.canViewNotifications());
-  readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
-
-  readonly navSections = computed<NavSection[]>(() =>
-    buildNavSections({
-      activeCustomModules: this.moduleService.getActiveCustomModules(),
-      customNavItems: this.navService.activeItems(),
-      entityItems: this.navService.entityItems(),
-      isModuleActive: (code) => this.moduleService.isModuleActive(code),
-      canViewTasks: () => this.canViewTasks(),
-      canViewProjects: () => this.canViewProjects(),
-      canViewSources: () => this.canViewSources(),
-      canViewPackages: () => this.canViewPackages(),
-      canViewFiles: () => this.canViewFiles(),
-      canViewAnalytics: () => this.canViewAnalytics(),
-      canViewNotifications: () => this.canViewNotifications(),
-      canViewUsers: () => this.canViewUsers(),
-      canViewRoles: () => this.canViewRoles(),
-      canViewOrgUnits: () => this.canViewOrgUnits(),
-      canViewCustomFields: () => this.canViewCustomFields(),
-      canViewAnnouncements: () => this.canViewAnnouncements(),
-      canViewModules: () => this.canViewModules(),
-      canViewNavigationSettings: () => this.canViewNavigationSettings(),
-      canViewAudit: () => this.canViewAudit(),
-      canViewSystem: () => this.canViewSystem(),
-      canViewSettings: () => this.canViewSettings(),
-      hasPermission: (permission) => this.permService.hasPermissionKey(permission),
-      unreadCount: () => this.notifService.unreadCount(),
-    }),
-  );
-
-  readonly isSectionActiveFn = (section: NavSection) => this.isSectionActive(section);
-  readonly isRouteActiveFn = (route: string, exact: boolean = false) => this.isRouteActive(route, exact);
-  readonly getSectionIconFn = (id: string) => this.getSectionIcon(id);
-  readonly getSectionBadgeFn = (section: NavSection) => this.getSectionBadge(section);
-  readonly hasVisibleItemsFn = (section: NavSection) => this.hasVisibleItems(section);
-  readonly isSectionExpandedFn = (id: string) => this.isSectionExpanded(id);
-  readonly isSubmenuExpandedFn = (id: string) => this.isSubmenuExpanded(id);
 
   readonly sidebarId = 'app-sidebar';
 
-  private readonly COLLAPSED_STATE_KEY = COLLAPSED_STATE_KEY;
-
-  // Collapsed rail flyout popover
-  readonly hoveredFlyoutSection = this.flyout.hoveredFlyoutSection;
-  readonly hoveredFlyoutItem = this.flyout.hoveredFlyoutItem;
-  readonly flyoutAnchorTop = this.flyout.flyoutAnchorTop;
-  readonly isFlyoutVisible = this.flyout.isFlyoutVisible;
-  readonly isProfileFlyoutVisible = this.flyout.isProfileFlyoutVisible;
-
-  private readonly COLLAPSED_SECTIONS_KEY = COLLAPSED_SECTIONS_KEY;
-
-  canViewTasks = () => this.permService.canView('tasks.items') || this.permService.canView('tasks');
-  canViewProjects = () => this.permService.canView('tasks.projects') || this.permService.canView('projects');
-  canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
-  canViewUsers = () => this.permService.canView('iam.users') || this.permService.canView('md_users');
-  canViewRoles = () =>
-    this.permService.canView('rbac.roles') ||
-    this.permService.canView('iam.roles') ||
-    this.permService.canView('md_roles') ||
-    this.permService.canView('md.roles');
-  canViewOrgUnits = () => this.permService.canView('iam.org_units');
-  canViewCustomFields = () =>
-    this.permService.canView('md.custom_fields') ||
-    this.permService.canView('system.custom_fields') ||
-    this.permService.canView('md_custom_fields');
-  canViewFiles = () => this.permService.canView('platform.files') || this.permService.canView('files');
-  canViewNotifications = () => this.permService.canView('notify.inbox') || this.permService.canView('notifications');
-  canViewAnnouncements = () => this.permService.canUpdate('platform.announcements');
-  canViewAudit = () =>
-    this.permService.canView('audit.log') ||
-    this.permService.canView('audit.logs') ||
-    this.permService.canView('audit');
-  canViewSettings = () => true;
-  canViewSystem = () => this.permService.canView('platform.settings');
-  canViewSources = () => this.permService.canView('upl.sources') && this.moduleService.isModuleActive('upl');
-  canViewPackages = () => this.permService.canView('upl.packages') && this.moduleService.isModuleActive('upl');
-  canViewModules = () => this.permService.canView('platform.modules');
-  canViewNavigationSettings = () => this.permService.canView('platform.navigation');
-
-  constructor(
-    public authService: AuthService,
-    public permService: PermissionService,
-    public themeService: ThemeService,
-    public i18n: I18nService,
-    public notifService: NotificationService,
-    public paletteService: CommandPaletteService,
-    public moduleService: ModuleService,
-    public navService: NavigationService,
-    private router: Router,
-  ) {
-    effect(() => {
-      if (this.authService.currentUser()) {
-        this.moduleService.loadActiveModules().subscribe({ error: () => {} });
-        this.navService.loadActiveItems().subscribe({ error: () => {} });
-        this.navService.loadEntityItems().subscribe({ error: () => {} });
-      }
-    });
+  constructor() {
     if (this.breakpointObserver) {
       this.breakpointObserver
         .observe('(max-width: 768px)')
@@ -194,34 +84,6 @@ export class AppShellComponent implements OnDestroy {
           }
         });
     }
-
-    // Permissions arrive asynchronously after login. Start only the reads
-    // allowed by the server contract, and cancel them when access changes.
-    effect((onCleanup) => {
-      if (!this.canReadNotifications()) {
-        this.notifService.unreadCount.set(0);
-        return;
-      }
-      const request = this.notifService.fetchUnreadCount().subscribe({ error: () => {} });
-      this.notifService.connectSse();
-      onCleanup(() => {
-        request.unsubscribe();
-        this.notifService.disconnectSse();
-        this.notifService.unreadCount.set(0);
-      });
-    });
-    effect((onCleanup) => {
-      if (!this.canReadAnnouncements()) {
-        this.notifService.activeAnnouncement.set(null);
-        return;
-      }
-      this.announcementRevision();
-      const request = this.notifService.fetchActiveAnnouncement(this.i18n.currentLang()).subscribe({ error: () => {} });
-      onCleanup(() => {
-        request.unsubscribe();
-        this.notifService.activeAnnouncement.set(null);
-      });
-    });
   }
 
   get mobileMenuBtn(): ElementRef<HTMLButtonElement> | undefined {
@@ -230,16 +92,13 @@ export class AppShellComponent implements OnDestroy {
   get sidebarElement(): ElementRef<HTMLElement> | undefined {
     return this.appSidebar()?.sidebarElement();
   }
-  get mobileDrawerClose(): ElementRef<HTMLButtonElement> | undefined {
-    return this.appSidebar()?.mobileDrawerClose();
-  }
 
   @HostListener('keydown', ['$event'])
   handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      if (this.isFlyoutVisible() || this.isProfileFlyoutVisible()) {
-        this.closeFlyout();
-        this.closeProfileFlyout();
+      if (this.flyout.isFlyoutVisible() || this.flyout.isProfileFlyoutVisible()) {
+        this.flyout.closeFlyout();
+        this.flyout.closeProfileFlyout();
         return;
       }
     }
@@ -272,89 +131,21 @@ export class AppShellComponent implements OnDestroy {
     this.mainContent()?.nativeElement?.focus();
   }
 
-  hasVisibleItems(section: NavSection): boolean {
-    return section.items.some((item) => item.permission());
+  // The flyouts open only on the collapsed desktop rail, which the shell knows.
+  onCategoryMouseEnter(section: NavSection, event: MouseEvent) {
+    this.flyout.onCategoryMouseEnter(section, event, this.nav.isCollapsed(), this.isMobile());
   }
 
-  isSectionExpanded(sectionId: string): boolean {
-    return !this.collapsedSections().has(sectionId);
-  }
-
-  toggleSection(sectionId: string, event?: Event): void {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    this.collapsedSections.update((prev) => {
-      const next = new Set(prev);
-      if (next.has(sectionId)) {
-        next.delete(sectionId);
-      } else {
-        next.add(sectionId);
-      }
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem(this.COLLAPSED_SECTIONS_KEY, JSON.stringify([...next]));
-        }
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
-  }
-
-  isSectionActive(section: NavSection): boolean {
-    return section.items.some((item) => {
-      if (item.route && this.isRouteActive(item.route, !!item.exact)) return true;
-      if (item.children) {
-        return item.children.some((child) => child.route && this.isRouteActive(child.route, !!child.exact));
-      }
-      return false;
-    });
-  }
-
-  isSubmenuExpanded(itemId: string): boolean {
-    return this.expandedSubmenus().has(itemId);
-  }
-
-  toggleSubmenu(itemId: string, event?: Event): void {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    this.expandedSubmenus.update((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemId)) {
-        next.delete(itemId);
-      } else {
-        next.add(itemId);
-      }
-      return next;
-    });
-  }
-
-  onItemMouseEnter(section: NavSection, item: NavItem, event: MouseEvent) {
-    this.flyout.onItemMouseEnter(section, item, event, this.isCollapsed(), this.isMobile());
-  }
-
-  onItemMouseLeave() {
-    this.flyout.onItemMouseLeave();
-  }
-
-  onFlyoutMouseEnter() {
-    this.flyout.onFlyoutMouseEnter();
-  }
-
-  onFlyoutMouseLeave() {
-    this.flyout.onFlyoutMouseLeave();
-  }
-
-  closeFlyout() {
-    this.flyout.closeFlyout();
+  onProfileMouseEnter(event: MouseEvent) {
+    this.flyout.onProfileMouseEnter(event, this.nav.isCollapsed(), this.isMobile());
   }
 
   onFlyoutItemClick() {
     this.flyout.onFlyoutItemClick(() => this.onNavClick());
+  }
+
+  onProfileFlyoutClick() {
+    this.flyout.onProfileFlyoutClick(() => this.onNavClick());
   }
 
   @HostListener('document:click', ['$event'])
@@ -364,69 +155,15 @@ export class AppShellComponent implements OnDestroy {
 
   @HostListener('window:keydown.escape')
   onEscapeKey() {
-    this.closeFlyout();
-    this.closeProfileFlyout();
+    this.flyout.closeFlyout();
+    this.flyout.closeProfileFlyout();
     this.closeMobileMenu(true);
   }
 
-  onProfileMouseEnter(event: MouseEvent) {
-    this.flyout.onProfileMouseEnter(event, this.isCollapsed(), this.isMobile());
-  }
-
-  onProfileMouseLeave() {
-    this.flyout.onProfileMouseLeave();
-  }
-
-  onProfileFlyoutMouseEnter() {
-    this.flyout.onProfileFlyoutMouseEnter();
-  }
-
-  onProfileFlyoutMouseLeave() {
-    this.flyout.onProfileFlyoutMouseLeave();
-  }
-
-  closeProfileFlyout() {
-    this.flyout.closeProfileFlyout();
-  }
-
-  onProfileFlyoutClick() {
-    this.flyout.onProfileFlyoutClick(() => this.onNavClick());
-  }
-
-  onCategoryMouseEnter(section: NavSection, event: MouseEvent) {
-    this.flyout.onCategoryMouseEnter(section, event, this.isCollapsed(), this.isMobile());
-  }
-
-  onCategoryMouseLeave() {
-    this.flyout.onCategoryMouseLeave();
-  }
-
-  onCategoryClick(section: NavSection, event: MouseEvent) {
-    this.flyout.onCategoryClick(section, event);
-  }
-
-  getSectionBadge(section: NavSection): number {
-    return section.items.reduce((sum, item) => sum + (item.badge?.() || 0), 0);
-  }
-
-  getSectionIcon(sectionId?: string): string {
-    return (sectionId && SECTION_ICON_MAP[sectionId]) || 'folder';
-  }
-
   toggleSidebar() {
-    this.isCollapsed.update((v) => {
-      const next = !v;
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem(this.COLLAPSED_STATE_KEY, String(next));
-        }
-      } catch {
-        // Ignore
-      }
-      return next;
-    });
-    this.closeFlyout();
-    this.closeProfileFlyout();
+    this.nav.toggleCollapsed();
+    this.flyout.closeFlyout();
+    this.flyout.closeProfileFlyout();
   }
 
   toggleMobileMenu() {
@@ -468,54 +205,5 @@ export class AppShellComponent implements OnDestroy {
     if (this.isMobileMenuOpen()) {
       this.closeMobileMenu(false);
     }
-  }
-
-  isRouteActive(route: string, exact: boolean = false): boolean {
-    return exact ? this.router.url === route : this.router.url.startsWith(route);
-  }
-
-  asLang(l: string): Language {
-    return l as Language;
-  }
-
-  dismissAnnouncement() {
-    if (this.isDismissingAnnouncement() || this.authService.isLoggingOut()) return;
-    const a = this.notifService.activeAnnouncement();
-    if (a && a.id) {
-      this.isDismissingAnnouncement.set(true);
-      this.notifService
-        .dismissAnnouncement(a.id)
-        .pipe(finalize(() => this.isDismissingAnnouncement.set(false)))
-        .subscribe({
-          next: () => this.announcementRevision.update((revision) => revision + 1),
-          error: () => {}, // ApiService owns the single error message; keep the banner for retry.
-        });
-    }
-  }
-
-  changeLanguage(request: LanguageChangeRequest) {
-    if (this.isChangingLanguage() || this.i18n.isLoading() || this.authService.isLoggingOut()) {
-      request.revert();
-      return;
-    }
-    if (request.code === this.i18n.currentLang()) return;
-    this.isChangingLanguage.set(true);
-    this.i18n
-      .setLanguage(request.code)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isChangingLanguage.set(false)),
-      )
-      .subscribe({
-        error: () => {
-          request.revert();
-          if (!this.destroyRef.destroyed)
-            this.toast.error(this.uiI18n.translate('layout.app_shell.language_change_failed'));
-        },
-      });
-  }
-
-  onLogout() {
-    this.authService.logout();
   }
 }

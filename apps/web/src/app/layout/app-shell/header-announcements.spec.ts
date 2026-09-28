@@ -79,7 +79,7 @@ describe('Announcement banner API integration', () => {
     close.click();
     fixture.detectChanges();
     expect(close.disabled).toBe(true);
-    fixture.componentInstance.dismissAnnouncement();
+    fixture.componentInstance.session.dismissAnnouncement();
     const read = http.expectOne('/api/v1/announcements/9/read');
     read.flush(null);
     fixture.detectChanges();

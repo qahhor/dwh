@@ -239,7 +239,7 @@ describe('AppShellComponent', () => {
       await fixture.whenStable();
 
       expect(fixture.nativeElement.querySelector('.sidebar.mobile-open')).toBeNull();
-      expect(fixture.componentInstance.isCollapsed()).toBe(false);
+      expect(fixture.componentInstance.nav.isCollapsed()).toBe(false);
       expect(document.activeElement).toBe(opener);
       expect(fixture.nativeElement.querySelector('.main-wrapper').hasAttribute('inert')).toBe(false);
       expect(opener.getAttribute('aria-expanded')).toBe('false');
@@ -305,12 +305,12 @@ describe('AppShellComponent', () => {
     permissionService.canView.mockReturnValue(false);
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
-    expect(fixture.componentInstance.canViewOrgUnits()).toBe(false);
+    expect(fixture.componentInstance.nav.canViewOrgUnits()).toBe(false);
     expect(fixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
 
     permissionService.canView.mockImplementation((form) => form === 'iam.users');
     fixture.detectChanges();
-    expect(fixture.componentInstance.canViewOrgUnits()).toBe(false);
+    expect(fixture.componentInstance.nav.canViewOrgUnits()).toBe(false);
     expect(fixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
 
     fixture.destroy();
@@ -319,16 +319,16 @@ describe('AppShellComponent', () => {
     const allowedFixture = TestBed.createComponent(AppShellComponent);
     allowedFixture.detectChanges();
     const link = allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"]') as HTMLAnchorElement;
-    expect(allowedFixture.componentInstance.canViewOrgUnits()).toBe(true);
+    expect(allowedFixture.componentInstance.nav.canViewOrgUnits()).toBe(true);
     expect(link.title).toBe('Оргструктура');
     expect(link.getAttribute('aria-current')).toBe('page');
     expect(link.querySelector('.nav-label')?.textContent).toContain('Оргструктура');
 
-    allowedFixture.componentInstance.isCollapsed.set(true);
+    allowedFixture.componentInstance.nav.isCollapsed.set(true);
     allowedFixture.detectChanges();
     expect(allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"]')).toBeNull();
 
-    allowedFixture.componentInstance.isCollapsed.set(false);
+    allowedFixture.componentInstance.nav.isCollapsed.set(false);
     allowedFixture.componentInstance.isMobileMenuOpen.set(true);
     allowedFixture.detectChanges();
     expect(allowedFixture.nativeElement.querySelector('a[href="/iam/org-units"] .nav-label')).not.toBeNull();
@@ -343,7 +343,7 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const sections = fixture.componentInstance.navSections();
+    const sections = fixture.componentInstance.nav.navSections();
     expect(sections).toHaveLength(3);
     expect(sections.map((s) => s.id)).toEqual(['workspace', 'iam', 'administration']);
 
@@ -381,14 +381,14 @@ describe('AppShellComponent', () => {
     // Toggle to collapsed rail mode: titles hidden, category buttons rendered
     fixture.componentInstance.toggleSidebar();
     fixture.detectChanges();
-    expect(fixture.componentInstance.isCollapsed()).toBe(true);
+    expect(fixture.componentInstance.nav.isCollapsed()).toBe(true);
     expect(fixture.nativeElement.querySelectorAll('.nav-section-title')).toHaveLength(0);
     expect(fixture.nativeElement.querySelectorAll('.rail-category-btn').length).toBeGreaterThan(0);
 
     // Toggle back to expanded
     fixture.componentInstance.toggleSidebar();
     fixture.detectChanges();
-    expect(fixture.componentInstance.isCollapsed()).toBe(false);
+    expect(fixture.componentInstance.nav.isCollapsed()).toBe(false);
     expect(fixture.nativeElement.querySelectorAll('.rail-category-btn')).toHaveLength(0);
   });
 
@@ -460,8 +460,8 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.isSectionExpanded('iam')).toBe(false);
-    expect(fixture.componentInstance.isSectionExpanded('workspace')).toBe(true);
+    expect(fixture.componentInstance.nav.isSectionExpanded('iam')).toBe(false);
+    expect(fixture.componentInstance.nav.isSectionExpanded('workspace')).toBe(true);
 
     const iamContent = fixture.nativeElement.querySelector('#section-content-iam');
     expect(iamContent?.classList.contains('collapsed')).toBe(true);
@@ -474,10 +474,10 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     // Mock active route check
-    vi.spyOn(fixture.componentInstance, 'isRouteActive').mockImplementation((route: string) => route === '/tasks');
+    vi.spyOn(fixture.componentInstance.nav, 'isRouteActive').mockImplementation((route: string) => route === '/tasks');
 
     // Collapse workspace section
-    fixture.componentInstance.toggleSection('workspace');
+    fixture.componentInstance.nav.toggleSection('workspace');
     fixture.detectChanges();
 
     const workspaceHeader = fixture.nativeElement.querySelector('.nav-section-header');
@@ -506,7 +506,7 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const sections = fixture.componentInstance.navSections();
+    const sections = fixture.componentInstance.nav.navSections();
     const reportsSection = sections.find((s) => s.id === 'custom-reports');
     expect(reportsSection).toBeDefined();
     expect(reportsSection?.items).toHaveLength(1);
@@ -519,12 +519,12 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance;
-    expect(comp.isCollapsed()).toBe(false);
+    expect(comp.nav.isCollapsed()).toBe(false);
 
     // Collapse it
     comp.toggleSidebar();
     fixture.detectChanges();
-    expect(comp.isCollapsed()).toBe(true);
+    expect(comp.nav.isCollapsed()).toBe(true);
 
     const sidebar = fixture.nativeElement.querySelector('.sidebar') as HTMLElement;
     expect(sidebar.classList.contains('collapsed')).toBe(true);
@@ -546,7 +546,7 @@ describe('AppShellComponent', () => {
     // Collapse sidebar
     fixture.componentInstance.toggleSidebar();
     fixture.detectChanges();
-    expect(fixture.componentInstance.isCollapsed()).toBe(true);
+    expect(fixture.componentInstance.nav.isCollapsed()).toBe(true);
 
     // Tooltips are rendered for items
     const tooltips = fixture.nativeElement.querySelectorAll('.nav-tooltip');
@@ -558,7 +558,7 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.isCollapsed()).toBe(true);
+    expect(fixture.componentInstance.nav.isCollapsed()).toBe(true);
 
     localStorage.removeItem('smartup_nav_sidebar_collapsed');
   });
@@ -568,22 +568,28 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance;
-    comp.isCollapsed.set(true);
+    comp.nav.isCollapsed.set(true);
     fixture.detectChanges();
 
-    const sections = comp.navSections();
+    const sections = comp.nav.navSections();
     const iamSection = sections.find((s) => s.id === 'iam')!;
     const usersItem = iamSection.items[0];
 
     // Trigger item mouse enter
-    comp.onItemMouseEnter(iamSection, usersItem, {
-      currentTarget: { getBoundingClientRect: () => ({ top: 150 }) },
-    } as any);
+    comp.flyout.onItemMouseEnter(
+      iamSection,
+      usersItem,
+      {
+        currentTarget: { getBoundingClientRect: () => ({ top: 150 }) },
+      } as any,
+      comp.nav.isCollapsed(),
+      comp.isMobile(),
+    );
 
     // Fast-forward or trigger visibility
-    comp.isFlyoutVisible.set(true);
-    comp.hoveredFlyoutSection.set(iamSection);
-    comp.hoveredFlyoutItem.set(usersItem);
+    comp.flyout.isFlyoutVisible.set(true);
+    comp.flyout.hoveredFlyoutSection.set(iamSection);
+    comp.flyout.hoveredFlyoutItem.set(usersItem);
     fixture.detectChanges();
 
     const flyout = fixture.nativeElement.querySelector('.rail-flyout-popover');
@@ -596,7 +602,7 @@ describe('AppShellComponent', () => {
     comp.handleKeyDown(escEvent);
     fixture.detectChanges();
 
-    expect(comp.isFlyoutVisible()).toBe(false);
+    expect(comp.flyout.isFlyoutVisible()).toBe(false);
   });
 
   it('supports category rail icons and floating flyout popover when collapsed', () => {
@@ -604,17 +610,17 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance;
-    comp.isCollapsed.set(true);
+    comp.nav.isCollapsed.set(true);
     fixture.detectChanges();
 
     // Rail should display category buttons
     const categoryButtons = fixture.nativeElement.querySelectorAll('.rail-category-btn');
     expect(categoryButtons.length).toBeGreaterThanOrEqual(1);
 
-    expect(comp.isFlyoutVisible()).toBe(false);
+    expect(comp.flyout.isFlyoutVisible()).toBe(false);
     expect(fixture.nativeElement.querySelector('.rail-flyout-popover:not(.profile-flyout)')).toBeNull();
 
-    const iamSection = comp.navSections().find((s) => s.id === 'iam')!;
+    const iamSection = comp.nav.navSections().find((s) => s.id === 'iam')!;
 
     // Open flyout by clicking category button in collapsed rail
     const dummyEvent = {
@@ -622,11 +628,11 @@ describe('AppShellComponent', () => {
       currentTarget: categoryButtons[0],
       target: categoryButtons[0],
     } as any;
-    comp.onCategoryClick(iamSection, dummyEvent);
+    comp.flyout.onCategoryClick(iamSection, dummyEvent);
     fixture.detectChanges();
 
-    expect(comp.isFlyoutVisible()).toBe(true);
-    expect(comp.hoveredFlyoutSection()?.id).toBe('iam');
+    expect(comp.flyout.isFlyoutVisible()).toBe(true);
+    expect(comp.flyout.hoveredFlyoutSection()?.id).toBe('iam');
 
     const flyout = fixture.nativeElement.querySelector('.rail-flyout-popover:not(.profile-flyout)');
     expect(flyout).not.toBeNull();
@@ -634,11 +640,11 @@ describe('AppShellComponent', () => {
     expect(flyout.querySelectorAll('.flyout-item').length).toBe(iamSection.items.length);
 
     // Switch category to administration
-    const adminSection = comp.navSections().find((s) => s.id === 'administration')!;
-    comp.onCategoryClick(adminSection, dummyEvent);
+    const adminSection = comp.nav.navSections().find((s) => s.id === 'administration')!;
+    comp.flyout.onCategoryClick(adminSection, dummyEvent);
     fixture.detectChanges();
 
-    expect(comp.hoveredFlyoutSection()?.id).toBe('administration');
+    expect(comp.flyout.hoveredFlyoutSection()?.id).toBe('administration');
     expect(flyout.textContent).toContain('Администрирование');
 
     // Press Escape to dismiss flyout
@@ -646,7 +652,7 @@ describe('AppShellComponent', () => {
     comp.handleKeyDown(escEvent);
     fixture.detectChanges();
 
-    expect(comp.isFlyoutVisible()).toBe(false);
+    expect(comp.flyout.isFlyoutVisible()).toBe(false);
     expect(fixture.nativeElement.querySelector('.rail-flyout-popover:not(.profile-flyout)')).toBeNull();
   });
 
@@ -655,13 +661,13 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance;
-    comp.isCollapsed.set(true);
-    const workspaceSection = comp.navSections().find((s) => s.id === 'workspace')!;
-    comp.hoveredFlyoutSection.set(workspaceSection);
-    comp.isFlyoutVisible.set(true);
+    comp.nav.isCollapsed.set(true);
+    const workspaceSection = comp.nav.navSections().find((s) => s.id === 'workspace')!;
+    comp.flyout.hoveredFlyoutSection.set(workspaceSection);
+    comp.flyout.isFlyoutVisible.set(true);
     fixture.detectChanges();
 
-    expect(comp.isFlyoutVisible()).toBe(true);
+    expect(comp.flyout.isFlyoutVisible()).toBe(true);
 
     const outsideDiv = document.createElement('div');
     document.body.appendChild(outsideDiv);
@@ -669,7 +675,7 @@ describe('AppShellComponent', () => {
     document.body.removeChild(outsideDiv);
     fixture.detectChanges();
 
-    expect(comp.isFlyoutVisible()).toBe(false);
+    expect(comp.flyout.isFlyoutVisible()).toBe(false);
   });
 
   it('displays profile flyout on hover at footer when collapsed', () => {
@@ -677,18 +683,18 @@ describe('AppShellComponent', () => {
     fixture.detectChanges();
 
     const comp = fixture.componentInstance;
-    comp.isCollapsed.set(true);
+    comp.nav.isCollapsed.set(true);
     comp.onProfileMouseEnter({} as any);
     fixture.detectChanges();
 
-    expect(comp.isProfileFlyoutVisible()).toBe(true);
+    expect(comp.flyout.isProfileFlyoutVisible()).toBe(true);
     const profileFlyout = fixture.nativeElement.querySelector('.rail-flyout-popover.profile-flyout');
     expect(profileFlyout).not.toBeNull();
     expect(profileFlyout.textContent).toContain('Иван Иванов');
 
     comp.onProfileFlyoutClick();
     fixture.detectChanges();
-    expect(comp.isProfileFlyoutVisible()).toBe(false);
+    expect(comp.flyout.isProfileFlyoutVisible()).toBe(false);
   });
 
   it('keeps the sources and formats link in the workspace section for upl.sources view', () => {
@@ -696,7 +702,7 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const workspaceSection = fixture.componentInstance.navSections().find((s) => s.id === 'workspace')!;
+    const workspaceSection = fixture.componentInstance.nav.navSections().find((s) => s.id === 'workspace')!;
     const sourcesItem = workspaceSection.items.find((i) => i.route === '/upl/sources');
     expect(sourcesItem).toBeDefined();
     expect(sourcesItem!.permission()).toBe(true);
@@ -707,7 +713,7 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const workspaceSection = fixture.componentInstance.navSections().find((s) => s.id === 'workspace')!;
+    const workspaceSection = fixture.componentInstance.nav.navSections().find((s) => s.id === 'workspace')!;
     const sourcesItem = workspaceSection.items.find((i) => i.route === '/upl/sources');
     expect(sourcesItem).toBeDefined();
     expect(sourcesItem!.permission()).toBe(false);
@@ -719,7 +725,7 @@ describe('AppShellComponent', () => {
     const fixture = TestBed.createComponent(AppShellComponent);
     fixture.detectChanges();
 
-    const workspaceSection = fixture.componentInstance.navSections().find((s) => s.id === 'workspace')!;
+    const workspaceSection = fixture.componentInstance.nav.navSections().find((s) => s.id === 'workspace')!;
     const sourcesItem = workspaceSection.items.find((i) => i.route === '/upl/sources');
     expect(sourcesItem).toBeDefined();
     expect(sourcesItem!.permission()).toBe(false);
