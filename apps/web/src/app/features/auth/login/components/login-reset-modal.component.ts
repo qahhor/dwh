@@ -1,25 +1,16 @@
 import { ChangeDetectionStrategy, Component, inject, signal, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { PasswordApi } from '@features/auth/password.api';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-login-reset-modal',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTInputComponent,
-    SMTInputValueAccessor,
-    FormsModule,
-    SMTDialogComponent,
-    SMTDialogContentDirective,
-    SMTButtonComponent,
-    TranslatePipe,
-  ],
+  imports: [SMTInputComponent, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, TranslatePipe],
   template: `
     <smt-dialog [open]="isOpen()" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
       <ng-template smtDialogContent>
@@ -31,7 +22,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/compone
               smtFieldId="reset-email"
               name="resetEmail"
               type="email"
-              [(ngModel)]="resetEmail"
+              [(value)]="resetEmail"
               placeholder="user@company.com"
               autocomplete="email"
               smtDescribedBy="reset-hint"

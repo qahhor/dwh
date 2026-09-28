@@ -75,7 +75,7 @@ describe('Password change ends the old authenticated session', () => {
   it('returns forced password change to credentials and erases password and OTP drafts after success', async () => {
     const fixture = TestBed.createComponent(LoginComponent);
     const component = fixture.componentInstance;
-    component.login = user.login;
+    component.login.set(user.login);
     component.password.set('Before-Change-2026!');
     component.tempOldPassword.set(component.password());
     component.newPassword.set('After-Change-2026!');
@@ -94,7 +94,7 @@ describe('Password change ends the old authenticated session', () => {
     await fixture.whenStable();
 
     expect(component.step()).toBe('credentials');
-    expect(component.login).toBe(user.login);
+    expect(component.login()).toBe(user.login);
     expect([
       component.password(),
       component.tempOldPassword(),

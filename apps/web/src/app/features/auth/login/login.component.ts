@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { FormsModule } from '@angular/forms';
 import { AuthService } from '@core/services/auth.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { PasswordApi } from '../password.api';
@@ -20,7 +19,7 @@ import { LoginStep, PasswordField } from './login.models';
 import { LoginTopBarComponent } from './components/login-top-bar.component';
 import { LoginHeaderComponent } from './components/login-header.component';
 import { LoginResetModalComponent } from './components/login-reset-modal.component';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
 
 export * from './login.models';
@@ -30,9 +29,7 @@ export * from './login.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     TranslatePipe,
-    FormsModule,
     SMTButtonComponent,
     LoginTopBarComponent,
     LoginHeaderComponent,
@@ -52,6 +49,7 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
   readonly formError = signal<string>('');
+  readonly login = signal('');
   readonly password = signal('');
   readonly otpCode = signal('');
   readonly otpToken = signal('');
@@ -61,8 +59,6 @@ export class LoginComponent {
 
   readonly passwordPolicy = PASSWORD_POLICY;
   private readonly uiI18n = this.i18n;
-
-  login = '';
 
   constructor(
     private authService: AuthService,
@@ -75,9 +71,9 @@ export class LoginComponent {
 
   onLoginSubmit() {
     if (this.isLoading() || this.step() !== 'credentials' || this.isResetModalOpen()) return;
-    if (!this.login || !this.password()) {
+    if (!this.login() || !this.password()) {
       this.formError.set(this.uiI18n.translate('auth.enter_login_and_password'));
-      this.focusInput(!this.login ? 'login' : 'password');
+      this.focusInput(!this.login() ? 'login' : 'password');
       return;
     }
 
@@ -85,7 +81,7 @@ export class LoginComponent {
     this.capsLockField.set(null);
     this.isLoading.set(true);
     this.authService
-      .login(this.login, this.password(), navigator.userAgent)
+      .login(this.login(), this.password(), navigator.userAgent)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
@@ -238,8 +234,8 @@ export class LoginComponent {
     if (this.destroyRef.destroyed) return;
     afterNextRender(
       () => {
-        // NgModel applies its disabled state in a microtask after rendering, and smt-input writes it to its
-        // native input only on the render after that: an input still disabled here waits for the next render.
+        // The field is enabled only once isLoading() is false and smt-input has rendered that: an input
+        // still disabled here (a render that has not caught up yet) waits for the next render.
         queueMicrotask(() => {
           if (this.destroyRef.destroyed || this.isResetModalOpen()) return;
           const input = this.element.nativeElement.querySelector<HTMLInputElement>(`#${id}`);

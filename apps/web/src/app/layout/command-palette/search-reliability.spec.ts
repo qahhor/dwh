@@ -49,7 +49,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
   it('lets the server own the limit and renders honest empty and fallback feedback', async () => {
     vi.useFakeTimers();
     const { component, fixture, http } = await setup();
-    component.searchQuery = 'test';
+    component.searchQuery.set('test');
     component.onSearchChange('test');
     await vi.advanceTimersByTimeAsync(120);
     const request = http.expectOne((req) => req.url === '/api/v1/search');
@@ -73,7 +73,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
   it('honors Retry-After without typing or automatic retries and owns one local error', async () => {
     vi.useFakeTimers();
     const { component, fixture, http } = await setup();
-    component.searchQuery = 'test';
+    component.searchQuery.set('test');
     component.onSearchChange('test');
     await vi.advanceTimersByTimeAsync(120);
     http
@@ -86,7 +86,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
     expect((fixture.nativeElement.querySelector('.palette-retry') as HTMLButtonElement).disabled).toBe(true);
     expect(fixture.nativeElement.querySelectorAll('[role="alert"]').length).toBe(1);
     expect(TestBed.inject(ToastService).toasts()).toEqual([]);
-    component.searchQuery = 'new';
+    component.searchQuery.set('new');
     component.onSearchChange('new');
     await vi.advanceTimersByTimeAsync(1500);
     http.expectNone((req) => req.url === '/api/v1/search');
@@ -136,7 +136,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
   it('renders a real category control, plaintext snippets and returned/found/hasMore semantics', async () => {
     vi.useFakeTimers();
     const { component, fixture, http } = await setup();
-    component.searchQuery = 'report';
+    component.searchQuery.set('report');
     component.onSearchChange('report');
     await vi.advanceTimersByTimeAsync(120);
     const old = http.expectOne((req) => req.url === '/api/v1/search');
@@ -183,7 +183,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
   it('does not call intentional exact-ID PostgreSQL lookup a degraded search', async () => {
     vi.useFakeTimers();
     const { component, fixture, http } = await setup();
-    component.searchQuery = '#42';
+    component.searchQuery.set('#42');
     component.onSearchChange('#42');
     await vi.advanceTimersByTimeAsync(120);
     http
@@ -209,7 +209,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
   ])('bounds a %s Retry-After countdown across close and reopen', async (header, seconds) => {
     vi.useFakeTimers();
     const { component, fixture, http } = await setup();
-    component.searchQuery = 'test';
+    component.searchQuery.set('test');
     component.onSearchChange('test');
     await vi.advanceTimersByTimeAsync(120);
     http
@@ -228,7 +228,7 @@ describe('Reliable search through the real HTTP adapter and template', () => {
     fixture.detectChanges();
     component.paletteService.open();
     fixture.detectChanges();
-    component.searchQuery = 'new';
+    component.searchQuery.set('new');
     component.onSearchChange('new');
     await vi.advanceTimersByTimeAsync(120);
     http.expectNone((req) => req.url === '/api/v1/search');

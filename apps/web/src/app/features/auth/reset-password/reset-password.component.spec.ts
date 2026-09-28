@@ -70,6 +70,38 @@ describe('ResetPasswordComponent', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
+  it('sends what is typed on the form submit, clearing the error as the person types', async () => {
+    api.post.mockReturnValue(of(undefined));
+    const fixture = await open('#token=link-token');
+    const form = fixture.nativeElement.querySelector('form') as HTMLFormElement;
+    expect(form.noValidate).toBe(true);
+    const type = (id: string, text: string) => {
+      const field = fixture.nativeElement.querySelector(`#${id}`) as HTMLInputElement;
+      field.value = text;
+      field.dispatchEvent(new Event('input'));
+      fixture.detectChanges();
+    };
+
+    type('reset-new-password', 'short');
+    type('reset-confirm-password', 'short');
+    form.dispatchEvent(new Event('submit', { cancelable: true }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#reset-password-error')).not.toBeNull();
+
+    type('reset-new-password', 'New-Password-2026');
+    expect(fixture.nativeElement.querySelector('#reset-password-error')).toBeNull();
+    type('reset-confirm-password', 'New-Password-2026');
+    const submit = new Event('submit', { cancelable: true });
+    form.dispatchEvent(submit);
+
+    expect(submit.defaultPrevented).toBe(true);
+    expect(api.post).toHaveBeenCalledWith(
+      '/auth/password-reset/confirm',
+      { token: 'link-token', newPassword: 'New-Password-2026' },
+      { notifyError: false },
+    );
+  });
+
   it('turns a used or expired link into the invalid state', async () => {
     api.post.mockReturnValue(throwError(() => ({ code: 'RESET_CODE_INVALID', detail: 'expired' })));
     const fixture = await open('#token=used-token');
