@@ -16,7 +16,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
 import { UiBulkResultComponent } from '../../../shared/ui/ui-bulk-result.component';
 import { BulkResult } from '../../../shared/bulk/bulk';
-import { ApiService } from '../../../core/services/api.service';
+import { TasksApi } from '../tasks.api';
 import { ToastService } from '../../../core/services/toast.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/table.types';
@@ -477,7 +477,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 })
 export class TaskTableViewComponent {
   private readonly i18n = inject(I18nService);
-  private readonly api = inject(ApiService);
+  private readonly tasksApi = inject(TasksApi);
   private readonly toast = inject(ToastService);
 
   readonly pager = input.required<KeysetPager<Task>>();
@@ -649,8 +649,12 @@ export class TaskTableViewComponent {
     this.bulkTitles = new Map(tasks.map((task) => [task.id, task.title]));
     this.bulkBusy.set(true);
     this.bulkAction.set(action);
-    this.api
-      .post<BulkResult>('/tasks/bulk', { action, ids: tasks.map((task) => task.id), params }, { notifyError: false })
+    this.tasksApi
+      .bulk(
+        action,
+        tasks.map((task) => task.id),
+        params,
+      )
       .subscribe({
         next: (result) => {
           this.bulkBusy.set(false);

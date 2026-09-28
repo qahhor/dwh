@@ -365,7 +365,7 @@
   },
   "src/app/features/tasks/projects/projects.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 3
+      "count": 2
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 1
@@ -386,13 +386,13 @@
   },
   "src/app/features/tasks/tasks.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 4
+      "count": 3
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 7
     },
     "@typescript-eslint/no-unused-vars": {
-      "count": 5
+      "count": 2
     }
   },
   "src/app/features/tasks/tasks.models.ts": {
