@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
 
-import { ApiService } from '../../../core/services/api.service';
+import { CustomFieldsApi } from '../../../core/services/custom-fields.api';
 import { ToastService } from '../../../core/services/toast.service';
 import { PermissionService } from '../../../core/services/permission.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -97,7 +97,7 @@ import { problemText } from '../../../shared/ui/problem-text';
   styleUrl: './custom-fields.component.css',
 })
 export class CustomFieldsComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly customFields = inject(CustomFieldsApi);
   private readonly toast = inject(ToastService);
   private readonly permService = inject(PermissionService);
   private readonly uiI18n = inject(I18nService);
@@ -205,7 +205,7 @@ export class CustomFieldsComponent implements OnInit {
 
   loadFields() {
     this.isLoading.set(true);
-    this.api.get<CustomField[]>('/custom-fields').subscribe({
+    this.customFields.list().subscribe({
       next: (data) => {
         this.fields.set(data || []);
         this.isLoading.set(false);
@@ -289,8 +289,8 @@ export class CustomFieldsComponent implements OnInit {
 
     const editing = this.editingField();
     if (editing) {
-      this.api
-        .patch(`/custom-fields/${editing.id}`, {
+      this.customFields
+        .update(editing.id, {
           name: this.formData().name,
           isRequired: this.formData().isRequired,
           defaultValue: this.formData().defaultValue,
@@ -310,8 +310,8 @@ export class CustomFieldsComponent implements OnInit {
           },
         });
     } else {
-      this.api
-        .post('/custom-fields', {
+      this.customFields
+        .create({
           entityType: this.formData().entityType,
           code: this.formData().code,
           name: this.formData().name,
@@ -348,7 +348,7 @@ export class CustomFieldsComponent implements OnInit {
         destructive: true,
         action: () => {
           this.isDeleting.set(true);
-          return this.api.delete(`/custom-fields/${field.id}`, { notifyError: false }).pipe(
+          return this.customFields.remove(field.id).pipe(
             tap(() => {
               this.toast.success(t('iam.pole_udaleno'));
               this.loadFields();

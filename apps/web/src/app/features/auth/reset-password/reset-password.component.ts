@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { ApiService } from '../../../core/services/api.service';
+import { PasswordApi } from '../password.api';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
@@ -122,7 +122,7 @@ type ResetState = 'form' | 'done' | 'invalid';
   `,
 })
 export class ResetPasswordComponent {
-  private readonly api = inject(ApiService);
+  private readonly passwordApi = inject(PasswordApi);
   private readonly router = inject(Router);
   private readonly i18n = inject(I18nService);
 
@@ -150,28 +150,22 @@ export class ResetPasswordComponent {
       return;
     }
     this.isLoading.set(true);
-    this.api
-      .post(
-        '/auth/password-reset/confirm',
-        { token: this.token, newPassword: this.newPassword() },
-        { notifyError: false },
-      )
-      .subscribe({
-        next: () => {
-          this.isLoading.set(false);
-          this.newPassword.set('');
-          this.confirmPassword.set('');
-          this.state.set('done');
-        },
-        error: (err: unknown) => {
-          this.isLoading.set(false);
-          if (errorCode(err) === 'reset_code_invalid') {
-            this.state.set('invalid');
-            return;
-          }
-          this.formError.set(errorDetail(err) ?? this.i18n.translate('auth.reset.failed'));
-        },
-      });
+    this.passwordApi.confirmReset(this.token, this.newPassword()).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.newPassword.set('');
+        this.confirmPassword.set('');
+        this.state.set('done');
+      },
+      error: (err: unknown) => {
+        this.isLoading.set(false);
+        if (errorCode(err) === 'reset_code_invalid') {
+          this.state.set('invalid');
+          return;
+        }
+        this.formError.set(errorDetail(err) ?? this.i18n.translate('auth.reset.failed'));
+      },
+    });
   }
 
   toLogin(): void {

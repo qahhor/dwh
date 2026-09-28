@@ -138,7 +138,7 @@
   },
   "src/app/features/files/files.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 3
+      "count": 2
     }
   },
   "src/app/features/iam/org-units/org-unit-editor.component.ts": {
@@ -172,9 +172,6 @@
     },
     "@typescript-eslint/no-explicit-any": {
       "count": 3
-    },
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
     }
   },
   "src/app/features/iam/roles/roles.component.ts": {
