@@ -286,12 +286,12 @@ describe('FormatEditorComponent', () => {
     click(one(fixture, 'upl-add-column'));
     fixture.detectChanges();
     expect(many(fixture, 'upl-column-row').length).toBe(3);
-    expect(component.isDirty()).toBe(true);
+    expect(component.store.isDirty()).toBe(true);
 
     click(one(fixture, 'upl-revert'));
     fixture.detectChanges();
     expect(many(fixture, 'upl-column-row').length).toBe(2);
-    expect(component.isDirty()).toBe(false);
+    expect(component.store.isDirty()).toBe(false);
   });
 
   it('saves the whole draft with lock version and ordinals', async () => {
@@ -319,7 +319,7 @@ describe('FormatEditorComponent', () => {
     expect(body.delimiter).toBeNull();
     expect(body.sheets.map((sheet) => sheet.ordinal)).toEqual([1]);
     expect(body.sheets[0].columns.map((column) => column.ordinal)).toEqual([1, 2, 3]);
-    expect(component.isDirty()).toBe(false);
+    expect(component.store.isDirty()).toBe(false);
     expect(toast.success).toHaveBeenCalled();
   });
 
@@ -365,9 +365,9 @@ describe('FormatEditorComponent', () => {
     );
     fixture.detectChanges();
 
-    expect(component.model.sheets[0].columns[0].keyMask).toBeNull();
-    expect(component.model.sheets[0].columns[0].keyPadLength).toBeNull();
-    expect(component.model.sheets[0].columns[0].keyPadMax).toBeNull();
+    expect(component.store.model().sheets[0].columns[0].keyMask).toBeNull();
+    expect(component.store.model().sheets[0].columns[0].keyPadLength).toBeNull();
+    expect(component.store.model().sheets[0].columns[0].keyPadMax).toBeNull();
     expect(toast.info).toHaveBeenCalledTimes(1);
 
     selectOption(
@@ -385,8 +385,8 @@ describe('FormatEditorComponent', () => {
     selectOption(fixture, one(fixture, 'upl-cell-source-unit'), (label) => label.includes('(liter)'));
     fixture.detectChanges();
 
-    expect(component.model.sheets[0].columns[1].sourceUnit).toBe('liter');
-    expect(component.model.sheets[0].columns[1].baseUnit).toBe('l');
+    expect(component.store.model().sheets[0].columns[1].sourceUnit).toBe('liter');
+    expect(component.store.model().sheets[0].columns[1].baseUnit).toBe('l');
     expect(one(fixture, 'upl-cell-base-unit')!.textContent).toContain('Litr (l)');
   });
 
@@ -471,7 +471,7 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
     expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
 
-    const column = component.model.sheets[0].columns[0];
+    const column = component.store.model().sheets[0].columns[0];
     column.dataType = 'text';
     sheetsStep(fixture).onTypeChange(column);
     fixture.detectChanges();
@@ -495,7 +495,7 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
     expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
 
-    const column = component.model.sheets[0].columns[0];
+    const column = component.store.model().sheets[0].columns[0];
     column.sourceUnit = null;
     column.baseUnit = null;
     column.keyMask = null;
@@ -534,12 +534,12 @@ describe('FormatEditorComponent', () => {
     click(one(fixture, 'upl-publish'));
     fixture.detectChanges();
 
-    component.validFrom.set('');
+    component.store.validFrom.set('');
     click(one(fixture, 'upl-publish-confirm'));
     fixture.detectChanges();
 
     expect(api.publish).not.toHaveBeenCalled();
-    expect(component.isPublishOpen()).toBe(true);
+    expect(component.store.isPublishOpen()).toBe(true);
     expect(one(fixture, 'upl-publish-date-error')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotNull']);
   });
 
@@ -553,14 +553,14 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-conflict')).not.toBeNull();
-    expect(component.model.sheets[0].columns.length).toBe(3);
+    expect(component.store.model().sheets[0].columns.length).toBe(3);
   });
 
   it('publishes a clean draft and saves a dirty one first', async () => {
     const clean = await createFixture();
     click(one(clean.fixture, 'upl-publish'));
     clean.fixture.detectChanges();
-    expect(clean.component.isPublishOpen()).toBe(true);
+    expect(clean.component.store.isPublishOpen()).toBe(true);
 
     click(one(clean.fixture, 'upl-publish-confirm'));
     clean.fixture.detectChanges();
@@ -573,7 +573,7 @@ describe('FormatEditorComponent', () => {
     click(one(dirty.fixture, 'upl-publish'));
     dirty.fixture.detectChanges();
     expect(dirty.api.saveDraft).toHaveBeenCalledTimes(1);
-    expect(dirty.component.isPublishOpen()).toBe(true);
+    expect(dirty.component.store.isPublishOpen()).toBe(true);
   });
 
   it('reports publish date and validation errors of publishing', async () => {
@@ -585,7 +585,7 @@ describe('FormatEditorComponent', () => {
     click(one(dateError.fixture, 'upl-publish-confirm'));
     dateError.fixture.detectChanges();
     expect(one(dateError.fixture, 'upl-publish-date-error')).not.toBeNull();
-    expect(dateError.component.isPublishOpen()).toBe(true);
+    expect(dateError.component.store.isPublishOpen()).toBe(true);
 
     const invalid = await createFixture({
       publishError: {
@@ -599,7 +599,7 @@ describe('FormatEditorComponent', () => {
     invalid.fixture.detectChanges();
     click(one(invalid.fixture, 'upl-publish-confirm'));
     invalid.fixture.detectChanges();
-    expect(invalid.component.isPublishOpen()).toBe(false);
+    expect(invalid.component.store.isPublishOpen()).toBe(false);
     expect(one(invalid.fixture, 'upl-errors-summary')).not.toBeNull();
   });
 
@@ -720,7 +720,7 @@ describe('FormatEditorComponent', () => {
     fixture.detectChanges();
 
     expect(one(fixture, 'upl-action-error')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.PERMISSION_DENIED']);
-    expect(component.model.sheets[0].columns.length).toBe(3);
+    expect(component.store.model().sheets[0].columns.length).toBe(3);
     expect(one(fixture, 'upl-errors-summary')).toBeNull();
     expect(one(fixture, 'upl-conflict')).toBeNull();
   });
@@ -771,13 +771,13 @@ describe('FormatEditorComponent', () => {
       },
     });
 
-    expect(component.activeSheet()).toBe(0);
+    expect(component.store.activeSheet()).toBe(0);
 
     addValidColumn(fixture);
     click(one(fixture, 'upl-save'));
     fixture.detectChanges();
 
-    expect(component.activeSheet()).toBe(1);
+    expect(component.store.activeSheet()).toBe(1);
     expect(many(fixture, 'upl-sheet-tab').length).toBe(2);
     expect(many(fixture, 'upl-tab-error').length).toBe(1);
   });
@@ -797,7 +797,7 @@ describe('FormatEditorComponent', () => {
 
     expect(api.getVersion).toHaveBeenCalledTimes(2);
     expect(one(fixture, 'upl-conflict')).toBeNull();
-    expect(component.model.sheets[0].columns.length).toBe(2);
+    expect(component.store.model().sheets[0].columns.length).toBe(2);
   });
 
   it('shows csv fields and the file position column only when they apply', async () => {
@@ -835,7 +835,7 @@ describe('FormatEditorComponent', () => {
     click(one(fixture, 'upl-publish-confirm'));
     fixture.detectChanges();
 
-    expect(component.isPublishOpen()).toBe(false);
+    expect(component.store.isPublishOpen()).toBe(false);
     expect(one(fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_NO_SHEETS']);
     expect(one(fixture, 'upl-no-sheets')).not.toBeNull();
   });
@@ -928,8 +928,8 @@ describe('FormatEditorComponent', () => {
       // The file step edits the draft in place; the sheets step shows it once it is on screen again.
       click(stepButton(fixture, 'file'));
       fixture.detectChanges();
-      component.model.fileKind = 'csv';
-      component.model.matchColumnsBy = 'position';
+      component.store.model().fileKind = 'csv';
+      component.store.model().matchColumnsBy = 'position';
       click(stepButton(fixture, 'sheets'));
       fixture.detectChanges();
       expect(one(fixture, 'upl-sheet-name')).toBeNull();

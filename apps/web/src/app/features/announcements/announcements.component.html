@@ -1,0 +1,154 @@
+<section class="announcements-page" aria-labelledby="announcements-title">
+  <ui-page-header
+    [title]="'announcements.obyavleniya' | t"
+    [eyebrow]="'announcements.lokalnye_soobscheniya' | t"
+    [subtitle]="'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t"
+    titleId="announcements-title"
+  >
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="store.isLoading()"
+      [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+      (click)="store.loadAnnouncements()"
+    >
+      {{ 'common.refresh' | t }}
+    </button>
+    @if (store.canCreate()) {
+      <button
+        smt-button
+        type="button"
+        smtIcon="add"
+        [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
+        (click)="store.openCreate()"
+      >
+        {{ 'common.create' | t }}
+      </button>
+    }
+  </ui-page-header>
+
+  @if (store.operationError()) {
+    <div class="inline-alert" role="alert">
+      <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
+      <div>
+        <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
+        <p>{{ store.operationError() }}</p>
+      </div>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+        (click)="store.refreshAfterConflict()"
+      >
+        {{ 'announcements.obnovit_spisok' | t }}
+      </button>
+    </div>
+  }
+
+  <!-- Toolbar: Tabs for status filtering & Search box -->
+  @if (store.announcements().length > 0) {
+    <app-announcements-toolbar
+      [totalCount]="store.announcements().length"
+      [publishedCount]="store.publishedCount()"
+      [draftCount]="store.draftCount()"
+      [archivedCount]="store.archivedCount()"
+      [statusFilter]="store.statusFilter()"
+      [searchQuery]="store.searchQuery()"
+      (filterChange)="store.setStatusFilter($event)"
+      (searchChange)="store.searchQuery.set($event)"
+      (searchClear)="store.searchQuery.set('')"
+    />
+  }
+
+  @if (store.isLoading() && store.announcements().length === 0) {
+    <div class="state-panel" aria-busy="true" aria-live="polite">
+      <span class="spinner" aria-hidden="true"></span>
+      <span>{{ 'announcements.zagruzhaem_obyavleniya' | t }}</span>
+    </div>
+  }
+
+  @if (store.loadError() && !store.isLoading()) {
+    <div class="state-panel error-state" role="alert" data-testid="announcements-load-error">
+      <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
+      <div>
+        <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
+        <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
+      </div>
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t"
+        (click)="store.loadAnnouncements()"
+      >
+        {{ 'announcements.povtorit' | t }}
+      </button>
+    </div>
+  }
+
+  @if (!store.isLoading() && !store.loadError() && store.announcements().length === 0) {
+    <div class="state-panel empty-state" data-testid="announcements-empty">
+      <span class="material-symbols-outlined" aria-hidden="true">campaign</span>
+      <div>
+        <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
+        <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
+      </div>
+      @if (store.canCreate()) {
+        <button smt-button type="button" smtVariant="secondary" smtIcon="add" (click)="store.openCreate()">
+          {{ 'announcements.sozdat_chernovik' | t }}
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Empty state when search or tab filter matches nothing -->
+  @if (
+    !store.isLoading() &&
+    !store.loadError() &&
+    store.announcements().length > 0 &&
+    store.filteredAnnouncements().length === 0
+  ) {
+    <div class="state-panel empty-state" role="status">
+      <span class="material-symbols-outlined" aria-hidden="true">filter_list_off</span>
+      <div>
+        <h2>{{ 'announcements.po_filtram_nichego_ne_naydeno' | t }}</h2>
+      </div>
+      <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.resetFilters()">
+        {{ 'announcements.sbrosit_filtry' | t }}
+      </button>
+    </div>
+  }
+
+  <!-- Announcement Cards List -->
+  @if (store.filteredAnnouncements().length > 0) {
+    <app-announcements-list
+      [items]="store.filteredAnnouncements()"
+      [activeId]="store.activeAnnouncementId()"
+      [canUpdate]="store.canUpdate()"
+      [canPublish]="store.canPublish()"
+      [canArchive]="store.canArchive()"
+      (edit)="store.openEdit($event)"
+      (publish)="store.requestConfirmation('publish', $event)"
+      (archive)="store.requestConfirmation('archive', $event)"
+    />
+  }
+
+  <!-- Modals (Editor + Confirmation) -->
+  <app-announcements-modals
+    [isEditorOpen]="store.isEditorOpen()"
+    [editingId]="store.editingId()"
+    [isSaving]="store.isSaving()"
+    [draftTitles]="store.draftTitles()"
+    (draftTitlesChange)="store.draftTitles.set($event)"
+    [draftBodies]="store.draftBodies()"
+    (draftBodiesChange)="store.draftBodies.set($event)"
+    [bannerType]="store.bannerType()"
+    (bannerTypeChange)="store.bannerType.set($event)"
+    (closeEditor)="store.closeEditor()"
+    (saveDraft)="store.saveDraft()"
+  />
+</section>
