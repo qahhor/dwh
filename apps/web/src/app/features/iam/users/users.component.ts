@@ -53,7 +53,6 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 })
 export class UsersComponent implements OnInit, OnDestroy {
   permService = inject(PermissionService);
-  private elementRef = inject(ElementRef);
   i18n = inject(I18nService);
 
   public readonly secService = inject(UserSecurityService);
@@ -62,6 +61,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   public readonly directory = inject(UserDirectoryService);
   /** The list: metadata, views, pager, quick filters and row actions. */
   public readonly list = inject(UsersListFacade);
+  private elementRef = inject(ElementRef);
 
   private readonly usersApi = inject(UsersApi);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });

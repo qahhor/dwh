@@ -49,10 +49,10 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 })
 export class ProfileComponent implements OnInit {
   authService = inject(AuthService);
-  private profile = inject(ProfileApi);
-  private toast = inject(ToastService);
 
   public readonly permissionService = inject(PermissionService);
+  private profile = inject(ProfileApi);
+  private toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 

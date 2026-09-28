@@ -68,11 +68,11 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   permService = inject(PermissionService);
-  private router = inject(Router);
 
   readonly forms = inject(ProjectFormsService);
   /** The members dialog: whose members are shown, adding and removing them. */
   readonly members = inject(ProjectMembersService);
+  private router = inject(Router);
   private readonly projectsApi = inject(ProjectsApi);
   private readonly customFieldsApi = inject(CustomFieldsApi);
   /** Texts of the radio options below; translated again when the language changes. */

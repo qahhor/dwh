@@ -52,10 +52,10 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 })
 export class RolesComponent implements OnInit {
   permService = inject(PermissionService);
-  private rolesApi = inject(RolesApi);
 
   readonly roleForms = inject(RoleFormsService);
   readonly matrix = inject(RolePermissionsEditor);
+  private rolesApi = inject(RolesApi);
   private readonly router = inject(Router, { optional: true });
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);

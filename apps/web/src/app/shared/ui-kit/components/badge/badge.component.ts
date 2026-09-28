@@ -53,9 +53,6 @@ export type TBadgeVariant =
 })
 export class SMTBadgeComponent {
   private host = inject(ElementRef<HTMLElement>);
-  private readonly projected = viewChild<ElementRef<HTMLElement>>('projected');
-  /** Whether the projected content has anything to show; checked only when there is an icon. */
-  private readonly hasContent = signal(false);
 
   readonly size = input<TBadgeSize>('MD', { alias: 'smtSize' });
   readonly variant = input<TBadgeVariant>('primary', { alias: 'smtVariant' });
@@ -77,6 +74,11 @@ export class SMTBadgeComponent {
   iconClicked = output<{ event: Event; side: 'left' | 'right' }>({
     alias: 'smtIconClicked',
   });
+
+  private readonly projected = viewChild<ElementRef<HTMLElement>>('projected');
+
+  /** Whether the projected content has anything to show; checked only when there is an icon. */
+  private readonly hasContent = signal(false);
 
   readonly iconFontSize = computed(() => {
     const iconSize = this.iconSize();

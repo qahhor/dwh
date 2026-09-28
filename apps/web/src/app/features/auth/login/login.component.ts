@@ -39,10 +39,9 @@ export * from './login.models';
   styleUrl: './login.component.css',
 })
 export class LoginComponent {
+  readonly i18n = inject(I18nService);
   private authService = inject(AuthService);
   private passwordApi = inject(PasswordApi);
-
-  readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
