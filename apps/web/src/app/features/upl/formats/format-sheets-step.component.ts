@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject, input, model, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -8,9 +7,9 @@ import { UPL_DATA_TYPES, UplColumn, UplDataType, UplFormatDraftRequest, UplSheet
 import { UPL_DATA_TYPE_KEY } from '../upl-labels';
 import { UplFieldError, uplCellError, uplFieldErrorText, uplSheetError, uplSheetHasErrors } from './upl-format-errors';
 import { clearFieldsForType, emptyColumn, emptySheet, isNumericColumn } from './upl-format-model';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
@@ -20,17 +19,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
 @Component({
   selector: 'app-upl-format-sheets-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTCheckboxComponent,
-    SMTCheckboxValueAccessor,
-    SMTInputComponent,
-    SMTInputValueAccessor,
-    SMTSelectComponent,
-    SMTSelectValueAccessor,
-    FormsModule,
-    TranslatePipe,
-    SMTButtonComponent,
-  ],
+  imports: [SMTCheckboxComponent, SMTInputComponent, SMTSelectComponent, TranslatePipe, SMTButtonComponent],
   templateUrl: './format-sheets-step.component.html',
   styleUrl: './format-sheets-step.component.css',
 })
@@ -178,6 +167,13 @@ export class FormatSheetsStepComponent {
     if (!sheet) return;
     sheet.columns.splice(index, 1);
     this.errors.set([]);
+  }
+
+  /** The type list cannot be cleared (no clear button), so an empty value never reaches the draft. */
+  setType(column: UplColumn, type: UplDataType | null): void {
+    if (type === null) return;
+    column.dataType = type;
+    this.onTypeChange(column);
   }
 
   /** Поля, которых у нового типа нет, очищаются — единственная молчаливая правка, и о ней говорим тостом. */

@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -9,7 +8,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
-import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
+import { SMTDatePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
 import { SMTProgressStep, SMTProgressStepperComponent } from '@shared/ui-kit/components/progress-stepper';
 import { UPL_FILE_KIND_KEY } from '../upl-labels';
 import { FormatEditorStore } from './format-editor.store';
@@ -25,7 +24,6 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent,
-    FormsModule,
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
@@ -33,7 +31,6 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
     SMTDialogContentDirective,
     SMTBadgeComponent,
     SMTDatePickerComponent,
-    SMTDatePickerValueAccessor,
     SMTProgressStepperComponent,
     FormatFileStepComponent,
     FormatSheetsStepComponent,

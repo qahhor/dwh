@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, Signal, TemplateRef, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormField } from '@angular/forms/signals';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -22,8 +22,8 @@ import {
 } from '../upl-api';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { DraftMode, SourceCardStore } from './source-card.store';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
@@ -32,13 +32,11 @@ import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTAlertComponent,
     SMTControlComponent,
     UiLocalTableComponent,
-    FormsModule,
+    FormField,
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,

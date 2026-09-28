@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import {
   UPL_ENCODINGS,
@@ -12,22 +11,15 @@ import {
 } from '../upl-api';
 import { UPL_ENCODING_KEY, UPL_FILE_KIND_KEY, UPL_MATCH_BY_KEY } from '../upl-labels';
 import { isFilled } from './upl-format-model';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /** Шаг «Файл» анкеты: вид файла, кодировка и разделитель CSV, сопоставление колонок. Правит модель на месте. */
 @Component({
   selector: 'app-upl-format-file-step',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTInputComponent,
-    SMTInputValueAccessor,
-    SMTSelectComponent,
-    SMTSelectValueAccessor,
-    FormsModule,
-    TranslatePipe,
-  ],
+  imports: [SMTInputComponent, SMTSelectComponent, TranslatePipe],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.file' | t }}</h2>
     <div class="upl-row">
@@ -54,8 +46,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
             [disabled]="!editable()"
             [options]="encodingOptions()"
             [allowClear]="false"
-            [(ngModel)]="model().encoding"
-            [ngModelOptions]="{ standalone: true }"
+            [(value)]="model().encoding"
           ></smt-select>
         </div>
         <div class="form-group">
@@ -65,8 +56,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
             smtFieldId="upl-delimiter"
             [maxLength]="1"
             [disabled]="!editable()"
-            [(ngModel)]="model().delimiter"
-            [ngModelOptions]="{ standalone: true }"
+            [(value)]="model().delimiter"
           />
         </div>
       }
@@ -79,8 +69,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
           [disabled]="!editable()"
           [options]="matchByOptions()"
           [allowClear]="false"
-          [(ngModel)]="model().matchColumnsBy"
-          [ngModelOptions]="{ standalone: true }"
+          [(value)]="model().matchColumnsBy"
         ></smt-select>
       </div>
     </div>

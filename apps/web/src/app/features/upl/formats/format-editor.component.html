@@ -163,9 +163,8 @@
             <smt-date-picker
               smtInputId="upl-valid-from"
               data-testid="upl-valid-from"
-              [ngModel]="store.validFrom()"
-              [ngModelOptions]="{ standalone: true }"
-              (ngModelChange)="store.validFrom.set($event ?? '')"
+              [value]="store.validFrom()"
+              (valueChange)="store.validFrom.set($event ?? '')"
             />
             @if (store.previousValidFrom(); as previous) {
               <span class="upl-hint">{{ text('upl.version.prev_valid_from', { date: previous }) }}</span>

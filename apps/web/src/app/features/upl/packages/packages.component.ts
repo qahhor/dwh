@@ -12,7 +12,6 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
@@ -20,8 +19,8 @@ import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { SMTDatePickerComponent, SMTDatePickerValueAccessor } from '@shared/ui-kit/components/forms/date-picker';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTDatePickerComponent } from '@shared/ui-kit/components/forms/date-picker';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { LookupChannel } from '@shared/paging/lookup-channel';
 import { KeysetPager } from '@shared/paging/keyset-pager';
 import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
@@ -46,7 +45,7 @@ import {
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
-/** Поля формы «Новая загрузка»: обычный объект, чтобы работал `[(ngModel)]`. */
+/** Fields of the "new upload" form: a plain object the kit controls write into through `[(value)]`. */
 interface PackageUploadForm {
   sourceId: number | null;
   periodFrom: string;
@@ -70,15 +69,12 @@ function emptyFormErrors(): UplPackageFormErrors {
   imports: [
     SMTAlertComponent,
     SMTControlComponent,
-    FormsModule,
     TranslatePipe,
     SMTBadgeComponent,
     SMTButtonComponent,
     PackageCardComponent,
     SMTDatePickerComponent,
-    SMTDatePickerValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     UiServerTableComponent,
   ],
   templateUrl: './packages.component.html',

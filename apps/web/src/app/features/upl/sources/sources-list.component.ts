@@ -10,7 +10,7 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
+import { FormField, applyWhen, form, maxLength, validate } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ProblemDetail } from '@core/models/common.models';
@@ -41,11 +41,18 @@ import {
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
 import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
+import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
+import {
+  UPL_SOURCE_NAME_MAX_LENGTH,
+  UplRuleMessage,
+  uplSourceLengthLimits,
+  uplSourceRequisiteRules,
+} from './source-form-rules';
 
-/** Модель окна «Новый источник»: обычный объект, чтобы работал `[(ngModel)]`. */
+/** The model of the "new source" window, bound to its fields through Signal Forms. */
 interface SourceCreateForm {
   code: string;
   name: string;
@@ -58,9 +65,7 @@ interface SourceCreateForm {
 
 const PAGE_SIZE = 50;
 const CODE_PATTERN = /^[a-z][a-z0-9._-]{1,62}$/;
-const NAME_MAX_LENGTH = 200;
-const SLA_MIN = 0;
-const SLA_MAX = 366;
+const CODE_MAX_LENGTH = 63;
 
 function emptyForm(): SourceCreateForm {
   return {
@@ -79,12 +84,10 @@ function emptyForm(): SourceCreateForm {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTAlertComponent,
     SMTControlComponent,
-    FormsModule,
+    FormField,
     RouterLink,
     TranslatePipe,
     SMTButtonComponent,
@@ -121,6 +124,10 @@ export class SourcesListComponent implements OnInit {
   /** Значение — ключ i18n либо готовый текст сервера; в шаблоне всё равно идёт через `| t`. */
   readonly fieldErrors = signal<Record<string, string>>({});
   readonly createError = signal<string | null>(null);
+
+  readonly createModel = signal<SourceCreateForm>(emptyForm());
+  /* The rules run only after a save attempt, so errors still appear on save (not while typing), as before. */
+  private readonly submitted = signal(false);
 
   readonly tableConfig = computed<TableConfig<UplSourceItem> | null>(() => {
     const meta = this.meta();
@@ -168,8 +175,21 @@ export class SourcesListComponent implements OnInit {
 
   private readonly periodicityMemo = optionsMemo<SMTSelectOption<UplPeriodicity>[]>();
   private readonly strictnessMemo = optionsMemo<SMTSelectOption<UplStrictness>[]>();
-
-  form: SourceCreateForm = emptyForm();
+  private readonly ruleMessage: UplRuleMessage = (key) => ({ kind: key, message: this.i18n.translate(key) });
+  readonly createForm = form(this.createModel, (path) => {
+    maxLength(path.code, CODE_MAX_LENGTH);
+    uplSourceLengthLimits(path);
+    applyWhen(
+      path,
+      () => this.submitted(),
+      (checked) => {
+        validate(checked.code, ({ value }) =>
+          CODE_PATTERN.test(value().trim()) ? null : this.ruleMessage('upl.source.err.code_format'),
+        );
+        uplSourceRequisiteRules(checked, this.ruleMessage);
+      },
+    );
+  });
 
   /** Periodicities of a source; translated again when the language changes. */
   periodicityOptions(): SMTSelectOption<UplPeriodicity>[] {
@@ -192,7 +212,7 @@ export class SourcesListComponent implements OnInit {
     if (name !== null && this.canCreate()) {
       this.returnTo = params.get('returnTo') === 'packages' ? 'packages' : null;
       this.openCreate();
-      this.form.name = name.trim().slice(0, NAME_MAX_LENGTH);
+      this.createModel.update((model) => ({ ...model, name: name.trim().slice(0, UPL_SOURCE_NAME_MAX_LENGTH) }));
     }
   }
 
@@ -227,7 +247,8 @@ export class SourcesListComponent implements OnInit {
   }
 
   openCreate(): void {
-    this.form = emptyForm();
+    this.createModel.set(emptyForm());
+    this.submitted.set(false);
     this.fieldErrors.set({});
     this.createError.set(null);
     this.isSaving.set(false);
@@ -243,22 +264,24 @@ export class SourcesListComponent implements OnInit {
     if (this.isSaving()) {
       return;
     }
-    const errors = this.validateForm();
-    this.fieldErrors.set(errors);
+    this.submitted.set(true);
+    markSMTFormFieldsTouched(this.createForm);
+    this.fieldErrors.set({});
     this.createError.set(null);
-    if (Object.keys(errors).length > 0) {
+    if (!this.createForm().valid()) {
       return;
     }
-    const contact = this.form.ownerContact.trim();
+    const model = this.createModel();
+    const contact = model.ownerContact.trim();
     const body: UplSourceRequest = {
-      code: this.form.code.trim(),
-      name: this.form.name.trim(),
-      ownerOrg: this.form.ownerOrg.trim(),
+      code: model.code.trim(),
+      name: model.name.trim(),
+      ownerOrg: model.ownerOrg.trim(),
       ownerContact: contact.length > 0 ? contact : null,
-      periodicity: this.form.periodicity,
-      slaDays: Number(this.form.slaDays),
+      periodicity: model.periodicity,
+      slaDays: Number(model.slaDays),
       sourceType: 'file',
-      reconciliationStrictness: this.form.reconciliationStrictness,
+      reconciliationStrictness: model.reconciliationStrictness,
       lockVersion: null,
     };
     this.isSaving.set(true);
@@ -280,31 +303,10 @@ export class SourcesListComponent implements OnInit {
     });
   }
 
-  /** The translated message for a field's error code, or nothing; smt-control links it to the field. */
+  /** The translated server error for a field, or nothing; smt-control shows it at once and links it to the field. */
   fieldErrorText(key: string): string {
     const code = this.fieldErrors()[key];
     return code ? this.i18n.translate(code) : '';
-  }
-
-  private validateForm(): Record<string, string> {
-    const errors: Record<string, string> = {};
-    if (!CODE_PATTERN.test(this.form.code.trim())) {
-      errors['code'] = 'upl.source.err.code_format';
-    }
-    const name = this.form.name.trim();
-    if (name.length === 0) {
-      errors['name'] = 'upl.source.err.required';
-    } else if (name.length > NAME_MAX_LENGTH) {
-      errors['name'] = 'upl.source.err.name_length';
-    }
-    if (this.form.ownerOrg.trim().length === 0) {
-      errors['ownerOrg'] = 'upl.source.err.required';
-    }
-    const slaDays = Number(this.form.slaDays);
-    if (this.form.slaDays === null || !Number.isInteger(slaDays) || slaDays < SLA_MIN || slaDays > SLA_MAX) {
-      errors['slaDays'] = 'upl.source.err.sla_range';
-    }
-    return errors;
   }
 
   private handleCreateError(problem: ProblemDetail): void {
