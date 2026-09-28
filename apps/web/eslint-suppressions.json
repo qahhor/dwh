@@ -108,7 +108,7 @@
   },
   "src/app/features/audit/audit.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 2
+      "count": 1
     }
   },
   "src/app/features/audit/audit.models.ts": {
@@ -292,12 +292,9 @@
   },
   "src/app/features/settings/settings.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 4
+      "count": 3
     },
     "@typescript-eslint/no-explicit-any": {
-      "count": 1
-    },
-    "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
   },
@@ -310,9 +307,6 @@
     }
   },
   "src/app/features/system/system.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 1
-    },
     "@angular-eslint/template/eqeqeq": {
       "count": 2
     }

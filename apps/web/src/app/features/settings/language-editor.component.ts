@@ -17,7 +17,7 @@ import {
   TranslationEditor,
   TranslationEntry,
 } from '../../core/models/i18n.models';
-import { ApiService } from '../../core/services/api.service';
+import { SettingsApi } from './settings.api';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -255,7 +255,7 @@ export class LanguageEditorComponent implements OnInit {
   readonly canEdit: boolean;
 
   constructor(
-    private readonly api: ApiService,
+    private readonly settingsApi: SettingsApi,
     private readonly i18n: I18nService,
     private readonly permissionService: PermissionService,
     private readonly toast: ToastService,
@@ -272,8 +272,8 @@ export class LanguageEditorComponent implements OnInit {
   load(): void {
     this.isLoading.set(true);
     this.loadError.set(null);
-    this.api
-      .get<TranslationEditor>(`/i18n/admin/languages/${this.languageCode()}/translations`)
+    this.settingsApi
+      .translations(this.languageCode())
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (model) => {
@@ -341,11 +341,8 @@ export class LanguageEditorComponent implements OnInit {
     const translations = this.buildOverrides(model);
     this.isSaving.set(true);
     this.saveError.set(null);
-    this.api
-      .put<LanguageInfo>(`/i18n/admin/languages/${languageCode}/translations`, {
-        expectedRevision: model.language.revision,
-        translations,
-      })
+    this.settingsApi
+      .saveTranslations(languageCode, model.language.revision, translations)
       .pipe(finalize(() => this.isSaving.set(false)))
       .subscribe({
         next: (language) => {

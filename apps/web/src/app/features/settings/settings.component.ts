@@ -3,8 +3,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { FormsModule } from '@angular/forms';
 import { Observable, concatMap, finalize, from, switchMap, toArray } from 'rxjs';
-import { TranslationDictionary, TranslationEditor } from '../../core/models/i18n.models';
-import { ApiService } from '../../core/services/api.service';
+import { TranslationDictionary } from '../../core/models/i18n.models';
+import { SettingsApi } from './settings.api';
 import { ToastService } from '../../core/services/toast.service';
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
 import { PermissionService } from '../../core/services/permission.service';
@@ -46,6 +46,7 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
 export class SettingsComponent implements OnInit {
   /** Texts of the tabs below; translated again when the language changes. */
   private readonly tabText = inject(I18nService);
+  private readonly settingsApi = inject(SettingsApi);
 
   private readonly uiI18n = inject(I18nService);
   private readonly themeService = inject(ThemeService);
@@ -74,7 +75,6 @@ export class SettingsComponent implements OnInit {
   private readonly tabsMemo = optionsMemo<SMTTabItem<SettingsTab>[]>();
 
   constructor(
-    private api: ApiService,
     private toast: ToastService,
     public i18n: I18nService,
     private permService: PermissionService,
@@ -151,7 +151,7 @@ export class SettingsComponent implements OnInit {
     };
 
     if (this.canManageSystemSettings()) {
-      this.api.get<Record<string, string>>('/settings/system').subscribe({
+      this.settingsApi.systemSettings().subscribe({
         next: (res) => {
           this.systemSettings.set({ ...res });
           sysLoaded = true;
@@ -165,7 +165,7 @@ export class SettingsComponent implements OnInit {
       });
     }
 
-    this.api.get<Record<string, string>>('/settings/user').subscribe({
+    this.settingsApi.userSettings().subscribe({
       next: (res) => {
         this.userSettings.set({ ...res });
         const theme = res['user.theme'];
@@ -207,7 +207,7 @@ export class SettingsComponent implements OnInit {
     }
 
     this.isSaving.set(true);
-    this.api.patch('/settings/system', this.systemSettings()).subscribe({
+    this.settingsApi.saveSystemSettings(this.systemSettings()).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.toast.success(this.i18n.translate('common.saved'));
@@ -218,7 +218,7 @@ export class SettingsComponent implements OnInit {
 
   saveUserSettings() {
     this.isSaving.set(true);
-    this.api.patch('/settings/user', this.userSettings()).subscribe({
+    this.settingsApi.saveUserSettings(this.userSettings()).subscribe({
       next: () => {
         this.isSaving.set(false);
         const theme = this.userSettings()['user.theme'];
@@ -369,7 +369,7 @@ export class SettingsComponent implements OnInit {
     if (this.newLangJson) {
       try {
         dict = JSON.parse(this.newLangJson);
-      } catch (e) {
+      } catch {
         this.toast.error(this.uiI18n.translate('settings.nevernyy_format_json_slovarya'));
         return;
       }
@@ -395,7 +395,7 @@ export class SettingsComponent implements OnInit {
   }
 
   exportLangJson(langCode: string) {
-    this.api.get<Record<string, string>>(`/i18n/${langCode}`).subscribe((dictionary) => {
+    this.settingsApi.dictionary(langCode).subscribe((dictionary) => {
       const blob = new Blob([JSON.stringify(dictionary, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -437,8 +437,8 @@ export class SettingsComponent implements OnInit {
 
   private runLegacyLanguageMigration(entries: [string, LegacyLanguage][]): void {
     this.isMigratingLegacyLanguages.set(true);
-    this.api
-      .get<TranslationEditor>('/i18n/admin/languages/ru/translations')
+    this.settingsApi
+      .translations('ru')
       .pipe(
         switchMap((russianEditor) => {
           const knownKeys = new Set(russianEditor.entries.map((entry) => entry.key));
@@ -468,17 +468,14 @@ export class SettingsComponent implements OnInit {
       return this.i18n.registerLanguage(code, legacy.name, translations);
     }
 
-    return this.api.get<TranslationEditor>(`/i18n/admin/languages/${code}/translations`).pipe(
+    return this.settingsApi.translations(code).pipe(
       switchMap((editor) => {
         const merged: TranslationDictionary = {};
         for (const entry of editor.entries) {
           if (entry.overrideValue) merged[entry.key] = entry.overrideValue;
         }
         Object.assign(merged, translations);
-        return this.api.put(`/i18n/admin/languages/${code}/translations`, {
-          expectedRevision: editor.language.revision,
-          translations: merged,
-        });
+        return this.settingsApi.saveTranslations(code, editor.language.revision, merged);
       }),
     );
   }

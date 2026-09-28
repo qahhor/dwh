@@ -1,29 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { ApiService } from '../../core/services/api.service';
+import { SystemApi, SystemInfo } from './system.api';
+
+export type { SystemInfo };
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
-
-export interface SystemInfo {
-  appVersion: string;
-  schemaVersion: string;
-  organization: {
-    code: string;
-    name: string;
-    resourceProfile: string;
-  };
-  storageProvider: string;
-  components: Record<string, { status: string }>;
-  backup: {
-    status: string;
-    completedAt?: string | null;
-    failureCode?: string | null;
-    freshness: string;
-    ageSeconds?: number | null;
-    maxAgeSeconds?: number | null;
-  };
-  checkedAt: string;
-}
 
 type OverallStatus = 'healthy' | 'attention' | 'unavailable';
 
@@ -610,12 +591,13 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
 })
 export class SystemComponent implements OnInit {
   private readonly uiI18n = inject(I18nService);
+
+  private readonly system = inject(SystemApi);
+
   readonly systemInfo = signal<SystemInfo | null>(null);
   readonly isLoading = signal(true);
   readonly loadError = signal(false);
   readonly refreshAnnouncement = signal('');
-
-  constructor(private readonly api: ApiService) {}
 
   ngOnInit(): void {
     this.loadSystemInfo();
@@ -626,7 +608,7 @@ export class SystemComponent implements OnInit {
     this.isLoading.set(true);
     this.loadError.set(false);
     this.refreshAnnouncement.set('');
-    this.api.get<SystemInfo>('/system/info', undefined, { notifyError: false }).subscribe({
+    this.system.info().subscribe({
       next: (info) => {
         this.systemInfo.set(info);
         this.isLoading.set(false);
