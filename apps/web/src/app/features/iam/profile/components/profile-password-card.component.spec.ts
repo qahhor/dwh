@@ -69,6 +69,8 @@ describe('ProfilePasswordCardComponent', () => {
     expect(host.querySelector('.strength-value')?.textContent?.trim()).toBe('Хороший пароль');
     const said = Array.from(host.querySelectorAll('.check-item .sr-only')).map((item) => item.textContent?.trim());
     expect(said).toEqual(['Выполнено', 'Не выполнено', 'Не выполнено']);
+    // The length requirement reads the policy the check uses (8 to 20), not a number of its own.
+    expect(host.querySelector('.check-item')?.textContent).toContain('От 8 до 20 символов');
     expect(host.querySelector('.match-ok')?.textContent).toContain('Пароли совпадают');
   });
 

@@ -2189,7 +2189,6 @@
   "iam.skopirovano": "Copied!",
   "iam.nadezhnost_parolya": "Password strength",
   "iam.paroli_sovpadayut": "Passwords match",
-  "iam.trebovanie_dlina": "At least 10 characters",
   "iam.trebovanie_bukvy_i_cifry": "Letters and numbers",
   "iam.trebovanie_raznyy_registr": "Uppercase and lowercase letters",
   "iam.paroli_ne_sovpadayut": "Passwords don't match",

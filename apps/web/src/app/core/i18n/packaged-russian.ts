@@ -2191,7 +2191,6 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.skopirovano": "Скопировано!",
   "iam.nadezhnost_parolya": "Надёжность пароля",
   "iam.paroli_sovpadayut": "Пароли совпадают",
-  "iam.trebovanie_dlina": "Не менее 10 символов",
   "iam.trebovanie_bukvy_i_cifry": "Буквы и цифры",
   "iam.trebovanie_raznyy_registr": "Заглавные и строчные буквы",
   "iam.paroli_ne_sovpadayut": "Пароли не совпадают",

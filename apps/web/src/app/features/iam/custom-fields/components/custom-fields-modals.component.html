@@ -155,14 +155,8 @@
         <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
           {{ 'common.cancel' | t }}
         </button>
-        <button
-          smt-button
-          type="submit"
-          form="customFieldForm"
-          smtVariant="primary"
-          [smtLoading]="saving()"
-          (click)="saveField.emit()"
-        >
+        <!-- The click asks the page, which checks the fields; Enter in a field submits the form instead. -->
+        <button smt-button type="button" smtVariant="primary" [smtLoading]="saving()" (click)="saveField.emit()">
           {{ 'common.save' | t }}
         </button>
       </div>

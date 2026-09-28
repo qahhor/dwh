@@ -114,11 +114,19 @@ describe('CustomFieldsModalsComponent', () => {
     expect(code.value).toBe('cost_usd');
   });
 
+  it('asks to save once per press of Save when the form is filled in', () => {
+    const { button, asked } = setup({ formData: { ...blank(), code: 'budget', name: 'Бюджет' } });
+
+    button('Сохранить').click();
+
+    expect(asked.save).toHaveBeenCalledTimes(1);
+  });
+
   it('asks to save on Save and to close on Cancel', () => {
     const { button, asked } = setup();
 
     button('Сохранить').click();
-    expect(asked.save).toHaveBeenCalled();
+    expect(asked.save).toHaveBeenCalledTimes(1);
     expect(asked.close).not.toHaveBeenCalled();
 
     button('Отмена').click();

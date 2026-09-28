@@ -274,6 +274,8 @@ export class CustomFieldsComponent implements OnInit {
   }
 
   saveField() {
+    // One request at a time: a second press (or Enter) while saving must not send the field again.
+    if (this.saving()) return;
     const validation = this.formService.validateForm(this.formData(), !!this.editingField());
     if (!validation.isValid) {
       this.formError.set(validation.errorMessage || '');

@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { NEVER, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -122,6 +122,20 @@ describe('CustomFieldsComponent', () => {
         options: ['Новый', 'В работе', 'Готово'],
       }),
     );
+  });
+
+  it('sends a field once while its save is under way, however often Save is asked', async () => {
+    const { fixture, api } = await createFixture();
+    api.post.mockReturnValue(NEVER);
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+    page.openCreateModal();
+    page.formData.update((form) => ({ ...form, code: 'budget', name: 'Бюджет' }));
+
+    page.saveField();
+    page.saveField();
+
+    expect(api.post).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the table keyboard-scrollable and confirms deletion in-app', async () => {
