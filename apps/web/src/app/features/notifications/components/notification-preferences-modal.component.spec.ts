@@ -4,13 +4,22 @@ import { NotificationPrefItem } from '@core/models/notification.models';
 import { inScreen } from '@testing/in-screen';
 import { NotificationPreferencesModalComponent } from './notification-preferences-modal.component';
 
+/** The events the server sends (MsTaskNotificationListener, TaskDeadlineReminderWorker), in row order. */
 const EVENTS = [
   'task_assigned',
-  'task_observer',
   'task_status',
+  'task_comment',
   'task_deadline',
   'task_deadline_reminder',
   'task_member_removed',
+];
+const EVENT_TITLES = [
+  'Назначение на задачу',
+  'Изменение статуса задачи',
+  'Новый комментарий к задаче',
+  'Изменение срока задачи',
+  'Напоминание о сроке задачи',
+  'Снятие с роли в задаче',
 ];
 const CHANNELS = ['in_app', 'email', 'telegram'];
 
@@ -62,12 +71,22 @@ describe('NotificationPreferencesModalComponent', () => {
     expect(grid().every((row) => row.length === 3)).toBe(true);
   });
 
+  it('names every row after its event in the reader language, not by its catalog key', async () => {
+    const { screen } = await render();
+
+    const titles = (Array.from(screen.querySelectorAll('.pref-table tbody tr')) as HTMLElement[]).map((row) =>
+      row.querySelector('td')?.textContent?.trim(),
+    );
+    expect(titles).toEqual(EVENT_TITLES);
+    expect(screen.textContent).not.toContain('notifications.pref_');
+  });
+
   it('has every channel on by default and off where the saved preferences turned it off', async () => {
     const { grid } = await render([{ eventType: 'task_status', channel: 'email', isEnabled: false }]);
 
     const checked = grid().map((row) => row.map((box) => box.getAttribute('aria-checked')));
-    expect(checked[2]).toEqual(['true', 'false', 'true']);
-    expect(checked.filter((_row, index) => index !== 2).flat()).not.toContain('false');
+    expect(checked[1]).toEqual(['true', 'false', 'true']);
+    expect(checked.filter((_row, index) => index !== 1).flat()).not.toContain('false');
   });
 
   it('saves the choice for every event and channel, with the boxes the person flipped', async () => {
@@ -76,7 +95,7 @@ describe('NotificationPreferencesModalComponent', () => {
     ]);
 
     grid()[0][2].click();
-    grid()[2][1].click();
+    grid()[1][1].click();
     await settle();
     button('Сохранить').click();
 

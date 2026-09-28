@@ -106,8 +106,8 @@ export class NotificationPreferencesModalComponent implements OnInit {
 
   readonly eventRows: EventTypeRow[] = [
     { code: 'task_assigned', titleKey: 'notifications.pref_task_assigned' },
-    { code: 'task_observer', titleKey: 'notifications.pref_task_observer' },
     { code: 'task_status', titleKey: 'notifications.pref_task_status' },
+    { code: 'task_comment', titleKey: 'notifications.pref_task_comment' },
     { code: 'task_deadline', titleKey: 'notifications.pref_task_deadline' },
     { code: 'task_deadline_reminder', titleKey: 'notifications.pref_task_deadline_reminder' },
     { code: 'task_member_removed', titleKey: 'notifications.pref_task_member_removed' },
