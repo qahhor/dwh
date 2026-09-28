@@ -33,123 +33,13 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
   selector: 'app-command-palette',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, FormsModule, A11yModule, CommandPaletteResultsComponent, CommandPaletteFooterComponent],
-  template: `
-    @if (paletteService.isOpen()) {
-      <div class="palette-backdrop" (click)="onBackdropClick($event)">
-        <div
-          class="palette-dialog"
-          role="dialog"
-          aria-modal="true"
-          [attr.aria-labelledby]="titleId"
-          cdkTrapFocus
-          [cdkTrapFocusAutoCapture]="true"
-        >
-          <h2 class="sr-only" [id]="titleId">{{ 'layout.command_palette.globalnyy_poisk' | t }}</h2>
-
-          <!-- Search Header Box -->
-          <div class="palette-search-box">
-            <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-            <label class="sr-only" [for]="inputId">{{
-              'layout.command_palette.poisk_zadach_proektov_i_polzovateley' | t
-            }}</label>
-            <input
-              #searchInput
-              [id]="inputId"
-              type="text"
-              class="palette-input"
-              role="combobox"
-              autocomplete="off"
-              autocorrect="off"
-              autocapitalize="off"
-              spellcheck="false"
-              aria-autocomplete="list"
-              [attr.aria-expanded]="results().length > 0"
-              [attr.aria-controls]="results().length > 0 ? listboxId : null"
-              [attr.aria-activedescendant]="results().length > 0 ? optionId(selectedIndex()) : null"
-              [placeholder]="'layout.command_palette.poisk_zadach_proektov_polzovateley_esc_dlya_zakr' | t"
-              [(ngModel)]="searchQuery"
-              (ngModelChange)="onSearchChange($event)"
-            />
-            @if (searchQuery) {
-              <button
-                type="button"
-                class="palette-clear-btn"
-                [attr.aria-label]="'search.clear_query' | t"
-                (click)="clearQuery()"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">cancel</span>
-              </button>
-            }
-            <kbd class="esc-badge" aria-hidden="true">ESC</kbd>
-            <button
-              type="button"
-              class="palette-close"
-              [attr.aria-label]="'layout.command_palette.close_search' | t"
-              (click)="paletteService.close()"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          </div>
-
-          <!-- Category Filters -->
-          <div class="palette-category">
-            <div class="category-pills" role="tablist" [attr.aria-label]="'search.category' | t">
-              @for (cat of categories(); track cat) {
-                <button
-                  type="button"
-                  role="tab"
-                  class="cat-pill"
-                  [attr.data-category]="cat.value"
-                  [class.active]="entityType === cat.value"
-                  [attr.aria-selected]="entityType === cat.value"
-                  (click)="setCategory(cat.value)"
-                >
-                  <span class="material-symbols-outlined pill-icon" aria-hidden="true">{{ cat.icon }}</span>
-                  <span>{{ cat.label | t }}</span>
-                </button>
-              }
-            </div>
-          </div>
-
-          <!-- Did you mean suggestion -->
-          @if (metadata()?.suggestedQuery && metadata()?.suggestedQuery !== searchQuery) {
-            <div class="palette-suggestion">
-              <span class="material-symbols-outlined suggestion-icon" aria-hidden="true">lightbulb</span>
-              <span class="suggestion-label">{{ 'search.did_you_mean' | t }}:</span>
-              <button type="button" class="suggestion-btn" (click)="applySuggestion(metadata()!.suggestedQuery!)">
-                {{ metadata()!.suggestedQuery }}
-              </button>
-            </div>
-          }
-
-          <!-- Results / States Container -->
-          <app-command-palette-results
-            [isLoading]="isLoading()"
-            [errorMessage]="errorMessage()"
-            [retrySeconds]="retrySeconds()"
-            [searchQuery]="searchQuery"
-            [metadata]="metadata()"
-            [results]="results()"
-            [recentSearches]="recentSearches()"
-            [selectedIndex]="selectedIndex()"
-            [listboxId]="listboxId"
-            [validQuery]="validQuery(searchQuery)"
-            (retry)="retrySearch()"
-            (selectRecent)="selectRecent($event)"
-            (clearRecent)="clearRecentSearches()"
-            (selectHit)="navigateTo($event)"
-          />
-
-          <!-- Footer keyboard shortcuts -->
-          <app-command-palette-footer />
-        </div>
-      </div>
-    }
-  `,
+  templateUrl: './command-palette.component.html',
   styleUrl: './command-palette.component.css',
 })
 export class CommandPaletteComponent implements OnDestroy {
+  readonly paletteService = inject(CommandPaletteService);
   public readonly moduleService = inject(ModuleService);
+  private readonly router = inject(Router);
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -190,10 +80,7 @@ export class CommandPaletteComponent implements OnDestroy {
   private previouslyFocusedElement: HTMLElement | null = null;
   private wasOpen = false;
 
-  constructor(
-    public paletteService: CommandPaletteService,
-    private router: Router,
-  ) {
+  constructor() {
     this.loadRecentSearches();
 
     effect(() => {
