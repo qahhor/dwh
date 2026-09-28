@@ -1,4 +1,4 @@
-<form [id]="formId" (submit)="$event.preventDefault()" (ngSubmit)="submit()">
+<form [id]="formId" (submit)="$event.preventDefault(); submit()">
   @if (error(); as error) {
     <p role="alert">{{ error.detail || ('iam.org_units.save_error' | t) }}</p>
   }
@@ -11,7 +11,7 @@
     <smt-input
       [smtFieldId]="formId + '-code'"
       name="code"
-      [(ngModel)]="draft.code"
+      [(value)]="draft.code"
       required
       [readonly]="editing"
       [smtInvalid]="!!fieldError('code')"
@@ -24,7 +24,7 @@
     <smt-input
       [smtFieldId]="formId + '-name'"
       name="name"
-      [(ngModel)]="draft.name"
+      [(value)]="draft.name"
       required
       [smtInvalid]="!!fieldError('name')"
       [smtDescribedBy]="fieldError('name') ? formId + '-name-error' : null"
@@ -36,7 +36,7 @@
     <smt-select
       [smtTriggerId]="formId + '-kind'"
       name="kind"
-      [(ngModel)]="draft.kind"
+      [(value)]="draft.kind"
       required
       [allowClear]="false"
       [options]="kindOptions()"
@@ -51,7 +51,7 @@
       <smt-tree-select
         [smtTriggerId]="formId + '-parent'"
         name="parentId"
-        [(ngModel)]="draft.parentId"
+        [(value)]="draft.parentId"
         [nodes]="parentTree"
         [invalid]="!!fieldError('parentId')"
         [smtDescribedBy]="fieldError('parentId') ? formId + '-parent-error' : null"
@@ -71,7 +71,7 @@
       <smt-select
         [smtTriggerId]="formId + '-state'"
         name="state"
-        [(ngModel)]="draft.state"
+        [(value)]="draft.state"
         [allowClear]="false"
         [options]="stateOptions()"
         [smtInvalid]="!!fieldError('state')"
@@ -89,7 +89,7 @@
       [smtStep]="1"
       [smtMin]="-2147483648"
       [smtMax]="2147483647"
-      [(ngModel)]="draft.orderNo"
+      [(value)]="draft.orderNo"
       required
       [smtInvalid]="!!fieldError('orderNo')"
       [smtDescribedBy]="fieldError('orderNo') ? formId + '-order-error' : null"

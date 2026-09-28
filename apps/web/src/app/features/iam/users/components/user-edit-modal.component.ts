@@ -1,18 +1,17 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDataSelectComponent } from '@shared/ui-kit/components/forms/data-select';
-import { SMTPhoneInputComponent, SMTPhoneInputValueAccessor } from '@shared/ui-kit/components/forms/phone-input';
+import { SMTPhoneInputComponent } from '@shared/ui-kit/components/forms/phone-input';
 import { LookupSources, UserRef } from '@shared/lookups/lookup-sources';
 import { SMTTagGroupComponent, SMTTagOption } from '@shared/ui-kit/components/tag';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 import { UiCustomFieldsComponent } from '@shared/ui/ui-custom-fields.component';
 import { User } from '@core/models/auth.models';
 import { Role } from '@core/models/rbac.models';
@@ -34,19 +33,14 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
   imports: [
     SMTControlComponent,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTCheckboxComponent,
-    SMTCheckboxValueAccessor,
-    FormsModule,
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
     SMTDataSelectComponent,
     SMTPhoneInputComponent,
-    SMTPhoneInputValueAccessor,
     SMTTagGroupComponent,
     UiCustomFieldsComponent,
   ],
@@ -65,7 +59,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                   smtFieldId="user-edit-name"
                   name="userEditName"
                   required
-                  [(ngModel)]="editForm().name"
+                  [(value)]="editForm().name"
                   [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
                 />
               </smt-control>
@@ -79,7 +73,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               </smt-control>
 
               <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-                <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm().phone" />
+                <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(value)]="editForm().phone" />
               </smt-control>
 
               <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
@@ -99,7 +93,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-select
                   smtTriggerId="user-edit-language"
                   name="userEditLanguage"
-                  [(ngModel)]="editForm().language"
+                  [(value)]="editForm().language"
                   [options]="languageOptions()"
                   [allowClear]="false"
                 />
@@ -109,14 +103,14 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 <smt-select
                   smtTriggerId="user-edit-timezone"
                   name="userEditTimezone"
-                  [(ngModel)]="editForm().timezone"
+                  [(value)]="editForm().timezone"
                   [options]="timezoneOptions"
                   [allowClear]="false"
                 />
               </smt-control>
 
               <div class="form-group span-2">
-                <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm().is2faEnabled">
+                <div smt-checkbox name="userEdit2fa" [(checked)]="editForm().is2faEnabled">
                   {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
                 </div>
               </div>

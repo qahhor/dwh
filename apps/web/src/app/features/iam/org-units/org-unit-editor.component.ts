@@ -1,18 +1,13 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, input, output } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { orderedTree, orgUnitKindKeys, orgUnitTreeOptions, parentCandidates } from './org-unit-tree';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
-import {
-  SMTTreeOption,
-  SMTTreeSelectComponent,
-  SMTTreeSelectValueAccessor,
-} from '@shared/ui-kit/components/forms/tree-select';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTTreeOption, SMTTreeSelectComponent } from '@shared/ui-kit/components/forms/tree-select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { OrgUnit, OrgUnitCreate, OrgUnitPatch } from './org-units.models';
 import { ProblemDetail } from '@core/models/common.models';
 export type OrgUnitSubmission =
@@ -21,17 +16,13 @@ export type OrgUnitSubmission =
   selector: 'app-org-unit-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTTreeSelectComponent,
-    SMTTreeSelectValueAccessor,
     SMTInputComponent,
-    SMTInputValueAccessor,
   ],
   templateUrl: './org-unit-editor.component.html',
   styleUrl: './org-unit-editor.component.css',

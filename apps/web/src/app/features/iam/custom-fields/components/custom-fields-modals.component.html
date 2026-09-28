@@ -6,7 +6,7 @@
     (closed)="closeModal.emit()"
   >
     <ng-template smtDialogContent>
-      <form id="customFieldForm" body class="modal-form" (ngSubmit)="saveField.emit()">
+      <form id="customFieldForm" body class="modal-form" (submit)="$event.preventDefault(); saveField.emit()">
         <!-- Entity Target (only in creation) -->
         @if (!editingField()) {
           <div class="form-group">
@@ -16,7 +16,7 @@
             <smt-select
               smtTriggerId="custom-field-entity"
               name="entityType"
-              [(ngModel)]="formData().entityType"
+              [(value)]="formData().entityType"
               [options]="entityOptions()"
               [allowClear]="false"
               required
@@ -32,11 +32,12 @@
             </label>
             <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
             <smt-input
+              #codeField
               class="font-mono"
               smtFieldId="custom-field-code"
               name="code"
-              [(ngModel)]="formData().code"
-              (input)="codeInput.emit($event)"
+              [(value)]="formData().code"
+              (input)="onCodeInput($event, codeField)"
               [disabled]="!!editingField()"
               [placeholder]="'iam.naprimer_inn_budget' | t"
               [maxLength]="64"
@@ -60,7 +61,7 @@
             <smt-input
               smtFieldId="custom-field-name"
               name="name"
-              [(ngModel)]="formData().name"
+              [(value)]="formData().name"
               [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
               [maxLength]="100"
               [smtInvalid]="!!formError()"
@@ -80,7 +81,7 @@
               <smt-select
                 smtTriggerId="custom-field-type"
                 name="fieldType"
-                [(ngModel)]="formData().fieldType"
+                [(value)]="formData().fieldType"
                 [options]="fieldTypeOptions()"
                 [allowClear]="false"
                 required
@@ -95,7 +96,7 @@
             <smt-input
               smtFieldId="custom-field-default"
               name="defaultValue"
-              [(ngModel)]="formData().defaultValue"
+              [(value)]="formData().defaultValue"
               [placeholder]="'iam.ne_obyazatelno' | t"
               [maxLength]="255"
             />
@@ -110,7 +111,7 @@
               smtFieldId="custom-field-order"
               name="orderNo"
               type="number"
-              [(ngModel)]="formData().orderNo"
+              [(value)]="formData().orderNo"
               [placeholder]="'iam.poryadok_sortirovki_hint' | t"
               [smtMin]="0"
               [smtMax]="99999"
@@ -127,7 +128,7 @@
             <smt-textarea
               smtFieldId="custom-field-options"
               name="optionsText"
-              [(ngModel)]="formData().optionsText"
+              [(value)]="formData().optionsText"
               [rows]="4"
               [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
               [smtInvalid]="!!formError()"
@@ -140,7 +141,7 @@
 
         <!-- Required flag, saved with the form -->
         <div class="form-group checkbox-group">
-          <div smt-checkbox name="isRequired" [(ngModel)]="formData().isRequired">
+          <div smt-checkbox name="isRequired" [(checked)]="formData().isRequired">
             {{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}
           </div>
         </div>

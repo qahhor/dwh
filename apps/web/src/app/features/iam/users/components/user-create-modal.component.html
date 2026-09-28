@@ -11,7 +11,7 @@
             smtFieldId="user-create-name"
             name="userCreateName"
             required
-            [(ngModel)]="createForm().name"
+            [(value)]="createForm().name"
             [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
           />
         </smt-control>
@@ -27,7 +27,7 @@
             class="font-mono"
             required
             autocomplete="username"
-            [(ngModel)]="createForm().login"
+            [(value)]="createForm().login"
             placeholder="ivanov"
           />
         </smt-control>
@@ -44,13 +44,13 @@
             class="font-mono"
             required
             autocomplete="email"
-            [(ngModel)]="createForm().email"
+            [(value)]="createForm().email"
             placeholder="ivanov@company.local"
           />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-          <smt-phone-input smtFieldId="user-create-phone" name="userCreatePhone" [(ngModel)]="createForm().phone" />
+          <smt-phone-input smtFieldId="user-create-phone" name="userCreatePhone" [(value)]="createForm().phone" />
         </smt-control>
 
         <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
@@ -86,7 +86,7 @@
               [minLength]="passwordPolicy.min"
               [maxLength]="passwordPolicy.max"
               autocomplete="new-password"
-              [(ngModel)]="createForm().password"
+              [(value)]="createForm().password"
               [placeholder]="'password.policy.range' | t: passwordPolicy"
             />
             <div class="pwd-actions">
@@ -188,7 +188,7 @@
           <smt-select
             smtTriggerId="user-create-language"
             name="userCreateLanguage"
-            [(ngModel)]="createForm().language"
+            [(value)]="createForm().language"
             [options]="languageOptions()"
             [allowClear]="false"
           />
@@ -198,14 +198,14 @@
           <smt-select
             smtTriggerId="user-create-timezone"
             name="userCreateTimezone"
-            [(ngModel)]="createForm().timezone"
+            [(value)]="createForm().timezone"
             [options]="timezoneOptions"
             [allowClear]="false"
           />
         </smt-control>
 
         <div class="form-group span-2">
-          <div smt-checkbox name="userCreate2fa" [(ngModel)]="createForm().is2faEnabled">
+          <div smt-checkbox name="userCreate2fa" [(checked)]="createForm().is2faEnabled">
             {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
           </div>
         </div>

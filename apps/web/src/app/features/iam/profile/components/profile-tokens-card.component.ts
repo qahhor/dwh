@@ -10,7 +10,6 @@ import {
   output,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -19,16 +18,14 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { ApiToken, TokenExpirationOption } from '../profile.models';
 import { SMTControlComponent } from '@shared/ui-kit/components/forms/control';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 
 @Component({
   selector: 'app-profile-tokens-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     UiLocalTableComponent,
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
