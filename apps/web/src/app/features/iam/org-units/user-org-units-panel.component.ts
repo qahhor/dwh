@@ -26,6 +26,7 @@ import { SMTTreeTableComponent } from '@shared/ui-kit/components/tree-table/tree
 import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { OrgUnitTreeRows, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
+import { emptyScopeKey, normalizedIds, sameIds, scopeRuleKey, unsafeIdProblem } from './org-unit-assignments';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnit, UserScope } from './org-units.models';
 
@@ -76,6 +77,8 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   /** The tree table identifies rows by string id. */
   readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
   readonly treeColumns = computed(() => orgUnitTreeColumns((key) => this.i18n.translate(key)));
+  readonly scopeRuleKey = computed(() => scopeRuleKey(this.effectiveScope()));
+  readonly emptyScopeKey = computed(() => emptyScopeKey(this.effectiveScope()));
 
   private readonly writes = new Subscription();
   private treeRequest?: Subscription;
@@ -289,14 +292,6 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     const unit = this.units().find((item) => item.id === id);
     return unit ? `${unit.code} · ${unit.name}` : String(id);
   }
-  scopeRuleKey(): string {
-    return `iam.data_scope.rule_${this.effectiveScope()?.rule.toLowerCase() ?? 'all'}`;
-  }
-  emptyScopeKey(): string {
-    if (this.effectiveScope()?.rule === 'ALL') return 'iam.data_scope.all_empty';
-    if (this.effectiveScope()?.rule === 'SELF') return 'iam.data_scope.self_empty';
-    return 'iam.data_scope.units_empty';
-  }
   cancelEdits(): void {
     this.discard.request(() => this.restoreDraft());
   }
@@ -400,18 +395,6 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.changeDetector.markForCheck();
   }
   private unavailable(): ProblemDetail {
-    return {
-      status: 400,
-      code: 'ORG_UNIT_UNSAFE_ID',
-      title: this.i18n.translate('iam.org_units.unavailable'),
-      detail: this.i18n.translate('iam.org_units.readonly_id'),
-    };
+    return unsafeIdProblem((key) => this.i18n.translate(key));
   }
-}
-
-function normalizedIds(ids: readonly number[]): number[] {
-  return [...new Set(ids)].sort((a, b) => a - b);
-}
-function sameIds(left: readonly number[], right: readonly number[]): boolean {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
