@@ -1,4 +1,14 @@
-import { Component, DestroyRef, OnDestroy, OnInit, effect, inject, signal, untracked } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnDestroy,
+  OnInit,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
@@ -63,6 +73,7 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
 
 @Component({
   selector: 'app-tasks',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTRadioGroupComponent,
     TranslatePipe,

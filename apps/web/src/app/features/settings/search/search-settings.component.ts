@@ -1,5 +1,16 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  OnInit,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, exhaustMap, timer } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -50,6 +61,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-search-settings',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTButtonComponent,
     FormsModule,

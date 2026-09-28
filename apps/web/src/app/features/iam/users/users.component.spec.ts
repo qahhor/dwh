@@ -214,7 +214,7 @@ describe('UsersComponent UI contracts', () => {
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
     );
     redraw(fixture);
-    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
     expect(fixture.componentInstance.isViewModalOpen()).toBe(true);
     expect(panel.discard.open()).toBe(true);
     expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]')).toHaveLength(2);
@@ -222,12 +222,12 @@ describe('UsersComponent UI contracts', () => {
     panel.discard.cancel();
     fixture.componentInstance.openViewModal(second);
     redraw(fixture);
-    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(true);
 
     panel.discard.confirm();
     redraw(fixture);
-    expect(fixture.componentInstance.viewingUser?.id).toBe(second.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(second.id);
     expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance.userId()).toBe(
       second.id,
     );
@@ -254,7 +254,7 @@ describe('UsersComponent UI contracts', () => {
     fixture.componentInstance.openViewModal(second);
     redraw(fixture);
     expect(panel.pending).toBe(true);
-    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(false);
 
     write.error({ status: 409, detail: 'retry' });
@@ -262,7 +262,7 @@ describe('UsersComponent UI contracts', () => {
     expect(panel.discard.open()).toBe(true);
     fixture.destroy();
     panel.discard.confirm();
-    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
   });
 
   it.each(['success', 'error'] as const)(
@@ -315,7 +315,7 @@ describe('UsersComponent UI contracts', () => {
       fixture.componentInstance.openEditFromView();
       expect(fixture.componentInstance.isViewModalOpen()).toBe(true);
       expect(fixture.componentInstance.isEditModalOpen()).toBe(false);
-      expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+      expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
 
       permissions.setPermissions(['*.*']);
       redraw(fixture);
@@ -380,7 +380,7 @@ describe('UsersComponent UI contracts', () => {
 
     fixture.componentInstance.openViewModal(first);
 
-    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
     expect(panel.discard.open()).toBe(true);
     expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeReload);
     panel.discard.cancel();
@@ -403,7 +403,7 @@ describe('UsersComponent UI contracts', () => {
 
     expect(panel.discard.open()).toBe(true);
     expect(panel.hasUnsavedWork()).toBe(true);
-    expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+    expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
     expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeReload);
   });
 
@@ -440,7 +440,7 @@ describe('UsersComponent UI contracts', () => {
       redraw(fixture);
 
       expect(fixture.debugElement.query(By.directive(UserOrgUnitsPanelComponent)).componentInstance).toBe(newerPanel);
-      expect(fixture.componentInstance.viewingUser?.id).toBe(first.id);
+      expect(fixture.componentInstance.viewingUser()?.id).toBe(first.id);
       expect(api.get.mock.calls.filter(([path]) => path === '/iam/users/7')).toHaveLength(readsBeforeProfileSettlement);
       expect(newerPanel.pending).toBe(panelState === 'pending');
       expect(newerPanel.hasUnsavedWork()).toBe(true);

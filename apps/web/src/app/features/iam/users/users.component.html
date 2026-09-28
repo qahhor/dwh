@@ -106,7 +106,7 @@
 <!-- User Detail, Delete and Security Modals (Delegated Component) -->
 <app-user-detail-modal
   [isOpen]="isViewModalOpen()"
-  [viewingUser]="viewingUser"
+  [viewingUser]="viewingUser()"
   [routeRecordId]="routeRecordId()"
   [recordLoading]="recordLoading()"
   [recordError]="recordError()"

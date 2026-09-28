@@ -1,4 +1,5 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   OnInit,
   OnDestroy,
@@ -60,6 +61,7 @@ import { UserDirectoryService } from './services/user-directory.service';
 
 @Component({
   selector: 'app-users',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     FormsModule,
@@ -105,6 +107,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly isViewModalOpen = signal<boolean>(false);
   readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
 
+  readonly viewingUser = signal<User | null>(null);
+
   readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
   readonly getManagerNameFn = (u: User) => getManagerName(u, (id) => this.directory.nameOf(id));
 
@@ -141,8 +145,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly users = this.userPager.items;
   private exportFilters: Record<string, string> = {};
   readonly isLoading = this.userPager.loading;
-
-  viewingUser: User | null = null;
 
   constructor(
     public permService: PermissionService,
@@ -447,7 +449,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     const requestId = ++this.recordRequestId;
     this.recordRequest?.unsubscribe();
     this.routeRecordId.set(id);
-    this.viewingUser = null;
+    this.viewingUser.set(null);
     this.isViewModalOpen.set(id !== null);
     this.recordLoading.set(false);
     this.recordError.set(false);
@@ -466,7 +468,7 @@ export class UsersComponent implements OnInit, OnDestroy {
         if (requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
         if (recordResponseMatches(user?.id, id)) {
-          this.viewingUser = user;
+          this.viewingUser.set(user);
           this.directory.resolve([user.managerId]);
         } else this.recordError.set(true);
       },
@@ -498,7 +500,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       return;
     }
     this.afterOrgPanelLeave(() => {
-      this.viewingUser = user;
+      this.viewingUser.set(user);
       this.activeViewTab.set('info');
       this.userSecurity.set(null);
       this.isViewModalOpen.set(true);
@@ -506,8 +508,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   openEditFromView() {
-    if (this.viewingUser && safeNumericRecordId(this.viewingUser.id) && this.canUpdateUser()) {
-      const u = this.viewingUser;
+    const u = this.viewingUser();
+    if (u && safeNumericRecordId(u.id) && this.canUpdateUser()) {
       this.afterOrgPanelLeave(() => {
         this.isViewModalOpen.set(false);
         this.openEditModal(u);

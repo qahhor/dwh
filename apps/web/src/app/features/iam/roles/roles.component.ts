@@ -1,4 +1,14 @@
-import { Component, DestroyRef, OnInit, signal, computed, inject, linkedSignal, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  signal,
+  computed,
+  inject,
+  linkedSignal,
+  viewChild,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -35,6 +45,7 @@ import { RoleFormsService } from './services/role-forms.service';
 
 @Component({
   selector: 'app-roles',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
     FormsModule,
