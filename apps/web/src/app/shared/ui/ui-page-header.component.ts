@@ -38,65 +38,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       <ng-content />
     </div>
   `,
-  styles: [
-    `
-      :host {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px 16px;
-      }
-      .view-header__main {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-      }
-      .view-header__title-row {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-      .view-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-main);
-        margin: 0;
-      }
-      .view-header__eyebrow {
-        margin: 0;
-        font-size: 0.75rem;
-        font-weight: 600;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--text-muted);
-      }
-      .view-header__subtitle {
-        margin: 0;
-        font-size: 0.875rem;
-        color: var(--text-muted);
-      }
-      .count-badge {
-        background: var(--bg-hover);
-        padding: 2px 10px;
-        border-radius: 9999px;
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-muted);
-      }
-      .view-header__actions {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-      .view-header__actions:empty {
-        display: none;
-      }
-    `,
-  ],
+  styleUrl: './ui-page-header.component.css',
 })
 export class UiPageHeaderComponent {
   readonly title = input.required<string>();

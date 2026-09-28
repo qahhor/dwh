@@ -158,11 +158,6 @@
       "count": 1
     }
   },
-  "src/app/features/iam/users/components/user-filter-bar.component.ts": {
-    "@angular-eslint/template/click-events-have-key-events": {
-      "count": 1
-    }
-  },
   "src/app/features/iam/users/users.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 4
@@ -206,11 +201,6 @@
       "count": 1
     }
   },
-  "src/app/features/settings/search/search-settings.component.html": {
-    "@angular-eslint/template/label-has-associated-control": {
-      "count": 6
-    }
-  },
   "src/app/features/settings/search/search-settings.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -224,16 +214,6 @@
   "src/app/features/settings/settings.component.ts": {
     "@angular-eslint/prefer-inject": {
       "count": 3
-    }
-  },
-  "src/app/features/settings/webhooks/webhooks-settings.component.ts": {
-    "@angular-eslint/template/label-has-associated-control": {
-      "count": 2
-    }
-  },
-  "src/app/features/system/system.component.ts": {
-    "@angular-eslint/template/eqeqeq": {
-      "count": 2
     }
   },
   "src/app/features/tasks/components/task-create-modal.component.ts": {
@@ -259,14 +239,6 @@
   },
   "src/app/features/tasks/components/task-edit-modal.component.ts": {
     "@angular-eslint/no-output-native": {
-      "count": 2
-    }
-  },
-  "src/app/features/tasks/components/task-kanban-view.component.ts": {
-    "@angular-eslint/template/click-events-have-key-events": {
-      "count": 2
-    },
-    "@angular-eslint/template/interactive-supports-focus": {
       "count": 2
     }
   },
@@ -345,12 +317,6 @@
   },
   "src/app/layout/app-shell/components/app-sidebar.component.ts": {
     "@angular-eslint/no-output-on-prefix": {
-      "count": 1
-    },
-    "@angular-eslint/template/click-events-have-key-events": {
-      "count": 1
-    },
-    "@angular-eslint/template/interactive-supports-focus": {
       "count": 1
     },
     "@typescript-eslint/no-unused-vars": {
@@ -846,14 +812,6 @@
   },
   "src/app/shared/ui/ui-file-upload.component.ts": {
     "@angular-eslint/prefer-inject": {
-      "count": 2
-    }
-  },
-  "src/app/shared/ui/ui-filter-panel.component.ts": {
-    "@angular-eslint/template/eqeqeq": {
-      "count": 1
-    },
-    "@angular-eslint/template/label-has-associated-control": {
       "count": 2
     }
   },

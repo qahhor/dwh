@@ -1,0 +1,153 @@
+<section class="overview" aria-labelledby="overview-title">
+  <header class="overview__head">
+    <div>
+      <h1 id="overview-title" class="overview__title">{{ 'upl.overview.title' | t }}</h1>
+      <p class="overview__subtitle">{{ 'upl.overview.subtitle' | t }}</p>
+    </div>
+    <div class="overview__controls">
+      <smt-radio-group
+        smtAppearance="segmented"
+        class="overview__period-picker"
+        data-testid="overview-periods"
+        [options]="periodOptions()"
+        [value]="days()"
+        [smtAriaLabel]="'upl.overview.period' | t"
+        (valueChange)="choose($event ?? days())"
+      />
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        smtIcon="refresh"
+        data-testid="overview-refresh"
+        (click)="load()"
+      >
+        {{ 'common.refresh' | t }}
+      </button>
+    </div>
+  </header>
+  @if (data(); as current) {
+    <p class="overview__stamp" data-testid="overview-stamp">
+      {{ 'upl.overview.taken_at' | t: { time: (current.generatedAt | date: 'dd.MM.yyyy HH:mm') ?? '' } }}
+    </p>
+  }
+
+  <div class="overview__grid">
+    <ui-dashboard-card
+      data-testid="overview-totals"
+      [title]="'upl.overview.totals.title' | t"
+      [subtitle]="'upl.overview.days_long' | t: { n: days() }"
+      [loading]="loading() && !data()"
+      [failed]="failed()"
+      [empty]="data()?.totals?.uploads === 0"
+      [emptyText]="'upl.overview.totals.empty' | t"
+      (retry)="load()"
+    >
+      @if (data(); as current) {
+        <div class="overview__tiles" data-testid="overview-kpis">
+          <ui-kpi-card
+            [label]="'upl.overview.totals.uploads' | t"
+            [value]="current.totals.uploads"
+            [previous]="current.previous.uploads"
+            goodWhen="neutral"
+          />
+          <ui-kpi-card
+            [label]="'upl.overview.totals.applied' | t"
+            [value]="current.totals.applied"
+            [previous]="current.previous.applied"
+          />
+          <ui-kpi-card
+            [label]="'upl.overview.totals.verified' | t"
+            [value]="current.totals.verified"
+            [previous]="current.previous.verified"
+            goodWhen="down"
+          />
+          <ui-kpi-card
+            [label]="'upl.overview.totals.rejected' | t"
+            [value]="current.totals.rejected"
+            [previous]="current.previous.rejected"
+            goodWhen="down"
+          />
+          <ui-kpi-card
+            [label]="'upl.overview.totals.rows' | t"
+            [value]="current.totals.rowsApplied"
+            [previous]="current.previous.rowsApplied"
+          />
+        </div>
+      }
+    </ui-dashboard-card>
+
+    <ui-dashboard-card
+      class="overview__wide"
+      data-testid="overview-daily"
+      [title]="'upl.overview.daily.title' | t"
+      [subtitle]="'upl.overview.days_long' | t: { n: days() }"
+      [loading]="loading() && !data()"
+      [failed]="failed()"
+      [empty]="data()?.totals?.uploads === 0"
+      [emptyText]="'upl.overview.totals.empty' | t"
+      (retry)="load()"
+    >
+      <ui-bar-chart
+        [series]="chartSeries()"
+        [points]="chartPoints()"
+        [caption]="'upl.overview.daily.caption' | t: { n: days() }"
+        [axisLabel]="'upl.overview.daily.day' | t"
+      />
+    </ui-dashboard-card>
+
+    <ui-dashboard-card
+      data-testid="overview-attention"
+      [title]="'upl.overview.attention.title' | t"
+      [loading]="loading() && !data()"
+      [failed]="failed()"
+      [empty]="data()?.attention?.length === 0"
+      [emptyText]="'upl.overview.attention.empty' | t"
+      (retry)="load()"
+    >
+      <ul class="overview__attention">
+        @for (item of data()?.attention ?? []; track $index) {
+          <li
+            class="overview__attention-item"
+            [class]="'overview__attention-item overview__attention-item--' + item.kind"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">{{ attentionIcon(item) }}</span>
+            <span class="overview__attention-text">{{ attentionText(item) }}</span>
+            <a
+              class="overview__attention-link"
+              data-testid="overview-attention-link"
+              [routerLink]="attentionLink(item)"
+              [queryParams]="attentionQuery(item)"
+              >{{ attentionAction(item) }}</a
+            >
+          </li>
+        }
+      </ul>
+    </ui-dashboard-card>
+
+    <ui-dashboard-card
+      class="overview__wide"
+      data-testid="overview-freshness"
+      [title]="'upl.overview.fresh.title' | t"
+      [subtitle]="'upl.overview.fresh.subtitle' | t"
+      [loading]="loading() && !data()"
+      [failed]="failed()"
+      [empty]="data()?.freshness?.length === 0"
+      [emptyText]="'upl.overview.fresh.empty' | t"
+      (retry)="load()"
+    >
+      <ui-local-table [rows]="freshnessRows()" [config]="freshnessConfig()" [sortValues]="freshnessSort" />
+    </ui-dashboard-card>
+  </div>
+</section>
+
+<ng-template #sourceCell let-f>
+  <a class="overview__source" [routerLink]="['/upl/sources', f.sourceId]">{{ f.name }}</a>
+  <span class="overview__code">{{ f.code }}</span>
+</ng-template>
+<ng-template #stateCell let-f
+  ><ui-badge [variant]="stateVariant(f)" [dot]="true">{{ stateText(f) }}</ui-badge></ng-template
+>
+<ng-template #lastCell let-f>{{ f.lastPeriodTo ? (f.lastPeriodTo | date: 'dd.MM.yyyy') : '—' }}</ng-template>
+<ng-template #dueCell let-f>{{ f.dueBy ? (f.dueBy | date: 'dd.MM.yyyy') : '—' }}</ng-template>

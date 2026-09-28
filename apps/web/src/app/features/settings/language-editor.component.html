@@ -1,0 +1,173 @@
+<section class="translation-editor" aria-labelledby="translation-editor-title">
+  <header class="editor-header">
+    <div class="editor-heading">
+      <button
+        type="button"
+        class="icon-action"
+        data-testid="language-editor-close"
+        [attr.aria-label]="'settings.vernutsya_k_spisku_yazykov' | t"
+        (click)="requestClose()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+      </button>
+      <div>
+        <h3 id="translation-editor-title">
+          {{ 'settings.translations_for' | t: { name: editor()?.language?.name || languageCode().toUpperCase() } }}
+        </h3>
+        @if (editor(); as model) {
+          <p>
+            {{
+              'settings.translation_progress'
+                | t
+                  : {
+                      translated: model.language.translated,
+                      total: model.language.total,
+                      coverage: model.language.coverage,
+                    }
+            }}
+          </p>
+        }
+      </div>
+    </div>
+    <!-- The full name is real text: aria-label is dropped on a span without a role. -->
+    @if (editor(); as model) {
+      <span class="coverage">
+        <span class="sr-only">{{ 'settings.translation_coverage' | t: { coverage: model.language.coverage } }}</span>
+        <span aria-hidden="true">{{ model.language.coverage }}%</span>
+      </span>
+    }
+  </header>
+
+  @if (isLoading()) {
+    <div class="editor-loading" role="status">{{ 'settings.zagruzka_perevodov' | t }}</div>
+  }
+  @if (loadError()) {
+    <div class="editor-error" role="alert">
+      <span>{{ loadError() }}</span>
+      <button type="button" class="text-action" (click)="load()">{{ 'announcements.povtorit' | t }}</button>
+    </div>
+  }
+
+  @if (editor()) {
+    <div class="editor-toolbar">
+      <div class="search-field">
+        <label for="translation-search">{{ 'settings.poisk_perevoda' | t }}</label>
+        <smt-input
+          smtFieldId="translation-search"
+          type="search"
+          smtIcon="search"
+          clearable
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          [placeholder]="'settings.klyuch_russkiy_tekst_ili_perevod' | t"
+        />
+      </div>
+      <smt-switch
+        class="missing-filter"
+        [checked]="missingOnly()"
+        (checkedChange)="missingOnly.set($event)"
+        [smtLabel]="'settings.tolko_neperevedennye' | t"
+      />
+      @if (canEdit) {
+        <label class="import-action">
+          <span class="material-symbols-outlined" aria-hidden="true">upload_file</span>
+          <span>{{ 'settings.import_json' | t }}</span>
+          <input type="file" accept="application/json,.json" (change)="importFile($event)" />
+        </label>
+      }
+      <button type="button" class="secondary-action" (click)="exportDraft()">
+        <span class="material-symbols-outlined" aria-hidden="true">download</span>
+        {{ 'settings.eksport_json' | t }}
+      </button>
+    </div>
+
+    <div class="translation-table" role="region" [attr.aria-label]="'settings.tablica_perevodov' | t" tabindex="0">
+      <div class="translation-row header-row" aria-hidden="true">
+        <span>{{ 'settings.klyuch' | t }}</span>
+        <span>{{ (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t }}</span>
+        <span>{{ (languageCode() === 'ru' ? 'settings.interface_text' : 'settings.translation') | t }}</span>
+        <span>{{ 'common.status' | t }}</span>
+      </div>
+
+      @for (entry of filteredEntries(); track trackByKey($index, entry)) {
+        <div class="translation-row" [attr.data-translation-key]="entry.key">
+          <code class="translation-key">{{ entry.key }}</code>
+          <div
+            class="source-value"
+            [attr.data-label]="(languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t"
+          >
+            {{ languageCode() === 'ru' ? entry.bundledValue : entry.russianValue }}
+          </div>
+          <div class="target-value" [attr.data-label]="'settings.translation' | t">
+            <label class="sr-only" [for]="inputId(entry.key)">{{
+              'settings.translation_for_key' | t: { key: entry.key }
+            }}</label>
+            <smt-input
+              [smtFieldId]="inputId(entry.key)"
+              type="text"
+              [disabled]="!canEdit"
+              [ngModel]="valueFor(entry.key)"
+              (ngModelChange)="setValue(entry.key, $event)"
+              [placeholder]="languageCode() === 'ru' ? entry.bundledValue || '' : entry.russianValue"
+              [maxLength]="4000"
+            />
+            @if (canEdit && canReset(entry)) {
+              <button
+                type="button"
+                class="reset-action"
+                [attr.aria-label]="'settings.restore_packaged_value' | t: { key: entry.key }"
+                (click)="resetValue(entry)"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>
+              </button>
+            }
+          </div>
+          <span
+            class="translation-status"
+            [class.ready]="isTranslated(entry)"
+            [attr.data-status]="isTranslated(entry) ? 'translated' : 'missing'"
+            [attr.data-label]="'common.status' | t"
+          >
+            {{ (isTranslated(entry) ? 'settings.translated' : 'settings.fallback_ru') | t }}
+          </span>
+        </div>
+      }
+
+      @if (filteredEntries().length === 0) {
+        <div class="empty-filter">
+          {{ 'settings.po_zadannym_usloviyam_stroki_ne_naydeny' | t }}
+        </div>
+      }
+    </div>
+
+    @if (saveError()) {
+      <div class="save-error" role="alert">{{ saveError() }}</div>
+    }
+
+    @if (canEdit) {
+      <footer class="editor-actions">
+        <span class="dirty-count" aria-live="polite">{{ 'settings.changed_count' | t: { count: dirtyCount() } }}</span>
+        <div>
+          <button
+            type="button"
+            class="secondary-action"
+            [disabled]="dirtyCount() === 0 || isSaving()"
+            (click)="cancelChanges()"
+          >
+            {{ 'settings.otmenit_izmeneniya' | t }}
+          </button>
+          <button
+            type="button"
+            class="primary-action"
+            data-testid="language-editor-save"
+            [disabled]="dirtyCount() === 0 || isSaving()"
+            (click)="save()"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">save</span>
+            {{ (isSaving() ? 'common.saving' : 'settings.save_translations') | t }}
+          </button>
+        </div>
+      </footer>
+    }
+  }
+</section>

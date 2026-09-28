@@ -88,6 +88,24 @@ export default tseslint.config(
     extends: [...angular.configs.templateRecommended, ...angular.configs.templateAccessibility],
     rules: {
       '@angular-eslint/template/prefer-control-flow': 'error',
+      // The kit's fields render their own native control, so a label wrapping one is associated.
+      '@angular-eslint/template/label-has-associated-control': [
+        'error',
+        {
+          controlComponents: [
+            'smt-input',
+            'smt-select',
+            'smt-data-select',
+            'smt-multi-select',
+            'smt-date-picker',
+            'smt-time-picker',
+            'smt-textarea',
+            'smt-tree-select',
+            'smt-phone-input',
+            'smt-color-input',
+          ],
+        },
+      ],
     },
   },
 );

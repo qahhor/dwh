@@ -1,0 +1,152 @@
+<div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
+  <!-- Filter Toolbar -->
+  <div class="filter-toolbar">
+    <div class="filter-group">
+      <label class="sr-only" for="security-event-filter">{{ 'audit.filtr_sobytiy_bezopasnosti' | t }}</label>
+      <smt-select
+        smtTriggerId="security-event-filter"
+        class="filter-select"
+        [options]="eventTypeOptions()"
+        [placeholder]="'audit.vse_sobytiya' | t"
+        [emptyLabel]="'audit.vse_sobytiya' | t"
+        [value]="secEventTypeFilter() || null"
+        (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()"
+      />
+
+      <div class="search-box">
+        <label class="sr-only" for="security-ip-search">{{ 'audit.poisk_sobytiy_po_ip_adresu' | t }}</label>
+        <smt-input
+          smtFieldId="security-ip-search"
+          name="securityIpSearch"
+          type="text"
+          smtIcon="search"
+          smtSize="sm"
+          [placeholder]="'audit.poisk_po_ip' | t"
+          [ngModel]="secIpFilter()"
+          (ngModelChange)="secIpFilterChange.emit($event)"
+          (keyup.enter)="applyFilters.emit()"
+        />
+      </div>
+
+      <div class="compact-filter compact-filter-narrow">
+        <label for="security-user-filter">{{ 'audit.user_id' | t }}</label>
+        <smt-input
+          smtFieldId="security-user-filter"
+          name="securityUserFilter"
+          type="text"
+          inputmode="numeric"
+          smtSize="sm"
+          smtPattern="[0-9]*"
+          [ngModel]="securityUserFilter()"
+          (ngModelChange)="securityUserFilterChange.emit($event)"
+          (keyup.enter)="applyFilters.emit()"
+        />
+      </div>
+
+      <div class="compact-filter compact-filter-period">
+        <span class="compact-filter-label" aria-hidden="true">{{ 'audit.period_utc' | t }}</span>
+        <smt-date-range-picker
+          data-testid="security-period-filter"
+          [smtAriaLabel]="'audit.period_utc' | t"
+          [value]="period()"
+          (valueChange)="onPeriodChange($event)"
+        />
+      </div>
+
+      <button
+        smt-button
+        type="button"
+        id="security-apply-filters"
+        smtVariant="primary"
+        smtSize="sm"
+        smtIcon="filter_alt"
+        (click)="applyFilters.emit()"
+      >
+        {{ 'audit.apply_filters' | t }}
+      </button>
+      <button
+        smt-button
+        type="button"
+        id="security-reset-filters"
+        smtVariant="ghost"
+        smtSize="sm"
+        smtIcon="filter_alt_off"
+        (click)="resetFilters.emit()"
+      >
+        {{ 'audit.reset_filters' | t }}
+      </button>
+    </div>
+  </div>
+
+  <div
+    class="table-container"
+    role="region"
+    [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t"
+    [attr.aria-busy]="pager().loading()"
+  >
+    @if (tableConfig(); as config) {
+      <ui-server-table
+        [pager]="pager()"
+        [config]="config"
+        [views]="views()"
+        [filterMeta]="meta()"
+        [exportable]="true"
+        [exportOptions]="exportOptions()"
+        [lockedColumns]="['id', 'details']"
+        [loadingLabel]="'audit.loading_security' | t"
+        [errorLabel]="'audit.load_security_error' | t"
+        errorId="security-load-error"
+        [emptyTemplate]="emptyState()"
+        (sortChange)="sortChange.emit($event)"
+      />
+    }
+  </div>
+
+  <ng-template #idCell let-item
+    ><span class="tabular-nums font-mono text-muted">#{{ item.id }}</span></ng-template
+  >
+  <ng-template #eventCell let-item>
+    <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(item.eventType)">
+      <span class="material-symbols-outlined" aria-hidden="true">{{ getSecurityEventIcon(item.eventType) }}</span>
+      {{ item.eventType }}
+    </span>
+  </ng-template>
+  <ng-template #userCell let-item>
+    @if (item.userName) {
+      <div class="user-cell">
+        <span class="user-name">{{ item.userName }}</span>
+        <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
+      </div>
+    }
+    @if (!item.userName) {
+      <span class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
+    }
+  </ng-template>
+  <ng-template #ipCell let-item
+    ><span class="ip-pill font-mono">{{ item.ip }}</span></ng-template
+  >
+  <ng-template #agentCell let-item>
+    <span class="ua-cell text-muted text-xs" [title]="item.userAgent || ''">{{ formatUserAgent(item.userAgent) }}</span>
+  </ng-template>
+  <ng-template #dateCell let-item
+    ><span class="date-cell tabular-nums">{{ item.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span></ng-template
+  >
+  <ng-template #detailsCell let-item>
+    <button
+      type="button"
+      class="diff-btn"
+      [attr.aria-label]="'audit.view_security_event_number' | t: { id: item.id }"
+      [title]="'audit.prosmotr_detaley' | t"
+      (click)="selectEvent.emit(item)"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">info</span>
+    </button>
+  </ng-template>
+  <ng-template #emptyStateTpl>
+    <div class="empty-state-box">
+      <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
+      <h3>{{ 'audit.sobytiy_bezopasnosti_ne_naydeno' | t }}</h3>
+      <p>{{ 'audit.vse_podozritelnye_sobytiya_i_vhody_fiksiruyutsya' | t }}</p>
+    </div>
+  </ng-template>
+</div>

@@ -1,0 +1,83 @@
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* The same as the smt-control label, so wrapped and plain fields read alike. */
+.clean-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.req-tag {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--danger-text);
+  background-color: var(--danger-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.error-msg {
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 2px;
+}
+.modal-form-fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.clean-textarea {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.request-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.request-error {
+  border-color: var(--danger);
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+}
+.attributes-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+}
+.attr-stack-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+.attr-k {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.attr-v {
+  color: var(--text-main);
+}

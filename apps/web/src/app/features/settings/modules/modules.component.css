@@ -1,0 +1,71 @@
+:host {
+  display: block;
+}
+.modules-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0 0 6px;
+  line-height: 1.2;
+}
+
+.developer-info-card {
+  background: var(--bg-surface);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+.dev-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.dev-icon {
+  font-size: 24px;
+  color: var(--primary);
+  background: var(--primary-subtle);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+}
+.dev-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 2px;
+}
+.dev-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0;
+}
+.cli-command-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.cli-command-box {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin: 0;
+  overflow-x: auto;
+}
+.cli-command-box code {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--text-main);
+  white-space: pre;
+}

@@ -16,7 +16,11 @@ const VALIDATOR_CODES = ['NotBlank', 'NotNull', 'Pattern', 'Min', 'Max', 'Size',
 function sourceFiles(): string[] {
   const own = readdirSync(UPL_DIR, { recursive: true, encoding: 'utf8' })
     .map((name) => `${UPL_DIR}/${name.replace(/\\/g, '/')}`)
-    .filter((name) => name.endsWith('.ts') && !name.endsWith('.spec.ts') && !name.endsWith('.d.ts'));
+    // Templates live in .html files too (plan 10/10, item 2.7).
+    .filter(
+      (name) =>
+        (name.endsWith('.ts') && !name.endsWith('.spec.ts') && !name.endsWith('.d.ts')) || name.endsWith('.html'),
+    );
   return [...own, ...SHELL_FILES];
 }
 

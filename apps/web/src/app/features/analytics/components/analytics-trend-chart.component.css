@@ -1,0 +1,157 @@
+.analytics-card {
+  min-width: 0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 18px 22px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow-wrap: anywhere;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.chart-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.svg-chart-container {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  position: relative;
+}
+
+.svg-chart-container:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.chart-y-axis {
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.y-axis-tick {
+  position: absolute;
+  right: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.trend-svg {
+  display: block;
+  width: 100%;
+  min-width: 700px;
+  height: 240px;
+}
+
+.empty-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.chart-tooltip-floating {
+  position: absolute;
+  top: 10px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: 6px 10px;
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 10;
+  transition: left 0.08s ease-out;
+}
+
+.tooltip-date {
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.tooltip-values {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tooltip-val {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-main);
+}
+
+.tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.hit-area {
+  cursor: pointer;
+}
+
+.chart-point-group:focus-visible circle {
+  stroke-width: 3;
+  stroke: var(--text-main);
+}
+
+.font-mono {
+  font-family: monospace;
+}

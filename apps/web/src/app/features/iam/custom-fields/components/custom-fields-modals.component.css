@@ -1,0 +1,96 @@
+:host {
+  display: contents;
+}
+
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.order-input-group {
+  flex: 0 0 110px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.req {
+  color: var(--danger-text);
+}
+
+.form-hint {
+  color: var(--text-light);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.readonly-hint {
+  color: var(--warning);
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger-text);
+  font-size: 13px;
+  padding: 8px 12px;
+  background: var(--danger-bg);
+  border-radius: 6px;
+  border: 1px solid var(--danger-border);
+}
+
+.checkbox-group {
+  margin-top: 4px;
+}
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.delete-confirmation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.delete-confirmation p {
+  margin: 0;
+  font-size: 14px;
+}
+.delete-confirmation span {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .order-input-group {
+    flex: 1 1 auto;
+  }
+}

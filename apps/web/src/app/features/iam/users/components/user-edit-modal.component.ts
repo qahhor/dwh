@@ -160,61 +160,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
       </ng-template>
     </smt-dialog>
   `,
-  styles: [
-    `
-      .clean-modal-body {
-        padding: 4px 0;
-      }
-      .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      .span-2 {
-        grid-column: 1 / -1;
-      }
-
-      .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      /* The same as the smt-control label, so wrapped and plain fields read alike. */
-      .clean-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-main);
-      }
-      .font-mono {
-        font-family: monospace;
-      }
-      .req {
-        color: var(--danger);
-      }
-      .field-error {
-        font-size: 10px;
-        color: var(--danger);
-      }
-
-      .lock-ico {
-        font-size: 13px;
-        color: var(--text-muted);
-      }
-
-      @media (max-width: 640px) {
-        .modal-form,
-        .form-group {
-          min-width: 0;
-        }
-        .form-grid {
-          grid-template-columns: minmax(0, 1fr);
-        }
-        .span-2 {
-          grid-column: auto;
-        }
-      }
-    `,
-  ],
+  styleUrl: './user-edit-modal.component.css',
 })
 export class UserEditModalComponent {
   private readonly i18n = inject(I18nService);

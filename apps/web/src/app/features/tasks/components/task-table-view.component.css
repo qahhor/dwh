@@ -1,0 +1,201 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bulk-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bulk-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.bulk-select {
+  width: 180px;
+}
+.table-card {
+  min-width: 0;
+}
+/* The row belongs to the kit table's template, so it is reached from here.
+ An inset shadow marks it without widening the row's grid. */
+:host ::ng-deep .smt-data-row.task-row-overdue {
+  background-color: rgba(239, 68, 68, 0.04);
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+:host ::ng-deep .smt-data-row.task-row-overdue:hover {
+  background-color: rgba(239, 68, 68, 0.08);
+}
+.overdue-tag {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--danger-text);
+  background-color: var(--danger-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.task-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.task-type-badge .type-icon {
+  font-size: 13px;
+}
+
+.task-title-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.task-title {
+  font-weight: 500;
+}
+.task-title-open {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--text-main);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.task-title-open:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+.parent-chip {
+  font-size: 10px;
+  background-color: var(--bg-hover);
+  color: var(--text-muted);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.project-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.folder-ico {
+  font-size: 14px;
+  color: var(--warning);
+}
+
+/* Inline Status Select */
+.inline-status-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.inline-status-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.deadline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background-color: var(--bg-hover);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.deadline-pill .ico {
+  font-size: 13px;
+}
+.deadline-pill.overdue {
+  color: var(--danger-text);
+  background-color: var(--danger-bg);
+  border-color: rgba(239, 68, 68, 0.3);
+  font-weight: 600;
+}
+.deadline-pill.deadline-today {
+  background-color: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: var(--warning-text);
+  font-weight: 600;
+}
+.deadline-pill.deadline-tomorrow {
+  background-color: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--info-text);
+}
+
+.row-action-btns {
+  display: inline-flex;
+  gap: 4px;
+}
+.icon-ghost-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-ghost-btn:hover {
+  color: var(--text-main);
+  background-color: var(--bg-hover);
+}
+.icon-ghost-btn .material-symbols-outlined {
+  font-size: 17px;
+}
+
+.empty-state-cell {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty-state-cell .icon {
+  font-size: 36px;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+.font-mono {
+  font-family: ui-monospace, monospace;
+}
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+.text-danger {
+  color: var(--danger);
+}
+.text-muted {
+  color: var(--text-muted);
+}
+.text-right {
+  text-align: right;
+}
