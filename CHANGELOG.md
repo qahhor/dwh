@@ -686,6 +686,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Every web component uses OnPush change detection (plan 10/10, item 2.3):
+  178 of 178, up from 87. State a component changes in a callback (HTTP
+  answers, timers) is a signal; plain fields change only in handlers of
+  the component's own template. The format wizard's steps, which share one
+  mutable draft, are redrawn when shown. Screens do less work per change
+  and a missed update can no longer hide behind the next global check.
 - The web app speaks one Angular dialect (plan 10/10, item 2.2): block
   control flow instead of `*ngIf`/`*ngFor`, `input()`/`model()`/`output()`
   instead of `@Input`/`@Output`, signal queries instead of `@ViewChild`,
