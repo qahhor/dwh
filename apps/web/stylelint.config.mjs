@@ -50,7 +50,7 @@ export default {
   overrides: [
     {
       // The token file defines the colours; the note palette is a user choice (see contrast-audit.mjs).
-      files: ['src/styles.css', 'src/tailwind.css', 'src/app/features/notes/notes.component.css'],
+      files: ['src/styles.css', 'src/tailwind.css', 'src/app/features/notes/note-card.component.css'],
       rules: { 'color-no-hex': null, 'color-named': null },
     },
   ],

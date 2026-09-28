@@ -12,7 +12,6 @@ import { SMTTimePickerComponent } from './time-picker.component';
 import { formatTime, nearestSlot, parseTime, timeSlots, withinBounds } from './time-utils';
 
 @Component({
-  standalone: true,
   imports: [SMTTimePickerComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Starts at">

@@ -38,7 +38,6 @@ let nextDrawerId = 0;
 
 @Component({
   selector: 'smt-drawer',
-  standalone: true,
   templateUrl: './drawer.component.html',
   styleUrl: './drawer.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

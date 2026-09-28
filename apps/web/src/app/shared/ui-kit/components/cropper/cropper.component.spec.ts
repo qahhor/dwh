@@ -9,7 +9,6 @@ import { tickInZone } from '../../testing/zone-tick';
 import { SMTCropArea, SMTCropperComponent } from './cropper.component';
 
 @Component({
-  standalone: true,
   imports: [SMTCropperComponent],
   template: `<smt-cropper src="photo.png" alt="Photo" [smtAspectRatio]="1" [smtMinSize]="50" [(area)]="area" />`,
 })

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { safeNumericRecordId } from '../../../core/services/search-target';
@@ -23,7 +23,7 @@ export type OrgUnitSubmission =
   { mode: 'create'; body: OrgUnitCreate } | { mode: 'edit'; id: number; patch: OrgUnitPatch };
 @Component({
   selector: 'app-org-unit-editor',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     TranslatePipe,
@@ -43,12 +43,16 @@ export type OrgUnitSubmission =
 export class OrgUnitEditorComponent implements OnInit {
   private readonly i18n = inject(I18nService);
 
-  @Input({ required: true }) initial!: OrgUnit | OrgUnitCreate;
-  @Input() units: OrgUnit[] = [];
-  @Input() pending = false;
-  @Input() error: ProblemDetail | null = null;
-  @Output() save = new EventEmitter<OrgUnitSubmission>();
-  @Output() cancel = new EventEmitter<void>();
+  readonly initial = input.required<OrgUnit | OrgUnitCreate>();
+
+  readonly units = input<OrgUnit[]>([]);
+  readonly pending = input(false);
+
+  readonly error = input<ProblemDetail | null>(null);
+
+  readonly save = output<OrgUnitSubmission>();
+  readonly cancel = output<void>();
+
   draft: OrgUnitCreate & { state: 'A' | 'P' } = {
     parentId: null,
     code: '',
@@ -73,7 +77,7 @@ export class OrgUnitEditorComponent implements OnInit {
   private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   ngOnInit(): void {
-    this.original = { ...this.initial };
+    this.original = { ...this.initial() };
     this.draft = { ...this.original, state: 'state' in this.original ? this.original.state : 'A' };
   }
   /** The known kinds, translated; an unknown kind of the edited unit stays first, as its raw code. */
@@ -103,14 +107,15 @@ export class OrgUnitEditorComponent implements OnInit {
     );
   }
   get parents(): OrgUnit[] {
-    return this.editing ? parentCandidates(this.units, this.original as OrgUnit) : [];
+    return this.editing ? parentCandidates(this.units(), this.original as OrgUnit) : [];
   }
   /** The allowed parents as a tree, rebuilt only when the units or the edited unit change. */
   get parentTree(): SMTTreeOption<number>[] {
     const cache = this.parentTreeCache;
-    if (cache && cache.units === this.units && cache.original === this.original) return cache.tree;
+    const units = this.units();
+    if (cache && cache.units === units && cache.original === this.original) return cache.tree;
     const tree = orgUnitTreeOptions(orderedTree(this.parents));
-    this.parentTreeCache = { units: this.units, original: this.original, tree };
+    this.parentTreeCache = { units: units, original: this.original, tree };
     return tree;
   }
   get valid(): boolean {
@@ -125,14 +130,15 @@ export class OrgUnitEditorComponent implements OnInit {
     );
   }
   fieldError(field: string): string | null {
+    const error = this.error();
     return (
-      this.error?.invalid_params?.find((item) => item.name === field)?.reason ??
-      this.error?.errors?.find((item) => item.field === field)?.message ??
+      error?.invalid_params?.find((item) => item.name === field)?.reason ??
+      error?.errors?.find((item) => item.field === field)?.message ??
       null
     );
   }
   submit(): void {
-    if (this.pending || this.impactOpen) return;
+    if (this.pending() || this.impactOpen) return;
     this.attempted = true;
     if (!this.valid || !this.dirty) return;
     if (
@@ -145,7 +151,7 @@ export class OrgUnitEditorComponent implements OnInit {
     this.emitSave();
   }
   confirmImpact(): void {
-    if (!this.impactOpen || this.pending) return;
+    if (!this.impactOpen || this.pending()) return;
     this.impactOpen = false;
     if (this.valid && this.dirty) this.emitSave();
   }

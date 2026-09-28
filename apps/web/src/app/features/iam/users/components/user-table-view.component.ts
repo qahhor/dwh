@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
@@ -34,25 +33,25 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
  */
 @Component({
   selector: 'app-user-table-view',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTDropdownButtonComponent,
     SMTAvatarComponent,
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     UiServerTableComponent,
+    DatePipe,
   ],
   template: `
     <div
       class="table-container"
       role="region"
       [attr.aria-label]="'iam.tablica_polzovateley' | t"
-      [attr.aria-busy]="pager.loading()"
+      [attr.aria-busy]="pager().loading()"
     >
       @if (tableConfig(); as config) {
         <ui-server-table
-          [pager]="pager"
+          [pager]="pager()"
           [config]="config"
           [views]="views()"
           [filterMeta]="meta()"
@@ -92,7 +91,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       </div>
     </ng-template>
     <ng-template #rolesCell let-u>
-      @let roleNames = getUserRoleNames(u);
+      @let roleNames = getUserRoleNames()(u);
       <div class="roles-wrap">
         @for (roleName of roleNames; track roleName) {
           <span class="role-pill">{{ roleName }}</span>
@@ -102,7 +101,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
       </div>
     </ng-template>
     <ng-template #managerCell let-u>
-      @let managerName = getManagerName(u);
+      @let managerName = getManagerName()(u);
       @if (managerName) {
         <span class="manager-text">{{ managerName }}</span>
       } @else {
@@ -143,7 +142,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
           [title]="'iam.prosmotr' | t"
           (click)="viewUser.emit(u)"
         ></button>
-        @if (canUpdateUser) {
+        @if (canUpdateUser()) {
           <button
             smt-button
             type="button"
@@ -315,11 +314,35 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
 export class UserTableViewComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<User>>();
+
+  readonly getUserRoleNames = input.required<(u: User) => string[]>();
+  readonly getManagerName = input.required<(u: User) => string | null>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The search text and quick filters on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
+  readonly canUpdateUser = input(false);
+  readonly canBlockUser = input(false);
+  readonly canUnblockUser = input(false);
+  readonly canDeleteUser = input(false);
+
+  readonly viewUser = output<User>();
+  readonly editUser = output<User>();
+  readonly toggleState = output<{
+    user: User;
+    action: 'block' | 'unblock';
+  }>();
+  readonly deleteUser = output<User>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly identityCell = viewChild.required<TemplateRef<unknown>>('identityCell');
@@ -386,28 +409,14 @@ export class UserTableViewComponent {
     };
   });
 
-  @Input({ required: true }) pager!: KeysetPager<User>;
-  @Input() canUpdateUser = false;
-  @Input() canBlockUser = false;
-  @Input() canUnblockUser = false;
-  @Input() canDeleteUser = false;
-
-  @Input() getUserRoleNames!: (u: User) => string[];
-  @Input() getManagerName!: (u: User) => string | null;
-
-  @Output() viewUser = new EventEmitter<User>();
-  @Output() editUser = new EventEmitter<User>();
-  @Output() toggleState = new EventEmitter<{ user: User; action: 'block' | 'unblock' }>();
-  @Output() deleteUser = new EventEmitter<User>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Per user, the menu built for the rights and language it was built with, so an open menu is not rebuilt. */
   private readonly actionMenus = new WeakMap<User, { key: string; items: SMTMenuItem<UserMenuAction>[] | null }>();
 
   /** Block or unblock and delete, behind "more" so the row keeps two visible actions; null when none apply. */
   moreActions(user: User): SMTMenuItem<UserMenuAction>[] | null {
-    const block = user.state === 'A' && this.canBlockUser;
-    const unblock = user.state === 'P' && this.canUnblockUser;
-    const remove = user.login !== 'admin' && this.canDeleteUser;
+    const block = user.state === 'A' && this.canBlockUser();
+    const unblock = user.state === 'P' && this.canUnblockUser();
+    const remove = user.login !== 'admin' && this.canDeleteUser();
     const key = [block, unblock, remove, this.i18n.currentLang()].join('|');
     const cached = this.actionMenus.get(user);
     if (cached?.key === key) return cached.items;

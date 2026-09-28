@@ -8,7 +8,6 @@ import { SMTMultiDataSelectComponent } from './multi-data-select.component';
 
 @Directive({
   selector: 'smt-data-select[ngModel], smt-data-select[formControl], smt-data-select[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTDataSelectValueAccessor), multi: true }],
 })
 export class SMTDataSelectValueAccessor extends PickerValueAccessor<unknown> {
@@ -18,7 +17,6 @@ export class SMTDataSelectValueAccessor extends PickerValueAccessor<unknown> {
 @Directive({
   selector:
     'smt-multi-data-select[ngModel], smt-multi-data-select[formControl], smt-multi-data-select[formControlName]',
-  standalone: true,
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTMultiDataSelectValueAccessor), multi: true },
   ],

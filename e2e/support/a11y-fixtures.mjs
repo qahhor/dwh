@@ -55,6 +55,12 @@ const task = id => ({
 const page = (items, nextCursor = null, totalEstimated = items.length) => ({ items, nextCursor, hasMore: nextCursor !== null, totalEstimated });
 const metaField = (key, labelKey, type, extra = {}) =>
   ({ key, labelKey, type, ops: ['eq'], sortable: false, nullable: false, defaultVisible: true, searchable: false, enumValues: [], enumLabelPrefix: null, ...extra });
+const note = id => ({
+  id, title: `Планёрка филиала ${id}`, contentMd: id % 2 ? `Итоги недели: выкладка, возвраты, **план на ${id} точек**` : 'Проверить остатки на складе',
+  color: ['default', 'blue', 'green', 'yellow', 'purple', 'red'][id % 6], isPinned: id <= 2, attributes: {},
+  createdBy: 1, createdAt: at(id), modifiedAt: at(id + 1),
+});
+const formField = (key, labelKey, type, extra = {}) => ({ key, labelKey, label: null, type, required: false, ...extra });
 const range = (from, to) => Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => from < to ? from + i : from - i);
 
 export const me = {
@@ -72,7 +78,9 @@ export const fixtures = {
   ],
   '/settings/system': { company_name: 'Smartup Distribution', default_language: 'ru' },
   '/settings/user': {},
-  '/modules/active': [],
+  '/modules/active': [
+    { code: 'notes', name: 'Заметки', version: '1.0.0', route: '/notes', icon: 'description', isSystem: false, status: 'ACTIVE', isActive: true },
+  ],
   '/navigation/items/active': [],
   '/notifications/unread-count': { unread_count: 0 },
   '/announcements/active': [],
@@ -170,6 +178,36 @@ export const fixtures = {
     id, name: `Выкладка в сети ${id}`, state: 'A', attributes: {}, createdAt: at(id), createdBy: 1,
     totalTasks: 0, doneTasks: 0, progress: 0,
   })), null, 14),
+  // The notes screen is the reference entity screen (plan 10/10, item 2.1): its form and list come from the server.
+  '/form-meta/ms.notes': {
+    code: 'ms.notes', listCode: 'ms.notes',
+    fields: [
+      formField('title', 'notes.col.title', 'text', { required: true, minLength: 1, maxLength: 255 }),
+      formField('contentMd', 'notes.col.content', 'markdown', { maxLength: 100000 }),
+      formField('color', 'notes.col.color', 'select', { options: ['default', 'blue', 'green', 'yellow', 'purple', 'red'], optionLabelPrefix: 'notes.color_' }),
+      formField('isPinned', 'notes.col.pinned', 'boolean'),
+    ],
+    layout: [
+      { key: 'main', labelKey: 'entity.section.main', fields: ['title', 'contentMd'] },
+      { key: 'settings', labelKey: 'entity.section.settings', fields: ['color', 'isPinned'] },
+    ],
+    actions: ['create', 'update', 'pin', 'delete'],
+    capabilities: ['bulk', 'custom_fields', 'export', 'history', 'saved_views'],
+  },
+  '/query-meta/ms.notes': {
+    code: 'ms.notes', defaultSort: '-isPinned', defaultLimit: 50, maxLimit: 200, maxConditions: 20, maxInValues: 100,
+    fields: [
+      metaField('title', 'notes.col.title', 'text', { sortable: true, searchable: true }),
+      metaField('isPinned', 'notes.col.pinned', 'boolean'),
+      metaField('modifiedAt', 'notes.col.modified_at', 'instant', { sortable: true }),
+    ],
+  },
+  '/list-views/ms.notes': [],
+  '/notes': page(range(1, 6).map(note), null, 6),
+  '/history/ms.notes/1': page([
+    { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
+    { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },
+  ]),
   '/tasks/statuses': [{ id: 1, name: 'Открыта', color: '#3b82f6', orderNo: 1, isFinal: false }],
   '/tasks/types': [],
 };

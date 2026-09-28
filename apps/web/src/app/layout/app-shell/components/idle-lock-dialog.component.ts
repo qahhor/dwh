@@ -12,7 +12,6 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/u
  */
 @Component({
   selector: 'app-idle-lock-dialog',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective],
   template: `

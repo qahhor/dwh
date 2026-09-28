@@ -21,7 +21,6 @@ import { SMTModalService } from '../ui-kit/components/modal';
  */
 @Component({
   selector: 'smt-entity-toolbar',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent, UiListViewsComponent, UiExportButtonComponent, UiBulkResultComponent],
   host: { class: 'smt-entity-toolbar' },

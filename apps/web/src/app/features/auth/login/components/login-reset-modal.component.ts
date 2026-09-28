@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, signal, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../../core/services/api.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -10,11 +10,10 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
 @Component({
   selector: 'app-login-reset-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
-    CommonModule,
     FormsModule,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -22,7 +21,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     TranslatePipe,
   ],
   template: `
-    <smt-dialog [open]="isOpen" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
+    <smt-dialog [open]="isOpen()" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
       <ng-template smtDialogContent>
         <div body class="reset-body">
           <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
@@ -39,7 +38,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               [smtInvalid]="resetError() ? 'true' : null"
             />
           </div>
-          <p *ngIf="resetError()" class="form-error" role="alert">{{ resetError() }}</p>
+          @if (resetError()) {
+            <p class="form-error" role="alert">{{ resetError() }}</p>
+          }
         </div>
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="onClose()">
@@ -121,25 +122,25 @@ export class LoginResetModalComponent {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  readonly isOpen = input(false);
+
+  readonly close = output<void>();
+
   readonly resetError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
 
-  @Input() isOpen = false;
-  @Output() close = new EventEmitter<void>();
-
-  resetEmail = '';
-
+  readonly resetEmail = signal('');
   onClose(): void {
-    this.resetEmail = '';
+    this.resetEmail.set('');
     this.resetError.set('');
     this.close.emit();
   }
 
   sendResetRequest(): void {
-    if (!this.resetEmail) return;
+    if (!this.resetEmail()) return;
     this.resetError.set('');
     this.isResetLoading.set(true);
-    this.api.post('/auth/password-reset/request', { email: this.resetEmail }, { notifyError: false }).subscribe({
+    this.api.post('/auth/password-reset/request', { email: this.resetEmail() }, { notifyError: false }).subscribe({
       next: () => {
         this.isResetLoading.set(false);
         this.onClose();

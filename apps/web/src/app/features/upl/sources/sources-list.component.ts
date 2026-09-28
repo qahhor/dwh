@@ -9,7 +9,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -80,7 +80,6 @@ function emptyForm(): SourceCreateForm {
 
 @Component({
   selector: 'app-upl-sources-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
@@ -89,7 +88,6 @@ function emptyForm(): SourceCreateForm {
     SMTSelectValueAccessor,
     SMTAlertComponent,
     SMTControlComponent,
-    CommonModule,
     FormsModule,
     RouterLink,
     TranslatePipe,

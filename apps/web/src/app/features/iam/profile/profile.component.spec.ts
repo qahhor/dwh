@@ -135,20 +135,20 @@ describe('ProfileComponent UI contracts', () => {
     const { fixture } = await createFixture();
     const comp = fixture.componentInstance;
 
-    comp.passwordForm.newPassword = 'short';
+    comp.passwordForm().newPassword = 'short';
     expect(comp.passwordStrength().score).toBeLessThan(2);
     expect(comp.hasMinLength()).toBe(false);
 
-    comp.passwordForm.newPassword = 'CorrectP@ssword123';
+    comp.passwordForm().newPassword = 'CorrectP@ssword123';
     expect(comp.passwordStrength().score).toBe(4);
     expect(comp.hasMinLength()).toBe(true);
     expect(comp.hasLettersAndNumbers()).toBe(true);
     expect(comp.hasMixedCase()).toBe(true);
 
-    comp.passwordForm.confirmPassword = 'DifferentPassword123';
+    comp.passwordForm().confirmPassword = 'DifferentPassword123';
     expect(comp.passwordsMatch()).toBe(false);
 
-    comp.passwordForm.confirmPassword = 'CorrectP@ssword123';
+    comp.passwordForm().confirmPassword = 'CorrectP@ssword123';
     expect(comp.passwordsMatch()).toBe(true);
   });
 
@@ -193,8 +193,8 @@ describe('ProfileComponent UI contracts', () => {
     const comp = fixture.componentInstance;
 
     comp.openCreateTokenModal();
-    comp.newTokenName = 'Deploy Bot';
-    comp.selectedTokenExpiration = '30';
+    comp.newTokenName.set('Deploy Bot');
+    comp.selectedTokenExpiration.set('30');
     comp.createTokenSubmit();
 
     expect(apiMock.post).toHaveBeenCalledWith(
@@ -206,7 +206,7 @@ describe('ProfileComponent UI contracts', () => {
     );
 
     expect(comp.isTokenSecretModalOpen()).toBe(true);
-    expect(comp.createdTokenSecret).toBe('dwh_secret_xyz');
+    expect(comp.createdTokenSecret()).toBe('dwh_secret_xyz');
   });
 
   it('requests and confirms session termination', async () => {
@@ -286,17 +286,19 @@ describe('ProfileComponent UI contracts', () => {
       address: 'alex@example.test',
     });
 
-    expect(comp.channelsCard?.isConfirmModalOpen).toBe(true);
-    expect(comp.channelsCard?.activeVerifyToken).toBe('mock_verify_token_123');
-    expect(comp.channelsCard?.activeVerifyAddress).toBe('alex@example.test');
+    const channelsCard = comp.channelsCard();
+    expect(channelsCard?.isConfirmModalOpen).toBe(true);
+    expect(channelsCard?.activeVerifyToken).toBe('mock_verify_token_123');
+    expect(channelsCard?.activeVerifyAddress).toBe('alex@example.test');
   });
 
   it('confirms channel with OTP code and closes modal', async () => {
     const { fixture, apiMock } = await createFixture();
     const comp = fixture.componentInstance;
 
-    comp.channelsCard?.openConfirmModal('mock_verify_token_123', 'alex@example.test');
-    expect(comp.channelsCard?.isConfirmModalOpen).toBe(true);
+    const channelsCard = comp.channelsCard();
+    channelsCard?.openConfirmModal('mock_verify_token_123', 'alex@example.test');
+    expect(channelsCard?.isConfirmModalOpen).toBe(true);
 
     comp.onConfirmChannel({ verifyToken: 'mock_verify_token_123', code: '123456' });
 
@@ -304,7 +306,7 @@ describe('ProfileComponent UI contracts', () => {
       verifyToken: 'mock_verify_token_123',
       code: '123456',
     });
-    expect(comp.channelsCard?.isConfirmModalOpen).toBe(false);
+    expect(channelsCard?.isConfirmModalOpen).toBe(false);
   });
 
   it('requests and executes channel unbinding', async () => {

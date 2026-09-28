@@ -1,16 +1,16 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
   inject,
-  signal,
   viewChild,
+  input,
+  output,
+  signal,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
@@ -35,14 +35,13 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-project-members-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     SMTSelectComponent,
     SMTSelectValueAccessor,
     SMTAvatarComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTDialogComponent,
@@ -53,100 +52,108 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
-      [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project?.name || '' }"
+      [open]="isOpen()"
+      [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project()?.name || '' }"
       smtSize="lg"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
         <div body class="members-modal-body">
           <!-- Add Member Panel (visible if user can update project) -->
-          <div *ngIf="canUpdateProject" class="add-member-panel">
-            <div class="panel-header">
-              <span class="material-symbols-outlined panel-icon" aria-hidden="true">person_add</span>
-              <span class="panel-title">{{ 'projects.dobavit_uchastnika' | t }}</span>
-            </div>
+          @if (canUpdateProject()) {
+            <div class="add-member-panel">
+              <div class="panel-header">
+                <span class="material-symbols-outlined panel-icon" aria-hidden="true">person_add</span>
+                <span class="panel-title">{{ 'projects.dobavit_uchastnika' | t }}</span>
+              </div>
 
-            <div class="add-member-controls">
-              <!-- User Search / Selector -->
-              <div class="user-search-wrapper">
-                <label class="form-label" for="project-member-search">
-                  {{ 'projects.vyberite_polzovatelya' | t }} <span class="req">*</span>
-                </label>
-                <div class="search-input-box">
-                  <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
-                  <smt-input
-                    smtFieldId="project-member-search"
-                    [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
-                    [(ngModel)]="userSearchQuery"
-                    (ngModelChange)="onSearchInput($event)"
-                    (focusin)="isUserDropdownOpen = true"
-                  />
-                  <button
-                    *ngIf="selectedUser"
-                    type="button"
-                    class="clear-user-btn"
-                    [title]="'common.clear' | t"
-                    (click)="clearSelectedUser()"
-                  >
-                    <span class="material-symbols-outlined" aria-hidden="true">close</span>
-                  </button>
-                </div>
+              <div class="add-member-controls">
+                <!-- User Search / Selector -->
+                <div class="user-search-wrapper">
+                  <label class="form-label" for="project-member-search">
+                    {{ 'projects.vyberite_polzovatelya' | t }} <span class="req">*</span>
+                  </label>
+                  <div class="search-input-box">
+                    <span class="material-symbols-outlined search-icon" aria-hidden="true">search</span>
+                    <smt-input
+                      smtFieldId="project-member-search"
+                      [placeholder]="selectedUser ? selectedUser.name : ('projects.poisk_polzovatelya' | t)"
+                      [(ngModel)]="userSearchQuery"
+                      (ngModelChange)="onSearchInput($event)"
+                      (focusin)="isUserDropdownOpen.set(true)"
+                    />
+                    @if (selectedUser) {
+                      <button
+                        type="button"
+                        class="clear-user-btn"
+                        [title]="'common.clear' | t"
+                        (click)="clearSelectedUser()"
+                      >
+                        <span class="material-symbols-outlined" aria-hidden="true">close</span>
+                      </button>
+                    }
+                  </div>
 
-                <!-- User Search Results Dropdown -->
-                <div *ngIf="isUserDropdownOpen && foundUsers.length > 0" class="user-dropdown-list">
-                  <button
-                    *ngFor="let u of foundUsers"
-                    type="button"
-                    class="user-dropdown-item"
-                    [class.is-member]="isUserAlreadyMember(u.id)"
-                    [disabled]="isUserAlreadyMember(u.id)"
-                    (click)="selectUser(u)"
-                  >
-                    <smt-avatar [name]="u.name" smtSize="sm" />
-                    <div class="user-item-info">
-                      <span class="user-item-name">{{ u.name }}</span>
-                      <span class="user-item-email text-muted">&#64;{{ u.login }} &bull; {{ u.email }}</span>
+                  <!-- User Search Results Dropdown -->
+                  @if (isUserDropdownOpen() && foundUsers().length > 0) {
+                    <div class="user-dropdown-list">
+                      @for (u of foundUsers(); track u) {
+                        <button
+                          type="button"
+                          class="user-dropdown-item"
+                          [class.is-member]="isUserAlreadyMember(u.id)"
+                          [disabled]="isUserAlreadyMember(u.id)"
+                          (click)="selectUser(u)"
+                        >
+                          <smt-avatar [name]="u.name" smtSize="sm" />
+                          <div class="user-item-info">
+                            <span class="user-item-name">{{ u.name }}</span>
+                            <span class="user-item-email text-muted">&#64;{{ u.login }} &bull; {{ u.email }}</span>
+                          </div>
+                          @if (isUserAlreadyMember(u.id)) {
+                            <span class="already-member-tag">
+                              {{ 'projects.polzovatel_uzhe_uchastnik' | t }}
+                            </span>
+                          }
+                        </button>
+                      }
                     </div>
-                    <span *ngIf="isUserAlreadyMember(u.id)" class="already-member-tag">
-                      {{ 'projects.polzovatel_uzhe_uchastnik' | t }}
-                    </span>
+                  }
+                </div>
+
+                <!-- Role / Access Kind -->
+                <div class="access-kind-wrapper">
+                  <label class="form-label" for="project-member-role">
+                    {{ 'projects.uroven_dostupa' | t }} <span class="req">*</span>
+                  </label>
+                  <smt-select
+                    smtTriggerId="project-member-role"
+                    name="accessKind"
+                    [(ngModel)]="selectedAccessKind"
+                    [options]="accessKindOptions()"
+                    [allowClear]="false"
+                    [required]="true"
+                  ></smt-select>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="add-btn-wrapper">
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="primary"
+                    smtSize="md"
+                    smtIcon="add"
+                    [disabled]="!selectedUser || isAddingMember()"
+                    [smtLoading]="isAddingMember()"
+                    (click)="submitAddMember()"
+                  >
+                    {{ 'common.add' | t }}
                   </button>
                 </div>
               </div>
-
-              <!-- Role / Access Kind -->
-              <div class="access-kind-wrapper">
-                <label class="form-label" for="project-member-role">
-                  {{ 'projects.uroven_dostupa' | t }} <span class="req">*</span>
-                </label>
-                <smt-select
-                  smtTriggerId="project-member-role"
-                  name="accessKind"
-                  [(ngModel)]="selectedAccessKind"
-                  [options]="accessKindOptions()"
-                  [allowClear]="false"
-                  [required]="true"
-                ></smt-select>
-              </div>
-
-              <!-- Submit Button -->
-              <div class="add-btn-wrapper">
-                <button
-                  smt-button
-                  type="button"
-                  smtVariant="primary"
-                  smtSize="md"
-                  smtIcon="add"
-                  [disabled]="!selectedUser || isAddingMember"
-                  [smtLoading]="isAddingMember"
-                  (click)="submitAddMember()"
-                >
-                  {{ 'common.add' | t }}
-                </button>
-              </div>
             </div>
-          </div>
+          }
 
           <!-- Members Table -->
           <div
@@ -160,7 +167,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
               [rows]="rows()"
               [config]="config()"
               [sortValues]="sortValues"
-              [loading]="isLoadingMembers"
+              [loading]="isLoadingMembers()"
               [emptyTemplate]="emptyMembers"
             />
           </div>
@@ -195,7 +202,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
           smtSize="sm"
           smtIcon="delete"
           [attr.aria-label]="'projects.remove_member_named' | t: { name: m.userName }"
-          [smtLoading]="removingUserId === m.userId"
+          [smtLoading]="removingUserId() === m.userId"
           (click)="requestRemove(m)"
         >
           {{ 'common.delete' | t }}
@@ -432,13 +439,39 @@ export class ProjectMembersModalComponent {
   private readonly api = inject(ApiService);
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingMembers = input(false);
+  readonly isAddingMember = input(false);
+  /** The member whose removal is running, so only that row's button shows it. */
+  readonly removingUserId = input<number | null>(null);
+
+  readonly isOpen = input(false);
+  readonly project = input<Project | null>(null);
+
+  readonly members = input<ProjectMember[]>([]);
+  readonly canUpdateProject = input<boolean>(false);
+
+  readonly close = output<void>();
+  readonly addMember = output<{
+    projectId: number;
+    userId: number;
+    accessKind: string;
+  }>();
+  /** Asks the page to remove a member; the page confirms it first. */
+  readonly removeMember = output<{
+    projectId: number;
+    userId: number;
+    userName: string;
+  }>();
+
   private readonly userCell = viewChild.required<TemplateRef<unknown>>('memberUserCell');
   private readonly emailCell = viewChild.required<TemplateRef<unknown>>('memberEmailCell');
   private readonly accessCell = viewChild.required<TemplateRef<unknown>>('memberAccessCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('memberActionCell');
 
-  readonly rows = signal<ProjectMember[]>([]);
-  private readonly canUpdate = signal(false);
+  readonly foundUsers = signal<User[]>([]);
+  readonly isUserDropdownOpen = signal(false);
+
+  readonly rows = computed<ProjectMember[]>(() => this.members() ?? []);
 
   /** The remove column is there only for someone who may change the project. */
   readonly config = computed<TableConfig<ProjectMember>>(() => {
@@ -458,13 +491,7 @@ export class ProjectMembersModalComponent {
       columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access'],
     };
   });
-
-  @Input() isOpen = false;
-  @Input() project: Project | null = null;
-  @Input() isLoadingMembers = false;
-  @Input() isAddingMember = false;
-  /** The member whose removal is running, so only that row's button shows it. */
-  @Input() removingUserId: number | null = null;
+  private readonly canUpdate = computed(() => this.canUpdateProject());
 
   /** Every member of the project is loaded, so a header click sorts them all. */
   readonly sortValues = {
@@ -473,17 +500,10 @@ export class ProjectMembersModalComponent {
     access: (m: ProjectMember) => this.accessLabel(m.accessKind),
   };
 
-  @Output() close = new EventEmitter<void>();
-  @Output() addMember = new EventEmitter<{ projectId: number; userId: number; accessKind: string }>();
-  /** Asks the page to remove a member; the page confirms it first. */
-  @Output() removeMember = new EventEmitter<{ projectId: number; userId: number; userName: string }>();
-
   userSearchQuery = '';
-  foundUsers: User[] = [];
   selectedUser: User | null = null;
   selectedAccessKind = 'MEMBER';
   private readonly accessKindMemo = optionsMemo<SMTSelectOption<string>[]>();
-  isUserDropdownOpen = false;
 
   private searchSubject = new Subject<string>();
 
@@ -506,11 +526,11 @@ export class ProjectMembersModalComponent {
       )
       .subscribe({
         next: (res) => {
-          this.foundUsers = res.items || [];
-          this.isUserDropdownOpen = true;
+          this.foundUsers.set(res.items || []);
+          this.isUserDropdownOpen.set(true);
         },
         error: () => {
-          this.foundUsers = [];
+          this.foundUsers.set([]);
         },
       });
   }
@@ -524,19 +544,6 @@ export class ProjectMembersModalComponent {
     ]);
   }
 
-  @Input() set members(members: ProjectMember[]) {
-    this.rows.set(members ?? []);
-  }
-  get members(): ProjectMember[] {
-    return this.rows();
-  }
-  @Input() set canUpdateProject(can: boolean) {
-    this.canUpdate.set(can);
-  }
-  get canUpdateProject(): boolean {
-    return this.canUpdate();
-  }
-
   onSearchInput(query: string): void {
     if (this.selectedUser && query !== this.selectedUser.name) {
       this.selectedUser = null;
@@ -547,14 +554,14 @@ export class ProjectMembersModalComponent {
   selectUser(user: User): void {
     this.selectedUser = user;
     this.userSearchQuery = user.name;
-    this.isUserDropdownOpen = false;
+    this.isUserDropdownOpen.set(false);
   }
 
   clearSelectedUser(): void {
     this.selectedUser = null;
     this.userSearchQuery = '';
-    this.foundUsers = [];
-    this.isUserDropdownOpen = false;
+    this.foundUsers.set([]);
+    this.isUserDropdownOpen.set(false);
   }
 
   accessVariant(kind: string): 'info' | 'success' | 'neutral' {
@@ -576,13 +583,14 @@ export class ProjectMembersModalComponent {
   }
 
   isUserAlreadyMember(userId: number): boolean {
-    return this.members.some((m) => m.userId === userId);
+    return this.members().some((m) => m.userId === userId);
   }
 
   submitAddMember(): void {
-    if (!this.project || !this.selectedUser) return;
+    const project = this.project();
+    if (!project || !this.selectedUser) return;
     this.addMember.emit({
-      projectId: this.project.id,
+      projectId: project.id,
       userId: this.selectedUser.id,
       accessKind: this.selectedAccessKind,
     });

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
@@ -19,7 +19,7 @@ type ResetState = 'form' | 'done' | 'invalid';
  */
 @Component({
   selector: 'app-reset-password',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
     TranslatePipe,
@@ -129,10 +129,10 @@ export class ResetPasswordComponent {
   readonly state = signal<ResetState>('form');
   readonly isLoading = signal(false);
   readonly formError = signal('');
+  readonly newPassword = signal('');
+  readonly confirmPassword = signal('');
 
   readonly passwordPolicy = PASSWORD_POLICY;
-  newPassword = '';
-  confirmPassword = '';
   private readonly token = readToken();
 
   constructor() {
@@ -141,11 +141,11 @@ export class ResetPasswordComponent {
 
   submit(): void {
     if (this.isLoading()) return;
-    if (!fitsPasswordPolicy(this.newPassword)) {
+    if (!fitsPasswordPolicy(this.newPassword())) {
       this.formError.set(this.i18n.translate('password.policy.length_error', PASSWORD_POLICY));
       return;
     }
-    if (this.newPassword !== this.confirmPassword) {
+    if (this.newPassword() !== this.confirmPassword()) {
       this.formError.set(this.i18n.translate('auth.vvedennye_paroli_ne_sovpadayut'));
       return;
     }
@@ -153,14 +153,14 @@ export class ResetPasswordComponent {
     this.api
       .post(
         '/auth/password-reset/confirm',
-        { token: this.token, newPassword: this.newPassword },
+        { token: this.token, newPassword: this.newPassword() },
         { notifyError: false },
       )
       .subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.newPassword = '';
-          this.confirmPassword = '';
+          this.newPassword.set('');
+          this.confirmPassword.set('');
           this.state.set('done');
         },
         error: (err: unknown) => {

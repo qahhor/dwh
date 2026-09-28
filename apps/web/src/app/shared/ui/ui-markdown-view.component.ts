@@ -1,12 +1,12 @@
-import { Component, Input, OnChanges } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 
 @Component({
   selector: 'ui-markdown-view',
-  standalone: true,
-  imports: [CommonModule],
-  template: ` <div class="md-rendered-content" [innerHTML]="renderedHtml"></div> `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [],
+  template: ` <div class="md-rendered-content" [innerHTML]="renderedHtml()"></div> `,
   styles: [
     `
       .md-rendered-content {
@@ -103,13 +103,9 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
     `,
   ],
 })
-export class UiMarkdownViewComponent implements OnChanges {
-  @Input() content: string | undefined = '';
-  renderedHtml = '';
-
-  ngOnChanges() {
-    this.renderedHtml = this.parseMarkdown(this.content || '');
-  }
+export class UiMarkdownViewComponent {
+  readonly content = input<string | undefined>('');
+  readonly renderedHtml = computed(() => this.parseMarkdown(this.content() || ''));
 
   private parseMarkdown(text: string): string {
     if (!text || !text.trim()) {

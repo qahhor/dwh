@@ -19,7 +19,6 @@ interface Status {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTSortableListComponent, SMTSortableItemDirective, SMTSortableActionsDirective],
   template: `
     <smt-sortable-list

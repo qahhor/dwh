@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   inject,
   Signal,
   TemplateRef,
   computed,
-  signal,
   viewChild,
+  input,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
@@ -20,8 +19,8 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 
 @Component({
   selector: 'app-custom-fields-table',
-  standalone: true,
-  imports: [CommonModule, SMTButtonComponent, TranslatePipe, UiLocalTableComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTButtonComponent, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <div class="card table-card">
       <div
@@ -34,7 +33,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
           [rows]="rows()"
           [config]="config()"
           [sortValues]="sortValues"
-          [loading]="isLoading"
+          [loading]="isLoading()"
           [emptyTemplate]="emptyState"
         />
       </div>
@@ -85,7 +84,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
     >
     <ng-template #actionsCell let-f>
       <div class="text-right">
-        @if (canEdit || canManage) {
+        @if (canEdit() || canManage()) {
           <button
             type="button"
             class="action-btn"
@@ -96,7 +95,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
             <span class="material-symbols-outlined" aria-hidden="true">edit</span>
           </button>
         }
-        @if (canDelete || canManage) {
+        @if (canDelete() || canManage()) {
           <button
             type="button"
             class="action-btn danger"
@@ -110,11 +109,11 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
       </div>
     </ng-template>
     <ng-template #emptyState>
-      @if (searchQuery) {
+      @if (searchQuery()) {
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
           <p>
-            {{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery }}</strong
+            {{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery() }}</strong
             >»
           </p>
           <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="clearSearch.emit()">
@@ -125,7 +124,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
           <p>{{ 'iam.dinamicheskie_polya_ne_naydeny' | t }}</p>
-          @if (canManage) {
+          @if (canManage()) {
             <button
               smt-button
               type="button"
@@ -358,6 +357,21 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 export class CustomFieldsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
+  readonly isLoading = input(false);
+
+  readonly searchQuery = input('');
+
+  readonly fields = input<CustomField[]>([]);
+  readonly canManage = input<boolean>(false);
+  readonly canEdit = input<boolean>(false);
+  readonly canDelete = input<boolean>(false);
+
+  readonly copyCode = output<string>();
+  readonly editField = output<CustomField>();
+  readonly deleteField = output<CustomField>();
+  readonly clearSearch = output<void>();
+  readonly createField = output<void>();
+
   private readonly orderCell = viewChild.required<TemplateRef<unknown>>('orderCell');
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -367,8 +381,7 @@ export class CustomFieldsTableComponent {
   private readonly defaultCell = viewChild.required<TemplateRef<unknown>>('defaultCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  readonly rows = signal<CustomField[]>([]);
-  private readonly rights = signal({ manage: false, edit: false, remove: false });
+  readonly rows = computed<CustomField[]>(() => this.fields() ?? []);
 
   readonly config = computed<TableConfig<CustomField>>(() => {
     const header = (key: string) => ({
@@ -386,7 +399,7 @@ export class CustomFieldsTableComponent {
       defaultValue: { header: header('iam.znachenie_po_umolchaniyu'), content: cell(this.defaultCell) },
     };
     const order = ['orderNo', 'code', 'name', 'entityType', 'fieldType', 'isRequired', 'defaultValue'];
-    if (this.canManage || this.canEdit || this.canDelete) {
+    if (this.canManage() || this.canEdit() || this.canDelete()) {
       columns['actions'] = {
         header: header('common.actions'),
         content: cell(this.actionsCell),
@@ -403,15 +416,11 @@ export class CustomFieldsTableComponent {
       columnsOrder: order,
     };
   });
-
-  @Input() isLoading = false;
-  @Input() searchQuery = '';
-
-  @Output() copyCode = new EventEmitter<string>();
-  @Output() editField = new EventEmitter<CustomField>();
-  @Output() deleteField = new EventEmitter<CustomField>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() createField = new EventEmitter<void>();
+  private readonly rights = computed(() => ({
+    manage: this.canManage(),
+    edit: this.canEdit(),
+    remove: this.canDelete(),
+  }));
 
   /** Every field is loaded, so a header click (by keyboard too) sorts the whole list. */
   readonly sortValues = {
@@ -422,28 +431,6 @@ export class CustomFieldsTableComponent {
     fieldType: (f: CustomField) => this.getTypeName(f.fieldType),
     isRequired: (f: CustomField) => (f.isRequired ? 0 : 1),
   };
-
-  @Input() set fields(fields: CustomField[]) {
-    this.rows.set(fields ?? []);
-  }
-  @Input() set canManage(value: boolean) {
-    this.rights.update((r) => ({ ...r, manage: value }));
-  }
-  get canManage(): boolean {
-    return this.rights().manage;
-  }
-  @Input() set canEdit(value: boolean) {
-    this.rights.update((r) => ({ ...r, edit: value }));
-  }
-  get canEdit(): boolean {
-    return this.rights().edit;
-  }
-  @Input() set canDelete(value: boolean) {
-    this.rights.update((r) => ({ ...r, remove: value }));
-  }
-  get canDelete(): boolean {
-    return this.rights().remove;
-  }
 
   getEntityLabel(ent: string): string {
     switch ((ent || '').toUpperCase()) {

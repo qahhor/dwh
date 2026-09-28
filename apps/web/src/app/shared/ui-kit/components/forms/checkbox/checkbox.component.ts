@@ -6,13 +6,11 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  ElementRef,
   input,
   linkedSignal,
   model,
   output,
   signal,
-  ViewChild,
 } from '@angular/core';
 // Compatibility: Angular 22 renamed WithOptionalField to WithOptionalFieldTree.
 import type { FormCheckboxControl, ValidationError, WithOptionalFieldTree } from '@angular/forms/signals';
@@ -188,9 +186,6 @@ export class SMTCheckboxComponent<T> implements FormCheckboxControl {
   readonly labelId = `smt-checkbox-${++nextCheckboxUid}-label`;
 
   readonly hintId = `smt-checkbox-${nextCheckboxUid}-hint`;
-
-  @ViewChild('inputElement', { static: true })
-  inputElement!: ElementRef<HTMLInputElement>;
 
   constructor() {
     injectRegisterSMTIcons([checkboxCheckIcon, checkboxMinusIcon]);

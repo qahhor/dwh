@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTTabBarComponent, SMTTabItem } from '../../../shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group';
@@ -8,8 +8,7 @@ import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/compone
 
 @Component({
   selector: 'app-announcements-toolbar',
-  standalone: true,
-  imports: [SMTTabBarComponent, SMTInputComponent, CommonModule, TranslatePipe],
+  imports: [SMTTabBarComponent, SMTInputComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar">

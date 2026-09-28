@@ -23,7 +23,6 @@ const TREE: SMTTreeOption<number>[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [SMTTreeSelectComponent],
   template: `<smt-tree-select [(value)]="unit" [nodes]="nodes" ariaLabel="Parent" />`,
 })
@@ -33,7 +32,6 @@ class Host {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTTreeSelectComponent, SMTTreeSelectValueAccessor, FormsModule],
   template: `<smt-tree-select [(ngModel)]="unit" name="unit" [nodes]="nodes" ariaLabel="Parent" />`,
 })
@@ -43,7 +41,6 @@ class NgModelHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTTreeSelectComponent, SMTTreeSelectValueAccessor, FormsModule],
   // Inside a form, NgForm registers the control in a microtask, as on the org unit editor.
   template: `<form>

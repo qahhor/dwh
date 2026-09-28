@@ -48,7 +48,6 @@ let nextTabBarId = 0;
 
 @Component({
   selector: 'smt-tab-bar',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './tab-bar.scss',

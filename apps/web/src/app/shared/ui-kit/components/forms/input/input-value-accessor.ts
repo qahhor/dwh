@@ -9,7 +9,6 @@ import { SMTInputComponent, SMTInputValue } from './input.component';
 
 @Directive({
   selector: 'smt-input[ngModel], smt-input[formControl], smt-input[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTInputValueAccessor), multi: true }],
 })
 export class SMTInputValueAccessor extends PickerValueAccessor<SMTInputValue> {

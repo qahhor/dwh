@@ -52,7 +52,6 @@ export function acceptsFile(file: File, accept: string): boolean {
 
 @Component({
   selector: 'smt-dropzone',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './dropzone.component.html',

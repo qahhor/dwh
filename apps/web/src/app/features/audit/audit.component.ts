@@ -1,5 +1,5 @@
-import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TranslatePipe } from '../../core/services/i18n.service';
@@ -28,12 +28,11 @@ export * from './audit.models';
 
 @Component({
   selector: 'app-audit',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTButtonComponent,
     SMTAlertComponent,
     SMTTabBarComponent,
-    CommonModule,
     TranslatePipe,
     AuditStatsTilesComponent,
     AuditLogsTableComponent,
@@ -91,52 +90,54 @@ export * from './audit.models';
       }
 
       <!-- TAB 1: AUDIT LOGS -->
-      <app-audit-logs-table
-        *ngIf="activeTab === 'audit'"
-        [pager]="auditPager"
-        [meta]="auditMeta()"
-        [views]="auditViews"
-        [exportOptions]="auditExportOptions()"
-        (sortChange)="onAuditSort($event)"
-        [tableFilter]="tableFilter"
-        [eventFilter]="eventFilter"
-        [rowPkFilter]="rowPkFilter"
-        [auditUserFilter]="auditUserFilter"
-        [auditFromFilter]="auditFromFilter"
-        [auditToFilter]="auditToFilter"
-        (tableFilterChange)="tableFilter = $event"
-        (eventFilterChange)="eventFilter = $event"
-        (rowPkFilterChange)="rowPkFilter = $event"
-        (auditUserFilterChange)="auditUserFilter = $event"
-        (auditFromFilterChange)="auditFromFilter = $event"
-        (auditToFilterChange)="auditToFilter = $event"
-        (applyFilters)="loadAuditLogs(true)"
-        (resetFilters)="resetAuditFilters()"
-        (selectRecord)="selectAuditRecord($event)"
-      ></app-audit-logs-table>
+      @if (activeTab === 'audit') {
+        <app-audit-logs-table
+          [pager]="auditPager"
+          [meta]="auditMeta()"
+          [views]="auditViews"
+          [exportOptions]="auditExportOptions()"
+          (sortChange)="onAuditSort($event)"
+          [tableFilter]="tableFilter"
+          [eventFilter]="eventFilter"
+          [rowPkFilter]="rowPkFilter"
+          [auditUserFilter]="auditUserFilter"
+          [auditFromFilter]="auditFromFilter"
+          [auditToFilter]="auditToFilter"
+          (tableFilterChange)="tableFilter = $event"
+          (eventFilterChange)="eventFilter = $event"
+          (rowPkFilterChange)="rowPkFilter = $event"
+          (auditUserFilterChange)="auditUserFilter = $event"
+          (auditFromFilterChange)="auditFromFilter = $event"
+          (auditToFilterChange)="auditToFilter = $event"
+          (applyFilters)="loadAuditLogs(true)"
+          (resetFilters)="resetAuditFilters()"
+          (selectRecord)="selectAuditRecord($event)"
+        ></app-audit-logs-table>
+      }
 
       <!-- TAB 2: SECURITY EVENTS -->
-      <app-audit-security-table
-        *ngIf="activeTab === 'security'"
-        [pager]="securityPager"
-        [meta]="securityMeta()"
-        [views]="securityViews"
-        [exportOptions]="securityExportOptions()"
-        (sortChange)="onSecuritySort($event)"
-        [secEventTypeFilter]="secEventTypeFilter"
-        [secIpFilter]="secIpFilter"
-        [securityUserFilter]="securityUserFilter"
-        [securityFromFilter]="securityFromFilter"
-        [securityToFilter]="securityToFilter"
-        (secEventTypeFilterChange)="secEventTypeFilter = $event"
-        (secIpFilterChange)="secIpFilter = $event"
-        (securityUserFilterChange)="securityUserFilter = $event"
-        (securityFromFilterChange)="securityFromFilter = $event"
-        (securityToFilterChange)="securityToFilter = $event"
-        (applyFilters)="loadSecurityEvents(true)"
-        (resetFilters)="resetSecurityFilters()"
-        (selectEvent)="selectSecurityEvent($event)"
-      ></app-audit-security-table>
+      @if (activeTab === 'security') {
+        <app-audit-security-table
+          [pager]="securityPager"
+          [meta]="securityMeta()"
+          [views]="securityViews"
+          [exportOptions]="securityExportOptions()"
+          (sortChange)="onSecuritySort($event)"
+          [secEventTypeFilter]="secEventTypeFilter"
+          [secIpFilter]="secIpFilter"
+          [securityUserFilter]="securityUserFilter"
+          [securityFromFilter]="securityFromFilter"
+          [securityToFilter]="securityToFilter"
+          (secEventTypeFilterChange)="secEventTypeFilter = $event"
+          (secIpFilterChange)="secIpFilter = $event"
+          (securityUserFilterChange)="securityUserFilter = $event"
+          (securityFromFilterChange)="securityFromFilter = $event"
+          (securityToFilterChange)="securityToFilter = $event"
+          (applyFilters)="loadSecurityEvents(true)"
+          (resetFilters)="resetSecurityFilters()"
+          (selectEvent)="selectSecurityEvent($event)"
+        ></app-audit-security-table>
+      }
 
       <!-- MODALS -->
       <app-audit-modals

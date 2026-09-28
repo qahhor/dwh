@@ -60,7 +60,6 @@ import { UiPaginationComponent } from './ui-pagination.component';
  */
 @Component({
   selector: 'ui-server-table',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTableComponent,
@@ -138,7 +137,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
         [smtData]="pager().items()"
         [smtConfig]="shownConfig()"
         [(smtSelectedItems)]="selected"
-        [smtIsLoading]="pager().loading()"
+        [smtIsLoading]="pager().loading() || !pager().loaded()"
         [smtSkeletonRowCount]="pager().pageSize()"
         [smtEmptyTemplate]="emptyTemplate()"
         [smtColumnResizeEnabled]="!!columnsId() || !!views()"

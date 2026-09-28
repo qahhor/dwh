@@ -1,6 +1,15 @@
-import { afterNextRender, Component, DestroyRef, ElementRef, Injector, signal, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  afterNextRender,
+  Component,
+  DestroyRef,
+  ElementRef,
+  Injector,
+  signal,
+  inject,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -18,12 +27,11 @@ export * from './login.models';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     TranslatePipe,
-    CommonModule,
     FormsModule,
     SMTButtonComponent,
     LoginTopBarComponent,
@@ -37,222 +45,224 @@ export * from './login.models';
         <app-login-header></app-login-header>
 
         <!-- Step 1: Login & Password Form -->
-        <form
-          *ngIf="step() === 'credentials'"
-          (ngSubmit)="onLoginSubmit()"
-          class="login-form"
-          [attr.aria-busy]="isLoading()"
-        >
-          <div class="form-group">
-            <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
-            <smt-input
-              smtFieldId="login"
-              [(ngModel)]="login"
-              (ngModelChange)="formError.set('')"
-              name="login"
-              required
-              autocomplete="username"
-              autocapitalize="none"
-              [spellcheck]="false"
-              placeholder="user@company.com"
-              [smtInvalid]="formError() ? 'true' : null"
-              [smtDescribedBy]="formError() ? 'login-error' : null"
-              [disabled]="isLoading()"
-            />
-          </div>
-
-          <div class="form-group">
-            <div class="password-label-row">
-              <label class="form-label" for="password">{{ 'auth.password' | t }}</label>
+        @if (step() === 'credentials') {
+          <form (ngSubmit)="onLoginSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+            <div class="form-group">
+              <label class="form-label" for="login">{{ 'auth.username' | t }}</label>
+              <smt-input
+                smtFieldId="login"
+                [(ngModel)]="login"
+                (ngModelChange)="formError.set('')"
+                name="login"
+                required
+                autocomplete="username"
+                autocapitalize="none"
+                [spellcheck]="false"
+                placeholder="user@company.com"
+                [smtInvalid]="formError() ? 'true' : null"
+                [smtDescribedBy]="formError() ? 'login-error' : null"
+                [disabled]="isLoading()"
+              />
             </div>
-            <smt-input
-              smtFieldId="password"
-              type="password"
-              [(ngModel)]="password"
-              (ngModelChange)="formError.set('')"
-              (keydown)="checkCapsLock($event, 'password')"
-              (keyup)="checkCapsLock($event, 'password')"
-              (touch)="capsLockField.set(null)"
-              name="password"
-              required
-              autocomplete="current-password"
-              [spellcheck]="false"
-              [smtInvalid]="!!formError()"
-              [smtDescribedBy]="passwordDescription('password')"
-              [disabled]="isLoading()"
-            />
-            <p id="password-caps-lock" class="caps-lock-hint" role="status">
-              {{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}
-            </p>
-            <button type="button" class="forgot-link" [disabled]="isLoading()" (click)="openResetModal()">
-              {{ 'auth.zabyli_parol' | t }}
+
+            <div class="form-group">
+              <div class="password-label-row">
+                <label class="form-label" for="password">{{ 'auth.password' | t }}</label>
+              </div>
+              <smt-input
+                smtFieldId="password"
+                type="password"
+                [(ngModel)]="password"
+                (ngModelChange)="formError.set('')"
+                (keydown)="checkCapsLock($event, 'password')"
+                (keyup)="checkCapsLock($event, 'password')"
+                (touch)="capsLockField.set(null)"
+                name="password"
+                required
+                autocomplete="current-password"
+                [spellcheck]="false"
+                [smtInvalid]="!!formError()"
+                [smtDescribedBy]="passwordDescription('password')"
+                [disabled]="isLoading()"
+              />
+              <p id="password-caps-lock" class="caps-lock-hint" role="status">
+                {{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}
+              </p>
+              <button type="button" class="forgot-link" [disabled]="isLoading()" (click)="openResetModal()">
+                {{ 'auth.zabyli_parol' | t }}
+              </button>
+            </div>
+
+            @if (formError()) {
+              <p id="login-error" class="form-error" role="alert">{{ formError() }}</p>
+            }
+
+            <button
+              smt-button
+              type="submit"
+              smtVariant="primary"
+              smtSize="lg"
+              [smtLoading]="isLoading()"
+              [smtFullWidth]="true"
+              class="submit-btn"
+            >
+              {{ 'auth.voyti_v_sistemu' | t }}
             </button>
-          </div>
-
-          <p *ngIf="formError()" id="login-error" class="form-error" role="alert">{{ formError() }}</p>
-
-          <button
-            smt-button
-            type="submit"
-            smtVariant="primary"
-            smtSize="lg"
-            [smtLoading]="isLoading()"
-            [smtFullWidth]="true"
-            class="submit-btn"
-          >
-            {{ 'auth.voyti_v_sistemu' | t }}
-          </button>
-        </form>
+          </form>
+        }
 
         <!-- Step 2: 2FA OTP Code Verification -->
-        <form *ngIf="step() === 'otp'" (ngSubmit)="onOtpSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
-          <div class="otp-banner">
-            <span class="material-symbols-outlined" aria-hidden="true">shield_person</span>
-            <div>
-              <strong>{{ 'auth.otp_title' | t }}</strong>
-              <p id="otp-hint">{{ 'auth.vvedite_6_znachnyy_kod_podtverzhdeniya_otpravlen' | t }}</p>
+        @if (step() === 'otp') {
+          <form (ngSubmit)="onOtpSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+            <div class="otp-banner">
+              <span class="material-symbols-outlined" aria-hidden="true">shield_person</span>
+              <div>
+                <strong>{{ 'auth.otp_title' | t }}</strong>
+                <p id="otp-hint">{{ 'auth.vvedite_6_znachnyy_kod_podtverzhdeniya_otpravlen' | t }}</p>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label" for="otp-code">{{ 'auth.kod_podtverzhdeniya_otp' | t }}</label>
-            <smt-input
-              class="otp-input tabular-nums"
-              smtFieldId="otp-code"
-              [(ngModel)]="otpCode"
-              (ngModelChange)="formError.set('')"
-              name="otpCode"
-              required
-              [maxLength]="6"
-              inputmode="numeric"
-              autocomplete="one-time-code"
-              smtPattern="[0-9]{6}"
-              [smtDescribedBy]="formError() ? 'otp-hint otp-error' : 'otp-hint'"
-              [smtInvalid]="formError() ? 'true' : null"
-              [disabled]="isLoading()"
-            />
-          </div>
+            <div class="form-group">
+              <label class="form-label" for="otp-code">{{ 'auth.kod_podtverzhdeniya_otp' | t }}</label>
+              <smt-input
+                class="otp-input tabular-nums"
+                smtFieldId="otp-code"
+                [(ngModel)]="otpCode"
+                (ngModelChange)="formError.set('')"
+                name="otpCode"
+                required
+                [maxLength]="6"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                smtPattern="[0-9]{6}"
+                [smtDescribedBy]="formError() ? 'otp-hint otp-error' : 'otp-hint'"
+                [smtInvalid]="formError() ? 'true' : null"
+                [disabled]="isLoading()"
+              />
+            </div>
 
-          <p *ngIf="formError()" id="otp-error" class="form-error" role="alert">{{ formError() }}</p>
+            @if (formError()) {
+              <p id="otp-error" class="form-error" role="alert">{{ formError() }}</p>
+            }
 
-          <div class="otp-actions">
-            <button
-              smt-button
-              type="submit"
-              smtVariant="primary"
-              smtSize="lg"
-              [smtLoading]="isLoading()"
-              [smtFullWidth]="true"
-              class="submit-btn"
-            >
-              {{ 'auth.podtverdit_vhod' | t }}
-            </button>
+            <div class="otp-actions">
+              <button
+                smt-button
+                type="submit"
+                smtVariant="primary"
+                smtSize="lg"
+                [smtLoading]="isLoading()"
+                [smtFullWidth]="true"
+                class="submit-btn"
+              >
+                {{ 'auth.podtverdit_vhod' | t }}
+              </button>
 
-            <button
-              smt-button
-              type="button"
-              smtVariant="ghost"
-              smtSize="md"
-              [disabled]="isLoading()"
-              (click)="backToCredentials()"
-            >
-              {{ 'auth.vernutsya_nazad' | t }}
-            </button>
-          </div>
-        </form>
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="md"
+                [disabled]="isLoading()"
+                (click)="backToCredentials()"
+              >
+                {{ 'auth.vernutsya_nazad' | t }}
+              </button>
+            </div>
+          </form>
+        }
 
         <!-- Step 3: Mandatory Password Change on First Login -->
-        <form
-          *ngIf="step() === 'must_change_password'"
-          (ngSubmit)="onChangePasswordSubmit()"
-          class="login-form"
-          [attr.aria-busy]="isLoading()"
-        >
-          <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning);">
-            <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
-            <div>
-              <strong>{{ 'auth.smena_vremennogo_parolya' | t }}</strong>
-              <p id="password-policy-hint">{{ 'auth.set_permanent_password_hint' | t: passwordPolicy }}</p>
+        @if (step() === 'must_change_password') {
+          <form (ngSubmit)="onChangePasswordSubmit()" class="login-form" [attr.aria-busy]="isLoading()">
+            <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning);">
+              <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
+              <div>
+                <strong>{{ 'auth.smena_vremennogo_parolya' | t }}</strong>
+                <p id="password-policy-hint">{{ 'auth.set_permanent_password_hint' | t: passwordPolicy }}</p>
+              </div>
             </div>
-          </div>
 
-          <div class="form-group">
-            <label class="form-label" for="new-password">{{ 'auth.novyy_parol' | t }}</label>
-            <smt-input
-              smtFieldId="new-password"
-              type="password"
-              [(ngModel)]="newPassword"
-              (ngModelChange)="formError.set('')"
-              (keydown)="checkCapsLock($event, 'new-password')"
-              (keyup)="checkCapsLock($event, 'new-password')"
-              (touch)="capsLockField.set(null)"
-              name="newPassword"
-              required
-              [minLength]="passwordPolicy.min"
-              [maxLength]="passwordPolicy.max"
-              autocomplete="new-password"
-              [spellcheck]="false"
-              [smtInvalid]="!!formError()"
-              [smtDescribedBy]="passwordDescription('new-password')"
-              [disabled]="isLoading()"
-            />
-            <p id="new-password-caps-lock" class="caps-lock-hint" role="status">
-              {{ capsLockField() === 'new-password' ? ('auth.caps_lock_on' | t) : '' }}
-            </p>
-          </div>
+            <div class="form-group">
+              <label class="form-label" for="new-password">{{ 'auth.novyy_parol' | t }}</label>
+              <smt-input
+                smtFieldId="new-password"
+                type="password"
+                [(ngModel)]="newPassword"
+                (ngModelChange)="formError.set('')"
+                (keydown)="checkCapsLock($event, 'new-password')"
+                (keyup)="checkCapsLock($event, 'new-password')"
+                (touch)="capsLockField.set(null)"
+                name="newPassword"
+                required
+                [minLength]="passwordPolicy.min"
+                [maxLength]="passwordPolicy.max"
+                autocomplete="new-password"
+                [spellcheck]="false"
+                [smtInvalid]="!!formError()"
+                [smtDescribedBy]="passwordDescription('new-password')"
+                [disabled]="isLoading()"
+              />
+              <p id="new-password-caps-lock" class="caps-lock-hint" role="status">
+                {{ capsLockField() === 'new-password' ? ('auth.caps_lock_on' | t) : '' }}
+              </p>
+            </div>
 
-          <div class="form-group">
-            <label class="form-label" for="confirm-new-password">{{ 'auth.povtorite_novyy_parol' | t }}</label>
-            <smt-input
-              smtFieldId="confirm-new-password"
-              type="password"
-              [(ngModel)]="confirmNewPassword"
-              (ngModelChange)="formError.set('')"
-              (keydown)="checkCapsLock($event, 'confirm-new-password')"
-              (keyup)="checkCapsLock($event, 'confirm-new-password')"
-              (touch)="capsLockField.set(null)"
-              name="confirmNewPassword"
-              required
-              [minLength]="passwordPolicy.min"
-              [maxLength]="passwordPolicy.max"
-              autocomplete="new-password"
-              [spellcheck]="false"
-              [smtInvalid]="!!formError()"
-              [smtDescribedBy]="passwordDescription('confirm-new-password')"
-              [disabled]="isLoading()"
-            />
-            <p id="confirm-new-password-caps-lock" class="caps-lock-hint" role="status">
-              {{ capsLockField() === 'confirm-new-password' ? ('auth.caps_lock_on' | t) : '' }}
-            </p>
-          </div>
+            <div class="form-group">
+              <label class="form-label" for="confirm-new-password">{{ 'auth.povtorite_novyy_parol' | t }}</label>
+              <smt-input
+                smtFieldId="confirm-new-password"
+                type="password"
+                [(ngModel)]="confirmNewPassword"
+                (ngModelChange)="formError.set('')"
+                (keydown)="checkCapsLock($event, 'confirm-new-password')"
+                (keyup)="checkCapsLock($event, 'confirm-new-password')"
+                (touch)="capsLockField.set(null)"
+                name="confirmNewPassword"
+                required
+                [minLength]="passwordPolicy.min"
+                [maxLength]="passwordPolicy.max"
+                autocomplete="new-password"
+                [spellcheck]="false"
+                [smtInvalid]="!!formError()"
+                [smtDescribedBy]="passwordDescription('confirm-new-password')"
+                [disabled]="isLoading()"
+              />
+              <p id="confirm-new-password-caps-lock" class="caps-lock-hint" role="status">
+                {{ capsLockField() === 'confirm-new-password' ? ('auth.caps_lock_on' | t) : '' }}
+              </p>
+            </div>
 
-          <p *ngIf="formError()" id="password-change-error" class="form-error" role="alert">{{ formError() }}</p>
+            @if (formError()) {
+              <p id="password-change-error" class="form-error" role="alert">{{ formError() }}</p>
+            }
 
-          <div class="otp-actions">
-            <button
-              smt-button
-              type="submit"
-              smtVariant="primary"
-              smtSize="lg"
-              [smtLoading]="isLoading()"
-              [smtFullWidth]="true"
-              class="submit-btn"
-            >
-              {{ 'auth.change_password' | t }}
-            </button>
+            <div class="otp-actions">
+              <button
+                smt-button
+                type="submit"
+                smtVariant="primary"
+                smtSize="lg"
+                [smtLoading]="isLoading()"
+                [smtFullWidth]="true"
+                class="submit-btn"
+              >
+                {{ 'auth.change_password' | t }}
+              </button>
 
-            <button
-              smt-button
-              type="button"
-              smtVariant="ghost"
-              smtSize="md"
-              [disabled]="isLoading()"
-              (click)="backToCredentials()"
-            >
-              {{ 'common.cancel' | t }}
-            </button>
-          </div>
-        </form>
+              <button
+                smt-button
+                type="button"
+                smtVariant="ghost"
+                smtSize="md"
+                [disabled]="isLoading()"
+                (click)="backToCredentials()"
+              >
+                {{ 'common.cancel' | t }}
+              </button>
+            </div>
+          </form>
+        }
       </div>
     </main>
 
@@ -272,17 +282,17 @@ export class LoginComponent {
   readonly isLoading = signal<boolean>(false);
   readonly isResetModalOpen = signal<boolean>(false);
   readonly formError = signal<string>('');
+  readonly password = signal('');
+  readonly otpCode = signal('');
+  readonly otpToken = signal('');
+  readonly newPassword = signal('');
+  readonly confirmNewPassword = signal('');
+  readonly tempOldPassword = signal('');
 
   readonly passwordPolicy = PASSWORD_POLICY;
   private readonly uiI18n = this.i18n;
 
   login = '';
-  password = '';
-  otpCode = '';
-  otpToken = '';
-  newPassword = '';
-  confirmNewPassword = '';
-  tempOldPassword = '';
 
   constructor(
     private authService: AuthService,
@@ -295,7 +305,7 @@ export class LoginComponent {
 
   onLoginSubmit() {
     if (this.isLoading() || this.step() !== 'credentials' || this.isResetModalOpen()) return;
-    if (!this.login || !this.password) {
+    if (!this.login || !this.password()) {
       this.formError.set(this.uiI18n.translate('auth.enter_login_and_password'));
       this.focusInput(!this.login ? 'login' : 'password');
       return;
@@ -305,19 +315,19 @@ export class LoginComponent {
     this.capsLockField.set(null);
     this.isLoading.set(true);
     this.authService
-      .login(this.login, this.password, navigator.userAgent)
+      .login(this.login, this.password(), navigator.userAgent)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.isLoading.set(false);
           if (res.step === 'otp') {
-            this.otpToken = res.otp_token || '';
-            this.otpCode = '';
+            this.otpToken.set(res.otp_token || '');
+            this.otpCode.set('');
             this.changeStep('otp');
           } else if (res.step === 'success' && res.user?.forcePasswordChange) {
-            this.tempOldPassword = this.password;
-            this.newPassword = '';
-            this.confirmNewPassword = '';
+            this.tempOldPassword.set(this.password());
+            this.newPassword.set('');
+            this.confirmNewPassword.set('');
             this.changeStep('must_change_password');
           }
         },
@@ -332,8 +342,8 @@ export class LoginComponent {
   }
 
   onOtpSubmit() {
-    if (this.isLoading() || this.step() !== 'otp' || !this.otpToken) return;
-    if (!/^[0-9]{6}$/.test(this.otpCode)) {
+    if (this.isLoading() || this.step() !== 'otp' || !this.otpToken()) return;
+    if (!/^[0-9]{6}$/.test(this.otpCode())) {
       this.formError.set(this.uiI18n.translate('auth.enter_six_digit_code'));
       this.focusInput('otp-code');
       return;
@@ -342,15 +352,15 @@ export class LoginComponent {
     this.formError.set('');
     this.isLoading.set(true);
     this.authService
-      .verifyOtp(this.otpToken, this.otpCode, navigator.userAgent)
+      .verifyOtp(this.otpToken(), this.otpCode(), navigator.userAgent)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
           this.isLoading.set(false);
           if (res.step === 'success' && res.user?.forcePasswordChange) {
-            this.tempOldPassword = this.password;
-            this.newPassword = '';
-            this.confirmNewPassword = '';
+            this.tempOldPassword.set(this.password());
+            this.newPassword.set('');
+            this.confirmNewPassword.set('');
             this.changeStep('must_change_password');
           }
         },
@@ -366,17 +376,17 @@ export class LoginComponent {
 
   onChangePasswordSubmit() {
     if (this.isLoading() || this.step() !== 'must_change_password') return;
-    if (!this.newPassword || !this.confirmNewPassword) {
+    if (!this.newPassword() || !this.confirmNewPassword()) {
       this.formError.set(this.uiI18n.translate('auth.enter_and_confirm_new_password'));
-      this.focusInput(!this.newPassword ? 'new-password' : 'confirm-new-password');
+      this.focusInput(!this.newPassword() ? 'new-password' : 'confirm-new-password');
       return;
     }
-    if (!fitsPasswordPolicy(this.newPassword)) {
+    if (!fitsPasswordPolicy(this.newPassword())) {
       this.formError.set(this.uiI18n.translate('password.policy.length_error', PASSWORD_POLICY));
       this.focusInput('new-password');
       return;
     }
-    if (this.newPassword !== this.confirmNewPassword) {
+    if (this.newPassword() !== this.confirmNewPassword()) {
       this.formError.set(this.uiI18n.translate('auth.vvedennye_paroli_ne_sovpadayut'));
       this.focusInput('confirm-new-password');
       return;
@@ -391,20 +401,20 @@ export class LoginComponent {
       .post(
         '/auth/password',
         {
-          oldPassword: this.tempOldPassword || this.password,
-          newPassword: this.newPassword,
+          oldPassword: this.tempOldPassword() || this.password(),
+          newPassword: this.newPassword(),
         },
         { notifyError: false },
       )
       .subscribe({
         next: () => {
           this.isLoading.set(false);
-          this.password = '';
-          this.tempOldPassword = '';
-          this.newPassword = '';
-          this.confirmNewPassword = '';
-          this.otpToken = '';
-          this.otpCode = '';
+          this.password.set('');
+          this.tempOldPassword.set('');
+          this.newPassword.set('');
+          this.confirmNewPassword.set('');
+          this.otpToken.set('');
+          this.otpCode.set('');
           this.changeStep('credentials');
           this.authService.onPasswordChanged();
         },
@@ -438,12 +448,12 @@ export class LoginComponent {
 
   backToCredentials(): void {
     if (this.isLoading()) return;
-    this.password = '';
-    this.tempOldPassword = '';
-    this.otpToken = '';
-    this.otpCode = '';
-    this.newPassword = '';
-    this.confirmNewPassword = '';
+    this.password.set('');
+    this.tempOldPassword.set('');
+    this.otpToken.set('');
+    this.otpCode.set('');
+    this.newPassword.set('');
+    this.confirmNewPassword.set('');
     this.changeStep('credentials');
   }
 

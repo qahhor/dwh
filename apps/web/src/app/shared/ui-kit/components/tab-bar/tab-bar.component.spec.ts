@@ -8,7 +8,6 @@ import { SMTTabBarComponent, SMTTabItem } from './tab-bar.component';
 type Section = 'general' | 'security' | 'audit' | 'about';
 
 @Component({
-  standalone: true,
   imports: [SMTTabBarComponent],
   template: `<smt-tab-bar [tabs]="tabs()" [(value)]="section" smtAriaLabel="Sections" smtIdPrefix="s" />`,
 })

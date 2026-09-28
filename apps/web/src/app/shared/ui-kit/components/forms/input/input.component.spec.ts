@@ -13,7 +13,6 @@ import { SMTInputComponent } from './input.component';
 import { SMTInputValueAccessor } from './input-value-accessor';
 
 @Component({
-  standalone: true,
   imports: [SMTInputComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Name" smtHint="As on the badge">
@@ -30,7 +29,6 @@ class FormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule],
   template: `
     <smt-input type="number" [(ngModel)]="count" [smtMin]="0" [smtMax]="10" [disabled]="off()" smtAriaLabel="Count" />

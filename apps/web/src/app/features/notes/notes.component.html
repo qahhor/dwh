@@ -1,0 +1,105 @@
+<div class="notes-view" role="region" [attr.aria-label]="'notes.title' | t">
+  <div class="view-header">
+    <div class="header-left">
+      <h1 class="view-title">{{ 'notes.title' | t }}</h1>
+      <span class="count-badge">{{ list().total }}</span>
+      <smt-tab-bar
+        class="tabs-bar"
+        [tabs]="tabs()"
+        [value]="activeTab()"
+        [smtAriaLabel]="'notes.title' | t"
+        (valueChange)="$event && setTab($event)"
+      />
+    </div>
+    <div class="header-right">
+      <smt-entity-toolbar
+        [meta]="meta()"
+        [views]="views"
+        [listMeta]="listMeta()"
+        [search]="search()"
+        [(selected)]="selectedIds"
+        (bulkDone)="firstPage.reload()"
+      />
+      <smt-input
+        class="search-box"
+        type="search"
+        smtIcon="search"
+        clearable
+        smtSize="sm"
+        [placeholder]="'notes.search_placeholder' | t"
+        [smtAriaLabel]="'notes.search_placeholder' | t"
+        [value]="search()"
+        (valueChange)="search.set($any($event) ?? '')"
+      />
+      @if (canCreate()) {
+        <ng-container [ngTemplateOutlet]="createButton" />
+      }
+    </div>
+  </div>
+
+  @if (meta(); as form) {
+    @if (list().items.length > 0) {
+      <div class="notes-grid">
+        @for (note of list().items; track note.id) {
+          <app-note-card
+            [note]="note"
+            [meta]="form"
+            [selectable]="canSelect()"
+            [selected]="isSelected(note)"
+            (selectedChange)="setSelected(note, $event)"
+            (togglePin)="togglePin(note)"
+            (edit)="editing.set(note)"
+            (remove)="remove(note)"
+          />
+        }
+      </div>
+    } @else if (firstPage.status() === 'resolved') {
+      <div class="empty-state">
+        <span class="material-symbols-outlined empty-icon" aria-hidden="true">description</span>
+        <h3>{{ 'notes.empty_title' | t }}</h3>
+        <p>{{ 'notes.empty_desc' | t }}</p>
+        @if (canCreate()) {
+          <ng-container [ngTemplateOutlet]="createButton" />
+        }
+      </div>
+    }
+
+    @if (editing(); as target) {
+      <app-note-form-dialog
+        [meta]="form"
+        [note]="target === 'new' ? null : target"
+        (closed)="editing.set(null)"
+        (saved)="saved()"
+      />
+    }
+  }
+
+  @if (list().nextCursor) {
+    <div class="notes-more">
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        data-testid="notes-load-more"
+        [smtLoading]="loadingMore()"
+        (click)="loadMore()"
+      >
+        {{ 'notes.load_more' | t }}
+      </button>
+    </div>
+  }
+</div>
+
+<ng-template #createButton>
+  <button
+    smt-button
+    type="button"
+    smtVariant="primary"
+    smtSize="md"
+    smtIcon="add"
+    [attr.aria-label]="'notes.create' | t"
+    (click)="editing.set('new')"
+  >
+    {{ 'notes.create' | t }}
+  </button>
+</ng-template>

@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, OnInit, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, signal, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { NotificationPrefItem } from '../../../core/models/notification.models';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -14,13 +14,12 @@ export interface EventTypeRow {
 
 @Component({
   selector: 'app-notification-preferences-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
     SMTCheckboxComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
   ],
@@ -29,7 +28,7 @@ export interface EventTypeRow {
       [open]="true"
       [smtTitle]="'notifications.preferences_title' | t"
       smtSize="lg"
-      [dismissible]="!isSaving"
+      [dismissible]="!isSaving()"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
@@ -57,47 +56,49 @@ export interface EventTypeRow {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of eventRows">
-                <td class="event-title">
-                  {{ row.titleKey | t }}
-                </td>
-                <td class="channel-cell">
-                  <span
-                    smt-checkbox
-                    smtHideLabel
-                    [checked]="isEnabled(row.code, 'in_app')"
-                    (checkedChange)="toggle(row.code, 'in_app', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"
-                  ></span>
-                </td>
-                <td class="channel-cell">
-                  <span
-                    smt-checkbox
-                    smtHideLabel
-                    [checked]="isEnabled(row.code, 'email')"
-                    (checkedChange)="toggle(row.code, 'email', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - Email'"
-                  ></span>
-                </td>
-                <td class="channel-cell">
-                  <span
-                    smt-checkbox
-                    smtHideLabel
-                    [checked]="isEnabled(row.code, 'telegram')"
-                    (checkedChange)="toggle(row.code, 'telegram', $event)"
-                    [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"
-                  ></span>
-                </td>
-              </tr>
+              @for (row of eventRows; track row) {
+                <tr>
+                  <td class="event-title">
+                    {{ row.titleKey | t }}
+                  </td>
+                  <td class="channel-cell">
+                    <span
+                      smt-checkbox
+                      smtHideLabel
+                      [checked]="isEnabled(row.code, 'in_app')"
+                      (checkedChange)="toggle(row.code, 'in_app', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - In-App'"
+                    ></span>
+                  </td>
+                  <td class="channel-cell">
+                    <span
+                      smt-checkbox
+                      smtHideLabel
+                      [checked]="isEnabled(row.code, 'email')"
+                      (checkedChange)="toggle(row.code, 'email', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - Email'"
+                    ></span>
+                  </td>
+                  <td class="channel-cell">
+                    <span
+                      smt-checkbox
+                      smtHideLabel
+                      [checked]="isEnabled(row.code, 'telegram')"
+                      (checkedChange)="toggle(row.code, 'telegram', $event)"
+                      [smtAriaLabel]="(row.titleKey | t) + ' - Telegram'"
+                    ></span>
+                  </td>
+                </tr>
+              }
             </tbody>
           </table>
         </div>
 
         <div footer>
-          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving">
+          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving()">
             {{ 'common.cancel' | t }}
           </button>
-          <button smt-button type="button" [smtLoading]="isSaving" (click)="onSave()">{{ 'common.save' | t }}</button>
+          <button smt-button type="button" [smtLoading]="isSaving()" (click)="onSave()">{{ 'common.save' | t }}</button>
         </div>
       </ng-template>
     </smt-dialog>
@@ -164,11 +165,11 @@ export interface EventTypeRow {
   ],
 })
 export class NotificationPreferencesModalComponent implements OnInit {
-  @Input() initialPreferences: NotificationPrefItem[] = [];
-  @Input() isSaving = false;
+  readonly initialPreferences = input<NotificationPrefItem[]>([]);
+  readonly isSaving = input(false);
 
-  @Output() close = new EventEmitter<void>();
-  @Output() save = new EventEmitter<NotificationPrefItem[]>();
+  readonly close = output<void>();
+  readonly save = output<NotificationPrefItem[]>();
 
   readonly eventRows: EventTypeRow[] = [
     { code: 'task_assigned', titleKey: 'notifications.pref_task_assigned' },
@@ -189,7 +190,7 @@ export class NotificationPreferencesModalComponent implements OnInit {
         this.prefsMap.set(key, true);
       }
     }
-    for (const item of this.initialPreferences) {
+    for (const item of this.initialPreferences()) {
       const key = `${item.eventType}:${item.channel}`;
       this.prefsMap.set(key, item.isEnabled);
     }

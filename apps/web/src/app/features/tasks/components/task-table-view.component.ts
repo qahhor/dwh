@@ -1,17 +1,16 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
-  Input,
-  Output,
   Signal,
   signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
@@ -43,25 +42,25 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
  */
 @Component({
   selector: 'app-task-table-view',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     UiServerTableComponent,
     UiBulkResultComponent,
     SMTSelectComponent,
+    DatePipe,
   ],
   template: `
     <div
       class="table-card"
       role="region"
       [attr.aria-label]="'tasks.tablica_zadach' | t"
-      [attr.aria-busy]="pager.loading()"
+      [attr.aria-busy]="pager().loading()"
     >
       @if (tableConfig(); as config) {
         <ui-server-table
-          [pager]="pager"
+          [pager]="pager()"
           [config]="config"
           [views]="views()"
           [filterMeta]="meta()"
@@ -71,10 +70,10 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
           [lockedColumns]="['id', 'title', 'actions']"
           (sortChange)="sortChange.emit($event)"
           [loadingLabel]="'tasks.list_loading' | t"
-          [errorLabel]="(pager.items().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t"
+          [errorLabel]="(pager().items().length ? 'tasks.list_load_error_stale' : 'tasks.list_load_error') | t"
           errorId="tasks-load-error"
           [emptyTemplate]="emptyState()"
-          [selectable]="canUpdateTask"
+          [selectable]="canUpdateTask()"
           [(selected)]="selectedTasks"
           (rowClick)="openTaskDetails.emit($event)"
         >
@@ -140,15 +139,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     <ng-template #idCell let-t>
       <span
         class="tabular-nums font-mono"
-        [class.text-danger]="isOverdue(t.endTime, t.statusId)"
-        [class.text-muted]="!isOverdue(t.endTime, t.statusId)"
+        [class.text-danger]="isOverdue()(t.endTime, t.statusId)"
+        [class.text-muted]="!isOverdue()(t.endTime, t.statusId)"
         >#{{ t.id }}</span
       >
     </ng-template>
     <ng-template #typeCell let-t>
-      <span class="task-type-badge" [style.color]="getTypeColor(t)" [style.background-color]="getTypeBg(t)">
-        <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon(t) }}</span>
-        {{ getTypeLabel(t) }}
+      <span class="task-type-badge" [style.color]="getTypeColor()(t)" [style.background-color]="getTypeBg()(t)">
+        <span class="material-symbols-outlined type-icon" aria-hidden="true">{{ getTypeIcon()(t) }}</span>
+        {{ getTypeLabel()(t) }}
       </span>
     </ng-template>
     <ng-template #titleCell let-t>
@@ -156,13 +155,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         <button
           type="button"
           class="task-title task-title-open"
-          [class.title-overdue]="isOverdue(t.endTime, t.statusId)"
+          [class.title-overdue]="isOverdue()(t.endTime, t.statusId)"
           [attr.aria-label]="'tasks.open_task_named' | t: { id: t.id, title: t.title }"
           (click)="openTaskDetails.emit(t)"
         >
           {{ t.title }}
         </button>
-        @if (isOverdue(t.endTime, t.statusId)) {
+        @if (isOverdue()(t.endTime, t.statusId)) {
           <span class="overdue-tag">{{ 'tasks.prosrocheno' | t }}</span>
         }
         @if (t.parentTaskId) {
@@ -173,7 +172,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       </div>
     </ng-template>
     <ng-template #projectCell let-t>
-      @let projectName = getProjectName(t.projectId);
+      @let projectName = getProjectName()(t.projectId);
       @if (projectName) {
         <span class="project-tag">
           <span class="material-symbols-outlined folder-ico" aria-hidden="true">folder</span>
@@ -191,28 +190,28 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         [value]="t.priority"
         (valueChange)="onPriorityChange(t.id, $event)"
         [allowClear]="false"
-        [disabled]="!canUpdateTask"
+        [disabled]="!canUpdateTask()"
         [ariaLabel]="'common.priority' | t"
         [title]="'common.priority' | t"
       ></smt-select>
     </ng-template>
     <ng-template #statusCell let-t>
       <div class="inline-status-wrapper table-status">
-        <span class="status-dot" [style.background-color]="getStatusColor(t.statusId)" aria-hidden="true"></span>
+        <span class="status-dot" [style.background-color]="getStatusColor()(t.statusId)" aria-hidden="true"></span>
         <smt-select
           class="inline-status-select"
           [options]="statusOptions()"
           [value]="t.statusId"
           (valueChange)="onStatusChange(t.id, $event)"
           [allowClear]="false"
-          [disabled]="!canUpdateTask"
+          [disabled]="!canUpdateTask()"
           [ariaLabel]="'tasks.task_status_aria' | t: { id: t.id }"
           [title]="'tasks.nazhmite_dlya_smeny_statusa' | t"
         ></smt-select>
       </div>
     </ng-template>
     <ng-template #deadlineCell let-t>
-      @let dl = getDeadlineInfo(t.endTime, t.statusId);
+      @let dl = getDeadlineInfo()(t.endTime, t.statusId);
       @if (dl.state !== 'none') {
         <span
           class="deadline-pill"
@@ -232,7 +231,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     </ng-template>
     <ng-template #actionsCell let-t>
       <div class="row-action-btns">
-        @if (canUpdateTask) {
+        @if (canUpdateTask()) {
           <button
             type="button"
             class="icon-ghost-btn"
@@ -258,11 +257,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
       <div class="empty-state-cell">
         <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
         <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
-        @if (hasActiveFilters) {
+        @if (hasActiveFilters()) {
           <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
             {{ 'tasks.sbrosit_vse_filtry' | t }}
           </button>
-        } @else if (canCreateTask) {
+        } @else if (canCreateTask()) {
           <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">
             {{ 'task.new' | t }}
           </button>
@@ -481,11 +480,56 @@ export class TaskTableViewComponent {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
 
+  readonly pager = input.required<KeysetPager<Task>>();
+
+  readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
+  readonly getTypeColor = input.required<(task: Task) => string>();
+  readonly getTypeBg = input.required<(task: Task) => string>();
+  readonly getTypeIcon = input.required<(task: Task) => string>();
+  readonly getTypeLabel = input.required<(task: Task) => string>();
+  readonly getProjectName = input.required<(projectId: number | null | undefined) => string | null>();
+  readonly getStatusColor = input.required<(statusId: number | null | undefined) => string>();
+  readonly getDeadlineInfo = input.required<
+    (
+      endTime: string | null | undefined,
+      statusId: number,
+    ) => {
+      state: string;
+      label: string;
+    }
+  >();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The search text and quick filters on screen, so an export matches the list shown. */
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
+  readonly projects = input<Project[]>([]);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly canCreateTask = input(false);
+  readonly hasActiveFilters = input(false);
+  readonly statuses = input<TaskStatus[]>([]);
+  readonly canUpdateTask = input(false);
+
+  readonly openTaskDetails = output<Task>();
+  readonly openEditModal = output<Task>();
+  readonly updatePriority = output<{
+    taskId: number;
+    priority: string;
+  }>();
+  readonly updateStatus = output<{
+    taskId: number;
+    statusId: number;
+  }>();
+  readonly resetFilters = output<void>();
+  readonly createTask = output<void>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
@@ -542,7 +586,7 @@ export class TaskTableViewComponent {
     return {
       ...base,
       layout: 'fit',
-      rowClass: (task) => (this.isOverdue(task.endTime, task.statusId) ? 'task-row-overdue' : null),
+      rowClass: (task) => (this.isOverdue()(task.endTime, task.statusId) ? 'task-row-overdue' : null),
       columns: {
         ...base.columns,
         type: {
@@ -565,31 +609,6 @@ export class TaskTableViewComponent {
 
   private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
   private readonly priorityMemo = optionsMemo<SMTSelectOption<string>[]>();
-
-  @Input({ required: true }) pager!: KeysetPager<Task>;
-  @Input() statuses: TaskStatus[] = [];
-  @Input() projects: Project[] = [];
-  @Input() taskTypes: TaskType[] = [];
-  @Input() canCreateTask = false;
-  @Input() canUpdateTask = false;
-  @Input() hasActiveFilters = false;
-
-  @Input() isOverdue!: (endTime: string | null | undefined, statusId: number) => boolean;
-  @Input() getTypeColor!: (task: Task) => string;
-  @Input() getTypeBg!: (task: Task) => string;
-  @Input() getTypeIcon!: (task: Task) => string;
-  @Input() getTypeLabel!: (task: Task) => string;
-  @Input() getProjectName!: (projectId: number | null | undefined) => string | null;
-  @Input() getStatusColor!: (statusId: number | null | undefined) => string;
-  @Input() getDeadlineInfo!: (endTime: string | null | undefined, statusId: number) => { state: string; label: string };
-
-  @Output() openTaskDetails = new EventEmitter<Task>();
-  @Output() openEditModal = new EventEmitter<Task>();
-  @Output() updatePriority = new EventEmitter<{ taskId: number; priority: string }>();
-  @Output() updateStatus = new EventEmitter<{ taskId: number; statusId: number }>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() createTask = new EventEmitter<void>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
   /** Titles of the tasks sent, so the result can name a task after the page reloads. */
   private bulkTitles = new Map<number, string>();
   readonly bulkItemLabel = (id: number) => {
@@ -599,8 +618,8 @@ export class TaskTableViewComponent {
 
   /** Statuses as smt-select options; the same array while the statuses stay the same. */
   statusOptions(): SMTSelectOption<number>[] {
-    return this.statusMemo([this.statuses], () =>
-      this.statuses.map((status) => ({ id: status.id, label: status.name })),
+    return this.statusMemo([this.statuses()], () =>
+      this.statuses().map((status) => ({ id: status.id, label: status.name })),
     );
   }
 
@@ -642,7 +661,7 @@ export class TaskTableViewComponent {
             this.toast.success(this.i18n.translate('tasks.bulk.done', { count: result.succeeded }));
           }
           if (result.failed > 0) this.bulkResult.set(result);
-          this.pager.reload();
+          this.pager().reload();
         },
         error: () => {
           this.bulkBusy.set(false);

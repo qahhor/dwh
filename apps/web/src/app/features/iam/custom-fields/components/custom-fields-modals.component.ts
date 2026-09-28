@@ -1,5 +1,5 @@
-import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
@@ -33,7 +33,7 @@ const FIELD_TYPES: readonly [string, string][] = [
 
 @Component({
   selector: 'app-custom-fields-modals',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -43,7 +43,6 @@ const FIELD_TYPES: readonly [string, string][] = [
     SMTTextareaValueAccessor,
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,
-    CommonModule,
     FormsModule,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -52,162 +51,175 @@ const FIELD_TYPES: readonly [string, string][] = [
   ],
   template: `
     <!-- Create / Edit Modal -->
-    <smt-dialog
-      *ngIf="showModal"
-      [open]="showModal"
-      [smtTitle]="(editingField ? 'iam.edit_field' : 'iam.new_custom_field') | t"
-      (closed)="closeModal.emit()"
-    >
-      <ng-template smtDialogContent>
-        <form id="customFieldForm" body class="modal-form" (ngSubmit)="saveField.emit()">
-          <!-- Entity Target (only in creation) -->
-          <div class="form-group" *ngIf="!editingField">
-            <label class="form-label" for="custom-field-entity">
-              {{ 'iam.celevaya_suschnost' | t }} <span class="req" aria-hidden="true">*</span>
-            </label>
-            <smt-select
-              smtTriggerId="custom-field-entity"
-              name="entityType"
-              [(ngModel)]="formData.entityType"
-              [options]="entityOptions()"
-              [allowClear]="false"
-              required
-            />
+    @if (showModal()) {
+      <smt-dialog
+        [open]="showModal()"
+        [smtTitle]="(editingField() ? 'iam.edit_field' : 'iam.new_custom_field') | t"
+        (closed)="closeModal.emit()"
+      >
+        <ng-template smtDialogContent>
+          <form id="customFieldForm" body class="modal-form" (ngSubmit)="saveField.emit()">
+            <!-- Entity Target (only in creation) -->
+            @if (!editingField()) {
+              <div class="form-group">
+                <label class="form-label" for="custom-field-entity">
+                  {{ 'iam.celevaya_suschnost' | t }} <span class="req" aria-hidden="true">*</span>
+                </label>
+                <smt-select
+                  smtTriggerId="custom-field-entity"
+                  name="entityType"
+                  [(ngModel)]="formData().entityType"
+                  [options]="entityOptions()"
+                  [allowClear]="false"
+                  required
+                />
+              </div>
+            }
+
+            <!-- Code & Name -->
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label" for="custom-field-code">
+                  {{ 'iam.kod_polya_slug' | t }} <span class="req" aria-hidden="true">*</span>
+                </label>
+                <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
+                <smt-input
+                  class="font-mono"
+                  smtFieldId="custom-field-code"
+                  name="code"
+                  [(ngModel)]="formData().code"
+                  (input)="codeInput.emit($event)"
+                  [disabled]="!!editingField()"
+                  [placeholder]="'iam.naprimer_inn_budget' | t"
+                  [maxLength]="64"
+                  autocomplete="off"
+                  [smtInvalid]="!!formError()"
+                  [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
+                  required
+                />
+                @if (!editingField()) {
+                  <span class="form-hint">{{ 'iam.kod_polya_help' | t }}</span>
+                }
+                @if (editingField()) {
+                  <span class="form-hint readonly-hint">{{ 'iam.kod_polya_readonly' | t }}</span>
+                }
+              </div>
+
+              <div class="form-group flex-1">
+                <label class="form-label" for="custom-field-name">
+                  {{ 'iam.nazvanie_polya' | t }} <span class="req" aria-hidden="true">*</span>
+                </label>
+                <smt-input
+                  smtFieldId="custom-field-name"
+                  name="name"
+                  [(ngModel)]="formData().name"
+                  [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
+                  [maxLength]="100"
+                  [smtInvalid]="!!formError()"
+                  [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Type, Default Value & Order -->
+            <div class="form-row">
+              @if (!editingField()) {
+                <div class="form-group flex-1">
+                  <label class="form-label" for="custom-field-type">
+                    {{ 'iam.tip_dannyh' | t }} <span class="req" aria-hidden="true">*</span>
+                  </label>
+                  <smt-select
+                    smtTriggerId="custom-field-type"
+                    name="fieldType"
+                    [(ngModel)]="formData().fieldType"
+                    [options]="fieldTypeOptions()"
+                    [allowClear]="false"
+                    required
+                  />
+                </div>
+              }
+
+              <div class="form-group flex-1">
+                <label class="form-label" for="custom-field-default">
+                  {{ 'iam.znachenie_po_umolchaniyu' | t }}
+                </label>
+                <smt-input
+                  smtFieldId="custom-field-default"
+                  name="defaultValue"
+                  [(ngModel)]="formData().defaultValue"
+                  [placeholder]="'iam.ne_obyazatelno' | t"
+                  [maxLength]="255"
+                />
+              </div>
+
+              <div class="form-group order-input-group">
+                <label class="form-label" for="custom-field-order">
+                  {{ 'iam.poryadok_sortirovki' | t }}
+                </label>
+                <smt-input
+                  class="font-mono"
+                  smtFieldId="custom-field-order"
+                  name="orderNo"
+                  type="number"
+                  [(ngModel)]="formData().orderNo"
+                  [placeholder]="'iam.poryadok_sortirovki_hint' | t"
+                  [smtMin]="0"
+                  [smtMax]="99999"
+                />
+              </div>
+            </div>
+
+            <!-- Options for select type -->
+            @if (formData().fieldType === 'select') {
+              <div class="form-group">
+                <label class="form-label" for="custom-field-options">
+                  {{ 'iam.varianty_spiska' | t }} <span class="req" aria-hidden="true">*</span>
+                </label>
+                <smt-textarea
+                  smtFieldId="custom-field-options"
+                  name="optionsText"
+                  [(ngModel)]="formData().optionsText"
+                  [rows]="4"
+                  [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
+                  [smtInvalid]="!!formError()"
+                  [smtDescribedBy]="formError() ? 'custom-field-form-error' : ''"
+                  required
+                />
+                <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
+              </div>
+            }
+
+            <!-- Required flag, saved with the form -->
+            <div class="form-group checkbox-group">
+              <div smt-checkbox name="isRequired" [(ngModel)]="formData().isRequired">
+                {{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}
+              </div>
+            </div>
+
+            @if (formError()) {
+              <p id="custom-field-form-error" class="form-error" role="alert">{{ formError() }}</p>
+            }
+          </form>
+
+          <div footer class="modal-footer-actions">
+            <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
+              {{ 'common.cancel' | t }}
+            </button>
+            <button
+              smt-button
+              type="submit"
+              form="customFieldForm"
+              smtVariant="primary"
+              [smtLoading]="saving()"
+              (click)="saveField.emit()"
+            >
+              {{ 'common.save' | t }}
+            </button>
           </div>
-
-          <!-- Code & Name -->
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-code">
-                {{ 'iam.kod_polya_slug' | t }} <span class="req" aria-hidden="true">*</span>
-              </label>
-              <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
-              <smt-input
-                class="font-mono"
-                smtFieldId="custom-field-code"
-                name="code"
-                [(ngModel)]="formData.code"
-                (input)="codeInput.emit($event)"
-                [disabled]="!!editingField"
-                [placeholder]="'iam.naprimer_inn_budget' | t"
-                [maxLength]="64"
-                autocomplete="off"
-                [smtInvalid]="!!formError"
-                [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
-                required
-              />
-              <span class="form-hint" *ngIf="!editingField">{{ 'iam.kod_polya_help' | t }}</span>
-              <span class="form-hint readonly-hint" *ngIf="editingField">{{ 'iam.kod_polya_readonly' | t }}</span>
-            </div>
-
-            <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-name">
-                {{ 'iam.nazvanie_polya' | t }} <span class="req" aria-hidden="true">*</span>
-              </label>
-              <smt-input
-                smtFieldId="custom-field-name"
-                name="name"
-                [(ngModel)]="formData.name"
-                [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
-                [maxLength]="100"
-                [smtInvalid]="!!formError"
-                [smtDescribedBy]="formError ? 'custom-field-form-error' : null"
-                required
-              />
-            </div>
-          </div>
-
-          <!-- Type, Default Value & Order -->
-          <div class="form-row">
-            <div class="form-group flex-1" *ngIf="!editingField">
-              <label class="form-label" for="custom-field-type">
-                {{ 'iam.tip_dannyh' | t }} <span class="req" aria-hidden="true">*</span>
-              </label>
-              <smt-select
-                smtTriggerId="custom-field-type"
-                name="fieldType"
-                [(ngModel)]="formData.fieldType"
-                [options]="fieldTypeOptions()"
-                [allowClear]="false"
-                required
-              />
-            </div>
-
-            <div class="form-group flex-1">
-              <label class="form-label" for="custom-field-default">
-                {{ 'iam.znachenie_po_umolchaniyu' | t }}
-              </label>
-              <smt-input
-                smtFieldId="custom-field-default"
-                name="defaultValue"
-                [(ngModel)]="formData.defaultValue"
-                [placeholder]="'iam.ne_obyazatelno' | t"
-                [maxLength]="255"
-              />
-            </div>
-
-            <div class="form-group order-input-group">
-              <label class="form-label" for="custom-field-order">
-                {{ 'iam.poryadok_sortirovki' | t }}
-              </label>
-              <smt-input
-                class="font-mono"
-                smtFieldId="custom-field-order"
-                name="orderNo"
-                type="number"
-                [(ngModel)]="formData.orderNo"
-                [placeholder]="'iam.poryadok_sortirovki_hint' | t"
-                [smtMin]="0"
-                [smtMax]="99999"
-              />
-            </div>
-          </div>
-
-          <!-- Options for select type -->
-          <div class="form-group" *ngIf="formData.fieldType === 'select'">
-            <label class="form-label" for="custom-field-options">
-              {{ 'iam.varianty_spiska' | t }} <span class="req" aria-hidden="true">*</span>
-            </label>
-            <smt-textarea
-              smtFieldId="custom-field-options"
-              name="optionsText"
-              [(ngModel)]="formData.optionsText"
-              [rows]="4"
-              [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
-              [smtInvalid]="!!formError"
-              [smtDescribedBy]="formError ? 'custom-field-form-error' : ''"
-              required
-            />
-            <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
-          </div>
-
-          <!-- Required flag, saved with the form -->
-          <div class="form-group checkbox-group">
-            <div smt-checkbox name="isRequired" [(ngModel)]="formData.isRequired">
-              {{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}
-            </div>
-          </div>
-
-          <p *ngIf="formError" id="custom-field-form-error" class="form-error" role="alert">{{ formError }}</p>
-        </form>
-
-        <div footer class="modal-footer-actions">
-          <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
-            {{ 'common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="submit"
-            form="customFieldForm"
-            smtVariant="primary"
-            [smtLoading]="saving"
-            (click)="saveField.emit()"
-          >
-            {{ 'common.save' | t }}
-          </button>
-        </div>
-      </ng-template>
-    </smt-dialog>
+        </ng-template>
+      </smt-dialog>
+    }
   `,
   styles: [
     `
@@ -313,15 +325,18 @@ const FIELD_TYPES: readonly [string, string][] = [
 export class CustomFieldsModalsComponent {
   private readonly i18n = inject(I18nService);
 
-  @Input() showModal = false;
-  @Input() editingField: CustomField | null = null;
-  @Input() formData!: CustomFieldFormData;
-  @Input() formError = '';
-  @Input() saving = false;
+  readonly formData = input.required<CustomFieldFormData>();
 
-  @Output() closeModal = new EventEmitter<void>();
-  @Output() saveField = new EventEmitter<void>();
-  @Output() codeInput = new EventEmitter<Event>();
+  readonly editingField = input<CustomField | null>(null);
+  readonly saving = input(false);
+
+  readonly showModal = input(false);
+  readonly formError = input('');
+
+  readonly closeModal = output<void>();
+  readonly saveField = output<void>();
+  readonly codeInput = output<Event>();
+
   private readonly entityMemo = optionsMemo<SMTSelectOption<string>[]>();
   private readonly fieldTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
 

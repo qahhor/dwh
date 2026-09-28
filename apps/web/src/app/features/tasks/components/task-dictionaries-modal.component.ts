@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, signal, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import {
   SMTSortableActionsDirective,
@@ -22,7 +22,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
 
 @Component({
   selector: 'app-task-dictionaries-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,
@@ -32,7 +32,6 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
     SMTControlComponent,
     SMTInputComponent,
     SMTInputValueAccessor,
-    CommonModule,
     FormsModule,
     SMTSortableListComponent,
     SMTSortableItemDirective,
@@ -44,7 +43,7 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
+      [open]="isOpen()"
       [smtTitle]="'tasks.nastroyka_spravochnikov_zadach' | t"
       smtSize="md"
       (closed)="close.emit()"
@@ -61,165 +60,169 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
           />
 
           <!-- TAB 1: Task Types (Drag & Drop Reordering) -->
-          <div
-            id="task-types-panel"
-            class="tab-pane"
-            role="tabpanel"
-            aria-labelledby="task-types-tab"
-            *ngIf="settingsTab === 'types'"
-          >
-            <smt-sortable-list
-              class="dict-list"
-              [items]="taskTypes"
-              [trackBy]="byId"
-              [itemLabel]="nameOf"
-              (reorder)="reorderTypes.emit($event)"
-            >
-              <ng-template smtSortableItem let-ty>
-                <div class="dict-item-info">
-                  <span class="material-symbols-outlined dict-ico" aria-hidden="true" [style.color]="ty.color">{{
-                    ty.icon
-                  }}</span>
-                  <span class="dict-name">{{ ty.name }}</span>
-                  <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
-                  <span *ngIf="ty.isSystem" class="sys-badge">{{ 'tasks.sistemnyy' | t }}</span>
-                </div>
-              </ng-template>
-              <ng-template smtSortableActions let-ty>
-                <button
-                  *ngIf="!ty.isSystem"
-                  type="button"
-                  class="mini-del-btn"
-                  [title]="'common.delete' | t"
-                  [attr.aria-label]="'tasks.delete_task_type' | t: { name: ty.name }"
-                  (click)="requestDelete('type', ty.id, ty.name)"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </ng-template>
-            </smt-sortable-list>
+          @if (settingsTab === 'types') {
+            <div id="task-types-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-types-tab">
+              <smt-sortable-list
+                class="dict-list"
+                [items]="taskTypes()"
+                [trackBy]="byId"
+                [itemLabel]="nameOf"
+                (reorder)="reorderTypes.emit($event)"
+              >
+                <ng-template smtSortableItem let-ty>
+                  <div class="dict-item-info">
+                    <span class="material-symbols-outlined dict-ico" aria-hidden="true" [style.color]="ty.color">{{
+                      ty.icon
+                    }}</span>
+                    <span class="dict-name">{{ ty.name }}</span>
+                    <span class="font-mono text-muted text-xs">({{ ty.code }})</span>
+                    @if (ty.isSystem) {
+                      <span class="sys-badge">{{ 'tasks.sistemnyy' | t }}</span>
+                    }
+                  </div>
+                </ng-template>
+                <ng-template smtSortableActions let-ty>
+                  @if (!ty.isSystem) {
+                    <button
+                      type="button"
+                      class="mini-del-btn"
+                      [title]="'common.delete' | t"
+                      [attr.aria-label]="'tasks.delete_task_type' | t: { name: ty.name }"
+                      (click)="requestDelete('type', ty.id, ty.name)"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                    </button>
+                  }
+                </ng-template>
+              </smt-sortable-list>
 
-            <!-- Add New Type Form -->
-            <div class="add-dict-box">
-              <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_tip_zadachi' | t }}</h5>
-              <div class="form-grid-3">
-                <div class="dict-form-field">
-                  <label class="clean-label" for="task-type-code">{{ 'tasks.kod_tipa' | t }}</label>
-                  <smt-input
-                    smtFieldId="task-type-code"
-                    name="taskTypeCode"
-                    [placeholder]="'tasks.naprimer_doc' | t"
-                    [(ngModel)]="newTypeForm.code"
-                  />
+              <!-- Add New Type Form -->
+              <div class="add-dict-box">
+                <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_tip_zadachi' | t }}</h5>
+                <div class="form-grid-3">
+                  <div class="dict-form-field">
+                    <label class="clean-label" for="task-type-code">{{ 'tasks.kod_tipa' | t }}</label>
+                    <smt-input
+                      smtFieldId="task-type-code"
+                      name="taskTypeCode"
+                      [placeholder]="'tasks.naprimer_doc' | t"
+                      [(ngModel)]="newTypeForm.code"
+                    />
+                  </div>
+                  <div class="dict-form-field">
+                    <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
+                    <smt-input
+                      smtFieldId="task-type-name"
+                      name="taskTypeName"
+                      [placeholder]="'tasks.naprimer_dokument' | t"
+                      [(ngModel)]="newTypeForm.name"
+                    />
+                  </div>
+                  <smt-control class="color-field" [smtLabel]="'tasks.cvet_tipa' | t">
+                    <smt-color-input
+                      smtFieldId="task-type-color"
+                      name="taskTypeColor"
+                      [(ngModel)]="newTypeForm.color"
+                    />
+                  </smt-control>
                 </div>
-                <div class="dict-form-field">
-                  <label class="clean-label" for="task-type-name">{{ 'tasks.nazvanie_tipa' | t }}</label>
-                  <smt-input
-                    smtFieldId="task-type-name"
-                    name="taskTypeName"
-                    [placeholder]="'tasks.naprimer_dokument' | t"
-                    [(ngModel)]="newTypeForm.name"
-                  />
+                <div class="add-dict-actions">
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="secondary"
+                    smtSize="sm"
+                    smtIcon="add"
+                    (click)="submitType()"
+                  >
+                    {{ 'tasks.dobavit_tip' | t }}
+                  </button>
                 </div>
-                <smt-control class="color-field" [smtLabel]="'tasks.cvet_tipa' | t">
-                  <smt-color-input smtFieldId="task-type-color" name="taskTypeColor" [(ngModel)]="newTypeForm.color" />
-                </smt-control>
-              </div>
-              <div class="add-dict-actions">
-                <button
-                  smt-button
-                  type="button"
-                  smtVariant="secondary"
-                  smtSize="sm"
-                  smtIcon="add"
-                  (click)="submitType()"
-                >
-                  {{ 'tasks.dobavit_tip' | t }}
-                </button>
               </div>
             </div>
-          </div>
+          }
 
           <!-- TAB 2: Task Statuses (Drag & Drop Reordering) -->
-          <div
-            id="task-statuses-panel"
-            class="tab-pane"
-            role="tabpanel"
-            aria-labelledby="task-statuses-tab"
-            *ngIf="settingsTab === 'statuses'"
-          >
-            <smt-sortable-list
-              class="dict-list"
-              [items]="statuses"
-              [trackBy]="byId"
-              [itemLabel]="nameOf"
-              (reorder)="reorderStatuses.emit($event)"
-            >
-              <ng-template smtSortableItem let-s>
-                <div class="dict-item-info">
-                  <span class="status-dot" [style.background-color]="s.color"></span>
-                  <span class="dict-name">{{ s.name }}</span>
-                  <span *ngIf="s.isTerminal" class="term-badge">{{ 'tasks.zavershayuschiy' | t }}</span>
-                  <span *ngIf="s.pcode" class="sys-badge">{{ 'tasks.bazovyy' | t }}</span>
-                </div>
-              </ng-template>
-              <ng-template smtSortableActions let-s>
-                <button
-                  *ngIf="!s.pcode"
-                  type="button"
-                  class="mini-del-btn"
-                  [title]="'common.delete' | t"
-                  [attr.aria-label]="'tasks.delete_status' | t: { name: s.name }"
-                  (click)="requestDelete('status', s.id, s.name)"
-                >
-                  <span class="material-symbols-outlined" aria-hidden="true">delete</span>
-                </button>
-              </ng-template>
-            </smt-sortable-list>
+          @if (settingsTab === 'statuses') {
+            <div id="task-statuses-panel" class="tab-pane" role="tabpanel" aria-labelledby="task-statuses-tab">
+              <smt-sortable-list
+                class="dict-list"
+                [items]="statuses()"
+                [trackBy]="byId"
+                [itemLabel]="nameOf"
+                (reorder)="reorderStatuses.emit($event)"
+              >
+                <ng-template smtSortableItem let-s>
+                  <div class="dict-item-info">
+                    <span class="status-dot" [style.background-color]="s.color"></span>
+                    <span class="dict-name">{{ s.name }}</span>
+                    @if (s.isTerminal) {
+                      <span class="term-badge">{{ 'tasks.zavershayuschiy' | t }}</span>
+                    }
+                    @if (s.pcode) {
+                      <span class="sys-badge">{{ 'tasks.bazovyy' | t }}</span>
+                    }
+                  </div>
+                </ng-template>
+                <ng-template smtSortableActions let-s>
+                  @if (!s.pcode) {
+                    <button
+                      type="button"
+                      class="mini-del-btn"
+                      [title]="'common.delete' | t"
+                      [attr.aria-label]="'tasks.delete_status' | t: { name: s.name }"
+                      (click)="requestDelete('status', s.id, s.name)"
+                    >
+                      <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                    </button>
+                  }
+                </ng-template>
+              </smt-sortable-list>
 
-            <!-- Add New Status Form -->
-            <div class="add-dict-box">
-              <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_status' | t }}</h5>
-              <div class="form-grid-3">
-                <div class="dict-form-field">
-                  <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
-                  <smt-input
-                    smtFieldId="task-status-name"
-                    name="taskStatusName"
-                    [placeholder]="'tasks.nazvanie_statusa' | t"
-                    [(ngModel)]="newStatusForm.name"
-                  />
+              <!-- Add New Status Form -->
+              <div class="add-dict-box">
+                <h5 class="add-dict-title">{{ 'tasks.dobavit_novyy_status' | t }}</h5>
+                <div class="form-grid-3">
+                  <div class="dict-form-field">
+                    <label class="clean-label" for="task-status-name">{{ 'tasks.nazvanie_statusa.44a913b' | t }}</label>
+                    <smt-input
+                      smtFieldId="task-status-name"
+                      name="taskStatusName"
+                      [placeholder]="'tasks.nazvanie_statusa' | t"
+                      [(ngModel)]="newStatusForm.name"
+                    />
+                  </div>
+                  <smt-control class="color-field" [smtLabel]="'tasks.cvet_statusa' | t">
+                    <smt-color-input
+                      smtFieldId="task-status-color"
+                      name="taskStatusColor"
+                      [(ngModel)]="newStatusForm.color"
+                    />
+                  </smt-control>
+                  <div
+                    smt-checkbox
+                    class="terminal-toggle-label"
+                    name="taskStatusTerminal"
+                    [(ngModel)]="newStatusForm.isTerminal"
+                  >
+                    {{ 'tasks.zavershayuschiy' | t }}
+                  </div>
                 </div>
-                <smt-control class="color-field" [smtLabel]="'tasks.cvet_statusa' | t">
-                  <smt-color-input
-                    smtFieldId="task-status-color"
-                    name="taskStatusColor"
-                    [(ngModel)]="newStatusForm.color"
-                  />
-                </smt-control>
-                <div
-                  smt-checkbox
-                  class="terminal-toggle-label"
-                  name="taskStatusTerminal"
-                  [(ngModel)]="newStatusForm.isTerminal"
-                >
-                  {{ 'tasks.zavershayuschiy' | t }}
+                <div class="add-dict-actions">
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="secondary"
+                    smtSize="sm"
+                    smtIcon="add"
+                    (click)="submitStatus()"
+                  >
+                    {{ 'tasks.dobavit_status' | t }}
+                  </button>
                 </div>
-              </div>
-              <div class="add-dict-actions">
-                <button
-                  smt-button
-                  type="button"
-                  smtVariant="secondary"
-                  smtSize="sm"
-                  smtIcon="add"
-                  (click)="submitStatus()"
-                >
-                  {{ 'tasks.dobavit_status' | t }}
-                </button>
               </div>
             </div>
-          </div>
+          }
         </div>
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
@@ -368,16 +371,29 @@ export class TaskDictionariesModalComponent {
   /** Texts of the tabs below; translated again when the language changes. */
   private readonly tabText = inject(I18nService);
 
-  @Input() isOpen = false;
-  @Input() taskTypes: TaskType[] = [];
-  @Input() statuses: TaskStatus[] = [];
+  readonly isOpen = input(false);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly statuses = input<TaskStatus[]>([]);
 
-  @Output() close = new EventEmitter<void>();
-  @Output() createType = new EventEmitter<{ code: string; name: string; icon: string; color: string }>();
-  @Output() createStatus = new EventEmitter<{ name: string; color: string; isTerminal: boolean }>();
-  @Output() deleteItem = new EventEmitter<{ kind: 'type' | 'status'; id: number; name: string }>();
-  @Output() reorderTypes = new EventEmitter<TaskType[]>();
-  @Output() reorderStatuses = new EventEmitter<TaskStatus[]>();
+  readonly close = output<void>();
+  readonly createType = output<{
+    code: string;
+    name: string;
+    icon: string;
+    color: string;
+  }>();
+  readonly createStatus = output<{
+    name: string;
+    color: string;
+    isTerminal: boolean;
+  }>();
+  readonly deleteItem = output<{
+    kind: 'type' | 'status';
+    id: number;
+    name: string;
+  }>();
+  readonly reorderTypes = output<TaskType[]>();
+  readonly reorderStatuses = output<TaskStatus[]>();
 
   settingsTab: 'types' | 'statuses' = 'types';
   newTypeForm = { code: '', name: '', icon: 'task_alt', color: '#2563eb' };
@@ -417,16 +433,16 @@ export class TaskDictionariesModalComponent {
   }
 
   dictionaryTabs(): SMTTabItem<'types' | 'statuses'>[] {
-    return this.tabsMemo([this.tabText.currentLang(), this.taskTypes.length, this.statuses.length], () => [
+    return this.tabsMemo([this.tabText.currentLang(), this.taskTypes().length, this.statuses().length], () => [
       {
         value: 'types',
-        label: this.tabText.translate('tasks.task_types_count', { count: this.taskTypes.length }),
+        label: this.tabText.translate('tasks.task_types_count', { count: this.taskTypes().length }),
         id: 'task-types-tab',
         panelId: 'task-types-panel',
       },
       {
         value: 'statuses',
-        label: this.tabText.translate('tasks.task_statuses_count', { count: this.statuses.length }),
+        label: this.tabText.translate('tasks.task_statuses_count', { count: this.statuses().length }),
         id: 'task-statuses-tab',
         panelId: 'task-statuses-panel',
       },

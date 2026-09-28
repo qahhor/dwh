@@ -1,5 +1,5 @@
-import { Component, ElementRef, EventEmitter, Input, Output, ViewChild, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, viewChild } from '@angular/core';
+
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ThemeService } from '../../../core/services/theme.service';
@@ -17,8 +17,8 @@ export interface LanguageChangeRequest {
 
 @Component({
   selector: 'app-header',
-  standalone: true,
-  imports: [CommonModule, RouterModule, TranslatePipe, SMTSelectComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [RouterModule, TranslatePipe, SMTSelectComponent],
   template: `
     <!-- Top Navigation -->
     <header class="topbar">
@@ -28,11 +28,11 @@ export interface LanguageChangeRequest {
           type="button"
           class="icon-btn mobile-menu-btn"
           [attr.aria-label]="'layout.app_shell.otkryt_menyu_navigacii' | t"
-          [attr.aria-expanded]="isMobileMenuOpen"
-          [attr.aria-controls]="sidebarId"
+          [attr.aria-expanded]="isMobileMenuOpen()"
+          [attr.aria-controls]="sidebarId()"
           (click)="toggleMobileMenu.emit()"
         >
-          <span class="material-symbols-outlined" aria-hidden="true">{{ isMobileMenuOpen ? 'close' : 'menu' }}</span>
+          <span class="material-symbols-outlined" aria-hidden="true">{{ isMobileMenuOpen() ? 'close' : 'menu' }}</span>
         </button>
 
         <button
@@ -62,8 +62,8 @@ export interface LanguageChangeRequest {
             [options]="languageOptions()"
             [allowClear]="false"
             [value]="i18n.currentLang()"
-            [disabled]="i18n.isLoading() || isChangingLanguage || authService.isLoggingOut()"
-            [attr.aria-busy]="isChangingLanguage"
+            [disabled]="i18n.isLoading() || isChangingLanguage() || authService.isLoggingOut()"
+            [attr.aria-busy]="isChangingLanguage()"
             (valueChange)="onLanguagePick($event)"
           />
         </div>
@@ -84,22 +84,27 @@ export interface LanguageChangeRequest {
         </button>
 
         <!-- Notification Bell -->
-        <button
-          *ngIf="canReadNotifications"
-          type="button"
-          class="icon-btn notif-btn"
-          routerLink="/notifications"
-          [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t"
-          [attr.aria-describedby]="notifService.unreadCount() > 0 ? 'header-unread-count' : null"
-          [disabled]="authService.isLoggingOut()"
-          [title]="'nav.notifications' | t"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
-          <span class="bell-dot" *ngIf="notifService.unreadCount() > 0" aria-hidden="true"></span>
-          <span id="header-unread-count" class="sr-only" *ngIf="notifService.unreadCount() > 0">
-            {{ 'layout.app_shell.unread_notifications' | t: { count: notifService.unreadCount() } }}
-          </span>
-        </button>
+        @if (canReadNotifications()) {
+          <button
+            type="button"
+            class="icon-btn notif-btn"
+            routerLink="/notifications"
+            [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t"
+            [attr.aria-describedby]="notifService.unreadCount() > 0 ? 'header-unread-count' : null"
+            [disabled]="authService.isLoggingOut()"
+            [title]="'nav.notifications' | t"
+          >
+            <span class="material-symbols-outlined" aria-hidden="true">notifications</span>
+            @if (notifService.unreadCount() > 0) {
+              <span class="bell-dot" aria-hidden="true"></span>
+            }
+            @if (notifService.unreadCount() > 0) {
+              <span id="header-unread-count" class="sr-only">
+                {{ 'layout.app_shell.unread_notifications' | t: { count: notifService.unreadCount() } }}
+              </span>
+            }
+          </button>
+        }
 
         <!-- Logout -->
         <button
@@ -119,24 +124,26 @@ export interface LanguageChangeRequest {
     </header>
 
     <!-- Active Announcement Banner -->
-    <div *ngIf="canReadAnnouncements && notifService.activeAnnouncement()" class="announcement-banner" role="status">
-      <div class="announcement-content">
-        <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
-        <div class="banner-text">
-          <strong>{{ notifService.activeAnnouncement()?.title }}</strong>
-          <p class="banner-body">{{ notifService.activeAnnouncement()?.body }}</p>
+    @if (canReadAnnouncements() && notifService.activeAnnouncement()) {
+      <div class="announcement-banner" role="status">
+        <div class="announcement-content">
+          <span class="material-symbols-outlined banner-icon" aria-hidden="true">campaign</span>
+          <div class="banner-text">
+            <strong>{{ notifService.activeAnnouncement()?.title }}</strong>
+            <p class="banner-body">{{ notifService.activeAnnouncement()?.body }}</p>
+          </div>
         </div>
+        <button
+          type="button"
+          class="banner-close"
+          [disabled]="isDismissingAnnouncement() || authService.isLoggingOut()"
+          [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t"
+          (click)="dismissAnnouncement.emit()"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        </button>
       </div>
-      <button
-        type="button"
-        class="banner-close"
-        [disabled]="isDismissingAnnouncement || authService.isLoggingOut()"
-        [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t"
-        (click)="dismissAnnouncement.emit()"
-      >
-        <span class="material-symbols-outlined" aria-hidden="true">close</span>
-      </button>
-    </div>
+    }
   `,
   styles: [
     `
@@ -385,22 +392,22 @@ export class AppHeaderComponent {
   readonly notifService = inject(NotificationService);
   readonly paletteService = inject(CommandPaletteService);
 
-  @ViewChild('mobileMenuBtn') mobileMenuBtn?: ElementRef<HTMLButtonElement>;
+  readonly isMobile = input(false);
+  readonly isMobileMenuOpen = input(false);
+  readonly sidebarId = input('app-sidebar-nav');
+  readonly isChangingLanguage = input(false);
+  readonly isDismissingAnnouncement = input(false);
+  readonly canReadNotifications = input(false);
+  readonly canReadAnnouncements = input(false);
 
-  @ViewChild(SMTSelectComponent) languagePicker?: SMTSelectComponent<string>;
+  readonly toggleMobileMenu = output<void>();
+  readonly changeLanguage = output<LanguageChangeRequest>();
+  readonly dismissAnnouncement = output<void>();
+  readonly logout = output<void>();
 
-  @Input() isMobile = false;
-  @Input() isMobileMenuOpen = false;
-  @Input() sidebarId = 'app-sidebar-nav';
-  @Input() isChangingLanguage = false;
-  @Input() isDismissingAnnouncement = false;
-  @Input() canReadNotifications = false;
-  @Input() canReadAnnouncements = false;
+  readonly mobileMenuBtn = viewChild<ElementRef<HTMLButtonElement>>('mobileMenuBtn');
 
-  @Output() toggleMobileMenu = new EventEmitter<void>();
-  @Output() changeLanguage = new EventEmitter<LanguageChangeRequest>();
-  @Output() dismissAnnouncement = new EventEmitter<void>();
-  @Output() logout = new EventEmitter<void>();
+  readonly languagePicker = viewChild(SMTSelectComponent);
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 
@@ -416,7 +423,7 @@ export class AppHeaderComponent {
 
   /** A pick hands the shell the code and a way to show the current language again when it refuses or the save fails. */
   onLanguagePick(code: string | null): void {
-    const picker = this.languagePicker;
+    const picker = this.languagePicker();
     if (!code || !picker || this.restoringLanguage) return;
     this.changeLanguage.emit({
       code,

@@ -23,7 +23,6 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 /** Шаг «Файл» анкеты: вид файла, кодировка и разделитель CSV, сопоставление колонок. Правит модель на месте. */
 @Component({
   selector: 'app-upl-format-file-step',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,

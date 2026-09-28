@@ -1,13 +1,14 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 @Component({
   selector: 'ui-badge',
-  standalone: true,
-  imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [],
   template: `
-    <span [class]="'badge badge-' + variant + (dot ? ' has-dot' : '')">
-      <span *ngIf="dot" class="dot"></span>
+    <span [class]="'badge badge-' + variant() + (dot() ? ' has-dot' : '')">
+      @if (dot()) {
+        <span class="dot"></span>
+      }
       <ng-content></ng-content>
     </span>
   `,
@@ -66,6 +67,6 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class UiBadgeComponent {
-  @Input() variant: string = 'neutral';
-  @Input() dot: boolean = false;
+  readonly variant = input<string>('neutral');
+  readonly dot = input<boolean>(false);
 }

@@ -8,7 +8,6 @@ import { tickInZone } from '../../../testing/zone-tick';
 import { SMTCheckboxComponent } from './checkbox.component';
 
 @Component({
-  standalone: true,
   imports: [SMTCheckboxComponent, FormField],
   template: `<label smt-checkbox [formField]="terms.accepted">I accept the terms</label>`,
 })

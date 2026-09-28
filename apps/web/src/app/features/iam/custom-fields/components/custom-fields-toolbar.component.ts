@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import {
@@ -11,8 +11,8 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-custom-fields-toolbar',
-  standalone: true,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, CommonModule, FormsModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTRadioGroupComponent, SMTInputComponent, FormsModule, TranslatePipe],
   template: `
     <div class="toolbar-container">
       <!-- Entity Type Filter Tabs -->
@@ -20,9 +20,9 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
         smtAppearance="chips"
         class="entity-filter"
         [options]="entityOptions()"
-        [value]="selectedEntity"
+        [value]="selectedEntity()"
         [smtAriaLabel]="'iam.filtr_po_tipu_suschnosti' | t"
-        (valueChange)="entityChange.emit($event ?? selectedEntity)"
+        (valueChange)="entityChange.emit($event ?? selectedEntity())"
       />
 
       <!-- Quick Search -->
@@ -32,7 +32,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
         type="search"
         smtIcon="search"
         clearable
-        [value]="searchQuery"
+        [value]="searchQuery()"
         (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
         [placeholder]="'iam.poisk_poley' | t"
         [smtAriaLabel]="'iam.poisk_poley' | t"
@@ -78,14 +78,14 @@ export class CustomFieldsToolbarComponent {
 
   private readonly uiI18n = inject(I18nService);
 
-  @Input() availableEntities: string[] = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
-  @Input() selectedEntity = 'ALL';
-  @Input() searchQuery = '';
-  @Input() entityCounts: Record<string, number> = {};
+  readonly availableEntities = input<string[]>(['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE']);
+  readonly selectedEntity = input('ALL');
+  readonly searchQuery = input('');
+  readonly entityCounts = input<Record<string, number>>({});
 
-  @Output() entityChange = new EventEmitter<string>();
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
+  readonly entityChange = output<string>();
+  readonly searchQueryChange = output<string>();
+  readonly clearSearch = output<void>();
 
   private readonly entityMemo = optionsMemo<SMTRadioOption<string>[]>();
 
@@ -127,12 +127,12 @@ export class CustomFieldsToolbarComponent {
 
   /** Entity types as chips with their icon and how many fields each has. */
   entityOptions(): SMTRadioOption<string>[] {
-    return this.entityMemo([this.availableEntities, this.entityCounts, this.optionText.currentLang()], () =>
-      this.availableEntities.map((entity) => ({
+    return this.entityMemo([this.availableEntities(), this.entityCounts(), this.optionText.currentLang()], () =>
+      this.availableEntities().map((entity) => ({
         value: entity,
         label: this.getEntityLabel(entity),
         icon: this.getEntityIcon(entity),
-        count: this.entityCounts[entity] || 0,
+        count: this.entityCounts()[entity] || 0,
       })),
     );
   }

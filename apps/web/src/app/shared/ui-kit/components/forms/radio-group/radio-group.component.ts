@@ -57,7 +57,6 @@ let nextGroupId = 0;
 
 @Component({
   selector: 'smt-radio-group',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './radio-group.component.html',

@@ -45,7 +45,6 @@ function ensureSharedSkeletonAnimation(): void {
 
 @Directive({
   selector: '[smtSkeleton]',
-  standalone: true,
 })
 export class SMTSkeletonDirective implements OnDestroy {
   private templateRef = inject(TemplateRef<unknown>);

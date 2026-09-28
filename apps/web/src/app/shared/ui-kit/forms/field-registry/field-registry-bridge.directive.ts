@@ -14,7 +14,6 @@ import { UI_KIT_FIELD_REGISTRY, type UiKitFieldHandle } from './field-registry.t
  */
 @Directive({
   selector: '[smtFormFieldRegistryBridge]',
-  standalone: true,
 })
 export class SmtFormFieldRegistryBridgeDirective {
   private readonly fieldRegistry = inject(UI_KIT_FIELD_REGISTRY, { optional: true });

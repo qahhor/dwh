@@ -21,161 +21,131 @@
   </div>
 
   <!-- Error Banner -->
-  <div *ngIf="loadError()" class="load-error-banner" role="alert">
-    <span class="material-symbols-outlined" aria-hidden="true">error</span>
-    <span class="load-error-text">{{ loadError() }}</span>
-    <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="loadAllSettings()">
-      {{ 'common.retry' | t }}
-    </button>
-  </div>
+  @if (loadError()) {
+    <div class="load-error-banner" role="alert">
+      <span class="material-symbols-outlined" aria-hidden="true">error</span>
+      <span class="load-error-text">{{ loadError() }}</span>
+      <button smt-button smtVariant="secondary" smtSize="sm" type="button" (click)="loadAllSettings()">
+        {{ 'common.retry' | t }}
+      </button>
+    </div>
+  }
 
   <!-- Tabs Navigation -->
   <div class="toolbar">
     <smt-tab-bar
       class="settings-tabs"
       [tabs]="settingsTabs()"
-      [value]="activeTab"
+      [value]="activeTab()"
       [smtAriaLabel]="'settings.razdely_nastroek' | t"
       (valueChange)="$event && setTab($event)"
     />
   </div>
 
   <!-- TAB: Search Settings -->
-  <div
-    id="settings-search-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-search-tab"
-    *ngIf="activeTab === 'search' && canViewSearchSettings()"
-  >
-    <app-search-settings />
-  </div>
+  @if (activeTab() === 'search' && canViewSearchSettings()) {
+    <div id="settings-search-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-search-tab">
+      <app-search-settings />
+    </div>
+  }
 
   <!-- TAB: Navigation Settings -->
-  <div
-    id="settings-navigation-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-navigation-tab"
-    *ngIf="activeTab === 'navigation' && canViewNavigationSettings()"
-  >
-    <app-navigation-settings />
-  </div>
+  @if (activeTab() === 'navigation' && canViewNavigationSettings()) {
+    <div id="settings-navigation-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-navigation-tab">
+      <app-navigation-settings />
+    </div>
+  }
 
   <!-- TAB: Webhook Subscriptions -->
-  <div
-    id="settings-webhooks-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-webhooks-tab"
-    *ngIf="activeTab === 'webhooks' && canViewWebhookSettings()"
-  >
-    <app-webhooks-settings />
-  </div>
+  @if (activeTab() === 'webhooks' && canViewWebhookSettings()) {
+    <div id="settings-webhooks-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-webhooks-tab">
+      <app-webhooks-settings />
+    </div>
+  }
 
   <!-- TAB 1: General Settings -->
-  <div
-    id="settings-general-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-general-tab"
-    *ngIf="activeTab === 'general' && canManageSystemSettings()"
-  >
-    <app-settings-general-panel
-      [systemSettings]="systemSettings()"
-      [canUpdateSystemSettings]="canUpdateSystemSettings()"
-      [isSaving]="isSaving()"
-      [languages]="i18n.languages()"
-      (save)="saveSystemSettings()"
-    />
-  </div>
+  @if (activeTab() === 'general' && canManageSystemSettings()) {
+    <div id="settings-general-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-general-tab">
+      <app-settings-general-panel
+        [systemSettings]="systemSettings()"
+        [canUpdateSystemSettings]="canUpdateSystemSettings()"
+        [isSaving]="isSaving()"
+        [languages]="i18n.languages()"
+        (save)="saveSystemSettings()"
+      />
+    </div>
+  }
 
   <!-- TAB 2: Security Settings -->
-  <div
-    id="settings-security-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-security-tab"
-    *ngIf="activeTab === 'security' && canManageSystemSettings()"
-  >
-    <app-settings-security-panel
-      [systemSettings]="systemSettings()"
-      [canUpdateSystemSettings]="canUpdateSystemSettings()"
-      [isSaving]="isSaving()"
-      (save)="saveSystemSettings()"
-      (toggleRequire2fa)="toggleRequire2fa($event)"
-    />
-  </div>
+  @if (activeTab() === 'security' && canManageSystemSettings()) {
+    <div id="settings-security-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-security-tab">
+      <app-settings-security-panel
+        [systemSettings]="systemSettings()"
+        [canUpdateSystemSettings]="canUpdateSystemSettings()"
+        [isSaving]="isSaving()"
+        (save)="saveSystemSettings()"
+        (toggleRequire2fa)="toggleRequire2fa($event)"
+      />
+    </div>
+  }
 
   <!-- TAB 3: Storage Settings -->
-  <div
-    id="settings-storage-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-storage-tab"
-    *ngIf="activeTab === 'storage' && canManageSystemSettings()"
-  >
-    <app-settings-storage-panel
-      [systemSettings]="systemSettings()"
-      [canUpdateSystemSettings]="canUpdateSystemSettings()"
-      [isSaving]="isSaving()"
-      (save)="saveSystemSettings()"
-    />
-  </div>
+  @if (activeTab() === 'storage' && canManageSystemSettings()) {
+    <div id="settings-storage-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-storage-tab">
+      <app-settings-storage-panel
+        [systemSettings]="systemSettings()"
+        [canUpdateSystemSettings]="canUpdateSystemSettings()"
+        [isSaving]="isSaving()"
+        (save)="saveSystemSettings()"
+      />
+    </div>
+  }
 
   <!-- TAB 4: User Preferences -->
-  <div
-    id="settings-preferences-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-preferences-tab"
-    *ngIf="activeTab === 'preferences'"
-  >
-    <app-settings-preferences-panel
-      [userSettings]="userSettings()"
-      [isSaving]="isSaving()"
-      [currentLang]="i18n.currentLang()"
-      [languages]="i18n.languages()"
-      [userThemePreference]="userThemePreference()"
-      (save)="saveUserSettings()"
-      (changeLanguage)="changePersonalLang($event)"
-      (themeChange)="onThemeChange($event)"
-      (toggleSound)="toggleSound($event)"
-    />
-  </div>
+  @if (activeTab() === 'preferences') {
+    <div id="settings-preferences-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-preferences-tab">
+      <app-settings-preferences-panel
+        [userSettings]="userSettings()"
+        [isSaving]="isSaving()"
+        [currentLang]="i18n.currentLang()"
+        [languages]="i18n.languages()"
+        [userThemePreference]="userThemePreference()"
+        (save)="saveUserSettings()"
+        (changeLanguage)="changePersonalLang($event)"
+        (themeChange)="onThemeChange($event)"
+        (toggleSound)="toggleSound($event)"
+      />
+    </div>
+  }
 
   <!-- TAB 5: Languages & Translations -->
-  <div
-    id="settings-languages-panel"
-    class="tab-content"
-    role="tabpanel"
-    aria-labelledby="settings-languages-tab"
-    *ngIf="activeTab === 'languages' && canManageSystemSettings()"
-  >
-    <app-settings-languages-panel
-      [canUpdateSystemSettings]="canUpdateSystemSettings()"
-      [editingLanguageCode]="editingLanguageCode()"
-      [legacyLanguageCount]="legacyLanguageCount()"
-      [isMigratingLegacyLanguages]="isMigratingLegacyLanguages()"
-      [languages]="i18n.languages()"
-      [currentLang]="i18n.currentLang()"
-      [isAddLangModalOpen]="isAddLangModalOpen()"
-      [isAddingLang]="isAddingLang()"
-      [newLangCode]="newLangCode"
-      [newLangName]="newLangName"
-      [newLangJson]="newLangJson"
-      (openLanguageEditor)="openLanguageEditor($event)"
-      (closeLanguageEditor)="editingLanguageCode.set(null)"
-      (languageSaved)="onLanguageSaved()"
-      (migrateLegacyLanguages)="migrateLegacyLanguages()"
-      (openAddLangModal)="openAddLangModal()"
-      (closeAddLangModal)="isAddLangModalOpen.set(false)"
-      (saveNewLanguage)="saveNewLanguage()"
-      (exportLangJson)="exportLangJson($event)"
-      (switchLanguage)="switchLanguage($event)"
-      (newLangCodeChange)="newLangCode = $event"
-      (newLangNameChange)="newLangName = $event"
-      (newLangJsonChange)="newLangJson = $event"
-    />
-  </div>
+  @if (activeTab() === 'languages' && canManageSystemSettings()) {
+    <div id="settings-languages-panel" class="tab-content" role="tabpanel" aria-labelledby="settings-languages-tab">
+      <app-settings-languages-panel
+        [canUpdateSystemSettings]="canUpdateSystemSettings()"
+        [editingLanguageCode]="editingLanguageCode()"
+        [legacyLanguageCount]="legacyLanguageCount()"
+        [isMigratingLegacyLanguages]="isMigratingLegacyLanguages()"
+        [languages]="i18n.languages()"
+        [currentLang]="i18n.currentLang()"
+        [isAddLangModalOpen]="isAddLangModalOpen()"
+        [isAddingLang]="isAddingLang()"
+        [newLangCode]="newLangCode"
+        [newLangName]="newLangName"
+        [newLangJson]="newLangJson"
+        (openLanguageEditor)="openLanguageEditor($event)"
+        (closeLanguageEditor)="editingLanguageCode.set(null)"
+        (languageSaved)="onLanguageSaved()"
+        (migrateLegacyLanguages)="migrateLegacyLanguages()"
+        (openAddLangModal)="openAddLangModal()"
+        (closeAddLangModal)="isAddLangModalOpen.set(false)"
+        (saveNewLanguage)="saveNewLanguage()"
+        (exportLangJson)="exportLangJson($event)"
+        (switchLanguage)="switchLanguage($event)"
+        (newLangCodeChange)="newLangCode = $event"
+        (newLangNameChange)="newLangName = $event"
+        (newLangJsonChange)="newLangJson = $event"
+      />
+    </div>
+  }
 </div>

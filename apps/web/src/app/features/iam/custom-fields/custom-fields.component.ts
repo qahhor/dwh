@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
+
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -16,9 +16,8 @@ import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-custom-fields',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     SMTButtonComponent,
     TranslatePipe,
     CustomFieldsToolbarComponent,
@@ -40,24 +39,19 @@ import { problemText } from '../../../shared/ui/problem-text';
           <button
             type="button"
             class="icon-refresh-btn"
-            [class.spinning]="isLoading"
-            [disabled]="isLoading"
+            [class.spinning]="isLoading()"
+            [disabled]="isLoading()"
             (click)="loadFields()"
             [attr.aria-label]="'iam.obnovit_polya' | t"
             [title]="'common.refresh' | t"
           >
             <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           </button>
-          <button
-            smt-button
-            type="button"
-            *ngIf="canCreate()"
-            smtVariant="primary"
-            smtIcon="add"
-            (click)="openCreateModal()"
-          >
-            {{ 'iam.dobavit_pole' | t }}
-          </button>
+          @if (canCreate()) {
+            <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
+              {{ 'iam.dobavit_pole' | t }}
+            </button>
+          }
         </div>
       </div>
 
@@ -75,7 +69,7 @@ import { problemText } from '../../../shared/ui/problem-text';
       <!-- Table / Grid -->
       <app-custom-fields-table
         [fields]="filteredFields()"
-        [isLoading]="isLoading"
+        [isLoading]="isLoading()"
         [canManage]="canCreate()"
         [canEdit]="canEdit()"
         [canDelete]="canDelete()"
@@ -89,11 +83,11 @@ import { problemText } from '../../../shared/ui/problem-text';
 
       <!-- Modals (Create/Edit & Delete) -->
       <app-custom-fields-modals
-        [showModal]="showModal"
-        [editingField]="editingField"
-        [formData]="formData"
-        [formError]="formError"
-        [saving]="saving"
+        [showModal]="showModal()"
+        [editingField]="editingField()"
+        [formData]="formData()"
+        [formError]="formError()"
+        [saving]="saving()"
         (closeModal)="closeModal()"
         (saveField)="saveField()"
         (codeInput)="onCodeInput($event)"
@@ -115,6 +109,15 @@ export class CustomFieldsComponent implements OnInit {
   readonly fields = signal<CustomField[]>([]);
   readonly selectedEntity = signal('ALL');
   readonly searchQuery = signal('');
+
+  // --- Non-signal UI state ---
+  readonly isLoading = signal(false);
+  readonly showModal = signal(false);
+  readonly editingField = signal<CustomField | null>(null);
+  readonly saving = signal(false);
+  readonly isDeleting = signal(false);
+  readonly formError = signal('');
+  readonly formData = signal<CustomFieldFormData>(this.formService.createInitialFormData('USER', 0));
 
   readonly availableEntities = computed(() => {
     const base = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
@@ -162,15 +165,6 @@ export class CustomFieldsComponent implements OnInit {
   sortColumn = 'orderNo';
   sortDirection: 'asc' | 'desc' = 'asc';
 
-  // --- Non-signal UI state ---
-  isLoading = false;
-  showModal = false;
-  editingField: CustomField | null = null;
-  saving = false;
-  isDeleting = false;
-  formError = '';
-  formData: CustomFieldFormData = this.formService.createInitialFormData('USER', 0);
-
   ngOnInit() {
     this.loadFields();
   }
@@ -210,14 +204,14 @@ export class CustomFieldsComponent implements OnInit {
   }
 
   loadFields() {
-    this.isLoading = true;
+    this.isLoading.set(true);
     this.api.get<CustomField[]>('/custom-fields').subscribe({
       next: (data) => {
         this.fields.set(data || []);
-        this.isLoading = false;
+        this.isLoading.set(false);
       },
       error: () => {
-        this.isLoading = false;
+        this.isLoading.set(false);
         this.toast.error(this.uiI18n.translate('iam.oshibka_zagruzki_dinamicheskih_poley'));
       },
     });
@@ -258,83 +252,84 @@ export class CustomFieldsComponent implements OnInit {
   onCodeInput(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input) return;
-    this.formData.code = this.formService.sanitizeCode(input.value);
+    this.formData.update((data) => ({ ...data, code: this.formService.sanitizeCode(input.value) }));
   }
 
   openCreateModal() {
-    this.editingField = null;
-    this.formData = this.formService.createInitialFormData(this.selectedEntity(), this.fields().length);
-    this.formError = '';
-    this.showModal = true;
+    this.editingField.set(null);
+    this.formData.set(this.formService.createInitialFormData(this.selectedEntity(), this.fields().length));
+    this.formError.set('');
+    this.showModal.set(true);
   }
 
   openEditModal(f: CustomField) {
-    this.editingField = f;
-    this.formData = this.formService.fromCustomField(f);
-    this.formError = '';
-    this.showModal = true;
+    this.editingField.set(f);
+    this.formData.set(this.formService.fromCustomField(f));
+    this.formError.set('');
+    this.showModal.set(true);
   }
 
   closeModal() {
-    this.showModal = false;
-    this.editingField = null;
-    this.formError = '';
+    this.showModal.set(false);
+    this.editingField.set(null);
+    this.formError.set('');
   }
 
   saveField() {
-    const validation = this.formService.validateForm(this.formData, !!this.editingField);
+    const validation = this.formService.validateForm(this.formData(), !!this.editingField());
     if (!validation.isValid) {
-      this.formError = validation.errorMessage || '';
-      this.toast.error(this.formError);
+      this.formError.set(validation.errorMessage || '');
+      this.toast.error(this.formError());
       return;
     }
 
-    this.formError = '';
-    this.saving = true;
-    const options = this.formService.parseOptionsText(this.formData.optionsText);
+    this.formError.set('');
+    this.saving.set(true);
+    const options = this.formService.parseOptionsText(this.formData().optionsText);
 
-    if (this.editingField) {
+    const editing = this.editingField();
+    if (editing) {
       this.api
-        .patch(`/custom-fields/${this.editingField.id}`, {
-          name: this.formData.name,
-          isRequired: this.formData.isRequired,
-          defaultValue: this.formData.defaultValue,
+        .patch(`/custom-fields/${editing.id}`, {
+          name: this.formData().name,
+          isRequired: this.formData().isRequired,
+          defaultValue: this.formData().defaultValue,
           options,
-          orderNo: Number(this.formData.orderNo) || 0,
+          orderNo: Number(this.formData().orderNo) || 0,
         })
         .subscribe({
           next: () => {
-            this.saving = false;
+            this.saving.set(false);
             this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_obnovleno'));
             this.closeModal();
             this.loadFields();
           },
           error: () => {
-            this.saving = false;
+            this.saving.set(false);
             this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_polya'));
           },
         });
     } else {
       this.api
         .post('/custom-fields', {
-          entityType: this.formData.entityType,
-          code: this.formData.code,
-          name: this.formData.name,
-          fieldType: this.formData.fieldType,
-          isRequired: this.formData.isRequired,
-          defaultValue: this.formData.defaultValue,
-          orderNo: Number(this.formData.orderNo) || 0,
+          entityType: this.formData().entityType,
+          code: this.formData().code,
+          name: this.formData().name,
+          fieldType: this.formData().fieldType,
+          isRequired: this.formData().isRequired,
+          defaultValue: this.formData().defaultValue,
+          orderNo: Number(this.formData().orderNo) || 0,
           options,
         })
         .subscribe({
           next: () => {
-            this.saving = false;
+            this.saving.set(false);
             this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_sozdano'));
             this.closeModal();
             this.loadFields();
           },
           error: () => {
-            this.saving = false;
+            this.saving.set(false);
             this.toast.error(this.uiI18n.translate('iam.oshibka_sozdaniya_polya'));
           },
         });
@@ -352,14 +347,14 @@ export class CustomFieldsComponent implements OnInit {
         noLabel: t('common.cancel'),
         destructive: true,
         action: () => {
-          this.isDeleting = true;
+          this.isDeleting.set(true);
           return this.api.delete(`/custom-fields/${field.id}`, { notifyError: false }).pipe(
             tap(() => {
               this.toast.success(t('iam.pole_udaleno'));
               this.loadFields();
             }),
             finalize(() => {
-              this.isDeleting = false;
+              this.isDeleting.set(false);
             }),
           );
         },

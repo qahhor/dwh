@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { SMTSwitchComponent } from '../../../shared/ui-kit/components/forms/switch';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -9,8 +9,8 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-settings-preferences-panel',
-  standalone: true,
-  imports: [SMTSwitchComponent, SMTSelectComponent, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTSwitchComponent, SMTSelectComponent, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -30,8 +30,8 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
             smtTriggerId="settings-interface-language"
             [options]="languageOptions()"
             [allowClear]="false"
-            [disabled]="isSaving"
-            [value]="currentLang"
+            [disabled]="isSaving()"
+            [value]="currentLang()"
             (valueChange)="$event && changeLanguage.emit($event)"
           />
         </div>
@@ -42,8 +42,8 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
             smtTriggerId="settings-theme"
             [options]="themeOptions()"
             [allowClear]="false"
-            [disabled]="isSaving"
-            [value]="userThemePreference"
+            [disabled]="isSaving()"
+            [value]="userThemePreference()"
             (valueChange)="$event && themeChange.emit($event)"
           />
         </div>
@@ -62,8 +62,8 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
               smtFieldId="settings-notification-sound"
               smtLabelledBy="settings-notification-sound-label"
               smtDescribedBy="settings-notification-sound-desc"
-              [disabled]="isSaving"
-              [checked]="userSettings['user.notifications_sound'] !== 'false'"
+              [disabled]="isSaving()"
+              [checked]="userSettings()['user.notifications_sound'] !== 'false'"
               (smtUserChange)="toggleSound.emit($event)"
             />
           </div>
@@ -71,7 +71,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
       </div>
 
       <div class="card-footer-actions">
-        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
+        <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
           {{ 'common.save' | t }}
         </button>
       </div>
@@ -178,24 +178,29 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 export class SettingsPreferencesPanelComponent {
   private readonly i18n = inject(I18nService);
 
-  @Input() userSettings: Record<string, string> = {};
-  @Input() isSaving = false;
-  @Input() currentLang = '';
-  @Input() languages: Array<{ code: string; name: string }> = [];
-  @Input() userThemePreference = '';
+  readonly userSettings = input<Record<string, string>>({});
+  readonly isSaving = input(false);
+  readonly currentLang = input('');
+  readonly languages = input<
+    Array<{
+      code: string;
+      name: string;
+    }>
+  >([]);
+  readonly userThemePreference = input('');
 
-  @Output() save = new EventEmitter<void>();
-  @Output() changeLanguage = new EventEmitter<string>();
-  @Output() themeChange = new EventEmitter<string>();
-  @Output() toggleSound = new EventEmitter<boolean>();
+  readonly save = output<void>();
+  readonly changeLanguage = output<string>();
+  readonly themeChange = output<string>();
+  readonly toggleSound = output<boolean>();
 
   private readonly languageMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   private readonly themeMemo = optionsMemo<SMTSelectOption<string>[]>();
 
   languageOptions(): SMTSelectOption<string>[] {
-    return this.languageMemo([this.languages], () =>
-      this.languages.map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` })),
+    return this.languageMemo([this.languages()], () =>
+      this.languages().map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code.toUpperCase()})` })),
     );
   }
 

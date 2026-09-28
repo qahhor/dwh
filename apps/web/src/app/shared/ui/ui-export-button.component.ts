@@ -17,7 +17,6 @@ import { SMTButtonComponent } from '../ui-kit/components/button';
  */
 @Component({
   selector: 'ui-export-button',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent],
   template: `

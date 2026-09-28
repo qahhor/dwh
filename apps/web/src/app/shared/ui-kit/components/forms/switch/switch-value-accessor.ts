@@ -6,7 +6,6 @@ import { SMTSwitchComponent } from './switch.component';
 
 @Directive({
   selector: 'smt-switch[ngModel], smt-switch[formControl], smt-switch[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTSwitchValueAccessor), multi: true }],
 })
 export class SMTSwitchValueAccessor extends PickerValueAccessor<boolean> {

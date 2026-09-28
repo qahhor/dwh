@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -20,7 +20,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 
 @Component({
   selector: 'app-project-modals',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTControlComponent,
     SMTInputComponent,
@@ -29,7 +29,6 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     SMTTextareaValueAccessor,
     SMTSelectComponent,
     SMTSelectValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTDialogComponent,
@@ -39,66 +38,73 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
   ],
   template: `
     <!-- Record View Modal -->
-    <smt-dialog
-      *ngIf="routeRecordId !== null"
-      [open]="true"
-      [smtTitle]="'projects.proekt' | t"
-      smtSize="sm"
-      (closed)="closeRecordView.emit()"
-    >
-      <ng-template smtDialogContent>
-        <div body>
-          <p *ngIf="recordLoading" role="status">{{ 'search.record_loading' | t }}</p>
-          <div *ngIf="recordError" role="alert">
-            <p>{{ (recordNotFound ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
-            <button
-              smt-button
-              type="button"
-              *ngIf="!recordNotFound"
-              smtVariant="secondary"
-              (click)="loadRecordView.emit(routeRecordId)"
-            >
-              {{ 'audit.retry' | t }}
+    @if (routeRecordId() !== null) {
+      <smt-dialog [open]="true" [smtTitle]="'projects.proekt' | t" smtSize="sm" (closed)="closeRecordView.emit()">
+        <ng-template smtDialogContent>
+          <div body>
+            @if (recordLoading()) {
+              <p role="status">{{ 'search.record_loading' | t }}</p>
+            }
+            @if (recordError()) {
+              <div role="alert">
+                <p>{{ (recordNotFound() ? 'search.record_not_found' : 'search.record_load_error') | t }}</p>
+                @if (!recordNotFound()) {
+                  <button
+                    smt-button
+                    type="button"
+                    smtVariant="secondary"
+                    (click)="loadRecordView.emit(routeRecordId())"
+                  >
+                    {{ 'audit.retry' | t }}
+                  </button>
+                }
+              </div>
+            }
+            @if (viewingProject(); as project) {
+              <div [attr.data-record-id]="routeRecordId()">
+                <p>#{{ routeRecordId() }}</p>
+                <h3>{{ project.name }}</h3>
+                <p>{{ project.description }}</p>
+                <p>{{ (project.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}</p>
+                @if (hasAttributes(project.attributes)) {
+                  <div class="attributes-stack">
+                    <h4>{{ 'projects.custom_fields' | t }}</h4>
+                    @for (item of formatAttributes(project.attributes); track item) {
+                      <div class="attr-stack-item">
+                        <span class="attr-k">{{ item.key }}:</span>
+                        <span class="attr-v">{{ item.value }}</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+          <div footer>
+            <button smt-button type="button" smtVariant="secondary" (click)="closeRecordView.emit()">
+              {{ 'search.back_to_list' | t }}
             </button>
           </div>
-          <div *ngIf="viewingProject as project" [attr.data-record-id]="routeRecordId">
-            <p>#{{ routeRecordId }}</p>
-            <h3>{{ project.name }}</h3>
-            <p>{{ project.description }}</p>
-            <p>{{ (project.state === 'A' ? 'common.active_masculine' : 'common.blocked_masculine') | t }}</p>
-            <div class="attributes-stack" *ngIf="hasAttributes(project.attributes)">
-              <h4>{{ 'projects.custom_fields' | t }}</h4>
-              <div *ngFor="let item of formatAttributes(project.attributes)" class="attr-stack-item">
-                <span class="attr-k">{{ item.key }}:</span>
-                <span class="attr-v">{{ item.value }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div footer>
-          <button smt-button type="button" smtVariant="secondary" (click)="closeRecordView.emit()">
-            {{ 'search.back_to_list' | t }}
-          </button>
-        </div>
-      </ng-template>
-    </smt-dialog>
+        </ng-template>
+      </smt-dialog>
+    }
 
     <!-- Create Project Modal -->
     <smt-dialog
-      [open]="isCreateModalOpen"
+      [open]="isCreateModalOpen()"
       [smtTitle]="'projects.sozdanie_novogo_proekta' | t"
       smtSize="sm"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="requestCloseCreate.emit()"
     >
       <ng-template smtDialogContent>
         <form body id="project-create-form" (ngSubmit)="submitCreateProject.emit()">
-          <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting">
+          <fieldset class="modal-form modal-form-fieldset project-create-form" [disabled]="isSubmitting()">
             <smt-control
               class="form-group"
               [smtLabel]="'projects.nazvanie_proekta' | t"
               [smtError]="
-                isCreateSubmitted && !createForm.name.trim()
+                isCreateSubmitted() && !createForm().name.trim()
                   ? ('projects.pozhaluysta_ukazhite_nazvanie_proekta' | t)
                   : ''
               "
@@ -107,7 +113,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
                 smtFieldId="project-create-name"
                 name="projectCreateName"
                 required
-                [(ngModel)]="createForm.name"
+                [(ngModel)]="createForm().name"
                 [placeholder]="'projects.naprimer_vnedrenie_dwh_cdc' | t"
               />
             </smt-control>
@@ -115,25 +121,24 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
               <smt-textarea
                 smtFieldId="project-create-description"
                 name="projectCreateDescription"
-                [(ngModel)]="createForm.description"
+                [(ngModel)]="createForm().description"
                 [placeholder]="'projects.celi_granicy_i_kontekst_proekta' | t"
               />
             </smt-control>
-            <div class="form-group" *ngIf="projectCustomFields.length > 0">
-              <ui-custom-fields
-                [fields]="projectCustomFields"
-                [values]="createForm.attributes || {}"
-                (valuesChange)="createForm.attributes = $event"
-              ></ui-custom-fields>
-            </div>
-            <div
-              *ngIf="createSaveError"
-              class="request-state request-error"
-              data-testid="project-create-save-error"
-              role="alert"
-            >
-              {{ createSaveError }}
-            </div>
+            @if (projectCustomFields().length > 0) {
+              <div class="form-group">
+                <ui-custom-fields
+                  [fields]="projectCustomFields()"
+                  [values]="createForm().attributes || {}"
+                  (valuesChange)="createForm().attributes = $event"
+                ></ui-custom-fields>
+              </div>
+            }
+            @if (createSaveError()) {
+              <div class="request-state request-error" data-testid="project-create-save-error" role="alert">
+                {{ createSaveError() }}
+              </div>
+            }
           </fieldset>
         </form>
         <div footer>
@@ -142,7 +147,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="requestCloseCreate.emit()"
           >
             {{ 'common.cancel' | t }}
@@ -153,7 +158,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
             form="project-create-form"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmitting"
+            [smtLoading]="isSubmitting()"
           >
             {{ 'projects.sozdat_proekt' | t }}
           </button>
@@ -162,7 +167,7 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
     </smt-dialog>
 
     <smt-dialog
-      [open]="isCreateDiscardConfirmationOpen"
+      [open]="isCreateDiscardConfirmationOpen()"
       [smtTitle]="'projects.discard_create_title' | t"
       smtSize="sm"
       (closed)="cancelNavigationDiscard.emit('create')"
@@ -190,107 +195,114 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 
     <!-- Edit Project Modal -->
     <smt-dialog
-      [open]="isEditModalOpen"
+      [open]="isEditModalOpen()"
       [smtTitle]="'projects.redaktirovanie_proekta' | t"
       smtSize="sm"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="requestCloseEdit.emit()"
     >
       <ng-template smtDialogContent>
-        <div body class="request-state" data-testid="project-edit-loading" *ngIf="editLoading" role="status">
-          {{ 'projects.edit_loading' | t }}
-        </div>
-        <div
-          body
-          class="request-state request-error"
-          data-testid="project-edit-load-error"
-          *ngIf="editLoadError"
-          role="alert"
-        >
-          <span>{{ 'projects.edit_load_error' | t }}</span>
-          <button
-            smt-button
-            type="button"
-            class="project-edit-retry"
-            smtVariant="secondary"
-            smtSize="sm"
-            (click)="retryEditLoad.emit()"
-          >
-            {{ 'projects.retry_edit_load' | t }}
-          </button>
-        </div>
-        <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()" *ngIf="editingProject as p">
-          <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting">
-            <smt-control
-              class="form-group"
-              [smtLabel]="'projects.nazvanie_proekta' | t"
-              [smtError]="
-                isEditSubmitted && !editForm.name.trim() ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t) : ''
-              "
+        @if (editLoading()) {
+          <div body class="request-state" data-testid="project-edit-loading" role="status">
+            {{ 'projects.edit_loading' | t }}
+          </div>
+        }
+        @if (editLoadError()) {
+          <div body class="request-state request-error" data-testid="project-edit-load-error" role="alert">
+            <span>{{ 'projects.edit_load_error' | t }}</span>
+            <button
+              smt-button
+              type="button"
+              class="project-edit-retry"
+              smtVariant="secondary"
+              smtSize="sm"
+              (click)="retryEditLoad.emit()"
             >
-              <smt-input smtFieldId="project-edit-name" name="projectEditName" required [(ngModel)]="editForm.name" />
-            </smt-control>
-            <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
-              <smt-select
-                smtTriggerId="project-edit-state"
-                name="projectEditState"
-                [(ngModel)]="editForm.state"
-                [options]="stateOptions()"
-                [allowClear]="false"
-              ></smt-select>
-            </smt-control>
-            <smt-control class="form-group" [smtLabel]="'projects.opisanie' | t">
-              <smt-textarea
-                smtFieldId="project-edit-description"
-                name="projectEditDescription"
-                [(ngModel)]="editForm.description"
-              />
-            </smt-control>
-            <div class="form-group" *ngIf="projectCustomFields.length > 0">
-              <ui-custom-fields
-                [fields]="projectCustomFields"
-                [values]="editForm.attributes || {}"
-                (valuesChange)="editForm.attributes = $event"
-              ></ui-custom-fields>
-            </div>
-            <div
-              *ngIf="editSaveError"
-              class="request-state request-error"
-              data-testid="project-edit-save-error"
-              role="alert"
-            >
-              {{ editSaveError }}
-            </div>
-          </fieldset>
-        </form>
+              {{ 'projects.retry_edit_load' | t }}
+            </button>
+          </div>
+        }
+        @if (editingProject(); as p) {
+          <form body id="project-edit-form" (ngSubmit)="submitEditProject.emit()">
+            <fieldset class="modal-form modal-form-fieldset project-edit-form" [disabled]="isSubmitting()">
+              <smt-control
+                class="form-group"
+                [smtLabel]="'projects.nazvanie_proekta' | t"
+                [smtError]="
+                  isEditSubmitted() && !editForm().name.trim()
+                    ? ('projects.nazvanie_proekta_ne_mozhet_byt_pustym' | t)
+                    : ''
+                "
+              >
+                <smt-input
+                  smtFieldId="project-edit-name"
+                  name="projectEditName"
+                  required
+                  [(ngModel)]="editForm().name"
+                />
+              </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.status_aktivnosti' | t">
+                <smt-select
+                  smtTriggerId="project-edit-state"
+                  name="projectEditState"
+                  [(ngModel)]="editForm().state"
+                  [options]="stateOptions()"
+                  [allowClear]="false"
+                ></smt-select>
+              </smt-control>
+              <smt-control class="form-group" [smtLabel]="'projects.opisanie' | t">
+                <smt-textarea
+                  smtFieldId="project-edit-description"
+                  name="projectEditDescription"
+                  [(ngModel)]="editForm().description"
+                />
+              </smt-control>
+              @if (projectCustomFields().length > 0) {
+                <div class="form-group">
+                  <ui-custom-fields
+                    [fields]="projectCustomFields()"
+                    [values]="editForm().attributes || {}"
+                    (valuesChange)="editForm().attributes = $event"
+                  ></ui-custom-fields>
+                </div>
+              }
+              @if (editSaveError()) {
+                <div class="request-state request-error" data-testid="project-edit-save-error" role="alert">
+                  {{ editSaveError() }}
+                </div>
+              }
+            </fieldset>
+          </form>
+        }
         <div footer>
           <button
             smt-button
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="requestCloseEdit.emit()"
           >
             {{ 'common.cancel' | t }}
           </button>
-          <button
-            smt-button
-            *ngIf="editingProject"
-            type="submit"
-            form="project-edit-form"
-            smtVariant="primary"
-            smtSize="md"
-            [smtLoading]="isSubmitting"
-          >
-            {{ 'common.save' | t }}
-          </button>
+          @if (editingProject()) {
+            <button
+              smt-button
+              type="submit"
+              form="project-edit-form"
+              smtVariant="primary"
+              smtSize="md"
+              [smtLoading]="isSubmitting()"
+            >
+              {{ 'common.save' | t }}
+            </button>
+          }
         </div>
       </ng-template>
     </smt-dialog>
 
     <smt-dialog
-      [open]="isEditDiscardConfirmationOpen"
+      [open]="isEditDiscardConfirmationOpen()"
       [smtTitle]="'projects.discard_edit_title' | t"
       smtSize="sm"
       (closed)="cancelNavigationDiscard.emit('edit')"
@@ -406,47 +418,50 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 })
 export class ProjectModalsComponent {
   private readonly uiI18n = inject(I18nService);
-  private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
-  // Record View
-  @Input() routeRecordId: string | null = null;
-  @Input() viewingProject: Project | null = null;
-  @Input() recordLoading = false;
-  @Input() recordError = false;
-  @Input() recordNotFound = false;
-  @Output() closeRecordView = new EventEmitter<void>();
-  @Output() loadRecordView = new EventEmitter<string | null>();
+  readonly viewingProject = input<Project | null>(null);
+  readonly recordLoading = input(false);
+  readonly recordError = input(false);
+  readonly recordNotFound = input(false);
 
   // Create Modal
-  @Input() isCreateModalOpen = false;
-  @Input() isCreateSubmitted = false;
-  @Input() isCreateDiscardConfirmationOpen = false;
-  @Input() createSaveError: string | null = null;
-  @Input() createForm: ProjectCreateForm = { name: '', description: '', attributes: {} };
-  @Output() requestCloseCreate = new EventEmitter<void>();
-  @Output() confirmDiscardCreate = new EventEmitter<void>();
-  @Output() submitCreateProject = new EventEmitter<void>();
+  readonly isCreateModalOpen = input(false);
+  readonly isCreateSubmitted = input(false);
+  readonly isCreateDiscardConfirmationOpen = input(false);
 
   // Edit Modal
-  @Input() isEditModalOpen = false;
-  @Input() isEditSubmitted = false;
-  @Input() isEditDiscardConfirmationOpen = false;
-  @Input() editLoading = false;
-  @Input() editLoadError = false;
-  @Input() editSaveError: string | null = null;
-  @Input() editingProject: Project | null = null;
-  @Input() editForm: ProjectEditForm = { name: '', description: '', state: 'A', attributes: {} };
-  @Output() requestCloseEdit = new EventEmitter<void>();
-  @Output() confirmDiscardEdit = new EventEmitter<void>();
-  @Output() submitEditProject = new EventEmitter<void>();
-  @Output() retryEditLoad = new EventEmitter<void>();
-
-  // Discard helper
-  @Output() cancelNavigationDiscard = new EventEmitter<'create' | 'edit'>();
+  readonly isEditModalOpen = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly isEditDiscardConfirmationOpen = input(false);
+  readonly editLoading = input(false);
+  readonly editLoadError = input(false);
+  readonly editingProject = input<Project | null>(null);
 
   // Shared
-  @Input() isSubmitting = false;
-  @Input() projectCustomFields: CustomField[] = [];
+  readonly isSubmitting = input(false);
+
+  // Record View
+  readonly routeRecordId = input<string | null>(null);
+  readonly createSaveError = input<string | null>(null);
+  readonly createForm = input<ProjectCreateForm>({ name: '', description: '', attributes: {} });
+  readonly editSaveError = input<string | null>(null);
+  readonly editForm = input<ProjectEditForm>({ name: '', description: '', state: 'A', attributes: {} });
+  readonly projectCustomFields = input<CustomField[]>([]);
+
+  readonly closeRecordView = output<void>();
+  readonly loadRecordView = output<string | null>();
+  readonly requestCloseCreate = output<void>();
+  readonly confirmDiscardCreate = output<void>();
+  readonly submitCreateProject = output<void>();
+  readonly requestCloseEdit = output<void>();
+  readonly confirmDiscardEdit = output<void>();
+  readonly submitEditProject = output<void>();
+  readonly retryEditLoad = output<void>();
+
+  // Discard helper
+  readonly cancelNavigationDiscard = output<'create' | 'edit'>();
+
+  private readonly stateMemo = optionsMemo<SMTSelectOption<'A' | 'P'>[]>();
 
   /** Project states for the edit form; translated again when the language changes. */
   stateOptions(): SMTSelectOption<'A' | 'P'>[] {
@@ -463,7 +478,7 @@ export class ProjectModalsComponent {
 
   formatAttributes(attrs: any): ProjectAttributeItem[] {
     if (!this.hasAttributes(attrs)) return [];
-    const fields = this.projectCustomFields;
+    const fields = this.projectCustomFields();
     return Object.entries(attrs).map(([k, v]) => {
       const field = fields.find((f) => f.code === k);
       const keyLabel = field ? field.name : k;

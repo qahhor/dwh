@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,7 +5,6 @@ import {
   ElementRef,
   OnInit,
   TemplateRef,
-  ViewChild,
   computed,
   inject,
   signal,
@@ -74,12 +72,10 @@ function emptyFormErrors(): UplPackageFormErrors {
 
 @Component({
   selector: 'app-upl-packages',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent,
     SMTControlComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     UiBadgeComponent,
@@ -405,6 +401,8 @@ export class PackagesComponent implements OnInit {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly rowsCell = viewChild.required<TemplateRef<unknown>>('rowsCell');
 
+  readonly fileInput = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+
   /** Field metadata of the list (`query-meta/upl.packages`). */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
@@ -437,7 +435,6 @@ export class PackagesComponent implements OnInit {
     this.i18n.translate('upl.list.col.published_version'),
   ]);
 
-  @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
   readonly views = new ListViewState('upl.packages', inject(ListViewsApi), {
     defaultSort: () => {
       const meta = this.meta();
@@ -657,8 +654,9 @@ export class PackagesComponent implements OnInit {
   /** После успеха чистим только файл: источник и период нужны для следующего файла. */
   private clearFile(): void {
     this.form.file = null;
-    if (this.fileInput) {
-      this.fileInput.nativeElement.value = '';
+    const fileInput = this.fileInput();
+    if (fileInput) {
+      fileInput.nativeElement.value = '';
     }
   }
 

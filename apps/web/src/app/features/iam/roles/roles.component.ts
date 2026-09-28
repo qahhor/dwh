@@ -1,7 +1,17 @@
-import { Component, DestroyRef, OnInit, ViewChild, signal, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnInit,
+  signal,
+  computed,
+  inject,
+  linkedSignal,
+  viewChild,
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
@@ -35,10 +45,9 @@ import { RoleFormsService } from './services/role-forms.service';
 
 @Component({
   selector: 'app-roles',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
-    CommonModule,
     FormsModule,
     SMTButtonComponent,
     RoleScopePanelComponent,
@@ -56,6 +65,8 @@ export class RolesComponent implements OnInit {
 
   private readonly roleForms = inject(RoleFormsService);
 
+  private readonly scopePanel = viewChild(RoleScopePanelComponent);
+
   readonly roles = signal<Role[]>([]);
   readonly forms = signal<FormTreeItem[]>([]);
   readonly selectedRole = signal<Role | null>(null);
@@ -65,7 +76,8 @@ export class RolesComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly permissionsError = signal('');
   readonly isSaving = signal<boolean>(false);
-  readonly scopePanelBusy = signal(false);
+  /** The scope panel's unsaved or saving state; a panel that goes away (another role, no right) is not busy. */
+  readonly scopePanelBusy = linkedSignal({ source: this.scopePanel, computation: () => false });
   readonly roleUserCounts = signal<Record<number, number>>({});
   readonly isDiscardPermissionsModalOpen = signal<boolean>(false);
   private readonly loadedPermissionsRoleId = signal<number | null>(null);
@@ -84,7 +96,6 @@ export class RolesComponent implements OnInit {
   readonly getModuleActionsCountFn = (mod: ModuleGroup) => this.getModuleActionsCount(mod);
   private permissionsRequest?: Subscription;
   private panelLeaveSubscription?: Subscription;
-  private roleScopePanel?: RoleScopePanelComponent;
   readonly safeRoleId = safeNumericRecordId;
   readonly isSubmittingRole = this.roleForms.isSubmittingRole;
 
@@ -150,12 +161,6 @@ export class RolesComponent implements OnInit {
     this.roleForms.deletingRole = v;
   }
 
-  @ViewChild(RoleScopePanelComponent)
-  set scopePanel(panel: RoleScopePanelComponent | undefined) {
-    this.roleScopePanel = panel;
-    if (!panel) this.scopePanelBusy.set(false);
-  }
-
   ngOnInit() {
     this.loadForms();
     this.loadRoles();
@@ -201,7 +206,7 @@ export class RolesComponent implements OnInit {
 
   canLeaveRecordPage(): boolean | Observable<boolean> {
     if (this.isSaving() || this.isPermissionsDirty()) return false;
-    return this.roleScopePanel?.canLeave() ?? true;
+    return this.scopePanel()?.canLeave() ?? true;
   }
 
   canEditPermissions(): boolean {
@@ -548,7 +553,7 @@ export class RolesComponent implements OnInit {
     if (this.destroyRef.destroyed) return;
     this.panelLeaveSubscription?.unsubscribe();
     this.panelLeaveSubscription = undefined;
-    const decision = this.roleScopePanel?.canLeave() ?? true;
+    const decision = this.scopePanel()?.canLeave() ?? true;
     if (typeof decision === 'boolean') {
       if (decision) action();
       return;

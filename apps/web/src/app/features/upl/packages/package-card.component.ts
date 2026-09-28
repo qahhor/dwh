@@ -1,18 +1,16 @@
-import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
-  EventEmitter,
   Signal,
   TemplateRef,
   computed,
   viewChild,
-  Input,
   OnChanges,
-  Output,
   SimpleChanges,
   inject,
   signal,
+  input,
+  output,
 } from '@angular/core';
 import { ProblemDetail } from '../../../core/models/common.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -36,16 +34,8 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
 
 @Component({
   selector: 'app-upl-package-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    SMTAlertComponent,
-    CommonModule,
-    TranslatePipe,
-    UiBadgeComponent,
-    SMTButtonComponent,
-    UiLocalTableComponent,
-  ],
+  imports: [SMTAlertComponent, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `
     <div class="upl-pkg-card">
       <div class="upl-pkg-card-head">
@@ -62,7 +52,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
         >
           {{ 'upl.pkg.refresh' | t }}
         </button>
-        @if (item.status === 'verified' && canApply && (item.rowsAccepted ?? 0) > 0) {
+        @if (item().status === 'verified' && canApply() && (item().rowsAccepted ?? 0) > 0) {
           <button
             smt-button
             type="button"
@@ -77,18 +67,18 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
       </div>
 
       <div class="upl-pkg-card-title">
-        <span class="upl-pkg-file">{{ item.fileName }}</span>
-        <ui-badge [variant]="statusVariant[item.status]">{{ statusKey[item.status] | t }}</ui-badge>
+        <span class="upl-pkg-file">{{ item().fileName }}</span>
+        <ui-badge [variant]="statusVariant[item().status]">{{ statusKey[item().status] | t }}</ui-badge>
       </div>
       <div class="upl-pkg-card-meta" data-testid="upl-pkg-card-meta">{{ metaText() }}</div>
       @if (applyError(); as message) {
         <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-apply-error">{{ message }}</smt-alert>
       }
 
-      @if (item.status === 'received') {
+      @if (item().status === 'received') {
         <p class="upl-pkg-checking" data-testid="upl-pkg-checking">{{ 'upl.pkg.card.checking' | t }}</p>
       } @else {
-        @if (item.status === 'rejected') {
+        @if (item().status === 'rejected') {
           <smt-alert smtTone="danger" class="upl-pkg-rejected" data-testid="upl-pkg-rejected">
             <strong>{{ 'upl.pkg.card.rejected' | t }}</strong>
             <span class="upl-pkg-reject-reason">{{ rejectText() }}</span>
@@ -107,15 +97,15 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
           <div class="upl-pkg-counters" data-testid="upl-pkg-counters">
             <span class="upl-pkg-counter">
               <span class="upl-pkg-counter-label">{{ 'upl.pkg.card.rows_total' | t }}</span>
-              <span class="upl-pkg-counter-value">{{ item.rowsTotal ?? '—' }}</span>
+              <span class="upl-pkg-counter-value">{{ item().rowsTotal ?? '—' }}</span>
             </span>
             <span class="upl-pkg-counter">
               <span class="upl-pkg-counter-label">{{ 'upl.pkg.card.rows_accepted' | t }}</span>
-              <span class="upl-pkg-counter-value">{{ item.rowsAccepted ?? '—' }}</span>
+              <span class="upl-pkg-counter-value">{{ item().rowsAccepted ?? '—' }}</span>
             </span>
             <span class="upl-pkg-counter">
               <span class="upl-pkg-counter-label">{{ 'upl.pkg.card.rows_rejected' | t }}</span>
-              <span class="upl-pkg-counter-value">{{ item.rowsRejected ?? '—' }}</span>
+              <span class="upl-pkg-counter-value">{{ item().rowsRejected ?? '—' }}</span>
             </span>
           </div>
           @if (reconciliationText(); as line) {
@@ -146,7 +136,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
           <div class="table-card" data-testid="upl-pkg-errors-loading">
             <ui-local-table [rows]="[]" [config]="errorsConfig()" [loading]="true" />
           </div>
-        } @else if (item.status !== 'rejected') {
+        } @else if (item().status !== 'rejected') {
           @if (errors(); as loaded) {
             @if (loaded.total === 0) {
               <p class="upl-pkg-no-errors" data-testid="upl-pkg-no-errors">{{ 'upl.pkg.card.no_errors' | t }}</p>
@@ -308,6 +298,14 @@ export class PackageCardComponent implements OnChanges {
   private readonly api = inject(UplPackagesApiService);
   private readonly i18n = inject(I18nService);
 
+  readonly item = input.required<UplPackageItem>();
+
+  readonly canApply = input(false);
+
+  readonly back = output<void>();
+  readonly refresh = output<void>();
+  readonly applied = output<UplPackageItem>();
+
   private readonly errorValueCell = viewChild.required<TemplateRef<unknown>>('errorValueCell');
   private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
 
@@ -347,12 +345,6 @@ export class PackageCardComponent implements OnChanges {
     };
   });
 
-  @Input({ required: true }) item!: UplPackageItem;
-  @Output() back = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
-  @Input() canApply = false;
-  @Output() applied = new EventEmitter<UplPackageItem>();
-
   /** The stored errors are all on screen, so a header click sorts them all: by sheet, row, column or reason. */
   readonly errorSortValues = {
     sheet: (row: UplPackageErrorItem) => row.sheet,
@@ -374,7 +366,7 @@ export class PackageCardComponent implements OnChanges {
     this.loadError.set(null);
     this.applyError.set(null);
     this.isLoading.set(false);
-    if (this.item.status === 'received') {
+    if (this.item().status === 'received') {
       return;
     }
     this.reloadErrors();
@@ -384,7 +376,7 @@ export class PackageCardComponent implements OnChanges {
   errorsFileUrl(): string {
     return (
       '/api/v1/upl/packages/' +
-      encodeURIComponent(this.item.id) +
+      encodeURIComponent(this.item().id) +
       '/errors/file?lang=' +
       encodeURIComponent(this.i18n.currentLang())
     );
@@ -392,13 +384,14 @@ export class PackageCardComponent implements OnChanges {
 
   /** Строка шапки: источник · период · версия анкеты · кто загрузил · когда. */
   metaText(): string {
+    const item = this.item();
     return [
-      this.item.sourceName,
-      formatUplPeriod(this.item.periodFrom, this.item.periodTo),
-      this.i18n.translate('upl.pkg.card.format_version', { v: this.item.formatVersion }),
+      this.item().sourceName,
+      formatUplPeriod(this.item().periodFrom, this.item().periodTo),
+      this.i18n.translate('upl.pkg.card.format_version', { v: this.item().formatVersion }),
       // Who uploaded comes only to those who may see people; without it the line skips the part.
-      this.item.uploadedBy ? this.i18n.translate('upl.pkg.card.uploaded_by', { who: this.item.uploadedBy }) : '',
-      formatUplDateTime(this.item.uploadedAt),
+      item.uploadedBy ? this.i18n.translate('upl.pkg.card.uploaded_by', { who: item.uploadedBy }) : '',
+      formatUplDateTime(this.item().uploadedAt),
     ]
       .filter(Boolean)
       .join(' · ');
@@ -406,12 +399,13 @@ export class PackageCardComponent implements OnChanges {
 
   /** Причина отклонения словами; кода отклонения нет — оставляем пусто. */
   rejectText(): string {
-    return this.item.rejectCode ? uplPackageCodeText(this.item.rejectCode, this.item.rejectParams, this.translate) : '';
+    const item = this.item();
+    return item.rejectCode ? uplPackageCodeText(item.rejectCode, item.rejectParams, this.translate) : '';
   }
 
   /** Строка сверки: только у применённой загрузки и только когда сервер отдал оба числа — экран чисел не выдумывает. */
   reconciliationText(): string {
-    const { status, rowsTotal, rawRows } = this.item;
+    const { status, rowsTotal, rawRows } = this.item();
     if (status !== 'applied' || rowsTotal == null || rawRows == null) {
       return '';
     }
@@ -421,7 +415,7 @@ export class PackageCardComponent implements OnChanges {
   apply(): void {
     this.applying.set(true);
     this.applyError.set(null);
-    this.api.apply(this.item.id).subscribe({
+    this.api.apply(this.item().id).subscribe({
       next: (result) => {
         this.applying.set(false);
         this.applied.emit(result);
@@ -451,7 +445,7 @@ export class PackageCardComponent implements OnChanges {
     this.isLoading.set(true);
     this.loadError.set(null);
     this.errors.set(null);
-    this.api.errors(this.item.id).subscribe({
+    this.api.errors(this.item().id).subscribe({
       next: (loaded) => {
         this.errors.set(loaded ?? null);
         this.isLoading.set(false);

@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import {
   CustomNavigationItem,
@@ -15,12 +15,11 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-navigation-settings-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     SMTSelectComponent,
-    CommonModule,
     FormsModule,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -29,142 +28,146 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   ],
   template: `
     <!-- Create/Edit Modal -->
-    <smt-dialog
-      *ngIf="isModalOpen"
-      [open]="isModalOpen"
-      [smtTitle]="editingItem ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
-      (closed)="closeModal.emit()"
-    >
-      <ng-template smtDialogContent>
-        <div class="modal-form">
-          <div class="form-row">
-            <div class="form-group flex-2">
-              <label class="form-label" for="nav-title">{{ 'nav.settings.field_title' | t }} *</label>
-              <smt-input
-                smtFieldId="nav-title"
-                [ngModel]="formTitle"
-                (ngModelChange)="formTitleChange.emit($event); titleChange.emit()"
-                [placeholder]="'nav.settings.title_placeholder' | t"
-              />
+    @if (isModalOpen()) {
+      <smt-dialog
+        [open]="isModalOpen()"
+        [smtTitle]="editingItem() ? ('nav.settings.edit_modal_title' | t) : ('nav.settings.create_modal_title' | t)"
+        (closed)="closeModal.emit()"
+      >
+        <ng-template smtDialogContent>
+          <div class="modal-form">
+            <div class="form-row">
+              <div class="form-group flex-2">
+                <label class="form-label" for="nav-title">{{ 'nav.settings.field_title' | t }} *</label>
+                <smt-input
+                  smtFieldId="nav-title"
+                  [ngModel]="formTitle()"
+                  (ngModelChange)="formTitleChange.emit($event); titleChange.emit()"
+                  [placeholder]="'nav.settings.title_placeholder' | t"
+                />
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label" for="nav-code">{{ 'nav.settings.field_code' | t }} *</label>
+                <smt-input
+                  smtFieldId="nav-code"
+                  [ngModel]="formCode()"
+                  (ngModelChange)="formCodeChange.emit($event)"
+                  placeholder="superset-sales"
+                />
+              </div>
             </div>
-            <div class="form-group flex-1">
-              <label class="form-label" for="nav-code">{{ 'nav.settings.field_code' | t }} *</label>
-              <smt-input
-                smtFieldId="nav-code"
-                [ngModel]="formCode"
-                (ngModelChange)="formCodeChange.emit($event)"
-                placeholder="superset-sales"
-              />
-            </div>
-          </div>
 
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label class="form-label" for="nav-type">{{ 'nav.settings.field_type' | t }}</label>
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label class="form-label" for="nav-type">{{ 'nav.settings.field_type' | t }}</label>
+                <smt-select
+                  smtTriggerId="nav-type"
+                  [options]="targetTypeOptions()"
+                  [allowClear]="false"
+                  [value]="formTargetType()"
+                  (valueChange)="$event && formTargetTypeChange.emit($event)"
+                />
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label" for="nav-section">{{ 'nav.settings.field_section' | t }}</label>
+                <smt-select
+                  smtTriggerId="nav-section"
+                  [options]="sectionOptions()"
+                  [allowClear]="false"
+                  [value]="formSectionId()"
+                  (valueChange)="$event && formSectionIdChange.emit($event)"
+                />
+              </div>
+              <div class="form-group flex-1">
+                <label class="form-label" for="nav-order">{{ 'nav.settings.field_order' | t }}</label>
+                <smt-input
+                  smtFieldId="nav-order"
+                  type="number"
+                  [ngModel]="formSortOrder()"
+                  (ngModelChange)="formSortOrderChange.emit($event)"
+                />
+              </div>
+            </div>
+
+            @if (formTargetType() === 'EMBEDDED_IFRAME') {
+              <div class="type-hint-box">
+                <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
+                <span>{{ 'nav.settings.iframe_type_hint' | t }}</span>
+              </div>
+            }
+
+            <div class="form-group">
+              <label class="form-label" for="nav-url">{{ 'nav.settings.field_url' | t }} *</label>
+              <smt-input
+                smtFieldId="nav-url"
+                [ngModel]="formUrl()"
+                (ngModelChange)="formUrlChange.emit($event)"
+                (touch)="urlBlur.emit()"
+                placeholder="https://bi.company.uz/superset/dashboard/123/"
+              />
+              <span class="form-hint">{{ 'nav.settings.url_hint' | t }}</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="nav-permission">{{ 'nav.settings.field_permission' | t }}</label>
               <smt-select
-                smtTriggerId="nav-type"
-                [options]="targetTypeOptions()"
-                [allowClear]="false"
-                [value]="formTargetType"
-                (valueChange)="$event && formTargetTypeChange.emit($event)"
+                smtTriggerId="nav-permission"
+                [options]="permissionOptions()"
+                [allowClear]="true"
+                smtDescribedBy="nav-permission-hint"
+                [placeholder]="'nav.settings.permission_everyone' | t"
+                [value]="formRequiredPermission()"
+                (valueChange)="formRequiredPermissionChange.emit($event ?? null)"
               />
+              <span class="form-hint" id="nav-permission-hint">{{ 'nav.settings.permission_hint' | t }}</span>
             </div>
-            <div class="form-group flex-1">
-              <label class="form-label" for="nav-section">{{ 'nav.settings.field_section' | t }}</label>
-              <smt-select
-                smtTriggerId="nav-section"
-                [options]="sectionOptions()"
-                [allowClear]="false"
-                [value]="formSectionId"
-                (valueChange)="$event && formSectionIdChange.emit($event)"
-              />
-            </div>
-            <div class="form-group flex-1">
-              <label class="form-label" for="nav-order">{{ 'nav.settings.field_order' | t }}</label>
-              <smt-input
-                smtFieldId="nav-order"
-                type="number"
-                [ngModel]="formSortOrder"
-                (ngModelChange)="formSortOrderChange.emit($event)"
-              />
+
+            <div class="form-group">
+              <label class="form-label">{{ 'nav.settings.field_icon' | t }}</label>
+              <div class="icon-selector-row">
+                <smt-input
+                  class="icon-input"
+                  [ngModel]="formIcon()"
+                  (ngModelChange)="formIconChange.emit($event)"
+                  placeholder="analytics"
+                />
+                <span class="material-symbols-outlined icon-preview" aria-hidden="true">{{
+                  formIcon() || 'bar_chart'
+                }}</span>
+              </div>
+              <div class="icon-quick-chips">
+                @for (ic of popularIcons(); track ic) {
+                  <button
+                    type="button"
+                    class="chip-btn"
+                    [class.active]="formIcon() === ic"
+                    (click)="formIconChange.emit(ic)"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">{{ ic }}</span>
+                  </button>
+                }
+              </div>
             </div>
           </div>
 
-          <div *ngIf="formTargetType === 'EMBEDDED_IFRAME'" class="type-hint-box">
-            <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
-            <span>{{ 'nav.settings.iframe_type_hint' | t }}</span>
+          <div footer class="modal-footer-btns">
+            <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
+              {{ 'common.cancel' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              [smtLoading]="isSubmitting()"
+              (click)="saveItem.emit()"
+              [disabled]="!isFormValid()"
+            >
+              {{ 'common.save' | t }}
+            </button>
           </div>
-
-          <div class="form-group">
-            <label class="form-label" for="nav-url">{{ 'nav.settings.field_url' | t }} *</label>
-            <smt-input
-              smtFieldId="nav-url"
-              [ngModel]="formUrl"
-              (ngModelChange)="formUrlChange.emit($event)"
-              (touch)="urlBlur.emit()"
-              placeholder="https://bi.company.uz/superset/dashboard/123/"
-            />
-            <span class="form-hint">{{ 'nav.settings.url_hint' | t }}</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label" for="nav-permission">{{ 'nav.settings.field_permission' | t }}</label>
-            <smt-select
-              smtTriggerId="nav-permission"
-              [options]="permissionOptions()"
-              [allowClear]="true"
-              smtDescribedBy="nav-permission-hint"
-              [placeholder]="'nav.settings.permission_everyone' | t"
-              [value]="formRequiredPermission"
-              (valueChange)="formRequiredPermissionChange.emit($event ?? null)"
-            />
-            <span class="form-hint" id="nav-permission-hint">{{ 'nav.settings.permission_hint' | t }}</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">{{ 'nav.settings.field_icon' | t }}</label>
-            <div class="icon-selector-row">
-              <smt-input
-                class="icon-input"
-                [ngModel]="formIcon"
-                (ngModelChange)="formIconChange.emit($event)"
-                placeholder="analytics"
-              />
-              <span class="material-symbols-outlined icon-preview" aria-hidden="true">{{
-                formIcon || 'bar_chart'
-              }}</span>
-            </div>
-            <div class="icon-quick-chips">
-              <button
-                *ngFor="let ic of popularIcons"
-                type="button"
-                class="chip-btn"
-                [class.active]="formIcon === ic"
-                (click)="formIconChange.emit(ic)"
-              >
-                <span class="material-symbols-outlined" aria-hidden="true">{{ ic }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div footer class="modal-footer-btns">
-          <button smt-button type="button" smtVariant="secondary" (click)="closeModal.emit()">
-            {{ 'common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            [smtLoading]="isSubmitting"
-            (click)="saveItem.emit()"
-            [disabled]="!isFormValid"
-          >
-            {{ 'common.save' | t }}
-          </button>
-        </div>
-      </ng-template>
-    </smt-dialog>
+        </ng-template>
+      </smt-dialog>
+    }
   `,
   styles: [
     `
@@ -298,36 +301,37 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 export class NavigationSettingsModalComponent {
   private readonly i18n = inject(I18nService);
 
-  @Input() isModalOpen = false;
-  @Input() editingItem: CustomNavigationItem | null = null;
-  @Input() isSubmitting = false;
-  @Input() isFormValid = false;
+  readonly editingItem = input<CustomNavigationItem | null>(null);
+  readonly isSubmitting = input(false);
+  readonly isFormValid = input(false);
 
-  @Input() formTitle = '';
-  @Input() formCode = '';
-  @Input() formTargetType: NavigationTargetType = 'EMBEDDED_IFRAME';
-  @Input() formSectionId = 'custom';
-  @Input() formSortOrder = 10;
-  @Input() formUrl = '';
-  @Input() formIcon = 'analytics';
+  readonly formTitle = input('');
+  readonly formCode = input('');
+  readonly formTargetType = input<NavigationTargetType>('EMBEDDED_IFRAME');
+  readonly formSectionId = input('custom');
+  readonly formSortOrder = input(10);
+  readonly formUrl = input('');
+  readonly formIcon = input('analytics');
+  readonly popularIcons = input<string[]>([]);
+
+  readonly isModalOpen = input(false);
   /** `form.action` pair the item is limited to; null shows it to everyone. */
-  @Input() formRequiredPermission: string | null = null;
-  @Input() permissionChoices: NavigationPermissionChoice[] = [];
-  @Input() popularIcons: string[] = [];
+  readonly formRequiredPermission = input<string | null>(null);
+  readonly permissionChoices = input<NavigationPermissionChoice[]>([]);
 
-  @Output() formTitleChange = new EventEmitter<string>();
-  @Output() formCodeChange = new EventEmitter<string>();
-  @Output() formTargetTypeChange = new EventEmitter<NavigationTargetType>();
-  @Output() formSectionIdChange = new EventEmitter<string>();
-  @Output() formSortOrderChange = new EventEmitter<number>();
-  @Output() formUrlChange = new EventEmitter<string>();
-  @Output() formIconChange = new EventEmitter<string>();
-  @Output() formRequiredPermissionChange = new EventEmitter<string | null>();
+  readonly formTitleChange = output<string>();
+  readonly formCodeChange = output<string>();
+  readonly formTargetTypeChange = output<NavigationTargetType>();
+  readonly formSectionIdChange = output<string>();
+  readonly formSortOrderChange = output<number>();
+  readonly formUrlChange = output<string>();
+  readonly formIconChange = output<string>();
+  readonly formRequiredPermissionChange = output<string | null>();
 
-  @Output() titleChange = new EventEmitter<void>();
-  @Output() urlBlur = new EventEmitter<void>();
-  @Output() closeModal = new EventEmitter<void>();
-  @Output() saveItem = new EventEmitter<void>();
+  readonly titleChange = output<void>();
+  readonly urlBlur = output<void>();
+  readonly closeModal = output<void>();
+  readonly saveItem = output<void>();
 
   private readonly targetTypeMemo = optionsMemo<SMTSelectOption<NavigationTargetType>[]>();
 
@@ -337,12 +341,12 @@ export class NavigationSettingsModalComponent {
 
   /** Catalog pairs by name; a stored pair missing from the list stays visible by its key. */
   permissionOptions(): SMTSelectOption<string>[] {
-    return this.permissionMemo([this.permissionChoices, this.formRequiredPermission], () => {
-      const options = this.permissionChoices.map((choice) => ({
+    return this.permissionMemo([this.permissionChoices(), this.formRequiredPermission()], () => {
+      const options = this.permissionChoices().map((choice) => ({
         id: choice.permission,
         label: `${choice.formName} — ${choice.actionName}`,
       }));
-      const stored = this.formRequiredPermission;
+      const stored = this.formRequiredPermission();
       return stored && !options.some((option) => option.id === stored)
         ? [{ id: stored, label: stored }, ...options]
         : options;

@@ -1,7 +1,7 @@
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, finalize } from 'rxjs';
-import { CommonModule } from '@angular/common';
+
 import { Router } from '@angular/router';
 import { NotificationService } from '../../core/services/notification.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -20,9 +20,8 @@ export { resolveNotificationIcon };
 
 @Component({
   selector: 'app-notifications',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     NotificationsHeaderComponent,
     NotificationsTabsComponent,
     NotificationsListComponent,
@@ -58,24 +57,25 @@ export { resolveNotificationIcon };
           [loadError]="loadError()"
           [isMarkingAll]="isMarkingAll()"
           [pendingReads]="pendingReads()"
-          [currentPage]="currentPage"
+          [currentPage]="currentPage()"
           [pageSize]="pageSize"
           (itemClick)="onItemClick($event)"
           (itemKeydown)="onItemKeydown($event.event, $event.item)"
           (markAsReadClick)="onMarkAsReadClick($event.event, $event.item)"
           (retry)="loadNotifications()"
-          (pageChange)="currentPage = $event"
-          (pageSizeChange)="pageSize = $event; currentPage = 1"
+          (pageChange)="currentPage.set($event)"
+          (pageSizeChange)="pageSize = $event; currentPage.set(1)"
         />
       </div>
 
-      <app-notification-preferences-modal
-        *ngIf="isPreferencesOpen()"
-        [initialPreferences]="preferences()"
-        [isSaving]="isSavingPreferences()"
-        (close)="isPreferencesOpen.set(false)"
-        (save)="savePreferences($event)"
-      />
+      @if (isPreferencesOpen()) {
+        <app-notification-preferences-modal
+          [initialPreferences]="preferences()"
+          [isSaving]="isSavingPreferences()"
+          (close)="isPreferencesOpen.set(false)"
+          (save)="savePreferences($event)"
+        />
+      }
     </div>
   `,
   styles: [
@@ -115,6 +115,8 @@ export class NotificationsComponent implements OnInit {
   readonly isSavingPreferences = signal(false);
   readonly preferences = signal<NotificationPrefItem[]>([]);
 
+  readonly currentPage = signal(1);
+
   readonly unreadItemsCount = computed(() => {
     return this.items().filter((item) => !item.isRead).length;
   });
@@ -129,13 +131,11 @@ export class NotificationsComponent implements OnInit {
 
   private listRequest?: Subscription;
   private countRequest?: Subscription;
-
-  currentPage = 1;
   pageSize = 10;
 
   paginatedItems(): NotificationItem[] {
     const list = this.filteredItems();
-    const start = (this.currentPage - 1) * this.pageSize;
+    const start = (this.currentPage() - 1) * this.pageSize;
     return list.slice(start, start + this.pageSize);
   }
 
@@ -158,7 +158,7 @@ export class NotificationsComponent implements OnInit {
           this.items.set(Array.isArray(res) ? res : res?.items || []);
           const total = this.filteredItems().length;
           const maxPage = Math.max(1, Math.ceil(total / this.pageSize));
-          this.currentPage = Math.min(this.currentPage, maxPage);
+          this.currentPage.set(Math.min(this.currentPage(), maxPage));
         },
         error: () => {
           this.loadError.set(this.uiI18n.translate('notifications.oshibka_zagruzki'));
@@ -168,7 +168,7 @@ export class NotificationsComponent implements OnInit {
 
   setFilter(tab: NotificationFilterTab): void {
     this.filterTab.set(tab);
-    this.currentPage = 1;
+    this.currentPage.set(1);
   }
 
   onItemClick(item: NotificationItem): void {

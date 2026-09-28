@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, model } from '@angular/core';
 import { CustomField } from '../../core/models/custom-field.models';
 import { I18nService } from '../../core/services/i18n.service';
 import { LookupSources } from '../lookups/lookup-sources';
@@ -14,17 +14,16 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
  */
 @Component({
   selector: 'ui-custom-fields',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTDynamicFieldComponent],
   template: `
-    @if (fields.length > 0) {
+    @if (fields().length > 0) {
       <div class="custom-fields-grid">
         @for (field of definitions(); track field.code) {
           <smt-dynamic-field
             [field]="field"
             [userSource]="users"
-            [value]="values[field.code] ?? null"
+            [value]="values()[field.code] ?? null"
             (valueChange)="onValueChange(field.code, $event)"
           />
         }
@@ -45,28 +44,27 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
 export class UiCustomFieldsComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly fields = input<CustomField[]>([]);
+
+  /** The values by field code, two-way: a change sets it and emits valuesChange. */
+  readonly values = model<Record<string, unknown>>({});
+
   readonly users = inject(LookupSources).activeUsers;
-
-  @Input() fields: CustomField[] = [];
-
-  @Input() values: Record<string, unknown> = {};
-
-  @Output() valuesChange = new EventEmitter<Record<string, unknown>>();
 
   private cache: { fields: CustomField[]; lang: string; definitions: SMTDynamicFieldDef[] } | null = null;
 
   /** The fields as definitions; the same array while the fields and the language stay the same. */
   definitions(): SMTDynamicFieldDef[] {
     const lang = this.i18n.currentLang();
-    if (this.cache?.fields !== this.fields || this.cache.lang !== lang) {
-      this.cache = { fields: this.fields, lang, definitions: this.fields.map((field) => this.definitionOf(field)) };
+    const fields = this.fields();
+    if (this.cache?.fields !== fields || this.cache.lang !== lang) {
+      this.cache = { fields: fields, lang, definitions: fields.map((field) => this.definitionOf(field)) };
     }
     return this.cache.definitions;
   }
 
   onValueChange(code: string, value: unknown): void {
-    this.values = { ...this.values, [code]: value };
-    this.valuesChange.emit(this.values);
+    this.values.set({ ...this.values(), [code]: value });
   }
 
   private definitionOf(field: CustomField): SMTDynamicFieldDef {

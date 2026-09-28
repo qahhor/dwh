@@ -52,7 +52,6 @@ let nextColumnSettingsId = 0;
 
 @Component({
   selector: 'smt-column-settings',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   imports: [CdkConnectedOverlay, CdkOverlayOrigin, A11yModule],

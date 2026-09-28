@@ -1,5 +1,5 @@
-import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import {
   SMTDataSelectComponent,
@@ -26,10 +26,9 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
 
 @Component({
   selector: 'app-task-edit-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTControlComponent,
-    CommonModule,
     FormsModule,
     SMTDatePickerComponent,
     SMTDatePickerValueAccessor,
@@ -50,215 +49,219 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
   ],
   template: `
     <smt-dialog
-      [open]="isOpen"
+      [open]="isOpen()"
       [smtTitle]="'tasks.redaktirovanie_zadachi' | t"
       smtSize="lg"
-      [dismissible]="!isSubmitting"
+      [dismissible]="!isSubmitting()"
       (closed)="close.emit()"
     >
       <ng-template smtDialogContent>
-        <div body class="request-state request-loading" *ngIf="editLoading" role="status">
-          {{ 'tasks.edit_loading' | t }}
-        </div>
-        <div body class="request-state request-error" *ngIf="editLoadError" role="alert">
-          <span>{{ 'tasks.edit_load_error' | t }}</span>
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryEditLoad.emit()">
-            {{ 'audit.retry' | t }}
-          </button>
-        </div>
-        <fieldset
-          body
-          class="modal-form modal-form-fieldset task-edit-form"
-          [disabled]="isSubmitting"
-          *ngIf="editingTask as task"
-        >
-          <!-- Title Input (Required) -->
-          <smt-control
-            class="form-group"
-            [smtLabel]="'task.title' | t"
-            [smtError]="
-              isEditSubmitted && !editForm.title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
-            "
-          >
-            <smt-input
-              smtFieldId="task-edit-title"
-              name="taskEditTitle"
-              class="title-input"
-              required
-              [(ngModel)]="editForm.title"
-            />
-          </smt-control>
-
-          <!-- Visual Type Selector Chips -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
-            </div>
-            <smt-radio-group
-              smtAppearance="chips"
-              [options]="typeOptions()"
-              [value]="editForm.taskType"
-              [smtAriaLabel]="'tasks.tip_zadachi' | t"
-              (valueChange)="editForm.taskType = $event ?? editForm.taskType"
-            />
+        @if (editLoading()) {
+          <div body class="request-state request-loading" role="status">
+            {{ 'tasks.edit_loading' | t }}
           </div>
-
-          <!-- Visual Priority Selector Pills -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'common.priority' | t }}</span>
-            </div>
-            <smt-radio-group
-              smtAppearance="segmented"
-              [options]="priorityOptions()"
-              [value]="editForm.priority"
-              [smtAriaLabel]="'tasks.prioritet_zadachi' | t"
-              (valueChange)="editForm.priority = $event ?? editForm.priority"
-            />
+        }
+        @if (editLoadError()) {
+          <div body class="request-state request-error" role="alert">
+            <span>{{ 'tasks.edit_load_error' | t }}</span>
+            <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="retryEditLoad.emit()">
+              {{ 'audit.retry' | t }}
+            </button>
           </div>
-
-          <div class="form-grid-2">
-            <!-- Project Selector -->
-            <smt-control class="form-group" [smtLabel]="'projects.proekt' | t">
-              <smt-select
-                smtTriggerId="task-edit-project"
-                name="taskEditProject"
-                [(ngModel)]="editForm.projectId"
-                [options]="projects | projectOptions"
-                [placeholder]="'tasks.bez_proekta' | t"
-                [searchPlaceholder]="'tasks.search_project' | t"
-                [emptyLabel]="'tasks.bez_proekta' | t"
-              ></smt-select>
+        }
+        @if (editingTask(); as task) {
+          <fieldset body class="modal-form modal-form-fieldset task-edit-form" [disabled]="isSubmitting()">
+            <!-- Title Input (Required) -->
+            <smt-control
+              class="form-group"
+              [smtLabel]="'task.title' | t"
+              [smtError]="
+                isEditSubmitted() && !editForm().title.trim() ? ('tasks.nazvanie_zadachi_ne_mozhet_byt_pustym' | t) : ''
+              "
+            >
+              <smt-input
+                smtFieldId="task-edit-title"
+                name="taskEditTitle"
+                class="title-input"
+                required
+                [(ngModel)]="editForm().title"
+              />
             </smt-control>
 
-            <!-- Parent Task (Searchable Select) -->
+            <!-- Visual Type Selector Chips -->
             <div class="form-group">
               <div class="label-row">
-                <span class="clean-label">{{ 'task.parent' | t }}</span>
+                <span class="clean-label">{{ 'tasks.tip_zadachi' | t }}</span>
               </div>
-              <smt-data-select
-                [source]="lookups.tasks"
-                [knownRows]="lookups.knownParentRows()"
-                [exclude]="notThisTask"
-                [value]="editForm.parentTaskId"
-                [ariaLabel]="'task.parent' | t"
-                (valueChange)="editForm.parentTaskId = $event"
-                [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
-                [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
-                [emptyLabel]="'tasks.without_parent' | t"
+              <smt-radio-group
+                smtAppearance="chips"
+                [options]="typeOptions()"
+                [value]="editForm().taskType"
+                [smtAriaLabel]="'tasks.tip_zadachi' | t"
+                (valueChange)="editForm().taskType = $event ?? editForm().taskType"
               />
             </div>
-          </div>
 
-          <div class="form-grid-2">
-            <!-- Responsible User (Searchable Select) -->
+            <!-- Visual Priority Selector Pills -->
             <div class="form-group">
               <div class="label-row">
-                <span class="clean-label">{{ 'task.responsible' | t }}</span>
+                <span class="clean-label">{{ 'common.priority' | t }}</span>
               </div>
-              <smt-data-select
+              <smt-radio-group
+                smtAppearance="segmented"
+                [options]="priorityOptions()"
+                [value]="editForm().priority"
+                [smtAriaLabel]="'tasks.prioritet_zadachi' | t"
+                (valueChange)="editForm().priority = $event ?? editForm().priority"
+              />
+            </div>
+
+            <div class="form-grid-2">
+              <!-- Project Selector -->
+              <smt-control class="form-group" [smtLabel]="'projects.proekt' | t">
+                <smt-select
+                  smtTriggerId="task-edit-project"
+                  name="taskEditProject"
+                  [(ngModel)]="editForm().projectId"
+                  [options]="projects() | projectOptions"
+                  [placeholder]="'tasks.bez_proekta' | t"
+                  [searchPlaceholder]="'tasks.search_project' | t"
+                  [emptyLabel]="'tasks.bez_proekta' | t"
+                ></smt-select>
+              </smt-control>
+
+              <!-- Parent Task (Searchable Select) -->
+              <div class="form-group">
+                <div class="label-row">
+                  <span class="clean-label">{{ 'task.parent' | t }}</span>
+                </div>
+                <smt-data-select
+                  [source]="lookups.tasks"
+                  [knownRows]="lookups.knownParentRows()"
+                  [exclude]="notThisTask"
+                  [value]="editForm().parentTaskId"
+                  [ariaLabel]="'task.parent' | t"
+                  (valueChange)="editForm().parentTaskId = $event"
+                  [placeholder]="'tasks.bez_roditelya_kornevaya_zadacha' | t"
+                  [searchPlaceholder]="'tasks.poisk_zadachi_po_id_ili_nazvaniyu' | t"
+                  [emptyLabel]="'tasks.without_parent' | t"
+                />
+              </div>
+            </div>
+
+            <div class="form-grid-2">
+              <!-- Responsible User (Searchable Select) -->
+              <div class="form-group">
+                <div class="label-row">
+                  <span class="clean-label">{{ 'task.responsible' | t }}</span>
+                </div>
+                <smt-data-select
+                  [source]="lookups.users"
+                  [knownRows]="lookups.knownUserRows()"
+                  [value]="editForm().responsibleUserId"
+                  [ariaLabel]="'task.responsible' | t"
+                  (valueChange)="editForm().responsibleUserId = $event"
+                  [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
+                  [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
+                  [emptyLabel]="'common.not_assigned' | t"
+                />
+              </div>
+
+              <!-- Deadlines: End Date / Deadline -->
+              <smt-control class="form-group" [smtLabel]="'tasks.srok_sdachi_dedlayn' | t">
+                <smt-date-picker
+                  smtInputId="task-edit-deadline"
+                  name="taskEditDeadline"
+                  smtWithTime
+                  [ngModel]="editForm().endTime"
+                  (ngModelChange)="editForm().endTime = $event ?? ''"
+                />
+              </smt-control>
+            </div>
+
+            <!-- Executors Searchable Multi-Select Tags Input -->
+            <div class="form-group">
+              <div class="label-row">
+                <span class="clean-label">{{ 'tasks.soispolniteli' | t }}</span>
+              </div>
+              <smt-multi-data-select
                 [source]="lookups.users"
                 [knownRows]="lookups.knownUserRows()"
-                [value]="editForm.responsibleUserId"
-                [ariaLabel]="'task.responsible' | t"
-                (valueChange)="editForm.responsibleUserId = $event"
-                [placeholder]="'tasks.vyberite_otvetstvennogo' | t"
-                [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-                [emptyLabel]="'common.not_assigned' | t"
+                [value]="editForm().executorUserIds"
+                [ariaLabel]="'tasks.soispolniteli' | t"
+                (valueChange)="editForm().executorUserIds = [...$event]"
+                [placeholder]="'tasks.nazhmite_dlya_dobavleniya_soispolniteley' | t"
+                [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
               />
             </div>
 
-            <!-- Deadlines: End Date / Deadline -->
-            <smt-control class="form-group" [smtLabel]="'tasks.srok_sdachi_dedlayn' | t">
-              <smt-date-picker
-                smtInputId="task-edit-deadline"
-                name="taskEditDeadline"
-                smtWithTime
-                [ngModel]="editForm.endTime"
-                (ngModelChange)="editForm.endTime = $event ?? ''"
+            <!-- Observers Searchable Multi-Select Tags Input -->
+            <div class="form-group">
+              <div class="label-row">
+                <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
+              </div>
+              <smt-multi-data-select
+                [source]="lookups.users"
+                [knownRows]="lookups.knownUserRows()"
+                [value]="editForm().observerUserIds"
+                [ariaLabel]="'tasks.nablyudateli' | t"
+                (valueChange)="editForm().observerUserIds = [...$event]"
+                [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
+                [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
               />
-            </smt-control>
-          </div>
-
-          <!-- Executors Searchable Multi-Select Tags Input -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'tasks.soispolniteli' | t }}</span>
             </div>
-            <smt-multi-data-select
-              [source]="lookups.users"
-              [knownRows]="lookups.knownUserRows()"
-              [value]="editForm.executorUserIds"
-              [ariaLabel]="'tasks.soispolniteli' | t"
-              (valueChange)="editForm.executorUserIds = [...$event]"
-              [placeholder]="'tasks.nazhmite_dlya_dobavleniya_soispolniteley' | t"
-              [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
-            />
-          </div>
 
-          <!-- Observers Searchable Multi-Select Tags Input -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'tasks.nablyudateli_poluchayut_uvedomleniya' | t }}</span>
+            <!-- RichText Markdown Editor for Description -->
+            <div class="form-group">
+              <div class="label-row">
+                <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
+              </div>
+              <ui-markdown-editor
+                [value]="editForm().descriptionMarkdown"
+                [ariaLabel]="'projects.opisanie' | t"
+                (valueChange)="editForm().descriptionMarkdown = $event"
+                [rows]="4"
+              ></ui-markdown-editor>
             </div>
-            <smt-multi-data-select
-              [source]="lookups.users"
-              [knownRows]="lookups.knownUserRows()"
-              [value]="editForm.observerUserIds"
-              [ariaLabel]="'tasks.nablyudateli' | t"
-              (valueChange)="editForm.observerUserIds = [...$event]"
-              [placeholder]="'tasks.nazhmite_dlya_dobavleniya_nablyudateley' | t"
-              [searchPlaceholder]="'tasks.poisk_sotrudnika' | t"
-            />
-          </div>
 
-          <!-- RichText Markdown Editor for Description -->
-          <div class="form-group">
-            <div class="label-row">
-              <span class="clean-label">{{ 'projects.opisanie' | t }}</span>
-            </div>
-            <ui-markdown-editor
-              [value]="editForm.descriptionMarkdown"
-              [ariaLabel]="'projects.opisanie' | t"
-              (valueChange)="editForm.descriptionMarkdown = $event"
-              [rows]="4"
-            ></ui-markdown-editor>
-          </div>
-
-          <!-- Custom Dynamic Fields -->
-          <div class="custom-fields-section" *ngIf="taskCustomFields.length > 0">
-            <h4 class="custom-fields-title">{{ 'nav.custom_fields' | t }}</h4>
-            <ui-custom-fields [fields]="taskCustomFields" [(values)]="editForm.attributes"></ui-custom-fields>
-          </div>
-        </fieldset>
+            <!-- Custom Dynamic Fields -->
+            @if (taskCustomFields().length > 0) {
+              <div class="custom-fields-section">
+                <h4 class="custom-fields-title">{{ 'nav.custom_fields' | t }}</h4>
+                <ui-custom-fields [fields]="taskCustomFields()" [(values)]="editForm().attributes"></ui-custom-fields>
+              </div>
+            }
+          </fieldset>
+        }
         <div footer>
           <button
             smt-button
             type="button"
             smtVariant="secondary"
             smtSize="md"
-            [disabled]="isSubmitting"
+            [disabled]="isSubmitting()"
             (click)="close.emit()"
           >
-            {{ editLoadError ? ('audit.zakryt' | t) : ('common.cancel' | t) }}
+            {{ editLoadError() ? ('audit.zakryt' | t) : ('common.cancel' | t) }}
           </button>
-          <button
-            smt-button
-            type="button"
-            *ngIf="editingTask"
-            smtVariant="primary"
-            smtSize="md"
-            [smtLoading]="isSubmitting"
-            (click)="submit.emit()"
-          >
-            {{ 'tasks.sohranit_izmeneniya' | t }}
-          </button>
+          @if (editingTask()) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              smtSize="md"
+              [smtLoading]="isSubmitting()"
+              (click)="submit.emit()"
+            >
+              {{ 'tasks.sohranit_izmeneniya' | t }}
+            </button>
+          }
         </div>
       </ng-template>
     </smt-dialog>
 
     <smt-dialog
-      [open]="isEditDiscardConfirmationOpen"
+      [open]="isEditDiscardConfirmationOpen()"
       [smtTitle]="'tasks.discard_edit_title' | t"
       smtSize="sm"
       (closed)="cancelDiscard.emit()"
@@ -367,34 +370,37 @@ export class TaskEditModalComponent {
   /** The pickers' sources and the people and parent the task's card already named. */
   readonly lookups = inject(TaskLookupsService);
   private readonly i18n = inject(I18nService);
+
+  readonly isOpen = input(false);
+  readonly editingTask = input<Task | null>(null);
+  readonly editLoading = input(false);
+  readonly editLoadError = input(false);
+  readonly isSubmitting = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly isEditDiscardConfirmationOpen = input(false);
+  readonly taskTypes = input<TaskType[]>([]);
+  readonly projects = input<Project[]>([]);
+  readonly editForm = input<any>({});
+  readonly taskCustomFields = input<CustomField[]>([]);
+
+  readonly close = output<void>();
+  readonly submit = output<void>();
+  readonly retryEditLoad = output<void>();
+  readonly cancelDiscard = output<void>();
+  readonly confirmDiscard = output<void>();
+
   private typeCache: { types: TaskType[]; options: SMTRadioOption<string>[] } | null = null;
   private priorityCache: { lang: string; options: SMTRadioOption<string>[] } | null = null;
   /** A task cannot be its own parent. */
-  readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask?.id;
-  @Input() isOpen = false;
-  @Input() editingTask: Task | null = null;
-  @Input() editForm: any = {};
-  @Input() editLoading = false;
-  @Input() editLoadError = false;
-  @Input() isSubmitting = false;
-  @Input() isEditSubmitted = false;
-  @Input() isEditDiscardConfirmationOpen = false;
-  @Input() taskTypes: TaskType[] = [];
-  @Input() projects: Project[] = [];
-  @Input() taskCustomFields: CustomField[] = [];
-
-  @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<void>();
-  @Output() retryEditLoad = new EventEmitter<void>();
-  @Output() cancelDiscard = new EventEmitter<void>();
-  @Output() confirmDiscard = new EventEmitter<void>();
+  readonly notThisTask = (candidate: TaskRef) => candidate.id === this.editingTask()?.id;
 
   /** Task types as chips, each icon in the type's colour; the same array while the types stay the same. */
   typeOptions(): SMTRadioOption<string>[] {
-    if (this.typeCache?.types !== this.taskTypes) {
+    const taskTypes = this.taskTypes();
+    if (this.typeCache?.types !== taskTypes) {
       this.typeCache = {
-        types: this.taskTypes,
-        options: this.taskTypes.map((type) => ({
+        types: taskTypes,
+        options: taskTypes.map((type) => ({
           value: type.code,
           label: type.name,
           icon: type.icon,

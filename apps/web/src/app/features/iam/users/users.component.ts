@@ -1,13 +1,14 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   OnInit,
   OnDestroy,
   signal,
   HostListener,
   ElementRef,
-  ViewChild,
   inject,
   DestroyRef,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -15,7 +16,7 @@ import { Observable, Subscription, finalize, tap } from 'rxjs';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../shared/ui/problem-text';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -60,10 +61,9 @@ import { UserDirectoryService } from './services/user-directory.service';
 
 @Component({
   selector: 'app-users',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     TranslatePipe,
-    CommonModule,
     FormsModule,
     SMTButtonComponent,
     SMTAlertComponent,
@@ -91,6 +91,9 @@ export class UsersComponent implements OnInit, OnDestroy {
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
+  private readonly filterTrigger = viewChild<ElementRef<HTMLButtonElement>>('filterTrigger');
+  private readonly userDetailModal = viewChild(UserDetailModalComponent);
+
   readonly routeRecordId = signal<string | null>(null);
   readonly recordLoading = signal(false);
   readonly recordError = signal(false);
@@ -103,6 +106,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly customFields = signal<CustomField[]>([]);
   readonly isViewModalOpen = signal<boolean>(false);
   readonly activeViewTab = signal<'info' | 'security' | 'orgUnits' | 'permissions'>('info');
+
+  readonly viewingUser = signal<User | null>(null);
 
   readonly getUserRoleNamesFn = (u: User) => getUserRoleNames(u, this.roles());
   readonly getManagerNameFn = (u: User) => getManagerName(u, (id) => this.directory.nameOf(id));
@@ -140,11 +145,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   readonly users = this.userPager.items;
   private exportFilters: Record<string, string> = {};
   readonly isLoading = this.userPager.loading;
-
-  viewingUser: User | null = null;
-
-  @ViewChild('filterTrigger') private filterTrigger?: ElementRef<HTMLButtonElement>;
-  @ViewChild(UserDetailModalComponent) private userDetailModal?: UserDetailModalComponent;
 
   constructor(
     public permService: PermissionService,
@@ -234,7 +234,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.filterService.selected2fa = v;
   }
   get userOrgUnitsPanel(): UserOrgUnitsPanelComponent | undefined {
-    return this.userDetailModal?.orgUnitsPanel;
+    return this.userDetailModal()?.orgUnitsPanel();
   }
 
   @HostListener('document:click', ['$event'])
@@ -251,7 +251,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   onEscape() {
     if (!this.isFilterMenuOpen()) return;
     this.isFilterMenuOpen.set(false);
-    queueMicrotask(() => this.filterTrigger?.nativeElement.focus());
+    queueMicrotask(() => this.filterTrigger()?.nativeElement.focus());
   }
 
   ngOnInit() {
@@ -449,7 +449,7 @@ export class UsersComponent implements OnInit, OnDestroy {
     const requestId = ++this.recordRequestId;
     this.recordRequest?.unsubscribe();
     this.routeRecordId.set(id);
-    this.viewingUser = null;
+    this.viewingUser.set(null);
     this.isViewModalOpen.set(id !== null);
     this.recordLoading.set(false);
     this.recordError.set(false);
@@ -468,7 +468,7 @@ export class UsersComponent implements OnInit, OnDestroy {
         if (requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
         if (recordResponseMatches(user?.id, id)) {
-          this.viewingUser = user;
+          this.viewingUser.set(user);
           this.directory.resolve([user.managerId]);
         } else this.recordError.set(true);
       },
@@ -500,7 +500,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       return;
     }
     this.afterOrgPanelLeave(() => {
-      this.viewingUser = user;
+      this.viewingUser.set(user);
       this.activeViewTab.set('info');
       this.userSecurity.set(null);
       this.isViewModalOpen.set(true);
@@ -508,8 +508,8 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   openEditFromView() {
-    if (this.viewingUser && safeNumericRecordId(this.viewingUser.id) && this.canUpdateUser()) {
-      const u = this.viewingUser;
+    const u = this.viewingUser();
+    if (u && safeNumericRecordId(u.id) && this.canUpdateUser()) {
       this.afterOrgPanelLeave(() => {
         this.isViewModalOpen.set(false);
         this.openEditModal(u);

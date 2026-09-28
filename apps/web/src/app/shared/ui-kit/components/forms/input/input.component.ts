@@ -50,7 +50,6 @@ function optionalNumber(value: unknown): number | undefined {
 
 @Component({
   selector: 'smt-input',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './input.component.html',

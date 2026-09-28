@@ -31,7 +31,6 @@ export interface SMTProgressStep {
 
 @Component({
   selector: 'smt-progress-stepper',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './progress-stepper.component.html',

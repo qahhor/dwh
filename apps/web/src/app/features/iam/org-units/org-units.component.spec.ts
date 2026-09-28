@@ -47,7 +47,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(create?.textContent ?? '').toContain('корень');
     create.click();
     fixture.detectChanges();
-    expect(page.editorInitial).toMatchObject({ parentId: null });
+    expect(page.editorInitial()).toMatchObject({ parentId: null });
     expect(api.create).not.toHaveBeenCalled();
     expect(api.update).not.toHaveBeenCalled();
   });
@@ -65,12 +65,12 @@ describe('OrgUnitsComponent lifecycle', () => {
 
     rows()[2].click();
     fixture.detectChanges();
-    expect(page.selected?.id).toBe(3);
+    expect(page.selected()?.id).toBe(3);
     // A key reaches the focused row, as it does in the browser.
     rows()[1].focus();
     rows()[1].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     fixture.detectChanges();
-    expect(page.selected?.id).toBe(2);
+    expect(page.selected()?.id).toBe(2);
   });
   it('search narrows the tree to matches and their ancestors', async () => {
     const other: OrgUnit = { ...root, id: 3, parentId: 1, code: 'SALES', name: 'Sales', kind: 'department' };
@@ -86,7 +86,7 @@ describe('OrgUnitsComponent lifecycle', () => {
   });
   it('ignores row choice while a write is pending', async () => {
     const { fixture, page } = setup();
-    page.pending = true;
+    page.pending.set(true);
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -95,7 +95,7 @@ describe('OrgUnitsComponent lifecycle', () => {
         '[role="treegrid"] [role="rowgroup"] > [role="row"]',
       )[1] as HTMLElement
     ).click();
-    expect(page.selected?.id).toBe(1);
+    expect(page.selected()?.id).toBe(1);
   });
   it('view-only renders readable selected details without write controls', () => {
     const { fixture, page } = setup([root], false);
@@ -116,10 +116,10 @@ describe('OrgUnitsComponent lifecycle', () => {
     fixture.detectChanges();
     expect(inScreen(fixture.nativeElement).querySelector('[role="alert"]')?.textContent ?? '').toContain('Read failed');
     expect(inScreen(fixture.nativeElement).querySelector('[data-action="retry-tree"]')).not.toBeNull();
-    expect(page.units).toHaveLength(2);
+    expect(page.units()).toHaveLength(2);
     api.list.mockReturnValueOnce(of([root, { ...child, name: 'Updated' }]));
     page.reload();
-    expect(page.selected).toMatchObject({ id: 2, name: 'Updated' });
+    expect(page.selected()).toMatchObject({ id: 2, name: 'Updated' });
   });
   it('cancels stale detail GET when selecting a different node', () => {
     const { fixture, page, api } = setup();
@@ -133,18 +133,18 @@ describe('OrgUnitsComponent lifecycle', () => {
     slow.next({ ...root, name: 'Stale' });
     fixture.detectChanges();
     expect(slow.observed).toBe(false);
-    expect(page.editorInitial).toMatchObject({ id: 2, name: 'Child' });
+    expect(page.editorInitial()).toMatchObject({ id: 2, name: 'Child' });
   });
   it('requires discard on dirty close and route leave, supports canceled navigation', () => {
     const { fixture, page } = setup();
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    expect(page.editor).toBeDefined();
-    page.editor!.draft.name = 'Draft';
+    expect(page.editor()).toBeDefined();
+    page.editor()!.draft.name = 'Draft';
     page.closeEditor();
     fixture.detectChanges();
-    expect(page.editorOpen).toBe(true);
+    expect(page.editorOpen()).toBe(true);
     page.discard.cancel();
     const decision = page.canLeaveRecordPage();
     const result = vi.fn();
@@ -153,38 +153,39 @@ describe('OrgUnitsComponent lifecycle', () => {
     subscription.unsubscribe();
     page.discard.confirm();
     expect(result).not.toHaveBeenCalled();
-    expect(page.editorOpen).toBe(true);
+    expect(page.editorOpen()).toBe(true);
     (page.canLeaveRecordPage() as Observable<boolean>).subscribe(result);
     page.discard.confirm();
     expect(result).toHaveBeenCalledWith(true);
-    expect(page.editorOpen).toBe(false);
+    expect(page.editorOpen()).toBe(false);
   });
   it('locks repeated save/close/target change while pending; write failure preserves draft', () => {
     const { fixture, page, api } = setup();
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    expect(page.editor).toBeDefined();
-    page.editor!.draft.name = 'Draft';
+    expect(page.editor()).toBeDefined();
+    const editor = page.editor();
+    editor!.draft.name = 'Draft';
     const save = new Subject<undefined>();
     api.update.mockReturnValueOnce(save);
-    page.editor!.submit();
+    editor!.submit();
     fixture.detectChanges();
-    page.editor!.submit();
+    editor!.submit();
     page.closeEditor();
     page.select(root);
     expect(api.update).toHaveBeenCalledTimes(1);
-    expect(page.selected?.id).toBe(2);
-    expect(page.editorOpen).toBe(true);
+    expect(page.selected()?.id).toBe(2);
+    expect(page.editorOpen()).toBe(true);
     expect(page.canLeaveRecordPage()).toBe(false);
     const event = new Event('beforeunload', { cancelable: true });
     page.beforeUnload(event as BeforeUnloadEvent);
     expect(event.defaultPrevented).toBe(true);
     save.error({ detail: 'Write failed', status: 409 });
     fixture.detectChanges();
-    expect(page.editor!.draft.name).toBe('Draft');
+    expect(editor!.draft.name).toBe('Draft');
     expect(inScreen(fixture.nativeElement).textContent).toContain('Write failed');
-    page.editor!.submit();
+    editor!.submit();
     expect(api.update).toHaveBeenCalledTimes(2);
   });
   it('reports successful write plus failed refresh without retrying the write', () => {
@@ -192,13 +193,14 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    expect(page.editor).toBeDefined();
-    page.editor!.draft.name = 'New';
+    expect(page.editor()).toBeDefined();
+    const editor = page.editor();
+    editor!.draft.name = 'New';
     api.list.mockReturnValueOnce(throwError(() => ({ detail: 'Refresh failed' })));
-    page.editor!.submit();
+    editor!.submit();
     fixture.detectChanges();
     expect(toast.success).toHaveBeenCalledTimes(1);
-    expect(page.editorOpen).toBe(false);
+    expect(page.editorOpen()).toBe(false);
     expect(inScreen(fixture.nativeElement).textContent).toContain('Сохранено');
     page.reload();
     expect(api.update).toHaveBeenCalledTimes(1);
@@ -232,7 +234,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     ).click();
     fixture.detectChanges();
     expect(api.remove).toHaveBeenCalledWith(2);
-    expect(page.selected?.id).toBe(2);
+    expect(page.selected()?.id).toBe(2);
     expect(inScreen(fixture.nativeElement).textContent).toContain('Assigned employees');
   });
   it('removes a successfully deleted target before a failed tree refresh', () => {
@@ -245,10 +247,10 @@ describe('OrgUnitsComponent lifecycle', () => {
     fixture.detectChanges();
 
     expect(api.remove).toHaveBeenCalledTimes(1);
-    expect(page.deleteTarget).toBeNull();
-    expect(page.selected).toBeNull();
-    expect(page.units.map((unit) => unit.id)).toEqual([1]);
-    expect(page.treeError?.detail).toBe('Refresh failed after delete');
+    expect(page.deleteTarget()).toBeNull();
+    expect(page.selected()).toBeNull();
+    expect(page.units().map((unit) => unit.id)).toEqual([1]);
+    expect(page.treeError()?.detail).toBe('Refresh failed after delete');
     expect(inScreen(fixture.nativeElement).querySelector('[data-action="retry-tree"]')).not.toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('[data-action="edit"], [data-action="delete"]')).toBeNull();
     expect(toast.success).toHaveBeenCalledTimes(1);
@@ -261,8 +263,9 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.select(root);
     page.edit();
     fixture.detectChanges();
-    page.editor!.draft.name = 'Root renamed';
-    page.editor!.submit();
+    const editor = page.editor();
+    editor!.draft.name = 'Root renamed';
+    editor!.submit();
     expect(api.update).toHaveBeenCalledWith(1, { name: 'Root renamed' });
   });
   it('does not replace draft context with a tree reload while editing', () => {
@@ -270,10 +273,11 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    page.editor!.draft.name = 'Unsaved';
+    const editor = page.editor();
+    editor!.draft.name = 'Unsaved';
     page.reload();
     expect(api.list).toHaveBeenCalledTimes(1);
-    expect(page.editor!.draft.name).toBe('Unsaved');
+    expect(editor!.draft.name).toBe('Unsaved');
   });
   it('cancels detail reads on destruction', () => {
     const { fixture, page, api, toast } = setup();
@@ -294,19 +298,20 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.edit();
     fixture.detectChanges();
     expect(inScreen(fixture.nativeElement).textContent).toContain('Forbidden detail');
-    expect(page.editor).toBeUndefined();
+    expect(page.editor()).toBeUndefined();
     page.save({ mode: 'edit', id: 2, patch: { name: 'No read' } });
     expect(api.update).not.toHaveBeenCalled();
     page.loadDetail();
     fixture.detectChanges();
-    expect(page.editor?.draft.name).toBe('Child');
+    expect(page.editor()?.draft.name).toBe('Child');
   });
   it('warns on dirty Escape and keeps the draft when discard is canceled', () => {
     const { fixture, page } = setup();
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    page.editor!.draft.name = 'Unsaved';
+    const editor = page.editor();
+    editor!.draft.name = 'Unsaved';
     (document.activeElement ?? document.body).dispatchEvent(
       new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
     );
@@ -314,7 +319,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(page.discard.open()).toBe(true);
     page.discard.cancel();
     fixture.detectChanges();
-    expect(page.editor!.draft.name).toBe('Unsaved');
+    expect(editor!.draft.name).toBe('Unsaved');
   });
   it('unsubscribes a pending write on destruction and ignores a late success', () => {
     const { fixture, page, api, toast } = setup();
@@ -323,8 +328,9 @@ describe('OrgUnitsComponent lifecycle', () => {
     fixture.detectChanges();
     const write = new Subject<undefined>();
     api.update.mockReturnValueOnce(write);
-    page.editor!.draft.name = 'New';
-    page.editor!.submit();
+    const editor = page.editor();
+    editor!.draft.name = 'New';
+    editor!.submit();
     fixture.destroy();
     expect(write.observed).toBe(false);
     write.next(undefined);
@@ -338,7 +344,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.reload();
     page.create();
     expect(api.list).toHaveBeenCalledTimes(1);
-    expect(page.editorOpen).toBe(false);
+    expect(page.editorOpen()).toBe(false);
     expect(inScreen(fixture.nativeElement).textContent).toContain('Нет права просмотра');
   });
   it.each(['create', 'update'] as const)(
@@ -348,7 +354,7 @@ describe('OrgUnitsComponent lifecycle', () => {
       page.select(child);
       action === 'create' ? page.create() : page.edit();
       fixture.detectChanges();
-      const editor = page.editor!;
+      const editor = page.editor()!;
       editor.draft.name = 'Unsaved';
       editor.draft.code = 'NEW';
       TestBed.inject(PermissionService).setPermissions([`iam.org_units.${action}`]);
@@ -358,14 +364,14 @@ describe('OrgUnitsComponent lifecycle', () => {
       expect(api.update).not.toHaveBeenCalled();
       fixture.detectChanges();
       expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
-      expect(page.editorOpen).toBe(false);
-      expect(page.editorInitial).toBeNull();
-      expect(page.editor).toBeUndefined();
-      expect(page.selected).toBeNull();
-      expect(page.units).toEqual([]);
+      expect(page.editorOpen()).toBe(false);
+      expect(page.editorInitial()).toBeNull();
+      expect(page.editor()).toBeUndefined();
+      expect(page.selected()).toBeNull();
+      expect(page.units()).toEqual([]);
       page.create();
       page.edit();
-      expect(page.editorOpen).toBe(false);
+      expect(page.editorOpen()).toBe(false);
     },
   );
   it('clears the deletion dialog and blocks confirmation while delete is retained without view', () => {
@@ -373,13 +379,13 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.select(child);
     page.requestDelete();
     fixture.detectChanges();
-    expect(page.deleteTarget?.id).toBe(2);
+    expect(page.deleteTarget()?.id).toBe(2);
     TestBed.inject(PermissionService).setPermissions(['iam.org_units.delete']);
     page.confirmDelete();
     expect(api.remove).not.toHaveBeenCalled();
     fixture.detectChanges();
     expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
-    expect(page.deleteTarget).toBeNull();
+    expect(page.deleteTarget()).toBeNull();
     page.requestDelete();
     page.confirmDelete();
     expect(api.remove).not.toHaveBeenCalled();
@@ -389,7 +395,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    page.editor!.draft.name = 'Unsaved';
+    page.editor()!.draft.name = 'Unsaved';
     const decision = vi.fn();
     (page.canLeaveRecordPage() as Observable<boolean>).subscribe(decision);
     fixture.detectChanges();
@@ -402,7 +408,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     fixture.detectChanges();
     expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
     expect(page.discard.open()).toBe(false);
-    expect(page.editorInitial).toBeNull();
+    expect(page.editorInitial()).toBeNull();
     expect(decision).toHaveBeenCalledWith(false);
     page.discard.confirm();
     expect(page.canLeaveRecordPage()).toBe(true);
@@ -421,8 +427,8 @@ describe('OrgUnitsComponent lifecycle', () => {
     detail.next({ ...child, name: 'Late private detail' });
     fixture.detectChanges();
     expect(detail.observed).toBe(false);
-    expect(page.editorInitial).toBeNull();
-    expect(page.selected).toBeNull();
+    expect(page.editorInitial()).toBeNull();
+    expect(page.selected()).toBeNull();
     expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
     expect(inScreen(fixture.nativeElement).textContent).not.toContain('Late private detail');
     page.loadDetail();
@@ -437,8 +443,8 @@ describe('OrgUnitsComponent lifecycle', () => {
     tree.next([root]);
     fixture.detectChanges();
     expect(tree.observed).toBe(false);
-    expect(page.units).toEqual([]);
-    expect(page.loaded).toBe(false);
+    expect(page.units()).toEqual([]);
+    expect(page.loaded()).toBe(false);
   });
   it.each([
     ['create', 'success'],
@@ -458,25 +464,27 @@ describe('OrgUnitsComponent lifecycle', () => {
         api.create.mockReturnValueOnce(created);
         page.create();
         fixture.detectChanges();
-        page.editor!.draft.code = 'NEW';
-        page.editor!.draft.name = 'New';
-        page.editor!.submit();
+        const editor = page.editor();
+        editor!.draft.code = 'NEW';
+        editor!.draft.name = 'New';
+        editor!.submit();
       } else if (action === 'update') {
         api.update.mockReturnValueOnce(changed);
         page.edit();
         fixture.detectChanges();
-        page.editor!.draft.name = 'New';
-        page.editor!.submit();
+        const editor = page.editor();
+        editor!.draft.name = 'New';
+        editor!.submit();
       } else {
         api.remove.mockReturnValueOnce(changed);
         page.requestDelete();
         page.confirmDelete();
       }
-      expect(page.pending).toBe(true);
+      expect(page.pending()).toBe(true);
       TestBed.inject(PermissionService).setPermissions([`iam.org_units.${action}`]);
       fixture.detectChanges();
       expect(inScreen(fixture.nativeElement).querySelector('[role="dialog"]')).toBeNull();
-      expect(page.pending).toBe(true);
+      expect(page.pending()).toBe(true);
       expect(action === 'create' ? created.observed : changed.observed).toBe(true);
       expect(page.canLeaveRecordPage()).toBe(false);
       TestBed.inject(PermissionService).setPermissions(['iam.org_units.*']);
@@ -486,12 +494,12 @@ describe('OrgUnitsComponent lifecycle', () => {
       else if (action === 'create') created.next({ ...child, id: 3, name: 'Late private created' });
       else changed.next(undefined);
       fixture.detectChanges();
-      expect(page.pending).toBe(false);
-      expect(page.selected).toBeNull();
-      expect(page.units).toEqual([]);
-      expect(page.saveError).toBeNull();
-      expect(page.deleteError).toBeNull();
-      expect(page.editorOpen).toBe(false);
+      expect(page.pending()).toBe(false);
+      expect(page.selected()).toBeNull();
+      expect(page.units()).toEqual([]);
+      expect(page.saveError()).toBeNull();
+      expect(page.deleteError()).toBeNull();
+      expect(page.editorOpen()).toBe(false);
       expect(toast.success).not.toHaveBeenCalled();
       expect(api.list).toHaveBeenCalledTimes(1);
       expect(inScreen(fixture.nativeElement).textContent).not.toContain('Late private');
@@ -502,11 +510,11 @@ describe('OrgUnitsComponent lifecycle', () => {
     page.select(child);
     page.edit();
     fixture.detectChanges();
-    const editor = page.editor!;
+    const editor = page.editor()!;
     editor.draft.name = 'Unsaved';
     TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.update']);
     fixture.detectChanges();
-    expect(page.editor).toBe(editor);
+    expect(page.editor()).toBe(editor);
     expect(editor.dirty).toBe(true);
     const write = new Subject<undefined>();
     api.update.mockReturnValueOnce(write);
@@ -517,13 +525,13 @@ describe('OrgUnitsComponent lifecycle', () => {
       'iam.org_units.create',
     ]);
     fixture.detectChanges();
-    expect(page.pending).toBe(true);
-    expect(page.editorOpen).toBe(true);
+    expect(page.pending()).toBe(true);
+    expect(page.editorOpen()).toBe(true);
     expect(page.canLeaveRecordPage()).toBe(false);
     write.error({ status: 409, detail: 'Current failure' });
     fixture.detectChanges();
-    expect(page.pending).toBe(false);
-    expect(page.editor).toBe(editor);
+    expect(page.pending()).toBe(false);
+    expect(page.editor()).toBe(editor);
     expect(editor.draft.name).toBe('Unsaved');
     expect(inScreen(fixture.nativeElement).textContent).toContain('Current failure');
   });

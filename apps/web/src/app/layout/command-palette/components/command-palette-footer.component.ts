@@ -3,7 +3,6 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-command-palette-footer',
-  standalone: true,
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

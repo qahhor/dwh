@@ -1,16 +1,18 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
-import { NotesComponent, Note } from './notes.component';
-import { inScreen } from '../../../testing/in-screen';
-import { NOTES_FORM_META, formField, withCustomField } from '../../../testing/form-meta';
 import { FormMeta } from '../../core/models/form-meta.models';
+import { SMTModalConfirmConfig, SMTModalService } from '../../shared/ui-kit/components/modal';
+import { NotesComponent } from './notes.component';
+import { Note } from './notes.api';
+import { inScreen } from '../../../testing/in-screen';
+import { NOTES_FORM_META } from '../../../testing/form-meta';
 
 describe('NotesComponent', () => {
-  const mockNote: Note = {
+  const note: Note = {
     id: 1,
     title: 'Модульный манифест',
     contentMd: 'Чистая архитектура',
@@ -21,234 +23,211 @@ describe('NotesComponent', () => {
     createdAt: '2026-09-08T00:00:00Z',
     modifiedAt: '2026-09-08T00:00:00Z',
   };
+  const page = (items: Note[], nextCursor: string | null = null) => ({
+    items,
+    nextCursor,
+    hasMore: nextCursor !== null,
+    totalEstimated: items.length,
+  });
 
-  async function createFixture(meta: FormMeta = NOTES_FORM_META) {
-    await TestBed.configureTestingModule({
+  async function setup(options: { meta?: FormMeta; notes?: () => Observable<unknown> } = {}) {
+    const meta = options.meta ?? NOTES_FORM_META;
+    const notes = options.notes ?? (() => of(page([note])));
+    const api = {
+      get: vi.fn<(path: string, params?: unknown, options?: unknown) => Observable<unknown>>((path) =>
+        path === '/notes'
+          ? notes()
+          : of(path === '/form-meta/ms.notes' ? meta : path === '/query-meta/ms.notes' ? null : []),
+      ),
+      post: vi.fn(() => of(note)),
+      put: vi.fn(() => of(note)),
+      delete: vi.fn(() => of(undefined)),
+    };
+    const toast = { success: vi.fn(), error: vi.fn() };
+    TestBed.configureTestingModule({
       imports: [NotesComponent],
       providers: [
         provideRouter([]),
-        {
-          provide: ApiService,
-          useValue: {
-            get: vi.fn((path: string) =>
-              of(
-                path === '/notes'
-                  ? { items: [mockNote], nextCursor: null, hasMore: false, totalEstimated: 1 }
-                  : path === '/form-meta/ms.notes'
-                    ? meta
-                    : path === '/query-meta/ms.notes'
-                      ? null
-                      : [],
-              ),
-            ),
-            post: vi.fn(() => of(mockNote)),
-            put: vi.fn(() => of(mockNote)),
-            delete: vi.fn(() => of({})),
-          },
-        },
-        { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
+        { provide: ApiService, useValue: api },
+        { provide: ToastService, useValue: toast },
       ],
-    }).compileComponents();
-
+    });
+    /** Confirms at once and runs the confirmed work, as the dialog's Yes does. */
+    const modal = {
+      confirm: vi
+        .spyOn(TestBed.inject(SMTModalService), 'confirm')
+        .mockImplementation((config: SMTModalConfirmConfig) => {
+          config.action?.().subscribe({ error: () => undefined });
+          return of(true);
+        }),
+    };
     const fixture = TestBed.createComponent(NotesComponent);
-    fixture.detectChanges();
-    return fixture;
+    await settle();
+    async function settle() {
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    }
+    const noteCalls = () => api.get.mock.calls.filter(([path]) => path === '/notes');
+    return {
+      fixture,
+      component: fixture.componentInstance,
+      api,
+      toast,
+      modal,
+      settle,
+      noteCalls,
+      screen: inScreen(fixture.nativeElement),
+    };
   }
 
-  it('renders notes list, accessible landmark, and card details', async () => {
-    const fixture = await createFixture();
-    expect(fixture.componentInstance.notes().length).toBe(1);
+  it('shows the notes of the first page in cards, with their count', async () => {
+    const { screen, noteCalls } = await setup();
 
-    const region = inScreen(fixture.nativeElement).querySelector('.notes-view[role="region"]');
-    expect(region).not.toBeNull();
-
-    const titleEl = inScreen(fixture.nativeElement).querySelector('.note-title');
-    expect(titleEl.textContent).toContain('Модульный манифест');
-
-    const contentEl = inScreen(fixture.nativeElement).querySelector('.note-content');
-    expect(contentEl.textContent).toContain('Чистая архитектура');
+    expect(screen.querySelector('.notes-view[role="region"]')).not.toBeNull();
+    expect(screen.querySelector('.note-title').textContent).toContain('Модульный манифест');
+    expect(screen.querySelector('.note-content').textContent).toContain('Чистая архитектура');
+    expect(screen.querySelector('.count-badge').textContent.trim()).toBe('1');
+    expect(noteCalls()).toEqual([['/notes', { limit: 50 }, { notifyError: false }]]);
   });
 
-  it('opens create modal and handles close event', async () => {
-    const fixture = await createFixture();
-    fixture.componentInstance.openCreateModal();
-    fixture.detectChanges();
+  it('says there are no notes only once the list has answered', async () => {
+    const { screen } = await setup({ notes: () => of(page([])) });
 
-    expect(fixture.componentInstance.isModalOpen()).toBe(true);
-    expect(fixture.componentInstance.editingNote()).toBeNull();
-
-    fixture.componentInstance.closeModal();
-    fixture.detectChanges();
-    expect(fixture.componentInstance.isModalOpen()).toBe(false);
+    expect(screen.querySelector('.notes-grid')).toBeNull();
+    expect(screen.querySelector('.empty-state')).not.toBeNull();
   });
 
-  it('checks the title by the declared rules and shows the problem under the field', async () => {
-    const fixture = await createFixture();
-    const api = TestBed.inject(ApiService) as unknown as { post: ReturnType<typeof vi.fn> };
-    fixture.componentInstance.openCreateModal();
-    fixture.componentInstance.formValues.update((values) => ({ ...values, title: '   ' }));
-    fixture.detectChanges();
+  it('reports a list that failed to load', async () => {
+    const { toast, screen } = await setup({ notes: () => throwError(() => ({ status: 500 })) });
 
-    fixture.componentInstance.saveNote();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.problems()['title']).toBeTruthy();
-    expect(api.post).not.toHaveBeenCalled();
-    const title = inScreen(fixture.nativeElement).querySelector('smt-entity-form [data-field="title"]');
-    expect(title.textContent).toContain(fixture.componentInstance.problems()['title']);
-  });
-
-  it('submits a new note with its custom fields in attributes', async () => {
-    const topic = formField('cfTopic', 'text', { labelKey: '', label: 'Тема', attribute: 'topic' });
-    const fixture = await createFixture(withCustomField(NOTES_FORM_META, topic));
-    const api = TestBed.inject(ApiService) as unknown as { post: ReturnType<typeof vi.fn> };
-    fixture.componentInstance.openCreateModal();
-    fixture.componentInstance.formValues.update((values) => ({
-      ...values,
-      title: ' Новая заметка ',
-      contentMd: 'Текст',
-      cfTopic: 'Архитектура',
-    }));
-    fixture.detectChanges();
-
-    fixture.componentInstance.saveNote();
-    fixture.detectChanges();
-
-    expect(api.post).toHaveBeenCalledWith(
-      '/notes',
-      {
-        title: 'Новая заметка',
-        contentMd: 'Текст',
-        color: 'default',
-        isPinned: false,
-        attributes: { topic: 'Архитектура' },
-      },
-      { notifyError: false },
-    );
-    expect(fixture.componentInstance.isModalOpen()).toBe(false);
-  });
-
-  it('puts the server rejection on the field it names and keeps the dialog open', async () => {
-    const fixture = await createFixture();
-    const api = TestBed.inject(ApiService) as unknown as { put: ReturnType<typeof vi.fn> };
-    api.put.mockReturnValueOnce(
-      throwError(() => ({
-        status: 422,
-        code: 'validation_failed',
-        title: '',
-        detail: 'Проверьте поля записи',
-        errors: [{ field: 'color', code: 'invalid', message: 'Выберите один из вариантов' }],
-      })),
-    );
-    fixture.componentInstance.openEditModal(mockNote);
-    fixture.detectChanges();
-
-    fixture.componentInstance.saveNote();
-    fixture.detectChanges();
-
-    expect(api.put).toHaveBeenCalledWith(
-      '/notes/1',
-      expect.objectContaining({ title: mockNote.title, color: 'blue' }),
-      { notifyError: false },
-    );
-    expect(Object.keys(fixture.componentInstance.problems())).toEqual(['color']);
-    expect(fixture.componentInstance.isModalOpen()).toBe(true);
+    expect(toast.error).toHaveBeenCalledWith(expect.any(String));
+    expect(screen.querySelector('.note-card')).toBeNull();
   });
 
   it('offers only the actions the note form allows the viewer', async () => {
-    const fixture = await createFixture({ ...NOTES_FORM_META, actions: [] });
-    const screen = inScreen(fixture.nativeElement);
+    const { component, screen } = await setup({ meta: { ...NOTES_FORM_META, actions: [] } });
 
-    expect(fixture.componentInstance.canCreate()).toBe(false);
+    expect(component.canCreate()).toBe(false);
     expect(screen.querySelector('.card-actions button')).toBeNull();
+    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).toBeNull();
   });
 
   it('asks the server for pinned notes on the pinned tab, and for every note again on the other', async () => {
-    const fixture = await createFixture();
-    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
+    const { component, settle, noteCalls } = await setup();
 
-    fixture.componentInstance.setTab('pinned');
-    expect(api.get).toHaveBeenLastCalledWith(
-      '/notes',
-      expect.objectContaining({
-        limit: 50,
-        filter: JSON.stringify([{ field: 'isPinned', op: 'eq', value: true }]),
-      }),
-    );
+    component.setTab('pinned');
+    await settle();
+    expect(noteCalls().at(-1)?.[1]).toEqual({
+      limit: 50,
+      filter: JSON.stringify([{ field: 'isPinned', op: 'eq', value: true }]),
+    });
+    expect(component.activeTab()).toBe('pinned');
 
-    fixture.componentInstance.setTab('all');
-    expect(api.get.mock.lastCall?.[1]).not.toHaveProperty('filter');
-  });
-
-  it('adds the next page below the notes on screen', async () => {
-    const fixture = await createFixture();
-    const api = TestBed.inject(ApiService) as unknown as { get: ReturnType<typeof vi.fn> };
-    api.get.mockReturnValueOnce(of({ items: [mockNote], nextCursor: 'n2', hasMore: true, totalEstimated: 2 }));
-    fixture.componentInstance.loadNotes();
-    fixture.detectChanges();
-    expect(fixture.componentInstance.total()).toBe(2);
-
-    const more = fixture.nativeElement.querySelector('[data-testid="notes-load-more"]') as HTMLButtonElement;
-    api.get.mockReturnValueOnce(
-      of({ items: [{ ...mockNote, id: 2 }], nextCursor: null, hasMore: false, totalEstimated: 2 }),
-    );
-    more.click();
-    fixture.detectChanges();
-
-    expect(api.get).toHaveBeenLastCalledWith('/notes', expect.objectContaining({ cursor: 'n2' }));
-    expect(fixture.componentInstance.notes().map((note) => note.id)).toEqual([mockNote.id, 2]);
-    expect(fixture.nativeElement.querySelector('[data-testid="notes-load-more"]')).toBeNull();
-  });
-
-  it('opens delete confirmation modal and confirms delete', async () => {
-    const fixture = await createFixture();
-    fixture.componentInstance.deleteNote(mockNote);
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.deletingNote()).toEqual(mockNote);
-
-    fixture.componentInstance.confirmDelete();
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.deletingNote()).toBeNull();
-  });
-  it('chooses notes and deletes them at once through the toolbar', async () => {
-    const fixture = await createFixture();
-    const screen = inScreen(fixture.nativeElement);
-    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).toBeNull();
-
-    fixture.componentInstance.setSelected(mockNote, true);
-    fixture.detectChanges();
-
-    expect(fixture.componentInstance.isSelected(mockNote)).toBe(true);
-    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).not.toBeNull();
-    fixture.componentInstance.setSelected(mockNote, false);
-    expect(fixture.componentInstance.selectedIds()).toEqual([]);
-  });
-
-  it('offers choosing notes only when the note entity has bulk actions', async () => {
-    const fixture = await createFixture({ ...NOTES_FORM_META, capabilities: ['custom_fields'] });
-
-    expect(fixture.componentInstance.canSelect()).toBe(false);
-    expect(inScreen(fixture.nativeElement).querySelector('.note-select')).toBeNull();
-  });
-
-  it('shows the history of the note being edited', async () => {
-    const fixture = await createFixture();
-    fixture.componentInstance.openEditModal(mockNote);
-    fixture.detectChanges();
-
-    expect(inScreen(fixture.nativeElement).querySelector('ui-record-history')).not.toBeNull();
+    component.setTab('all');
+    await settle();
+    expect(noteCalls().at(-1)?.[1]).toEqual({ limit: 50 });
   });
 
   it('keeps the pinned tab in the view state, so a saved view carries it', async () => {
-    const fixture = await createFixture();
+    const { component, settle, noteCalls } = await setup();
 
-    fixture.componentInstance.setTab('pinned');
-    expect(fixture.componentInstance.views.filter()).toEqual([{ field: 'isPinned', op: 'eq', value: true }]);
+    component.setTab('pinned');
+    expect(component.views.filter()).toEqual([{ field: 'isPinned', op: 'eq', value: true }]);
 
-    fixture.componentInstance.views.filter.set([]);
-    fixture.componentInstance.views.apply(null);
-    expect(fixture.componentInstance.activeTab()).toBe('all');
+    component.views.filter.set([]);
+    component.views.apply(null);
+    await settle();
+    expect(component.activeTab()).toBe('all');
+    expect(noteCalls()).toHaveLength(2);
+  });
+
+  it('searches after the person stops typing', async () => {
+    const { component, settle, noteCalls } = await setup();
+
+    component.search.set('арх');
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await settle();
+
+    expect(noteCalls().at(-1)?.[1]).toEqual({ limit: 50, q: 'арх' });
+  });
+
+  it('adds the next page below the notes on screen', async () => {
+    const pages = [of(page([note], 'n2')), of(page([{ ...note, id: 2 }]))];
+    const { component, settle, noteCalls, screen } = await setup({ notes: () => pages.shift()! });
+
+    (screen.querySelector('[data-testid="notes-load-more"]') as HTMLButtonElement).click();
+    await settle();
+
+    expect(noteCalls().at(-1)?.[1]).toEqual({ limit: 50, cursor: 'n2' });
+    expect(component.list().items.map((item) => item.id)).toEqual([1, 2]);
+    expect(screen.querySelectorAll('app-note-card')).toHaveLength(2);
+    expect(screen.querySelector('[data-testid="notes-load-more"]')).toBeNull();
+  });
+
+  it('opens the form for a new note and for a note to edit, and reloads after saving', async () => {
+    const { component, settle, noteCalls, screen } = await setup();
+
+    (screen.querySelector('.header-right button[smt-button]') as HTMLButtonElement).click();
+    await settle();
+    expect(component.editing()).toBe('new');
+    expect(screen.querySelector('app-note-form-dialog')).not.toBeNull();
+
+    component.editing.set(note);
+    component.saved();
+    await settle();
+    expect(component.editing()).toBeNull();
+    expect(noteCalls()).toHaveLength(2);
+  });
+
+  it('pins a note and reloads the list', async () => {
+    const { api, settle, noteCalls, screen } = await setup();
+
+    (screen.querySelector('.card-actions button') as HTMLButtonElement).click();
+    await settle();
+
+    expect(api.post).toHaveBeenCalledWith('/notes/1/pin', {}, { notifyError: false });
+    expect(noteCalls()).toHaveLength(2);
+  });
+
+  it('reports a pin that failed', async () => {
+    const { api, toast, component } = await setup();
+    api.post.mockReturnValueOnce(throwError(() => ({ status: 409 })));
+
+    component.togglePin(note);
+
+    expect(toast.error).toHaveBeenCalled();
+  });
+
+  it('deletes a note after the confirmation and reloads the list', async () => {
+    const { api, modal, toast, component, settle, noteCalls } = await setup();
+
+    component.remove(note);
+    await settle();
+
+    expect(modal.confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
+    expect(api.delete).toHaveBeenCalledWith('/notes/1', { notifyError: false });
+    expect(toast.success).toHaveBeenCalled();
+    expect(noteCalls()).toHaveLength(2);
+  });
+
+  it('chooses notes for a bulk action through the toolbar', async () => {
+    const { component, settle, screen } = await setup();
+    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).toBeNull();
+
+    component.setSelected(note, true);
+    await settle();
+    expect(component.isSelected(note)).toBe(true);
+    expect(screen.querySelector('[data-testid="entity-bulk-delete"]')).not.toBeNull();
+
+    component.setSelected(note, false);
+    expect(component.selectedIds()).toEqual([]);
+  });
+
+  it('offers choosing notes only when the note entity has bulk actions', async () => {
+    const { component, screen } = await setup({ meta: { ...NOTES_FORM_META, capabilities: ['custom_fields'] } });
+
+    expect(component.canSelect()).toBe(false);
+    expect(screen.querySelector('.note-select')).toBeNull();
   });
 });

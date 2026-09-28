@@ -1,0 +1,59 @@
+<div class="card-header">
+  @if (selectable()) {
+    <div
+      smt-checkbox
+      class="note-select"
+      smtHideLabel
+      [smtAriaLabel]="'notes.select' | t: { title: note().title }"
+      [checked]="selected()"
+      (smtCheckedChange)="selectedChange.emit($event)"
+    ></div>
+  }
+  <span class="note-title">{{ note().title }}</span>
+  <div class="card-actions">
+    @if (canPin()) {
+      <button
+        type="button"
+        class="icon-btn"
+        [class.pinned]="note().isPinned"
+        [attr.aria-label]="note().isPinned ? ('notes.unpin' | t) : ('notes.pin' | t)"
+        [attr.aria-pressed]="note().isPinned"
+        [title]="note().isPinned ? ('notes.unpin' | t) : ('notes.pin' | t)"
+        (click)="togglePin.emit()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">{{ note().isPinned ? 'keep' : 'push_pin' }}</span>
+      </button>
+    }
+    @if (canEdit()) {
+      <button
+        type="button"
+        class="icon-btn"
+        [attr.aria-label]="'common.edit' | t"
+        [title]="'common.edit' | t"
+        (click)="edit.emit()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+      </button>
+    }
+    @if (canDelete()) {
+      <button
+        type="button"
+        class="icon-btn text-danger"
+        [attr.aria-label]="'common.delete' | t"
+        [title]="'common.delete' | t"
+        (click)="remove.emit()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+      </button>
+    }
+  </div>
+</div>
+
+<div class="card-body">
+  <ui-markdown-view class="note-content" [content]="note().contentMd" />
+  <smt-entity-card class="note-custom" [meta]="meta()" [value]="values()" [sections]="customSections" />
+</div>
+
+<div class="card-footer">
+  <span class="note-date">{{ note().modifiedAt | date: 'short' }}</span>
+</div>

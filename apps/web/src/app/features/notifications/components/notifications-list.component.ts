@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
@@ -8,101 +8,114 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
 
 @Component({
   selector: 'app-notifications-list',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe, SMTButtonComponent, UiPaginationComponent],
+  imports: [TranslatePipe, SMTButtonComponent, UiPaginationComponent, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div *ngIf="isLoading() && itemsCount() === 0" class="notif-loading" role="status">
-      <div class="loading-spinner"></div>
-      <span class="loading-text">{{ 'notifications.zagruzka' | t }}</span>
-    </div>
-
-    <div *ngIf="loadError() && !isLoading()" class="notif-error" role="alert">
-      <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
-      <span class="error-text">{{ loadError() }}</span>
-      <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="retry.emit()">
-        {{ 'notifications.povtorit' | t }}
-      </button>
-    </div>
-
-    <div
-      *ngIf="(!isLoading() || itemsCount() > 0) && !loadError()"
-      class="notif-list"
-      role="region"
-      [attr.aria-label]="'notifications.spisok_uvedomleniy' | t"
-    >
-      <article
-        *ngFor="let n of paginatedItems()"
-        class="notif-item"
-        [class.unread]="!n.isRead"
-        [class.clickable]="!!n.targetUrl"
-        [attr.tabindex]="n.targetUrl ? 0 : null"
-        [attr.role]="n.targetUrl ? 'button' : null"
-        (click)="itemClick.emit(n)"
-        (keydown)="itemKeydown.emit({ event: $event, item: n })"
-      >
-        <div class="notif-icon-box" [class.unread-icon]="!n.isRead">
-          <span class="material-symbols-outlined" aria-hidden="true">
-            {{ getNotificationIcon(n) }}
-          </span>
-        </div>
-        <div class="notif-body">
-          <div class="notif-header">
-            <span class="notif-title font-medium">{{ n.title }}</span>
-            <span class="notif-time tabular-nums text-muted">{{ n.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
-          </div>
-          <p class="notif-text" *ngIf="n.bodyMarkdown">{{ n.bodyMarkdown }}</p>
-          <div class="notif-target-link" *ngIf="n.targetUrl">
-            <span class="material-symbols-outlined target-icon" aria-hidden="true">arrow_forward</span>
-            <span>{{ 'notifications.pereyti_k_resursu' | t }}</span>
-          </div>
-        </div>
-        <div class="notif-actions">
-          <span class="dot" *ngIf="!n.isRead" aria-hidden="true"></span>
-          <button
-            *ngIf="!n.isRead"
-            type="button"
-            class="mark-read-btn"
-            [disabled]="isMarkingAll() || pendingReads().has(n.id)"
-            [attr.aria-label]="'notifications.mark_named_read' | t: { title: n.title }"
-            (click)="markAsReadClick.emit({ event: $event, item: n })"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">done</span>
-          </button>
-        </div>
-      </article>
-
-      <div *ngIf="filteredCount() === 0 && !isLoading()" class="empty-notif">
-        <div class="empty-icon-wrap">
-          <span class="material-symbols-outlined empty-icon" aria-hidden="true">
-            {{ filterTab() === 'unread' ? 'mark_email_read' : 'notifications_off' }}
-          </span>
-        </div>
-        <div class="empty-title">
-          {{
-            (filterTab() === 'unread'
-              ? 'notifications.vse_uvedomleniya_prochitany'
-              : 'notifications.u_vas_net_uvedomleniy'
-            ) | t
-          }}
-        </div>
-        <div class="empty-subtitle">
-          {{
-            (filterTab() === 'unread' ? 'notifications.net_novyh_uvedomleniy' : 'notifications.zdes_budut_uvedomleniya')
-              | t
-          }}
-        </div>
+    @if (isLoading() && itemsCount() === 0) {
+      <div class="notif-loading" role="status">
+        <div class="loading-spinner"></div>
+        <span class="loading-text">{{ 'notifications.zagruzka' | t }}</span>
       </div>
-    </div>
+    }
 
-    <ui-pagination
-      *ngIf="filteredCount() > 0"
-      [totalItems]="filteredCount()"
-      [currentPage]="currentPage()"
-      [pageSize]="pageSize()"
-      (pageChange)="pageChange.emit($event)"
-      (pageSizeChange)="pageSizeChange.emit($event)"
-    ></ui-pagination>
+    @if (loadError() && !isLoading()) {
+      <div class="notif-error" role="alert">
+        <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
+        <span class="error-text">{{ loadError() }}</span>
+        <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="retry.emit()">
+          {{ 'notifications.povtorit' | t }}
+        </button>
+      </div>
+    }
+
+    @if ((!isLoading() || itemsCount() > 0) && !loadError()) {
+      <div class="notif-list" role="region" [attr.aria-label]="'notifications.spisok_uvedomleniy' | t">
+        @for (n of paginatedItems(); track n) {
+          <article
+            class="notif-item"
+            [class.unread]="!n.isRead"
+            [class.clickable]="!!n.targetUrl"
+            [attr.tabindex]="n.targetUrl ? 0 : null"
+            [attr.role]="n.targetUrl ? 'button' : null"
+            (click)="itemClick.emit(n)"
+            (keydown)="itemKeydown.emit({ event: $event, item: n })"
+          >
+            <div class="notif-icon-box" [class.unread-icon]="!n.isRead">
+              <span class="material-symbols-outlined" aria-hidden="true">
+                {{ getNotificationIcon(n) }}
+              </span>
+            </div>
+            <div class="notif-body">
+              <div class="notif-header">
+                <span class="notif-title font-medium">{{ n.title }}</span>
+                <span class="notif-time tabular-nums text-muted">{{ n.createdAt | date: 'dd.MM.yyyy HH:mm' }}</span>
+              </div>
+              @if (n.bodyMarkdown) {
+                <p class="notif-text">{{ n.bodyMarkdown }}</p>
+              }
+              @if (n.targetUrl) {
+                <div class="notif-target-link">
+                  <span class="material-symbols-outlined target-icon" aria-hidden="true">arrow_forward</span>
+                  <span>{{ 'notifications.pereyti_k_resursu' | t }}</span>
+                </div>
+              }
+            </div>
+            <div class="notif-actions">
+              @if (!n.isRead) {
+                <span class="dot" aria-hidden="true"></span>
+              }
+              @if (!n.isRead) {
+                <button
+                  type="button"
+                  class="mark-read-btn"
+                  [disabled]="isMarkingAll() || pendingReads().has(n.id)"
+                  [attr.aria-label]="'notifications.mark_named_read' | t: { title: n.title }"
+                  (click)="markAsReadClick.emit({ event: $event, item: n })"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">done</span>
+                </button>
+              }
+            </div>
+          </article>
+        }
+
+        @if (filteredCount() === 0 && !isLoading()) {
+          <div class="empty-notif">
+            <div class="empty-icon-wrap">
+              <span class="material-symbols-outlined empty-icon" aria-hidden="true">
+                {{ filterTab() === 'unread' ? 'mark_email_read' : 'notifications_off' }}
+              </span>
+            </div>
+            <div class="empty-title">
+              {{
+                (filterTab() === 'unread'
+                  ? 'notifications.vse_uvedomleniya_prochitany'
+                  : 'notifications.u_vas_net_uvedomleniy'
+                ) | t
+              }}
+            </div>
+            <div class="empty-subtitle">
+              {{
+                (filterTab() === 'unread'
+                  ? 'notifications.net_novyh_uvedomleniy'
+                  : 'notifications.zdes_budut_uvedomleniya'
+                ) | t
+              }}
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (filteredCount() > 0) {
+      <ui-pagination
+        [totalItems]="filteredCount()"
+        [currentPage]="currentPage()"
+        [pageSize]="pageSize()"
+        (pageChange)="pageChange.emit($event)"
+        (pageSizeChange)="pageSizeChange.emit($event)"
+      ></ui-pagination>
+    }
   `,
   styles: [
     `

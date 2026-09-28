@@ -5,17 +5,11 @@
       <h1 class="view-title">{{ 'nav.users' | t }}</h1>
     </div>
     <div class="header-right">
-      <button
-        smt-button
-        type="button"
-        *ngIf="canCreateUser()"
-        smtVariant="primary"
-        smtSize="md"
-        smtIcon="add"
-        (click)="openCreateModal()"
-      >
-        {{ 'iam.novyy_polzovatel' | t }}
-      </button>
+      @if (canCreateUser()) {
+        <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+          {{ 'iam.novyy_polzovatel' | t }}
+        </button>
+      }
     </div>
   </div>
 
@@ -112,7 +106,7 @@
 <!-- User Detail, Delete and Security Modals (Delegated Component) -->
 <app-user-detail-modal
   [isOpen]="isViewModalOpen()"
-  [viewingUser]="viewingUser"
+  [viewingUser]="viewingUser()"
   [routeRecordId]="routeRecordId()"
   [recordLoading]="recordLoading()"
   [recordError]="recordError()"

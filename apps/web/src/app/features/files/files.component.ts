@@ -1,6 +1,6 @@
-import { Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CommonModule } from '@angular/common';
+
 import { finalize, Observable, Subscription, tap, throwError } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -39,10 +39,9 @@ function formatBytes(bytes: number): string {
 
 @Component({
   selector: 'app-files',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent,
-    CommonModule,
     SMTButtonComponent,
     TranslatePipe,
     FilesMetricsCardsComponent,

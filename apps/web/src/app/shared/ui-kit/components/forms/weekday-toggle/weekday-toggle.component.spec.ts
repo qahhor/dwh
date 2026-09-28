@@ -11,7 +11,6 @@ import { SMTWeekday, SMTWeekdayToggleComponent } from './weekday-toggle.componen
 import { SMTWeekdayToggleValueAccessor } from './weekday-toggle-value-accessor';
 
 @Component({
-  standalone: true,
   imports: [SMTWeekdayToggleComponent, SMTWeekdayToggleValueAccessor, FormsModule],
   template: `<smt-weekday-toggle smtAriaLabel="Delivery days" [(ngModel)]="days" />`,
 })

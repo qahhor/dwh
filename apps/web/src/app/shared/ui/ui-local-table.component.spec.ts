@@ -11,7 +11,6 @@ interface Row {
 }
 
 @Component({
-  standalone: true,
   imports: [UiLocalTableComponent],
   template: `<ui-local-table
     [rows]="rows"

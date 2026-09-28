@@ -686,6 +686,32 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Every web component uses OnPush change detection (plan 10/10, item 2.3):
+  178 of 178, up from 87. State a component changes in a callback (HTTP
+  answers, timers) is a signal; plain fields change only in handlers of
+  the component's own template. The format wizard's steps, which share one
+  mutable draft, are redrawn when shown. Screens do less work per change
+  and a missed update can no longer hide behind the next global check.
+- The web app speaks one Angular dialect (plan 10/10, item 2.2): block
+  control flow instead of `*ngIf`/`*ngFor`, `input()`/`model()`/`output()`
+  instead of `@Input`/`@Output`, signal queries instead of `@ViewChild`,
+  the pipes and directives a component uses instead of `CommonModule`, and
+  no `standalone: true`. Mostly Angular's own migrations; where a component
+  wrote into its input it now declares a `model()`. Two defects the
+  conversion would have introduced are fixed and tested: the pagination
+  bar reported the page it left, and six counters would have read the
+  length of a function. The lint baseline shrinks from 1,861 suppressions
+  to 652.
+- The notes screen is the reference for every entity screen (plan 10/10,
+  item 2.1): a typed data service (`notes.api.ts`) holds the requests,
+  the form, the list metadata and the first page are `rxResource`s, the
+  screen is `OnPush` with `@if`/`@for`, and the card and the form dialog are
+  components of their own; deleting asks through the shared confirmation.
+  The screen no longer says there are no notes before the list has
+  answered, and a failed reload keeps the notes on screen. The module guide
+  describes the layout; the notes files have no lint suppressions left.
+- The engines fields of the web app and the E2E suite name Node 24.21.0,
+  the version of `.node-version`.
 - Dependencies updated from the first Dependabot run, each checked locally
   (backend, web, accessibility, E2E, image scans): Angular 22.2.0, vitest and
   its coverage 5.0.2, Playwright 1.63.0, TypeScript 7.0.2 for the E2E suite,

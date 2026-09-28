@@ -40,7 +40,6 @@ export interface SMTRange {
 
 @Component({
   selector: 'smt-range-slider',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './range-slider.scss',

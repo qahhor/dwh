@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Component, ViewChild } from '@angular/core';
+import { Component, viewChild } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -10,15 +10,14 @@ import { RoleScopePanelComponent } from './role-scope-panel.component';
 import { inScreen } from '../../../../testing/in-screen';
 
 @Component({
-  standalone: true,
   imports: [RoleScopePanelComponent],
   template: `<app-role-scope-panel [roleId]="selectedRoleId" />`,
 })
 class RolePanelHost {
   selectedRoleId = 5;
-  @ViewChild(RoleScopePanelComponent) panel!: RoleScopePanelComponent;
+  readonly panel = viewChild.required(RoleScopePanelComponent);
   requestTarget(roleId: number): void {
-    const decision = this.panel.canLeave();
+    const decision = this.panel().canLeave();
     if (typeof decision === 'boolean') {
       if (decision) this.selectedRoleId = roleId;
     } else
@@ -83,7 +82,7 @@ describe('RoleScopePanelComponent', () => {
     panel.save();
     fixture.detectChanges();
     expect(api.saveRoleRule).not.toHaveBeenCalled();
-    expect(panel.confirmationOpen).toBe(true);
+    expect(panel.confirmationOpen()).toBe(true);
     const dialog = inScreen(fixture.nativeElement).querySelector('[data-rule-confirm]') as HTMLElement;
     expect(dialog.textContent).toContain('Только свои подразделения');
     expect(dialog.textContent).toContain('Свои подразделения и подчинённые');
@@ -188,13 +187,13 @@ describe('RoleScopePanelComponent', () => {
     panel.selectRule('SELF');
     panel.save();
     fixture.detectChanges();
-    expect(panel.confirmationOpen).toBe(true);
+    expect(panel.confirmationOpen()).toBe(true);
     TestBed.inject(PermissionService).setPermissions(['iam.org_units.assign']);
     panel.confirmSave();
     fixture.detectChanges();
     expect(api.saveRoleRule).not.toHaveBeenCalled();
-    expect(panel.confirmationOpen).toBe(false);
-    expect(panel.loaded).toBe(false);
+    expect(panel.confirmationOpen()).toBe(false);
+    expect(panel.loaded()).toBe(false);
     expect(fixture.nativeElement.textContent).not.toContain('Только связанные со мной данные');
   });
 
@@ -207,15 +206,15 @@ describe('RoleScopePanelComponent', () => {
     panel.confirmSave();
     TestBed.inject(PermissionService).setPermissions(['iam.org_units.assign']);
     fixture.detectChanges();
-    expect(panel.pending).toBe(true);
+    expect(panel.pending()).toBe(true);
     expect(write.observed).toBe(true);
     expect(panel.canLeave()).toBe(false);
     TestBed.inject(PermissionService).setPermissions(['iam.org_units.view', 'iam.org_units.assign']);
     fixture.detectChanges();
     write.next(undefined);
     fixture.detectChanges();
-    expect(panel.pending).toBe(false);
-    expect(panel.loaded).toBe(false);
+    expect(panel.pending()).toBe(false);
+    expect(panel.loaded()).toBe(false);
     expect(toast.success).not.toHaveBeenCalled();
     expect(api.roleRule).toHaveBeenCalledTimes(1);
   });
@@ -230,8 +229,8 @@ describe('RoleScopePanelComponent', () => {
     api.roleRule.mockImplementation((roleId: number) => of({ roleId, rule: roleId === 6 ? 'UNITS' : 'ALL' }));
     fixture.componentRef.setInput('roleId', 6);
     fixture.detectChanges();
-    expect(panel.loaded).toBe(false);
-    expect(panel.pending).toBe(true);
+    expect(panel.loaded()).toBe(false);
+    expect(panel.pending()).toBe(true);
 
     write.next(undefined);
     fixture.detectChanges();
@@ -255,7 +254,7 @@ describe('RoleScopePanelComponent', () => {
     write.error({ status: 409, detail: 'Old target rule failure' });
     fixture.detectChanges();
     expect(toast.success).not.toHaveBeenCalled();
-    expect(panel.saveError).toBeNull();
+    expect(panel.saveError()).toBeNull();
     expect(panel.selectedRule()).toBe('ALL');
     expect(api.roleRule.mock.calls.map((call) => call[0])).toEqual([5, 5]);
     expect(fixture.nativeElement.textContent).not.toContain('Old target rule failure');
@@ -290,21 +289,21 @@ describe('RoleScopePanelComponent', () => {
     const fixture = TestBed.createComponent(RolePanelHost);
     fixture.detectChanges();
     const host = fixture.componentInstance;
-    host.panel.selectRule('SELF');
+    host.panel().selectRule('SELF');
     host.requestTarget(6);
     fixture.detectChanges();
     expect(host.selectedRoleId).toBe(5);
-    expect(host.panel.discard.open()).toBe(true);
-    host.panel.discard.cancel();
+    expect(host.panel().discard.open()).toBe(true);
+    host.panel().discard.cancel();
     fixture.detectChanges();
     expect(host.selectedRoleId).toBe(5);
-    expect(host.panel.selectedRule()).toBe('SELF');
+    expect(host.panel().selectedRule()).toBe('SELF');
     expect(api.roleRule).toHaveBeenCalledTimes(1);
     host.requestTarget(6);
-    host.panel.discard.confirm();
+    host.panel().discard.confirm();
     fixture.detectChanges();
     expect(host.selectedRoleId).toBe(6);
-    expect(host.panel.selectedRule()).toBe('UNITS');
+    expect(host.panel().selectedRule()).toBe('UNITS');
   });
 
   it('marks a successful save clean before a failed refresh and does not resubmit it', () => {

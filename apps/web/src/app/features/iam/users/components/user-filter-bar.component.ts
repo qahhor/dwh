@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -15,12 +15,11 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-user-filter-bar',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTRadioGroupComponent,
     SMTSelectComponent,
     SMTInputComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -38,7 +37,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           clearable
           class="search-input"
           [placeholder]="'iam.poisk_po_imeni_loginu_email' | t"
-          [value]="searchQuery"
+          [value]="searchQuery()"
           (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
           (input)="searchInput.emit()"
           (cleared)="clearSearch.emit()"
@@ -51,9 +50,9 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           smtAppearance="segmented"
           class="status-filter"
           [options]="stateOptions()"
-          [value]="selectedState"
+          [value]="selectedState()"
           [smtAriaLabel]="'iam.filtr_polzovateley_po_statusu' | t"
-          (valueChange)="stateFilterChange.emit($event ?? selectedState)"
+          (valueChange)="stateFilterChange.emit($event ?? selectedState())"
         />
 
         <!-- Grouped Filter Popover Trigger -->
@@ -62,59 +61,66 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
             type="button"
             class="filter-trigger-btn"
             aria-haspopup="dialog"
-            [attr.aria-expanded]="isFilterMenuOpen"
+            [attr.aria-expanded]="isFilterMenuOpen()"
             aria-controls="user-extra-filters"
-            [class.has-filters]="hasExtraFilters"
-            [class.open]="isFilterMenuOpen"
+            [class.has-filters]="hasExtraFilters()"
+            [class.open]="isFilterMenuOpen()"
             (click)="toggleFilterMenu.emit($event)"
           >
             <span class="material-symbols-outlined icon" aria-hidden="true">tune</span>
             <span>{{ 'iam.filtry' | t }}</span>
-            <span class="filter-dot" *ngIf="hasExtraFilters"></span>
+            @if (hasExtraFilters()) {
+              <span class="filter-dot"></span>
+            }
           </button>
 
           <!-- Filter Dropdown Panel -->
-          <div
-            id="user-extra-filters"
-            class="filter-dropdown"
-            role="dialog"
-            [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t"
-            *ngIf="isFilterMenuOpen"
-            (click)="$event.stopPropagation()"
-          >
-            <div class="filter-dropdown-header">
-              <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
-              <button type="button" class="reset-link" *ngIf="hasExtraFilters" (click)="resetExtraFilters.emit()">
-                {{ 'iam.sbrosit' | t }}
-              </button>
-            </div>
-
-            <div class="filter-dropdown-body">
-              <div class="filter-group">
-                <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
-                <smt-select
-                  smtTriggerId="user-role-filter"
-                  [value]="selectedRoleId"
-                  (valueChange)="roleFilterChange.emit($event)"
-                  [options]="roleOptions()"
-                  [placeholder]="'iam.vse_roli' | t"
-                  [emptyLabel]="'iam.vse_roli' | t"
-                />
+          @if (isFilterMenuOpen()) {
+            <div
+              id="user-extra-filters"
+              class="filter-dropdown"
+              role="dialog"
+              [attr.aria-label]="'iam.dopolnitelnye_filtry_polzovateley' | t"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="filter-dropdown-header">
+                <span class="dropdown-title">{{ 'iam.dopolnitelnye_filtry' | t }}</span>
+                @if (hasExtraFilters()) {
+                  <button type="button" class="reset-link" (click)="resetExtraFilters.emit()">
+                    {{ 'iam.sbrosit' | t }}
+                  </button>
+                }
               </div>
 
-              <div class="filter-group">
-                <label class="filter-caption" for="user-2fa-filter">{{ 'iam.dvuhfaktornaya_zaschita_2fa' | t }}</label>
-                <smt-select
-                  smtTriggerId="user-2fa-filter"
-                  [value]="selected2fa"
-                  (valueChange)="twoFactorFilterChange.emit($event)"
-                  [options]="twoFactorOptions()"
-                  [placeholder]="'iam.lyuboy_status_2fa' | t"
-                  [emptyLabel]="'iam.lyuboy_status_2fa' | t"
-                />
+              <div class="filter-dropdown-body">
+                <div class="filter-group">
+                  <label class="filter-caption" for="user-role-filter">{{ 'iam.rol_polzovatelya' | t }}</label>
+                  <smt-select
+                    smtTriggerId="user-role-filter"
+                    [value]="selectedRoleId()"
+                    (valueChange)="roleFilterChange.emit($event)"
+                    [options]="roleOptions()"
+                    [placeholder]="'iam.vse_roli' | t"
+                    [emptyLabel]="'iam.vse_roli' | t"
+                  />
+                </div>
+
+                <div class="filter-group">
+                  <label class="filter-caption" for="user-2fa-filter">{{
+                    'iam.dvuhfaktornaya_zaschita_2fa' | t
+                  }}</label>
+                  <smt-select
+                    smtTriggerId="user-2fa-filter"
+                    [value]="selected2fa()"
+                    (valueChange)="twoFactorFilterChange.emit($event)"
+                    [options]="twoFactorOptions()"
+                    [placeholder]="'iam.lyuboy_status_2fa' | t"
+                    [emptyLabel]="'iam.lyuboy_status_2fa' | t"
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          }
         </div>
 
         <button
@@ -124,7 +130,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
           smtSize="sm"
           smtIcon="refresh"
           [attr.aria-label]="'iam.obnovit_spisok_polzovateley' | t"
-          [smtLoading]="isLoading"
+          [smtLoading]="isLoading()"
           [title]="'common.refresh' | t"
           (click)="refresh.emit()"
         ></button>
@@ -132,58 +138,67 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
     </div>
 
     <!-- Active Filters Bar -->
-    <div class="active-filters-bar" *ngIf="hasAnyActiveFilters">
-      <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
+    @if (hasAnyActiveFilters()) {
+      <div class="active-filters-bar">
+        <span class="active-filters-label">{{ 'iam.filtry' | t }}:</span>
 
-      <!-- Status Filter Pill -->
-      <div *ngIf="selectedState" class="filter-pill">
-        <span>{{
-          'iam.filtr_status' | t: { status: selectedState === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
-        }}</span>
-        <button
-          type="button"
-          class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr' | t"
-          (click)="clearStateFilter.emit()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
+        <!-- Status Filter Pill -->
+        @if (selectedState()) {
+          <div class="filter-pill">
+            <span>{{
+              'iam.filtr_status'
+                | t: { status: selectedState() === 'A' ? ('iam.aktivnye' | t) : ('iam.zablokirovannye' | t) }
+            }}</span>
+            <button
+              type="button"
+              class="clear-pill-btn"
+              [attr.aria-label]="'iam.ochistit_filtr' | t"
+              (click)="clearStateFilter.emit()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        }
+
+        <!-- Role Filter Pill -->
+        @if (selectedRoleId()) {
+          <div class="filter-pill">
+            <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName() } }}</span>
+            <button
+              type="button"
+              class="clear-pill-btn"
+              [attr.aria-label]="'iam.ochistit_filtr_roli' | t"
+              (click)="clearRoleFilter.emit()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        }
+
+        <!-- 2FA Filter Pill -->
+        @if (selected2fa() !== null) {
+          <div class="filter-pill">
+            <span>{{
+              'iam.filtr_2fa' | t: { status: selected2fa() ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
+            }}</span>
+            <button
+              type="button"
+              class="clear-pill-btn"
+              [attr.aria-label]="'iam.ochistit_filtr' | t"
+              (click)="clear2faFilter.emit()"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">close</span>
+            </button>
+          </div>
+        }
+
+        <!-- Reset All Button -->
+        <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters.emit()">
+          <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
+          <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
         </button>
       </div>
-
-      <!-- Role Filter Pill -->
-      <div *ngIf="selectedRoleId" class="filter-pill">
-        <span>{{ 'iam.filtr_po_roli' | t: { name: selectedRoleName } }}</span>
-        <button
-          type="button"
-          class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr_roli' | t"
-          (click)="clearRoleFilter.emit()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </div>
-
-      <!-- 2FA Filter Pill -->
-      <div *ngIf="selected2fa !== null" class="filter-pill">
-        <span>{{
-          'iam.filtr_2fa' | t: { status: selected2fa ? ('iam.vklyuchena' | t) : ('iam.otklyuchena' | t) }
-        }}</span>
-        <button
-          type="button"
-          class="clear-pill-btn"
-          [attr.aria-label]="'iam.ochistit_filtr' | t"
-          (click)="clear2faFilter.emit()"
-        >
-          <span class="material-symbols-outlined" aria-hidden="true">close</span>
-        </button>
-      </div>
-
-      <!-- Reset All Button -->
-      <button type="button" class="reset-all-filters-btn" (click)="resetAllFilters.emit()">
-        <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
-        <span>{{ 'iam.sbrosit_vse_filtry' | t }}</span>
-      </button>
-    </div>
+    }
   `,
   styles: [
     `
@@ -392,30 +407,31 @@ export class UserFilterBarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input() searchQuery = '';
-  @Input() selectedState = '';
-  @Input() isFilterMenuOpen = false;
-  @Input() hasExtraFilters = false;
-  @Input() roles: Role[] = [];
-  @Input() selectedRoleId: number | null = null;
-  @Input() selected2fa: boolean | null = null;
-  @Input() isLoading = false;
-  @Input() hasAnyActiveFilters = false;
-  @Input() selectedRoleName = '';
+  readonly searchQuery = input('');
+  readonly isFilterMenuOpen = input(false);
+  readonly hasExtraFilters = input(false);
+  readonly roles = input<Role[]>([]);
+  readonly selectedRoleId = input<number | null>(null);
+  readonly isLoading = input(false);
+  readonly hasAnyActiveFilters = input(false);
+  readonly selectedRoleName = input('');
 
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() searchInput = new EventEmitter<void>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() stateFilterChange = new EventEmitter<string>();
-  @Output() toggleFilterMenu = new EventEmitter<MouseEvent>();
-  @Output() resetExtraFilters = new EventEmitter<void>();
-  @Output() roleFilterChange = new EventEmitter<number | null>();
-  @Output() twoFactorFilterChange = new EventEmitter<boolean | null>();
-  @Output() refresh = new EventEmitter<void>();
-  @Output() clearStateFilter = new EventEmitter<void>();
-  @Output() clearRoleFilter = new EventEmitter<void>();
-  @Output() clear2faFilter = new EventEmitter<void>();
-  @Output() resetAllFilters = new EventEmitter<void>();
+  readonly selectedState = input('');
+  readonly selected2fa = input<boolean | null>(null);
+
+  readonly searchQueryChange = output<string>();
+  readonly searchInput = output<void>();
+  readonly clearSearch = output<void>();
+  readonly stateFilterChange = output<string>();
+  readonly toggleFilterMenu = output<MouseEvent>();
+  readonly resetExtraFilters = output<void>();
+  readonly roleFilterChange = output<number | null>();
+  readonly twoFactorFilterChange = output<boolean | null>();
+  readonly refresh = output<void>();
+  readonly clearStateFilter = output<void>();
+  readonly clearRoleFilter = output<void>();
+  readonly clear2faFilter = output<void>();
+  readonly resetAllFilters = output<void>();
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<string>[]>();
   private readonly roleMemo = optionsMemo<SMTSelectOption<number>[]>();
@@ -430,7 +446,7 @@ export class UserFilterBarComponent {
   }
 
   roleOptions(): SMTSelectOption<number>[] {
-    return this.roleMemo([this.roles], () => this.roles.map((role) => ({ id: role.id, label: role.name })));
+    return this.roleMemo([this.roles()], () => this.roles().map((role) => ({ id: role.id, label: role.name })));
   }
 
   twoFactorOptions(): SMTSelectOption<boolean>[] {

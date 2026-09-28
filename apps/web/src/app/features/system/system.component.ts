@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
@@ -29,8 +29,7 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
 
 @Component({
   selector: 'app-system',
-  standalone: true,
-  imports: [TranslatePipe, CommonModule, SMTButtonComponent],
+  imports: [TranslatePipe, SMTButtonComponent, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="system-page" aria-labelledby="system-title">
@@ -53,37 +52,19 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
         </button>
       </header>
 
-      <div *ngIf="isLoading() && !systemInfo()" class="state-panel" aria-busy="true" aria-live="polite">
-        <span class="spinner" aria-hidden="true"></span>
-        <span>{{ 'system.proveryaem_lokalnye_komponenty' | t }}</span>
-      </div>
-
-      <div *ngIf="loadError() && !systemInfo()" class="state-panel error-state" role="alert">
-        <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
-        <div>
-          <h2>{{ 'system.ne_udalos_zagruzit_sostoyanie_sistemy' | t }}</h2>
-          <p>{{ 'system.proverte_dostupnost_servera_i_povtorite_zapros' | t }}</p>
+      @if (isLoading() && !systemInfo()) {
+        <div class="state-panel" aria-busy="true" aria-live="polite">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>{{ 'system.proveryaem_lokalnye_komponenty' | t }}</span>
         </div>
-        <button
-          smt-button
-          type="button"
-          smtVariant="secondary"
-          [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
-          (click)="loadSystemInfo()"
-        >
-          {{ 'announcements.povtorit' | t }}
-        </button>
-      </div>
+      }
 
-      <ng-container *ngIf="systemInfo() as info">
-        <div *ngIf="loadError()" class="stale-state" data-testid="stale-status" role="status">
-          <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
+      @if (loadError() && !systemInfo()) {
+        <div class="state-panel error-state" role="alert">
+          <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
           <div>
-            <strong>{{ 'system.refresh_failed' | t }}</strong>
-            <p>
-              {{ 'system.showing_data_from' | t }}
-              <time [attr.datetime]="info.checkedAt">{{ info.checkedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}</time>
-            </p>
+            <h2>{{ 'system.ne_udalos_zagruzit_sostoyanie_sistemy' | t }}</h2>
+            <p>{{ 'system.proverte_dostupnost_servera_i_povtorite_zapros' | t }}</p>
           </div>
           <button
             smt-button
@@ -95,6 +76,30 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
             {{ 'announcements.povtorit' | t }}
           </button>
         </div>
+      }
+
+      @if (systemInfo(); as info) {
+        @if (loadError()) {
+          <div class="stale-state" data-testid="stale-status" role="status">
+            <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
+            <div>
+              <strong>{{ 'system.refresh_failed' | t }}</strong>
+              <p>
+                {{ 'system.showing_data_from' | t }}
+                <time [attr.datetime]="info.checkedAt">{{ info.checkedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}</time>
+              </p>
+            </div>
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+              (click)="loadSystemInfo()"
+            >
+              {{ 'announcements.povtorit' | t }}
+            </button>
+          </div>
+        }
 
         <section
           class="overall-status"
@@ -122,19 +127,21 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
               </div>
             </div>
             <dl class="component-list" [attr.aria-label]="'system.sostoyanie_komponentov' | t">
-              <div *ngFor="let component of componentEntries(info)" class="component-row">
-                <dt>{{ componentLabel(component.name) }}</dt>
-                <dd>
-                  <span
-                    class="status-pill"
-                    [attr.data-status]="component.status"
-                    [class]="'status-pill status-' + statusClass(component.status)"
-                  >
-                    <span class="status-dot" aria-hidden="true"></span>
-                    {{ statusLabel(component.status) }}
-                  </span>
-                </dd>
-              </div>
+              @for (component of componentEntries(info); track component) {
+                <div class="component-row">
+                  <dt>{{ componentLabel(component.name) }}</dt>
+                  <dd>
+                    <span
+                      class="status-pill"
+                      [attr.data-status]="component.status"
+                      [class]="'status-pill status-' + statusClass(component.status)"
+                    >
+                      <span class="status-dot" aria-hidden="true"></span>
+                      {{ statusLabel(component.status) }}
+                    </span>
+                  </dd>
+                </div>
+              }
             </dl>
           </article>
 
@@ -152,16 +159,24 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
               }}</span>
               <div>
                 <strong>{{ backupStatusLabel(info.backup) }}</strong>
-                <p *ngIf="info.backup.completedAt">{{ info.backup.completedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}</p>
-                <p *ngIf="info.backup.status === 'SUCCESS' && info.backup.ageSeconds != null">
-                  {{ 'system.backup_age' | t: { duration: formatDuration(info.backup.ageSeconds) } }}
-                </p>
-                <p *ngIf="info.backup.maxAgeSeconds != null">
-                  {{ 'system.backup_max_age' | t: { duration: formatDuration(info.backup.maxAgeSeconds) } }}
-                </p>
-                <p *ngIf="info.backup.status === 'FAILED' && info.backup.failureCode" class="failure-code mono">
-                  {{ 'system.error_code_value' | t: { code: info.backup.failureCode } }}
-                </p>
+                @if (info.backup.completedAt) {
+                  <p>{{ info.backup.completedAt | date: 'dd.MM.yyyy, HH:mm:ss' }}</p>
+                }
+                @if (info.backup.status === 'SUCCESS' && info.backup.ageSeconds != null) {
+                  <p>
+                    {{ 'system.backup_age' | t: { duration: formatDuration(info.backup.ageSeconds) } }}
+                  </p>
+                }
+                @if (info.backup.maxAgeSeconds != null) {
+                  <p>
+                    {{ 'system.backup_max_age' | t: { duration: formatDuration(info.backup.maxAgeSeconds) } }}
+                  </p>
+                }
+                @if (info.backup.status === 'FAILED' && info.backup.failureCode) {
+                  <p class="failure-code mono">
+                    {{ 'system.error_code_value' | t: { code: info.backup.failureCode } }}
+                  </p>
+                }
               </div>
             </div>
             <div class="cli-note">
@@ -201,7 +216,7 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
             </article>
           </div>
         </section>
-      </ng-container>
+      }
 
       <p class="sr-only" aria-live="polite">{{ refreshAnnouncement() }}</p>
     </section>

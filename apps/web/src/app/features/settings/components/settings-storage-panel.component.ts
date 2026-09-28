@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -7,8 +7,8 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 
 @Component({
   selector: 'app-settings-storage-panel',
-  standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">
       <div class="card-header-bar">
@@ -19,19 +19,20 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             <p class="card-desc">{{ 'settings.limity_diskovogo_prostranstva_dlya_novyh_sotrudn' | t }}</p>
           </div>
         </div>
-        <span class="badge badge-neutral" *ngIf="!canUpdateSystemSettings">{{ 'settings.readonly_badge' | t }}</span>
+        @if (!canUpdateSystemSettings()) {
+          <span class="badge badge-neutral">{{ 'settings.readonly_badge' | t }}</span>
+        }
       </div>
 
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label" for="settings-user-quota">
             {{ 'settings.default_user_quota' | t }}
-            <span
-              class="unit-badge"
-              *ngIf="formatQuotaMb(systemSettings['storage.default_user_quota_mb']) as quotaBadge"
-            >
-              {{ quotaBadge }}
-            </span>
+            @if (formatQuotaMb(systemSettings()['storage.default_user_quota_mb']); as quotaBadge) {
+              <span class="unit-badge">
+                {{ quotaBadge }}
+              </span>
+            }
           </label>
           <smt-input
             smtFieldId="settings-user-quota"
@@ -39,9 +40,9 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
             type="number"
             [smtMin]="100"
             [smtMax]="102400"
-            [disabled]="!canUpdateSystemSettings || isSaving"
+            [disabled]="!canUpdateSystemSettings() || isSaving()"
             smtDescribedBy="settings-user-quota-hint"
-            [(ngModel)]="systemSettings['storage.default_user_quota_mb']"
+            [(ngModel)]="systemSettings()['storage.default_user_quota_mb']"
           />
           <span id="settings-user-quota-hint" class="hint-text">{{
             'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t
@@ -49,11 +50,13 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
         </div>
       </div>
 
-      <div class="card-footer-actions" *ngIf="canUpdateSystemSettings">
-        <button smt-button type="button" [smtLoading]="isSaving" (click)="save.emit()">
-          {{ 'common.save' | t }}
-        </button>
-      </div>
+      @if (canUpdateSystemSettings()) {
+        <div class="card-footer-actions">
+          <button smt-button type="button" [smtLoading]="isSaving()" (click)="save.emit()">
+            {{ 'common.save' | t }}
+          </button>
+        </div>
+      }
     </div>
   `,
   styles: [
@@ -166,10 +169,12 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 export class SettingsStoragePanelComponent {
   private readonly i18n = inject(I18nService);
 
-  @Input() systemSettings: Record<string, string> = {};
-  @Input() canUpdateSystemSettings = false;
-  @Input() isSaving = false;
-  @Output() save = new EventEmitter<void>();
+  readonly canUpdateSystemSettings = input(false);
+  readonly isSaving = input(false);
+
+  readonly systemSettings = input<Record<string, string>>({});
+
+  readonly save = output<void>();
 
   formatQuotaMb(mb: string | number | undefined): string {
     if (mb === undefined || mb === '') return '';

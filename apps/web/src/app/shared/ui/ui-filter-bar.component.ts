@@ -13,7 +13,6 @@ import { FilterPanelData, FilterPanelResult, UiFilterPanelComponent } from './ui
  */
 @Component({
   selector: 'ui-filter-bar',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe],
   template: `

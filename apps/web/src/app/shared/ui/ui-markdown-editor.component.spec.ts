@@ -45,7 +45,7 @@ describe('UiMarkdownEditorComponent', () => {
   it('does not create executable links in preview mode', async () => {
     await TestBed.configureTestingModule({ imports: [UiMarkdownEditorComponent] }).compileComponents();
     const fixture = TestBed.createComponent(UiMarkdownEditorComponent);
-    fixture.componentInstance.value = '[safe](mailto:help@example.com) [unsafe](javascript:alert(1))';
+    fixture.componentRef.setInput('value', '[safe](mailto:help@example.com) [unsafe](javascript:alert(1))');
     fixture.componentInstance.mode = 'preview';
     fixture.detectChanges();
 

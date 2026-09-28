@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { NavigationService } from '../../core/services/navigation.service';
@@ -9,8 +9,8 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-embedded-report',
-  standalone: true,
-  imports: [SMTButtonComponent, CommonModule, RouterModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTButtonComponent, RouterModule, TranslatePipe],
   template: `
     <div class="embedded-report-container" [class.fullscreen]="isFullscreen()">
       <!-- Top Toolbar -->
@@ -24,7 +24,9 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
           <div class="report-title-group">
             <h1 class="report-title">{{ report()?.title || ('reports.loading' | t) }}</h1>
             <div class="report-meta-sub">
-              <span class="report-badge" *ngIf="urlHost()">{{ urlHost() }}</span>
+              @if (urlHost()) {
+                <span class="report-badge">{{ urlHost() }}</span>
+              }
               <span class="status-indicator" [class.loading]="isLoading()" [class.ready]="!isLoading()">
                 <span class="status-dot"></span>
                 <span class="status-text">{{
@@ -73,71 +75,79 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
             <span class="action-label">{{ 'reports.open_popup' | t }}</span>
           </button>
 
-          <a
-            *ngIf="report()?.url"
-            [href]="report()?.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="action-btn primary"
-            [title]="'reports.open_external' | t"
-            [attr.aria-label]="'reports.open_external' | t"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
-            <span class="action-label">{{ 'reports.open_external' | t }}</span>
-          </a>
+          @if (report()?.url) {
+            <a
+              [href]="report()?.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="action-btn primary"
+              [title]="'reports.open_external' | t"
+              [attr.aria-label]="'reports.open_external' | t"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+              <span class="action-label">{{ 'reports.open_external' | t }}</span>
+            </a>
+          }
         </div>
       </div>
 
       <!-- Content Area -->
       <div class="report-viewport">
         <!-- Loading Overlay -->
-        <div *ngIf="isLoading()" class="report-loading">
-          <div class="spinner" aria-hidden="true"></div>
-          <span class="loading-label">{{ 'common.loading' | t }}</span>
-        </div>
+        @if (isLoading()) {
+          <div class="report-loading">
+            <div class="spinner" aria-hidden="true"></div>
+            <span class="loading-label">{{ 'common.loading' | t }}</span>
+          </div>
+        }
 
         <!-- Error Alert -->
-        <div *ngIf="errorMessage()" class="report-error" role="alert">
-          <span class="material-symbols-outlined icon" aria-hidden="true">error</span>
-          <span>{{ errorMessage() }}</span>
-          <button smt-button smtVariant="secondary" type="button" (click)="loadReport()">
-            {{ 'common.retry' | t }}
-          </button>
-        </div>
+        @if (errorMessage()) {
+          <div class="report-error" role="alert">
+            <span class="material-symbols-outlined icon" aria-hidden="true">error</span>
+            <span>{{ errorMessage() }}</span>
+            <button smt-button smtVariant="secondary" type="button" (click)="loadReport()">
+              {{ 'common.retry' | t }}
+            </button>
+          </div>
+        }
 
         <!-- Safe iFrame -->
-        <iframe
-          *ngIf="safeUrl() && !errorMessage()"
-          #reportFrame
-          [src]="safeUrl()"
-          class="report-iframe"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
-          referrerpolicy="no-referrer-when-downgrade"
-          (load)="onIframeLoaded()"
-          [attr.title]="report()?.title || ('reports.embedded_report' | t)"
-        ></iframe>
+        @if (safeUrl() && !errorMessage()) {
+          <iframe
+            #reportFrame
+            [src]="safeUrl()"
+            class="report-iframe"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+            referrerpolicy="no-referrer-when-downgrade"
+            (load)="onIframeLoaded()"
+            [attr.title]="report()?.title || ('reports.embedded_report' | t)"
+          ></iframe>
+        }
 
         <!-- Helpful Assistant Footer -->
-        <div class="report-fallback-bar" *ngIf="!isLoading() && showTip()">
-          <div class="fallback-tip">
-            <span class="material-symbols-outlined tip-icon" aria-hidden="true">lightbulb</span>
-            <span>{{ 'reports.iframe_blocked_hint' | t }}</span>
+        @if (!isLoading() && showTip()) {
+          <div class="report-fallback-bar">
+            <div class="fallback-tip">
+              <span class="material-symbols-outlined tip-icon" aria-hidden="true">lightbulb</span>
+              <span>{{ 'reports.iframe_blocked_hint' | t }}</span>
+            </div>
+            <div class="fallback-actions">
+              <button type="button" class="fallback-btn" (click)="openPopup()">
+                <span class="material-symbols-outlined" aria-hidden="true">open_in_browser</span>
+                {{ 'reports.open_popup' | t }}
+              </button>
+              <button
+                type="button"
+                class="fallback-close"
+                (click)="showTip.set(false)"
+                [attr.aria-label]="'common.close' | t"
+              >
+                <span class="material-symbols-outlined" aria-hidden="true">close</span>
+              </button>
+            </div>
           </div>
-          <div class="fallback-actions">
-            <button type="button" class="fallback-btn" (click)="openPopup()">
-              <span class="material-symbols-outlined" aria-hidden="true">open_in_browser</span>
-              {{ 'reports.open_popup' | t }}
-            </button>
-            <button
-              type="button"
-              class="fallback-close"
-              (click)="showTip.set(false)"
-              [attr.aria-label]="'common.close' | t"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">close</span>
-            </button>
-          </div>
-        </div>
+        }
       </div>
     </div>
   `,

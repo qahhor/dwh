@@ -12,7 +12,6 @@ import { normalizeHex, SMTColorInputComponent } from './color-input.component';
 import { SMTColorInputValueAccessor } from './color-input-value-accessor';
 
 @Component({
-  standalone: true,
   imports: [SMTColorInputComponent, SMTColorInputValueAccessor, SMTControlComponent, FormsModule],
   template: `
     <smt-control smtLabel="Type colour">

@@ -3,7 +3,9 @@
   <div class="view-header">
     <div class="header-left">
       <h1 class="view-title">{{ 'nav.projects' | t }}</h1>
-      <span *ngIf="isListReady()" class="count-badge">{{ pager.total() }}</span>
+      @if (isListReady()) {
+        <span class="count-badge">{{ pager.total() }}</span>
+      }
 
       <!-- View Mode Switcher -->
       <smt-radio-group
@@ -17,17 +19,11 @@
     </div>
 
     <div class="header-right">
-      <button
-        smt-button
-        type="button"
-        *ngIf="canCreateProject()"
-        smtVariant="primary"
-        smtSize="md"
-        smtIcon="add"
-        (click)="openCreateModal()"
-      >
-        {{ 'projects.novyy_proekt' | t }}
-      </button>
+      @if (canCreateProject()) {
+        <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+          {{ 'projects.novyy_proekt' | t }}
+        </button>
+      }
     </div>
   </div>
 
@@ -40,15 +36,19 @@
     (stateChange)="setSelectedState($event)"
   ></app-project-filter-bar>
 
-  <div *ngIf="isLoading()" class="request-state" data-testid="projects-list-loading" role="status" aria-live="polite">
-    {{ 'projects.loading_projects' | t }}
-  </div>
-  <div *ngIf="listLoadError()" class="request-state request-error" data-testid="projects-list-error" role="alert">
-    <span>{{ 'projects.load_projects_error' | t }}</span>
-    <button type="button" class="request-retry projects-list-retry" (click)="pager.retry()">
-      {{ 'projects.retry_projects' | t }}
-    </button>
-  </div>
+  @if (isLoading()) {
+    <div class="request-state" data-testid="projects-list-loading" role="status" aria-live="polite">
+      {{ 'projects.loading_projects' | t }}
+    </div>
+  }
+  @if (listLoadError()) {
+    <div class="request-state request-error" data-testid="projects-list-error" role="alert">
+      <span>{{ 'projects.load_projects_error' | t }}</span>
+      <button type="button" class="request-retry projects-list-retry" (click)="pager.retry()">
+        {{ 'projects.retry_projects' | t }}
+      </button>
+    </div>
+  }
   @if (metaError()) {
     <smt-alert smtTone="danger" data-testid="projects-meta-error">
       <span>{{ 'projects.load_projects_error' | t }}</span>
@@ -58,50 +58,56 @@
     </smt-alert>
   }
 
-  <div *ngIf="!canViewTasks()" class="stats-state" data-testid="projects-stats-permission" role="status">
-    {{ 'projects.stats_permission' | t }}
-  </div>
-  <div *ngIf="canViewTasks() && statsLoaded()" class="stats-state" data-testid="projects-stats-scope" role="status">
-    {{ 'projects.closed_stats_scope' | t }}
-  </div>
+  @if (!canViewTasks()) {
+    <div class="stats-state" data-testid="projects-stats-permission" role="status">
+      {{ 'projects.stats_permission' | t }}
+    </div>
+  }
+  @if (canViewTasks() && statsLoaded()) {
+    <div class="stats-state" data-testid="projects-stats-scope" role="status">
+      {{ 'projects.closed_stats_scope' | t }}
+    </div>
+  }
 
   <!-- VIEW 1: TABLE / LIST VIEW -->
-  <app-project-table-view
-    *ngIf="viewMode === 'list' && meta()"
-    [pager]="pager"
-    [meta]="meta()"
-    [views]="views"
-    [exportSearch]="searchQuery"
-    [exportOptions]="exportOptions()"
-    [canViewTasks]="canViewTasks()"
-    [canUpdateProject]="canUpdateProject()"
-    [projectStats]="projectStats()"
-    [statsLoaded]="statsLoaded()"
-    (viewTasks)="viewProjectTasks($event)"
-    (editProject)="openEditModal($event)"
-    (manageMembers)="openMembersModal($event)"
-    (sortChange)="onSort($event)"
-  ></app-project-table-view>
+  @if (viewMode === 'list' && meta()) {
+    <app-project-table-view
+      [pager]="pager"
+      [meta]="meta()"
+      [views]="views"
+      [exportSearch]="searchQuery"
+      [exportOptions]="exportOptions()"
+      [canViewTasks]="canViewTasks()"
+      [canUpdateProject]="canUpdateProject()"
+      [projectStats]="projectStats()"
+      [statsLoaded]="statsLoaded()"
+      (viewTasks)="viewProjectTasks($event)"
+      (editProject)="openEditModal($event)"
+      (manageMembers)="openMembersModal($event)"
+      (sortChange)="onSort($event)"
+    ></app-project-table-view>
+  }
 
   <!-- VIEW 2: CARDS GRID VIEW -->
-  <app-project-cards-view
-    *ngIf="viewMode === 'cards' && isListReady()"
-    [paginatedProjects]="projects()"
-    [totalCount]="pager.total()"
-    [currentPage]="pager.page()"
-    [pageSize]="pager.pageSize()"
-    [hasNextPage]="pager.canGoForward()"
-    [canViewTasks]="canViewTasks()"
-    [canUpdateProject]="canUpdateProject()"
-    [projectStats]="projectStats()"
-    [statsLoading]="statsLoading()"
-    [statsLoadError]="statsLoadError()"
-    [statsLoaded]="statsLoaded()"
-    (viewTasks)="viewProjectTasks($event)"
-    (editProject)="openEditModal($event)"
-    (manageMembers)="openMembersModal($event)"
-    (pageChange)="goToPage($event)"
-  ></app-project-cards-view>
+  @if (viewMode === 'cards' && isListReady()) {
+    <app-project-cards-view
+      [paginatedProjects]="projects()"
+      [totalCount]="pager.total()"
+      [currentPage]="pager.page()"
+      [pageSize]="pager.pageSize()"
+      [hasNextPage]="pager.canGoForward()"
+      [canViewTasks]="canViewTasks()"
+      [canUpdateProject]="canUpdateProject()"
+      [projectStats]="projectStats()"
+      [statsLoading]="statsLoading()"
+      [statsLoadError]="statsLoadError()"
+      [statsLoaded]="statsLoaded()"
+      (viewTasks)="viewProjectTasks($event)"
+      (editProject)="openEditModal($event)"
+      (manageMembers)="openMembersModal($event)"
+      (pageChange)="goToPage($event)"
+    ></app-project-cards-view>
+  }
 </div>
 
 <!-- Modals -->

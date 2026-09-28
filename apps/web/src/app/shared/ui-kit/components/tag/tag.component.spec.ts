@@ -19,7 +19,6 @@ const ROLES: SMTTagOption<number>[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [SMTTagComponent],
   template: `
     <smt-tag label="Draft" smtTone="warning" />
@@ -31,7 +30,6 @@ class TagHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTTagGroupComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Roles">
@@ -46,7 +44,6 @@ class FormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTTagGroupComponent, SMTTagGroupValueAccessor, FormsModule],
   template: `<smt-tag-group [(ngModel)]="roleIds" name="roles" [options]="roles" smtAriaLabel="Roles" />`,
 })

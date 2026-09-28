@@ -9,7 +9,6 @@ import { SMTDropdownButtonComponent, SMTMenuItem } from './dropdown-button.compo
 type Action = 'edit' | 'copy' | 'archive' | 'delete';
 
 @Component({
-  standalone: true,
   imports: [SMTDropdownButtonComponent],
   template: `
     <smt-dropdown-button label="Actions" icon="bolt" [items]="items" (itemSelect)="chosen.push($event)" />

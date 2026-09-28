@@ -1,4 +1,4 @@
-import { Component, inject, input, model, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, model, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -23,8 +23,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
  */
 @Component({
   selector: 'app-upl-format-sheets-step',
-  standalone: true,
-  // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,
@@ -486,6 +485,11 @@ export class FormatSheetsStepComponent {
   private readonly modal = inject(SMTModalService);
 
   readonly model = input.required<UplFormatDraftRequest>();
+  /**
+   * The step is on screen. The file step edits the same mutable draft (file kind, column matching), so the
+   * sheets are redrawn each time the step is shown: a changed input marks this OnPush step for checking.
+   */
+  readonly shown = input(true);
   readonly editable = input(false);
   readonly units = input<UplUnit[]>([]);
   readonly activeSheet = model(0);

@@ -6,7 +6,6 @@ import { SMTTreeSelectComponent } from './tree-select.component';
 
 @Directive({
   selector: 'smt-tree-select[ngModel], smt-tree-select[formControl], smt-tree-select[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTTreeSelectValueAccessor), multi: true }],
 })
 export class SMTTreeSelectValueAccessor extends PickerValueAccessor<unknown> {

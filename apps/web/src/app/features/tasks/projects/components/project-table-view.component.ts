@@ -1,17 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
-  Input,
-  Output,
   Signal,
-  signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
 import { OrderBy, TableConfig } from '../../../../shared/ui-kit/components/table/table.types';
@@ -29,8 +27,8 @@ import { ProjectListItem } from '../projects.models';
  */
 @Component({
   selector: 'app-project-table-view',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe, UiServerTableComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe, UiServerTableComponent, DatePipe],
   template: `
     <div class="table-card" role="region" [attr.aria-label]="'projects.tablica_proektov' | t">
       @if (tableConfig(); as config) {
@@ -59,7 +57,7 @@ import { ProjectListItem } from '../projects.models';
       <div class="project-title-cell">
         <span class="material-symbols-outlined folder-icon" aria-hidden="true">folder</span>
         <div class="project-info-group">
-          @if (canViewTasks) {
+          @if (canViewTasks()) {
             <button type="button" class="project-name" (click)="viewTasks.emit(p)">{{ p.name }}</button>
           } @else {
             <span class="project-name-text">{{ p.name }}</span>
@@ -109,7 +107,7 @@ import { ProjectListItem } from '../projects.models';
     </ng-template>
     <ng-template #actionsCell let-p>
       <div class="row-action-btns">
-        @if (canViewTasks) {
+        @if (canViewTasks()) {
           <button
             type="button"
             class="action-link-btn"
@@ -121,7 +119,7 @@ import { ProjectListItem } from '../projects.models';
             {{ 'nav.tasks' | t }}
           </button>
         }
-        @if (canUpdateProject) {
+        @if (canUpdateProject()) {
           <button
             type="button"
             class="icon-ghost-btn"
@@ -362,6 +360,23 @@ export class ProjectTableViewComponent {
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
 
+  readonly canUpdateProject = input(false);
+  readonly projectStats = input<Record<number, ProjectTaskStats>>({});
+  readonly statsLoaded = input(false);
+
+  readonly canViewTasks = input<boolean>(false);
+
+  readonly viewTasks = output<ProjectListItem>();
+  readonly editProject = output<ProjectListItem>();
+  readonly manageMembers = output<ProjectListItem>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -369,8 +384,6 @@ export class ProjectTableViewComponent {
   private readonly progressCell = viewChild.required<TemplateRef<unknown>>('progressCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
-
-  private readonly viewTasksAllowed = signal(false);
 
   /** Registry columns with the screen's cells, plus the row actions, which are not a field. */
   readonly tableConfig = computed<TableConfig<ProjectListItem> | null>(() => {
@@ -419,36 +432,22 @@ export class ProjectTableViewComponent {
     };
   });
 
-  @Input() canUpdateProject = false;
-  @Input() projectStats: Record<number, ProjectTaskStats> = {};
-  @Input() statsLoaded = false;
-
-  @Output() viewTasks = new EventEmitter<ProjectListItem>();
-  @Output() editProject = new EventEmitter<ProjectListItem>();
-  @Output() manageMembers = new EventEmitter<ProjectListItem>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
-
-  @Input() set canViewTasks(value: boolean) {
-    this.viewTasksAllowed.set(value);
-  }
-  get canViewTasks(): boolean {
-    return this.viewTasksAllowed();
-  }
+  private readonly viewTasksAllowed = computed(() => this.canViewTasks());
 
   hasProjectStats(projectId: number): boolean {
-    return this.canViewTasks && this.statsLoaded && this.projectStats[projectId] !== undefined;
+    return this.canViewTasks() && this.statsLoaded() && this.projectStats()[projectId] !== undefined;
   }
 
   getProjectTotalCount(projectId: number): number {
-    return this.projectStats[projectId]?.totalTasks ?? 0;
+    return this.projectStats()[projectId]?.totalTasks ?? 0;
   }
 
   getProjectDoneCount(projectId: number): number {
-    return this.projectStats[projectId]?.doneTasks ?? 0;
+    return this.projectStats()[projectId]?.doneTasks ?? 0;
   }
 
   getProjectPercent(projectId: number): number {
-    const stats = this.projectStats[projectId];
+    const stats = this.projectStats()[projectId];
     if (!stats) return 0;
     const total = stats.totalTasks;
     if (total === 0) return 0;

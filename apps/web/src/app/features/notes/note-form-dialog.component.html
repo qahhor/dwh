@@ -1,0 +1,27 @@
+<smt-dialog
+  open
+  [smtTitle]="note() ? ('notes.edit_title' | t) : ('notes.create_title' | t)"
+  smtSize="md"
+  [dismissible]="!saving()"
+  (closed)="close()"
+>
+  <ng-template smtDialogContent>
+    <form ngNoForm class="modal-form" novalidate id="noteForm" (submit)="$event.preventDefault(); save()">
+      <smt-entity-form [meta]="meta()" [(value)]="values" [problems]="problems()" [disabled]="saving()" />
+      @if (showHistory() && note(); as current) {
+        <ui-record-history [kind]="meta().code" [recordId]="current.id" />
+      }
+    </form>
+
+    <div footer>
+      <div class="modal-footer-actions">
+        <button smt-button type="button" smtVariant="secondary" [disabled]="saving()" (click)="close()">
+          {{ 'common.cancel' | t }}
+        </button>
+        <button smt-button smtVariant="primary" type="submit" form="noteForm" [smtLoading]="saving()">
+          {{ 'common.save' | t }}
+        </button>
+      </div>
+    </div>
+  </ng-template>
+</smt-dialog>

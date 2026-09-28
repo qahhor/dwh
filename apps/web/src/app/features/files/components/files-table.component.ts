@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
   inject,
   input,
   viewChild,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { FileDetail } from '../files.models';
 import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
 import {
@@ -36,8 +35,8 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
  */
 @Component({
   selector: 'app-files-table',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe, UiServerTableComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe, UiServerTableComponent, DatePipe, NgClass],
   template: `
     <div
       class="table-container"
@@ -122,11 +121,11 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
         >
           <span class="material-symbols-outlined" aria-hidden="true">download</span>
         </button>
-        @if (canDeleteFn(file)) {
+        @if (canDeleteFn()(file)) {
           <button
             type="button"
             class="action-btn delete-btn"
-            [disabled]="isDeleting"
+            [disabled]="isDeleting()"
             [attr.aria-label]="'files.delete_named' | t: { name: file.originalName }"
             (click)="delete.emit(file)"
             [title]="'common.delete' | t"
@@ -334,6 +333,21 @@ export class FilesTableComponent {
   readonly exportSearch = input<string | null>(null);
   readonly exportOptions = input<Record<string, string> | null>(null);
 
+  readonly isDeleting = input<boolean>(false);
+  readonly canDeleteFn = input<(file: FileDetail) => boolean>(() => false);
+
+  readonly download = output<FileDetail>();
+  /** An image asked to be shown in the preview. */
+  readonly preview = output<FileDetail>();
+  readonly delete = output<FileDetail>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
   private readonly sizeCell = viewChild.required<TemplateRef<unknown>>('sizeCell');
   private readonly mimeCell = viewChild.required<TemplateRef<unknown>>('mimeCell');
@@ -376,15 +390,6 @@ export class FilesTableComponent {
       columnsOrder: [...base.columnsOrder, 'actions'],
     };
   });
-
-  @Input() isDeleting: boolean = false;
-  @Input() canDeleteFn: (file: FileDetail) => boolean = () => false;
-
-  @Output() download = new EventEmitter<FileDetail>();
-  /** An image asked to be shown in the preview. */
-  @Output() preview = new EventEmitter<FileDetail>();
-  @Output() delete = new EventEmitter<FileDetail>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
 
   kindOf(file: FileDetail): SMTFileKind {
     return fileKind(file.mimeType, file.originalName);

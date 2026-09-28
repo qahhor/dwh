@@ -1,11 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
 import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-group/radio-options';
 
 @Component({
   selector: 'app-login-top-bar',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTSelectComponent, TranslatePipe],
   template: `
     <div class="login-top-bar">

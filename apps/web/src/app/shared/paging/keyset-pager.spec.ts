@@ -20,6 +20,16 @@ function server() {
 }
 
 describe('KeysetPager', () => {
+  it('is loaded once a first answer arrives, rows or a failure', () => {
+    const answer = new Subject<KeysetResponse<number>>();
+    const pager = new KeysetPager<number>(() => answer);
+    expect(pager.loaded()).toBe(false);
+    pager.first();
+    expect(pager.loaded()).toBe(false);
+    answer.error(new Error('down'));
+    expect(pager.loaded()).toBe(true);
+  });
+
   it('walks forward with the returned cursors and back with the remembered ones', () => {
     const fetch = server();
     const pager = new KeysetPager<number>(fetch, { pageSize: 2 });

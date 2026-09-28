@@ -96,7 +96,6 @@ interface TableColumnView<T> {
 
 @Component({
   selector: 'smt-table',
-  standalone: true,
   imports: [
     CdkDropList,
     CdkDrag,

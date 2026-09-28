@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ModuleFilterTab } from '../modules.models';
 import { SMTTabBarComponent, SMTTabItem } from '../../../../shared/ui-kit/components/tab-bar';
@@ -9,8 +9,7 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-modules-toolbar',
-  standalone: true,
-  imports: [SMTInputComponent, SMTTabBarComponent, CommonModule, TranslatePipe],
+  imports: [SMTInputComponent, SMTTabBarComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="toolbar">

@@ -1,11 +1,11 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
+
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-login-header',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   template: `
     <div class="login-header">
       <div class="brand-lockup" role="img" aria-label="SmartupCMS">

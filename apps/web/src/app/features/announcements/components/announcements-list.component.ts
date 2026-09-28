@@ -1,100 +1,100 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } from '../announcements.models';
 
 @Component({
   selector: 'app-announcements-list',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="announcement-list" aria-live="polite">
-      <article
-        *ngFor="let item of items(); trackBy: trackById"
-        class="announcement-card"
-        [attr.data-state]="item.state"
-      >
-        <div
-          class="card-marker"
-          [class]="'card-marker marker-' + item.bannerType.toLowerCase()"
-          aria-hidden="true"
-        ></div>
-        <div class="card-main">
-          <div class="card-heading">
-            <div>
-              <div class="card-meta">
-                <span class="state-badge" [class]="'state-badge state-' + item.state.toLowerCase()">
-                  <span class="material-symbols-outlined badge-icon" aria-hidden="true">
-                    {{ item.state === 'PUBLISHED' ? 'check_circle' : item.state === 'DRAFT' ? 'edit_note' : 'archive' }}
+      @for (item of items(); track trackById($index, item)) {
+        <article class="announcement-card" [attr.data-state]="item.state">
+          <div
+            class="card-marker"
+            [class]="'card-marker marker-' + item.bannerType.toLowerCase()"
+            aria-hidden="true"
+          ></div>
+          <div class="card-main">
+            <div class="card-heading">
+              <div>
+                <div class="card-meta">
+                  <span class="state-badge" [class]="'state-badge state-' + item.state.toLowerCase()">
+                    <span class="material-symbols-outlined badge-icon" aria-hidden="true">
+                      {{
+                        item.state === 'PUBLISHED' ? 'check_circle' : item.state === 'DRAFT' ? 'edit_note' : 'archive'
+                      }}
+                    </span>
+                    {{ stateLabel(item.state) }}
                   </span>
-                  {{ stateLabel(item.state) }}
-                </span>
-                <span class="type-badge" [class]="'type-badge type-' + item.bannerType.toLowerCase()">
-                  <span class="material-symbols-outlined badge-icon" aria-hidden="true">
-                    {{ item.bannerType === 'CRITICAL' ? 'error' : item.bannerType === 'WARNING' ? 'warning' : 'info' }}
+                  <span class="type-badge" [class]="'type-badge type-' + item.bannerType.toLowerCase()">
+                    <span class="material-symbols-outlined badge-icon" aria-hidden="true">
+                      {{
+                        item.bannerType === 'CRITICAL' ? 'error' : item.bannerType === 'WARNING' ? 'warning' : 'info'
+                      }}
+                    </span>
+                    {{ bannerLabel(item.bannerType) }}
                   </span>
-                  {{ bannerLabel(item.bannerType) }}
-                </span>
-                <span class="active-badge" *ngIf="item.id === activeId()">
-                  <span class="material-symbols-outlined badge-icon" aria-hidden="true">sensors</span>
-                  {{ 'announcements.aktivno_dlya_polzovateley' | t }}
-                </span>
-                <span class="id-tag">№{{ item.id }}</span>
+                  @if (item.id === activeId()) {
+                    <span class="active-badge">
+                      <span class="material-symbols-outlined badge-icon" aria-hidden="true">sensors</span>
+                      {{ 'announcements.aktivno_dlya_polzovateley' | t }}
+                    </span>
+                  }
+                  <span class="id-tag">№{{ item.id }}</span>
+                </div>
+                <h2>{{ localizedValue(item.titleJson) || ('announcements.without_title' | t) }}</h2>
               </div>
-              <h2>{{ localizedValue(item.titleJson) || ('announcements.without_title' | t) }}</h2>
+              <div class="card-timestamps">
+                @if (item.publishedAt) {
+                  <span class="meta-time">
+                    {{ 'announcements.opublikovano_v' | t }} {{ item.publishedAt | date: 'dd.MM.yyyy, HH:mm' }}
+                  </span>
+                }
+                @if (item.archivedAt) {
+                  <span class="meta-time">
+                    {{ 'announcements.arhivirovano_v' | t }} {{ item.archivedAt | date: 'dd.MM.yyyy, HH:mm' }}
+                  </span>
+                }
+                <time [attr.datetime]="item.modifiedAt">{{ item.modifiedAt | date: 'dd.MM.yyyy, HH:mm' }}</time>
+              </div>
             </div>
-            <div class="card-timestamps">
-              <span *ngIf="item.publishedAt" class="meta-time">
-                {{ 'announcements.opublikovano_v' | t }} {{ item.publishedAt | date: 'dd.MM.yyyy, HH:mm' }}
-              </span>
-              <span *ngIf="item.archivedAt" class="meta-time">
-                {{ 'announcements.arhivirovano_v' | t }} {{ item.archivedAt | date: 'dd.MM.yyyy, HH:mm' }}
-              </span>
-              <time [attr.datetime]="item.modifiedAt">{{ item.modifiedAt | date: 'dd.MM.yyyy, HH:mm' }}</time>
+            <p class="announcement-body">{{ localizedValue(item.bodyJson) || ('announcements.empty_body' | t) }}</p>
+            <div class="card-actions">
+              @if (item.state === 'DRAFT' && canUpdate()) {
+                <button type="button" class="text-action edit-action" (click)="edit.emit(item)">
+                  <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+                  {{ 'common.edit' | t }}
+                </button>
+              }
+              @if (item.state === 'DRAFT' && canPublish()) {
+                <button
+                  type="button"
+                  class="text-action publish-action"
+                  [disabled]="!hasPublishableContent(item)"
+                  [attr.aria-describedby]="!hasPublishableContent(item) ? 'invalid-draft-' + item.id : null"
+                  (click)="publish.emit(item)"
+                >
+                  <span class="material-symbols-outlined" aria-hidden="true">publish</span>
+                  {{ 'announcements.opublikovat' | t }}
+                </button>
+              }
+              @if (item.state === 'DRAFT' && !hasPublishableContent(item)) {
+                <span class="invalid-hint" [id]="'invalid-draft-' + item.id">
+                  {{ 'announcements.zapolnite_ru_zagolovok_i_tekst' | t }}
+                </span>
+              }
+              @if (item.state === 'PUBLISHED' && canArchive()) {
+                <button type="button" class="text-action archive-action" (click)="archive.emit(item)">
+                  <span class="material-symbols-outlined" aria-hidden="true">archive</span>
+                  {{ 'announcements.arhivirovat' | t }}
+                </button>
+              }
             </div>
           </div>
-          <p class="announcement-body">{{ localizedValue(item.bodyJson) || ('announcements.empty_body' | t) }}</p>
-          <div class="card-actions">
-            <button
-              *ngIf="item.state === 'DRAFT' && canUpdate()"
-              type="button"
-              class="text-action edit-action"
-              (click)="edit.emit(item)"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-              {{ 'common.edit' | t }}
-            </button>
-            <button
-              *ngIf="item.state === 'DRAFT' && canPublish()"
-              type="button"
-              class="text-action publish-action"
-              [disabled]="!hasPublishableContent(item)"
-              [attr.aria-describedby]="!hasPublishableContent(item) ? 'invalid-draft-' + item.id : null"
-              (click)="publish.emit(item)"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">publish</span>
-              {{ 'announcements.opublikovat' | t }}
-            </button>
-            <span
-              *ngIf="item.state === 'DRAFT' && !hasPublishableContent(item)"
-              class="invalid-hint"
-              [id]="'invalid-draft-' + item.id"
-            >
-              {{ 'announcements.zapolnite_ru_zagolovok_i_tekst' | t }}
-            </span>
-            <button
-              *ngIf="item.state === 'PUBLISHED' && canArchive()"
-              type="button"
-              class="text-action archive-action"
-              (click)="archive.emit(item)"
-            >
-              <span class="material-symbols-outlined" aria-hidden="true">archive</span>
-              {{ 'announcements.arhivirovat' | t }}
-            </button>
-          </div>
-        </div>
-      </article>
+        </article>
+      }
     </div>
   `,
   styles: [

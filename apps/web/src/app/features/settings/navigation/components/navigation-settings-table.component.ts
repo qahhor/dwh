@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
   inject,
-  signal,
   viewChild,
+  input,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
@@ -25,8 +24,8 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
  */
 @Component({
   selector: 'app-navigation-settings-table',
-  standalone: true,
-  imports: [CommonModule, FormsModule, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, UiLocalTableComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <!-- Search & Filter Bar -->
     <div class="filter-bar">
@@ -37,7 +36,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
           smtIcon="search"
           clearable
           [smtAriaLabel]="'nav.settings.search_placeholder' | t"
-          [ngModel]="searchQuery"
+          [ngModel]="searchQuery()"
           (ngModelChange)="searchQueryChange.emit($event)"
           [placeholder]="'nav.settings.search_placeholder' | t"
           (cleared)="clearSearch.emit()"
@@ -50,7 +49,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
         [rows]="rows()"
         [config]="config()"
         [sortValues]="sortValues"
-        [loading]="isLoading"
+        [loading]="isLoading()"
         [emptyTemplate]="emptyState"
       />
     </div>
@@ -288,6 +287,18 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 export class NavigationSettingsTableComponent {
   private readonly uiI18n = inject(I18nService);
 
+  readonly isLoading = input(false);
+  readonly searchQuery = input('');
+
+  readonly items = input<CustomNavigationItem[]>([]);
+
+  readonly searchQueryChange = output<string>();
+  readonly clearSearch = output<void>();
+  readonly toggleItem = output<CustomNavigationItem>();
+  readonly previewItem = output<CustomNavigationItem>();
+  readonly editItem = output<CustomNavigationItem>();
+  readonly deleteItem = output<CustomNavigationItem>();
+
   private readonly iconCell = viewChild.required<TemplateRef<unknown>>('iconCell');
   private readonly titleCell = viewChild.required<TemplateRef<unknown>>('titleCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
@@ -297,7 +308,7 @@ export class NavigationSettingsTableComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  readonly rows = signal<CustomNavigationItem[]>([]);
+  readonly rows = computed<CustomNavigationItem[]>(() => this.items() ?? []);
 
   readonly config = computed<TableConfig<CustomNavigationItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.uiI18n.translate(key) });
@@ -325,16 +336,6 @@ export class NavigationSettingsTableComponent {
     };
   });
 
-  @Input() isLoading = false;
-  @Input() searchQuery = '';
-
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() toggleItem = new EventEmitter<CustomNavigationItem>();
-  @Output() previewItem = new EventEmitter<CustomNavigationItem>();
-  @Output() editItem = new EventEmitter<CustomNavigationItem>();
-  @Output() deleteItem = new EventEmitter<CustomNavigationItem>();
-
   readonly sortValues = {
     title: (item: CustomNavigationItem) => item.title,
     type: (item: CustomNavigationItem) => this.targetTypeLabel(item.targetType),
@@ -343,10 +344,6 @@ export class NavigationSettingsTableComponent {
     order: (item: CustomNavigationItem) => item.sortOrder,
     status: (item: CustomNavigationItem) => (item.state === 'A' ? 0 : 1),
   };
-
-  @Input() set items(items: CustomNavigationItem[]) {
-    this.rows.set(items ?? []);
-  }
 
   targetTypeLabel(type: NavigationTargetType): string {
     switch (type) {

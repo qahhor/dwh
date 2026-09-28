@@ -10,7 +10,6 @@ import { tickInZone } from '../../../testing/zone-tick';
 import { SMTRange, SMTRangeSliderComponent } from './range-slider.component';
 
 @Component({
-  standalone: true,
   imports: [SMTRangeSliderComponent],
   template: `<smt-range-slider
     smtAriaLabel="Days"

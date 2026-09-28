@@ -45,7 +45,6 @@ export function avatarTone(name: string | null | undefined): number {
 
 @Component({
   selector: 'smt-avatar',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './avatar.scss',

@@ -19,7 +19,6 @@ const PEOPLE: SMTSelectOption<number>[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [SMTMultiSelectComponent, FormField],
   template: `
     <smt-multi-select
@@ -40,7 +39,6 @@ class Host {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTMultiSelectComponent, SMTMultiSelectValueAccessor, FormsModule],
   template: `<smt-multi-select [(ngModel)]="ids" name="ids" [options]="options" ariaLabel="Executors" />`,
 })

@@ -6,7 +6,6 @@ import { SMTRadioGroupComponent } from './radio-group.component';
 
 @Directive({
   selector: 'smt-radio-group[ngModel], smt-radio-group[formControl], smt-radio-group[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTRadioGroupValueAccessor), multi: true }],
 })
 export class SMTRadioGroupValueAccessor extends PickerValueAccessor<unknown> {

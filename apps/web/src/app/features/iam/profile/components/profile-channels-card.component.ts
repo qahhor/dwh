@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
   inject,
-  signal,
   viewChild,
+  input,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
@@ -28,13 +27,12 @@ import {
 
 @Component({
   selector: 'app-profile-channels-card',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     SMTSelectComponent,
     SMTSelectValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -42,6 +40,7 @@ import {
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
+    DatePipe,
   ],
   template: `
     <div class="card section-card full-width">
@@ -51,22 +50,16 @@ import {
           <div class="title-with-desc">
             <div class="title-row">
               <h4 class="section-title">{{ 'iam.kanaly_svyazi' | t }}</h4>
-              <span class="badge-count">{{ channels.length }}</span>
+              <span class="badge-count">{{ channels().length }}</span>
             </div>
             <p class="section-subtitle">{{ 'iam.kanaly_svyazi_opisanie' | t }}</p>
           </div>
         </div>
-        <button
-          smt-button
-          type="button"
-          *ngIf="canManageChannels"
-          smtVariant="primary"
-          smtSize="sm"
-          smtIcon="add"
-          (click)="openBindModal()"
-        >
-          {{ 'iam.privyazat_kanal' | t }}
-        </button>
+        @if (canManageChannels()) {
+          <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="openBindModal()">
+            {{ 'iam.privyazat_kanal' | t }}
+          </button>
+        }
       </div>
 
       <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_kanalov_svyazi' | t" tabindex="0">
@@ -75,7 +68,7 @@ import {
           [rows]="rows()"
           [config]="config()"
           [sortValues]="sortValues"
-          [loading]="isLoadingChannels"
+          [loading]="isLoadingChannels()"
           [emptyTemplate]="emptyChannels"
         />
       </div>
@@ -98,31 +91,33 @@ import {
     </ng-template>
     <ng-template #channelActionCell let-c>
       <div class="row-actions">
-        <button
-          smt-button
-          type="button"
-          *ngIf="!c.isVerified && canManageChannels"
-          smtVariant="secondary"
-          smtSize="sm"
-          smtIcon="verified"
-          [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
-          [smtLoading]="isConfirmingChannel"
-          (click)="requestConfirm(c)"
-        >
-          {{ 'iam.podtverdit_kodom' | t }}
-        </button>
-        <button
-          smt-button
-          type="button"
-          *ngIf="canManageChannels"
-          smtVariant="danger"
-          smtSize="sm"
-          smtIcon="delete"
-          [attr.aria-label]="'iam.unbind_channel_named' | t: { address: c.address }"
-          (click)="requestUnbind(c)"
-        >
-          {{ 'iam.otvyazat_kanal' | t }}
-        </button>
+        @if (!c.isVerified && canManageChannels()) {
+          <button
+            smt-button
+            type="button"
+            smtVariant="secondary"
+            smtSize="sm"
+            smtIcon="verified"
+            [attr.aria-label]="'iam.confirm_channel_named' | t: { address: c.address }"
+            [smtLoading]="isConfirmingChannel()"
+            (click)="requestConfirm(c)"
+          >
+            {{ 'iam.podtverdit_kodom' | t }}
+          </button>
+        }
+        @if (canManageChannels()) {
+          <button
+            smt-button
+            type="button"
+            smtVariant="danger"
+            smtSize="sm"
+            smtIcon="delete"
+            [attr.aria-label]="'iam.unbind_channel_named' | t: { address: c.address }"
+            (click)="requestUnbind(c)"
+          >
+            {{ 'iam.otvyazat_kanal' | t }}
+          </button>
+        }
       </div>
     </ng-template>
     <ng-template #emptyChannels
@@ -165,9 +160,11 @@ import {
               [smtDescribedBy]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
               (keydown.enter)="submitBind()"
             />
-            <span id="profile-channel-address-error" class="field-error" *ngIf="isBindSubmitted && !newAddress.trim()">
-              {{ 'iam.adres_kanala_obyazatelen' | t }}
-            </span>
+            @if (isBindSubmitted && !newAddress.trim()) {
+              <span id="profile-channel-address-error" class="field-error">
+                {{ 'iam.adres_kanala_obyazatelen' | t }}
+              </span>
+            }
           </div>
         </div>
         <div footer class="modal-actions">
@@ -180,7 +177,7 @@ import {
             smtVariant="primary"
             smtSize="md"
             smtIcon="send"
-            [smtLoading]="isBindingChannel"
+            [smtLoading]="isBindingChannel()"
             (click)="submitBind()"
           >
             {{ 'iam.otpravit_kod' | t }}
@@ -221,13 +218,11 @@ import {
               "
               (keydown.enter)="submitConfirm()"
             />
-            <span
-              id="profile-channel-code-error"
-              class="field-error"
-              *ngIf="isConfirmSubmitted && verificationCode.trim().length !== 6"
-            >
-              {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
-            </span>
+            @if (isConfirmSubmitted && verificationCode.trim().length !== 6) {
+              <span id="profile-channel-code-error" class="field-error">
+                {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
+              </span>
+            }
           </div>
         </div>
         <div footer class="modal-actions">
@@ -240,7 +235,7 @@ import {
             smtVariant="primary"
             smtSize="md"
             smtIcon="check"
-            [smtLoading]="isConfirmingChannel"
+            [smtLoading]="isConfirmingChannel()"
             (click)="submitConfirm()"
           >
             {{ 'common.confirm' | t }}
@@ -476,13 +471,31 @@ import {
 export class ProfileChannelsCardComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingChannels = input(false);
+  readonly isBindingChannel = input(false);
+  readonly isConfirmingChannel = input(false);
+  readonly canManageChannels = input(true);
+
+  readonly channels = input<UserChannel[]>([]);
+
+  readonly bindChannel = output<{
+    channel: string;
+    address: string;
+  }>();
+  readonly confirmChannel = output<{
+    verifyToken: string;
+    code: string;
+  }>();
+  /** Asks the page to unbind a channel; the page confirms it first. */
+  readonly unbindChannel = output<UserChannel>();
+
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('channelTypeCell');
   private readonly addressCell = viewChild.required<TemplateRef<unknown>>('channelAddressCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('channelCreatedCell');
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('channelStatusCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('channelActionCell');
 
-  readonly rows = signal<UserChannel[]>([]);
+  readonly rows = computed<UserChannel[]>(() => this.channels() ?? []);
 
   readonly config = computed<TableConfig<UserChannel>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -511,16 +524,6 @@ export class ProfileChannelsCardComponent {
     ];
   });
 
-  @Input() isLoadingChannels = false;
-  @Input() isBindingChannel = false;
-  @Input() isConfirmingChannel = false;
-  @Input() canManageChannels = true;
-
-  @Output() bindChannel = new EventEmitter<{ channel: string; address: string }>();
-  @Output() confirmChannel = new EventEmitter<{ verifyToken: string; code: string }>();
-  /** Asks the page to unbind a channel; the page confirms it first. */
-  @Output() unbindChannel = new EventEmitter<UserChannel>();
-
   isBindModalOpen = false;
   isConfirmModalOpen = false;
   isBindSubmitted = false;
@@ -540,13 +543,6 @@ export class ProfileChannelsCardComponent {
     created: (c: UserChannel) => new Date(c.createdAt),
     status: (c: UserChannel) => this.channelStatus(c),
   };
-
-  @Input() set channels(channels: UserChannel[]) {
-    this.rows.set(channels ?? []);
-  }
-  get channels(): UserChannel[] {
-    return this.rows();
-  }
 
   channelLabel(channel: string): string {
     return this.i18n.translate(this.getChannelLabelKey(channel));

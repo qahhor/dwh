@@ -1,5 +1,14 @@
-import { Component, EventEmitter, Input, Output, TemplateRef, computed, inject, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  TemplateRef,
+  computed,
+  inject,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { LanguageInfo } from '../../../core/models/i18n.models';
@@ -13,13 +22,12 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 
 @Component({
   selector: 'app-settings-languages-panel',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTextareaComponent,
     SMTTextareaValueAccessor,
     SMTInputComponent,
     SMTInputValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -29,177 +37,188 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
     SMTTableComponent,
   ],
   template: `
-    <app-language-editor
-      *ngIf="editingLanguageCode"
-      [languageCode]="editingLanguageCode"
-      (closed)="closeLanguageEditor.emit()"
-      (saved)="languageSaved.emit()"
-    />
+    @if (editingLanguageCode(); as languageCode) {
+      <app-language-editor
+        [languageCode]="languageCode"
+        (closed)="closeLanguageEditor.emit()"
+        (saved)="languageSaved.emit()"
+      />
+    }
 
-    <div class="settings-card" *ngIf="!editingLanguageCode">
-      <div class="legacy-import" *ngIf="legacyLanguageCount > 0" role="status">
-        <div>
-          <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount } }}</strong>
-          <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
-        </div>
-        <button
-          smt-button
-          smtVariant="secondary"
-          id="migrate-legacy-languages"
-          type="button"
-          *ngIf="canUpdateSystemSettings"
-          [disabled]="isMigratingLegacyLanguages"
-          (click)="migrateLegacyLanguages.emit()"
-        >
-          {{ (isMigratingLegacyLanguages ? 'settings.migrating' : 'settings.migrate') | t }}
-        </button>
-      </div>
-
-      <div class="card-header-bar">
-        <div class="card-title-group">
-          <span class="material-symbols-outlined card-icon" aria-hidden="true">translate</span>
-          <div>
-            <h3 class="card-title">{{ 'settings.upravlenie_yazykovymi_paketami_i_lokalizaciey' | t }}</h3>
-            <p class="card-desc">{{ 'settings.dinamicheskoe_dobavlenie_novyh_yazykov_i_import_' | t }}</p>
+    @if (!editingLanguageCode()) {
+      <div class="settings-card">
+        @if (legacyLanguageCount() > 0) {
+          <div class="legacy-import" role="status">
+            <div>
+              <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount() } }}</strong>
+              <span>{{ 'settings.perenesite_ih_v_obschee_servernoe_hranilische_ch' | t }}</span>
+            </div>
+            @if (canUpdateSystemSettings()) {
+              <button
+                smt-button
+                smtVariant="secondary"
+                id="migrate-legacy-languages"
+                type="button"
+                [disabled]="isMigratingLegacyLanguages()"
+                (click)="migrateLegacyLanguages.emit()"
+              >
+                {{ (isMigratingLegacyLanguages() ? 'settings.migrating' : 'settings.migrate') | t }}
+              </button>
+            }
           </div>
-        </div>
-        <button smt-button type="button" *ngIf="canUpdateSystemSettings" (click)="openAddLangModal.emit()">
-          <span class="material-symbols-outlined" aria-hidden="true">add</span>
-          <span>{{ 'settings.dobavit_yazyk' | t }}</span>
-        </button>
-      </div>
-
-      <smt-table class="languages-table" [smtData]="languages" [smtConfig]="tableConfig()" />
-
-      <ng-template #codeCell let-lang>
-        <span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span>
-      </ng-template>
-
-      <ng-template #typeCell let-lang>
-        <span class="badge" [class.badge-active]="lang.builtin" [class.badge-info]="!lang.builtin">
-          {{ (lang.builtin ? 'settings.builtin' : 'settings.custom') | t }}
-        </span>
-      </ng-template>
-
-      <ng-template #coverageCell let-lang>
-        <!-- The column header names the cell and the text states the figures; the bar repeats them. -->
-        <div class="language-coverage">
-          <span class="coverage-track" aria-hidden="true"><span [style.width.%]="lang.coverage"></span></span>
-          <span>{{ lang.translated }}/{{ lang.total }} · {{ lang.coverage }}%</span>
-        </div>
-      </ng-template>
-
-      <ng-template #statusCell let-lang>
-        @if (currentLang === lang.code) {
-          <span class="badge badge-active">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
-        } @else {
-          <span class="badge badge-neutral">{{ 'settings.dostupen' | t }}</span>
         }
-      </ng-template>
 
-      <ng-template #actionsCell let-lang>
-        <div class="table-actions-right">
-          <button
-            smt-button
-            smtVariant="secondary"
-            smtSize="sm"
-            type="button"
-            [attr.data-testid]="'edit-language-' + lang.code"
-            (click)="openLanguageEditor.emit(lang.code)"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-            <span>{{ 'common.edit' | t }}</span>
-          </button>
-          <button
-            smt-button
-            smtVariant="secondary"
-            smtSize="sm"
-            type="button"
-            (click)="exportLangJson.emit(lang.code)"
-            [title]="'settings.eksportirovat_json' | t"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">download</span>
-            <span>JSON</span>
-          </button>
-          @if (currentLang !== lang.code) {
-            <button
-              smt-button
-              smtSize="sm"
-              type="button"
-              [attr.data-testid]="'switch-language-' + lang.code"
-              (click)="switchLanguage.emit(lang.code)"
-            >
-              <span>{{ 'settings.pereklyuchitsya' | t }}</span>
+        <div class="card-header-bar">
+          <div class="card-title-group">
+            <span class="material-symbols-outlined card-icon" aria-hidden="true">translate</span>
+            <div>
+              <h3 class="card-title">{{ 'settings.upravlenie_yazykovymi_paketami_i_lokalizaciey' | t }}</h3>
+              <p class="card-desc">{{ 'settings.dinamicheskoe_dobavlenie_novyh_yazykov_i_import_' | t }}</p>
+            </div>
+          </div>
+          @if (canUpdateSystemSettings()) {
+            <button smt-button type="button" (click)="openAddLangModal.emit()">
+              <span class="material-symbols-outlined" aria-hidden="true">add</span>
+              <span>{{ 'settings.dobavit_yazyk' | t }}</span>
             </button>
           }
         </div>
-      </ng-template>
-    </div>
+
+        <smt-table class="languages-table" [smtData]="languages()" [smtConfig]="tableConfig()" />
+
+        <ng-template #codeCell let-lang>
+          <span class="badge badge-neutral mono">{{ lang.code.toUpperCase() }}</span>
+        </ng-template>
+
+        <ng-template #typeCell let-lang>
+          <span class="badge" [class.badge-active]="lang.builtin" [class.badge-info]="!lang.builtin">
+            {{ (lang.builtin ? 'settings.builtin' : 'settings.custom') | t }}
+          </span>
+        </ng-template>
+
+        <ng-template #coverageCell let-lang>
+          <!-- The column header names the cell and the text states the figures; the bar repeats them. -->
+          <div class="language-coverage">
+            <span class="coverage-track" aria-hidden="true"><span [style.width.%]="lang.coverage"></span></span>
+            <span>{{ lang.translated }}/{{ lang.total }} · {{ lang.coverage }}%</span>
+          </div>
+        </ng-template>
+
+        <ng-template #statusCell let-lang>
+          @if (currentLang() === lang.code) {
+            <span class="badge badge-active">{{ 'settings.tekuschiy_aktivnyy' | t }}</span>
+          } @else {
+            <span class="badge badge-neutral">{{ 'settings.dostupen' | t }}</span>
+          }
+        </ng-template>
+
+        <ng-template #actionsCell let-lang>
+          <div class="table-actions-right">
+            <button
+              smt-button
+              smtVariant="secondary"
+              smtSize="sm"
+              type="button"
+              [attr.data-testid]="'edit-language-' + lang.code"
+              (click)="openLanguageEditor.emit(lang.code)"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">edit</span>
+              <span>{{ 'common.edit' | t }}</span>
+            </button>
+            <button
+              smt-button
+              smtVariant="secondary"
+              smtSize="sm"
+              type="button"
+              (click)="exportLangJson.emit(lang.code)"
+              [title]="'settings.eksportirovat_json' | t"
+            >
+              <span class="material-symbols-outlined" aria-hidden="true">download</span>
+              <span>JSON</span>
+            </button>
+            @if (currentLang() !== lang.code) {
+              <button
+                smt-button
+                smtSize="sm"
+                type="button"
+                [attr.data-testid]="'switch-language-' + lang.code"
+                (click)="switchLanguage.emit(lang.code)"
+              >
+                <span>{{ 'settings.pereklyuchitsya' | t }}</span>
+              </button>
+            }
+          </div>
+        </ng-template>
+      </div>
+    }
 
     <!-- Modal: Add New Custom Language -->
-    <smt-dialog
-      *ngIf="isAddLangModalOpen"
-      [open]="isAddLangModalOpen"
-      [smtTitle]="'settings.dobavlenie_novogo_yazyka' | t"
-      [smtAriaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
-      (closed)="closeAddLangModal.emit()"
-    >
-      <ng-template smtDialogContent>
-        <div class="form-grid">
-          <div class="form-group">
-            <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
-            <smt-input
-              smtFieldId="new-lang-code"
-              [ngModel]="newLangCode"
-              (ngModelChange)="newLangCodeChange.emit($event)"
-              placeholder="kk, ky, tg, de, tr"
-              [maxLength]="10"
-            />
+    @if (isAddLangModalOpen()) {
+      <smt-dialog
+        [open]="isAddLangModalOpen()"
+        [smtTitle]="'settings.dobavlenie_novogo_yazyka' | t"
+        [smtAriaLabel]="'settings.dobavlenie_novogo_yazyka' | t"
+        (closed)="closeAddLangModal.emit()"
+      >
+        <ng-template smtDialogContent>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="new-lang-code">{{ 'settings.kod_yazyka_iso_639_1' | t }}</label>
+              <smt-input
+                smtFieldId="new-lang-code"
+                [ngModel]="newLangCode()"
+                (ngModelChange)="newLangCodeChange.emit($event)"
+                placeholder="kk, ky, tg, de, tr"
+                [maxLength]="10"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
+              <smt-input
+                smtFieldId="new-lang-name"
+                [ngModel]="newLangName()"
+                (ngModelChange)="newLangNameChange.emit($event)"
+                [placeholder]="'settings.aza_sha_deutsch_etc' | t"
+              />
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label" for="new-lang-json">{{
+                'settings.json_slovar_perevodov_opcionalno' | t
+              }}</label>
+              <smt-textarea
+                class="mono"
+                smtFieldId="new-lang-json"
+                [rows]="6"
+                [ngModel]="newLangJson()"
+                (ngModelChange)="newLangJsonChange.emit($event)"
+                [placeholder]="'settings.translation_json_example' | t"
+              />
+            </div>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="new-lang-name">{{ 'settings.nazvanie_yazyka' | t }}</label>
-            <smt-input
-              smtFieldId="new-lang-name"
-              [ngModel]="newLangName"
-              (ngModelChange)="newLangNameChange.emit($event)"
-              [placeholder]="'settings.aza_sha_deutsch_etc' | t"
-            />
+          <div modal-footer class="modal-footer-btns">
+            <button
+              smt-button
+              type="button"
+              smtVariant="secondary"
+              (click)="closeAddLangModal.emit()"
+              [disabled]="isAddingLang()"
+            >
+              {{ 'common.cancel' | t }}
+            </button>
+            <button
+              smt-button
+              type="button"
+              smtVariant="primary"
+              [smtLoading]="isAddingLang()"
+              (click)="saveNewLanguage.emit()"
+              [disabled]="!newLangCode().trim() || !newLangName().trim()"
+            >
+              {{ 'settings.sohranit_yazyk' | t }}
+            </button>
           </div>
-          <div class="form-group full-width">
-            <label class="form-label" for="new-lang-json">{{ 'settings.json_slovar_perevodov_opcionalno' | t }}</label>
-            <smt-textarea
-              class="mono"
-              smtFieldId="new-lang-json"
-              [rows]="6"
-              [ngModel]="newLangJson"
-              (ngModelChange)="newLangJsonChange.emit($event)"
-              [placeholder]="'settings.translation_json_example' | t"
-            />
-          </div>
-        </div>
-        <div modal-footer class="modal-footer-btns">
-          <button
-            smt-button
-            type="button"
-            smtVariant="secondary"
-            (click)="closeAddLangModal.emit()"
-            [disabled]="isAddingLang"
-          >
-            {{ 'common.cancel' | t }}
-          </button>
-          <button
-            smt-button
-            type="button"
-            smtVariant="primary"
-            [smtLoading]="isAddingLang"
-            (click)="saveNewLanguage.emit()"
-            [disabled]="!newLangCode.trim() || !newLangName.trim()"
-          >
-            {{ 'settings.sohranit_yazyk' | t }}
-          </button>
-        </div>
-      </ng-template>
-    </smt-dialog>
+        </ng-template>
+      </smt-dialog>
+    }
   `,
   styles: [
     `
@@ -411,6 +430,32 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 export class SettingsLanguagesPanelComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isMigratingLegacyLanguages = input(false);
+  readonly isAddingLang = input(false);
+  readonly newLangCode = input('');
+  readonly newLangName = input('');
+  readonly newLangJson = input('');
+
+  readonly canUpdateSystemSettings = input(false);
+  readonly editingLanguageCode = input<string | null>(null);
+  readonly legacyLanguageCount = input(0);
+  readonly languages = input<LanguageInfo[]>([]);
+  readonly currentLang = input('');
+  readonly isAddLangModalOpen = input(false);
+
+  readonly openLanguageEditor = output<string>();
+  readonly closeLanguageEditor = output<void>();
+  readonly languageSaved = output<void>();
+  readonly migrateLegacyLanguages = output<void>();
+  readonly openAddLangModal = output<void>();
+  readonly closeAddLangModal = output<void>();
+  readonly saveNewLanguage = output<void>();
+  readonly exportLangJson = output<string>();
+  readonly switchLanguage = output<string>();
+  readonly newLangCodeChange = output<string>();
+  readonly newLangNameChange = output<string>();
+  readonly newLangJsonChange = output<string>();
+
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');
   private readonly typeCell = viewChild.required<TemplateRef<unknown>>('typeCell');
   private readonly coverageCell = viewChild.required<TemplateRef<unknown>>('coverageCell');
@@ -469,29 +514,4 @@ export class SettingsLanguagesPanelComponent {
       },
     };
   });
-
-  @Input() canUpdateSystemSettings = false;
-  @Input() editingLanguageCode: string | null = null;
-  @Input() legacyLanguageCount = 0;
-  @Input() isMigratingLegacyLanguages = false;
-  @Input() languages: LanguageInfo[] = [];
-  @Input() currentLang = '';
-  @Input() isAddLangModalOpen = false;
-  @Input() isAddingLang = false;
-  @Input() newLangCode = '';
-  @Input() newLangName = '';
-  @Input() newLangJson = '';
-
-  @Output() openLanguageEditor = new EventEmitter<string>();
-  @Output() closeLanguageEditor = new EventEmitter<void>();
-  @Output() languageSaved = new EventEmitter<void>();
-  @Output() migrateLegacyLanguages = new EventEmitter<void>();
-  @Output() openAddLangModal = new EventEmitter<void>();
-  @Output() closeAddLangModal = new EventEmitter<void>();
-  @Output() saveNewLanguage = new EventEmitter<void>();
-  @Output() exportLangJson = new EventEmitter<string>();
-  @Output() switchLanguage = new EventEmitter<string>();
-  @Output() newLangCodeChange = new EventEmitter<string>();
-  @Output() newLangNameChange = new EventEmitter<string>();
-  @Output() newLangJsonChange = new EventEmitter<string>();
 }

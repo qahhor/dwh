@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { TranslatePipe } from '../../../../core/services/i18n.service';
 import { ProjectStateFilter } from '../projects.models';
 import {
@@ -12,8 +12,8 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
 
 @Component({
   selector: 'app-project-filter-bar',
-  standalone: true,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, CommonModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe],
   template: `
     <div class="toolbar">
       <label class="sr-only" for="project-search">{{ 'projects.poisk_proektov' | t }}</label>
@@ -25,7 +25,7 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
         smtIcon="search"
         clearable
         [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
-        [value]="searchQuery"
+        [value]="searchQuery()"
         (valueChange)="onSearchValue($event)"
       />
 
@@ -33,9 +33,9 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
         smtAppearance="segmented"
         class="status-filter"
         [options]="stateOptions()"
-        [value]="selectedState"
+        [value]="selectedState()"
         [smtAriaLabel]="'projects.filtr_proektov_po_statusu' | t"
-        (valueChange)="stateChange.emit($event ?? selectedState)"
+        (valueChange)="stateChange.emit($event ?? selectedState())"
       />
     </div>
   `,
@@ -75,11 +75,11 @@ export class ProjectFilterBarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input() searchQuery = '';
-  @Input() selectedState: ProjectStateFilter = 'all';
-  @Output() searchChange = new EventEmitter<string>();
-  @Output() clearSearch = new EventEmitter<void>();
-  @Output() stateChange = new EventEmitter<ProjectStateFilter>();
+  readonly searchQuery = input('');
+  readonly selectedState = input<ProjectStateFilter>('all');
+  readonly searchChange = output<string>();
+  readonly clearSearch = output<void>();
+  readonly stateChange = output<ProjectStateFilter>();
 
   private readonly stateMemo = optionsMemo<SMTRadioOption<ProjectStateFilter>[]>();
 

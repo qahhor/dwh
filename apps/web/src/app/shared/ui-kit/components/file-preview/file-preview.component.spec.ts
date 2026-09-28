@@ -11,7 +11,6 @@ import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind'
 import { SMTFilePreviewService, type SMTPreviewFile } from './file-preview.component';
 
 @Component({
-  standalone: true,
   imports: [SMTFileCardComponent],
   template: `
     <smt-file-card

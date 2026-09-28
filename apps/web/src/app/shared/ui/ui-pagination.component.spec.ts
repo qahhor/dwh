@@ -48,7 +48,7 @@ describe('UiPaginationComponent', () => {
     fixture.detectChanges();
 
     const emitted: number[] = [];
-    fixture.componentInstance.pageSizeChange.subscribe((size) => emitted.push(size));
+    fixture.componentInstance.pageSize.subscribe((size) => emitted.push(size));
     const picker = fixture.debugElement.query(By.directive(SMTSelectComponent))
       .componentInstance as SMTSelectComponent<number>;
     expect(picker.options().map((option) => option.id)).toEqual([10, 25, 50, 100]);
@@ -56,7 +56,7 @@ describe('UiPaginationComponent', () => {
     fixture.detectChanges();
 
     expect(emitted).toEqual([50]);
-    expect(fixture.componentInstance.pageSize).toBe(50);
+    expect(fixture.componentInstance.pageSize()).toBe(50);
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('1–50');
   });
 
@@ -121,7 +121,7 @@ describe('UiPaginationComponent', () => {
     ) as HTMLButtonElement;
     previous.click();
 
-    expect(fixture.componentInstance.currentPage).toBe(3);
+    expect(fixture.componentInstance.currentPage()).toBe(3);
     expect(emitted).toEqual([2]);
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain('101–125');
     expect(fixture.nativeElement.querySelector('[role="status"]').textContent).not.toContain('из 25');
@@ -142,5 +142,21 @@ describe('UiPaginationComponent', () => {
     ) as HTMLButtonElement;
     expect(previous).not.toBeNull();
     expect(previous.disabled).toBe(false);
+  });
+
+  it('moves to a numbered page and reports the page it moved to', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 120);
+    fixture.detectChanges();
+    const pages: number[] = [];
+    fixture.componentInstance.pageChange.subscribe((page) => pages.push(page));
+
+    (fixture.nativeElement.querySelector('.page-btn[aria-label*="3"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(pages).toEqual([3]);
+    expect(fixture.componentInstance.currentPage()).toBe(3);
+    expect(fixture.nativeElement.querySelector('.page-btn.active').textContent.trim()).toBe('3');
   });
 });

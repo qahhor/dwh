@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { UplFormatDraftRequest, UplFormatVersion } from '../upl-api';
@@ -10,8 +10,7 @@ import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
  */
 @Component({
   selector: 'app-upl-format-publish-step',
-  standalone: true,
-  // Не OnPush: сводка читает изменяемую модель, которую правят соседние шаги.
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe, TranslatePipe],
   template: `
     <h2 class="upl-block-title">{{ 'upl.format.step.publish' | t }}</h2>
@@ -101,6 +100,11 @@ export class FormatPublishStepComponent {
   private readonly i18n = inject(I18nService);
 
   readonly model = input.required<UplFormatDraftRequest>();
+  /**
+   * The step is on screen. The draft is one mutable object that the neighbouring steps edit in place, so the
+   * summary is redrawn each time it is shown: a changed input marks this OnPush step for checking.
+   */
+  readonly shown = input(true);
 
   readonly version = input<UplFormatVersion | null>(null);
   readonly errorCount = input(0);

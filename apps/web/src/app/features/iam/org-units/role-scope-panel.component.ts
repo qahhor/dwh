@@ -1,17 +1,17 @@
 import {
+  ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   computed,
   DestroyRef,
   effect,
-  EventEmitter,
   HostListener,
   inject,
-  Input,
   OnChanges,
-  Output,
   signal,
   SimpleChanges,
+  input,
+  output,
 } from '@angular/core';
 import { Observable, Subscription } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -34,7 +34,7 @@ export interface ScopeRuleOption {
 
 @Component({
   selector: 'app-role-scope-panel',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTRadioGroupComponent],
   templateUrl: './role-scope-panel.component.html',
   styleUrl: './role-scope-panel.component.css',
@@ -46,7 +46,19 @@ export class RoleScopePanelComponent implements OnChanges {
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
+  readonly roleId = input.required<number>();
+
+  readonly busyChange = output<boolean>();
+
   readonly selectedRule = signal<ScopeRule>('ALL');
+  readonly loaded = signal(false);
+  readonly loading = signal(false);
+  readonly pending = signal(false);
+  readonly loadError = signal<ProblemDetail | null>(null);
+  readonly saveError = signal<ProblemDetail | null>(null);
+  readonly savedRefreshFailed = signal(false);
+  readonly confirmationOpen = signal(false);
+  private readonly originalRule = signal<ScopeRule | null>(null);
 
   /** The rules as radio items, translated; each description says what the rule lets the role see. */
   readonly ruleOptions = computed<SMTRadioOption<ScopeRule>[]>(() =>
@@ -57,14 +69,11 @@ export class RoleScopePanelComponent implements OnChanges {
     })),
   );
 
-  @Input({ required: true }) roleId = 0;
-  @Output() busyChange = new EventEmitter<boolean>();
   private readonly writes = new Subscription();
   private readRequest?: Subscription;
   private activeTarget: number | null = null;
   private deferredTarget: number | null = null;
   private viewEpoch = 0;
-  private originalRule: ScopeRule | null = null;
 
   readonly options: readonly ScopeRuleOption[] = [
     { value: 'ALL', labelKey: 'iam.data_scope.rule_all', descriptionKey: 'iam.data_scope.rule_all_help' },
@@ -72,16 +81,9 @@ export class RoleScopePanelComponent implements OnChanges {
     { value: 'UNITS', labelKey: 'iam.data_scope.rule_units', descriptionKey: 'iam.data_scope.rule_units_help' },
     { value: 'SELF', labelKey: 'iam.data_scope.rule_self', descriptionKey: 'iam.data_scope.rule_self_help' },
   ];
-  loaded = false;
-  loading = false;
-  pending = false;
-  loadError: ProblemDetail | null = null;
-  saveError: ProblemDetail | null = null;
-  savedRefreshFailed = false;
-  confirmationOpen = false;
   readonly discard = new OrgUnitDraft(
     () => this.dirty,
-    () => this.pending,
+    () => this.pending(),
     () => this.restoreDraft(),
   );
 
@@ -101,7 +103,7 @@ export class RoleScopePanelComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['roleId'] || changes['roleId'].currentValue === this.activeTarget) return;
-    this.activateTarget(this.roleId);
+    this.activateTarget(this.roleId());
   }
 
   can(action: 'view' | 'assign'): boolean {
@@ -110,35 +112,35 @@ export class RoleScopePanelComponent implements OnChanges {
     );
   }
   get dirty(): boolean {
-    return this.loaded && this.originalRule !== null && this.selectedRule() !== this.originalRule;
+    return this.loaded() && this.originalRule() !== null && this.selectedRule() !== this.originalRule();
   }
 
   selectRule(rule: ScopeRule): void {
-    if (!this.can('assign') || !this.loaded || this.pending || !isScopeRule(rule)) return;
+    if (!this.can('assign') || !this.loaded() || this.pending() || !isScopeRule(rule)) return;
     this.selectedRule.set(rule);
-    this.saveError = null;
-    this.confirmationOpen = false;
+    this.saveError.set(null);
+    this.confirmationOpen.set(false);
   }
 
   save(): void {
     if (
       !this.can('assign') ||
-      !this.loaded ||
+      !this.loaded() ||
       !this.dirty ||
-      this.pending ||
-      this.confirmationOpen ||
+      this.pending() ||
+      this.confirmationOpen() ||
       this.activeTarget === null ||
-      this.activeTarget !== this.roleId ||
+      this.activeTarget !== this.roleId() ||
       !safeNumericRecordId(this.activeTarget)
     )
       return;
-    this.confirmationOpen = true;
+    this.confirmationOpen.set(true);
     this.changeDetector.markForCheck();
   }
 
   closeConfirmation(): void {
-    if (!this.pending) {
-      this.confirmationOpen = false;
+    if (!this.pending()) {
+      this.confirmationOpen.set(false);
       this.changeDetector.markForCheck();
     }
   }
@@ -147,21 +149,21 @@ export class RoleScopePanelComponent implements OnChanges {
     const target = this.activeTarget;
     const rule = this.selectedRule();
     if (
-      !this.confirmationOpen ||
+      !this.confirmationOpen() ||
       !this.can('assign') ||
-      !this.loaded ||
+      !this.loaded() ||
       !this.dirty ||
-      this.pending ||
+      this.pending() ||
       target === null ||
-      target !== this.roleId ||
+      target !== this.roleId() ||
       !safeNumericRecordId(target) ||
       !isScopeRule(rule)
     )
       return;
     const epoch = this.viewEpoch;
-    this.confirmationOpen = false;
+    this.confirmationOpen.set(false);
     this.setPending(true);
-    this.saveError = null;
+    this.saveError.set(null);
     this.writes.add(
       this.api.saveRoleRule(target, rule).subscribe({
         next: () => {
@@ -170,15 +172,15 @@ export class RoleScopePanelComponent implements OnChanges {
             this.loadDeferredTarget();
             return;
           }
-          this.originalRule = rule;
+          this.originalRule.set(rule);
           this.selectedRule.set(rule);
-          this.loaded = true;
+          this.loaded.set(true);
           this.toast.success(this.i18n.translate('iam.data_scope.saved'));
           this.reload(true);
         },
         error: (error) => {
           this.setPending(false);
-          if (this.currentView(epoch, target)) this.saveError = error;
+          if (this.currentView(epoch, target)) this.saveError.set(error);
           else this.loadDeferredTarget();
           this.changeDetector.markForCheck();
         },
@@ -188,35 +190,35 @@ export class RoleScopePanelComponent implements OnChanges {
 
   reload(afterSave = false): void {
     const target = this.activeTarget;
-    if (!this.can('view') || this.pending || this.dirty || target === null || !safeNumericRecordId(target)) return;
+    if (!this.can('view') || this.pending() || this.dirty || target === null || !safeNumericRecordId(target)) return;
     const epoch = this.viewEpoch;
     this.readRequest?.unsubscribe();
-    this.loading = true;
-    this.loaded = false;
-    this.loadError = null;
-    this.confirmationOpen = false;
+    this.loading.set(true);
+    this.loaded.set(false);
+    this.loadError.set(null);
+    this.confirmationOpen.set(false);
     this.readRequest = this.api.roleRule(target).subscribe({
       next: (snapshot) => {
         if (!this.currentView(epoch, target)) return;
-        this.loading = false;
+        this.loading.set(false);
         if (snapshot.roleId !== target || !isScopeRule(snapshot.rule)) {
-          this.loadError = this.unavailable();
-          this.loaded = false;
+          this.loadError.set(this.unavailable());
+          this.loaded.set(false);
           this.changeDetector.markForCheck();
           return;
         }
-        this.originalRule = snapshot.rule;
+        this.originalRule.set(snapshot.rule);
         this.selectedRule.set(snapshot.rule);
-        this.loaded = true;
-        this.savedRefreshFailed = false;
+        this.loaded.set(true);
+        this.savedRefreshFailed.set(false);
         this.changeDetector.markForCheck();
       },
       error: (error) => {
         if (this.currentView(epoch, target)) {
-          this.loading = false;
-          this.loaded = false;
-          this.loadError = error;
-          this.savedRefreshFailed = afterSave || this.savedRefreshFailed;
+          this.loading.set(false);
+          this.loaded.set(false);
+          this.loadError.set(error);
+          this.savedRefreshFailed.set(afterSave || this.savedRefreshFailed());
           this.changeDetector.markForCheck();
         }
       },
@@ -224,7 +226,7 @@ export class RoleScopePanelComponent implements OnChanges {
   }
 
   originalRuleKey(): string {
-    return this.ruleKey(this.originalRule ?? 'ALL');
+    return this.ruleKey(this.originalRule() ?? 'ALL');
   }
   selectedRuleKey(): string {
     return this.ruleKey(this.selectedRule());
@@ -239,7 +241,7 @@ export class RoleScopePanelComponent implements OnChanges {
     if (rule) this.selectRule(rule);
   }
   hasUnsavedWork(): boolean {
-    return this.pending || this.dirty;
+    return this.pending() || this.dirty;
   }
 
   @HostListener('window:beforeunload', ['$event'])
@@ -256,7 +258,7 @@ export class RoleScopePanelComponent implements OnChanges {
     this.discard.cancel();
     this.resetProtectedState();
     this.activeTarget = target;
-    if (this.pending) {
+    if (this.pending()) {
       this.deferredTarget = target;
       this.changeDetector.markForCheck();
       return;
@@ -268,7 +270,7 @@ export class RoleScopePanelComponent implements OnChanges {
     const target = this.activeTarget;
     if (target === null) return;
     if (!this.can('view') || !safeNumericRecordId(target)) {
-      if (this.can('view')) this.loadError = this.unavailable();
+      if (this.can('view')) this.loadError.set(this.unavailable());
       this.changeDetector.markForCheck();
       return;
     }
@@ -284,37 +286,38 @@ export class RoleScopePanelComponent implements OnChanges {
     this.changeDetector.markForCheck();
   }
   private resetProtectedState(): void {
-    this.originalRule = null;
+    this.originalRule.set(null);
     this.selectedRule.set('ALL');
-    this.loaded = false;
-    this.loading = false;
-    this.loadError = null;
-    this.saveError = null;
-    this.savedRefreshFailed = false;
-    this.confirmationOpen = false;
+    this.loaded.set(false);
+    this.loading.set(false);
+    this.loadError.set(null);
+    this.saveError.set(null);
+    this.savedRefreshFailed.set(false);
+    this.confirmationOpen.set(false);
   }
   private restoreDraft(): void {
-    if (this.originalRule !== null) this.selectedRule.set(this.originalRule);
-    this.confirmationOpen = false;
-    this.saveError = null;
+    const original = this.originalRule();
+    if (original !== null) this.selectedRule.set(original);
+    this.confirmationOpen.set(false);
+    this.saveError.set(null);
     this.changeDetector.markForCheck();
   }
   private currentView(epoch: number, target: number): boolean {
-    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.roleId;
+    return this.can('view') && epoch === this.viewEpoch && target === this.activeTarget && target === this.roleId();
   }
   private loadDeferredTarget(): void {
     if (
       this.deferredTarget === null ||
       this.deferredTarget !== this.activeTarget ||
-      this.deferredTarget !== this.roleId
+      this.deferredTarget !== this.roleId()
     )
       return;
     this.deferredTarget = null;
     this.loadActiveTarget();
   }
   private setPending(value: boolean): void {
-    if (this.pending === value) return;
-    this.pending = value;
+    if (this.pending() === value) return;
+    this.pending.set(value);
     this.busyChange.emit(value);
     this.changeDetector.markForCheck();
   }

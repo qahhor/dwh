@@ -1,17 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
-  Input,
-  Output,
   Signal,
-  signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -29,9 +27,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
 @Component({
   selector: 'app-audit-logs-table',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -40,6 +37,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     UiServerTableComponent,
     SMTDateRangePickerComponent,
     SMTSelectComponent,
+    DatePipe,
+    NgClass,
   ],
   template: `
     <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">
@@ -53,7 +52,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [options]="tableOptions()"
             [placeholder]="'audit.vse_tablicy' | t"
             [emptyLabel]="'audit.vse_tablicy' | t"
-            [value]="tableFilter || null"
+            [value]="tableFilter() || null"
             (valueChange)="tableFilterChange.emit($event ?? ''); applyFilters.emit()"
           />
 
@@ -64,7 +63,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [options]="eventOptions()"
             [placeholder]="'audit.vse_deystviya' | t"
             [emptyLabel]="'audit.vse_deystviya' | t"
-            [value]="eventFilter || null"
+            [value]="eventFilter() || null"
             (valueChange)="eventFilterChange.emit($event ?? ''); applyFilters.emit()"
           />
 
@@ -75,7 +74,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               name="auditRowPkFilter"
               type="text"
               smtSize="sm"
-              [ngModel]="rowPkFilter"
+              [ngModel]="rowPkFilter()"
               (ngModelChange)="rowPkFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -90,7 +89,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               inputmode="numeric"
               smtSize="sm"
               smtPattern="[0-9]*"
-              [ngModel]="auditUserFilter"
+              [ngModel]="auditUserFilter()"
               (ngModelChange)="auditUserFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -136,11 +135,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         class="table-container"
         role="region"
         [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t"
-        [attr.aria-busy]="pager.loading()"
+        [attr.aria-busy]="pager().loading()"
       >
         @if (tableConfig(); as config) {
           <ui-server-table
-            [pager]="pager"
+            [pager]="pager()"
             [config]="config"
             [views]="views()"
             [filterMeta]="meta()"
@@ -169,11 +168,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         <span class="event-badge" [ngClass]="getEventBadgeClass(item.event)">{{ getEventName(item.event) }}</span>
       </ng-template>
       <ng-template #userCell let-item>
-        <div class="user-cell" *ngIf="item.changedByName">
-          <span class="user-name">{{ item.changedByName }}</span>
-          <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
-        </div>
-        <span *ngIf="!item.changedByName" class="text-muted">{{ 'audit.sistema' | t }}</span>
+        @if (item.changedByName) {
+          <div class="user-cell">
+            <span class="user-name">{{ item.changedByName }}</span>
+            <span class="user-sub text-muted text-xs">&#64;{{ item.changedByLogin }}</span>
+          </div>
+        }
+        @if (!item.changedByName) {
+          <span class="text-muted">{{ 'audit.sistema' | t }}</span>
+        }
       </ng-template>
       <ng-template #channelCell let-item>
         <span class="channel-pill" [class.api-pill]="item.isApi">
@@ -423,10 +426,38 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 export class AuditLogsTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<AuditRecord>>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The filters on screen, so an export matches the list shown. */
   readonly exportOptions = input<Record<string, string> | null>(null);
+
+  readonly tableFilter = input('');
+  readonly eventFilter = input('');
+  readonly rowPkFilter = input('');
+  readonly auditUserFilter = input('');
+
+  readonly auditFromFilter = input<string>('');
+  readonly auditToFilter = input<string>('');
+
+  readonly tableFilterChange = output<string>();
+  readonly eventFilterChange = output<string>();
+  readonly rowPkFilterChange = output<string>();
+  readonly auditUserFilterChange = output<string>();
+  readonly auditFromFilterChange = output<string>();
+  readonly auditToFilterChange = output<string>();
+
+  readonly applyFilters = output<void>();
+  readonly resetFilters = output<void>();
+  readonly selectRecord = output<AuditRecord>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
@@ -437,9 +468,6 @@ export class AuditLogsTableComponent {
   private readonly channelCell = viewChild.required<TemplateRef<unknown>>('channelCell');
   private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
   private readonly diffCell = viewChild.required<TemplateRef<unknown>>('diffCell');
-
-  private readonly periodFrom = signal('');
-  private readonly periodTo = signal('');
 
   /** The two UTC day bounds as one period; none set is "any period". */
   readonly period = computed<DateRange | null>(() => {
@@ -492,24 +520,8 @@ export class AuditLogsTableComponent {
     };
   });
 
-  @Input({ required: true }) pager!: KeysetPager<AuditRecord>;
-
-  @Input() tableFilter = '';
-  @Input() eventFilter = '';
-  @Input() rowPkFilter = '';
-  @Input() auditUserFilter = '';
-
-  @Output() tableFilterChange = new EventEmitter<string>();
-  @Output() eventFilterChange = new EventEmitter<string>();
-  @Output() rowPkFilterChange = new EventEmitter<string>();
-  @Output() auditUserFilterChange = new EventEmitter<string>();
-  @Output() auditFromFilterChange = new EventEmitter<string>();
-  @Output() auditToFilterChange = new EventEmitter<string>();
-
-  @Output() applyFilters = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() selectRecord = new EventEmitter<AuditRecord>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
+  private readonly periodFrom = computed(() => this.auditFromFilter() ?? '');
+  private readonly periodTo = computed(() => this.auditToFilter() ?? '');
 
   private readonly tableOptionsMemo = optionsMemo<SMTSelectOption<string>[]>();
 
@@ -531,19 +543,6 @@ export class AuditLogsTableComponent {
       { id: 'U', label: this.i18n.translate('audit.izmenenie_update') },
       { id: 'D', label: this.i18n.translate('audit.udalenie_delete') },
     ]);
-  }
-
-  @Input() set auditFromFilter(value: string) {
-    this.periodFrom.set(value ?? '');
-  }
-  get auditFromFilter(): string {
-    return this.periodFrom();
-  }
-  @Input() set auditToFilter(value: string) {
-    this.periodTo.set(value ?? '');
-  }
-  get auditToFilter(): string {
-    return this.periodTo();
   }
 
   getEventName(event: string): string {

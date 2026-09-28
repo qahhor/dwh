@@ -23,7 +23,6 @@ const SYMBOL: Readonly<Record<string, string>> = {
 
 @Component({
   selector: 'smt-icon',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { role: 'img', 'aria-hidden': 'true', '[style.font-size]': 'sizePx()' },
   template: `<span class="material-symbols-outlined" [style.font-size]="sizePx()" aria-hidden="true">{{

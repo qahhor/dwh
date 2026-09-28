@@ -6,7 +6,6 @@ import { SMTTimePickerComponent } from './time-picker.component';
 
 @Directive({
   selector: 'smt-time-picker[ngModel], smt-time-picker[formControl], smt-time-picker[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTTimePickerValueAccessor), multi: true }],
 })
 export class SMTTimePickerValueAccessor extends PickerValueAccessor<string | null> {

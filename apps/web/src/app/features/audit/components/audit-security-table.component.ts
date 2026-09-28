@@ -1,17 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
-  EventEmitter,
   inject,
   input,
-  Input,
-  Output,
   Signal,
-  signal,
   TemplateRef,
   viewChild,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -29,9 +27,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
 @Component({
   selector: 'app-audit-security-table',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -40,6 +37,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     UiServerTableComponent,
     SMTDateRangePickerComponent,
     SMTSelectComponent,
+    DatePipe,
+    NgClass,
   ],
   template: `
     <div id="security-events-panel" class="tab-content" role="tabpanel" aria-labelledby="security-events-tab">
@@ -53,7 +52,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
             [options]="eventTypeOptions()"
             [placeholder]="'audit.vse_sobytiya' | t"
             [emptyLabel]="'audit.vse_sobytiya' | t"
-            [value]="secEventTypeFilter || null"
+            [value]="secEventTypeFilter() || null"
             (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()"
           />
 
@@ -66,7 +65,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               smtIcon="search"
               smtSize="sm"
               [placeholder]="'audit.poisk_po_ip' | t"
-              [ngModel]="secIpFilter"
+              [ngModel]="secIpFilter()"
               (ngModelChange)="secIpFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -81,7 +80,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
               inputmode="numeric"
               smtSize="sm"
               smtPattern="[0-9]*"
-              [ngModel]="securityUserFilter"
+              [ngModel]="securityUserFilter()"
               (ngModelChange)="securityUserFilterChange.emit($event)"
               (keyup.enter)="applyFilters.emit()"
             />
@@ -126,11 +125,11 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         class="table-container"
         role="region"
         [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t"
-        [attr.aria-busy]="pager.loading()"
+        [attr.aria-busy]="pager().loading()"
       >
         @if (tableConfig(); as config) {
           <ui-server-table
-            [pager]="pager"
+            [pager]="pager()"
             [config]="config"
             [views]="views()"
             [filterMeta]="meta()"
@@ -156,11 +155,15 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
         </span>
       </ng-template>
       <ng-template #userCell let-item>
-        <div class="user-cell" *ngIf="item.userName">
-          <span class="user-name">{{ item.userName }}</span>
-          <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
-        </div>
-        <span *ngIf="!item.userName" class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
+        @if (item.userName) {
+          <div class="user-cell">
+            <span class="user-name">{{ item.userName }}</span>
+            <span class="user-sub text-muted text-xs">&#64;{{ item.userLogin }}</span>
+          </div>
+        }
+        @if (!item.userName) {
+          <span class="text-muted">{{ item.details['login'] || ('common.guest' | t) }}</span>
+        }
       </ng-template>
       <ng-template #ipCell let-item
         ><span class="ip-pill font-mono">{{ item.ip }}</span></ng-template
@@ -198,10 +201,36 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 export class AuditSecurityTableComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly pager = input.required<KeysetPager<SecurityEventRecord>>();
+
   readonly meta = input<QueryListMeta | null>(null);
   readonly views = input<ListViewState | null>(null);
   /** The filters on screen, so an export matches the list shown. */
   readonly exportOptions = input<Record<string, string> | null>(null);
+
+  readonly secEventTypeFilter = input('');
+  readonly secIpFilter = input('');
+  readonly securityUserFilter = input('');
+
+  readonly securityFromFilter = input<string>('');
+  readonly securityToFilter = input<string>('');
+
+  readonly secEventTypeFilterChange = output<string>();
+  readonly secIpFilterChange = output<string>();
+  readonly securityUserFilterChange = output<string>();
+  readonly securityFromFilterChange = output<string>();
+  readonly securityToFilterChange = output<string>();
+
+  readonly applyFilters = output<void>();
+  readonly resetFilters = output<void>();
+  readonly sortChange = output<
+    | {
+        column: string;
+        sortBy: OrderBy;
+      }
+    | undefined
+  >();
+  readonly selectEvent = output<SecurityEventRecord>();
 
   readonly emptyState = viewChild.required<TemplateRef<unknown>>('emptyStateTpl');
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
@@ -211,9 +240,6 @@ export class AuditSecurityTableComponent {
   private readonly agentCell = viewChild.required<TemplateRef<unknown>>('agentCell');
   private readonly dateCell = viewChild.required<TemplateRef<unknown>>('dateCell');
   private readonly detailsCell = viewChild.required<TemplateRef<unknown>>('detailsCell');
-
-  private readonly periodFrom = signal('');
-  private readonly periodTo = signal('');
 
   /** The two UTC day bounds as one period; none set is "any period". */
   readonly period = computed<DateRange | null>(() => {
@@ -263,24 +289,10 @@ export class AuditSecurityTableComponent {
     };
   });
 
+  private readonly periodFrom = computed(() => this.securityFromFilter() ?? '');
+  private readonly periodTo = computed(() => this.securityToFilter() ?? '');
+
   private readonly eventTypeMemo = optionsMemo<SMTSelectOption<string>[]>();
-
-  @Input({ required: true }) pager!: KeysetPager<SecurityEventRecord>;
-
-  @Input() secEventTypeFilter = '';
-  @Input() secIpFilter = '';
-  @Input() securityUserFilter = '';
-
-  @Output() secEventTypeFilterChange = new EventEmitter<string>();
-  @Output() secIpFilterChange = new EventEmitter<string>();
-  @Output() securityUserFilterChange = new EventEmitter<string>();
-  @Output() securityFromFilterChange = new EventEmitter<string>();
-  @Output() securityToFilterChange = new EventEmitter<string>();
-
-  @Output() applyFilters = new EventEmitter<void>();
-  @Output() resetFilters = new EventEmitter<void>();
-  @Output() sortChange = new EventEmitter<{ column: string; sortBy: OrderBy } | undefined>();
-  @Output() selectEvent = new EventEmitter<SecurityEventRecord>();
 
   eventTypeOptions(): SMTSelectOption<string>[] {
     return this.eventTypeMemo([this.i18n.currentLang()], () => [
@@ -291,19 +303,6 @@ export class AuditSecurityTableComponent {
       { id: 'PASSWORD_CHANGED', label: this.i18n.translate('audit.smena_parolya_password_changed') },
       { id: 'API_TOKEN_CREATED', label: this.i18n.translate('audit.vypusk_api_tokena') },
     ]);
-  }
-
-  @Input() set securityFromFilter(value: string) {
-    this.periodFrom.set(value ?? '');
-  }
-  get securityFromFilter(): string {
-    return this.periodFrom();
-  }
-  @Input() set securityToFilter(value: string) {
-    this.periodTo.set(value ?? '');
-  }
-  get securityToFilter(): string {
-    return this.periodTo();
   }
 
   getSecurityEventBadgeClass(type: string): string {

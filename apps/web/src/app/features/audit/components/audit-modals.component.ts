@@ -1,5 +1,14 @@
-import { Component, computed, EventEmitter, inject, Input, Output, TemplateRef, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  TemplateRef,
+  viewChild,
+  input,
+  output,
+} from '@angular/core';
+import { NgClass, JsonPipe, DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -17,14 +26,16 @@ interface DiffRow {
 
 @Component({
   selector: 'app-audit-modals',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
+    DatePipe,
+    JsonPipe,
+    NgClass,
   ],
   template: `
     <!-- Cells of the diff table; outside the dialog, so they exist before it opens. -->
@@ -40,55 +51,57 @@ interface DiffRow {
 
     <!-- MODAL: AUDIT DIFF VIEWER -->
     <smt-dialog
-      [open]="selectedAudit !== null"
+      [open]="selectedAudit() !== null"
       [smtTitle]="'audit.detali_izmeneniya_zapisi_visual_diff' | t"
       smtSize="lg"
       (closed)="closeAuditModal.emit()"
     >
       <ng-template smtDialogContent>
-        <div body *ngIf="selectedAudit as audit" class="diff-modal-body">
-          <div class="diff-meta-grid">
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.tablica.6f39b76' | t }}</span>
-              <span class="meta-val font-mono">{{ audit.tableName }}</span>
+        @if (selectedAudit(); as audit) {
+          <div body class="diff-modal-body">
+            <div class="diff-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.tablica.6f39b76' | t }}</span>
+                <span class="meta-val font-mono">{{ audit.tableName }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">PK:</span>
+                <span class="meta-val font-mono">{{ audit.rowPk }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.deystvie.7b79e9f' | t }}</span>
+                <span class="event-badge" [ngClass]="getEventBadgeClass(audit.event)">{{
+                  getEventName(audit.event)
+                }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.avtor' | t }}</span>
+                <span class="meta-val">{{
+                  audit.changedByName ? audit.changedByName + ' (@' + audit.changedByLogin + ')' : ('common.system' | t)
+                }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.data' | t }}</span>
+                <span class="meta-val">{{ audit.changedAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
+              </div>
             </div>
-            <div class="meta-item">
-              <span class="meta-label">PK:</span>
-              <span class="meta-val font-mono">{{ audit.rowPk }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.deystvie.7b79e9f' | t }}</span>
-              <span class="event-badge" [ngClass]="getEventBadgeClass(audit.event)">{{
-                getEventName(audit.event)
-              }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.avtor' | t }}</span>
-              <span class="meta-val">{{
-                audit.changedByName ? audit.changedByName + ' (@' + audit.changedByLogin + ')' : ('common.system' | t)
-              }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.data' | t }}</span>
-              <span class="meta-val">{{ audit.changedAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
-            </div>
-          </div>
 
-          <!-- Diff Table -->
-          <div class="diff-section-title">{{ 'audit.sravnenie_poley_diff' | t }}</div>
-          <div
-            class="diff-table-box"
-            role="region"
-            [attr.aria-label]="'audit.sravnenie_izmenennyh_poley' | t"
-            tabindex="0"
-            *ngIf="getDiffKeys(audit).length > 0; else noDiff"
-          >
-            <ui-local-table [rows]="diffRows(audit)" [config]="diffConfig()" />
+            <!-- Diff Table -->
+            <div class="diff-section-title">{{ 'audit.sravnenie_poley_diff' | t }}</div>
+            @if (getDiffKeys(audit).length > 0) {
+              <div
+                class="diff-table-box"
+                role="region"
+                [attr.aria-label]="'audit.sravnenie_izmenennyh_poley' | t"
+                tabindex="0"
+              >
+                <ui-local-table [rows]="diffRows(audit)" [config]="diffConfig()" />
+              </div>
+            } @else {
+              <div class="no-diff-msg">{{ 'audit.net_podrobnyh_dannyh_diff_dlya_etoy_operacii' | t }}</div>
+            }
           </div>
-          <ng-template #noDiff>
-            <div class="no-diff-msg">{{ 'audit.net_podrobnyh_dannyh_diff_dlya_etoy_operacii' | t }}</div>
-          </ng-template>
-        </div>
+        }
         <div footer class="modal-footer-actions">
           <button smt-button type="button" smtVariant="secondary" (click)="closeAuditModal.emit()">
             {{ 'audit.zakryt' | t }}
@@ -99,43 +112,47 @@ interface DiffRow {
 
     <!-- MODAL: SECURITY EVENT DETAILS -->
     <smt-dialog
-      [open]="selectedSecEvent !== null"
+      [open]="selectedSecEvent() !== null"
       [smtTitle]="'audit.sobytie_bezopasnosti' | t"
       smtSize="md"
       (closed)="closeSecModal.emit()"
     >
       <ng-template smtDialogContent>
-        <div body *ngIf="selectedSecEvent as ev" class="sec-modal-body">
-          <div class="diff-meta-grid">
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.tip_sobytiya' | t }}</span>
-              <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(ev.eventType)">
-                {{ ev.eventType }}
-              </span>
+        @if (selectedSecEvent(); as ev) {
+          <div body class="sec-modal-body">
+            <div class="diff-meta-grid">
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.tip_sobytiya' | t }}</span>
+                <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(ev.eventType)">
+                  {{ ev.eventType }}
+                </span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">IP:</span>
+                <span class="meta-val font-mono">{{ ev.ip }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.polzovatel.a7d134d' | t }}</span>
+                <span class="meta-val">{{
+                  ev.userName ? ev.userName + ' (@' + ev.userLogin + ')' : ev.details['login'] || '—'
+                }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">{{ 'audit.data' | t }}</span>
+                <span class="meta-val">{{ ev.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
+              </div>
+              @if (ev.userAgent) {
+                <div class="meta-item full-width">
+                  <span class="meta-label">User-Agent:</span>
+                  <span class="meta-val text-xs font-mono">{{ ev.userAgent }}</span>
+                </div>
+              }
             </div>
-            <div class="meta-item">
-              <span class="meta-label">IP:</span>
-              <span class="meta-val font-mono">{{ ev.ip }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.polzovatel.a7d134d' | t }}</span>
-              <span class="meta-val">{{
-                ev.userName ? ev.userName + ' (@' + ev.userLogin + ')' : ev.details['login'] || '—'
-              }}</span>
-            </div>
-            <div class="meta-item">
-              <span class="meta-label">{{ 'audit.data' | t }}</span>
-              <span class="meta-val">{{ ev.createdAt | date: 'dd.MM.yyyy HH:mm:ss' }}</span>
-            </div>
-            <div class="meta-item full-width" *ngIf="ev.userAgent">
-              <span class="meta-label">User-Agent:</span>
-              <span class="meta-val text-xs font-mono">{{ ev.userAgent }}</span>
-            </div>
-          </div>
 
-          <div class="diff-section-title">{{ 'audit.parametry_sobytiya_json' | t }}</div>
-          <pre class="json-details-viewer">{{ ev.details | json }}</pre>
-        </div>
+            <div class="diff-section-title">{{ 'audit.parametry_sobytiya_json' | t }}</div>
+            <pre class="json-details-viewer">{{ ev.details | json }}</pre>
+          </div>
+        }
         <div footer class="modal-footer-actions">
           <button smt-button type="button" smtVariant="secondary" (click)="closeSecModal.emit()">
             {{ 'audit.zakryt' | t }}
@@ -331,6 +348,12 @@ interface DiffRow {
 export class AuditModalsComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly selectedAudit = input<AuditRecord | null>(null);
+  readonly selectedSecEvent = input<SecurityEventRecord | null>(null);
+
+  readonly closeAuditModal = output<void>();
+  readonly closeSecModal = output<void>();
+
   private readonly fieldCell = viewChild.required<TemplateRef<unknown>>('diffFieldCell');
 
   private readonly beforeCell = viewChild.required<TemplateRef<unknown>>('diffBeforeCell');
@@ -358,12 +381,6 @@ export class AuditModalsComponent {
   });
 
   private readonly diffMemo = optionsMemo<DiffRow[]>();
-
-  @Input() selectedAudit: AuditRecord | null = null;
-  @Input() selectedSecEvent: SecurityEventRecord | null = null;
-
-  @Output() closeAuditModal = new EventEmitter<void>();
-  @Output() closeSecModal = new EventEmitter<void>();
 
   getEventName(event: string): string {
     switch (event) {

@@ -47,7 +47,6 @@ let nextPhoneId = 0;
 
 @Component({
   selector: 'smt-phone-input',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './phone-input.scss',

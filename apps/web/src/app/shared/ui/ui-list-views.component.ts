@@ -22,7 +22,6 @@ const NAME_MAX = 80;
  */
 @Component({
   selector: 'ui-list-views',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTCheckboxComponent,

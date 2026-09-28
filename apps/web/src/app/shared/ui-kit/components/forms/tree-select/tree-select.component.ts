@@ -68,7 +68,6 @@ function matches<T>(option: SMTTreeOption<T>, query: string): boolean {
 
 @Component({
   selector: 'smt-tree-select',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   imports: [CdkConnectedOverlay, CdkOverlayOrigin],

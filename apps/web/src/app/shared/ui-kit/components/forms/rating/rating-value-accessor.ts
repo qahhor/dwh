@@ -6,7 +6,6 @@ import { SMTRatingComponent } from './rating.component';
 
 @Directive({
   selector: 'smt-rating[ngModel], smt-rating[formControl], smt-rating[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTRatingValueAccessor), multi: true }],
 })
 export class SMTRatingValueAccessor extends PickerValueAccessor<number | null> {

@@ -6,7 +6,6 @@ import { SMTTextareaComponent } from './textarea.component';
 
 @Directive({
   selector: 'smt-textarea[ngModel], smt-textarea[formControl], smt-textarea[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTTextareaValueAccessor), multi: true }],
 })
 export class SMTTextareaValueAccessor extends PickerValueAccessor<string> {

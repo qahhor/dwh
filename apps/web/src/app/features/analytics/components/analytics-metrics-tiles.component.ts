@@ -1,12 +1,12 @@
-import { Component, Input } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AnalyticsSummary } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-metrics-tiles',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   template: `
     <div class="tiles">
       <!-- 1. Всего задач -->
@@ -17,13 +17,15 @@ import { AnalyticsSummary } from '../analytics.models';
             >task_alt</span
           >
         </div>
-        <div class="tile-value">{{ summary?.totalTasks || 0 }}</div>
+        <div class="tile-value">{{ summary()?.totalTasks || 0 }}</div>
         <div class="tile-meta">
           <span class="text-success" style="font-weight: 600;">{{
-            'analytics.active_count' | t: { count: summary?.activeTasks || 0 }
+            'analytics.active_count' | t: { count: summary()?.activeTasks || 0 }
           }}</span>
           <span class="meta-dot">·</span>
-          <span class="text-muted">{{ 'analytics.completed_count' | t: { count: summary?.completedTasks || 0 } }}</span>
+          <span class="text-muted">{{
+            'analytics.completed_count' | t: { count: summary()?.completedTasks || 0 }
+          }}</span>
         </div>
       </div>
 
@@ -35,38 +37,41 @@ import { AnalyticsSummary } from '../analytics.models';
             >trending_up</span
           >
         </div>
-        <div class="tile-value">{{ summary?.completionRatePercent || 0 }}%</div>
+        <div class="tile-value">{{ summary()?.completionRatePercent || 0 }}%</div>
         <div class="tile-meta">
           <span class="text-success" style="font-weight: 600;">{{
-            'analytics.completed_last_7d' | t: { count: summary?.completedLast7d || 0 }
+            'analytics.completed_last_7d' | t: { count: summary()?.completedLast7d || 0 }
           }}</span>
           <span class="meta-dot">·</span>
-          <span class="text-muted">{{ 'analytics.created_count' | t: { count: summary?.createdLast7d || 0 } }}</span>
+          <span class="text-muted">{{ 'analytics.created_count' | t: { count: summary()?.createdLast7d || 0 } }}</span>
         </div>
       </div>
 
       <!-- 3. Просроченные задачи -->
-      <div class="tile" [class.tile-alarm]="(summary?.overdueTasks || 0) > 0">
+      <div class="tile" [class.tile-alarm]="(summary()?.overdueTasks || 0) > 0">
         <div class="tile-header">
           <span class="tile-label">{{ 'analytics.prosrocheno_dedlaynov' | t }}</span>
           <span
             class="material-symbols-outlined tile-ico"
-            [style.color]="(summary?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-light)'"
+            [style.color]="(summary()?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-light)'"
             aria-hidden="true"
           >
-            {{ (summary?.overdueTasks || 0) > 0 ? 'warning' : 'verified' }}
+            {{ (summary()?.overdueTasks || 0) > 0 ? 'warning' : 'verified' }}
           </span>
         </div>
-        <div class="tile-value" [style.color]="(summary?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-main)'">
-          {{ summary?.overdueTasks || 0 }}
+        <div
+          class="tile-value"
+          [style.color]="(summary()?.overdueTasks || 0) > 0 ? 'var(--danger)' : 'var(--text-main)'"
+        >
+          {{ summary()?.overdueTasks || 0 }}
         </div>
         <div class="tile-meta">
-          <span *ngIf="(summary?.overdueTasks || 0) > 0" class="text-danger" style="font-weight: 600;">{{
-            'analytics.trebuyut_vnimaniya' | t
-          }}</span>
-          <span *ngIf="(summary?.overdueTasks || 0) === 0" class="text-success" style="font-weight: 600;">{{
-            'analytics.vse_zadachi_v_grafike' | t
-          }}</span>
+          @if ((summary()?.overdueTasks || 0) > 0) {
+            <span class="text-danger" style="font-weight: 600;">{{ 'analytics.trebuyut_vnimaniya' | t }}</span>
+          }
+          @if ((summary()?.overdueTasks || 0) === 0) {
+            <span class="text-success" style="font-weight: 600;">{{ 'analytics.vse_zadachi_v_grafike' | t }}</span>
+          }
         </div>
       </div>
 
@@ -78,10 +83,10 @@ import { AnalyticsSummary } from '../analytics.models';
             >folder_special</span
           >
         </div>
-        <div class="tile-value">{{ summary?.activeProjectsCount || 0 }}</div>
+        <div class="tile-value">{{ summary()?.activeProjectsCount || 0 }}</div>
         <div class="tile-meta">
           <span class="text-muted">{{
-            'analytics.active_users_count' | t: { count: summary?.activeUsersCount || 0 }
+            'analytics.active_users_count' | t: { count: summary()?.activeUsersCount || 0 }
           }}</span>
         </div>
       </div>
@@ -175,5 +180,5 @@ import { AnalyticsSummary } from '../analytics.models';
   ],
 })
 export class AnalyticsMetricsTilesComponent {
-  @Input() summary: AnalyticsSummary | null = null;
+  readonly summary = input<AnalyticsSummary | null>(null);
 }

@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
   inject,
-  signal,
   viewChild,
+  input,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
@@ -24,12 +23,11 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
 @Component({
   selector: 'app-profile-tokens-card',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     UiLocalTableComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -37,6 +35,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     SMTDialogContentDirective,
     SMTControlComponent,
     SMTRadioGroupComponent,
+    DatePipe,
   ],
   template: `
     <div class="card section-card full-width">
@@ -44,7 +43,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
         <div class="section-title-box">
           <span class="material-symbols-outlined section-icon" aria-hidden="true">key</span>
           <h4 class="section-title">{{ 'iam.api_tokeny_dostupa_bearer_tokens' | t }}</h4>
-          <span class="badge-count">{{ tokens.length }}</span>
+          <span class="badge-count">{{ tokens().length }}</span>
         </div>
         <button
           smt-button
@@ -64,7 +63,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             [rows]="rows()"
             [config]="config()"
             [sortValues]="sortValues"
-            [loading]="isLoadingTokens"
+            [loading]="isLoadingTokens()"
             [emptyTemplate]="emptyTokens"
           />
         </div>
@@ -106,7 +105,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Create Token Modal -->
     <smt-dialog
-      [open]="isCreateTokenModalOpen"
+      [open]="isCreateTokenModalOpen()"
       [smtTitle]="'iam.vypusk_novogo_api_tokena' | t"
       smtSize="sm"
       (closed)="closeCreateTokenModal.emit()"
@@ -121,15 +120,17 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               smtFieldId="profile-token-name"
               name="profileTokenName"
               required
-              [smtInvalid]="isTokenSubmitted && !newTokenName.trim()"
-              [smtDescribedBy]="isTokenSubmitted && !newTokenName.trim() ? 'profile-token-name-error' : null"
-              [ngModel]="newTokenName"
+              [smtInvalid]="isTokenSubmitted() && !newTokenName().trim()"
+              [smtDescribedBy]="isTokenSubmitted() && !newTokenName().trim() ? 'profile-token-name-error' : null"
+              [ngModel]="newTokenName()"
               (ngModelChange)="nameChange.emit($event)"
               [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t"
             />
-            <span id="profile-token-name-error" class="field-error" *ngIf="isTokenSubmitted && !newTokenName.trim()">
-              {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
-            </span>
+            @if (isTokenSubmitted() && !newTokenName().trim()) {
+              <span id="profile-token-name-error" class="field-error">
+                {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
+              </span>
+            }
           </div>
 
           <smt-control class="mt-3" [smtLabel]="'iam.srok_deystviya_tokena' | t">
@@ -137,7 +138,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
               smtAppearance="cards"
               smtOrientation="horizontal"
               [options]="expirationItems()"
-              [value]="selectedTokenExpiration"
+              [value]="selectedTokenExpiration()"
               (valueChange)="onExpirationChosen($event)"
             />
           </smt-control>
@@ -151,7 +152,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isCreatingToken"
+            [smtLoading]="isCreatingToken()"
             (click)="createTokenSubmit.emit()"
           >
             {{ 'iam.sgenerirovat' | t }}
@@ -162,7 +163,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
     <!-- Token Secret Reveal Modal -->
     <smt-dialog
-      [open]="isTokenSecretModalOpen"
+      [open]="isTokenSecretModalOpen()"
       [smtTitle]="'iam.api_token_uspeshno_sozdan' | t"
       smtSize="md"
       (closed)="closeSecretModal.emit()"
@@ -174,16 +175,16 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
             <p>{{ 'iam.skopiruyte_i_sohranite_token_seychas_v_celyah_be' | t }}</p>
           </div>
           <div class="token-secret-box">
-            <code>{{ createdTokenSecret }}</code>
+            <code>{{ createdTokenSecret() }}</code>
             <button
               smt-button
               type="button"
-              [smtVariant]="copiedSecret ? 'primary' : 'secondary'"
+              [smtVariant]="copiedSecret() ? 'primary' : 'secondary'"
               smtSize="sm"
-              [smtIcon]="copiedSecret ? 'check' : 'content_copy'"
+              [smtIcon]="copiedSecret() ? 'check' : 'content_copy'"
               (click)="copySecret.emit()"
             >
-              {{ (copiedSecret ? 'iam.skopirovano' : 'iam.skopirovat') | t }}
+              {{ (copiedSecret() ? 'iam.skopirovano' : 'iam.skopirovat') | t }}
             </button>
           </div>
           <button
@@ -205,14 +206,35 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 export class ProfileTokensCardComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingTokens = input(false);
+  readonly isCreatingToken = input(false);
+  readonly isCreateTokenModalOpen = input(false);
+  readonly isTokenSecretModalOpen = input(false);
+  readonly isTokenSubmitted = input(false);
+  readonly newTokenName = input('');
+  readonly selectedTokenExpiration = input('90');
+  readonly createdTokenSecret = input('');
+  readonly copiedSecret = input(false);
+
+  readonly tokens = input<ApiToken[]>([]);
+  readonly tokenExpirationOptions = input<TokenExpirationOption[]>([]);
+
+  readonly openCreateTokenModal = output<void>();
+  readonly closeCreateTokenModal = output<void>();
+  readonly createTokenSubmit = output<void>();
+  readonly nameChange = output<string>();
+  readonly expirationChange = output<string>();
+  readonly closeSecretModal = output<void>();
+  readonly copySecret = output<void>();
+  readonly requestRevoke = output<ApiToken>();
+
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('tokenNameCell');
   private readonly prefixCell = viewChild.required<TemplateRef<unknown>>('tokenPrefixCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('tokenCreatedCell');
   private readonly expiresCell = viewChild.required<TemplateRef<unknown>>('tokenExpiresCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('tokenActionCell');
 
-  readonly rows = signal<ApiToken[]>([]);
-  private readonly expirationSource = signal<TokenExpirationOption[]>([]);
+  readonly rows = computed<ApiToken[]>(() => this.tokens() ?? []);
 
   readonly config = computed<TableConfig<ApiToken>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -235,6 +257,7 @@ export class ProfileTokensCardComponent {
   readonly expirationItems = computed<SMTRadioOption<string>[]>(() =>
     this.expirationSource().map((option) => ({ value: option.value, label: this.i18n.translate(option.labelKey) })),
   );
+  private readonly expirationSource = computed<TokenExpirationOption[]>(() => this.tokenExpirationOptions());
 
   readonly sortValues = {
     name: (t: ApiToken) => t.name,
@@ -242,34 +265,6 @@ export class ProfileTokensCardComponent {
     created: (t: ApiToken) => new Date(t.createdAt),
     expires: (t: ApiToken) => (t.expiresAt ? new Date(t.expiresAt) : null),
   };
-  @Input() isLoadingTokens = false;
-  @Input() isCreatingToken = false;
-  @Input() isCreateTokenModalOpen = false;
-  @Input() isTokenSecretModalOpen = false;
-  @Input() isTokenSubmitted = false;
-  @Input() newTokenName = '';
-  @Input() selectedTokenExpiration = '90';
-  @Input() createdTokenSecret = '';
-  @Input() copiedSecret = false;
-
-  @Output() openCreateTokenModal = new EventEmitter<void>();
-  @Output() closeCreateTokenModal = new EventEmitter<void>();
-  @Output() createTokenSubmit = new EventEmitter<void>();
-  @Output() nameChange = new EventEmitter<string>();
-  @Output() expirationChange = new EventEmitter<string>();
-  @Output() closeSecretModal = new EventEmitter<void>();
-  @Output() copySecret = new EventEmitter<void>();
-  @Output() requestRevoke = new EventEmitter<ApiToken>();
-
-  @Input() set tokens(tokens: ApiToken[]) {
-    this.rows.set(tokens ?? []);
-  }
-  get tokens(): ApiToken[] {
-    return this.rows();
-  }
-  @Input() set tokenExpirationOptions(options: TokenExpirationOption[]) {
-    this.expirationSource.set(options);
-  }
 
   onExpirationChosen(value: string | null): void {
     if (value !== null) this.expirationChange.emit(value);

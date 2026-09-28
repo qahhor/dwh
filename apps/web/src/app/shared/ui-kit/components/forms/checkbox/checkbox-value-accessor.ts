@@ -6,7 +6,6 @@ import { SMTCheckboxComponent } from './checkbox.component';
 
 @Directive({
   selector: '[smt-checkbox][ngModel], [smt-checkbox][formControl], [smt-checkbox][formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTCheckboxValueAccessor), multi: true }],
 })
 export class SMTCheckboxValueAccessor extends PickerValueAccessor<boolean> {

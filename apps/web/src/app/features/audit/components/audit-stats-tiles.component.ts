@@ -1,87 +1,91 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { AuditStats } from '../audit.models';
 
 @Component({
   selector: 'app-audit-stats-tiles',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe, SMTButtonComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe, SMTButtonComponent],
   template: `
     <!-- Stats Cards -->
-    <div class="tiles" *ngIf="stats as s">
-      <div class="tile">
-        <div class="tile-header">
-          <span class="tile-label">{{ 'audit.vsego_zapisey_audita' | t }}</span>
-          <span class="material-symbols-outlined" style="color: var(--primary);" aria-hidden="true">history</span>
+    @if (stats(); as s) {
+      <div class="tiles">
+        <div class="tile">
+          <div class="tile-header">
+            <span class="tile-label">{{ 'audit.vsego_zapisey_audita' | t }}</span>
+            <span class="material-symbols-outlined" style="color: var(--primary);" aria-hidden="true">history</span>
+          </div>
+          <div class="tile-value">{{ s.totalAuditLogs }}</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">
+            {{ 'audit.neizmenyaemyy_zhurnal' | t }}
+          </div>
         </div>
-        <div class="tile-value">{{ s.totalAuditLogs }}</div>
-        <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">
-          {{ 'audit.neizmenyaemyy_zhurnal' | t }}
-        </div>
-      </div>
 
-      <div class="tile">
-        <div class="tile-header">
-          <span class="tile-label">{{ 'audit.sobytiy_bezopasnosti' | t }}</span>
-          <span class="material-symbols-outlined" style="color: var(--info);" aria-hidden="true">security</span>
+        <div class="tile">
+          <div class="tile-header">
+            <span class="tile-label">{{ 'audit.sobytiy_bezopasnosti' | t }}</span>
+            <span class="material-symbols-outlined" style="color: var(--info);" aria-hidden="true">security</span>
+          </div>
+          <div class="tile-value">{{ s.totalSecurityEvents }}</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">
+            {{ 'audit.vse_tipy_sobytiy' | t }}
+          </div>
         </div>
-        <div class="tile-value">{{ s.totalSecurityEvents }}</div>
-        <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">
-          {{ 'audit.vse_tipy_sobytiy' | t }}
-        </div>
-      </div>
 
-      <div class="tile">
-        <div class="tile-header">
-          <span class="tile-label">{{ 'audit.sobytiy_za_24_chasa' | t }}</span>
-          <span class="material-symbols-outlined" style="color: var(--warning);" aria-hidden="true">schedule</span>
+        <div class="tile">
+          <div class="tile-header">
+            <span class="tile-label">{{ 'audit.sobytiy_za_24_chasa' | t }}</span>
+            <span class="material-symbols-outlined" style="color: var(--warning);" aria-hidden="true">schedule</span>
+          </div>
+          <div class="tile-value">{{ s.securityEventsLast24h }}</div>
+          <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">
+            {{ 'audit.sutochnaya_aktivnost' | t }}
+          </div>
         </div>
-        <div class="tile-value">{{ s.securityEventsLast24h }}</div>
-        <div class="tile-meta" style="color: var(--text-muted); font-size: 11px;">
-          {{ 'audit.sutochnaya_aktivnost' | t }}
-        </div>
-      </div>
 
-      <div class="tile" [class.tile-alarm]="s.failedLoginsLast24h > 0">
-        <div class="tile-header">
-          <span class="tile-label">{{ 'audit.neudachnyh_vhodov_blokirovok' | t }}</span>
-          <span
-            class="material-symbols-outlined"
+        <div class="tile" [class.tile-alarm]="s.failedLoginsLast24h > 0">
+          <div class="tile-header">
+            <span class="tile-label">{{ 'audit.neudachnyh_vhodov_blokirovok' | t }}</span>
+            <span
+              class="material-symbols-outlined"
+              [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'"
+              aria-hidden="true"
+            >
+              {{ s.failedLoginsLast24h > 0 ? 'gpp_bad' : 'verified_user' }}
+            </span>
+          </div>
+          <div class="tile-value" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--text-main)'">
+            {{ s.failedLoginsLast24h }}
+          </div>
+          <div
+            class="tile-meta"
             [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'"
-            aria-hidden="true"
+            style="font-size: 11px; font-weight: 600;"
           >
-            {{ s.failedLoginsLast24h > 0 ? 'gpp_bad' : 'verified_user' }}
-          </span>
-        </div>
-        <div class="tile-value" [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--text-main)'">
-          {{ s.failedLoginsLast24h }}
-        </div>
-        <div
-          class="tile-meta"
-          [style.color]="s.failedLoginsLast24h > 0 ? 'var(--danger)' : 'var(--success)'"
-          style="font-size: 11px; font-weight: 600;"
-        >
-          {{ (s.failedLoginsLast24h > 0 ? 'audit.trebuet_vnimaniya' : 'audit.anomaliy_ne_obnaruzheno') | t }}
+            {{ (s.failedLoginsLast24h > 0 ? 'audit.trebuet_vnimaniya' : 'audit.anomaliy_ne_obnaruzheno') | t }}
+          </div>
         </div>
       </div>
-    </div>
+    }
 
-    <div id="audit-stats-error" class="inline-feedback" role="alert" *ngIf="statsError">
-      <span class="material-symbols-outlined" aria-hidden="true">error</span>
-      <span>{{ 'audit.load_stats_error' | t }}</span>
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtSize="sm"
-        smtIcon="refresh"
-        (click)="retryStats.emit()"
-      >
-        {{ 'audit.retry' | t }}
-      </button>
-    </div>
+    @if (statsError()) {
+      <div id="audit-stats-error" class="inline-feedback" role="alert">
+        <span class="material-symbols-outlined" aria-hidden="true">error</span>
+        <span>{{ 'audit.load_stats_error' | t }}</span>
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtSize="sm"
+          smtIcon="refresh"
+          (click)="retryStats.emit()"
+        >
+          {{ 'audit.retry' | t }}
+        </button>
+      </div>
+    }
   `,
   styles: [
     `
@@ -167,8 +171,8 @@ import { AuditStats } from '../audit.models';
   ],
 })
 export class AuditStatsTilesComponent {
-  @Input() stats: AuditStats | null = null;
-  @Input() statsError = false;
+  readonly stats = input<AuditStats | null>(null);
+  readonly statsError = input(false);
 
-  @Output() retryStats = new EventEmitter<void>();
+  readonly retryStats = output<void>();
 }

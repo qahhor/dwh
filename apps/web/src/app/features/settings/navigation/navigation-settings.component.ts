@@ -1,5 +1,5 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NavigationService } from '../../../core/services/navigation.service';
@@ -23,9 +23,8 @@ import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-navigation-settings',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     TranslatePipe,

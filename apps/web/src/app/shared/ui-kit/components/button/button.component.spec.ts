@@ -8,7 +8,6 @@ import { testI18n } from '../../i18n/test-messages';
 import { SMTButtonComponent } from './button.component';
 
 @Component({
-  standalone: true,
   imports: [SMTButtonComponent],
   template: `
     <form (submit)="$event.preventDefault(); submitted = submitted + 1">

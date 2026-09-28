@@ -40,7 +40,6 @@ const MENU_POSITIONS: ConnectedPosition[] = [
 
 @Component({
   selector: 'smt-dropdown-button',
-  standalone: true,
   imports: [CdkMenuTrigger, CdkMenu, CdkMenuItem],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,

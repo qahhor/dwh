@@ -6,7 +6,6 @@ import { SMTTagGroupComponent } from './tag.component';
 
 @Directive({
   selector: 'smt-tag-group[ngModel], smt-tag-group[formControl], smt-tag-group[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTTagGroupValueAccessor), multi: true }],
 })
 export class SMTTagGroupValueAccessor extends PickerValueAccessor<readonly unknown[]> {

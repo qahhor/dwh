@@ -16,7 +16,7 @@ import type { SMTModalConfirmCloseResult } from './types/modal-confirm.types';
 
 class DummyComponent {}
 
-@Component({ standalone: true, template: '<p>Dialog body</p>' })
+@Component({ template: '<p>Dialog body</p>' })
 class BodyComponent {}
 
 interface FakeDialogRef<R = unknown> {

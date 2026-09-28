@@ -1,5 +1,5 @@
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { TranslatePipe } from '../../../core/services/i18n.service';
@@ -12,8 +12,8 @@ import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-toolbar',
-  standalone: true,
-  imports: [SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe],
   template: `
     <div class="filter-toolbar">
       <div class="toolbar-left">
@@ -22,9 +22,9 @@ import { I18nService } from '../../../core/services/i18n.service';
           smtAppearance="segmented"
           class="scope-filter"
           [options]="scopeOptions()"
-          [value]="scope"
+          [value]="scope()"
           [smtAriaLabel]="'files.oblast_faylov' | t"
-          (valueChange)="scopeChange.emit($event ?? scope)"
+          (valueChange)="scopeChange.emit($event ?? scope())"
         />
 
         <!-- Search Input -->
@@ -38,7 +38,7 @@ import { I18nService } from '../../../core/services/i18n.service';
             smtIcon="search"
             clearable
             [placeholder]="'files.poisk_faylov_po_imeni' | t"
-            [ngModel]="searchQuery"
+            [ngModel]="searchQuery()"
             (ngModelChange)="searchQueryChange.emit($event)"
             (keyup.enter)="search.emit()"
             (cleared)="clear.emit()"
@@ -136,14 +136,14 @@ export class FilesToolbarComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  @Input() scope: 'all' | 'mine' = 'all';
-  @Input() searchQuery = '';
+  readonly scope = input<'all' | 'mine'>('all');
+  readonly searchQuery = input('');
 
-  @Output() scopeChange = new EventEmitter<'all' | 'mine'>();
-  @Output() searchQueryChange = new EventEmitter<string>();
-  @Output() search = new EventEmitter<void>();
-  @Output() clear = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
+  readonly scopeChange = output<'all' | 'mine'>();
+  readonly searchQueryChange = output<string>();
+  readonly search = output<void>();
+  readonly clear = output<void>();
+  readonly refresh = output<void>();
 
   private readonly scopeMemo = optionsMemo<SMTRadioOption<'all' | 'mine'>[]>();
 

@@ -6,7 +6,6 @@ import { OrderBy } from '../table.types';
 import { SMTCellHeaderComponent } from './cell-header.component';
 
 @Component({
-  standalone: true,
   imports: [SMTCellHeaderComponent],
   template: `<smt-cell-header
     [smtData]="{ type: 'primitive', value: 'Number' }"

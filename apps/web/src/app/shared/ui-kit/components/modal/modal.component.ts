@@ -26,7 +26,6 @@ let nextTitleId = 0;
 
 @Component({
   selector: 'smt-modal',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   imports: [NgClass, NgTemplateOutlet],

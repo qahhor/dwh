@@ -1,5 +1,5 @@
-import { Component, inject, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTControlComponent } from '../../../../shared/ui-kit/components/forms/control';
@@ -36,7 +36,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 
 @Component({
   selector: 'app-user-edit-modal',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTControlComponent,
     SMTSelectComponent,
@@ -45,7 +45,6 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     SMTInputValueAccessor,
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTDialogComponent,
@@ -58,91 +57,97 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     UiCustomFieldsComponent,
   ],
   template: `
-    <smt-dialog [open]="isOpen" [smtTitle]="'iam.redaktirovat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
+    <smt-dialog [open]="isOpen()" [smtTitle]="'iam.redaktirovat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
       <ng-template smtDialogContent>
-        <div body class="clean-modal-body" *ngIf="editingUser as u">
-          <div class="form-grid">
-            <smt-control
-              class="form-group span-2"
-              [smtLabel]="'iam.fio' | t"
-              [smtError]="isEditSubmitted && !editForm.name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
-            >
-              <smt-input
-                smtFieldId="user-edit-name"
-                name="userEditName"
-                required
-                [(ngModel)]="editForm.name"
-                [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
-              />
-            </smt-control>
+        @if (editingUser(); as u) {
+          <div body class="clean-modal-body">
+            <div class="form-grid">
+              <smt-control
+                class="form-group span-2"
+                [smtLabel]="'iam.fio' | t"
+                [smtError]="isEditSubmitted() && !editForm().name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+              >
+                <smt-input
+                  smtFieldId="user-edit-name"
+                  name="userEditName"
+                  required
+                  [(ngModel)]="editForm().name"
+                  [placeholder]="'iam.ivanov_ivan_ivanovich' | t"
+                />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.login_chtenie' | t">
-              <smt-input smtFieldId="user-edit-login" class="font-mono" [value]="u.login" disabled />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.login_chtenie' | t">
+                <smt-input smtFieldId="user-edit-login" class="font-mono" [value]="u.login" disabled />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.email_chtenie' | t">
-              <smt-input smtFieldId="user-edit-email" type="email" class="font-mono" [value]="u.email" disabled />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.email_chtenie' | t">
+                <smt-input smtFieldId="user-edit-email" type="email" class="font-mono" [value]="u.email" disabled />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
-              <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm.phone" />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
+                <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(ngModel)]="editForm().phone" />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
-              <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
-              <smt-data-select
-                [source]="users"
-                [exclude]="notThisUser"
-                [value]="editForm.managerId"
-                (valueChange)="editForm.managerId = $event"
-                [placeholder]="'iam.bez_rukovoditelya' | t"
-                [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-                [emptyLabel]="'iam.bez_rukovoditelya' | t"
-              />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
+                <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
+                <smt-data-select
+                  [source]="users"
+                  [exclude]="notThisUser"
+                  [value]="editForm().managerId"
+                  (valueChange)="editForm().managerId = $event"
+                  [placeholder]="'iam.bez_rukovoditelya' | t"
+                  [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
+                  [emptyLabel]="'iam.bez_rukovoditelya' | t"
+                />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
-              <smt-select
-                smtTriggerId="user-edit-language"
-                name="userEditLanguage"
-                [(ngModel)]="editForm.language"
-                [options]="languageOptions()"
-                [allowClear]="false"
-              />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
+                <smt-select
+                  smtTriggerId="user-edit-language"
+                  name="userEditLanguage"
+                  [(ngModel)]="editForm().language"
+                  [options]="languageOptions()"
+                  [allowClear]="false"
+                />
+              </smt-control>
 
-            <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
-              <smt-select
-                smtTriggerId="user-edit-timezone"
-                name="userEditTimezone"
-                [(ngModel)]="editForm.timezone"
-                [options]="timezoneOptions"
-                [allowClear]="false"
-              />
-            </smt-control>
+              <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
+                <smt-select
+                  smtTriggerId="user-edit-timezone"
+                  name="userEditTimezone"
+                  [(ngModel)]="editForm().timezone"
+                  [options]="timezoneOptions"
+                  [allowClear]="false"
+                />
+              </smt-control>
 
-            <div class="form-group span-2">
-              <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm.is2faEnabled">
-                {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
+              <div class="form-group span-2">
+                <div smt-checkbox name="userEdit2fa" [(ngModel)]="editForm().is2faEnabled">
+                  {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
+                </div>
               </div>
-            </div>
 
-            <!-- Roles -->
-            <smt-control class="form-group span-2" *ngIf="roles.length > 0" [smtLabel]="'iam.roli_dostupa_rbac' | t">
-              <smt-tag-group
-                [options]="roleOptions(u)"
-                [value]="editForm.roleIds || []"
-                (valueChange)="editForm.roleIds = $event"
-              />
-            </smt-control>
+              <!-- Roles -->
+              @if (roles().length > 0) {
+                <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+                  <smt-tag-group
+                    [options]="roleOptions(u)"
+                    [value]="editForm().roleIds || []"
+                    (valueChange)="editForm().roleIds = $event"
+                  />
+                </smt-control>
+              }
 
-            <!-- Custom Fields -->
-            <div class="form-group span-2" *ngIf="customFields.length > 0">
-              <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
-              <ui-custom-fields [fields]="customFields" [(values)]="editForm.attributes"></ui-custom-fields>
+              <!-- Custom Fields -->
+              @if (customFields().length > 0) {
+                <div class="form-group span-2">
+                  <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
+                  <ui-custom-fields [fields]="customFields()" [(values)]="editForm().attributes"></ui-custom-fields>
+                </div>
+              }
             </div>
           </div>
-        </div>
+        }
         <div footer>
           <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
             {{ 'common.cancel' | t }}
@@ -152,7 +157,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             type="button"
             smtVariant="primary"
             smtSize="md"
-            [smtLoading]="isSubmitting"
+            [smtLoading]="isSubmitting()"
             (click)="submit.emit()"
           >
             {{ 'common.save' | t }}
@@ -220,6 +225,23 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 export class UserEditModalComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isOpen = input(false);
+  readonly isSubmitting = input(false);
+  readonly isEditSubmitted = input(false);
+  readonly editingUser = input<User | null>(null);
+  readonly roles = input<Role[]>([]);
+  readonly languages = input<
+    Array<{
+      code: string;
+      name: string;
+    }>
+  >([]);
+  readonly editForm = input<any>({});
+  readonly customFields = input<CustomField[]>([]);
+
+  readonly close = output<void>();
+  readonly submit = output<void>();
+
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;
   readonly timezoneOptions = TIMEZONE_OPTIONS;
@@ -227,23 +249,12 @@ export class UserEditModalComponent {
   private roleOptionsCache: { roles: Role[]; user: User | null; lang: string; options: SMTTagOption<number>[] } | null =
     null;
   /** A user cannot be their own manager. */
-  readonly notThisUser = (candidate: UserRef) => candidate.id === this.editingUser?.id;
-  @Input() isOpen = false;
-  @Input() isSubmitting = false;
-  @Input() isEditSubmitted = false;
-  @Input() editingUser: User | null = null;
-  @Input() editForm: any = {};
-  @Input() roles: Role[] = [];
-  @Input() languages: Array<{ code: string; name: string }> = [];
-  @Input() customFields: CustomField[] = [];
-
-  @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<void>();
+  readonly notThisUser = (candidate: UserRef) => candidate.id === this.editingUser()?.id;
 
   /** The languages as options, labelled as they are named in the data. */
   languageOptions(): SMTSelectOption<string>[] {
-    return this.languageMemo([this.languages], () =>
-      this.languages.map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code})` })),
+    return this.languageMemo([this.languages()], () =>
+      this.languages().map((lang) => ({ id: lang.code, label: `${lang.name} (${lang.code})` })),
     );
   }
 
@@ -251,9 +262,10 @@ export class UserEditModalComponent {
   roleOptions(user: User | null): SMTTagOption<number>[] {
     const lang = this.i18n.currentLang();
     const cached = this.roleOptionsCache;
-    if (cached && cached.roles === this.roles && cached.user === user && cached.lang === lang) return cached.options;
+    const roles = this.roles();
+    if (cached && cached.roles === roles && cached.user === user && cached.lang === lang) return cached.options;
     const locked = (role: Role) => user?.login === 'admin' && role.pcode === 'admin';
-    const options = this.roles.map((role) =>
+    const options = roles.map((role) =>
       locked(role)
         ? {
             value: role.id,
@@ -264,7 +276,7 @@ export class UserEditModalComponent {
           }
         : { value: role.id, label: role.name },
     );
-    this.roleOptionsCache = { roles: this.roles, user, lang, options };
+    this.roleOptionsCache = { roles: roles, user, lang, options };
     return options;
   }
 }

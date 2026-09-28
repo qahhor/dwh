@@ -1,5 +1,16 @@
-import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, Signal, TemplateRef, computed, inject, signal, viewChild } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  OnInit,
+  Signal,
+  TemplateRef,
+  computed,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription, exhaustMap, timer } from 'rxjs';
 import { ProblemDetail } from '../../../core/models/common.models';
@@ -50,10 +61,9 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-search-settings',
-  standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTButtonComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTDialogComponent,
@@ -63,6 +73,7 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
     SMTInputComponent,
     SMTInputValueAccessor,
     SMTCheckboxComponent,
+    DatePipe,
   ],
   templateUrl: './search-settings.component.html',
   styleUrl: './search-settings.component.scss',

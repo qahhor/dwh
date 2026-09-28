@@ -1,16 +1,15 @@
 import {
+  ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   Signal,
   TemplateRef,
   computed,
   inject,
-  signal,
   viewChild,
+  input,
+  output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -20,37 +19,38 @@ import { UserSession } from '../profile.models';
 
 @Component({
   selector: 'app-profile-sessions-card',
-  standalone: true,
-  imports: [UiLocalTableComponent, CommonModule, TranslatePipe, SMTButtonComponent, UiBadgeComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [UiLocalTableComponent, TranslatePipe, SMTButtonComponent, UiBadgeComponent, DatePipe],
   template: `
     <div class="card section-card full-width">
       <div class="section-header">
         <div class="section-title-box">
           <span class="material-symbols-outlined section-icon" aria-hidden="true">devices</span>
           <h4 class="section-title">{{ 'iam.aktivnye_sessii' | t }}</h4>
-          <span class="badge-count">{{ sessions.length }}</span>
+          <span class="badge-count">{{ sessions().length }}</span>
         </div>
         <div class="sessions-header-actions">
-          <button
-            smt-button
-            type="button"
-            *ngIf="sessions.length > 1"
-            smtVariant="danger"
-            smtSize="sm"
-            smtIcon="logout"
-            [smtLoading]="isTerminatingSession"
-            [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
-            (click)="terminateOtherSessions.emit()"
-          >
-            {{ 'iam.zavershit_drugie_sessii' | t }}
-          </button>
+          @if (sessions().length > 1) {
+            <button
+              smt-button
+              type="button"
+              smtVariant="danger"
+              smtSize="sm"
+              smtIcon="logout"
+              [smtLoading]="isTerminatingSession()"
+              [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
+              (click)="terminateOtherSessions.emit()"
+            >
+              {{ 'iam.zavershit_drugie_sessii' | t }}
+            </button>
+          }
           <button
             smt-button
             type="button"
             smtVariant="secondary"
             smtSize="sm"
             smtIcon="refresh"
-            [smtLoading]="isLoadingSessions"
+            [smtLoading]="isLoadingSessions()"
             (click)="loadSessions.emit()"
           >
             {{ 'common.refresh' | t }}
@@ -64,7 +64,7 @@ import { UserSession } from '../profile.models';
             [rows]="rows()"
             [config]="config()"
             [sortValues]="sortValues"
-            [loading]="isLoadingSessions"
+            [loading]="isLoadingSessions()"
             [emptyTemplate]="emptySessions"
           />
         </div>
@@ -328,13 +328,22 @@ import { UserSession } from '../profile.models';
 export class ProfileSessionsCardComponent {
   private readonly i18n = inject(I18nService);
 
+  readonly isLoadingSessions = input(false);
+  readonly isTerminatingSession = input(false);
+
+  readonly sessions = input<UserSession[]>([]);
+
+  readonly loadSessions = output<void>();
+  readonly terminateSession = output<UserSession>();
+  readonly terminateOtherSessions = output<void>();
+
   private readonly ipCell = viewChild.required<TemplateRef<unknown>>('ipCell');
   private readonly deviceCell = viewChild.required<TemplateRef<unknown>>('deviceCell');
   private readonly createdCell = viewChild.required<TemplateRef<unknown>>('createdCell');
   private readonly seenCell = viewChild.required<TemplateRef<unknown>>('seenCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('actionCell');
 
-  readonly rows = signal<UserSession[]>([]);
+  readonly rows = computed<UserSession[]>(() => this.sessions() ?? []);
 
   readonly config = computed<TableConfig<UserSession>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -355,24 +364,10 @@ export class ProfileSessionsCardComponent {
     };
   });
 
-  @Input() isLoadingSessions = false;
-  @Input() isTerminatingSession = false;
-
-  @Output() loadSessions = new EventEmitter<void>();
-  @Output() terminateSession = new EventEmitter<UserSession>();
-  @Output() terminateOtherSessions = new EventEmitter<void>();
-
   readonly sortValues = {
     ip: (s: UserSession) => s.ip,
     device: (s: UserSession) => s.deviceInfo || s.userAgent || '',
     created: (s: UserSession) => new Date(s.createdAt),
     seen: (s: UserSession) => (s.lastSeenAt ? new Date(s.lastSeenAt) : null),
   };
-
-  @Input() set sessions(sessions: UserSession[]) {
-    this.rows.set(sessions ?? []);
-  }
-  get sessions(): UserSession[] {
-    return this.rows();
-  }
 }

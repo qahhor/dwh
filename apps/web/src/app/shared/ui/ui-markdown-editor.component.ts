@@ -1,5 +1,5 @@
-import { Component, Input, Output, EventEmitter, signal, ViewChild, ElementRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, signal, ElementRef, inject, input, model, viewChild } from '@angular/core';
+
 import { FormsModule } from '@angular/forms';
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
@@ -8,8 +8,8 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'ui-markdown-editor',
-  standalone: true,
-  imports: [SMTTabBarComponent, TranslatePipe, CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [SMTTabBarComponent, TranslatePipe, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">
       <!-- Toolbar -->
@@ -133,39 +133,38 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
       <!-- Editor Content -->
       <div class="md-body">
         <!-- Textarea Mode -->
-        <div
-          *ngIf="mode === 'edit'"
-          class="editor-pane"
-          role="tabpanel"
-          [id]="editPanelId"
-          [attr.aria-labelledby]="editTabId"
-        >
-          <label class="sr-only" [for]="textareaId">{{
-            ariaLabel || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
-          }}</label>
-          <textarea
-            #textareaRef
-            [id]="textareaId"
-            class="md-textarea"
-            [rows]="rows"
-            [placeholder]="placeholder || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)"
-            [ngModel]="value"
-            (ngModelChange)="onTextChange($event)"
-            (focus)="isFocused = true"
-            (blur)="isFocused = false"
-            (keydown)="handleKeydown($event)"
-          ></textarea>
-        </div>
+        @if (mode === 'edit') {
+          <div class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
+            <label class="sr-only" [for]="textareaId">{{
+              ariaLabel() || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
+            }}</label>
+            <textarea
+              #textareaRef
+              [id]="textareaId"
+              class="md-textarea"
+              [rows]="rows()"
+              [placeholder]="
+                placeholder() || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)
+              "
+              [ngModel]="value()"
+              (ngModelChange)="onTextChange($event)"
+              (focus)="isFocused = true"
+              (blur)="isFocused = false"
+              (keydown)="handleKeydown($event)"
+            ></textarea>
+          </div>
+        }
 
         <!-- Preview Mode -->
-        <div
-          *ngIf="mode === 'preview'"
-          class="md-preview-pane"
-          role="tabpanel"
-          [id]="previewPanelId"
-          [attr.aria-labelledby]="previewTabId"
-          [innerHTML]="renderMarkdown(value)"
-        ></div>
+        @if (mode === 'preview') {
+          <div
+            class="md-preview-pane"
+            role="tabpanel"
+            [id]="previewPanelId"
+            [attr.aria-labelledby]="previewTabId"
+            [innerHTML]="renderMarkdown(value())"
+          ></div>
+        }
       </div>
     </div>
   `,
@@ -375,15 +374,16 @@ export class UiMarkdownEditorComponent {
 
   private readonly uiI18n = inject(I18nService);
 
+  readonly placeholder = input('');
+  readonly rows = input(4);
+  readonly ariaLabel = input('');
+
+  /** The text, two-way: typing sets it and emits valueChange. */
+  readonly value = model('');
+
+  readonly textareaRef = viewChild<ElementRef<HTMLTextAreaElement>>('textareaRef');
+
   private static nextId = 0;
-
-  @Input() value = '';
-  @Input() placeholder = '';
-  @Input() rows = 4;
-  @Input() ariaLabel = '';
-  @Output() valueChange = new EventEmitter<string>();
-
-  @ViewChild('textareaRef') textareaRef?: ElementRef<HTMLTextAreaElement>;
 
   mode: 'edit' | 'preview' = 'edit';
   isFocused = false;
@@ -397,8 +397,7 @@ export class UiMarkdownEditorComponent {
   private readonly tabsMemo = optionsMemo<SMTTabItem<'edit' | 'preview'>[]>();
 
   onTextChange(newVal: string) {
-    this.value = newVal;
-    this.valueChange.emit(newVal);
+    this.value.set(newVal);
   }
 
   handleKeydown(event: KeyboardEvent) {
@@ -412,16 +411,16 @@ export class UiMarkdownEditorComponent {
   }
 
   insertFormat(type: string) {
-    const el = this.textareaRef?.nativeElement;
+    const el = this.textareaRef()?.nativeElement;
     if (!el) {
       if (type === 'bold')
-        this.onTextChange((this.value || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
+        this.onTextChange((this.value() || '') + this.uiI18n.translate('ui.markdown_editor.zhirnyy_tekst'));
       return;
     }
 
     const start = el.selectionStart;
     const end = el.selectionEnd;
-    const current = this.value || '';
+    const current = this.value() || '';
     const selected = current.substring(start, end);
 
     let replacement = '';
