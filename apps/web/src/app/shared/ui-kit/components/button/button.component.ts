@@ -32,6 +32,8 @@ export type SMTButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 export type SMTButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
+  // A kit button is the native <button> or <a> itself, so focus, forms and links keep working.
+  // eslint-disable-next-line @angular-eslint/component-selector
   selector: 'button[smt-button], a[smt-button]',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,

@@ -139,7 +139,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   toggleAssignment(unit: OrgUnit): void {
     if (!this.can('assign') || !this.assignmentsLoaded() || this.pending() || !safeNumericRecordId(unit.id)) return;
     const selected = new Set(this.selectedOrgUnitIds());
-    selected.has(unit.id) ? selected.delete(unit.id) : selected.add(unit.id);
+    if (!selected.delete(unit.id)) selected.add(unit.id);
     this.selectedOrgUnitIds.set([...selected].sort((a, b) => a - b));
     this.saveError.set(null);
   }

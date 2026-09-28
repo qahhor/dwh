@@ -1,6 +1,10 @@
 <!-- Vendored from @greenwhite/ui-kit (MIT) at commit 6472beb, path components/drawer/drawer.component.html.
      Per ADR-0015 this copy is ours to change. See NOTICE and the component header for what differs. -->
+<!-- A click on the backdrop closes the drawer for the mouse; Escape closes it from the keyboard (DrawerService). The panel only keeps its own clicks. -->
+<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
 <div class="smt-drawer" (click)="onHitboxClick()">
+  <!-- A click on the backdrop closes the drawer for the mouse; Escape closes it from the keyboard (DrawerService). The panel only keeps its own clicks. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events -->
   <div
     #panel
     class="smt-drawer__panel"

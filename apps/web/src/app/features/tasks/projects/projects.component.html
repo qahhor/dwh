@@ -142,7 +142,7 @@
   [isAddingMember]="members.isAddingMember()"
   [removingUserId]="members.removingMemberId()"
   [canUpdateProject]="canUpdateProject()"
-  (close)="members.closeMembersModal()"
+  (closeModal)="members.closeMembersModal()"
   (addMember)="members.onAddProjectMember($event)"
   (removeMember)="members.onRemoveProjectMember($event)"
 ></app-project-members-modal>

@@ -21,3 +21,8 @@ regexes = ['''DWH_S3_(?:ACCESS|SECRET)_KEY=\s+DWH_S3_(?:SECRET_KEY|BUCKET)=''']
 [[allowlists]]
 description = "i18n translation catalogs contain UI labels referencing tokens, 2FA, and keys"
 paths = ['''(?:^|/)apps/server/src/main/resources/i18n/.*\.json$''']
+
+[[allowlists]]
+description = "A labelKey names an i18n catalog entry (dotted lower-case key such as iam.srok_30_dney), not a secret"
+regexTarget = "match"
+regexes = ['''labelKey: '[a-z0-9_]+(?:\.[a-z0-9_]+)+'$''']

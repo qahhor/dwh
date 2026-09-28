@@ -166,13 +166,13 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private router = inject(Router);
 
-  summary = signal<AnalyticsSummary | null>(null);
-  trends = signal<TrendDataPoint[]>([]);
-  projects = signal<ProjectDistribution[]>([]);
-  workload = signal<UserWorkload[]>([]);
+  readonly summary = signal<AnalyticsSummary | null>(null);
+  readonly trends = signal<TrendDataPoint[]>([]);
+  readonly projects = signal<ProjectDistribution[]>([]);
+  readonly workload = signal<UserWorkload[]>([]);
 
-  loading = signal(false);
-  error = signal('');
+  readonly loading = signal(false);
+  readonly error = signal('');
 
   private activeRequest?: Subscription;
   private refreshRequired = true;

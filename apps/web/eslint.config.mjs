@@ -60,6 +60,11 @@ export default tseslint.config(
       '@angular-eslint/prefer-signals': 'error',
       '@angular-eslint/prefer-output-emitter-ref': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      // A leading underscore marks a parameter kept for the signature (fakes, callbacks).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'no-restricted-imports': ['error', { paths: [TEMPLATE_FORMS], patterns: [DEEP_RELATIVE_IMPORT] }],
     },
   },
@@ -93,6 +98,17 @@ export default tseslint.config(
     files: ['src/app/shared/ui-kit/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [DEEP_RELATIVE_IMPORT] }],
+      // The kit's public API is prefixed: <smt-input [smtLabel]> keeps kit inputs apart from native attributes
+      // and from the application's. The alias is the prefix, not a rename.
+      '@angular-eslint/no-input-rename': 'off',
+      '@angular-eslint/no-output-rename': 'off',
+    },
+  },
+  {
+    // A value accessor attaches to the forms directive on a kit field (smt-input[ngModel]); the attribute is Angular's.
+    files: ['src/app/shared/ui-kit/**/*-value-accessor.ts'],
+    rules: {
+      '@angular-eslint/directive-selector': 'off',
     },
   },
   {

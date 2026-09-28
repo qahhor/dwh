@@ -46,7 +46,7 @@ describe('moduleActiveGuard', () => {
   }
 
   it('allows navigation when module is loaded and active', async () => {
-    const { moduleService, toastService } = setup({ isLoaded: true, isModuleActive: () => true });
+    const { toastService } = setup({ isLoaded: true, isModuleActive: () => true });
 
     const guard = moduleActiveGuard('notes');
     const result = TestBed.runInInjectionContext(() => guard(dummyRoute, dummyState));
@@ -57,7 +57,7 @@ describe('moduleActiveGuard', () => {
   });
 
   it('redirects to /tasks and shows toast warning when module is loaded but disabled', async () => {
-    const { moduleService, toastService, router } = setup({ isLoaded: true, isModuleActive: () => false });
+    const { toastService } = setup({ isLoaded: true, isModuleActive: () => false });
 
     const guard = moduleActiveGuard('notes');
     const result = TestBed.runInInjectionContext(() => guard(dummyRoute, dummyState));

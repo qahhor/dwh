@@ -52,8 +52,8 @@ export class TaskCreateModalComponent {
   readonly createForm = input<TaskCreateFormValue>(createDefaultTaskCreateForm());
   readonly taskCustomFields = input<CustomField[]>([]);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
+  readonly closeModal = output<void>();
+  readonly submitForm = output<void>();
 
   /**
    * The title was visited this opening (a new form object is a new opening). ngModel's required

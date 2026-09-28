@@ -196,7 +196,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
 
   it('handles load error gracefully with retry capability', async () => {
     let shouldFail = true;
-    const { fixture, api } = await createFixture({
+    const { fixture } = await createFixture({
       getHandler: (path: string) => {
         if (path.includes('effective-permissions')) {
           return shouldFail ? throwError(() => new Error('Server error')) : of(mockEffectivePermissions);

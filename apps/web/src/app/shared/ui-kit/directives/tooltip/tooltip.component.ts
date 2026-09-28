@@ -32,12 +32,12 @@ export type TTooltipTheme = 'light' | 'dark';
   `,
 })
 export class SMTTooltipInternalComponent {
-  text = input('');
-  supportingText = input('');
-  theme = input<TTooltipTheme>();
-  arrowPosition = input('');
+  readonly text = input('');
+  readonly supportingText = input('');
+  readonly theme = input<TTooltipTheme>();
+  readonly arrowPosition = input('');
 
-  hostClasses = computed(() => {
+  readonly hostClasses = computed(() => {
     const classes = ['flex', 'flex-col', 'w-max', 'rounded-lg', 'relative', 'transition-opacity'];
     const hasSupportingText = !!this.supportingText();
 
@@ -60,7 +60,7 @@ export class SMTTooltipInternalComponent {
     return classes.join(' ');
   });
 
-  arrowClasses = computed(() => {
+  readonly arrowClasses = computed(() => {
     const baseClasses = 'absolute w-0 h-0 border-solid';
     const hasSupportingText = !!this.supportingText();
     const arrowPosition = this.arrowPosition();
@@ -68,7 +68,7 @@ export class SMTTooltipInternalComponent {
     const colorClasses =
       this.theme() === 'light' ? 'border-white' : hasSupportingText ? 'border-gray-900' : 'border-gray-900/60';
 
-    let positionClasses = '';
+    let positionClasses: string;
     switch (arrowPosition) {
       case 'top-center':
         positionClasses =

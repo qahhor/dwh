@@ -51,8 +51,11 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   styleUrl: './roles.component.css',
 })
 export class RolesComponent implements OnInit {
+  permService = inject(PermissionService);
+
   readonly roleForms = inject(RoleFormsService);
   readonly matrix = inject(RolePermissionsEditor);
+  private rolesApi = inject(RolesApi);
   private readonly router = inject(Router, { optional: true });
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
@@ -80,10 +83,7 @@ export class RolesComponent implements OnInit {
 
   moduleGroups: ModuleGroup[] = [];
 
-  constructor(
-    public permService: PermissionService,
-    private rolesApi: RolesApi,
-  ) {
+  constructor() {
     this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
   }
 

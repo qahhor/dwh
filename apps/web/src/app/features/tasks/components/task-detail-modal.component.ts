@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output, inject } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
@@ -36,6 +36,8 @@ import { RecordAttributes } from '../tasks.models';
   styleUrl: './task-detail-modal.component.css',
 })
 export class TaskDetailModalComponent {
+  private readonly i18n = inject(I18nService);
+
   readonly isOverdue = input.required<(endTime: string | null | undefined, statusId: number) => boolean>();
   readonly getTypeColor = input.required<(task: Task) => string>();
   readonly getTypeBg = input.required<(task: Task) => string>();
@@ -70,7 +72,7 @@ export class TaskDetailModalComponent {
   readonly taskAncestors = input<Task[]>([]);
   readonly taskSubtasks = input<Task[]>([]);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
   readonly retryTaskDetails = output<void>();
   readonly openTaskDetails = output<Task>();
   readonly openAddSubtask = output<Task>();
@@ -88,8 +90,6 @@ export class TaskDetailModalComponent {
   readonly safeRecordId = safeNumericRecordId;
 
   private readonly statusMemo = optionsMemo<SMTSelectOption<number>[]>();
-
-  constructor(private readonly i18n: I18nService) {}
 
   /** Statuses as smt-select options; the same array while the statuses stay the same. */
   statusOptions(): SMTSelectOption<number>[] {

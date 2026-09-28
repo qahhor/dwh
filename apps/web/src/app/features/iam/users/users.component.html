@@ -78,8 +78,8 @@
   [hasUpperAndLower]="formsService.hasUpperAndLower()"
   [hasDigitsOrSymbols]="formsService.hasDigitsOrSymbols()"
   [doesNotContainLogin]="formsService.doesNotContainLogin()"
-  (close)="formsService.isCreateModalOpen.set(false)"
-  (submit)="submitCreateUser()"
+  (closeModal)="formsService.isCreateModalOpen.set(false)"
+  (submitForm)="submitCreateUser()"
   (generatePassword)="formsService.generateSecurePassword()"
   (copyPassword)="formsService.copyGeneratedPassword()"
 ></app-user-create-modal>
@@ -94,8 +94,8 @@
   [roles]="list.roles()"
   [languages]="i18n.languages()"
   [customFields]="list.customFields()"
-  (close)="closeEditModal()"
-  (submit)="submitEditUser()"
+  (closeModal)="closeEditModal()"
+  (submitForm)="submitEditUser()"
 ></app-user-edit-modal>
 
 <!-- User Detail, Delete and Security Modals (Delegated Component) -->

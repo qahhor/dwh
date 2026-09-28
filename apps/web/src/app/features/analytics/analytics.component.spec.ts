@@ -413,7 +413,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     projectInput.dispatchEvent(new Event('input'));
     fixture.detectChanges();
 
-    let projectNames = Array.from(host.querySelectorAll('.project-name')).map((el) => el.textContent?.trim());
+    const projectNames = Array.from(host.querySelectorAll('.project-name')).map((el) => el.textContent?.trim());
     expect(projectNames).toEqual(['Beta CRM']);
 
     // Clicking project navigates to /tasks?project=2

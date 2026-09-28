@@ -8,6 +8,7 @@
  * - A badge is icon-only when it has an icon and neither label nor content, not merely
  *   when the label is empty. */
 import {
+  afterEveryRender,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -16,6 +17,8 @@ import {
   inject,
   input,
   output,
+  signal,
+  viewChild,
 } from '@angular/core';
 
 type TBadgeAppearance = 'light' | 'dark';
@@ -51,28 +54,33 @@ export type TBadgeVariant =
 export class SMTBadgeComponent {
   private host = inject(ElementRef<HTMLElement>);
 
-  size = input<TBadgeSize>('MD', { alias: 'smtSize' });
-  variant = input<TBadgeVariant>('primary', { alias: 'smtVariant' });
-  type = input<TBadgeType>('pill', { alias: 'smtType' });
-  label = input<string | number>(undefined, { alias: 'smtLabel' });
+  readonly size = input<TBadgeSize>('MD', { alias: 'smtSize' });
+  readonly variant = input<TBadgeVariant>('primary', { alias: 'smtVariant' });
+  readonly type = input<TBadgeType>('pill', { alias: 'smtType' });
+  readonly label = input<string | number>(undefined, { alias: 'smtLabel' });
 
-  iconSize = input<TIconSize>('SM', { alias: 'smtIconSize' });
-  leftIcon = input<SMTIcons | null>(null, { alias: 'smtLeftIcon' });
-  rightIcon = input<SMTIcons | null>(null, { alias: 'smtRightIcon' });
-  leftImgSrc = input<string>('', { alias: 'smtLeftImg' });
-  hasDot = input(false, { alias: 'smtHasDot', transform: booleanAttribute });
+  readonly iconSize = input<TIconSize>('SM', { alias: 'smtIconSize' });
+  readonly leftIcon = input<SMTIcons | null>(null, { alias: 'smtLeftIcon' });
+  readonly rightIcon = input<SMTIcons | null>(null, { alias: 'smtRightIcon' });
+  readonly leftImgSrc = input<string>('', { alias: 'smtLeftImg' });
+  readonly hasDot = input(false, { alias: 'smtHasDot', transform: booleanAttribute });
 
   /** When `dark`, uses muted surfaces that match tab bar / form controls on dark panels. */
-  appearance = input<TBadgeAppearance>('light', { alias: 'smtAppearance' });
+  readonly appearance = input<TBadgeAppearance>('light', { alias: 'smtAppearance' });
 
   /** Brighter gray badge on dark surfaces (e.g. active tab on gray variant). */
-  emphasized = input(false, { alias: 'smtEmphasized', transform: booleanAttribute });
+  readonly emphasized = input(false, { alias: 'smtEmphasized', transform: booleanAttribute });
 
   iconClicked = output<{ event: Event; side: 'left' | 'right' }>({
     alias: 'smtIconClicked',
   });
 
-  iconFontSize = computed(() => {
+  private readonly projected = viewChild<ElementRef<HTMLElement>>('projected');
+
+  /** Whether the projected content has anything to show; checked only when there is an icon. */
+  private readonly hasContent = signal(false);
+
+  readonly iconFontSize = computed(() => {
     const iconSize = this.iconSize();
     switch (iconSize) {
       case 'SM':
@@ -84,7 +92,7 @@ export class SMTBadgeComponent {
     }
   });
 
-  dotClasses = computed(() => {
+  readonly dotClasses = computed(() => {
     const baseClasses = 'w-1.5 h-1.5 rounded-full';
 
     switch (this.variant()) {
@@ -118,12 +126,12 @@ export class SMTBadgeComponent {
     }
   });
 
-  private badgeClassList = computed(() => {
+  private readonly badgeClassList = computed(() => {
     const classNames: string[] = ['inline-flex', 'items-center', 'gap-1', 'font-normal', 'w-max', 'shrink-0'];
     const size = this.size();
     const variant = this.variant();
     const type = this.type();
-    const isOnlyIcon = !this.label() && (!!this.leftIcon() || !!this.rightIcon());
+    const isOnlyIcon = !this.label() && !this.hasContent() && (!!this.leftIcon() || !!this.rightIcon());
     const leftImgSrc = this.leftImgSrc();
 
     if (isOnlyIcon) {
@@ -183,6 +191,14 @@ export class SMTBadgeComponent {
 
   constructor() {
     manageComponentClasses(this.host, this.badgeClassList);
+    // Projected text is not a signal: look at it after each render, and only for badges with an icon.
+    afterEveryRender({
+      read: () => {
+        if (!this.leftIcon() && !this.rightIcon()) return;
+        const node = this.projected()?.nativeElement;
+        this.hasContent.set(!!node && (node.children.length > 0 || !!node.textContent?.trim()));
+      },
+    });
   }
 
   private getVariantColorClasses(variant: TBadgeVariant, appearance: TBadgeAppearance, emphasized: boolean): string[] {

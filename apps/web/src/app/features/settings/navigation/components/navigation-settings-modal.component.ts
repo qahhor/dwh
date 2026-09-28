@@ -117,9 +117,10 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
             </div>
 
             <div class="form-group">
-              <label class="form-label">{{ 'nav.settings.field_icon' | t }}</label>
+              <label class="form-label" for="nav-icon">{{ 'nav.settings.field_icon' | t }}</label>
               <div class="icon-selector-row">
                 <smt-input
+                  smtFieldId="nav-icon"
                   class="icon-input"
                   [value]="formIcon()"
                   (valueChange)="formIconChange.emit(asText($event))"

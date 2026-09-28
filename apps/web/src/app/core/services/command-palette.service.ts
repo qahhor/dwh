@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
 import { SearchResult } from '../models/search.models';
@@ -7,9 +7,9 @@ import { SearchResult } from '../models/search.models';
   providedIn: 'root',
 })
 export class CommandPaletteService {
-  readonly isOpen = signal<boolean>(false);
+  private api = inject(ApiService);
 
-  constructor(private api: ApiService) {}
+  readonly isOpen = signal<boolean>(false);
 
   open() {
     this.isOpen.set(true);

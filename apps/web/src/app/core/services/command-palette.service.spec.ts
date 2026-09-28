@@ -1,3 +1,4 @@
+import { Injector, runInInjectionContext } from '@angular/core';
 import { describe, expect, it, vi } from 'vitest';
 import { of } from 'rxjs';
 import { ApiService } from './api.service';
@@ -8,7 +9,8 @@ describe('CommandPaletteService', () => {
     const api = {
       get: vi.fn(() => of({ query: 'report', totalHits: 0, hits: [] })),
     };
-    const service = new CommandPaletteService(api as unknown as ApiService);
+    const injector = Injector.create({ providers: [{ provide: ApiService, useValue: api }] });
+    const service = runInInjectionContext(injector, () => new CommandPaletteService());
 
     service.search('report', 'TASK', 25).subscribe();
 

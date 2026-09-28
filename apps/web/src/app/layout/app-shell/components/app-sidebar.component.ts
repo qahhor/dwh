@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChil
 
 import { RouterModule } from '@angular/router';
 import { TranslatePipe } from '@core/services/i18n.service';
-import { NavItem, NavSection } from '../app-shell.models';
+import { NavSection } from '../app-shell.models';
 import { AppSidebarNavSectionsComponent } from './app-sidebar-nav-sections.component';
 import { AppSidebarFlyoutComponent } from './app-sidebar-flyout.component';
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
@@ -38,7 +38,7 @@ export class AppSidebarComponent {
 
   readonly toggleSidebar = output<void>();
   readonly closeMobileMenu = output<boolean>();
-  readonly onNavClick = output<void>();
+  readonly navClick = output<void>();
   readonly toggleSection = output<{
     id: string;
     event: MouseEvent;

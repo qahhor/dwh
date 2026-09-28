@@ -45,7 +45,12 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
     UiCustomFieldsComponent,
   ],
   template: `
-    <smt-dialog [open]="isOpen()" [smtTitle]="'iam.redaktirovat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
+    <smt-dialog
+      [open]="isOpen()"
+      [smtTitle]="'iam.redaktirovat_polzovatelya' | t"
+      smtSize="md"
+      (closed)="closeModal.emit()"
+    >
       <ng-template smtDialogContent>
         @if (editingUser(); as u) {
           <div body class="clean-modal-body">
@@ -137,7 +142,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
           </div>
         }
         <div footer>
-          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
+          <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
             {{ 'common.cancel' | t }}
           </button>
           <button
@@ -146,7 +151,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             smtVariant="primary"
             smtSize="md"
             [smtLoading]="isSubmitting()"
-            (click)="submit.emit()"
+            (click)="submitForm.emit()"
           >
             {{ 'common.save' | t }}
           </button>
@@ -174,8 +179,8 @@ export class UserEditModalComponent {
   >([]);
   readonly customFields = input<CustomField[]>([]);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
+  readonly closeModal = output<void>();
+  readonly submitForm = output<void>();
 
   /** Active users for the manager picker; the field searches them itself. */
   readonly users = inject(LookupSources).activeUsers;

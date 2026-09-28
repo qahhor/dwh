@@ -1,3 +1,4 @@
+import { Injector, runInInjectionContext } from '@angular/core';
 import { HttpClient, HttpErrorResponse, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -91,7 +92,7 @@ describe('ApiService localized Problem Details', () => {
     const i18n = {
       translate: (key: string) => translations[key] ?? key,
     } as I18nService;
-    return { service: new ApiService(http, toast, i18n), toast };
+    return { service: withDeps(http, toast, i18n), toast };
   }
 
   it('uses a catalog message for a known stable error code', async () => {
@@ -144,7 +145,7 @@ describe('ApiService localized Problem Details', () => {
         ),
       ),
     } as unknown as HttpClient;
-    const service = new ApiService(
+    const service = withDeps(
       http,
       { error: vi.fn() } as unknown as ToastService,
       { translate: (key: string) => key } as I18nService,
@@ -157,3 +158,15 @@ describe('ApiService localized Problem Details', () => {
     });
   });
 });
+
+/** ApiService takes its collaborators by inject(); build it in an injector holding the fakes. */
+function withDeps(http: HttpClient, toast: ToastService, i18n: I18nService): ApiService {
+  const injector = Injector.create({
+    providers: [
+      { provide: HttpClient, useValue: http },
+      { provide: ToastService, useValue: toast },
+      { provide: I18nService, useValue: i18n },
+    ],
+  });
+  return runInInjectionContext(injector, () => new ApiService());
+}

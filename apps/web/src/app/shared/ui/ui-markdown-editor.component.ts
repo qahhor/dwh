@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal, ElementRef, inject, input, model, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, input, model, viewChild } from '@angular/core';
 
 import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
@@ -72,7 +72,7 @@ export class UiMarkdownEditorComponent {
     const current = this.value() || '';
     const selected = current.substring(start, end);
 
-    let replacement = '';
+    let replacement: string;
     let cursorOffset = 0;
 
     switch (type) {
@@ -173,7 +173,7 @@ export class UiMarkdownEditorComponent {
     );
 
     // Unordered lists
-    html = html.replace(/^\- (.*$)/gim, '<li>$1</li>');
+    html = html.replace(/^- (.*$)/gim, '<li>$1</li>');
     html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
 
     // Links [text](url)

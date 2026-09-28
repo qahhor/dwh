@@ -1,4 +1,4 @@
-import { Injectable, untracked } from '@angular/core';
+import { Injectable, untracked, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -28,13 +28,11 @@ interface RawProblem {
   providedIn: 'root',
 })
 export class ApiService {
-  private readonly baseUrl = '/api/v1';
+  private http = inject(HttpClient);
+  private toast = inject(ToastService);
+  private i18n = inject(I18nService);
 
-  constructor(
-    private http: HttpClient,
-    private toast: ToastService,
-    private i18n: I18nService,
-  ) {}
+  private readonly baseUrl = '/api/v1';
 
   /** Parameters that are undefined, null or empty are left out; the others are sent as text. */
   get<T>(path: string, params?: QueryParams, options: ApiRequestOptions = {}): Observable<T> {

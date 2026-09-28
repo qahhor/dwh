@@ -38,7 +38,7 @@ export class OrgUnitEditorComponent implements OnInit {
   readonly error = input<ProblemDetail | null>(null);
 
   readonly save = output<OrgUnitSubmission>();
-  readonly cancel = output<void>();
+  readonly cancelEdit = output<void>();
 
   draft: OrgUnitCreate & { state: 'A' | 'P' } = {
     parentId: null,

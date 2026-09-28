@@ -686,6 +686,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Every web component has its own spec (plan 10/10, item 2.9): 74 new spec
+  files (1,417 -> 1,801 unit tests) pin what each component shows, what it
+  emits and how it reads to a screen reader; one presentational component
+  (the sign-in header) stays without one. The web lint baseline is empty
+  (518 suppressions before): services use `inject()`, signal properties are
+  readonly, outputs are not named like DOM events (`closeModal`,
+  `submitForm`, `navClick`, ...), and the kit keeps its `smt*` aliases and
+  its mouse-only handlers with the reason written next to each.
 - Web forms have one approach (plan 10/10, item 2.8): no screen uses
   template-driven forms any more (FormsModule in 50 files before). Forms
   with their own rules use Signal Forms, filters and single settings bind
@@ -900,6 +908,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Found by the component specs (plan 10/10, item 2.9): the notification
+  settings showed raw catalog keys as row names, offered an observer row
+  that switched nothing and no row for task comments, which the server
+  sends; one press of Save in the custom field dialog sent the field twice;
+  the password checklist said at least 10 characters while the policy is 8
+  to 20; a badge with an icon and text was drawn as icon-only; analytics
+  project rows could not be opened from the keyboard; the icon field of a
+  navigation item had no label.
 - The profile's channel confirmation dialog opened only in the state: the
   card did not redraw when the server answered. The audit tab switch and a
   few other OnPush screens that relied on ngModel to redraw now keep their

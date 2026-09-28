@@ -1,9 +1,9 @@
 import { By } from '@angular/platform-browser';
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
-import { Observable, Subject, of } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
-import { Project, ProjectTaskStats } from '@core/models/task.models';
+import { Project } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
@@ -769,7 +769,7 @@ describe('ProjectsComponent UI contracts', () => {
       if (url === '/tasks/projects/42/members') return of({ projectId: 42, ...body });
       return of({});
     });
-    api.delete.mockImplementation((url: string) => {
+    api.delete.mockImplementation((_url: string) => {
       return of({});
     });
 

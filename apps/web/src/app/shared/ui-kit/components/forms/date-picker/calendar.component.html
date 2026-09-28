@@ -19,6 +19,8 @@
   </button>
 </div>
 
+<!-- The grid reads the arrow keys for the day cells inside it, which carry the roving focus. -->
+<!-- eslint-disable-next-line @angular-eslint/template/interactive-supports-focus -->
 <table class="smt-calendar__grid" role="grid" [attr.aria-labelledby]="titleId" (keydown)="onKeydown($event)">
   <thead>
     <tr>

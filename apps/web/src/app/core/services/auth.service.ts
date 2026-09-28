@@ -1,4 +1,4 @@
-import { Injectable, signal, computed } from '@angular/core';
+import { Injectable, signal, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap, catchError, filter, finalize, map, of } from 'rxjs';
 import { ApiService } from './api.service';
@@ -12,6 +12,13 @@ import { TabSyncService } from './tab-sync.service';
   providedIn: 'root',
 })
 export class AuthService {
+  private api = inject(ApiService);
+  private permissionService = inject(PermissionService);
+  private toast = inject(ToastService);
+  private router = inject(Router);
+  private i18n = inject(I18nService);
+  private tabs = inject(TabSyncService);
+
   readonly currentUser = signal<User | null>(null);
   readonly isLoading = signal<boolean>(true);
   readonly isLoggingOut = signal(false);
@@ -22,14 +29,7 @@ export class AuthService {
   /** Where to go after the next sign-in: the page the session was lost on. */
   private returnUrl: string | null = null;
 
-  constructor(
-    private api: ApiService,
-    private permissionService: PermissionService,
-    private toast: ToastService,
-    private router: Router,
-    private i18n: I18nService,
-    private tabs: TabSyncService,
-  ) {
+  constructor() {
     this.tabs.messages.subscribe((message) => {
       if (message.kind === 'signed-out') this.signedOutElsewhere();
       if (message.kind === 'signed-in') this.signedInElsewhere(message.userId);

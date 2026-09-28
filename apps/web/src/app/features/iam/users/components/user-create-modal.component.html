@@ -1,4 +1,4 @@
-<smt-dialog [open]="isOpen()" [smtTitle]="'iam.sozdat_polzovatelya' | t" smtSize="md" (closed)="close.emit()">
+<smt-dialog [open]="isOpen()" [smtTitle]="'iam.sozdat_polzovatelya' | t" smtSize="md" (closed)="closeModal.emit()">
   <ng-template smtDialogContent>
     <div body class="clean-modal-body">
       <div class="form-grid">
@@ -231,7 +231,7 @@
       </div>
     </div>
     <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
+      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
         {{ 'common.cancel' | t }}
       </button>
       <button
@@ -240,7 +240,7 @@
         smtVariant="primary"
         smtSize="md"
         [smtLoading]="isSubmitting()"
-        (click)="submit.emit()"
+        (click)="submitForm.emit()"
       >
         {{ 'common.create' | t }}
       </button>

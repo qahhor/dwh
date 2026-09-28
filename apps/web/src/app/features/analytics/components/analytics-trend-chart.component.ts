@@ -17,10 +17,10 @@ export class AnalyticsTrendChartComponent {
 
   readonly trends = input<TrendDataPoint[]>([]);
 
-  hoveredPoint = signal<ChartPoint | null>(null);
-  hoverIndex = signal<number | null>(null);
+  readonly hoveredPoint = signal<ChartPoint | null>(null);
+  readonly hoverIndex = signal<number | null>(null);
 
-  chartPoints = computed<ChartPoint[]>(() => {
+  readonly chartPoints = computed<ChartPoint[]>(() => {
     const list = this._trends();
     if (list.length === 0) return [];
 
@@ -47,7 +47,7 @@ export class AnalyticsTrendChartComponent {
     });
   });
 
-  yAxisTicks = computed<YAxisTick[]>(() => {
+  readonly yAxisTicks = computed<YAxisTick[]>(() => {
     const list = this._trends();
     if (list.length === 0) return [];
     let maxVal = 1;
@@ -63,19 +63,19 @@ export class AnalyticsTrendChartComponent {
     ];
   });
 
-  createdLinePath = computed(() => {
+  readonly createdLinePath = computed(() => {
     const pts = this.chartPoints();
     if (pts.length === 0) return '';
     return pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.yCreated}` : `L ${p.x} ${p.yCreated}`)).join(' ');
   });
 
-  completedLinePath = computed(() => {
+  readonly completedLinePath = computed(() => {
     const pts = this.chartPoints();
     if (pts.length === 0) return '';
     return pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.yCompleted}` : `L ${p.x} ${p.yCompleted}`)).join(' ');
   });
 
-  createdAreaPath = computed(() => {
+  readonly createdAreaPath = computed(() => {
     const pts = this.chartPoints();
     if (pts.length === 0) return '';
     const line = this.createdLinePath();
@@ -84,7 +84,7 @@ export class AnalyticsTrendChartComponent {
     return `${line} L ${last.x} 190 L ${first.x} 190 Z`;
   });
 
-  completedAreaPath = computed(() => {
+  readonly completedAreaPath = computed(() => {
     const pts = this.chartPoints();
     if (pts.length === 0) return '';
     const line = this.completedLinePath();
@@ -92,7 +92,7 @@ export class AnalyticsTrendChartComponent {
     const first = pts[0];
     return `${line} L ${last.x} 190 L ${first.x} 190 Z`;
   });
-  private _trends = computed<TrendDataPoint[]>(() => this.trends() || []);
+  private readonly _trends = computed<TrendDataPoint[]>(() => this.trends() || []);
 
   setHoveredPoint(pt: ChartPoint, idx: number): void {
     this.hoveredPoint.set(pt);

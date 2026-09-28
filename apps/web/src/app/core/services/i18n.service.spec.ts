@@ -1,3 +1,4 @@
+import { Injector, runInInjectionContext } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,7 +25,8 @@ describe('I18nService', () => {
       patch: vi.fn(() => (options.failPatch ? throwError(() => new Error('save failed')) : of(undefined))),
       post: vi.fn(() => of({})),
     } as unknown as HttpClient;
-    return { service: new I18nService(http), http };
+    const injector = Injector.create({ providers: [{ provide: HttpClient, useValue: http }] });
+    return { service: runInInjectionContext(injector, () => new I18nService()), http };
   }
 
   it('initializes the registry, Russian fallback, and saved language', async () => {

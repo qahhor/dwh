@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
@@ -55,7 +55,7 @@ import { UiToastContainerComponent } from './shared/ui/ui-toast.component';
   ],
 })
 export class AppComponent implements OnInit {
-  constructor(public authService: AuthService) {}
+  authService = inject(AuthService);
 
   ngOnInit() {
     this.authService.checkSession().subscribe();

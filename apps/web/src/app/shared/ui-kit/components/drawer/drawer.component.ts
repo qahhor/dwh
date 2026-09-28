@@ -53,11 +53,11 @@ export class SMTDrawerComponent {
 
   private readonly config = inject<SMTDrawerConfig>(SMT_DRAWER_CONFIG);
 
-  className = input<string>('', { alias: 'smtContainerClass' });
+  readonly className = input<string>('', { alias: 'smtContainerClass' });
 
-  isClosing = model(false);
+  readonly isClosing = model(false);
 
-  contentContainer = viewChild.required('contentContainer', { read: ViewContainerRef });
+  readonly contentContainer = viewChild.required('contentContainer', { read: ViewContainerRef });
 
   private readonly panelRef = viewChild<ElementRef<HTMLElement>>('panel');
 

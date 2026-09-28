@@ -72,8 +72,8 @@ export class UserCreateModalComponent {
   readonly createForm = input<UserCreateForm>(createDefaultUserCreateForm());
   readonly customFields = input<CustomField[]>([]);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
+  readonly closeModal = output<void>();
+  readonly submitForm = output<void>();
   readonly generatePassword = output<void>();
   readonly copyPassword = output<void>();
 

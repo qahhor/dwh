@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { Observable, Subject, map, of, startWith, switchMap, take, takeUntil, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { ToastService } from './toast.service';
@@ -26,6 +26,10 @@ interface BackendUnreadCount {
   providedIn: 'root',
 })
 export class NotificationService {
+  private api = inject(ApiService);
+  private toast = inject(ToastService);
+  private i18n = inject(I18nService);
+
   readonly unreadCount = signal<number>(0);
   readonly activeAnnouncement = signal<Announcement | null>(null);
 
@@ -33,12 +37,6 @@ export class NotificationService {
   private isConnecting = false;
   private readonly sessionEnded = new Subject<void>();
   private readonly unreadChanged = new Subject<void>();
-
-  constructor(
-    private api: ApiService,
-    private toast: ToastService,
-    private i18n: I18nService,
-  ) {}
 
   fetchUnreadCount(): Observable<{ unreadCount: number }> {
     return this.unreadChanged.pipe(

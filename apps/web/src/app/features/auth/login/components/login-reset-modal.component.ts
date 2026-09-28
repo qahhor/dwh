@@ -60,7 +60,7 @@ export class LoginResetModalComponent {
 
   readonly isOpen = input(false);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
 
   readonly resetError = signal<string>('');
   readonly isResetLoading = signal<boolean>(false);
@@ -69,7 +69,7 @@ export class LoginResetModalComponent {
   onClose(): void {
     this.resetEmail.set('');
     this.resetError.set('');
-    this.close.emit();
+    this.closeModal.emit();
   }
 
   sendResetRequest(): void {

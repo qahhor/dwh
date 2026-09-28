@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, input, output } from '@angular/core';
 
 import { NotificationPrefItem } from '@core/models/notification.models';
 import { TranslatePipe } from '@core/services/i18n.service';
@@ -21,7 +21,7 @@ export interface EventTypeRow {
       [smtTitle]="'notifications.preferences_title' | t"
       smtSize="lg"
       [dismissible]="!isSaving()"
-      (closed)="close.emit()"
+      (closed)="closeModal.emit()"
     >
       <ng-template smtDialogContent>
         <p class="modal-desc">
@@ -87,7 +87,7 @@ export interface EventTypeRow {
         </div>
 
         <div footer>
-          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving()">
+          <button smt-button smtVariant="secondary" type="button" (click)="closeModal.emit()" [disabled]="isSaving()">
             {{ 'common.cancel' | t }}
           </button>
           <button smt-button type="button" [smtLoading]="isSaving()" (click)="onSave()">{{ 'common.save' | t }}</button>
@@ -101,13 +101,13 @@ export class NotificationPreferencesModalComponent implements OnInit {
   readonly initialPreferences = input<NotificationPrefItem[]>([]);
   readonly isSaving = input(false);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
   readonly save = output<NotificationPrefItem[]>();
 
   readonly eventRows: EventTypeRow[] = [
     { code: 'task_assigned', titleKey: 'notifications.pref_task_assigned' },
-    { code: 'task_observer', titleKey: 'notifications.pref_task_observer' },
     { code: 'task_status', titleKey: 'notifications.pref_task_status' },
+    { code: 'task_comment', titleKey: 'notifications.pref_task_comment' },
     { code: 'task_deadline', titleKey: 'notifications.pref_task_deadline' },
     { code: 'task_deadline_reminder', titleKey: 'notifications.pref_task_deadline_reminder' },
     { code: 'task_member_removed', titleKey: 'notifications.pref_task_member_removed' },

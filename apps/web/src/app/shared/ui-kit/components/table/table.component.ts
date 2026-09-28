@@ -121,44 +121,44 @@ export class SMTTableComponent<T> {
 
   private ngZone = inject(NgZone);
 
-  data = input.required<T[]>({ alias: 'smtData' });
+  readonly data = input.required<T[]>({ alias: 'smtData' });
 
-  isLoading = input<boolean>(false, { alias: 'smtIsLoading' });
+  readonly isLoading = input<boolean>(false, { alias: 'smtIsLoading' });
 
   /**
    * Skeleton row count when loading with no existing data (first fetch / empty table).
    * Defaults to 10; data-table should pass `pageSize`.
    */
-  skeletonRowCount = input(10, { alias: 'smtSkeletonRowCount' });
+  readonly skeletonRowCount = input(10, { alias: 'smtSkeletonRowCount' });
 
   /** Explicit max-height override. When not set the table auto-sizes to the remaining viewport space. */
-  maxHeight = input<string | null>(null, { alias: 'smtMaxHeight' });
+  readonly maxHeight = input<string | null>(null, { alias: 'smtMaxHeight' });
 
-  expandedRow = input<T | null>(null, { alias: 'smtExpandedRow' });
+  readonly expandedRow = input<T | null>(null, { alias: 'smtExpandedRow' });
 
-  detailClosing = input<boolean>(false, { alias: 'smtDetailClosing' });
+  readonly detailClosing = input<boolean>(false, { alias: 'smtDetailClosing' });
 
-  tabs = input<TableTabItem[]>([], { alias: 'smtTabs' });
+  readonly tabs = input<TableTabItem[]>([], { alias: 'smtTabs' });
 
-  showTabs = input(true, { alias: 'smtShowTabs', transform: booleanAttribute });
+  readonly showTabs = input(true, { alias: 'smtShowTabs', transform: booleanAttribute });
 
-  tabsPlacement = input<'top'>('top', { alias: 'smtTabsPlacement' });
+  readonly tabsPlacement = input<'top'>('top', { alias: 'smtTabsPlacement' });
 
-  activeTabId = input<string | null>(null, { alias: 'smtActiveTabId' });
+  readonly activeTabId = input<string | null>(null, { alias: 'smtActiveTabId' });
 
-  defaultActiveTabId = input<string>('', { alias: 'smtDefaultActiveTabId' });
+  readonly defaultActiveTabId = input<string>('', { alias: 'smtDefaultActiveTabId' });
 
-  rowDndEnabled = input(false, { alias: 'smtRowDndEnabled', transform: booleanAttribute });
+  readonly rowDndEnabled = input(false, { alias: 'smtRowDndEnabled', transform: booleanAttribute });
 
-  rowDndControlled = input(false, { alias: 'smtRowDndControlled', transform: booleanAttribute });
+  readonly rowDndControlled = input(false, { alias: 'smtRowDndControlled', transform: booleanAttribute });
 
-  columnResizeEnabled = input(true, { alias: 'smtColumnResizeEnabled', transform: booleanAttribute });
+  readonly columnResizeEnabled = input(true, { alias: 'smtColumnResizeEnabled', transform: booleanAttribute });
 
   /** Escape hatch: `false` restores full rendering of every row regardless of row count. */
-  virtualRowsEnabled = input(true, { alias: 'smtVirtualRows', transform: booleanAttribute });
+  readonly virtualRowsEnabled = input(true, { alias: 'smtVirtualRows', transform: booleanAttribute });
 
   /** Replaces the generic "nothing found" state, e.g. with advice to clear filters. */
-  emptyTemplate = input<TemplateRef<unknown> | null>(null, { alias: 'smtEmptyTemplate' });
+  readonly emptyTemplate = input<TemplateRef<unknown> | null>(null, { alias: 'smtEmptyTemplate' });
 
   rowClick = output<T>({ alias: 'smtRowClick' });
 
@@ -177,52 +177,52 @@ export class SMTTableComponent<T> {
 
   columnResize = output<TableColumnResizeEvent>({ alias: 'smtColumnResize' });
 
-  config = model.required<TableConfig<T>>({ alias: 'smtConfig' });
+  readonly config = model.required<TableConfig<T>>({ alias: 'smtConfig' });
 
-  selectedItems = model<T[]>([], { alias: 'smtSelectedItems' });
+  readonly selectedItems = model<T[]>([], { alias: 'smtSelectedItems' });
 
-  protected scrollContainer = viewChild<ElementRef<HTMLElement>>('scrollContainer');
+  protected readonly scrollContainer = viewChild<ElementRef<HTMLElement>>('scrollContainer');
 
-  protected tableSurfaceRef = viewChild<ElementRef<HTMLElement>>('tableSurface');
+  protected readonly tableSurfaceRef = viewChild<ElementRef<HTMLElement>>('tableSurface');
 
-  detailRowTemplate = contentChild<TemplateRef<{ $implicit: T }>>('smtDetailRow');
+  readonly detailRowTemplate = contentChild<TemplateRef<{ $implicit: T }>>('smtDetailRow');
 
-  protected showScrollToTop = signal(false);
+  protected readonly showScrollToTop = signal(false);
 
-  protected showHorizontalScrollLeft = signal(false);
+  protected readonly showHorizontalScrollLeft = signal(false);
 
-  protected showHorizontalScrollRight = signal(false);
+  protected readonly showHorizontalScrollRight = signal(false);
 
   /** Pixel height lock while collapsing the detail row (null when not closing). */
-  protected detailCloseHeightPx = signal<number | null>(null);
+  protected readonly detailCloseHeightPx = signal<number | null>(null);
 
   /** Hide heavy action content after height is locked so close doesn't reflow controls. */
-  protected showDetailContent = signal(true);
+  protected readonly showDetailContent = signal(true);
 
-  protected resizeContainerWidth = signal(1);
+  protected readonly resizeContainerWidth = signal(1);
 
-  protected liveResizedWidths = signal<Record<string, number>>({});
+  protected readonly liveResizedWidths = signal<Record<string, number>>({});
 
-  private uncontrolledActiveTabId = signal<string>('');
+  private readonly uncontrolledActiveTabId = signal<string>('');
 
-  private dndData = signal<T[] | null>(null);
+  private readonly dndData = signal<T[] | null>(null);
 
-  private scrollContainerClientWidth = signal(BIRUNI_GRID_MIN_WIDTH_PX);
+  private readonly scrollContainerClientWidth = signal(BIRUNI_GRID_MIN_WIDTH_PX);
 
-  private scrollContainerClientHeight = signal(0);
+  private readonly scrollContainerClientHeight = signal(0);
 
-  private verticalScrollTop = signal(0);
+  private readonly verticalScrollTop = signal(0);
 
   /** Horizontal pan position — drives column windowing; template must not read this. */
-  private horizontalScrollLeft = signal(0);
+  private readonly horizontalScrollLeft = signal(0);
 
   /** Average height of the currently rendered data rows (adapts the window to wrapped/multi-line rows). */
-  private measuredRowHeightPx = signal<number | null>(null);
+  private readonly measuredRowHeightPx = signal<number | null>(null);
 
   /** Last measured height of the open detail block — spacer compensation while it's above the window. */
-  private expandedDetailHeightPx = signal(0);
+  private readonly expandedDetailHeightPx = signal(0);
 
-  selectionType = computed(() => {
+  readonly selectionType = computed(() => {
     const dataLength = this.data().length;
     const selectedLength = this.selectedItems().length;
 
@@ -232,10 +232,10 @@ export class SMTTableComponent<T> {
     return 'partial-selected';
   });
 
-  isEmptyData = computed(() => !this.isLoading() && this.data().length === 0);
+  readonly isEmptyData = computed(() => !this.isLoading() && this.data().length === 0);
 
   /** Placeholder rows only when loading an empty table (no previous data to skeletonize). */
-  skeletons = computed(() => {
+  readonly skeletons = computed(() => {
     const requested = Math.max(1, Math.round(this.skeletonRowCount()) || 10);
     return Array(Math.min(requested, MAX_SKELETON_ROWS)).fill(2);
   });
@@ -246,7 +246,7 @@ export class SMTTableComponent<T> {
    * - has data + loading → only the first {@link MAX_SKELETON_ROWS} rows (skeletonized); rest hidden
    * - not loading → real data only
    */
-  tableData = computed(() => {
+  readonly tableData = computed(() => {
     const rows = this.visualData();
     if (!this.isLoading()) return rows;
     if (rows.length === 0) return this.skeletons();
@@ -258,17 +258,19 @@ export class SMTTableComponent<T> {
    * hidden columns are out of reach without a pointer. It becomes a named Tab
    * stop only while it actually overflows, so a table that fits adds none.
    */
-  protected scrollsSideways = computed(() => this.showHorizontalScrollLeft() || this.showHorizontalScrollRight());
+  protected readonly scrollsSideways = computed(
+    () => this.showHorizontalScrollLeft() || this.showHorizontalScrollRight(),
+  );
 
   /* Table semantics. The grid is drawn with divs, so without these roles a
      screen reader meets a stack of unrelated blocks instead of a table: no
      header association, no row count, no sort state. */
-  protected tableRole = computed(() => this.config().ariaRole ?? 'table');
+  protected readonly tableRole = computed(() => this.config().ariaRole ?? 'table');
 
-  protected cellRole = computed(() => (this.tableRole() === 'treegrid' ? 'gridcell' : 'cell'));
+  protected readonly cellRole = computed(() => (this.tableRole() === 'treegrid' ? 'gridcell' : 'cell'));
 
   /** Counts every row, not only the rendered window, so virtualization is invisible to the reader. */
-  protected ariaRowCount = computed(() => this.headerRowCount() + this.tableData().length);
+  protected readonly ariaRowCount = computed(() => this.headerRowCount() + this.tableData().length);
 
   /**
    * Windowed rendering guard. Falls back to full rendering (the pre-virtualization path,
@@ -277,7 +279,7 @@ export class SMTTableComponent<T> {
    * row does NOT disable windowing — see {@link expandedRowIndex} / spacer compensation;
    * close-while-offscreen is covered by the {@link DETAIL_CLOSE_FALLBACK_MS} timeout.
    */
-  protected virtualScrollActive = computed(() => {
+  protected readonly virtualScrollActive = computed(() => {
     if (!this.virtualRowsEnabled() || this.rowDndEnabled()) return false;
     return this.tableData().length > VIRTUAL_ROW_THRESHOLD;
   });
@@ -288,7 +290,7 @@ export class SMTTableComponent<T> {
    * An open detail block above the window shifts scrollTop by its height — subtract
    * it so the scrollTop→row-index mapping stays aligned.
    */
-  protected virtualRange = computed<{ start: number; end: number }>(() => {
+  protected readonly virtualRange = computed<{ start: number; end: number }>(() => {
     const total = this.tableData().length;
     if (!this.virtualScrollActive()) return { start: 0, end: total };
 
@@ -307,14 +309,14 @@ export class SMTTableComponent<T> {
     return { start, end };
   });
 
-  protected virtualRows = computed(() => {
+  protected readonly virtualRows = computed(() => {
     const rows = this.tableData();
     const { start, end } = this.virtualRange();
     if (start === 0 && end >= rows.length) return rows;
     return rows.slice(start, end);
   });
 
-  protected virtualTopSpacerPx = computed(() => {
+  protected readonly virtualTopSpacerPx = computed(() => {
     if (!this.virtualScrollActive()) return 0;
     const { start } = this.virtualRange();
     // An unmounted open detail block above the window still occupies scroll height.
@@ -323,31 +325,31 @@ export class SMTTableComponent<T> {
     return Math.round(start * this.virtualRowHeightPx() + detailAbovePx);
   });
 
-  protected virtualBottomSpacerPx = computed(() => {
+  protected readonly virtualBottomSpacerPx = computed(() => {
     if (!this.virtualScrollActive()) return 0;
     const hidden = this.tableData().length - this.virtualRange().end;
     return Math.max(0, Math.round(hidden * this.virtualRowHeightPx()));
   });
 
-  protected hasMultipleSelection = computed(() => this.config().hasMultipleSelection ?? false);
+  protected readonly hasMultipleSelection = computed(() => this.config().hasMultipleSelection ?? false);
 
-  protected biruniGridLayout = computed(() => this.config().biruniGridLayout ?? false);
+  protected readonly biruniGridLayout = computed(() => this.config().biruniGridLayout ?? false);
 
-  protected columnResizeBasisWidth = computed(() =>
+  protected readonly columnResizeBasisWidth = computed(() =>
     this.biruniGridLayout()
       ? getBiruniTableSizingBasisWidth(this.scrollContainerClientWidth())
       : this.resizeContainerWidth(),
   );
 
   /** Biruni always appends trailing `1fr` after the percent tracks. */
-  protected biruniShowsFillerColumn = computed(() => this.biruniGridLayout());
+  protected readonly biruniShowsFillerColumn = computed(() => this.biruniGridLayout());
 
   /**
    * Biruni parity: `%` / units are shares of a **stable viewport basis**, then painted as `px`.
    * Table width = max(basis, sum of those px). Expanding one column grows only that track +
    * total width — siblings keep the same px (legacy does not re-% against an expanded grid).
    */
-  protected biruniGridWidthPx = computed(() => {
+  protected readonly biruniGridWidthPx = computed(() => {
     const containerW = Math.max(1, this.scrollContainerClientWidth());
     const basis = getBiruniTableSizingBasisWidth(containerW);
     if (!this.biruniGridLayout()) return basis;
@@ -363,17 +365,19 @@ export class SMTTableComponent<T> {
     return Math.max(basis, Math.round(sumPx));
   });
 
-  protected showCheckboxInDedicatedColumn = computed(() => this.biruniGridLayout() && this.hasMultipleSelection());
+  protected readonly showCheckboxInDedicatedColumn = computed(
+    () => this.biruniGridLayout() && this.hasMultipleSelection(),
+  );
 
-  protected canUseRowDnd = computed(() => this.rowDndEnabled() && !this.isLoading() && !this.hasDetailRow());
+  protected readonly canUseRowDnd = computed(() => this.rowDndEnabled() && !this.isLoading() && !this.hasDetailRow());
 
-  protected selectedSet = computed(() => new Set<unknown>(this.selectedItems()));
+  protected readonly selectedSet = computed(() => new Set<unknown>(this.selectedItems()));
 
-  protected columnResizeMinPx = computed(() => Math.max(24, Math.round(this.columnResizeBasisWidth() * 0.04)));
+  protected readonly columnResizeMinPx = computed(() => Math.max(24, Math.round(this.columnResizeBasisWidth() * 0.04)));
 
-  protected columnResizeMaxPx = computed(() => Math.max(1000, this.resizeContainerWidth() * 10));
+  protected readonly columnResizeMaxPx = computed(() => Math.max(1000, this.resizeContainerWidth() * 10));
 
-  protected columnsView = computed((): TableColumnView<T>[] => {
+  protected readonly columnsView = computed((): TableColumnView<T>[] => {
     const cfg = this.config();
     const biruni = this.biruniGridLayout();
     const multi = this.hasMultipleSelection();
@@ -399,13 +403,13 @@ export class SMTTableComponent<T> {
     });
   });
 
-  protected columnTrackWidthsPx = computed(() => {
+  protected readonly columnTrackWidthsPx = computed(() => {
     if (!this.biruniGridLayout()) return [];
     const basis = this.columnResizeBasisWidth();
     return this.config().columnsOrder.map((column) => this.getBiruniColumnTrackWidthPx(column, basis));
   });
 
-  protected dedicatedCheckboxWidthPx = computed(() => {
+  protected readonly dedicatedCheckboxWidthPx = computed(() => {
     if (!this.showCheckboxInDedicatedColumn()) return 0;
     return resolveBiruniTrackWidthPx(biruniSelectionColumnPercent(), this.columnResizeBasisWidth());
   });
@@ -414,13 +418,13 @@ export class SMTTableComponent<T> {
    * Windowed columns: Biruni px tracks only, and never together with row DnD
    * (drop indexes / drag preview assume a full grid).
    */
-  protected virtualColsActive = computed(() => {
+  protected readonly virtualColsActive = computed(() => {
     if (this.rowDndEnabled()) return false;
     if (!this.biruniGridLayout()) return false;
     return this.config().columnsOrder.length > VIRTUAL_COL_THRESHOLD;
   });
 
-  protected virtualColRange = computed(() => {
+  protected readonly virtualColRange = computed(() => {
     const total = this.config().columnsOrder.length;
     if (!this.virtualColsActive()) {
       return this.retainColRange(0, total);
@@ -460,12 +464,12 @@ export class SMTTableComponent<T> {
     return this.retainColRange(start, end);
   });
 
-  protected visibleColumnsView = computed(() => {
+  protected readonly visibleColumnsView = computed(() => {
     const { start, end } = this.virtualColRange();
     return this.columnsView().slice(start, end);
   });
 
-  protected virtualLeftSpacerPx = computed(() => {
+  protected readonly virtualLeftSpacerPx = computed(() => {
     if (!this.virtualColsActive()) return 0;
     const { start } = this.virtualColRange();
     const widths = this.columnTrackWidthsPx();
@@ -474,7 +478,7 @@ export class SMTTableComponent<T> {
     return Math.round(sum);
   });
 
-  protected virtualRightSpacerPx = computed(() => {
+  protected readonly virtualRightSpacerPx = computed(() => {
     if (!this.virtualColsActive()) return 0;
     const { end } = this.virtualColRange();
     const widths = this.columnTrackWidthsPx();
@@ -488,7 +492,7 @@ export class SMTTableComponent<T> {
    * tracks are px against the viewport basis (checkbox = CELL_SHARE) + trailing `1fr`.
    * Wide Biruni grids replace off-screen tracks with spacers (column window).
    */
-  protected gridTemplateColumns = computed(() => {
+  protected readonly gridTemplateColumns = computed(() => {
     const parts: string[] = [];
     if (this.biruniGridLayout()) {
       const basis = this.columnResizeBasisWidth();
@@ -524,30 +528,30 @@ export class SMTTableComponent<T> {
   });
 
   /** Biruni: width locked to sizing basis (viewport − 5); non-Biruni grows with content. */
-  protected tableSurfaceClass = computed(() => {
+  protected readonly tableSurfaceClass = computed(() => {
     if (this.biruniGridLayout()) return '';
     return this.config().layout === 'fit' ? 'w-full' : 'min-w-full w-max';
   });
 
-  protected tableRefClass = computed(() =>
+  protected readonly tableRefClass = computed(() =>
     this.biruniGridLayout() || this.config().layout === 'fit'
       ? 'w-full smt-grid-table'
       : 'min-w-full w-max smt-grid-table',
   );
 
-  protected visibleTabs = computed(() => this.tabs().filter((tab) => tab.id?.trim().length > 0));
+  protected readonly visibleTabs = computed(() => this.tabs().filter((tab) => tab.id?.trim().length > 0));
 
-  protected hasTabs = computed(
+  protected readonly hasTabs = computed(
     () => this.showTabs() && this.visibleTabs().length > 0 && this.tabsPlacement() === 'top',
   );
 
-  protected resolvedActiveTabId = computed(() => {
+  protected readonly resolvedActiveTabId = computed(() => {
     const controlled = this.activeTabId();
     if (controlled && controlled.trim().length > 0) return controlled;
     return this.uncontrolledActiveTabId();
   });
 
-  protected tabBarTabs = computed<Tab[]>(() =>
+  protected readonly tabBarTabs = computed<Tab[]>(() =>
     this.visibleTabs().map((tab) => ({
       label: tab.label,
       badgeValue: tab.badge,
@@ -555,7 +559,7 @@ export class SMTTableComponent<T> {
     })),
   );
 
-  protected activeTabIndex = computed(() => {
+  protected readonly activeTabIndex = computed(() => {
     const tabs = this.visibleTabs();
     if (tabs.length === 0) return 0;
     const activeId = this.resolvedActiveTabId();
@@ -563,15 +567,15 @@ export class SMTTableComponent<T> {
     return index >= 0 ? index : 0;
   });
 
-  protected visualData = computed(() => {
+  protected readonly visualData = computed(() => {
     if (!this.rowDndEnabled() || this.rowDndControlled()) return this.data();
     return this.dndData() ?? this.data();
   });
 
-  private headerRowCount = computed(() => (this.config().hideHeader ? 0 : 1));
+  private readonly headerRowCount = computed(() => (this.config().hideHeader ? 0 : 1));
 
   /** Index of the expanded (or closing) detail row within the current data; -1 when none. */
-  private expandedRowIndex = computed(() => {
+  private readonly expandedRowIndex = computed(() => {
     if (!this.detailRowTemplate()) return -1;
     const row = this.expandedRow();
     if (row === null) return -1;
@@ -579,14 +583,14 @@ export class SMTTableComponent<T> {
   });
 
   /** Config `rowHeight` when it's a plain px value; otherwise the measured average. */
-  private virtualRowHeightPx = computed(() => {
+  private readonly virtualRowHeightPx = computed(() => {
     const raw = (this.config().rowHeight ?? '').trim();
     const px = /^(\d+(?:\.\d+)?)px$/.exec(raw);
     if (px) return Math.max(1, Number.parseFloat(px[1]));
     return this.measuredRowHeightPx() ?? VIRTUAL_DEFAULT_ROW_HEIGHT_PX;
   });
 
-  private hasDetailRow = computed(() => !!this.detailRowTemplate() && this.expandedRow() != null);
+  private readonly hasDetailRow = computed(() => !!this.detailRowTemplate() && this.expandedRow() != null);
 
   /** Dedicated checkbox column: selection UI is separate; cell text is empty. */
   protected readonly checkboxCellContent: ColumnContentType<unknown> = {

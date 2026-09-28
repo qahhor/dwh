@@ -27,6 +27,11 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
   styleUrl: './language-editor.component.css',
 })
 export class LanguageEditorComponent implements OnInit {
+  private readonly settingsApi = inject(SettingsApi);
+  private readonly i18n = inject(I18nService);
+  private readonly permissionService = inject(PermissionService);
+  private readonly toast = inject(ToastService);
+
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
@@ -68,12 +73,9 @@ export class LanguageEditorComponent implements OnInit {
 
   readonly canEdit: boolean;
 
-  constructor(
-    private readonly settingsApi: SettingsApi,
-    private readonly i18n: I18nService,
-    private readonly permissionService: PermissionService,
-    private readonly toast: ToastService,
-  ) {
+  constructor() {
+    const permissionService = this.permissionService;
+
     this.canEdit =
       permissionService.hasPermission('platform.settings', 'update') ||
       permissionService.hasPermission('settings', 'update');

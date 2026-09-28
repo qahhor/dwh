@@ -87,6 +87,8 @@
       [attr.aria-label]="ariaLabel() || i18n.messages().select.name"
     >
       @for (option of visibleOptions(); track $index; let index = $index) {
+        <!-- Focus stays in the combobox, which moves aria-activedescendant over the options with the keyboard. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <li
           class="smt-select__option"
           role="option"

@@ -74,7 +74,7 @@ function formatBytes(bytes: number): string {
         [searchQuery]="searchQuery"
         (scopeChange)="setScope($event)"
         (searchQueryChange)="onSearchQueryChange($event)"
-        (search)="searchFiles()"
+        (searchSubmit)="searchFiles()"
         (clear)="onClearSearch()"
         (refresh)="refreshAll()"
       ></app-files-toolbar>
@@ -126,6 +126,9 @@ function formatBytes(bytes: number): string {
   ],
 })
 export class FilesComponent implements OnInit, OnDestroy {
+  private permService = inject(PermissionService);
+  private toast = inject(ToastService);
+
   private readonly preview = inject(SMTFilePreviewService);
   private readonly filesApi = inject(FilesApi);
   private readonly uiI18n = inject(I18nService);
@@ -177,11 +180,6 @@ export class FilesComponent implements OnInit, OnDestroy {
   searchQuery = '';
 
   readonly canDeleteFileBound = (file: FileDetail) => this.canDeleteFile(file);
-
-  constructor(
-    private permService: PermissionService,
-    private toast: ToastService,
-  ) {}
 
   /** The scope as an export option; the same object while the scope stays, so the button is not re-rendered. */
   exportOptions(): Record<string, string> {

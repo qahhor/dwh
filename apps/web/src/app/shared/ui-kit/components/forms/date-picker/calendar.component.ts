@@ -158,7 +158,7 @@ export class SMTCalendarComponent {
 
   onKeydown(event: KeyboardEvent): void {
     const current = this.active();
-    let next: CalendarDate | null = null;
+    let next: CalendarDate;
     switch (event.key) {
       case 'ArrowLeft':
         next = addDays(current, -1);
