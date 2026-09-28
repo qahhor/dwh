@@ -831,6 +831,25 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The browser E2E suite passes again: 54 of 54 on fresh stacks, in the two
+  CI shards (it failed 41 of 54 on main). Most failures cascaded from a
+  lockout: after every failed test the restarted worker first tried the
+  retired bootstrap password, until the server locked the runner's address;
+  the helper now remembers the rotation. The rest were specs behind the UI
+  kit, the query DSL and the idempotent retries, and product defects that
+  the suite exposed, fixed here:
+  - a wrong current password in the profile signed the person out (the
+    401 went through the session-expiry interceptor);
+  - dialogs without a name when their title arrived after opening, and the
+    first dialog of a page without its panel styles;
+  - focus lost on the body when a confirmation and the dialog under it
+    closed together, and when a failed sign-in re-enabled the password field;
+  - a failed upload announced only by a toast that an open modal hides from
+    assistive technology;
+  - tab focus rings clipped by the scrolling tab strip;
+  - German and the other former built-in languages could not be switched
+    back on (adding the code answered 409); adding a switched-off language
+    now switches it on with its overrides.
 - Two accessibility defects that failed the axe gate (`npm run test:a11y`) on
   main: the list of a select was named "Выбор значения" instead of its field
   (the manager picker, for one), and a sortable header with the select-all
