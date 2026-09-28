@@ -4,7 +4,6 @@ import {
   DestroyRef,
   OnInit,
   signal,
-  computed,
   inject,
   linkedSignal,
   viewChild,
@@ -16,9 +15,8 @@ import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
 import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
-import { ToastService } from '@core/services/toast.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { Role, FormTreeItem, PermissionPair } from '@core/models/rbac.models';
+import { Role, FormTreeItem } from '@core/models/rbac.models';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { RoleScopePanelComponent } from '../org-units/public-api';
@@ -26,22 +24,15 @@ import { RoleModalsComponent } from './components/role-modals.component';
 import { RoleCardsBarComponent } from './components/role-cards-bar.component';
 import { RolePermissionsMatrixComponent } from './components/role-permissions-matrix.component';
 import {
-  GroupedForm,
   ModuleGroup,
   MODULE_ICON_MAP,
   MODULE_NAME_KEY_MAP,
   buildModuleGroups,
-  arePermissionsDirty,
-  countDirtyPermissions,
-  toggleFormPermissionSet,
-  toggleModulePermissionSet,
-  toggleReadOnlyModulePermissionSet,
-  toggleAllPermissionsSet,
-  toggleReadOnlyAllPermissionsSet,
   filterRoles,
   filterModuleGroups,
 } from './roles.models';
-import { EditRoleForm, NewRoleForm, RoleFormsService } from './services/role-forms.service';
+import { RoleFormsService } from './services/role-forms.service';
+import { RolePermissionsEditor } from './services/role-permissions-editor.service';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
@@ -57,49 +48,33 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     RoleCardsBarComponent,
     RolePermissionsMatrixComponent,
   ],
+  providers: [RolePermissionsEditor],
   templateUrl: './roles.component.html',
   styleUrl: './roles.component.css',
 })
 export class RolesComponent implements OnInit {
+  readonly roleForms = inject(RoleFormsService);
+  readonly matrix = inject(RolePermissionsEditor);
   private readonly router = inject(Router, { optional: true });
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
-
-  private readonly roleForms = inject(RoleFormsService);
 
   private readonly scopePanel = viewChild(RoleScopePanelComponent);
 
   readonly roles = signal<Role[]>([]);
   readonly forms = signal<FormTreeItem[]>([]);
-  readonly selectedRole = signal<Role | null>(null);
-  readonly rolePermissions = signal<Set<string>>(new Set());
-  readonly originalRolePermissions = signal<Set<string>>(new Set());
-
-  readonly isLoading = signal<boolean>(false);
-  readonly permissionsError = signal('');
-  readonly isSaving = signal<boolean>(false);
   /** The scope panel's unsaved or saving state; a panel that goes away (another role, no right) is not busy. */
   readonly scopePanelBusy = linkedSignal({ source: this.scopePanel, computation: () => false });
   readonly roleUserCounts = signal<Record<number, number>>({});
   readonly isDiscardPermissionsModalOpen = signal<boolean>(false);
-  private readonly loadedPermissionsRoleId = signal<number | null>(null);
+  private readonly pendingRoleToSelect = signal<Role | null>(null);
 
-  readonly isPermissionsDirty = computed<boolean>(() =>
-    arePermissionsDirty(this.originalRolePermissions(), this.rolePermissions()),
-  );
-
-  readonly dirtyPermissionsCount = computed<number>(() =>
-    countDirtyPermissions(this.originalRolePermissions(), this.rolePermissions()),
-  );
-
-  readonly hasPermissionFn = (formCode: string, action: string) => this.hasPermission(formCode, action);
-  readonly isPermissionDirtyFn = (formCode: string, action: string) => this.isPermissionDirty(formCode, action);
-  readonly getModuleIconFn = (moduleCode: string) => this.getModuleIcon(moduleCode);
-  readonly getModuleActionsCountFn = (mod: ModuleGroup) => this.getModuleActionsCount(mod);
-  private permissionsRequest?: Subscription;
+  // Arrow fields: the matrix takes them as inputs, so they keep one identity.
+  readonly getModuleIcon = (mod: string): string => MODULE_ICON_MAP[mod] || 'folder';
+  readonly getModuleActionsCount = (mod: ModuleGroup): number =>
+    mod.forms.reduce((sum, f) => sum + f.actions.length, 0);
   private panelLeaveSubscription?: Subscription;
   readonly safeRoleId = safeNumericRecordId;
-  readonly isSubmittingRole = this.roleForms.isSubmittingRole;
 
   roleSearchQuery = '';
   matrixSearchQuery = '';
@@ -107,60 +82,11 @@ export class RolesComponent implements OnInit {
 
   moduleGroups: ModuleGroup[] = [];
 
-  // Modals & Form State
-  readonly isCreateModalOpen = this.roleForms.isCreateModalOpen;
-  readonly isEditModalOpen = this.roleForms.isEditModalOpen;
-  readonly isDeleteModalOpen = this.roleForms.isDeleteModalOpen;
-  pendingRoleToSelect: Role | null = null;
-
   constructor(
     public permService: PermissionService,
     private rolesApi: RolesApi,
-    private toast: ToastService,
   ) {
     this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
-  }
-
-  get isCreateSubmitted() {
-    return this.roleForms.isCreateSubmitted;
-  }
-  set isCreateSubmitted(v: boolean) {
-    this.roleForms.isCreateSubmitted = v;
-  }
-
-  get isEditSubmitted() {
-    return this.roleForms.isEditSubmitted;
-  }
-  set isEditSubmitted(v: boolean) {
-    this.roleForms.isEditSubmitted = v;
-  }
-
-  get newRoleForm() {
-    return this.roleForms.newRoleForm;
-  }
-  set newRoleForm(v: NewRoleForm) {
-    this.roleForms.newRoleForm = v;
-  }
-
-  get editRoleForm() {
-    return this.roleForms.editRoleForm;
-  }
-  set editRoleForm(v: EditRoleForm) {
-    this.roleForms.editRoleForm = v;
-  }
-
-  get editingRole() {
-    return this.roleForms.editingRole;
-  }
-  set editingRole(v: Role | null) {
-    this.roleForms.editingRole = v;
-  }
-
-  get deletingRole() {
-    return this.roleForms.deletingRole;
-  }
-  set deletingRole(v: Role | null) {
-    this.roleForms.deletingRole = v;
   }
 
   ngOnInit() {
@@ -192,12 +118,6 @@ export class RolesComponent implements OnInit {
     );
   }
 
-  canGrant(): boolean {
-    return (
-      this.permService.hasPermission('rbac.roles', 'grant') || this.permService.hasPermission('iam.roles', 'grant')
-    );
-  }
-
   canViewOrgUnits(): boolean {
     return (
       this.permService.hasPermission('iam.org_units', 'view') ||
@@ -207,20 +127,8 @@ export class RolesComponent implements OnInit {
   }
 
   canLeaveRecordPage(): boolean | Observable<boolean> {
-    if (this.isSaving() || this.isPermissionsDirty()) return false;
+    if (this.matrix.isSaving() || this.matrix.isPermissionsDirty()) return false;
     return this.scopePanel()?.canLeave() ?? true;
-  }
-
-  canEditPermissions(): boolean {
-    const role = this.selectedRole();
-    return (
-      !!role &&
-      role.pcode !== 'admin' &&
-      this.canGrant() &&
-      this.loadedPermissionsRoleId() === role.id &&
-      !this.isLoading() &&
-      !this.isSaving()
-    );
   }
 
   loadRoles() {
@@ -232,7 +140,7 @@ export class RolesComponent implements OnInit {
         next: (res) => {
           const list = res || [];
           this.roles.set(list);
-          if (!this.selectedRole() && list.length > 0) {
+          if (!this.matrix.selectedRole() && list.length > 0) {
             this.selectRole(list[0]);
           }
         },
@@ -264,70 +172,49 @@ export class RolesComponent implements OnInit {
     this.moduleGroups = buildModuleGroups(items, (mod) => this.getModuleDisplayName(mod));
   }
 
+  /** Switching roles asks about an unsaved matrix and waits for the scope panel to let go. */
   selectRole(role: Role) {
-    if (this.isSaving() || this.isSubmittingRole() || this.destroyRef.destroyed) return;
-    const selected = this.selectedRole();
+    if (this.matrix.isSaving() || this.roleForms.isSubmittingRole() || this.destroyRef.destroyed) return;
+    const selected = this.matrix.selectedRole();
     if (this.scopePanelBusy() && selected?.id !== role.id) return;
     if (!selected || selected.id === role.id) {
-      this.activateRole(role);
+      this.matrix.load(role);
       return;
     }
-    if (this.isPermissionsDirty()) {
-      this.pendingRoleToSelect = role;
+    if (this.matrix.isPermissionsDirty()) {
+      this.pendingRoleToSelect.set(role);
       this.isDiscardPermissionsModalOpen.set(true);
       return;
     }
-    this.afterRoleScopeLeave(() => this.activateRole(role));
+    this.afterRoleScopeLeave(() => this.matrix.load(role));
   }
 
   closeDiscardModal(): void {
-    if (this.isSaving()) return;
-    this.pendingRoleToSelect = null;
+    if (this.matrix.isSaving()) return;
+    this.pendingRoleToSelect.set(null);
     this.isDiscardPermissionsModalOpen.set(false);
   }
 
   confirmDiscardAndSwitch(): void {
-    if (this.isSaving()) return;
-    const nextRole = this.pendingRoleToSelect;
+    if (this.matrix.isSaving()) return;
+    const nextRole = this.pendingRoleToSelect();
     this.isDiscardPermissionsModalOpen.set(false);
-    this.pendingRoleToSelect = null;
+    this.pendingRoleToSelect.set(null);
     if (nextRole) {
-      this.rolePermissions.set(new Set(this.originalRolePermissions()));
-      this.afterRoleScopeLeave(() => this.activateRole(nextRole));
+      this.matrix.discardChanges();
+      this.afterRoleScopeLeave(() => this.matrix.load(nextRole));
     }
   }
 
   saveAndSwitch(): void {
-    const nextRole = this.pendingRoleToSelect;
-    const currentRole = this.selectedRole();
-    if (!currentRole || !this.canEditPermissions()) return;
-
-    this.isSaving.set(true);
-    const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map((p) => {
-      const parts = p.split('.');
-      const action = parts.pop() || '';
-      const formCode = parts.join('.');
-      return { formCode, action };
+    const nextRole = this.pendingRoleToSelect();
+    this.matrix.savePermissions(() => {
+      this.isDiscardPermissionsModalOpen.set(false);
+      this.pendingRoleToSelect.set(null);
+      if (nextRole) {
+        this.afterRoleScopeLeave(() => this.matrix.load(nextRole));
+      }
     });
-
-    this.rolesApi
-      .savePermissions(currentRole.id, pairs)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.isSaving.set(false);
-          this.originalRolePermissions.set(new Set(this.rolePermissions()));
-          this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
-          this.isDiscardPermissionsModalOpen.set(false);
-          this.pendingRoleToSelect = null;
-          if (nextRole) {
-            this.afterRoleScopeLeave(() => this.activateRole(nextRole));
-          }
-        },
-        error: () => {
-          this.isSaving.set(false);
-        },
-      });
   }
 
   filteredRoles(): Role[] {
@@ -340,10 +227,6 @@ export class RolesComponent implements OnInit {
 
   matchingFormsCount(): number {
     return this.visibleModuleGroups().reduce((acc, mod) => acc + mod.forms.length, 0);
-  }
-
-  getModuleActionsCount(mod: ModuleGroup): number {
-    return mod.forms.reduce((sum, f) => sum + f.actions.length, 0);
   }
 
   setAllModulesExpanded(expanded: boolean) {
@@ -359,16 +242,14 @@ export class RolesComponent implements OnInit {
     return key ? this.uiI18n.translate(key) : this.uiI18n.translate('iam.module_named', { name: mod.toUpperCase() });
   }
 
-  getModuleIcon(mod: string): string {
-    return MODULE_ICON_MAP[mod] || 'folder';
-  }
-
   totalActionsCount(): number {
     return this.forms().length;
   }
 
   activePermissionsCount(): number {
-    return this.selectedRole()?.pcode === 'admin' ? this.totalActionsCount() : this.rolePermissions().size;
+    return this.matrix.selectedRole()?.pcode === 'admin'
+      ? this.totalActionsCount()
+      : this.matrix.rolePermissions().size;
   }
 
   permissionPercentage(): number {
@@ -376,94 +257,17 @@ export class RolesComponent implements OnInit {
     return total === 0 ? 0 : Math.round((this.activePermissionsCount() / total) * 100);
   }
 
-  hasPermission(formCode: string, action: string): boolean {
-    return this.selectedRole()?.pcode === 'admin' || this.rolePermissions().has(`${formCode}.${action}`);
-  }
-
-  togglePermission(formCode: string, action: string, checked: boolean) {
-    if (!this.canEditPermissions()) return;
-
-    const current = new Set(this.rolePermissions());
-    const key = `${formCode}.${action}`;
-
-    if (checked) {
-      current.add(key);
-    } else {
-      current.delete(key);
-    }
-    this.rolePermissions.set(current);
-  }
-
-  toggleAllForm(form: GroupedForm, grant: boolean) {
-    if (!this.canEditPermissions()) return;
-    this.rolePermissions.set(toggleFormPermissionSet(this.rolePermissions(), form, grant));
-  }
-
-  toggleAllModule(moduleGroup: ModuleGroup, grant: boolean) {
-    if (!this.canEditPermissions()) return;
-    this.rolePermissions.set(toggleModulePermissionSet(this.rolePermissions(), moduleGroup, grant));
-  }
-
-  toggleReadOnlyModule(moduleGroup: ModuleGroup) {
-    if (!this.canEditPermissions()) return;
-    this.rolePermissions.set(toggleReadOnlyModulePermissionSet(this.rolePermissions(), moduleGroup));
-  }
-
-  isPermissionDirty(formCode: string, action: string): boolean {
-    if (this.selectedRole()?.pcode === 'admin') return false;
-    const key = `${formCode}.${action}`;
-    return this.originalRolePermissions().has(key) !== this.rolePermissions().has(key);
-  }
-
-  resetMatrixChanges(): void {
-    if (!this.canEditPermissions()) return;
-    this.rolePermissions.set(new Set(this.originalRolePermissions()));
-  }
-
   toggleAllPermissions(grant: boolean): void {
-    if (!this.canEditPermissions()) return;
-    this.rolePermissions.set(toggleAllPermissionsSet(this.rolePermissions(), this.moduleGroups, grant));
+    this.matrix.toggleAllPermissions(this.moduleGroups, grant);
   }
 
   toggleReadOnlyAllPermissions(): void {
-    if (!this.canEditPermissions()) return;
-    this.rolePermissions.set(toggleReadOnlyAllPermissionsSet(this.rolePermissions(), this.moduleGroups));
+    this.matrix.toggleReadOnlyAllPermissions(this.moduleGroups);
   }
 
   navigateToUsersWithRole(role: Role, event: Event): void {
     event.stopPropagation();
     this.router?.navigate(['/iam/users'], { queryParams: { roleId: role.id } });
-  }
-
-  savePermissions() {
-    const role = this.selectedRole();
-    if (!role || !this.canEditPermissions()) return;
-
-    this.isSaving.set(true);
-    const pairs: PermissionPair[] = Array.from(this.rolePermissions()).map((p) => {
-      const parts = p.split('.');
-      const action = parts.pop() || '';
-      const formCode = parts.join('.');
-      return { formCode, action };
-    });
-
-    this.rolesApi
-      .savePermissions(role.id, pairs)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.isSaving.set(false);
-          this.originalRolePermissions.set(new Set(this.rolePermissions()));
-          this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
-        },
-        error: () => {
-          this.isSaving.set(false);
-        },
-      });
-  }
-
-  openCreateModal() {
-    this.roleForms.openCreateModal();
   }
 
   submitCreateRole() {
@@ -473,10 +277,6 @@ export class RolesComponent implements OnInit {
     });
   }
 
-  openEditRoleModal(role: Role) {
-    this.roleForms.openEditRoleModal(role);
-  }
-
   submitEditRole() {
     this.roleForms.submitEditRole(() => {
       this.loadRoles();
@@ -484,57 +284,24 @@ export class RolesComponent implements OnInit {
   }
 
   openDeleteRoleModal(role: Role) {
-    this.roleForms.openDeleteRoleModal(role, this.isSaving(), this.scopePanelBusy());
-  }
-
-  closeDeleteRoleModal(): void {
-    this.roleForms.closeDeleteRoleModal();
+    this.roleForms.openDeleteRoleModal(role, this.matrix.isSaving(), this.scopePanelBusy());
   }
 
   confirmDeleteRole() {
-    const target = this.deletingRole;
+    const target = this.roleForms.deletingRole;
     if (
       !target ||
-      this.isSaving() ||
+      this.matrix.isSaving() ||
       this.scopePanelBusy() ||
-      this.isSubmittingRole() ||
+      this.roleForms.isSubmittingRole() ||
       !safeNumericRecordId(target.id)
     )
       return;
-    if (this.selectedRole()?.id === target.id) {
+    if (this.matrix.selectedRole()?.id === target.id) {
       this.afterRoleScopeLeave(() => this.deleteRole(target));
       return;
     }
     this.deleteRole(target);
-  }
-
-  private activateRole(role: Role): void {
-    if (this.destroyRef.destroyed) return;
-    this.permissionsRequest?.unsubscribe();
-    this.selectedRole.set(role);
-    this.rolePermissions.set(new Set());
-    this.originalRolePermissions.set(new Set());
-    this.loadedPermissionsRoleId.set(null);
-    this.permissionsError.set('');
-    this.isLoading.set(true);
-    this.permissionsRequest = this.rolesApi
-      .permissions(role.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          if (this.selectedRole()?.id !== role.id) return;
-          const perms = new Set(res || []);
-          this.rolePermissions.set(new Set(perms));
-          this.originalRolePermissions.set(new Set(perms));
-          this.loadedPermissionsRoleId.set(role.id);
-          this.isLoading.set(false);
-        },
-        error: (error) => {
-          if (this.selectedRole()?.id !== role.id) return;
-          this.permissionsError.set(error.detail || error.title);
-          this.isLoading.set(false);
-        },
-      });
   }
 
   private afterRoleScopeLeave(action: () => void): void {
@@ -552,16 +319,9 @@ export class RolesComponent implements OnInit {
   }
 
   private deleteRole(target: Role): void {
-    if (this.destroyRef.destroyed || this.isSubmittingRole() || !this.isDeleteModalOpen()) return;
+    if (this.destroyRef.destroyed || this.roleForms.isSubmittingRole() || !this.roleForms.isDeleteModalOpen()) return;
     this.roleForms.deleteRole(target, () => {
-      if (this.selectedRole()?.id === target.id) {
-        this.permissionsRequest?.unsubscribe();
-        this.selectedRole.set(null);
-        this.rolePermissions.set(new Set());
-        this.loadedPermissionsRoleId.set(null);
-        this.permissionsError.set('');
-        this.isLoading.set(false);
-      }
+      this.matrix.clearIfSelected(target.id);
       this.loadRoles();
     });
   }

@@ -112,7 +112,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect.soft(checkbox('view').disabled).toBe(true);
     expect.soft(saveButton()?.disabled).toBe(true);
     saveButton()!.click();
-    fixture.componentInstance.savePermissions();
+    fixture.componentInstance.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
@@ -126,7 +126,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   it('cannot submit an accidental empty permission set during initial loading', () => {
     const pendingA = http.expectOne('/api/v1/rbac/roles/1/permissions');
     saveButton()!.click();
-    fixture.componentInstance.savePermissions();
+    fixture.componentInstance.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
@@ -144,7 +144,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect.soft(host.querySelector('[role="alert"]')?.textContent ?? '').toContain('Permission lookup unavailable');
     expect.soft(saveButton()?.disabled).toBe(true);
     expect.soft(checkbox('view').disabled).toBe(true);
-    fixture.componentInstance.savePermissions();
+    fixture.componentInstance.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
@@ -176,20 +176,20 @@ describe('RolesComponent permission matrix lifecycle', () => {
         ),
       )
       .toBe(true);
-    fixture.componentInstance.savePermissions();
+    fixture.componentInstance.matrix.savePermissions();
     const duplicates = http.match((request) => request.method === 'PUT');
     expect.soft(duplicates).toHaveLength(0);
     for (const write of duplicates) write.flush(null);
 
     const component = fixture.componentInstance;
-    component.togglePermission('tasks.items', 'update', true);
-    component.toggleAllForm(component.moduleGroups[0].forms[0], true);
-    component.toggleAllModule(component.moduleGroups[0], false);
+    component.matrix.togglePermission('tasks.items', 'update', true);
+    component.matrix.toggleAllForm(component.moduleGroups[0].forms[0], true);
+    component.matrix.toggleAllModule(component.moduleGroups[0], false);
     component.selectRole(roles[1]);
     for (const request of http.match('/api/v1/rbac/roles/2/permissions')) request.flush(['tasks.items.update']);
 
-    expect.soft(component.selectedRole()?.id).toBe(1);
-    expect.soft(Array.from(component.rolePermissions())).toEqual(['tasks.items.view']);
+    expect.soft(component.matrix.selectedRole()?.id).toBe(1);
+    expect.soft(Array.from(component.matrix.rolePermissions())).toEqual(['tasks.items.view']);
     firstWrite.flush(null);
     fixture.detectChanges();
     expect(saveButton()?.disabled).toBe(false);
@@ -226,12 +226,12 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect.soft(saveButton()).toBeNull();
     expect.soft(checkbox('view').disabled).toBe(true);
     const component = fixture.componentInstance;
-    component.toggleAllModule(component.moduleGroups[0], false);
-    component.savePermissions();
+    component.matrix.toggleAllModule(component.moduleGroups[0], false);
+    component.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
-    expect(Array.from(component.rolePermissions())).toEqual(['tasks.items.view']);
+    expect(Array.from(component.matrix.rolePermissions())).toEqual(['tasks.items.view']);
   });
 
   it('does not submit changes to the administrator matrix', () => {
@@ -240,7 +240,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     http.expectOne('/api/v1/rbac/roles/3/permissions').flush(['tasks.items.view']);
     fixture.detectChanges();
     saveButton()?.click();
-    fixture.componentInstance.savePermissions();
+    fixture.componentInstance.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
     expect.soft(writes).toHaveLength(0);
     for (const write of writes) write.flush(null);
@@ -253,6 +253,6 @@ describe('RolesComponent permission matrix lifecycle', () => {
     const component = fixture.componentInstance;
     fixture.destroy();
     if (!pending.cancelled) pending.flush(['tasks.items.view']);
-    expect(Array.from(component.rolePermissions())).toEqual([]);
+    expect(Array.from(component.matrix.rolePermissions())).toEqual([]);
   });
 });

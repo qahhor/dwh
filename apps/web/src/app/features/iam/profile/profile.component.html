@@ -1,0 +1,71 @@
+<div class="profile-container">
+  <ui-page-header [title]="'nav.profile' | t" [count]="'iam.bezopasnost_i_nastroyki' | t"></ui-page-header>
+
+  <!-- User Info Card -->
+  <app-user-profile-card [user]="authService.currentUser()"></app-user-profile-card>
+
+  <!-- Main Grid Sections -->
+  <div class="sections-grid">
+    <!-- Change Password Card -->
+    <app-profile-password-card
+      [passwordForm]="passwordForm()"
+      [isPasswordSubmitted]="isPasswordSubmitted()"
+      [isChangingPassword]="isChangingPassword()"
+      [passwordStrength]="passwordStrength()"
+      [hasMinLength]="hasMinLength()"
+      [hasLettersAndNumbers]="hasLettersAndNumbers()"
+      [hasMixedCase]="hasMixedCase()"
+      [passwordsMatch]="passwordsMatch()"
+      (submitPassword)="submitChangePassword($event)"
+    ></app-profile-password-card>
+
+    <!-- Security & 2FA Info Card -->
+    <app-profile-security-card [user]="authService.currentUser()"></app-profile-security-card>
+
+    <!-- Communication Channels Card -->
+    <app-profile-channels-card
+      #channelsCard
+      [channels]="channels()"
+      [isLoadingChannels]="isLoadingChannels()"
+      [isBindingChannel]="isBindingChannel()"
+      [isConfirmingChannel]="isConfirmingChannel()"
+      [canManageChannels]="canManageChannels()"
+      (bindChannel)="onBindChannel($event)"
+      (confirmChannel)="onConfirmChannel($event)"
+      (unbindChannel)="onUnbindChannel($event)"
+    ></app-profile-channels-card>
+
+    <!-- Active Sessions Card -->
+    <app-profile-sessions-card
+      [sessions]="sessions()"
+      [isLoadingSessions]="isLoadingSessions()"
+      [isTerminatingSession]="isTerminatingSession()"
+      (loadSessions)="loadSessions()"
+      (terminateSession)="requestTerminateSession($event)"
+      (terminateOtherSessions)="requestTerminateOtherSessions()"
+    ></app-profile-sessions-card>
+
+    <!-- API Tokens Card -->
+    <app-profile-tokens-card
+      [tokens]="tokens()"
+      [isLoadingTokens]="isLoadingTokens()"
+      [isCreatingToken]="isCreatingToken()"
+      [isCreateTokenModalOpen]="isCreateTokenModalOpen()"
+      [isTokenSecretModalOpen]="isTokenSecretModalOpen()"
+      [isTokenSubmitted]="isTokenSubmitted()"
+      [newTokenName]="newTokenName()"
+      [selectedTokenExpiration]="selectedTokenExpiration()"
+      [createdTokenSecret]="createdTokenSecret()"
+      [copiedSecret]="copiedSecret()"
+      [tokenExpirationOptions]="tokenExpirationOptions"
+      (openCreateTokenModal)="openCreateTokenModal()"
+      (closeCreateTokenModal)="isCreateTokenModalOpen.set(false)"
+      (createTokenSubmit)="createTokenSubmit()"
+      (nameChange)="newTokenName.set($event)"
+      (expirationChange)="selectedTokenExpiration.set($event)"
+      (closeSecretModal)="isTokenSecretModalOpen.set(false)"
+      (copySecret)="copySecret()"
+      (requestRevoke)="requestRevokeToken($event)"
+    ></app-profile-tokens-card>
+  </div>
+</div>
