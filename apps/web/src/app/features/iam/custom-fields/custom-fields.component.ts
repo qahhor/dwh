@@ -13,11 +13,13 @@ import { CustomFieldsFormService } from './services/custom-fields-form.service';
 import { finalize, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-custom-fields',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTButtonComponent,
     TranslatePipe,
     CustomFieldsToolbarComponent,
@@ -27,33 +29,29 @@ import { problemText } from '@shared/ui/problem-text';
   template: `
     <div class="custom-fields-page">
       <!-- Header -->
-      <div class="view-header">
-        <div class="header-left">
-          <div class="title-with-badge">
-            <h1 class="view-title">{{ 'iam.dinamicheskie_atributy' | t }}</h1>
-            <span class="count-badge" [title]="'iam.vsego_poley' | t">{{ filteredFields().length }}</span>
-          </div>
-          <span class="view-subtitle">{{ 'iam.sohranennye_znacheniya_etogo_atributa_mogut_stat' | t }}</span>
-        </div>
-        <div class="header-actions">
-          <button
-            type="button"
-            class="icon-refresh-btn"
-            [class.spinning]="isLoading()"
-            [disabled]="isLoading()"
-            (click)="loadFields()"
-            [attr.aria-label]="'iam.obnovit_polya' | t"
-            [title]="'common.refresh' | t"
-          >
-            <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+      <ui-page-header
+        [title]="'iam.dinamicheskie_atributy' | t"
+        [subtitle]="'iam.sohranennye_znacheniya_etogo_atributa_mogut_stat' | t"
+        [count]="filteredFields().length"
+        [countLabel]="'iam.vsego_poley' | t"
+      >
+        <button
+          type="button"
+          class="icon-refresh-btn"
+          [class.spinning]="isLoading()"
+          [disabled]="isLoading()"
+          (click)="loadFields()"
+          [attr.aria-label]="'iam.obnovit_polya' | t"
+          [title]="'common.refresh' | t"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+        </button>
+        @if (canCreate()) {
+          <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
+            {{ 'iam.dobavit_pole' | t }}
           </button>
-          @if (canCreate()) {
-            <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
-              {{ 'iam.dobavit_pole' | t }}
-            </button>
-          }
-        </div>
-      </div>
+        }
+      </ui-page-header>
 
       <!-- Toolbar: Filter Tabs and Search -->
       <app-custom-fields-toolbar

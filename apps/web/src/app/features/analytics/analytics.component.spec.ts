@@ -99,8 +99,8 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   }
 
   function refresh() {
-    const button = Array.from(host.querySelectorAll<HTMLButtonElement>('.header-right button')).find((candidate) =>
-      candidate.textContent?.includes('Обновить'),
+    const button = Array.from(host.querySelectorAll<HTMLButtonElement>('.view-header__actions button')).find(
+      (candidate) => candidate.textContent?.includes('Обновить'),
     )!;
     button.click();
     fixture.detectChanges();
@@ -166,7 +166,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     requests.summary.flush({ ...summary, totalTasks: 99 });
     await renderResponses();
 
-    expect.soft(host.querySelector('.tile-value')?.textContent?.trim()).toBe('12');
+    expect.soft(host.querySelector('.kpi__value')?.textContent?.trim()).toBe('12');
 
     requests.projects.flush({ detail: 'Projects unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     flushIfActive(requests.trends, latestTrends);
@@ -174,7 +174,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     await renderResponses();
 
     expect(host.querySelector('[role="alert"]')?.textContent).toContain('Projects unavailable');
-    expect(host.querySelector('.tile-value')?.textContent?.trim()).toBe('12');
+    expect(host.querySelector('.kpi__value')?.textContent?.trim()).toBe('12');
     expect(host.querySelector('.project-name')?.textContent).toBe('Original project');
     expect(host.querySelector('.user-name-text')?.textContent).toBe('Original user');
     expect(host.querySelector('.trend-svg')?.textContent).toContain('09-01');
@@ -189,7 +189,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     await renderResponses();
 
     expect(fixture.componentInstance.loading()).toBe(true);
-    expect(host.querySelector('.tile-value')?.textContent?.trim()).toBe('12');
+    expect(host.querySelector('.kpi__value')?.textContent?.trim()).toBe('12');
 
     flushIfActive(old.summary, { ...summary, totalTasks: 99 });
     flushIfActive(old.projects, projects);
@@ -203,7 +203,7 @@ describe('AnalyticsComponent request and rendering contracts', () => {
     await renderResponses();
 
     expect(fixture.componentInstance.loading()).toBe(false);
-    expect(host.querySelector('.tile-value')?.textContent?.trim()).toBe('99');
+    expect(host.querySelector('.kpi__value')?.textContent?.trim()).toBe('99');
     expect(host.querySelector('.trend-svg')?.textContent).toContain('09-07');
     expect(host.querySelector('.chart-card .card-subtitle')?.textContent).toContain('30d');
   });

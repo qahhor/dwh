@@ -22,11 +22,13 @@ import { SettingsLanguagesPanelComponent } from './components/settings-languages
 import { WebhooksSettingsComponent } from './webhooks/webhooks-settings.component';
 import { SMTTabBarComponent, SMTTabItem } from '@shared/ui-kit/components/tab-bar';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-settings',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTTabBarComponent,
     FormsModule,
     TranslatePipe,

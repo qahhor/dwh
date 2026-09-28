@@ -20,6 +20,7 @@ import { AnnouncementsListComponent } from './components/announcements-list.comp
 import { AnnouncementsModalsComponent } from './components/announcements-modals.component';
 import { EMPTY, catchError, finalize, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 export type {
   AnnouncementState,
@@ -33,6 +34,7 @@ export type {
 @Component({
   selector: 'app-announcements',
   imports: [
+    UiPageHeaderComponent,
     TranslatePipe,
     SMTButtonComponent,
     AnnouncementsToolbarComponent,
@@ -42,37 +44,35 @@ export type {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="announcements-page" aria-labelledby="announcements-title">
-      <header class="view-header">
-        <div>
-          <p class="eyebrow">{{ 'announcements.lokalnye_soobscheniya' | t }}</p>
-          <h1 id="announcements-title">{{ 'announcements.obyavleniya' | t }}</h1>
-          <p class="subtitle">{{ 'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t }}</p>
-        </div>
-        <div class="header-actions">
+      <ui-page-header
+        [title]="'announcements.obyavleniya' | t"
+        [eyebrow]="'announcements.lokalnye_soobscheniya' | t"
+        [subtitle]="'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t"
+        titleId="announcements-title"
+      >
+        <button
+          smt-button
+          type="button"
+          smtVariant="secondary"
+          smtIcon="refresh"
+          [smtLoading]="isLoading()"
+          [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+          (click)="loadAnnouncements()"
+        >
+          {{ 'common.refresh' | t }}
+        </button>
+        @if (canCreate()) {
           <button
             smt-button
             type="button"
-            smtVariant="secondary"
-            smtIcon="refresh"
-            [smtLoading]="isLoading()"
-            [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
-            (click)="loadAnnouncements()"
+            smtIcon="add"
+            [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
+            (click)="openCreate()"
           >
-            {{ 'common.refresh' | t }}
+            {{ 'common.create' | t }}
           </button>
-          @if (canCreate()) {
-            <button
-              smt-button
-              type="button"
-              smtIcon="add"
-              [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
-              (click)="openCreate()"
-            >
-              {{ 'common.create' | t }}
-            </button>
-          }
-        </div>
-      </header>
+        }
+      </ui-page-header>
 
       @if (operationError()) {
         <div class="inline-alert" role="alert">
@@ -205,35 +205,12 @@ export type {
         max-width: 1180px;
         margin: 0 auto;
       }
-      .view-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
-      }
-      .eyebrow {
-        margin: 0 0 4px;
-        color: var(--primary);
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
+
       h1 {
         margin: 0;
         color: var(--text-main);
         font-size: 26px;
         line-height: 1.2;
-      }
-      .subtitle {
-        margin: 8px 0 0;
-        color: var(--text-muted);
-        font-size: 13px;
-        line-height: 1.5;
-      }
-      .header-actions {
-        display: flex;
-        gap: 8px;
       }
 
       .state-panel,
@@ -300,12 +277,6 @@ export type {
         }
       }
       @media (max-width: 680px) {
-        .view-header {
-          flex-direction: column;
-        }
-        .header-actions {
-          width: 100%;
-        }
         .state-panel,
         .inline-alert {
           align-items: flex-start;

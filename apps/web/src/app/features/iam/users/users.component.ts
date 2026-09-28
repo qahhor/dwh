@@ -60,11 +60,13 @@ import { UserSecurityService } from './services/user-security.service';
 import { UserFormsService } from './services/user-forms.service';
 import { UserFilterService } from './services/user-filter.service';
 import { UserDirectoryService } from './services/user-directory.service';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
   selector: 'app-users',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     TranslatePipe,
     FormsModule,
     SMTButtonComponent,

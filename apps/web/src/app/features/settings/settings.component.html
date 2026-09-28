@@ -1,24 +1,18 @@
 <div class="settings-page">
   <!-- Page Header -->
-  <div class="view-header">
-    <div class="header-left">
-      <h1 class="view-title">{{ 'settings.title' | t }}</h1>
-      <p class="view-subtitle">{{ 'settings.sistemnye_nastroyki' | t }}</p>
-    </div>
-    <div class="header-right">
-      <button
-        smt-button
-        type="button"
-        smtVariant="secondary"
-        smtIcon="refresh"
-        [smtLoading]="isLoading()"
-        [attr.aria-label]="'common.refresh' | t"
-        (click)="loadAllSettings()"
-      >
-        {{ 'common.refresh' | t }}
-      </button>
-    </div>
-  </div>
+  <ui-page-header [title]="'settings.title' | t" [subtitle]="'settings.sistemnye_nastroyki' | t">
+    <button
+      smt-button
+      type="button"
+      smtVariant="secondary"
+      smtIcon="refresh"
+      [smtLoading]="isLoading()"
+      [attr.aria-label]="'common.refresh' | t"
+      (click)="loadAllSettings()"
+    >
+      {{ 'common.refresh' | t }}
+    </button>
+  </ui-page-header>
 
   <!-- Error Banner -->
   @if (loadError()) {

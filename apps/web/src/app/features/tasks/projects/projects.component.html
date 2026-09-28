@@ -1,31 +1,21 @@
 <div class="projects-page">
   <!-- Header -->
-  <div class="view-header">
-    <div class="header-left">
-      <h1 class="view-title">{{ 'nav.projects' | t }}</h1>
-      @if (isListReady()) {
-        <span class="count-badge">{{ pager.total() }}</span>
-      }
-
-      <!-- View Mode Switcher -->
-      <smt-radio-group
-        smtAppearance="segmented"
-        class="view-switch"
-        [options]="viewOptions()"
-        [value]="viewMode"
-        [smtAriaLabel]="'projects.rezhim_otobrazheniya_proektov' | t"
-        (valueChange)="viewMode = $event ?? viewMode"
-      />
-    </div>
-
-    <div class="header-right">
-      @if (canCreateProject()) {
-        <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
-          {{ 'projects.novyy_proekt' | t }}
-        </button>
-      }
-    </div>
-  </div>
+  <ui-page-header [title]="'nav.projects' | t" [count]="isListReady() ? pager.total() : null">
+    <smt-radio-group
+      pageHeaderAside
+      smtAppearance="segmented"
+      class="view-switch"
+      [options]="viewOptions()"
+      [value]="viewMode"
+      [smtAriaLabel]="'projects.rezhim_otobrazheniya_proektov' | t"
+      (valueChange)="viewMode = $event ?? viewMode"
+    />
+    @if (canCreateProject()) {
+      <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
+        {{ 'projects.novyy_proekt' | t }}
+      </button>
+    }
+  </ui-page-header>
 
   <!-- Toolbar / Filter Bar -->
   <app-project-filter-bar

@@ -4,38 +4,7 @@
   flex-direction: column;
   gap: 20px;
 }
-.view-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.view-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-main);
-  margin: 0;
-}
-.count-badge {
-  background: var(--bg-hover);
-  padding: 2px 10px;
-  border-radius: 9999px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
+
 .search-box {
   width: 220px;
 }

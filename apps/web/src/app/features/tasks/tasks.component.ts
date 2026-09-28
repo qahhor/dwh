@@ -71,6 +71,7 @@ import { TaskFilterService } from './services/task-filter.service';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { TaskStatus, TaskType } from '@core/models/task.models';
 import { RecordAttributes } from './tasks.models';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
 
@@ -78,6 +79,7 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
   selector: 'app-tasks',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    UiPageHeaderComponent,
     SMTRadioGroupComponent,
     TranslatePipe,
     FormsModule,

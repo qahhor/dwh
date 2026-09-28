@@ -13,11 +13,7 @@
   flex-wrap: wrap;
   gap: 12px;
 }
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+
 .page-title {
   font-size: 18px;
   font-weight: 600;
@@ -32,11 +28,6 @@
   border-radius: 12px;
   font-weight: 500;
   border: 1px solid var(--border-color);
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 /* Main Matrix Card */

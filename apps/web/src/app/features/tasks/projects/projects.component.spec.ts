@@ -186,7 +186,7 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture();
     const host = inScreen(fixture.nativeElement);
 
-    (host.querySelector('.header-right .smt-button') as HTMLButtonElement).click();
+    (host.querySelector('.view-header__actions .smt-button') as HTMLButtonElement).click();
     redraw(fixture);
     // The dialog's fields meet ngModel a microtask after it opens.
     await fixture.whenStable();
@@ -283,7 +283,7 @@ describe('ProjectsComponent UI contracts', () => {
     const { fixture } = await createFixture({ api });
     const host = inScreen(fixture.nativeElement);
 
-    (host.querySelector('.header-right .smt-button') as HTMLButtonElement).click();
+    (host.querySelector('.view-header__actions .smt-button') as HTMLButtonElement).click();
     redraw(fixture);
     // The dialog's fields meet ngModel a microtask after it opens.
     await fixture.whenStable();

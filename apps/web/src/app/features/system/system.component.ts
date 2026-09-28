@@ -5,21 +5,22 @@ import { SystemApi, SystemInfo } from './system.api';
 export type { SystemInfo };
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
+import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 type OverallStatus = 'healthy' | 'attention' | 'unavailable';
 
 @Component({
   selector: 'app-system',
-  imports: [TranslatePipe, SMTButtonComponent, DatePipe],
+  imports: [UiPageHeaderComponent, TranslatePipe, SMTButtonComponent, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="system-page" aria-labelledby="system-title">
-      <header class="view-header">
-        <div>
-          <p class="eyebrow">{{ 'system.lokalnaya_ustanovka' | t }}</p>
-          <h1 id="system-title">{{ 'system.sostoyanie_sistemy' | t }}</h1>
-          <p class="subtitle">{{ 'system.diagnostika_etoy_ustanovki_bez_vneshney_telemetr' | t }}</p>
-        </div>
+      <ui-page-header
+        [title]="'system.sostoyanie_sistemy' | t"
+        [eyebrow]="'system.lokalnaya_ustanovka' | t"
+        [subtitle]="'system.diagnostika_etoy_ustanovki_bez_vneshney_telemetr' | t"
+        titleId="system-title"
+      >
         <button
           smt-button
           type="button"
@@ -31,7 +32,7 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
         >
           {{ 'common.refresh' | t }}
         </button>
-      </header>
+      </ui-page-header>
 
       @if (isLoading() && !systemInfo()) {
         <div class="state-panel" aria-busy="true" aria-live="polite">
@@ -214,33 +215,14 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
         max-width: 1400px;
         margin: 0 auto;
       }
-      .view-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 20px;
-      }
-      .eyebrow {
-        margin: 0 0 4px;
-        color: var(--primary);
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
+
       h1 {
         margin: 0;
         color: var(--text-main);
         font-size: 26px;
         line-height: 1.2;
       }
-      .subtitle {
-        max-width: 720px;
-        margin: 8px 0 0;
-        color: var(--text-muted);
-        font-size: 13px;
-        line-height: 1.5;
-      }
+
       .summary-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -548,10 +530,6 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
         }
       }
       @media (max-width: 600px) {
-        .view-header {
-          align-items: stretch;
-          flex-direction: column;
-        }
         .summary-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }

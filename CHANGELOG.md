@@ -686,6 +686,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Shared web components are one per task (plan 10/10, item 2.6): every
+  screen header is `ui-page-header` (the title looks the same on every
+  screen), every key-figure tile is `ui-kpi-card`, `shared/README.md` maps
+  tasks to components, and ESLint enforces the selector prefix of each
+  folder (`smt-`, `ui-`, `app-`).
 - Web types and imports (plan 10/10, item 2.5): no explicit `any` in the
   application code, and imports reach code two or more levels up by an
   alias (`@core`, `@shared`, `@features`, `@layout`, `@app`, `@testing`);

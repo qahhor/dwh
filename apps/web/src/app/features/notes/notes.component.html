@@ -1,41 +1,36 @@
 <div class="notes-view" role="region" [attr.aria-label]="'notes.title' | t">
-  <div class="view-header">
-    <div class="header-left">
-      <h1 class="view-title">{{ 'notes.title' | t }}</h1>
-      <span class="count-badge">{{ list().total }}</span>
-      <smt-tab-bar
-        class="tabs-bar"
-        [tabs]="tabs()"
-        [value]="activeTab()"
-        [smtAriaLabel]="'notes.title' | t"
-        (valueChange)="$event && setTab($event)"
-      />
-    </div>
-    <div class="header-right">
-      <smt-entity-toolbar
-        [meta]="meta()"
-        [views]="views"
-        [listMeta]="listMeta()"
-        [search]="search()"
-        [(selected)]="selectedIds"
-        (bulkDone)="firstPage.reload()"
-      />
-      <smt-input
-        class="search-box"
-        type="search"
-        smtIcon="search"
-        clearable
-        smtSize="sm"
-        [placeholder]="'notes.search_placeholder' | t"
-        [smtAriaLabel]="'notes.search_placeholder' | t"
-        [value]="search()"
-        (valueChange)="search.set($any($event) ?? '')"
-      />
-      @if (canCreate()) {
-        <ng-container [ngTemplateOutlet]="createButton" />
-      }
-    </div>
-  </div>
+  <ui-page-header [title]="'notes.title' | t" [count]="list().total">
+    <smt-tab-bar
+      pageHeaderAside
+      class="tabs-bar"
+      [tabs]="tabs()"
+      [value]="activeTab()"
+      [smtAriaLabel]="'notes.title' | t"
+      (valueChange)="$event && setTab($event)"
+    />
+    <smt-entity-toolbar
+      [meta]="meta()"
+      [views]="views"
+      [listMeta]="listMeta()"
+      [search]="search()"
+      [(selected)]="selectedIds"
+      (bulkDone)="firstPage.reload()"
+    />
+    <smt-input
+      class="search-box"
+      type="search"
+      smtIcon="search"
+      clearable
+      smtSize="sm"
+      [placeholder]="'notes.search_placeholder' | t"
+      [smtAriaLabel]="'notes.search_placeholder' | t"
+      [value]="search()"
+      (valueChange)="search.set($any($event) ?? '')"
+    />
+    @if (canCreate()) {
+      <ng-container [ngTemplateOutlet]="createButton" />
+    }
+  </ui-page-header>
 
   @if (meta(); as form) {
     @if (list().items.length > 0) {
