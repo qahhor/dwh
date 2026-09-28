@@ -12,7 +12,7 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
     @Test
     void failedProofConstructionCannotDropTemporaryObjectsItDidNotCreate() throws Exception {
         activeGeneration();
-        try (var connection = database.getConnection()) {
+        try (var connection = separateSession()) {
             var existing = new SingleConnectionDataSource(connection, true);
             var session = JdbcClient.create(existing);
             session.sql("create temporary table search_reconcile_index(id integer)")
