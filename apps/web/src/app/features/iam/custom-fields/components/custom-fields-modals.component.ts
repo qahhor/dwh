@@ -1,15 +1,15 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 
-import { FormsModule } from '@angular/forms';
 import { CustomField, CustomFieldFormData } from '../custom-fields.models';
+import { CustomFieldsFormService } from '../services/custom-fields-form.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group';
-import { SMTTextareaComponent, SMTTextareaValueAccessor } from '@shared/ui-kit/components/forms/textarea';
-import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '@shared/ui-kit/components/forms/checkbox';
+import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
+import { SMTCheckboxComponent } from '@shared/ui-kit/components/forms/checkbox';
 
 const ENTITY_TYPES: readonly [string, string][] = [
   ['USER', 'iam.polzovatel_user'],
@@ -32,14 +32,9 @@ const FIELD_TYPES: readonly [string, string][] = [
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
     SMTTextareaComponent,
-    SMTTextareaValueAccessor,
     SMTCheckboxComponent,
-    SMTCheckboxValueAccessor,
-    FormsModule,
     SMTDialogComponent,
     SMTDialogContentDirective,
     SMTButtonComponent,
@@ -50,6 +45,8 @@ const FIELD_TYPES: readonly [string, string][] = [
 })
 export class CustomFieldsModalsComponent {
   private readonly i18n = inject(I18nService);
+
+  private readonly formRules = inject(CustomFieldsFormService);
 
   readonly formData = input.required<CustomFieldFormData>();
 
@@ -70,6 +67,20 @@ export class CustomFieldsModalsComponent {
     return this.entityMemo([this.i18n.currentLang()], () =>
       ENTITY_TYPES.map(([id, key]) => ({ id, label: this.i18n.translate(key) })),
     );
+  }
+
+  /**
+   * The page cleans the code from the input event; the field shows the cleaned text at once. When the
+   * cleaned text equals the one bound last, [value] does not change, so the field is written here.
+   */
+  onCodeInput(event: Event, field: SMTInputComponent): void {
+    this.codeInput.emit(event);
+    const native = event.target as HTMLInputElement | null;
+    if (!native) return;
+    const cleaned = this.formRules.sanitizeCode(native.value);
+    if (cleaned === native.value) return;
+    field.value.set(cleaned);
+    native.value = cleaned;
   }
 
   fieldTypeOptions(): SMTSelectOption<string>[] {

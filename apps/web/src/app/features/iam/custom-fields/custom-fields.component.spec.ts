@@ -62,7 +62,7 @@ describe('CustomFieldsComponent', () => {
     expect(inScreen(fixture.nativeElement).querySelector('button[aria-label="Обновить поля"]')).not.toBeNull();
 
     expect(fixture.componentInstance.formData().isRequired).toBe(false);
-    await fixture.whenStable(); // NgForm registers its ngModel controls a tick after render
+    await fixture.whenStable(); // let the dialog finish rendering before the click
     required.click();
     await fixture.whenStable();
     expect(fixture.componentInstance.formData().isRequired).toBe(true);
@@ -312,6 +312,35 @@ describe('CustomFieldsComponent', () => {
 
     fixture.componentInstance.onCodeInput(event);
     expect(fixture.componentInstance.formData().code).toBe('my_special_code');
+  });
+
+  it('shows the cleaned code in the field as the person types, even when cleaning gives the last text back', async () => {
+    const { fixture } = await createFixture();
+    fixture.detectChanges();
+    fixture.componentInstance.openCreateModal();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const code = inScreen(fixture.nativeElement).querySelector('#custom-field-code') as HTMLInputElement;
+    // A typed character's input event bubbles to the smt-input host, where the page cleans the code.
+    const type = async (text: string) => {
+      code.value = text;
+      code.dispatchEvent(new Event('input', { bubbles: true }));
+      fixture.detectChanges();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    await type('My Code');
+    expect(code.value).toBe('my_code');
+    expect(fixture.componentInstance.formData().code).toBe('my_code');
+
+    // A second underscore collapses back to the text bound last.
+    await type('my_code_');
+    await type('my_code__');
+    expect(code.value).toBe('my_code_');
+    expect(fixture.componentInstance.formData().code).toBe('my_code_');
   });
 
   it('validates reserved codes and rejects them', async () => {

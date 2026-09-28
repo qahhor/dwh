@@ -95,7 +95,7 @@
         <smt-select
           smtTriggerId="profile-channel-type"
           name="channelType"
-          [(ngModel)]="selectedChannelType"
+          [(value)]="selectedChannelType"
           [options]="channelTypeOptions()"
           [allowClear]="false"
         />
@@ -110,12 +110,12 @@
           name="channelAddress"
           required
           [placeholder]="getChannelPlaceholder()"
-          [(ngModel)]="newAddress"
-          [smtInvalid]="isBindSubmitted && !newAddress.trim()"
-          [smtDescribedBy]="isBindSubmitted && !newAddress.trim() ? 'profile-channel-address-error' : null"
+          [(value)]="newAddress"
+          [smtInvalid]="isBindSubmitted && !newAddress().trim()"
+          [smtDescribedBy]="isBindSubmitted && !newAddress().trim() ? 'profile-channel-address-error' : null"
           (keydown.enter)="submitBind()"
         />
-        @if (isBindSubmitted && !newAddress.trim()) {
+        @if (isBindSubmitted && !newAddress().trim()) {
           <span id="profile-channel-address-error" class="field-error">
             {{ 'iam.adres_kanala_obyazatelen' | t }}
           </span>
@@ -166,14 +166,14 @@
           inputmode="numeric"
           smtPattern="[0-9]*"
           placeholder="000000"
-          [(ngModel)]="verificationCode"
-          [smtInvalid]="isConfirmSubmitted && verificationCode.trim().length !== 6"
+          [(value)]="verificationCode"
+          [smtInvalid]="isConfirmSubmitted && verificationCode().trim().length !== 6"
           [smtDescribedBy]="
-            isConfirmSubmitted && verificationCode.trim().length !== 6 ? 'profile-channel-code-error' : null
+            isConfirmSubmitted && verificationCode().trim().length !== 6 ? 'profile-channel-code-error' : null
           "
           (keydown.enter)="submitConfirm()"
         />
-        @if (isConfirmSubmitted && verificationCode.trim().length !== 6) {
+        @if (isConfirmSubmitted && verificationCode().trim().length !== 6) {
           <span id="profile-channel-code-error" class="field-error">
             {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
           </span>

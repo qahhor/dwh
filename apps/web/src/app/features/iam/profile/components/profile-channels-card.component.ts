@@ -8,9 +8,9 @@ import {
   viewChild,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiBadgeComponent } from '@shared/ui/ui-badge.component';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
@@ -18,18 +18,15 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { UserChannel } from '../profile.models';
-import { SMTInputComponent, SMTInputValueAccessor } from '@shared/ui-kit/components/forms/input';
-import { SMTSelectComponent, SMTSelectOption, SMTSelectValueAccessor } from '@shared/ui-kit/components/forms/select';
+import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
+import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 
 @Component({
   selector: 'app-profile-channels-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
-    SMTInputValueAccessor,
     SMTSelectComponent,
-    SMTSelectValueAccessor,
-    FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     UiBadgeComponent,
@@ -68,6 +65,11 @@ export class ProfileChannelsCardComponent {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('channelStatusCell');
   private readonly actionCell = viewChild.required<TemplateRef<unknown>>('channelActionCell');
 
+  /** What the dialogs edit; signals, since the page resets them from its request callbacks. */
+  readonly selectedChannelType = signal('email');
+  readonly newAddress = signal('');
+  readonly verificationCode = signal('');
+
   readonly rows = computed<UserChannel[]>(() => this.channels() ?? []);
 
   readonly config = computed<TableConfig<UserChannel>>(() => {
@@ -102,12 +104,8 @@ export class ProfileChannelsCardComponent {
   isBindSubmitted = false;
   isConfirmSubmitted = false;
 
-  selectedChannelType = 'email';
-  newAddress = '';
-
   activeVerifyToken = '';
   activeVerifyAddress = '';
-  verificationCode = '';
 
   /** A person has only a few channels and all are shown, so a header click sorts them all. */
   readonly sortValues = {
@@ -142,14 +140,14 @@ export class ProfileChannelsCardComponent {
   }
 
   getChannelPlaceholder(): string {
-    if (this.selectedChannelType === 'email') return 'user@example.com';
-    if (this.selectedChannelType === 'telegram') return '@username / Chat ID';
+    if (this.selectedChannelType() === 'email') return 'user@example.com';
+    if (this.selectedChannelType() === 'telegram') return '@username / Chat ID';
     return '+998901234567';
   }
 
   openBindModal(): void {
-    this.selectedChannelType = 'email';
-    this.newAddress = '';
+    this.selectedChannelType.set('email');
+    this.newAddress.set('');
     this.isBindSubmitted = false;
     this.isBindModalOpen = true;
   }
@@ -161,19 +159,19 @@ export class ProfileChannelsCardComponent {
 
   submitBind(): void {
     this.isBindSubmitted = true;
-    if (!this.newAddress.trim()) return;
+    if (!this.newAddress().trim()) return;
 
-    this.activeVerifyAddress = this.newAddress.trim();
+    this.activeVerifyAddress = this.newAddress().trim();
     this.bindChannel.emit({
-      channel: this.selectedChannelType,
-      address: this.newAddress.trim(),
+      channel: this.selectedChannelType(),
+      address: this.newAddress().trim(),
     });
   }
 
   openConfirmModal(verifyToken: string, address: string): void {
     this.activeVerifyToken = verifyToken;
     this.activeVerifyAddress = address;
-    this.verificationCode = '';
+    this.verificationCode.set('');
     this.isConfirmSubmitted = false;
     this.isBindModalOpen = false;
     this.isConfirmModalOpen = true;
@@ -181,13 +179,13 @@ export class ProfileChannelsCardComponent {
 
   closeConfirmModal(): void {
     this.isConfirmModalOpen = false;
-    this.verificationCode = '';
+    this.verificationCode.set('');
     this.isConfirmSubmitted = false;
   }
 
   requestConfirm(channel: UserChannel): void {
-    this.selectedChannelType = channel.channel;
-    this.newAddress = channel.address;
+    this.selectedChannelType.set(channel.channel);
+    this.newAddress.set(channel.address);
     this.activeVerifyAddress = channel.address;
     this.bindChannel.emit({
       channel: channel.channel,
@@ -197,7 +195,7 @@ export class ProfileChannelsCardComponent {
 
   submitConfirm(): void {
     this.isConfirmSubmitted = true;
-    const cleanCode = this.verificationCode.trim();
+    const cleanCode = this.verificationCode().trim();
     if (cleanCode.length !== 6) return;
 
     this.confirmChannel.emit({

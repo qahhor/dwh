@@ -82,8 +82,8 @@
           required
           [smtInvalid]="isTokenSubmitted() && !newTokenName().trim()"
           [smtDescribedBy]="isTokenSubmitted() && !newTokenName().trim() ? 'profile-token-name-error' : null"
-          [ngModel]="newTokenName()"
-          (ngModelChange)="nameChange.emit($event)"
+          [value]="newTokenName()"
+          (valueChange)="nameChange.emit($event === null ? '' : '' + $event)"
           [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t"
         />
         @if (isTokenSubmitted() && !newTokenName().trim()) {

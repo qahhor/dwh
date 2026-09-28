@@ -99,7 +99,7 @@ export class ProfileComponent implements OnInit {
     private toast: ToastService,
   ) {}
 
-  // Methods, not computed: the card's ngModel edits the form object in place.
+  // Methods, not computed: the card edits the form object in place.
   passwordStrength(): PasswordStrength {
     return passwordStrengthOf(this.passwordForm().newPassword);
   }
