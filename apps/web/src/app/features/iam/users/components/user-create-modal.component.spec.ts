@@ -30,8 +30,8 @@ describe('UserCreateModalComponent', () => {
     for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
     const component = fixture.componentInstance;
     const asked = { close: vi.fn(), submit: vi.fn(), generate: vi.fn(), copy: vi.fn() };
-    component.close.subscribe(asked.close);
-    component.submit.subscribe(asked.submit);
+    component.closeModal.subscribe(asked.close);
+    component.submitForm.subscribe(asked.submit);
     component.generatePassword.subscribe(asked.generate);
     component.copyPassword.subscribe(asked.copy);
     fixture.detectChanges();

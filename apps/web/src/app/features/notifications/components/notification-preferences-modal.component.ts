@@ -21,7 +21,7 @@ export interface EventTypeRow {
       [smtTitle]="'notifications.preferences_title' | t"
       smtSize="lg"
       [dismissible]="!isSaving()"
-      (closed)="close.emit()"
+      (closed)="closeModal.emit()"
     >
       <ng-template smtDialogContent>
         <p class="modal-desc">
@@ -87,7 +87,7 @@ export interface EventTypeRow {
         </div>
 
         <div footer>
-          <button smt-button smtVariant="secondary" type="button" (click)="close.emit()" [disabled]="isSaving()">
+          <button smt-button smtVariant="secondary" type="button" (click)="closeModal.emit()" [disabled]="isSaving()">
             {{ 'common.cancel' | t }}
           </button>
           <button smt-button type="button" [smtLoading]="isSaving()" (click)="onSave()">{{ 'common.save' | t }}</button>
@@ -101,7 +101,7 @@ export class NotificationPreferencesModalComponent implements OnInit {
   readonly initialPreferences = input<NotificationPrefItem[]>([]);
   readonly isSaving = input(false);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
   readonly save = output<NotificationPrefItem[]>();
 
   readonly eventRows: EventTypeRow[] = [

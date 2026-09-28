@@ -104,7 +104,7 @@
       type="button"
       smtVariant="secondary"
       [disabled]="pending() || impactOpen"
-      (click)="cancel.emit()"
+      (click)="cancelEdit.emit()"
     >
       {{ 'iam.org_units.cancel' | t }}
     </button>

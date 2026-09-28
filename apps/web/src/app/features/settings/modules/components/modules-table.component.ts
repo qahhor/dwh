@@ -67,7 +67,7 @@ import { InstalledModule } from '../modules.models';
           [disabled]="mod.isSystem || togglingCode() === mod.code"
           [title]="mod.isSystem ? ('modules.system_cannot_disable' | t) : ''"
           [smtAriaLabel]="(mod.isActive ? 'modules.action.disable' : 'modules.action.enable') | t: { name: mod.name }"
-          (smtUserChange)="toggle.emit({ module: mod, enabled: $event })"
+          (smtUserChange)="moduleToggle.emit({ module: mod, enabled: $event })"
         />
         @if (mod.isSystem) {
           <span class="system-locked-hint" [title]="'modules.system_cannot_disable' | t">
@@ -95,7 +95,7 @@ export class ModulesTableComponent {
 
   readonly togglingCode = input<string | null>(null);
 
-  readonly toggle = output<{ module: InstalledModule; enabled: boolean }>();
+  readonly moduleToggle = output<{ module: InstalledModule; enabled: boolean }>();
 
   private readonly moduleCell = viewChild.required<TemplateRef<unknown>>('moduleCell');
   private readonly codeCell = viewChild.required<TemplateRef<unknown>>('codeCell');

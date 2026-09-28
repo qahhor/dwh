@@ -29,7 +29,7 @@ async function render(initialPreferences: NotificationPrefItem[] = []) {
   const saved: NotificationPrefItem[][] = [];
   let closes = 0;
   fixture.componentInstance.save.subscribe((items) => saved.push(items));
-  fixture.componentInstance.close.subscribe(() => closes++);
+  fixture.componentInstance.closeModal.subscribe(() => closes++);
   const settle = async () => {
     fixture.detectChanges();
     await fixture.whenStable();

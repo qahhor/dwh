@@ -72,7 +72,7 @@ export { resolveNotificationIcon };
         <app-notification-preferences-modal
           [initialPreferences]="preferences()"
           [isSaving]="isSavingPreferences()"
-          (close)="isPreferencesOpen.set(false)"
+          (closeModal)="isPreferencesOpen.set(false)"
           (save)="savePreferences($event)"
         />
       }

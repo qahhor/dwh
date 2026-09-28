@@ -2,7 +2,7 @@
   [open]="isOpen()"
   [smtTitle]="'projects.uchastniki_proekta_title' | t: { name: project()?.name || '' }"
   smtSize="lg"
-  (closed)="close.emit()"
+  (closed)="closeModal.emit()"
 >
   <ng-template smtDialogContent>
     <div body class="members-modal-body">
@@ -122,7 +122,7 @@
     </div>
 
     <div footer class="modal-footer-actions">
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
+      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
         {{ 'common.close' | t }}
       </button>
     </div>

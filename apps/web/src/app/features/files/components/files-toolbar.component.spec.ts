@@ -10,7 +10,7 @@ function render(options: { scope?: 'all' | 'mine'; search?: string } = {}) {
   const asked: string[] = [];
   component.scopeChange.subscribe((scope) => asked.push(`scope:${scope}`));
   component.searchQueryChange.subscribe((text) => asked.push(`text:${text}`));
-  component.search.subscribe(() => asked.push('search'));
+  component.searchSubmit.subscribe(() => asked.push('search'));
   component.clear.subscribe(() => asked.push('clear'));
   component.refresh.subscribe(() => asked.push('refresh'));
   fixture.detectChanges();

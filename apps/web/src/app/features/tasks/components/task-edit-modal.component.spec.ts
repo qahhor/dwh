@@ -82,8 +82,8 @@ describe('TaskEditModalComponent', () => {
     const { fixture, form, screen } = render({ editingTask: TASK });
     const saved = vi.fn();
     const closed = vi.fn();
-    fixture.componentInstance.submit.subscribe(saved);
-    fixture.componentInstance.close.subscribe(closed);
+    fixture.componentInstance.submitForm.subscribe(saved);
+    fixture.componentInstance.closeModal.subscribe(closed);
     const title = screen.querySelector('#task-edit-title') as HTMLInputElement;
 
     expect(text(screen.querySelector('.smt-modal__title'))).toBe('Редактирование задачи');

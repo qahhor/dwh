@@ -11,7 +11,7 @@ import { SMTDialogComponent, SMTDialogContentDirective } from './dialog.componen
 let created = 0;
 let destroyed = 0;
 
-@Component({ selector: 'test-body', template: `<p class="body-text">Body</p>` })
+@Component({ selector: 'smt-test-body', template: `<p class="body-text">Body</p>` })
 class Body implements OnDestroy {
   constructor() {
     created++;
@@ -34,7 +34,7 @@ class Body implements OnDestroy {
       (closed)="asks = asks + 1"
     >
       <ng-template smtDialogContent>
-        <test-body />
+        <smt-test-body />
         <input class="name" aria-label="Name" [value]="name()" />
         <div footer><button type="button" class="save">Save</button></div>
       </ng-template>

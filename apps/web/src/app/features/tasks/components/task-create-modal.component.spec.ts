@@ -82,8 +82,8 @@ describe('TaskCreateModalComponent', () => {
     const { fixture, screen } = render();
     const submitted = vi.fn();
     const closed = vi.fn();
-    fixture.componentInstance.submit.subscribe(submitted);
-    fixture.componentInstance.close.subscribe(closed);
+    fixture.componentInstance.submitForm.subscribe(submitted);
+    fixture.componentInstance.closeModal.subscribe(closed);
 
     click(fixture, footerButton(screen, 'Создать задачу'));
     click(fixture, footerButton(screen, 'Отмена'));

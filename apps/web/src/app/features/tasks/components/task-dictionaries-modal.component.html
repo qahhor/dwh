@@ -2,7 +2,7 @@
   [open]="isOpen()"
   [smtTitle]="'tasks.nastroyka_spravochnikov_zadach' | t"
   smtSize="md"
-  (closed)="close.emit()"
+  (closed)="closeModal.emit()"
 >
   <ng-template smtDialogContent>
     <div body class="settings-modal-content">
@@ -180,7 +180,7 @@
       }
     </div>
     <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
+      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
         {{ 'audit.zakryt' | t }}
       </button>
     </div>

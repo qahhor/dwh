@@ -65,7 +65,7 @@ export class TaskDictionariesModalComponent {
   readonly taskTypes = input<TaskType[]>([]);
   readonly statuses = input<TaskStatus[]>([]);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
   readonly createType = output<{
     code: string;
     name: string;

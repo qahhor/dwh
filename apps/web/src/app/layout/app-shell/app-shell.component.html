@@ -23,7 +23,7 @@
     [isSubmenuExpanded]="nav.isSubmenuExpanded"
     (toggleSidebar)="toggleSidebar()"
     (closeMobileMenu)="closeMobileMenu($event)"
-    (onNavClick)="onNavClick()"
+    (navClick)="onNavClick()"
     (toggleSection)="nav.toggleSection($event.id, $event.event)"
     (toggleSubmenu)="nav.toggleSubmenu($event.id, $event.event)"
     (categoryClick)="flyout.onCategoryClick($event.section, $event.event)"

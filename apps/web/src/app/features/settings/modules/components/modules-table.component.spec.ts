@@ -38,7 +38,9 @@ function render(
   fixture.componentRef.setInput('canManage', options.canManage ?? true);
   fixture.componentRef.setInput('togglingCode', options.toggling ?? null);
   const toggles: Array<{ code: string; enabled: boolean }> = [];
-  fixture.componentInstance.toggle.subscribe(({ module, enabled }) => toggles.push({ code: module.code, enabled }));
+  fixture.componentInstance.moduleToggle.subscribe(({ module, enabled }) =>
+    toggles.push({ code: module.code, enabled }),
+  );
   fixture.detectChanges();
   const host = fixture.nativeElement as HTMLElement;
   const rows = () => Array.from(host.querySelectorAll('[role="rowgroup"] > [role="row"]')) as HTMLElement[];

@@ -100,7 +100,7 @@ describe('TaskDetailModalComponent', () => {
     loading.fixture.componentRef.setInput('detailNotFound', true);
     loading.fixture.detectChanges();
     const closed = vi.fn();
-    loading.fixture.componentInstance.close.subscribe(closed);
+    loading.fixture.componentInstance.closeModal.subscribe(closed);
     expect(text(loading.screen.querySelector('[role="alert"] span'))).toBe('404 — Запись не найдена или недоступна.');
     click(loading.fixture, loading.screen.querySelector('[role="alert"] button'));
     expect(closed).toHaveBeenCalledTimes(1);

@@ -2,7 +2,7 @@
   [open]="isOpen()"
   [smtTitle]="'tasks.task_number' | t: { id: detailRecordId() || '' }"
   smtSize="lg"
-  (closed)="close.emit()"
+  (closed)="closeModal.emit()"
 >
   <ng-template smtDialogContent>
     @if (detailLoading()) {
@@ -20,7 +20,7 @@
           </button>
         }
         @if (detailNotFound()) {
-          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="close.emit()">
+          <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="closeModal.emit()">
             {{ 'search.back_to_list' | t }}
           </button>
         }
@@ -436,7 +436,7 @@
     }
 
     <div footer>
-      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="close.emit()">
+      <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
         {{ 'audit.zakryt' | t }}
       </button>
     </div>

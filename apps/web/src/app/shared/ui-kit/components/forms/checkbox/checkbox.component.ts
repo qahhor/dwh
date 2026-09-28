@@ -30,6 +30,8 @@ export type SMTCheckboxVariant = 'brand' | 'success';
 let nextCheckboxUid = 0;
 
 @Component({
+  // The checkbox is drawn on the caller's element (a label or row), which then becomes the control.
+  // eslint-disable-next-line @angular-eslint/component-selector
   selector: '[smt-checkbox]',
   imports: [NgClass, SMTIconComponent],
   templateUrl: './checkbox.component.html',

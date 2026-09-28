@@ -72,7 +72,7 @@ export class TaskDetailModalComponent {
   readonly taskAncestors = input<Task[]>([]);
   readonly taskSubtasks = input<Task[]>([]);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
   readonly retryTaskDetails = output<void>();
   readonly openTaskDetails = output<Task>();
   readonly openAddSubtask = output<Task>();

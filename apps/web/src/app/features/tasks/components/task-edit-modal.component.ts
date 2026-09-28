@@ -58,8 +58,8 @@ export class TaskEditModalComponent {
   readonly projects = input<Project[]>([]);
   readonly taskCustomFields = input<CustomField[]>([]);
 
-  readonly close = output<void>();
-  readonly submit = output<void>();
+  readonly closeModal = output<void>();
+  readonly submitForm = output<void>();
   readonly retryEditLoad = output<void>();
   readonly cancelDiscard = output<void>();
   readonly confirmDiscard = output<void>();

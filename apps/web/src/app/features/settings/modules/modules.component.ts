@@ -73,7 +73,7 @@ export type { InstalledModule, ModuleFilterTab };
         [isLoading]="isLoading()"
         [canManage]="canManage()"
         [togglingCode]="togglingCode()"
-        (toggle)="toggleModule($event.module, $event.enabled)"
+        (moduleToggle)="toggleModule($event.module, $event.enabled)"
       />
 
       <!-- Developer Info / CLI Help Banner -->

@@ -38,7 +38,7 @@ export class AppSidebarComponent {
 
   readonly toggleSidebar = output<void>();
   readonly closeMobileMenu = output<boolean>();
-  readonly onNavClick = output<void>();
+  readonly navClick = output<void>();
   readonly toggleSection = output<{
     id: string;
     event: MouseEvent;

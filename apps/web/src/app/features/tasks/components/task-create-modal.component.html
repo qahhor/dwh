@@ -7,7 +7,7 @@
   "
   smtSize="lg"
   [dismissible]="!isSubmitting()"
-  (closed)="close.emit()"
+  (closed)="closeModal.emit()"
 >
   <ng-template smtDialogContent>
     <fieldset body class="modal-form modal-form-fieldset task-create-form" [disabled]="isSubmitting()">
@@ -200,7 +200,7 @@
         smtVariant="secondary"
         smtSize="md"
         [disabled]="isSubmitting()"
-        (click)="close.emit()"
+        (click)="closeModal.emit()"
       >
         {{ 'common.cancel' | t }}
       </button>
@@ -210,7 +210,7 @@
         smtVariant="primary"
         smtSize="md"
         [smtLoading]="isSubmitting()"
-        (click)="submit.emit()"
+        (click)="submitForm.emit()"
       >
         {{ 'tasks.sozdat_zadachu' | t }}
       </button>

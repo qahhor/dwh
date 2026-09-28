@@ -3,7 +3,7 @@
   [smtTitle]="'tasks.redaktirovanie_zadachi' | t"
   smtSize="lg"
   [dismissible]="!isSubmitting()"
-  (closed)="close.emit()"
+  (closed)="closeModal.emit()"
 >
   <ng-template smtDialogContent>
     @if (editLoading()) {
@@ -197,7 +197,7 @@
         smtVariant="secondary"
         smtSize="md"
         [disabled]="isSubmitting()"
-        (click)="close.emit()"
+        (click)="closeModal.emit()"
       >
         {{ editLoadError() ? ('audit.zakryt' | t) : ('common.cancel' | t) }}
       </button>
@@ -208,7 +208,7 @@
           smtVariant="primary"
           smtSize="md"
           [smtLoading]="isSubmitting()"
-          (click)="submit.emit()"
+          (click)="submitForm.emit()"
         >
           {{ 'tasks.sohranit_izmeneniya' | t }}
         </button>

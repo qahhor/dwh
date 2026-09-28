@@ -61,7 +61,7 @@ export class ProjectMembersModalComponent {
   readonly members = input<ProjectMember[]>([]);
   readonly canUpdateProject = input<boolean>(false);
 
-  readonly close = output<void>();
+  readonly closeModal = output<void>();
   readonly addMember = output<{
     projectId: number;
     userId: number;

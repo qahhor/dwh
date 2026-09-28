@@ -74,7 +74,7 @@ function formatBytes(bytes: number): string {
         [searchQuery]="searchQuery"
         (scopeChange)="setScope($event)"
         (searchQueryChange)="onSearchQueryChange($event)"
-        (search)="searchFiles()"
+        (searchSubmit)="searchFiles()"
         (clear)="onClearSearch()"
         (refresh)="refreshAll()"
       ></app-files-toolbar>

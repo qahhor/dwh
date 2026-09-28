@@ -35,7 +35,7 @@ import { I18nService } from '@core/services/i18n.service';
             [placeholder]="'files.poisk_faylov_po_imeni' | t"
             [value]="searchQuery()"
             (edited)="searchQueryChange.emit($event === null ? '' : '' + $event)"
-            (keyup.enter)="search.emit()"
+            (keyup.enter)="searchSubmit.emit()"
             (cleared)="clear.emit()"
           />
         </div>
@@ -65,7 +65,7 @@ export class FilesToolbarComponent {
 
   readonly scopeChange = output<'all' | 'mine'>();
   readonly searchQueryChange = output<string>();
-  readonly search = output<void>();
+  readonly searchSubmit = output<void>();
   readonly clear = output<void>();
   readonly refresh = output<void>();
 

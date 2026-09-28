@@ -114,7 +114,7 @@ describe('AppSidebarComponent', () => {
   it('links to the profile with the person, marks it current and reports followed links', () => {
     const { fixture, element } = render();
     const clicks: unknown[] = [];
-    fixture.componentInstance.onNavClick.subscribe(() => clicks.push(true));
+    fixture.componentInstance.navClick.subscribe(() => clicks.push(true));
     const profile = element.querySelector('a.user-profile-btn') as HTMLAnchorElement;
 
     expect(profile.getAttribute('href')).toBe('/iam/profile');

@@ -10,7 +10,7 @@ import { LoginResetModalComponent } from './login-reset-modal.component';
 
 @Component({
   imports: [LoginResetModalComponent],
-  template: `<app-login-reset-modal [isOpen]="open()" (close)="open.set(false); closes = closes + 1" />`,
+  template: `<app-login-reset-modal [isOpen]="open()" (closeModal)="open.set(false); closes = closes + 1" />`,
 })
 class Host {
   readonly open = signal(true);

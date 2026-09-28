@@ -52,8 +52,8 @@ describe('UserEditModalComponent', () => {
     for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
     const component = fixture.componentInstance;
     const asked = { close: vi.fn(), submit: vi.fn() };
-    component.close.subscribe(asked.close);
-    component.submit.subscribe(asked.submit);
+    component.closeModal.subscribe(asked.close);
+    component.submitForm.subscribe(asked.submit);
     fixture.detectChanges();
     const screen = inScreen(fixture.nativeElement);
     const byText = (text: string) =>
