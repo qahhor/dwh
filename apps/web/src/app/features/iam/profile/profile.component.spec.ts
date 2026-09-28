@@ -289,9 +289,12 @@ describe('ProfileComponent UI contracts', () => {
     );
 
     const channelsCard = comp.channelsCard();
-    expect(channelsCard?.isConfirmModalOpen).toBe(true);
-    expect(channelsCard?.activeVerifyToken).toBe('mock_verify_token_123');
-    expect(channelsCard?.activeVerifyAddress).toBe('alex@example.test');
+    expect(channelsCard?.isConfirmModalOpen()).toBe(true);
+    expect(channelsCard?.activeVerifyToken()).toBe('mock_verify_token_123');
+    expect(channelsCard?.activeVerifyAddress()).toBe('alex@example.test');
+    // The card is OnPush and the answer arrives in a callback: the dialog must be on screen, not only in state.
+    fixture.detectChanges();
+    expect(inScreen(fixture.nativeElement).querySelectorAll('[role="dialog"]').length).toBe(1);
   });
 
   it('shows the server reason of a failed channel binding in one message', async () => {
@@ -311,7 +314,7 @@ describe('ProfileComponent UI contracts', () => {
 
     const channelsCard = comp.channelsCard();
     channelsCard?.openConfirmModal('mock_verify_token_123', 'alex@example.test');
-    expect(channelsCard?.isConfirmModalOpen).toBe(true);
+    expect(channelsCard?.isConfirmModalOpen()).toBe(true);
 
     comp.onConfirmChannel({ verifyToken: 'mock_verify_token_123', code: '123456' });
 
@@ -320,7 +323,7 @@ describe('ProfileComponent UI contracts', () => {
       { verifyToken: 'mock_verify_token_123', code: '123456' },
       { notifyError: false },
     );
-    expect(channelsCard?.isConfirmModalOpen).toBe(false);
+    expect(channelsCard?.isConfirmModalOpen()).toBe(false);
   });
 
   it('requests and executes channel unbinding', async () => {

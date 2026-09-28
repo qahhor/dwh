@@ -83,7 +83,7 @@
 
 <!-- Bind Channel Modal -->
 <smt-dialog
-  [open]="isBindModalOpen"
+  [open]="isBindModalOpen()"
   [smtTitle]="'iam.privyazka_kanala_svyazi' | t"
   smtSize="sm"
   (closed)="closeBindModal()"
@@ -113,11 +113,11 @@
           required
           [placeholder]="getChannelPlaceholder()"
           [(value)]="newAddress"
-          [smtInvalid]="isBindSubmitted && !newAddress().trim()"
-          [smtDescribedBy]="isBindSubmitted && !newAddress().trim() ? 'profile-channel-address-error' : null"
+          [smtInvalid]="isBindSubmitted() && !newAddress().trim()"
+          [smtDescribedBy]="isBindSubmitted() && !newAddress().trim() ? 'profile-channel-address-error' : null"
           (keydown.enter)="submitBind()"
         />
-        @if (isBindSubmitted && !newAddress().trim()) {
+        @if (isBindSubmitted() && !newAddress().trim()) {
           <span id="profile-channel-address-error" class="field-error">
             {{ 'iam.adres_kanala_obyazatelen' | t }}
           </span>
@@ -145,7 +145,7 @@
 
 <!-- Confirm OTP Modal -->
 <smt-dialog
-  [open]="isConfirmModalOpen"
+  [open]="isConfirmModalOpen()"
   [smtTitle]="'iam.podtverzhdenie_kanala' | t"
   smtSize="sm"
   (closed)="closeConfirmModal()"
@@ -153,7 +153,7 @@
   <ng-template smtDialogContent>
     <div body class="channel-form">
       <p class="confirm-info-text">
-        {{ 'iam.kod_podtverzhdeniya_otpravlen' | t: { address: activeVerifyAddress } }}
+        {{ 'iam.kod_podtverzhdeniya_otpravlen' | t: { address: activeVerifyAddress() } }}
       </p>
 
       <div class="form-group">
@@ -169,13 +169,13 @@
           smtPattern="[0-9]*"
           placeholder="000000"
           [(value)]="verificationCode"
-          [smtInvalid]="isConfirmSubmitted && verificationCode().trim().length !== 6"
+          [smtInvalid]="isConfirmSubmitted() && verificationCode().trim().length !== 6"
           [smtDescribedBy]="
-            isConfirmSubmitted && verificationCode().trim().length !== 6 ? 'profile-channel-code-error' : null
+            isConfirmSubmitted() && verificationCode().trim().length !== 6 ? 'profile-channel-code-error' : null
           "
           (keydown.enter)="submitConfirm()"
         />
-        @if (isConfirmSubmitted && verificationCode().trim().length !== 6) {
+        @if (isConfirmSubmitted() && verificationCode().trim().length !== 6) {
           <span id="profile-channel-code-error" class="field-error">
             {{ 'iam.kod_dolzhen_soderzhat_6_cifr' | t }}
           </span>
