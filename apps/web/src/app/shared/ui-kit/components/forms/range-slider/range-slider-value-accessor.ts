@@ -6,7 +6,6 @@ import { SMTRange, SMTRangeSliderComponent } from './range-slider.component';
 
 @Directive({
   selector: 'smt-range-slider[ngModel], smt-range-slider[formControl], smt-range-slider[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTRangeSliderValueAccessor), multi: true }],
 })
 export class SMTRangeSliderValueAccessor extends PickerValueAccessor<SMTRange | null> {

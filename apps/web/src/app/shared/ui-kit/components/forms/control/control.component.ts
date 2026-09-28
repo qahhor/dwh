@@ -64,7 +64,6 @@ function optionalBoolean(value: unknown): boolean | undefined {
 
 @Component({
   selector: 'smt-control',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './control.component.html',

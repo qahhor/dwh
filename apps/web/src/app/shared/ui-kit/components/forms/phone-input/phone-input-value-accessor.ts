@@ -6,7 +6,6 @@ import { SMTPhoneInputComponent } from './phone-input.component';
 
 @Directive({
   selector: 'smt-phone-input[ngModel], smt-phone-input[formControl], smt-phone-input[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTPhoneInputValueAccessor), multi: true }],
 })
 export class SMTPhoneInputValueAccessor extends PickerValueAccessor<string> {

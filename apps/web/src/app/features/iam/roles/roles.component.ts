@@ -35,7 +35,6 @@ import { RoleFormsService } from './services/role-forms.service';
 
 @Component({
   selector: 'app-roles',
-  standalone: true,
   imports: [
     TranslatePipe,
     FormsModule,

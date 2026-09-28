@@ -11,7 +11,6 @@ import { SMTControlComponent } from '../control/control.component';
 import { SMTTextareaComponent } from './textarea.component';
 
 @Component({
-  standalone: true,
   imports: [SMTTextareaComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Comment" smtHint="What happened">
@@ -28,7 +27,6 @@ class FormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTTextareaComponent],
   template: `<smt-textarea [(value)]="text" [autoResize]="false" [rows]="5" [disabled]="off()" readonly />`,
 })

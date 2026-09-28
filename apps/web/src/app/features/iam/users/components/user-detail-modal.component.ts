@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { UiLocalTableComponent } from '../../../../shared/ui/ui-local-table.component';
@@ -27,11 +27,9 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-user-detail-modal',
-  standalone: true,
   imports: [
     SMTTabBarComponent,
     SMTAvatarComponent,
-    CommonModule,
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -40,6 +38,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
     UserEffectivePermissionsPanelComponent,
     UiLocalTableComponent,
     UiRecordHistoryComponent,
+    DatePipe,
   ],
   template: `
     <!-- User View / Profile Modal -->

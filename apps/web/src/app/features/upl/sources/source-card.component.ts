@@ -8,7 +8,7 @@ import {
   TemplateRef,
   viewChild,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -63,7 +63,6 @@ type DraftMode = 'empty' | 'copy';
 
 @Component({
   selector: 'app-upl-source-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,
@@ -73,7 +72,6 @@ type DraftMode = 'empty' | 'copy';
     SMTAlertComponent,
     SMTControlComponent,
     UiLocalTableComponent,
-    CommonModule,
     FormsModule,
     RouterLink,
     TranslatePipe,
@@ -82,6 +80,7 @@ type DraftMode = 'empty' | 'copy';
     SMTDialogContentDirective,
     UiBadgeComponent,
     SMTRadioGroupComponent,
+    DatePipe,
   ],
   template: `
     @if (isLoading()) {

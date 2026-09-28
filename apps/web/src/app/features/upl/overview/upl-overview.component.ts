@@ -65,7 +65,6 @@ const STATE_KEY: Record<UplFreshnessState, string> = {
  */
 @Component({
   selector: 'app-upl-overview',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTRadioGroupComponent,

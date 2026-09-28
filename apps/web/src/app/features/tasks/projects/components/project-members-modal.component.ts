@@ -35,7 +35,6 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-project-members-modal',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

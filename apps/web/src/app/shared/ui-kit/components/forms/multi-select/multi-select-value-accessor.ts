@@ -6,7 +6,6 @@ import { SMTMultiSelectComponent } from './multi-select.component';
 
 @Directive({
   selector: 'smt-multi-select[ngModel], smt-multi-select[formControl], smt-multi-select[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTMultiSelectValueAccessor), multi: true }],
 })
 export class SMTMultiSelectValueAccessor extends PickerValueAccessor<readonly unknown[]> {

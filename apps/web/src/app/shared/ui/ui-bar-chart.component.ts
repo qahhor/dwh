@@ -25,7 +25,6 @@ let nextChartId = 0;
  */
 @Component({
   selector: 'ui-bar-chart',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <figure class="bar-chart">

@@ -5,7 +5,6 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
   name: 'cb',
-  standalone: true,
 })
 export class CbPipe implements PipeTransform {
   transform(callback: (...args: any[]) => any, a1?: unknown, a2?: unknown, a3?: unknown): any {

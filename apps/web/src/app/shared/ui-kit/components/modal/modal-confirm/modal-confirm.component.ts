@@ -25,7 +25,6 @@ import type { SMTModalConfirmCloseResult, SMTModalConfirmData } from '../types/m
 
 @Component({
   selector: 'smt-modal-confirm',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './modal-confirm.component.html',

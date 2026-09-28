@@ -1,5 +1,5 @@
 import { Component, OnInit, Signal, TemplateRef, inject, signal, computed, viewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
@@ -24,18 +24,17 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
 
 @Component({
   selector: 'app-webhooks-settings',
-  standalone: true,
   imports: [
     SMTCheckboxComponent,
     SMTInputComponent,
     SMTInputValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
+    DatePipe,
   ],
   template: `
     <div class="webhooks-container">

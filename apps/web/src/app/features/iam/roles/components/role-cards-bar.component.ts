@@ -7,7 +7,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-role-cards-bar',
-  standalone: true,
   imports: [SMTInputComponent, FormsModule, TranslatePipe],
   template: `
     <div class="roles-strip-container">

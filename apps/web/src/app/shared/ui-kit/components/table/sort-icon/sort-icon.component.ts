@@ -11,7 +11,6 @@ import { SMTIconComponent } from '../../icon/icon';
    the columnheader, so the glyph is decorative. */
 @Component({
   selector: 'smt-sort-icon',
-  standalone: true,
   imports: [SMTIconComponent],
   template: `<smt-icon [key]="symbol()" [fontSize]="16" [class]="sort() ? 'text-brand-600' : 'text-gray-400'" />`,
   styles: `

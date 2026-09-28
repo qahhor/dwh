@@ -15,7 +15,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
 @Component({
   selector: 'app-role-modals',
-  standalone: true,
   imports: [
     FormsModule,
     TranslatePipe,

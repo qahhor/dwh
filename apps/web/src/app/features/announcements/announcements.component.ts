@@ -32,7 +32,6 @@ export type {
 
 @Component({
   selector: 'app-announcements',
-  standalone: true,
   imports: [
     TranslatePipe,
     SMTButtonComponent,

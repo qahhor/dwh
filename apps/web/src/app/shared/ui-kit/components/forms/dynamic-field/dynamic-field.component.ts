@@ -44,7 +44,6 @@ let nextFieldId = 0;
 
 @Component({
   selector: 'smt-dynamic-field',
-  standalone: true,
   imports: [
     FormsModule,
     SMTControlComponent,

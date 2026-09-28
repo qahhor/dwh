@@ -33,7 +33,6 @@ export type SMTButtonSize = 'sm' | 'md' | 'lg';
 
 @Component({
   selector: 'button[smt-button], a[smt-button]',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './button.scss',

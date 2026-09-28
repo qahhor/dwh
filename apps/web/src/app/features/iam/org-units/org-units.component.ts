@@ -28,7 +28,6 @@ import { OrgUnit, OrgUnitCreate } from './org-units.models';
 import { OrgUnitEditorComponent, OrgUnitSubmission } from './org-unit-editor.component';
 @Component({
   selector: 'app-org-units',
-  standalone: true,
   imports: [
     TranslatePipe,
     SMTButtonComponent,

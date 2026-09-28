@@ -26,7 +26,6 @@ const api = {
 };
 
 @Component({
-  standalone: true,
   imports: [UiListViewsComponent],
   template: `<ui-list-views [state]="state" />`,
 })

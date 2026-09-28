@@ -39,7 +39,6 @@ function formatBytes(bytes: number): string {
 
 @Component({
   selector: 'app-files',
-  standalone: true,
   imports: [
     SMTAlertComponent,
     SMTButtonComponent,

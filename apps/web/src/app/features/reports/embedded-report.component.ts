@@ -9,7 +9,6 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-embedded-report',
-  standalone: true,
   imports: [SMTButtonComponent, RouterModule, TranslatePipe],
   template: `
     <div class="embedded-report-container" [class.fullscreen]="isFullscreen()">

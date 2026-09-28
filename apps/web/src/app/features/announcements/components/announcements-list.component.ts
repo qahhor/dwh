@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } from '../announcements.models';
 
 @Component({
   selector: 'app-announcements-list',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="announcement-list" aria-live="polite">

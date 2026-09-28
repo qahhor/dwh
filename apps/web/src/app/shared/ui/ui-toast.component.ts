@@ -5,7 +5,6 @@ import { TranslatePipe } from '../../core/services/i18n.service';
 
 @Component({
   selector: 'ui-toast-container',
-  standalone: true,
   imports: [TranslatePipe],
   template: `
     @if (toastService.toasts().length > 0) {

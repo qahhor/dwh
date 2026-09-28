@@ -12,7 +12,6 @@ import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-toolbar',
-  standalone: true,
   imports: [SMTRadioGroupComponent, SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe],
   template: `
     <div class="filter-toolbar">

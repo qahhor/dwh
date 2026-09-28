@@ -9,7 +9,6 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-settings-preferences-panel',
-  standalone: true,
   imports: [SMTSwitchComponent, SMTSelectComponent, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">

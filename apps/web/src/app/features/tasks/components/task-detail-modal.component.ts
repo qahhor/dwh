@@ -1,5 +1,5 @@
 import { Component, Input, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -25,12 +25,10 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
 @Component({
   selector: 'app-task-detail-modal',
-  standalone: true,
   imports: [
     SMTAvatarComponent,
     SMTSelectComponent,
     SMTTextareaComponent,
-    CommonModule,
     TranslatePipe,
     SMTDialogComponent,
     SMTDialogContentDirective,
@@ -38,6 +36,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     UiMarkdownViewComponent,
     UiFileUploadComponent,
     UiRecordHistoryComponent,
+    DatePipe,
   ],
   template: `
     <smt-dialog

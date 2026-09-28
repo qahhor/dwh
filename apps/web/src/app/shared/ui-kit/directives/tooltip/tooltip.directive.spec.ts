@@ -8,7 +8,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SMTTooltipDirective } from './tooltip.directive';
 
 @Component({
-  standalone: true,
   imports: [SMTTooltipDirective],
   template: `<button type="button" [smtTooltip]="text()" [smtTooltipDisabled]="disabled()">Export</button>`,
 })

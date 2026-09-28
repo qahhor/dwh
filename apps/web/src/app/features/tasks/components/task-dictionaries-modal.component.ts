@@ -22,7 +22,6 @@ import { SMTCheckboxComponent, SMTCheckboxValueAccessor } from '../../../shared/
 
 @Component({
   selector: 'app-task-dictionaries-modal',
-  standalone: true,
   imports: [
     SMTCheckboxComponent,
     SMTCheckboxValueAccessor,

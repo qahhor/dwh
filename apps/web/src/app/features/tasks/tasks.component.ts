@@ -63,7 +63,6 @@ export type { TaskDeadlineInfo, TaskCreateFormValue, TaskEditFormValue };
 
 @Component({
   selector: 'app-tasks',
-  standalone: true,
   imports: [
     SMTRadioGroupComponent,
     TranslatePipe,

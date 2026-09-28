@@ -47,7 +47,6 @@ let nextRangeId = 0;
 
 @Component({
   selector: 'smt-date-range-picker',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   imports: [CdkConnectedOverlay, CdkOverlayOrigin, CdkTrapFocus, SMTCalendarComponent],

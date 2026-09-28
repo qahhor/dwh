@@ -10,7 +10,6 @@ import { UPL_FILE_KIND_KEY, UPL_VERSION_STATUS_KEY } from '../upl-labels';
  */
 @Component({
   selector: 'app-upl-format-publish-step',
-  standalone: true,
   // Не OnPush: сводка читает изменяемую модель, которую правят соседние шаги.
   imports: [DatePipe, TranslatePipe],
   template: `

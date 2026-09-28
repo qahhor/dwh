@@ -4,7 +4,6 @@ import { replaceMarkdownLinksWithSafeAnchors } from './markdown-link-sanitizer';
 
 @Component({
   selector: 'ui-markdown-view',
-  standalone: true,
   imports: [],
   template: ` <div class="md-rendered-content" [innerHTML]="renderedHtml"></div> `,
   styles: [

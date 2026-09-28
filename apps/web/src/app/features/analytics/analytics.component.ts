@@ -19,7 +19,6 @@ export * from './analytics.models';
 
 @Component({
   selector: 'app-analytics',
-  standalone: true,
   imports: [
     SMTRadioGroupComponent,
     SMTAlertComponent,

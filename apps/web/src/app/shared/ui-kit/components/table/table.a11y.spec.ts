@@ -34,7 +34,6 @@ function config(extra: Partial<TableConfig<Row>> = {}): TableConfig<Row> {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTTableComponent],
   template: `<smt-table
     [smtData]="data()"
@@ -144,7 +143,6 @@ describe('smt-table semantics', () => {
 });
 
 @Component({
-  standalone: true,
   imports: [SMTTableComponent],
   template: `
     <smt-table [smtData]="data" [smtConfig]="config" [smtVirtualRows]="false" (smtRowClick)="clicked.push($event.id)" />

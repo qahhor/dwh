@@ -66,7 +66,6 @@ function sameId(a: unknown, b: unknown): boolean {
 
 @Component({
   selector: 'smt-select',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   imports: [CdkConnectedOverlay, CdkOverlayOrigin],

@@ -15,7 +15,6 @@ export type { InstalledModule, ModuleFilterTab };
 
 @Component({
   selector: 'app-modules',
-  standalone: true,
   imports: [TranslatePipe, SMTButtonComponent, ModulesStatsComponent, ModulesToolbarComponent, ModulesTableComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

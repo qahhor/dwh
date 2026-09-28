@@ -10,7 +10,7 @@ import {
   viewChild,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit/components/forms/input';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -28,9 +28,7 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
 
 @Component({
   selector: 'app-audit-logs-table',
-  standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     SMTInputComponent,
     SMTInputValueAccessor,
@@ -39,6 +37,8 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
     UiServerTableComponent,
     SMTDateRangePickerComponent,
     SMTSelectComponent,
+    DatePipe,
+    NgClass,
   ],
   template: `
     <div id="audit-log-panel" class="tab-content" role="tabpanel" aria-labelledby="audit-log-tab">

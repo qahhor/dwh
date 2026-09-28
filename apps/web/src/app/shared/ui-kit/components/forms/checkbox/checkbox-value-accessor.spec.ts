@@ -9,7 +9,6 @@ import { SMTCheckboxComponent } from './checkbox.component';
 import { SMTCheckboxValueAccessor } from './checkbox-value-accessor';
 
 @Component({
-  standalone: true,
   imports: [SMTCheckboxComponent, SMTCheckboxValueAccessor, FormsModule],
   template: `<div smt-checkbox name="required" [(ngModel)]="required" [disabled]="locked()">Required field</div>`,
 })

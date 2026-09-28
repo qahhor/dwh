@@ -13,7 +13,6 @@ import { SMTDatePickerComponent } from './date-picker.component';
 import { SMTDatePickerValueAccessor } from './date-picker-value-accessor';
 
 @Component({
-  standalone: true,
   imports: [SMTDatePickerComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Due date">
@@ -28,7 +27,6 @@ class SignalHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDatePickerComponent, SMTDatePickerValueAccessor, FormsModule],
   template: `<smt-date-picker [(ngModel)]="from" [disabled]="false" name="from" />`,
 })

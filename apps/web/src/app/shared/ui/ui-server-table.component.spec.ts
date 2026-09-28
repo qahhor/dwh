@@ -15,7 +15,6 @@ interface Row {
 let respond: (cursor: string | null) => Observable<KeysetResponse<Row>> = () => of({ items: [], nextCursor: null });
 
 @Component({
-  standalone: true,
   imports: [UiServerTableComponent],
   template: ` <ui-server-table
       [pager]="pager"
@@ -163,7 +162,6 @@ describe('ui-server-table', () => {
 });
 
 @Component({
-  standalone: true,
   imports: [UiServerTableComponent],
   template: ` <ui-server-table
     [pager]="pager"
@@ -247,7 +245,6 @@ describe('ui-server-table column settings', () => {
 });
 
 @Component({
-  standalone: true,
   imports: [UiServerTableComponent],
   template: ` <ui-server-table
     [pager]="pager"

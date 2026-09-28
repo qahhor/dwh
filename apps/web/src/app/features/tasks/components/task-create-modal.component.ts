@@ -25,7 +25,6 @@ import { Project, TaskType } from '../../../core/models/task.models';
 
 @Component({
   selector: 'app-task-create-modal',
-  standalone: true,
   imports: [
     SMTControlComponent,
     FormsModule,

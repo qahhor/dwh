@@ -5,7 +5,6 @@ import { AnalyticsSummary } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-metrics-tiles',
-  standalone: true,
   imports: [TranslatePipe],
   template: `
     <div class="tiles">

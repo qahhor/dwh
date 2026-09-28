@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ApiService } from '../../core/services/api.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
@@ -29,8 +29,7 @@ type OverallStatus = 'healthy' | 'attention' | 'unavailable';
 
 @Component({
   selector: 'app-system',
-  standalone: true,
-  imports: [TranslatePipe, CommonModule, SMTButtonComponent],
+  imports: [TranslatePipe, SMTButtonComponent, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="system-page" aria-labelledby="system-title">

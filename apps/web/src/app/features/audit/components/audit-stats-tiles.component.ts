@@ -6,7 +6,6 @@ import { AuditStats } from '../audit.models';
 
 @Component({
   selector: 'app-audit-stats-tiles',
-  standalone: true,
   imports: [TranslatePipe, SMTButtonComponent],
   template: `
     <!-- Stats Cards -->

@@ -11,7 +11,7 @@ import { SMTDialogComponent, SMTDialogContentDirective } from './dialog.componen
 let created = 0;
 let destroyed = 0;
 
-@Component({ selector: 'test-body', standalone: true, template: `<p class="body-text">Body</p>` })
+@Component({ selector: 'test-body', template: `<p class="body-text">Body</p>` })
 class Body implements OnDestroy {
   constructor() {
     created++;
@@ -23,7 +23,6 @@ class Body implements OnDestroy {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDialogComponent, SMTDialogContentDirective, Body],
   template: `
     <button type="button" class="opener" (click)="open.set(true)">Open</button>
@@ -50,7 +49,6 @@ class Host {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDialogComponent, SMTDialogContentDirective],
   template: `
     <smt-dialog [open]="open()" [smtTitle]="title()">
@@ -64,7 +62,6 @@ class LateTitleHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDialogComponent, SMTDialogContentDirective],
   template: `
     @if (shown()) {

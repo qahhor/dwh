@@ -11,7 +11,6 @@ import { SMTRatingComponent } from './rating.component';
 import { SMTRatingValueAccessor } from './rating-value-accessor';
 
 @Component({
-  standalone: true,
   imports: [SMTRatingComponent, SMTRatingValueAccessor, FormsModule],
   template: `
     <smt-rating smtAriaLabel="Service" [(value)]="stars" clearable />

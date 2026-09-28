@@ -11,7 +11,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-custom-fields-toolbar',
-  standalone: true,
   imports: [SMTRadioGroupComponent, SMTInputComponent, FormsModule, TranslatePipe],
   template: `
     <div class="toolbar-container">

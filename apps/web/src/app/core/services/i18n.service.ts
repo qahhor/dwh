@@ -434,7 +434,6 @@ export class I18nService {
 
 @Pipe({
   name: 't',
-  standalone: true,
   pure: false,
 })
 export class TranslatePipe implements PipeTransform {

@@ -48,7 +48,6 @@ function optionalNumber(value: unknown): number | null {
 
 @Component({
   selector: 'smt-cropper',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './cropper.scss',

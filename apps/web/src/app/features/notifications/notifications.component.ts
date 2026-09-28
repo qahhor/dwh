@@ -20,7 +20,6 @@ export { resolveNotificationIcon };
 
 @Component({
   selector: 'app-notifications',
-  standalone: true,
   imports: [
     NotificationsHeaderComponent,
     NotificationsTabsComponent,

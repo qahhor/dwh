@@ -41,7 +41,6 @@ export interface GroupedPermissionModule {
 
 @Component({
   selector: 'app-user-effective-permissions-panel',
-  standalone: true,
   imports: [
     SMTRadioGroupComponent,
     SMTSelectComponent,

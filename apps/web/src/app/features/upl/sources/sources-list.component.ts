@@ -80,7 +80,6 @@ function emptyForm(): SourceCreateForm {
 
 @Component({
   selector: 'app-upl-sources-list',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,

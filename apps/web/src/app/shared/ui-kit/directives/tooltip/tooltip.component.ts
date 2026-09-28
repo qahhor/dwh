@@ -11,7 +11,6 @@ export type TTooltipTheme = 'light' | 'dark';
 
 @Component({
   selector: 'smt-tooltip-internal',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     role: 'tooltip',

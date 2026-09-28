@@ -14,7 +14,6 @@ import { DateRange, parseIsoDate } from './date-utils';
 const TODAY = parseIsoDate('2026-09-24')!;
 
 @Component({
-  standalone: true,
   imports: [SMTDateRangePickerComponent],
   template: `<smt-date-range-picker [(value)]="period" [smtToday]="today" smtAriaLabel="Period" />`,
 })
@@ -24,7 +23,6 @@ class Host {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDateRangePickerComponent, SMTDateRangePickerValueAccessor, FormsModule],
   template: `<smt-date-range-picker [(ngModel)]="period" [smtToday]="today" name="period" />`,
 })

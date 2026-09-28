@@ -45,7 +45,6 @@ const units: OrgUnit[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [UserOrgUnitsPanelComponent],
   template: `<app-user-org-units-panel [userId]="selectedUserId" />`,
 })

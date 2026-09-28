@@ -26,7 +26,6 @@ const users: SMTLookupSource<{ id: number; name: string }, number> = {
 };
 
 @Component({
-  standalone: true,
   imports: [SMTDynamicFieldComponent],
   template: `
     @for (field of fields; track field.code) {

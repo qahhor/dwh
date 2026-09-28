@@ -43,7 +43,6 @@ import {
 import { AppShellFlyoutService } from './services/app-shell-flyout.service';
 @Component({
   selector: 'app-shell',
-  standalone: true,
   imports: [
     IdleLockDialogComponent,
     RouterModule,

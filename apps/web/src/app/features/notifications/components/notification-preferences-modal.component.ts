@@ -14,7 +14,6 @@ export interface EventTypeRow {
 
 @Component({
   selector: 'app-notification-preferences-modal',
-  standalone: true,
   imports: [
     SMTDialogComponent,
     SMTDialogContentDirective,

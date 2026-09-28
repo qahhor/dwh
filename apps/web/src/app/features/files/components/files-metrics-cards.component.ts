@@ -5,7 +5,6 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-metrics-cards',
-  standalone: true,
   imports: [TranslatePipe],
   template: `
     @if (stats(); as s) {

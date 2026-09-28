@@ -53,7 +53,6 @@ let nextHistoryId = 0;
  */
 @Component({
   selector: 'ui-record-history',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [DatePipe, TranslatePipe],
   template: `

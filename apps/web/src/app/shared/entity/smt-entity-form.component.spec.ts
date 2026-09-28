@@ -9,7 +9,6 @@ import { translateTest } from '../../../testing/i18n-test.stub';
 import { SMTEntityFieldDirective, SMTEntityFormComponent } from './smt-entity-form.component';
 
 @Component({
-  standalone: true,
   imports: [SMTEntityFormComponent, SMTEntityFieldDirective],
   template: `
     <smt-entity-form [meta]="meta()" [(value)]="values" [problems]="problems()" [sections]="sections()">

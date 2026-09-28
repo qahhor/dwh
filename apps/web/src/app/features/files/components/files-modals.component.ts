@@ -8,7 +8,6 @@ import { TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-files-modals',
-  standalone: true,
   imports: [SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, UiFileUploadComponent, TranslatePipe],
   template: `
     <!-- Upload Modal -->

@@ -10,7 +10,7 @@ import {
   viewChild,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../shared/ui/ui-server-table.component';
@@ -42,14 +42,13 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
  */
 @Component({
   selector: 'app-task-table-view',
-  standalone: true,
   imports: [
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     UiServerTableComponent,
     UiBulkResultComponent,
     SMTSelectComponent,
+    DatePipe,
   ],
   template: `
     <div

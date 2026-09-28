@@ -51,7 +51,6 @@ let nextTimePickerId = 0;
 
 @Component({
   selector: 'smt-time-picker',
-  standalone: true,
   imports: [CdkConnectedOverlay, CdkOverlayOrigin],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,

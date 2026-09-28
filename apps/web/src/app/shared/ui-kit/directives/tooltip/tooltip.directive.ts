@@ -38,7 +38,6 @@ const HIDE_DELAY_MS = 120;
 
 @Directive({
   selector: '[smtTooltip]',
-  standalone: true,
 })
 export class SMTTooltipDirective implements OnDestroy {
   private elementRef = inject<ElementRef<HTMLElement>>(ElementRef);

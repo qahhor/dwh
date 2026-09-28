@@ -22,7 +22,6 @@ import { LocalSort, LocalSortValue, sortRows } from './local-sort';
  */
 @Component({
   selector: 'ui-local-table',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTTableComponent],
   template: `

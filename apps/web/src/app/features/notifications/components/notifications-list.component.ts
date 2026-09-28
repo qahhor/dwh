@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { TranslatePipe } from '../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { UiPaginationComponent } from '../../../shared/ui/ui-pagination.component';
@@ -8,8 +8,7 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
 
 @Component({
   selector: 'app-notifications-list',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe, SMTButtonComponent, UiPaginationComponent],
+  imports: [TranslatePipe, SMTButtonComponent, UiPaginationComponent, DatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (isLoading() && itemsCount() === 0) {

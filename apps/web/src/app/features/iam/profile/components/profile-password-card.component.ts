@@ -1,5 +1,5 @@
 import { Component, Input, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { TranslatePipe } from '../../../../core/services/i18n.service';
@@ -9,8 +9,7 @@ import { fitsPasswordPolicy, PASSWORD_POLICY } from '../../../../core/security/p
 
 @Component({
   selector: 'app-profile-password-card',
-  standalone: true,
-  imports: [SMTInputComponent, SMTInputValueAccessor, CommonModule, FormsModule, TranslatePipe, SMTButtonComponent],
+  imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent, NgClass],
   template: `
     <div class="card section-card">
       <div class="section-header">

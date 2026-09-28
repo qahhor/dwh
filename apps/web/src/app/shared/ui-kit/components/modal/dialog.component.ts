@@ -51,14 +51,13 @@ let nextDialogId = 0;
 const WIDTH: Record<SMTDialogSize, string> = { sm: '400px', md: '580px', lg: '800px', xl: '1100px' };
 
 /** Marks the template that holds a dialog's content. */
-@Directive({ selector: 'ng-template[smtDialogContent]', standalone: true })
+@Directive({ selector: 'ng-template[smtDialogContent]' })
 export class SMTDialogContentDirective {
   readonly template = inject(TemplateRef);
 }
 
 @Component({
   selector: 'smt-dialog',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgTemplateOutlet],
   template: `

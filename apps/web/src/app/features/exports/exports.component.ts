@@ -47,7 +47,6 @@ const POLL_MS = 3000;
  */
 @Component({
   selector: 'app-exports',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTAlertComponent, DatePipe, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `

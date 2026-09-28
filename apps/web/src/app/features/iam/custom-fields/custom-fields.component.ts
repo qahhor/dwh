@@ -16,7 +16,6 @@ import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-custom-fields',
-  standalone: true,
   imports: [
     SMTButtonComponent,
     TranslatePipe,

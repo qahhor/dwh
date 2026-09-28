@@ -23,7 +23,6 @@ const RECORD = {
 } as unknown as AuditRecord;
 
 @Component({
-  standalone: true,
   imports: [AuditModalsComponent],
   template: `<app-audit-modals [selectedAudit]="audit()" (closeAuditModal)="audit.set(null)" />`,
 })

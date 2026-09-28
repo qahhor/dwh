@@ -34,7 +34,6 @@ import { shouldShowSMTFormControlError } from '../../../forms/form-control-valid
 
 @Component({
   selector: 'smt-rating',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './rating.scss',

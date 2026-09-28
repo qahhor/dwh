@@ -27,7 +27,6 @@ import { SMTI18nService } from '../../../i18n';
 
 @Component({
   selector: 'smt-cell-header',
-  standalone: true,
   imports: [
     SMTCheckboxComponent,
     SMTSortIconComponent,

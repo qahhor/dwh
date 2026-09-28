@@ -11,7 +11,6 @@ import { SMTControlComponent } from '../control/control.component';
 import { SMTSwitchComponent } from './switch.component';
 
 @Component({
-  standalone: true,
   imports: [SMTSwitchComponent, FormField],
   template: `<smt-switch
     [formField]="settings.enabled"
@@ -26,7 +25,6 @@ class FormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTSwitchComponent, SMTControlComponent],
   template: `
     <smt-control smtLabel="Active">

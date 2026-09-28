@@ -53,7 +53,6 @@ const COLUMN_FIELD_LABEL_KEY: Record<string, string> = {
 
 @Component({
   selector: 'app-upl-format-editor',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent,

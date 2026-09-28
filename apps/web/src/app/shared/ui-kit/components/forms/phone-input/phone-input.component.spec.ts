@@ -13,7 +13,6 @@ import { SMTPhoneInputValueAccessor } from './phone-input-value-accessor';
 import { formatNational, joinPhone, SMT_PHONE_COUNTRIES, splitPhone } from './phone-utils';
 
 @Component({
-  standalone: true,
   imports: [SMTPhoneInputComponent, SMTPhoneInputValueAccessor, SMTControlComponent, FormsModule],
   template: `
     <smt-control smtLabel="Phone">

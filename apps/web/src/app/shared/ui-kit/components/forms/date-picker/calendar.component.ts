@@ -50,7 +50,6 @@ let nextCalendarId = 0;
 
 @Component({
   selector: 'smt-calendar',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './calendar.component.html',

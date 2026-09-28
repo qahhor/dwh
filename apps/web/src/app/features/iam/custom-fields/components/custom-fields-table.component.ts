@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { CustomField } from '../custom-fields.models';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
@@ -20,8 +20,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
 
 @Component({
   selector: 'app-custom-fields-table',
-  standalone: true,
-  imports: [CommonModule, SMTButtonComponent, TranslatePipe, UiLocalTableComponent],
+  imports: [SMTButtonComponent, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <div class="card table-card">
       <div

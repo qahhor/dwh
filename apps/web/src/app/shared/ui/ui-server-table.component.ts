@@ -60,7 +60,6 @@ import { UiPaginationComponent } from './ui-pagination.component';
  */
 @Component({
   selector: 'ui-server-table',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTTableComponent,

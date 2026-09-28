@@ -20,7 +20,6 @@ interface CardLine {
  */
 @Component({
   selector: 'smt-entity-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [UiMarkdownViewComponent],
   host: { class: 'smt-entity-card' },

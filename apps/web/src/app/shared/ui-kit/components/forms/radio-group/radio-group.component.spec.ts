@@ -21,7 +21,6 @@ const PERIODS: SMTRadioOption<Period>[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [SMTRadioGroupComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Period">
@@ -36,7 +35,6 @@ class FormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTRadioGroupComponent],
   template: `<smt-radio-group [(value)]="period" [options]="periods" smtAriaLabel="Period" readonly />`,
 })
@@ -46,7 +44,6 @@ class ReadonlyHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTRadioGroupComponent],
   template: `<smt-radio-group
     [(value)]="size"
@@ -66,7 +63,6 @@ class ObjectHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTRadioGroupComponent],
   template: `
     <smt-radio-group smtAppearance="chips" [(value)]="type" [options]="types" smtAriaLabel="Type" />
@@ -87,7 +83,6 @@ class LookHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTRadioGroupComponent],
   template: `<smt-radio-group smtAppearance="chips" [(value)]="status" [options]="statuses" smtAriaLabel="Status" />`,
 })

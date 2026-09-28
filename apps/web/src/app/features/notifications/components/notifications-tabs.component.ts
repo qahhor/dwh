@@ -8,7 +8,6 @@ import { I18nService } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-notifications-tabs',
-  standalone: true,
   imports: [SMTTabBarComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

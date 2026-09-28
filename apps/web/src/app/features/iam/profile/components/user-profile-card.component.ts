@@ -7,7 +7,6 @@ import { SMTAvatarComponent } from '../../../../shared/ui-kit/components/avatar'
 
 @Component({
   selector: 'app-user-profile-card',
-  standalone: true,
   imports: [SMTAvatarComponent, TranslatePipe, UiBadgeComponent],
   template: `
     @if (user) {

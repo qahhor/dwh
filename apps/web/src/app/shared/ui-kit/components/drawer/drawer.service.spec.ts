@@ -165,7 +165,6 @@ describe('SMTDrawerService disposal', () => {
 });
 
 @Component({
-  standalone: true,
   template: `<p class="drawer-content">{{ data.name }}</p>
     <button type="button" class="pick" (click)="ref.close(data.name)">Pick</button>`,
 })

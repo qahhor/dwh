@@ -4,7 +4,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-login-header',
-  standalone: true,
   imports: [TranslatePipe],
   template: `
     <div class="login-header">

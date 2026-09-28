@@ -60,7 +60,6 @@ let nextColorId = 0;
 
 @Component({
   selector: 'smt-color-input',
-  standalone: true,
   imports: [SMTRadioGroupComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,

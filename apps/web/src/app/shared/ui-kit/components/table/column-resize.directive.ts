@@ -29,7 +29,6 @@ const RESIZE_LINE_WIDTH_PX = 1;
 
 @Directive({
   selector: '[smtColumnResize]',
-  standalone: true,
 })
 export class ColumnResizeDirective implements OnInit, OnDestroy {
   private el = inject(ElementRef<HTMLElement>);

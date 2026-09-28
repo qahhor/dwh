@@ -1,5 +1,5 @@
 import { Component, computed, inject, TemplateRef, viewChild, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, JsonPipe, DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../shared/ui-kit/components/modal';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
@@ -17,14 +17,15 @@ interface DiffRow {
 
 @Component({
   selector: 'app-audit-modals',
-  standalone: true,
   imports: [
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
+    DatePipe,
+    JsonPipe,
+    NgClass,
   ],
   template: `
     <!-- Cells of the diff table; outside the dialog, so they exist before it opens. -->

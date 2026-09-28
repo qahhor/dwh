@@ -6,7 +6,6 @@ import { ProjectDistribution } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-projects-card',
-  standalone: true,
   imports: [SMTInputComponent, TranslatePipe],
   template: `
     <div class="analytics-card">

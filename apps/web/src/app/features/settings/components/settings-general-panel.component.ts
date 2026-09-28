@@ -46,7 +46,6 @@ function withCurrent(
 
 @Component({
   selector: 'app-settings-general-panel',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

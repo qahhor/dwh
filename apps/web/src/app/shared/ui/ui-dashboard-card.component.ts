@@ -12,7 +12,6 @@ let nextCardId = 0;
  */
 @Component({
   selector: 'ui-dashboard-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTButtonComponent],
   template: `

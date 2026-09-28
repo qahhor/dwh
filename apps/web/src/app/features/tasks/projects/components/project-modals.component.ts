@@ -20,7 +20,6 @@ import { ProjectCreateForm, ProjectEditForm, ProjectAttributeItem } from '../pro
 
 @Component({
   selector: 'app-project-modals',
-  standalone: true,
   imports: [
     SMTControlComponent,
     SMTInputComponent,

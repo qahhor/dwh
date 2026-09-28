@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
@@ -24,12 +24,10 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
 @Component({
   selector: 'app-profile-tokens-card',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     UiLocalTableComponent,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -37,6 +35,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
     SMTDialogContentDirective,
     SMTControlComponent,
     SMTRadioGroupComponent,
+    DatePipe,
   ],
   template: `
     <div class="card section-card full-width">

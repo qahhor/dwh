@@ -8,7 +8,6 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'ui-markdown-editor',
-  standalone: true,
   imports: [SMTTabBarComponent, TranslatePipe, FormsModule],
   template: `
     <div class="md-editor-container" [class.focused]="isFocused">

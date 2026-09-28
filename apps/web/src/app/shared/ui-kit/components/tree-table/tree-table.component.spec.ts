@@ -32,7 +32,6 @@ const tree: Unit[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [SMTTreeTableComponent],
   template: `<smt-tree-table
     [smtRows]="rows"
@@ -267,7 +266,6 @@ describe('smt-tree-table', () => {
 });
 
 @Component({
-  standalone: true,
   imports: [SMTTreeTableComponent],
   template: `<smt-tree-table
     [smtRows]="rows"

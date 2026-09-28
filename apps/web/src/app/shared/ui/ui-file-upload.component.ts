@@ -19,7 +19,6 @@ export interface QueuedUpload {
 
 @Component({
   selector: 'ui-file-upload',
-  standalone: true,
   imports: [TranslatePipe, SMTDropzoneComponent, SMTFileCardComponent],
   template: `
     <div class="file-upload-wrapper">

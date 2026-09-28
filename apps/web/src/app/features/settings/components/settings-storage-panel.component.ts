@@ -7,7 +7,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../shared/ui-kit
 
 @Component({
   selector: 'app-settings-storage-panel',
-  standalone: true,
   imports: [SMTInputComponent, SMTInputValueAccessor, FormsModule, TranslatePipe, SMTButtonComponent],
   template: `
     <div class="settings-card">

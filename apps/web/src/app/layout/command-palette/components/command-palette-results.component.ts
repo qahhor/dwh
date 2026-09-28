@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { SearchHit, SearchResult } from '../../../core/models/search.models';
 import { I18nService, TranslatePipe } from '../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-command-palette-results',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe],
+  imports: [TranslatePipe, NgClass],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="palette-results">

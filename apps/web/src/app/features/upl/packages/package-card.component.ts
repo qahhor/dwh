@@ -34,7 +34,6 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
 
 @Component({
   selector: 'app-upl-package-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTAlertComponent, TranslatePipe, UiBadgeComponent, SMTButtonComponent, UiLocalTableComponent],
   template: `

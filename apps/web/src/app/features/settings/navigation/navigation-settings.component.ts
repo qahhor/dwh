@@ -23,7 +23,6 @@ import { problemText } from '../../../shared/ui/problem-text';
 
 @Component({
   selector: 'app-navigation-settings',
-  standalone: true,
   imports: [
     FormsModule,
     RouterModule,

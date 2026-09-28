@@ -28,7 +28,6 @@ export * from './audit.models';
 
 @Component({
   selector: 'app-audit',
-  standalone: true,
   imports: [
     SMTButtonComponent,
     SMTAlertComponent,

@@ -1,5 +1,5 @@
 import { Component, Signal, TemplateRef, computed, inject, input, viewChild, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass, DatePipe } from '@angular/common';
 import { FileDetail } from '../files.models';
 import { I18nService, LANGUAGE_LOCALES, TranslatePipe } from '../../../core/services/i18n.service';
 import {
@@ -25,8 +25,7 @@ import { OrderBy, TableConfig } from '../../../shared/ui-kit/components/table/ta
  */
 @Component({
   selector: 'app-files-table',
-  standalone: true,
-  imports: [CommonModule, TranslatePipe, UiServerTableComponent],
+  imports: [TranslatePipe, UiServerTableComponent, DatePipe, NgClass],
   template: `
     <div
       class="table-container"

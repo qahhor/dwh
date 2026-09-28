@@ -42,7 +42,6 @@ let nextPreviewId = 0;
 
 @Component({
   selector: 'smt-file-preview',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './file-preview.scss',

@@ -10,7 +10,6 @@ import { I18nService } from '../../core/services/i18n.service';
  */
 @Component({
   selector: 'ui-kpi-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="kpi" [attr.aria-label]="sentence()" role="group">

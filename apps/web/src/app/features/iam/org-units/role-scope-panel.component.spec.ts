@@ -10,7 +10,6 @@ import { RoleScopePanelComponent } from './role-scope-panel.component';
 import { inScreen } from '../../../../testing/in-screen';
 
 @Component({
-  standalone: true,
   imports: [RoleScopePanelComponent],
   template: `<app-role-scope-panel [roleId]="selectedRoleId" />`,
 })

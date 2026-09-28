@@ -5,7 +5,6 @@ import { TrendDataPoint, ChartPoint, YAxisTick } from '../analytics.models';
 
 @Component({
   selector: 'app-analytics-trend-chart',
-  standalone: true,
   imports: [TranslatePipe],
   template: `
     <div class="analytics-card chart-card" [attr.aria-busy]="loading()">

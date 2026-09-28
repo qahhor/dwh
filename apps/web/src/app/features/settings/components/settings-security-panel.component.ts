@@ -9,7 +9,6 @@ import { PASSWORD_POLICY } from '../../../core/security/password-policy';
 
 @Component({
   selector: 'app-settings-security-panel',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

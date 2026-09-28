@@ -17,7 +17,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-role-permissions-matrix',
-  standalone: true,
   imports: [
     SMTCheckboxComponent,
     SMTInputComponent,

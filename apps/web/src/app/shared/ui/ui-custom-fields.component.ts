@@ -14,7 +14,6 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
  */
 @Component({
   selector: 'ui-custom-fields',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTDynamicFieldComponent],
   template: `

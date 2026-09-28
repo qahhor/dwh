@@ -12,7 +12,6 @@ import { SMTInputComponent, SMTInputValue } from '../../../../shared/ui-kit/comp
 
 @Component({
   selector: 'app-project-filter-bar',
-  standalone: true,
   imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe],
   template: `
     <div class="toolbar">

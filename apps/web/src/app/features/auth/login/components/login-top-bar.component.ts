@@ -5,7 +5,6 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-login-top-bar',
-  standalone: true,
   imports: [SMTSelectComponent, TranslatePipe],
   template: `
     <div class="login-top-bar">

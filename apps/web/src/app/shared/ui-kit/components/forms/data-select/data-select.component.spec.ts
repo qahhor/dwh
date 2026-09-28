@@ -62,7 +62,6 @@ class FakeSource implements SMTLookupSource<Person> {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDataSelectComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Manager">
@@ -84,7 +83,6 @@ class FormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTDataSelectComponent, SMTDataSelectValueAccessor, FormsModule],
   template: `<smt-data-select [(ngModel)]="managerId" name="manager" [source]="source" ariaLabel="Manager" />`,
 })
@@ -94,7 +92,6 @@ class NgModelHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTMultiDataSelectComponent, SMTMultiDataSelectValueAccessor, FormsModule],
   template: `<smt-multi-data-select
     [(ngModel)]="observers"
@@ -111,7 +108,6 @@ class MultiHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTMultiDataSelectComponent, SMTMultiDataSelectValueAccessor, FormsModule],
   template: `<smt-multi-data-select
     [(ngModel)]="members"

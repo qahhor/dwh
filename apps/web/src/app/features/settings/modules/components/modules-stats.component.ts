@@ -4,7 +4,6 @@ import { TranslatePipe } from '../../../../core/services/i18n.service';
 
 @Component({
   selector: 'app-modules-stats',
-  standalone: true,
   imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

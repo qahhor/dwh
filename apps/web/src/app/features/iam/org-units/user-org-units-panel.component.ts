@@ -30,7 +30,6 @@ import { OrgUnit, UserScope } from './org-units.models';
 
 @Component({
   selector: 'app-user-org-units-panel',
-  standalone: true,
   imports: [
     TranslatePipe,
     SMTButtonComponent,

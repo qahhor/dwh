@@ -6,7 +6,6 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { SMTAvatarComponent, avatarInitials, avatarTone } from './avatar.component';
 
 @Component({
-  standalone: true,
   imports: [SMTAvatarComponent],
   template: `
     <smt-avatar class="own" [name]="name()" [smtImageUrl]="photo()" smtSize="lg" />

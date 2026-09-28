@@ -10,7 +10,6 @@ import { SMTI18nService } from '../../../i18n';
 
 @Component({
   selector: 'smt-cell-content',
-  standalone: true,
   imports: [SMTCheckboxComponent, CbPipe, DatePipe, NgTemplateOutlet, NgComponentOutlet],
   templateUrl: './cell-content.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

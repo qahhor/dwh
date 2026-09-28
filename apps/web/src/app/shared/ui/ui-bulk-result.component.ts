@@ -11,7 +11,6 @@ import { SMTDialogComponent, SMTDialogContentDirective } from '../ui-kit/compone
  */
 @Component({
   selector: 'ui-bulk-result',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [TranslatePipe, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent],
   template: `

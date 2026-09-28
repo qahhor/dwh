@@ -43,7 +43,6 @@ function optionalNumber(value: unknown): number | undefined {
 
 @Component({
   selector: 'smt-textarea',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './textarea.component.html',

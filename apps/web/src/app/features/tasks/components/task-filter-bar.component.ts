@@ -16,7 +16,6 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
 
 @Component({
   selector: 'app-task-filter-bar',
-  standalone: true,
   imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe, SMTSelectComponent, ProjectOptionsPipe],
   template: `
     <div class="toolbar">

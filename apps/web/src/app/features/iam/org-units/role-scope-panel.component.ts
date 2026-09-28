@@ -33,7 +33,6 @@ export interface ScopeRuleOption {
 
 @Component({
   selector: 'app-role-scope-panel',
-  standalone: true,
   imports: [TranslatePipe, SMTButtonComponent, SMTDialogComponent, SMTDialogContentDirective, SMTRadioGroupComponent],
   templateUrl: './role-scope-panel.component.html',
   styleUrl: './role-scope-panel.component.css',

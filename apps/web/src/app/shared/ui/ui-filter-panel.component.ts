@@ -57,7 +57,6 @@ let nextPanelId = 0;
  */
 @Component({
   selector: 'ui-filter-panel',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTInputComponent,

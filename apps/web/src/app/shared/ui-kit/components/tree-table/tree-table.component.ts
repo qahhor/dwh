@@ -34,7 +34,6 @@ export interface TreeTableColumns<T> {
 
 @Component({
   selector: 'smt-tree-table',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTTableComponent, NgTemplateOutlet],
   host: { class: 'flex flex-col gap-2 min-w-0', '(focusin)': 'onFocusIn($event)' },

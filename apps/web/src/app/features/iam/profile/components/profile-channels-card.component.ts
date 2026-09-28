@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
@@ -28,13 +28,11 @@ import {
 
 @Component({
   selector: 'app-profile-channels-card',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,
     SMTSelectComponent,
     SMTSelectValueAccessor,
-    CommonModule,
     FormsModule,
     TranslatePipe,
     SMTButtonComponent,
@@ -42,6 +40,7 @@ import {
     SMTDialogComponent,
     SMTDialogContentDirective,
     UiLocalTableComponent,
+    DatePipe,
   ],
   template: `
     <div class="card section-card full-width">

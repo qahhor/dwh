@@ -30,7 +30,6 @@ export { RECENT_SEARCHES_STORAGE_KEY, MAX_RECENT_SEARCHES, type CategoryItem };
 
 @Component({
   selector: 'app-command-palette',
-  standalone: true,
   imports: [TranslatePipe, FormsModule, A11yModule, CommandPaletteResultsComponent, CommandPaletteFooterComponent],
   template: `
     @if (paletteService.isOpen()) {

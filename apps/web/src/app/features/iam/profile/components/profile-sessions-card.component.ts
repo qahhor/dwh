@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiBadgeComponent } from '../../../../shared/ui/ui-badge.component';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
@@ -20,8 +20,7 @@ import { UserSession } from '../profile.models';
 
 @Component({
   selector: 'app-profile-sessions-card',
-  standalone: true,
-  imports: [UiLocalTableComponent, CommonModule, TranslatePipe, SMTButtonComponent, UiBadgeComponent],
+  imports: [UiLocalTableComponent, TranslatePipe, SMTButtonComponent, UiBadgeComponent, DatePipe],
   template: `
     <div class="card section-card full-width">
       <div class="section-header">

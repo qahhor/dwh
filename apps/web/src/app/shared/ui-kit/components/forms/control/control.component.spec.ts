@@ -45,7 +45,6 @@ describe('smt-control messages', () => {
 });
 
 @Component({
-  standalone: true,
   imports: [SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Name" smtHint="As in the passport" [smtError]="serverError()">
@@ -63,7 +62,6 @@ class SignalFormHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTControlComponent, FormsModule],
   template: `
     <smt-control smtLabel="Code">

@@ -33,7 +33,6 @@ const ICONS: Readonly<Record<SMTAlertTone, string>> = {
 
 @Component({
   selector: 'smt-alert',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './alert.scss',

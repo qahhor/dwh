@@ -9,7 +9,6 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-sidebar',
-  standalone: true,
   imports: [SMTAvatarComponent, RouterModule, TranslatePipe, AppSidebarNavSectionsComponent, AppSidebarFlyoutComponent],
   template: `
     <!-- Mobile Drawer Backdrop -->

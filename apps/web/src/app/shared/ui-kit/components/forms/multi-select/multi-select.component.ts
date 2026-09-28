@@ -54,7 +54,6 @@ function key(id: unknown): string {
 
 @Component({
   selector: 'smt-multi-select',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   imports: [CdkConnectedOverlay, CdkOverlayOrigin],

@@ -44,7 +44,7 @@ export interface SMTEntityFieldContext {
  * A screen's own control for one field (ADR-0019 2.5): `<ng-template smtEntityField="color" let-field let-value="value"
  * let-set="set">`. The rest of the form stays the platform's.
  */
-@Directive({ selector: 'ng-template[smtEntityField]', standalone: true })
+@Directive({ selector: 'ng-template[smtEntityField]' })
 export class SMTEntityFieldDirective {
   readonly template = inject<TemplateRef<SMTEntityFieldContext>>(TemplateRef);
 
@@ -72,7 +72,6 @@ interface DrawnSection {
  */
 @Component({
   selector: 'smt-entity-form',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [NgTemplateOutlet, SMTControlComponent, SMTDynamicFieldComponent, UiMarkdownEditorComponent],
   host: { class: 'smt-entity-form' },

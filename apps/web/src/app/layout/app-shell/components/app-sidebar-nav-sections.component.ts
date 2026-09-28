@@ -6,7 +6,6 @@ import { NavSection } from '../app-shell.models';
 
 @Component({
   selector: 'app-sidebar-nav-sections',
-  standalone: true,
   imports: [RouterModule, TranslatePipe],
   template: `
     @for (section of navSections(); track section; let first = $first) {

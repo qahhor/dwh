@@ -60,7 +60,6 @@ import { UserDirectoryService } from './services/user-directory.service';
 
 @Component({
   selector: 'app-users',
-  standalone: true,
   imports: [
     TranslatePipe,
     FormsModule,

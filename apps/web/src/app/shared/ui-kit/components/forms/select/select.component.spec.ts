@@ -19,7 +19,6 @@ const PEOPLE: SMTSelectOption<number>[] = [
 ];
 
 @Component({
-  standalone: true,
   imports: [SMTSelectComponent, SMTControlComponent, FormField],
   template: `
     <smt-control smtLabel="Responsible">
@@ -52,7 +51,6 @@ class Host {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTSelectComponent, SMTSelectValueAccessor, FormsModule],
   template: `<smt-select [(ngModel)]="owner" name="owner" [options]="options" ariaLabel="Owner" />`,
 })
@@ -62,7 +60,6 @@ class NgModelHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTSelectComponent],
   template: `
     <smt-select
@@ -86,7 +83,6 @@ class LookupHost {
 }
 
 @Component({
-  standalone: true,
   imports: [SMTSelectComponent],
   template: `
     <smt-select

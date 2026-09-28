@@ -40,7 +40,6 @@ const MONDAY = Date.UTC(2024, 0, 1);
 
 @Component({
   selector: 'smt-weekday-toggle',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './weekday-toggle.scss',

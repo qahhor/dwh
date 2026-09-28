@@ -19,7 +19,6 @@ type ResetState = 'form' | 'done' | 'invalid';
  */
 @Component({
   selector: 'app-reset-password',
-  standalone: true,
   imports: [
     FormsModule,
     TranslatePipe,

@@ -34,7 +34,6 @@ export type SMTTagTone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger
 
 @Component({
   selector: 'smt-tag',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './tag.scss',
@@ -85,7 +84,6 @@ let nextTagGroupId = 0;
 
 @Component({
   selector: 'smt-tag-group',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './tag.scss',

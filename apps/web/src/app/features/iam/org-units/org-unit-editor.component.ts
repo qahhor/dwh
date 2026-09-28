@@ -23,7 +23,6 @@ export type OrgUnitSubmission =
   { mode: 'create'; body: OrgUnitCreate } | { mode: 'edit'; id: number; patch: OrgUnitPatch };
 @Component({
   selector: 'app-org-unit-editor',
-  standalone: true,
   imports: [
     FormsModule,
     TranslatePipe,

@@ -21,7 +21,6 @@ import { InstalledModule } from '../modules.models';
  */
 @Component({
   selector: 'app-modules-table',
-  standalone: true,
   imports: [TranslatePipe, UiLocalTableComponent, SMTSwitchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

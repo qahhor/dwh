@@ -17,7 +17,6 @@ export interface LanguageChangeRequest {
 
 @Component({
   selector: 'app-header',
-  standalone: true,
   imports: [RouterModule, TranslatePipe, SMTSelectComponent],
   template: `
     <!-- Top Navigation -->

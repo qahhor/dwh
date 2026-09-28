@@ -33,7 +33,6 @@ const FIELD_TYPES: readonly [string, string][] = [
 
 @Component({
   selector: 'app-custom-fields-modals',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

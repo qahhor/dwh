@@ -35,7 +35,6 @@ let nextSwitchId = 0;
 
 @Component({
   selector: 'smt-switch',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: './switch.component.html',

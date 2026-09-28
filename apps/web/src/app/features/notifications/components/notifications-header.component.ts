@@ -5,7 +5,6 @@ import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 
 @Component({
   selector: 'app-notifications-header',
-  standalone: true,
   imports: [TranslatePipe, SMTButtonComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

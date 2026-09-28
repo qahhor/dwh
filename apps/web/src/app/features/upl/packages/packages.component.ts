@@ -72,7 +72,6 @@ function emptyFormErrors(): UplPackageFormErrors {
 
 @Component({
   selector: 'app-upl-packages',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     SMTAlertComponent,

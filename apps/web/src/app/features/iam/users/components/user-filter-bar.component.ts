@@ -15,7 +15,6 @@ import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/in
 
 @Component({
   selector: 'app-user-filter-bar',
-  standalone: true,
   imports: [
     SMTRadioGroupComponent,
     SMTSelectComponent,

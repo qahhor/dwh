@@ -8,7 +8,6 @@ import { SMTInputComponent, SMTInputValue } from '../../../shared/ui-kit/compone
 
 @Component({
   selector: 'app-announcements-toolbar',
-  standalone: true,
   imports: [SMTTabBarComponent, SMTInputComponent, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `

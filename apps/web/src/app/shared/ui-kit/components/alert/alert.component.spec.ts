@@ -8,7 +8,6 @@ import { testI18n } from '../../i18n/test-messages';
 import { SMTAlertComponent } from './alert.component';
 
 @Component({
-  standalone: true,
   imports: [SMTAlertComponent],
   template: `
     <smt-alert smtTone="danger" smtTitle="Could not save" data-testid="danger">The server refused.</smt-alert>

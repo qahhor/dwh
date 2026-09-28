@@ -6,7 +6,6 @@ import { NavSection } from '../app-shell.models';
 
 @Component({
   selector: 'app-sidebar-flyout',
-  standalone: true,
   imports: [RouterModule, TranslatePipe],
   template: `
     <!-- Collapsed Rail Flyout Popover (Opens next to hovered/clicked category) -->

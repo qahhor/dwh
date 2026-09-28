@@ -36,7 +36,6 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 
 @Component({
   selector: 'app-user-edit-modal',
-  standalone: true,
   imports: [
     SMTControlComponent,
     SMTSelectComponent,

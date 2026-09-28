@@ -6,7 +6,6 @@ import { SMTColorInputComponent } from './color-input.component';
 
 @Directive({
   selector: 'smt-color-input[ngModel], smt-color-input[formControl], smt-color-input[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTColorInputValueAccessor), multi: true }],
 })
 export class SMTColorInputValueAccessor extends PickerValueAccessor<string> {

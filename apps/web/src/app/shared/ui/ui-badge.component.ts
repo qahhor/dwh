@@ -2,7 +2,6 @@ import { Component, input } from '@angular/core';
 
 @Component({
   selector: 'ui-badge',
-  standalone: true,
   imports: [],
   template: `
     <span [class]="'badge badge-' + variant() + (dot() ? ' has-dot' : '')">

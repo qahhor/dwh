@@ -45,7 +45,6 @@ import {
 
 @Component({
   selector: 'app-projects',
-  standalone: true,
   imports: [
     SMTRadioGroupComponent,
     FormsModule,

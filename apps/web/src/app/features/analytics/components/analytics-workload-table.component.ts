@@ -10,7 +10,6 @@ import { SMTAvatarComponent } from '../../../shared/ui-kit/components/avatar';
 
 @Component({
   selector: 'app-analytics-workload-table',
-  standalone: true,
   imports: [SMTAvatarComponent, SMTInputComponent, TranslatePipe, UiBadgeComponent, UiLocalTableComponent],
   template: `
     <div class="table-card" style="margin-top: 20px;">

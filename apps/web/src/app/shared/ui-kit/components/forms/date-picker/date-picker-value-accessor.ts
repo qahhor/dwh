@@ -9,7 +9,6 @@ import type { DateRange } from './date-utils';
 
 @Directive({
   selector: 'smt-date-picker[ngModel], smt-date-picker[formControl], smt-date-picker[formControlName]',
-  standalone: true,
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTDatePickerValueAccessor), multi: true }],
 })
 export class SMTDatePickerValueAccessor extends PickerValueAccessor<string | null> {
@@ -19,7 +18,6 @@ export class SMTDatePickerValueAccessor extends PickerValueAccessor<string | nul
 @Directive({
   selector:
     'smt-date-range-picker[ngModel], smt-date-range-picker[formControl], smt-date-range-picker[formControlName]',
-  standalone: true,
   providers: [
     { provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => SMTDateRangePickerValueAccessor), multi: true },
   ],

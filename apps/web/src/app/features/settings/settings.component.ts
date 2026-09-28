@@ -25,7 +25,6 @@ import { optionsMemo } from '../../shared/ui-kit/components/forms/radio-group';
 
 @Component({
   selector: 'app-settings',
-  standalone: true,
   imports: [
     SMTTabBarComponent,
     FormsModule,

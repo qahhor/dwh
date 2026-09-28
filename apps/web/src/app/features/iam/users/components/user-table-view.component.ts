@@ -1,5 +1,5 @@
 import { Component, computed, inject, input, Signal, TemplateRef, viewChild, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { UiServerTableComponent } from '../../../../shared/ui/ui-server-table.component';
@@ -23,14 +23,13 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
  */
 @Component({
   selector: 'app-user-table-view',
-  standalone: true,
   imports: [
     SMTDropdownButtonComponent,
     SMTAvatarComponent,
-    CommonModule,
     TranslatePipe,
     SMTButtonComponent,
     UiServerTableComponent,
+    DatePipe,
   ],
   template: `
     <div

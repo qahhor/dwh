@@ -17,7 +17,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../shared/ui-kit/co
 
 @Component({
   selector: 'app-language-editor',
-  standalone: true,
   imports: [SMTSwitchComponent, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, FormsModule],
   template: `
     <section class="translation-editor" aria-labelledby="translation-editor-title">

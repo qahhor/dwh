@@ -13,7 +13,6 @@ import { SMTTextareaComponent, SMTTextareaValueAccessor } from '../../../shared/
 
 @Component({
   selector: 'app-settings-languages-panel',
-  standalone: true,
   imports: [
     SMTTextareaComponent,
     SMTTextareaValueAccessor,

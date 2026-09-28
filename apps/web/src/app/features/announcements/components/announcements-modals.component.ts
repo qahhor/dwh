@@ -14,7 +14,6 @@ import { SMTSelectComponent, SMTSelectOption } from '../../../shared/ui-kit/comp
 
 @Component({
   selector: 'app-announcements-modals',
-  standalone: true,
   imports: [
     SMTTabBarComponent,
     FormsModule,

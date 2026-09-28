@@ -23,7 +23,6 @@ import { optionsMemo } from '../../../shared/ui-kit/components/forms/radio-group
  */
 @Component({
   selector: 'app-upl-format-sheets-step',
-  standalone: true,
   // Не OnPush: вид файла и сопоставление колонок меняет соседний шаг «Файл» в той же изменяемой модели.
   imports: [
     SMTCheckboxComponent,

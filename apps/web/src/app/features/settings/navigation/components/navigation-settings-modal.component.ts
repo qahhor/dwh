@@ -15,7 +15,6 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
 
 @Component({
   selector: 'app-navigation-settings-modal',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

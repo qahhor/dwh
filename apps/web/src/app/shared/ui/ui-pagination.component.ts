@@ -6,7 +6,6 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
 
 @Component({
   selector: 'ui-pagination',
-  standalone: true,
   imports: [TranslatePipe, SMTSelectComponent],
   template: `
     @if (totalItems > 0 || (cursorMode && (currentPage > 1 || hasNextPage))) {

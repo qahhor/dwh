@@ -18,7 +18,6 @@ export * from './login.models';
 
 @Component({
   selector: 'app-login',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

@@ -26,7 +26,6 @@ import { canPreview, fileKind, fileKindIcon, formatFileSize } from './file-kind'
 
 @Component({
   selector: 'smt-file-card',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   styleUrl: './file-preview.scss',

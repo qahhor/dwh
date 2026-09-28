@@ -10,7 +10,7 @@ import {
   input,
   output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-kit/components/forms/input';
 import { CustomNavigationItem, NavigationTargetType } from '../../../../core/models/navigation.models';
@@ -25,8 +25,7 @@ import { TableConfig } from '../../../../shared/ui-kit/components/table/table.ty
  */
 @Component({
   selector: 'app-navigation-settings-table',
-  standalone: true,
-  imports: [CommonModule, FormsModule, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, UiLocalTableComponent],
+  imports: [FormsModule, SMTInputComponent, SMTInputValueAccessor, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <!-- Search & Filter Bar -->
     <div class="filter-bar">

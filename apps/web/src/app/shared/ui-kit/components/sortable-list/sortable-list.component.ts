@@ -38,13 +38,13 @@ import { CdkDrag, CdkDragDrop, CdkDragHandle, CdkDropList, moveItemInArray } fro
 import { SMTI18nService } from '../../i18n';
 
 /** The row's body: `let-item` and `let-index="index"`. */
-@Directive({ selector: 'ng-template[smtSortableItem]', standalone: true })
+@Directive({ selector: 'ng-template[smtSortableItem]' })
 export class SMTSortableItemDirective {
   readonly template = inject<TemplateRef<{ $implicit: unknown; index: number }>>(TemplateRef);
 }
 
 /** The row's own actions, after the move buttons: `let-item`. */
-@Directive({ selector: 'ng-template[smtSortableActions]', standalone: true })
+@Directive({ selector: 'ng-template[smtSortableActions]' })
 export class SMTSortableActionsDirective {
   readonly template = inject<TemplateRef<{ $implicit: unknown; index: number }>>(TemplateRef);
 }
@@ -53,7 +53,6 @@ let nextListId = 0;
 
 @Component({
   selector: 'smt-sortable-list',
-  standalone: true,
   imports: [CdkDropList, CdkDrag, CdkDragHandle, NgTemplateOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,

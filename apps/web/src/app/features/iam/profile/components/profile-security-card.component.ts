@@ -5,7 +5,6 @@ import { User } from '../profile.models';
 
 @Component({
   selector: 'app-profile-security-card',
-  standalone: true,
   imports: [TranslatePipe],
   template: `
     <div class="card section-card">

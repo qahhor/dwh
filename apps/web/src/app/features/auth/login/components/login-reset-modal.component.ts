@@ -10,7 +10,6 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
 
 @Component({
   selector: 'app-login-reset-modal',
-  standalone: true,
   imports: [
     SMTInputComponent,
     SMTInputValueAccessor,

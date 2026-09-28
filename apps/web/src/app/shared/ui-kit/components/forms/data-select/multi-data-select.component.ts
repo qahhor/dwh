@@ -28,7 +28,6 @@ import { LookupState, type SMTLookupKey, type SMTLookupSource } from './lookup-s
 
 @Component({
   selector: 'smt-multi-data-select',
-  standalone: true,
   imports: [SMTMultiSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'smt-multi-data-select' },

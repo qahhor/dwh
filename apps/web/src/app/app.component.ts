@@ -7,7 +7,6 @@ import { UiToastContainerComponent } from './shared/ui/ui-toast.component';
 
 @Component({
   selector: 'app-root',
-  standalone: true,
   imports: [TranslatePipe, RouterModule, UiToastContainerComponent],
   template: `
     @if (authService.isLoading()) {

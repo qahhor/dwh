@@ -26,7 +26,6 @@ import { Project, Task, TaskType } from '../../../core/models/task.models';
 
 @Component({
   selector: 'app-task-edit-modal',
-  standalone: true,
   imports: [
     SMTControlComponent,
     FormsModule,

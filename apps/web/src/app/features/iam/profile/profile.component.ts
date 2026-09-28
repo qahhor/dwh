@@ -33,7 +33,6 @@ export * from './profile.models';
 
 @Component({
   selector: 'app-profile',
-  standalone: true,
   imports: [
     TranslatePipe,
     UserProfileCardComponent,
