@@ -14,7 +14,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription } from 'rxjs';
-import { ApiService } from '../../../core/services/api.service';
+import { RolesApi } from '../../../core/services/roles.api';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
@@ -113,7 +113,7 @@ export class RolesComponent implements OnInit {
 
   constructor(
     public permService: PermissionService,
-    private api: ApiService,
+    private rolesApi: RolesApi,
     private toast: ToastService,
   ) {
     this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
@@ -223,8 +223,8 @@ export class RolesComponent implements OnInit {
 
   loadRoles() {
     this.loadRoleUserCounts();
-    this.api
-      .get<Role[]>('/rbac/roles')
+    this.rolesApi
+      .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {
@@ -234,26 +234,12 @@ export class RolesComponent implements OnInit {
             this.selectRole(list[0]);
           }
         },
-        error: () => {
-          this.api
-            .get<Role[]>('/iam/roles')
-            .pipe(takeUntilDestroyed(this.destroyRef))
-            .subscribe({
-              next: (res) => {
-                const list = res || [];
-                this.roles.set(list);
-                if (!this.selectedRole() && list.length > 0) {
-                  this.selectRole(list[0]);
-                }
-              },
-            });
-        },
       });
   }
 
   loadRoleUserCounts() {
-    this.api
-      .get<Record<number, number>>('/iam/roles/user-counts')
+    this.rolesApi
+      .userCounts()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (counts) => this.roleUserCounts.set(counts || {}),
@@ -262,8 +248,8 @@ export class RolesComponent implements OnInit {
   }
 
   loadForms() {
-    this.api
-      .get<FormTreeItem[]>('/rbac/forms')
+    this.rolesApi
+      .forms()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((res) => {
         const items = res || [];
@@ -322,8 +308,8 @@ export class RolesComponent implements OnInit {
       return { formCode, action };
     });
 
-    this.api
-      .put(`/rbac/roles/${currentRole.id}/permissions`, pairs)
+    this.rolesApi
+      .savePermissions(currentRole.id, pairs)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -459,8 +445,8 @@ export class RolesComponent implements OnInit {
       return { formCode, action };
     });
 
-    this.api
-      .put(`/rbac/roles/${role.id}/permissions`, pairs)
+    this.rolesApi
+      .savePermissions(role.id, pairs)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -529,8 +515,8 @@ export class RolesComponent implements OnInit {
     this.loadedPermissionsRoleId.set(null);
     this.permissionsError.set('');
     this.isLoading.set(true);
-    this.permissionsRequest = this.api
-      .get<string[]>(`/rbac/roles/${role.id}/permissions`, undefined, { notifyError: false })
+    this.permissionsRequest = this.rolesApi
+      .permissions(role.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (res) => {

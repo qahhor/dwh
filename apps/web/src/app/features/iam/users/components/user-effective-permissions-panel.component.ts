@@ -11,23 +11,14 @@ import {
 } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../../../core/services/api.service';
+import { UsersApi } from '../users.api';
 import { ToastService } from '../../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
 import { FormTreeItem } from '../../../../core/models/rbac.models';
 import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '../../roles/roles.models';
-import {
-  EffectivePermissionItem,
-  PersonalGrant,
-  EffectivePermissionsResponse,
-  PersonalPermissionsResponse,
-} from '../users.models';
-import {
-  optionsMemo,
-  SMTRadioGroupComponent,
-  SMTRadioOption,
-} from '../../../../shared/ui-kit/components/forms/radio-group';
+import { EffectivePermissionItem, PersonalGrant } from '../users.models';
+import { SMTRadioGroupComponent, SMTRadioOption } from '../../../../shared/ui-kit/components/forms/radio-group';
 import { SMTSelectComponent, SMTSelectOption } from '../../../../shared/ui-kit/components/forms/select';
 import { SMTInputComponent } from '../../../../shared/ui-kit/components/forms/input';
 
@@ -571,7 +562,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
-  private readonly api = inject(ApiService);
+  private readonly usersApi = inject(UsersApi);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
 
@@ -714,7 +705,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     this.loadError.set(false);
 
     // 1. Effective permissions
-    this.api.get<EffectivePermissionsResponse>(`/iam/users/${userId}/effective-permissions`).subscribe({
+    this.usersApi.effectivePermissions(userId).subscribe({
       next: (res) => {
         this.effectiveItems.set(res?.items || []);
         this.isLoading.set(false);
@@ -726,7 +717,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
     });
 
     // 2. Personal grants
-    this.api.get<PersonalPermissionsResponse>(`/iam/users/${userId}/permissions`).subscribe({
+    this.usersApi.personalPermissions(userId).subscribe({
       next: (res) => {
         this.personalGrants.set(res?.grants || []);
       },
@@ -735,7 +726,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
 
     // 3. Form catalog (if empty)
     if (this.formCatalog().length === 0) {
-      this.api.get<FormTreeItem[]>('/iam/roles/forms').subscribe({
+      this.usersApi.permissionForms().subscribe({
         next: (catalog) => {
           if (Array.isArray(catalog)) {
             this.formCatalog.set(catalog);
@@ -788,7 +779,7 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
 
   savePersonalGrants(): void {
     this.isSaving.set(true);
-    this.api.put<void>(`/iam/users/${this.userId()}/permissions`, { grants: this.personalGrants() }).subscribe({
+    this.usersApi.savePersonalPermissions(this.userId(), this.personalGrants()).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.hasUnsavedChanges.set(false);
