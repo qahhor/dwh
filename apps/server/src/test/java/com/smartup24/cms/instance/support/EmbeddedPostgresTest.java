@@ -1,13 +1,9 @@
 package com.smartup24.cms.instance.support;
 
-import com.smartup24.cms.instance.fnd.FndPref;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.filter.annotation.TypeExcludeFilters;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * База интеграционных тестов: встроенный PostgreSQL с двумя базами ({@link TestDatabases}), миграции применены.
@@ -20,45 +16,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @TypeExcludeFilters(TestFixtureExcludeFilter.class)
 public abstract class EmbeddedPostgresTest {
-
-    @Autowired
-    private JdbcClient cleanupJdbc;
-
-    @Autowired
-    private TransactionTemplate cleanupTx;
-
-    /**
-     * Очищает пользователей, сессии, права и журналы между тестами. Журналы защищены триггером
-     * append-only (миграция V2), поэтому удаление идёт в одной транзакции с флагом обслуживания.
-     * Учётка {@code system} не удаляется (M-5).
-     */
-    protected void cleanUsersAndJournals() {
-        cleanupTx.executeWithoutResult(tx -> {
-            cleanupJdbc.sql("set local dwh.maintenance = 'on'").update();
-            for (String table : new String[] {
-                "security_events",
-                "audit_log",
-                "idempotency_keys",
-                "kauth_login_failures",
-                "kauth_sessions",
-                "kauth_auth_flows",
-                "kauth_auth_codes_used",
-                "kauth_link_requests",
-                "kauth_external_identities",
-                "md_effective_permissions",
-                "md_permissions_version",
-                "md_user_roles"
-            }) {
-                cleanupJdbc.sql("delete from " + table).update();
-            }
-            // M-5: учётка system (создаётся кодом основы) остаётся — её id кеширует FndActors, удаление дало бы
-            // audit_actor_missing
-            cleanupJdbc
-                    .sql("delete from md_users where login <> :system")
-                    .param("system", FndPref.SYSTEM_ACTOR)
-                    .update();
-        });
-    }
 
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {
