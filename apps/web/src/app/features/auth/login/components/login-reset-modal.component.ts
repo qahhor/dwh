@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal, input, output } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../../../core/services/api.service';
+import { PasswordApi } from '../../password.api';
 import { ToastService } from '../../../../core/services/toast.service';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -118,7 +118,7 @@ import { SMTInputComponent, SMTInputValueAccessor } from '../../../../shared/ui-
   ],
 })
 export class LoginResetModalComponent {
-  private readonly api = inject(ApiService);
+  private readonly passwordApi = inject(PasswordApi);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
@@ -140,7 +140,7 @@ export class LoginResetModalComponent {
     if (!this.resetEmail()) return;
     this.resetError.set('');
     this.isResetLoading.set(true);
-    this.api.post('/auth/password-reset/request', { email: this.resetEmail() }, { notifyError: false }).subscribe({
+    this.passwordApi.requestReset(this.resetEmail()).subscribe({
       next: () => {
         this.isResetLoading.set(false);
         this.onClose();

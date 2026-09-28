@@ -16,7 +16,8 @@ import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '.
 import { Subscription, Observable, finalize, tap } from 'rxjs';
 import { SMTModalService } from '../../../shared/ui-kit/components/modal';
 import { problemText } from '../../../shared/ui/problem-text';
-import { ApiService } from '../../../core/services/api.service';
+import { CustomFieldsApi } from '../../../core/services/custom-fields.api';
+import { ProjectsApi } from './projects.api';
 import { PermissionService } from '../../../core/services/permission.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
 import { Project, ProjectTaskStats } from '../../../core/models/task.models';
@@ -38,9 +39,9 @@ import { ProjectModalsComponent } from './components/project-modals.component';
 import { ProjectMembersModalComponent } from './components/project-members-modal.component';
 import { ProjectFormsService } from './services/project-forms.service';
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
-import { KeysetPage } from '../../../core/models/common.models';
+
 import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService, parseSort, toQueryParams } from '../../../core/services/query-meta.service';
+import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
 import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
 import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
 import { sortFromHeader } from '../../../shared/ui/registry-table-config';
@@ -74,6 +75,8 @@ import {
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
   readonly forms = inject(ProjectFormsService);
+  private readonly projectsApi = inject(ProjectsApi);
+  private readonly customFieldsApi = inject(CustomFieldsApi);
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
@@ -137,20 +140,16 @@ export class ProjectsComponent implements OnInit, OnDestroy {
      project's tasks over the ones the viewer may see. The pager cancels a superseded request. */
   readonly pager = new KeysetPager<ProjectListItem>(
     (cursor, limit) =>
-      this.api.get<KeysetPage<ProjectListItem>>(
-        '/tasks/projects/page',
+      this.projectsApi.page(
+        this.flatFilters(),
         {
-          limit,
-          cursor: cursor ?? undefined,
-          ...this.flatFilters(),
-          ...toQueryParams({
-            sort: this.views.sort(),
-            conditions: this.views.filter(),
-            match: this.views.match(),
-            search: this.searchQuery,
-          }),
+          sort: this.views.sort(),
+          conditions: this.views.filter(),
+          match: this.views.match(),
+          search: this.searchQuery,
         },
-        { notifyError: false },
+        cursor,
+        limit,
       ),
     { pageSize: 10, destroyRef: this.destroyRef, onLoaded: () => this.listLoaded.set(true) },
   );
@@ -182,7 +181,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   constructor(
     public permService: PermissionService,
-    private api: ApiService,
     private router: Router,
   ) {}
 
@@ -374,7 +372,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
       return;
     }
     this.recordLoading.set(true);
-    this.recordRequest = this.api.get<Project>(`/tasks/projects/${id}`, undefined, { notifyError: false }).subscribe({
+    this.recordRequest = this.projectsApi.get(id).subscribe({
       next: (project) => {
         if (this.destroyed || requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
@@ -406,7 +404,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   loadProjectMembers(projectId: number): void {
     this.isLoadingMembers.set(true);
-    this.api.get<ProjectMember[]>(`/tasks/projects/${projectId}/members`).subscribe({
+    this.projectsApi.members(projectId).subscribe({
       next: (res) => {
         this.projectMembers.set(res || []);
         this.isLoadingMembers.set(false);
@@ -420,22 +418,17 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   onAddProjectMember(event: { projectId: number; userId: number; accessKind: string }): void {
     this.isAddingMember.set(true);
-    this.api
-      .post<void>(`/tasks/projects/${event.projectId}/members`, {
-        userId: event.userId,
-        accessKind: event.accessKind,
-      })
-      .subscribe({
-        next: () => {
-          this.isAddingMember.set(false);
-          this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
-          this.loadProjectMembers(event.projectId);
-        },
-        error: (err: any) => {
-          this.isAddingMember.set(false);
-          this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
-        },
-      });
+    this.projectsApi.addMember(event.projectId, event.userId, event.accessKind).subscribe({
+      next: () => {
+        this.isAddingMember.set(false);
+        this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
+        this.loadProjectMembers(event.projectId);
+      },
+      error: (err: any) => {
+        this.isAddingMember.set(false);
+        this.toast.error(err?.error?.detail || this.uiI18n.translate('projects.oshibka_dobavleniya_uchastnika'));
+      },
+    });
   }
 
   /** Asks before removing a member; the dialog stays open until the server answers. */
@@ -450,15 +443,13 @@ export class ProjectsComponent implements OnInit, OnDestroy {
         destructive: true,
         action: () => {
           this.removingMemberId.set(event.userId);
-          return this.api
-            .delete(`/tasks/projects/${event.projectId}/members/${event.userId}`, { notifyError: false })
-            .pipe(
-              tap(() => {
-                this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
-                this.loadProjectMembers(event.projectId);
-              }),
-              finalize(() => this.removingMemberId.set(null)),
-            );
+          return this.projectsApi.removeMember(event.projectId, event.userId).pipe(
+            tap(() => {
+              this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
+              this.loadProjectMembers(event.projectId);
+            }),
+            finalize(() => this.removingMemberId.set(null)),
+          );
         },
         actionError: (error) => problemText(error) || t('projects.oshibka_udaleniya_uchastnika'),
       })
@@ -466,7 +457,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   }
 
   loadProjectCustomFields() {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'PROJECT' }).subscribe({
+    this.customFieldsApi.list('PROJECT').subscribe({
       next: (res) => {
         if (Array.isArray(res)) {
           const validFields = res.filter(

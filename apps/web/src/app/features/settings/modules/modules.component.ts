@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { ApiService } from '../../../core/services/api.service';
+import { ModulesApi } from './modules.api';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -188,7 +188,7 @@ export type { InstalledModule, ModuleFilterTab };
   ],
 })
 export class ModulesComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly modulesApi = inject(ModulesApi);
   private readonly permissions = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
@@ -242,7 +242,7 @@ export class ModulesComponent implements OnInit {
 
   loadModules(): void {
     this.isLoading.set(true);
-    this.api.get<InstalledModule[]>('/modules').subscribe({
+    this.modulesApi.list().subscribe({
       next: (data) => {
         this.modules.set(data || []);
         this.isLoading.set(false);
@@ -270,7 +270,7 @@ export class ModulesComponent implements OnInit {
       );
     setActive(targetActive);
     this.togglingCode.set(code);
-    this.api.post<InstalledModule>(`/modules/${code}/toggle`, { enabled: targetActive }).subscribe({
+    this.modulesApi.toggle(code, targetActive).subscribe({
       next: (updated) => {
         this.togglingCode.set(null);
         this.modules.update((list) =>

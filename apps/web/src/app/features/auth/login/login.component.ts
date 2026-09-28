@@ -13,7 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { ApiService } from '../../../core/services/api.service';
+import { PasswordApi } from '../password.api';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { LoginStep, PasswordField } from './login.models';
@@ -296,7 +296,7 @@ export class LoginComponent {
 
   constructor(
     private authService: AuthService,
-    private api: ApiService,
+    private passwordApi: PasswordApi,
   ) {
     // Apply the saved theme on this public route before the app shell exists.
     inject(ThemeService);
@@ -397,35 +397,26 @@ export class LoginComponent {
     this.isLoading.set(true);
     // A committed password change must clear global authentication even if
     // navigation destroys this view before the response arrives.
-    this.api
-      .post(
-        '/auth/password',
-        {
-          oldPassword: this.tempOldPassword() || this.password(),
-          newPassword: this.newPassword(),
-        },
-        { notifyError: false },
-      )
-      .subscribe({
-        next: () => {
-          this.isLoading.set(false);
-          this.password.set('');
-          this.tempOldPassword.set('');
-          this.newPassword.set('');
-          this.confirmNewPassword.set('');
-          this.otpToken.set('');
-          this.otpCode.set('');
-          this.changeStep('credentials');
-          this.authService.onPasswordChanged();
-        },
-        error: (err) => {
-          this.isLoading.set(false);
-          this.formError.set(
-            this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_izmenit_parol_proverte_slozhnost_parol')),
-          );
-          this.focusInput('new-password');
-        },
-      });
+    this.passwordApi.change(this.tempOldPassword() || this.password(), this.newPassword()).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.password.set('');
+        this.tempOldPassword.set('');
+        this.newPassword.set('');
+        this.confirmNewPassword.set('');
+        this.otpToken.set('');
+        this.otpCode.set('');
+        this.changeStep('credentials');
+        this.authService.onPasswordChanged();
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.formError.set(
+          this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_izmenit_parol_proverte_slozhnost_parol')),
+        );
+        this.focusInput('new-password');
+      },
+    });
   }
 
   openResetModal() {

@@ -14,7 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { of, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
-import { ApiService } from '../../../../core/services/api.service';
+import { ProjectsApi } from '../projects.api';
 import { I18nService, TranslatePipe } from '../../../../core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '../../../../shared/ui-kit/components/modal';
 import { SMTButtonComponent } from '../../../../shared/ui-kit/components/button';
@@ -436,7 +436,7 @@ import { optionsMemo } from '../../../../shared/ui-kit/components/forms/radio-gr
   ],
 })
 export class ProjectMembersModalComponent {
-  private readonly api = inject(ApiService);
+  private readonly projectsApi = inject(ProjectsApi);
   private readonly i18n = inject(I18nService);
 
   readonly isLoadingMembers = input(false);
@@ -517,11 +517,7 @@ export class ProjectMembersModalComponent {
           if (!trimmed) {
             return of({ items: [] });
           }
-          return this.api.get<{ items: User[] }>('/iam/users', {
-            state: 'A',
-            search: trimmed,
-            limit: 15,
-          });
+          return this.projectsApi.searchActiveUsers(trimmed);
         }),
       )
       .subscribe({

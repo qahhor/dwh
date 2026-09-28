@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, signal, computed, inject, viewChild } from '@angular/core';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { ApiService } from '../../../core/services/api.service';
+import { ProfileApi } from './profile.api';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
@@ -11,12 +11,9 @@ import { problemText } from '../../../shared/ui/problem-text';
 import { fitsPasswordPolicy, PASSWORD_MIN_LENGTH, PASSWORD_POLICY } from '../../../core/security/password-policy';
 
 import {
-  User,
   UserSession,
   UserChannel,
-  BindChannelResponse,
   ApiToken,
-  CreatedTokenResponse,
   PasswordForm,
   PasswordStrength,
   TokenExpirationOption,
@@ -230,7 +227,7 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     public authService: AuthService,
-    private api: ApiService,
+    private profile: ProfileApi,
     private toast: ToastService,
   ) {}
 
@@ -292,7 +289,7 @@ export class ProfileComponent implements OnInit {
 
   loadChannels() {
     this.isLoadingChannels.set(true);
-    this.api.get<UserChannel[]>('/iam/profile/channels').subscribe({
+    this.profile.channels().subscribe({
       next: (res) => {
         this.channels.set(res || []);
         this.isLoadingChannels.set(false);
@@ -305,7 +302,7 @@ export class ProfileComponent implements OnInit {
 
   onBindChannel(event: { channel: string; address: string }) {
     this.isBindingChannel.set(true);
-    this.api.post<BindChannelResponse>('/iam/profile/channels', event).subscribe({
+    this.profile.bindChannel(event.channel, event.address).subscribe({
       next: (res) => {
         this.isBindingChannel.set(false);
         this.toast.info(this.uiI18n.translate('iam.kod_podtverzhdeniya_otpravlen', { address: event.address }));
@@ -321,7 +318,7 @@ export class ProfileComponent implements OnInit {
 
   onConfirmChannel(event: { verifyToken: string; code: string }) {
     this.isConfirmingChannel.set(true);
-    this.api.post<void>('/iam/profile/channels/confirm', event).subscribe({
+    this.profile.confirmChannel(event.verifyToken, event.code).subscribe({
       next: () => {
         this.isConfirmingChannel.set(false);
         this.toast.success(this.uiI18n.translate('iam.kanal_uspeshno_privyazan'));
@@ -343,7 +340,7 @@ export class ProfileComponent implements OnInit {
       title: t('iam.otvyazat_kanal'),
       message: `${t('iam.vy_uvereny_chto_hotite_otvyazat_kanal', { channel: label, address: channel.address })}\n${t('iam.otvyazat_kanal_preduprezhdenie')}`,
       yesLabel: t('iam.otvyazat_kanal'),
-      request: () => this.api.delete(`/iam/profile/channels/${channel.channel}`, { notifyError: false }),
+      request: () => this.profile.unbindChannel(channel.channel),
       done: () => {
         this.toast.success(t('iam.kanal_uspeshno_otvyazan'));
         this.loadChannels();
@@ -354,7 +351,7 @@ export class ProfileComponent implements OnInit {
 
   loadSessions() {
     this.isLoadingSessions.set(true);
-    this.api.get<UserSession[]>('/iam/profile/sessions').subscribe({
+    this.profile.sessions().subscribe({
       next: (res) => {
         this.sessions.set(res || []);
         this.isLoadingSessions.set(false);
@@ -371,7 +368,7 @@ export class ProfileComponent implements OnInit {
       title: t('iam.zavershenie_sessii'),
       message: `${t('iam.terminate_session_question', { ip: session.ip })}\n${t('iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni')}`,
       yesLabel: t('iam.zavershit'),
-      request: () => this.api.delete(`/iam/profile/sessions/${session.id}`, { notifyError: false }),
+      request: () => this.profile.endSession(session.id),
       done: () => {
         this.toast.success(t('iam.sessiya_uspeshno_zavershena'));
         this.loadSessions();
@@ -387,7 +384,7 @@ export class ProfileComponent implements OnInit {
       title: t('iam.zavershenie_sessii'),
       message: `${t('iam.zavershit_vse_ostalnye_aktivnye_sessii_krome_tek')}\n${t('iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni')}`,
       yesLabel: t('iam.zavershit'),
-      request: () => this.api.delete('/iam/profile/sessions/others', { notifyError: false }),
+      request: () => this.profile.endOtherSessions(),
       done: () => {
         this.toast.success(t('iam.vse_ostalnye_sessii_uspeshno_zaversheny'));
         this.loadSessions();
@@ -417,27 +414,22 @@ export class ProfileComponent implements OnInit {
     }
 
     this.isChangingPassword.set(true);
-    this.api
-      .post('/iam/users/me/password', {
-        oldPassword: this.passwordForm().oldPassword,
-        newPassword: this.passwordForm().newPassword,
-      })
-      .subscribe({
-        next: () => {
-          this.isChangingPassword.set(false);
-          this.passwordForm.set({ oldPassword: '', newPassword: '', confirmPassword: '' });
-          this.isPasswordSubmitted.set(false);
-          this.authService.onPasswordChanged();
-        },
-        error: () => {
-          this.isChangingPassword.set(false);
-        },
-      });
+    this.profile.changePassword(this.passwordForm().oldPassword, this.passwordForm().newPassword).subscribe({
+      next: () => {
+        this.isChangingPassword.set(false);
+        this.passwordForm.set({ oldPassword: '', newPassword: '', confirmPassword: '' });
+        this.isPasswordSubmitted.set(false);
+        this.authService.onPasswordChanged();
+      },
+      error: () => {
+        this.isChangingPassword.set(false);
+      },
+    });
   }
 
   loadTokens() {
     this.isLoadingTokens.set(true);
-    this.api.get<ApiToken[]>('/iam/profile/tokens').subscribe({
+    this.profile.tokens().subscribe({
       next: (res) => {
         this.tokens.set(res || []);
         this.isLoadingTokens.set(false);
@@ -473,26 +465,21 @@ export class ProfileComponent implements OnInit {
     }
 
     this.isCreatingToken.set(true);
-    this.api
-      .post<CreatedTokenResponse>('/iam/profile/tokens', {
-        name: this.newTokenName().trim(),
-        expiresAt,
-      })
-      .subscribe({
-        next: (res) => {
-          this.isCreatingToken.set(false);
-          this.isCreateTokenModalOpen.set(false);
-          this.isTokenSubmitted.set(false);
-          this.createdTokenSecret.set(res.rawSecretToken);
-          this.copiedSecret.set(false);
-          this.isTokenSecretModalOpen.set(true);
-          this.loadTokens();
-        },
-        error: (err: any) => {
-          this.isCreatingToken.set(false);
-          this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
-        },
-      });
+    this.profile.createToken(this.newTokenName().trim(), expiresAt).subscribe({
+      next: (res) => {
+        this.isCreatingToken.set(false);
+        this.isCreateTokenModalOpen.set(false);
+        this.isTokenSubmitted.set(false);
+        this.createdTokenSecret.set(res.rawSecretToken);
+        this.copiedSecret.set(false);
+        this.isTokenSecretModalOpen.set(true);
+        this.loadTokens();
+      },
+      error: (err: any) => {
+        this.isCreatingToken.set(false);
+        this.toast.error(err?.error?.detail || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
+      },
+    });
   }
 
   requestRevokeToken(token: ApiToken) {
@@ -501,7 +488,7 @@ export class ProfileComponent implements OnInit {
       title: t('iam.otzyv_api_tokena'),
       message: `${t('iam.revoke_token_question', { name: token.name })}\n${t('iam.integracii_s_etim_tokenom_nemedlenno_poteryayut_')}`,
       yesLabel: t('iam.otozvat'),
-      request: () => this.api.delete(`/iam/profile/tokens/${token.id}`, { notifyError: false }),
+      request: () => this.profile.revokeToken(token.id),
       done: () => {
         this.toast.success(t('iam.token_uspeshno_otozvan'));
         this.loadTokens();

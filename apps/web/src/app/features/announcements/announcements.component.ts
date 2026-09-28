@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 
-import { ApiService } from '../../core/services/api.service';
+import { AnnouncementsApi } from './announcements.api';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
@@ -375,7 +375,7 @@ export class AnnouncementsComponent implements OnInit {
   editingLockVersion: number | null = null;
 
   constructor(
-    private readonly api: ApiService,
+    private readonly announcementsApi: AnnouncementsApi,
     private readonly permissions: PermissionService,
     private readonly toast: ToastService,
   ) {}
@@ -410,7 +410,7 @@ export class AnnouncementsComponent implements OnInit {
   loadAnnouncements(): void {
     this.isLoading.set(true);
     this.loadError.set(false);
-    this.api.get<AnnouncementAdminRecord[]>('/announcements/manage').subscribe({
+    this.announcementsApi.manageable().subscribe({
       next: (records) => {
         this.announcements.set(records ?? []);
         this.isLoading.set(false);
@@ -507,10 +507,7 @@ export class AnnouncementsComponent implements OnInit {
     };
     this.isSaving.set(true);
     this.operationError.set(null);
-    const request =
-      this.editingId === null
-        ? this.api.post<AnnouncementAdminRecord>('/announcements', payload)
-        : this.api.put<AnnouncementAdminRecord>(`/announcements/${this.editingId}`, payload);
+    const request = this.announcementsApi.save(this.editingId, payload);
     request.subscribe({
       next: (saved) => {
         this.upsert(saved);
@@ -570,8 +567,8 @@ export class AnnouncementsComponent implements OnInit {
    */
   private runConfirmedAction(pending: Confirmation) {
     this.isSaving.set(true);
-    const path = `/announcements/${pending.announcement.id}/${pending.action}`;
-    return this.api.post<AnnouncementAdminRecord>(path, { lockVersion: pending.announcement.lockVersion }).pipe(
+    const { announcement, action } = pending;
+    return this.announcementsApi.transition(announcement.id, action, announcement.lockVersion).pipe(
       tap((saved) => {
         this.upsert(saved);
         this.toast.success(

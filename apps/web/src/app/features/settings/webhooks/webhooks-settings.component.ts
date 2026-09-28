@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../../core/services/api.service';
+import { WebhooksApi } from './webhooks.api';
 import { ToastService } from '../../../core/services/toast.service';
 import { TranslatePipe, I18nService } from '../../../core/services/i18n.service';
 import { PermissionService } from '../../../core/services/permission.service';
@@ -607,7 +607,7 @@ import { SMTCheckboxComponent } from '../../../shared/ui-kit/components/forms/ch
   ],
 })
 export class WebhooksSettingsComponent implements OnInit {
-  private readonly api = inject(ApiService);
+  private readonly webhooks = inject(WebhooksApi);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
   private readonly permService = inject(PermissionService);
@@ -686,7 +686,7 @@ export class WebhooksSettingsComponent implements OnInit {
   loadSubscriptions(): void {
     this.isLoading.set(true);
     this.loadError.set(false);
-    this.api.get<WebhookSubscription[]>('/webhooks/subscriptions').subscribe({
+    this.webhooks.list().subscribe({
       next: (subs) => {
         this.subscriptions.set(Array.isArray(subs) ? subs : []);
         this.isLoading.set(false);
@@ -745,7 +745,7 @@ export class WebhooksSettingsComponent implements OnInit {
       subscribedEvents: Array.from(this.selectedEvents),
     };
 
-    this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body).subscribe({
+    this.webhooks.create(body).subscribe({
       next: (created) => {
         this.isSaving.set(false);
         this.isCreateModalOpen.set(false);
@@ -775,7 +775,7 @@ export class WebhooksSettingsComponent implements OnInit {
 
   toggleState(sub: WebhookSubscription): void {
     const nextState = sub.state === 'A' ? 'P' : 'A';
-    this.api.patch<void>(`/webhooks/subscriptions/${sub.id}`, { state: nextState }).subscribe({
+    this.webhooks.setState(sub.id, nextState).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('settings.webhooks.updated_success'));
         this.loadSubscriptions();
@@ -795,7 +795,7 @@ export class WebhooksSettingsComponent implements OnInit {
         destructive: true,
         action: () => {
           this.isSaving.set(true);
-          return this.api.delete<void>(`/webhooks/subscriptions/${sub.id}`, { notifyError: false }).pipe(
+          return this.webhooks.remove(sub.id).pipe(
             tap(() => {
               this.toast.success(this.uiI18n.translate('settings.webhooks.deleted_success'));
               this.loadSubscriptions();

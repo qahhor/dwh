@@ -16,22 +16,23 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { canonicalRecordId, safeNumericRecordId } from '../../core/services/search-target';
 import { KeysetPager } from '../../shared/paging/keyset-pager';
 import { QueryListMeta } from '../../core/models/query-meta.models';
-import { QueryMetaService, parseSort, toQueryParams } from '../../core/services/query-meta.service';
+import { QueryMetaService, parseSort } from '../../core/services/query-meta.service';
 import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
 import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
 import { sortFromHeader } from '../../shared/ui/registry-table-config';
 import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { ApiService } from '../../core/services/api.service';
+import { CustomFieldsApi } from '../../core/services/custom-fields.api';
+import { TasksApi } from './tasks.api';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
 import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
-import { SMTSelectOption } from '../../shared/ui-kit/components/forms/select';
+
 import { UiPaginationComponent } from '../../shared/ui/ui-pagination.component';
-import { Task, Project, TaskStatus, TaskType, TaskFile } from '../../core/models/task.models';
+import { Task, Project, TaskFile } from '../../core/models/task.models';
 import { CustomField } from '../../core/models/custom-field.models';
-import { KeysetPage } from '../../core/models/common.models';
+
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { Subscription } from 'rxjs';
 import { TaskDictionariesModalComponent } from './components/task-dictionaries-modal.component';
@@ -101,6 +102,8 @@ export class TasksComponent implements OnInit, OnDestroy {
   public readonly filterService = inject(TaskFilterService);
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
+  private readonly tasksApi = inject(TasksApi);
+  private readonly customFieldsApi = inject(CustomFieldsApi);
 
   private readonly uiI18n = inject(I18nService);
   private readonly recordRouter = inject(Router, { optional: true });
@@ -147,14 +150,11 @@ export class TasksComponent implements OnInit, OnDestroy {
      the quick filters, the search, the sort and the filter are read when each request is made. */
   readonly taskPager = new KeysetPager<Task>(
     (cursor, limit) =>
-      this.api.get<KeysetPage<Task>>('/tasks', {
-        ...this.filterService.buildListParams(cursor, limit),
-        ...toQueryParams({
-          sort: this.views.sort(),
-          conditions: this.views.filter(),
-          match: this.views.match(),
-          search: this.filterService.searchQuery,
-        }),
+      this.tasksApi.page(this.filterService.buildListParams(cursor, limit), {
+        sort: this.views.sort(),
+        conditions: this.views.filter(),
+        match: this.views.match(),
+        search: this.filterService.searchQuery,
       }),
     // One page size: the pager's, which is also the limit each request sends.
     { pageSize: this.filterService.pageSize, destroyRef: this.destroyRef },
@@ -210,7 +210,6 @@ export class TasksComponent implements OnInit, OnDestroy {
 
   constructor(
     public permService: PermissionService,
-    private api: ApiService,
     private toast: ToastService,
     private route: ActivatedRoute,
   ) {}
@@ -368,14 +367,12 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   loadProjects() {
-    this.api
-      .get<Project[]>('/tasks/projects')
-      .subscribe({ next: (res) => this.projects.set(res || []), error: () => {} });
+    this.tasksApi.projects().subscribe({ next: (res) => this.projects.set(res || []), error: () => {} });
   }
 
   loadTaskCustomFields() {
-    this.api
-      .get<CustomField[]>('/custom-fields', { entity_type: 'TASK' })
+    this.customFieldsApi
+      .list('TASK')
       .subscribe({ next: (res) => this.taskCustomFields.set(res || []), error: () => {} });
   }
 

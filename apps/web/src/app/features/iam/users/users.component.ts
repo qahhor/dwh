@@ -18,17 +18,19 @@ import { problemText } from '../../../shared/ui/problem-text';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '../../../core/services/search-target';
 
 import { FormsModule } from '@angular/forms';
-import { ApiService } from '../../../core/services/api.service';
+import { CustomFieldsApi } from '../../../core/services/custom-fields.api';
+import { RolesApi } from '../../../core/services/roles.api';
+import { UsersApi } from './users.api';
 import { PermissionService } from '../../../core/services/permission.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { SMTButtonComponent } from '../../../shared/ui-kit/components/button';
-import { User, UserSecuritySummary } from '../../../core/models/auth.models';
+import { User } from '../../../core/models/auth.models';
 import { Role } from '../../../core/models/rbac.models';
 import { CustomField } from '../../../core/models/custom-field.models';
-import { KeysetPage } from '../../../core/models/common.models';
+
 import { KeysetPager } from '../../../shared/paging/keyset-pager';
 import { QueryListMeta } from '../../../core/models/query-meta.models';
-import { QueryMetaService, parseSort, toQueryParams } from '../../../core/services/query-meta.service';
+import { QueryMetaService, parseSort } from '../../../core/services/query-meta.service';
 import { ListViewState, ListViewsApi } from '../../../shared/list-views/list-views';
 import { TableColumnStateStore } from '../../../shared/ui-kit/services/table-column-state.store';
 import { sortFromHeader } from '../../../shared/ui/registry-table-config';
@@ -84,6 +86,12 @@ export class UsersComponent implements OnInit, OnDestroy {
   public readonly directory = inject(UserDirectoryService);
 
   private readonly uiI18n = inject(I18nService);
+
+  private readonly usersApi = inject(UsersApi);
+
+  private readonly rolesApi = inject(RolesApi);
+
+  private readonly customFieldsApi = inject(CustomFieldsApi);
   private readonly recordRoute = inject(ActivatedRoute, { optional: true });
   private readonly recordRouter = inject(Router, { optional: true });
 
@@ -148,7 +156,6 @@ export class UsersComponent implements OnInit, OnDestroy {
 
   constructor(
     public permService: PermissionService,
-    private api: ApiService,
     private toast: ToastService,
     private elementRef: ElementRef,
     public i18n: I18nService,
@@ -359,19 +366,14 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   loadRoles() {
-    this.api.get<Role[]>('/rbac/roles').subscribe({
+    this.rolesApi.list().subscribe({
       next: (res) => this.roles.set(res || []),
-      error: () => {
-        this.api.get<Role[]>('/iam/roles').subscribe({
-          next: (res) => this.roles.set(res || []),
-          error: () => {},
-        });
-      },
+      error: () => {},
     });
   }
 
   loadCustomFields() {
-    this.api.get<CustomField[]>('/custom-fields', { entity_type: 'USER' }).subscribe((res) => {
+    this.customFieldsApi.list('USER').subscribe((res) => {
       this.customFields.set(res || []);
     });
   }
@@ -463,7 +465,7 @@ export class UsersComponent implements OnInit, OnDestroy {
       return;
     }
     this.recordLoading.set(true);
-    this.recordRequest = this.api.get<User>(`/iam/users/${id}`, undefined, { notifyError: false }).subscribe({
+    this.recordRequest = this.usersApi.get(id).subscribe({
       next: (user) => {
         if (requestId !== this.recordRequestId) return;
         this.recordLoading.set(false);
@@ -562,7 +564,7 @@ export class UsersComponent implements OnInit, OnDestroy {
         destructive: true,
         action: () => {
           this.isSubmitting.set(true);
-          return this.api.delete(`/iam/users/${user.id}`, { notifyError: false }).pipe(
+          return this.usersApi.remove(user.id).pipe(
             tap(() => {
               this.toast.success(t('iam.polzovatel_uspeshno_udalen'));
               this.loadUsers();
@@ -576,7 +578,7 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   toggleUserState(user: User, action: 'block' | 'unblock') {
-    this.api.post(`/iam/users/${user.id}/${action}`).subscribe({
+    this.usersApi.setBlocked(user.id, action).subscribe({
       next: () => {
         this.toast.success(
           action === 'block'
@@ -661,16 +663,11 @@ export class UsersComponent implements OnInit, OnDestroy {
   }
 
   private fetchUsers(cursor: string | null, limit: number) {
-    return this.api.get<KeysetPage<User>>('/iam/users', {
+    return this.usersApi.page(
+      this.flatFilters(),
+      { sort: this.views.sort(), conditions: this.views.filter(), match: this.views.match(), search: this.searchQuery },
+      cursor,
       limit,
-      cursor: cursor ?? undefined,
-      ...this.flatFilters(),
-      ...toQueryParams({
-        sort: this.views.sort(),
-        conditions: this.views.filter(),
-        match: this.views.match(),
-        search: this.searchQuery,
-      }),
-    });
+    );
   }
 }

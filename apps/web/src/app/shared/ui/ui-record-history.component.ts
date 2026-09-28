@@ -11,29 +11,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription } from 'rxjs';
-import { KeysetPage } from '../../core/models/common.models';
-import { ApiService } from '../../core/services/api.service';
+
+import { HistoryChange, HistoryEntry, RecordHistoryApi } from './record-history.api';
+
+export type { HistoryChange, HistoryEntry };
 import { I18nService, TranslatePipe } from '../../core/services/i18n.service';
-
-/** A field's value before and after one change. */
-export interface HistoryChange {
-  field: string;
-  labelKey?: string | null;
-  oldValue?: unknown;
-  newValue?: unknown;
-}
-
-/** One change of a record, as `GET /history/{kind}/{id}` returns it (ADR-0017). */
-export interface HistoryEntry {
-  id: number;
-  event: 'I' | 'U' | 'D';
-  changedAt: string;
-  changedBy?: number | null;
-  changedByName?: string | null;
-  changedByLogin?: string | null;
-  isApi: boolean;
-  changes: HistoryChange[];
-}
 
 const PAGE_SIZE = 20;
 const EVENT_KEYS: Record<HistoryEntry['event'], string> = {
@@ -236,7 +218,7 @@ let nextHistoryId = 0;
   ],
 })
 export class UiRecordHistoryComponent {
-  private readonly api = inject(ApiService);
+  private readonly history = inject(RecordHistoryApi);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -283,12 +265,8 @@ export class UiRecordHistoryComponent {
     this.loading.set(true);
     this.failed.set(false);
     this.request?.unsubscribe();
-    this.request = this.api
-      .get<KeysetPage<HistoryEntry>>(
-        `/history/${encodeURIComponent(this.kind())}/${encodeURIComponent(String(this.recordId()))}`,
-        { limit: PAGE_SIZE, ...(cursor ? { cursor } : {}) },
-        { notifyError: false },
-      )
+    this.request = this.history
+      .page(this.kind(), this.recordId(), cursor, PAGE_SIZE)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (page) => {

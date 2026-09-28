@@ -32,6 +32,25 @@ export default tseslint.config(
     },
   },
   {
+    // A component asks its feature's typed data service (<feature>.api.ts), never ApiService itself (plan 10/10,
+    // item 2.4): the requests of a feature and their types stay in one place a spec can fake.
+    files: ['src/**/*.component.ts'],
+    ignores: ['src/**/*.spec.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/core/services/api.service'],
+              message: 'Call the feature data service (<feature>.api.ts); only data services use ApiService.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['src/**/*.spec.ts'],
     rules: {
       // A spec builds fakes of any shape; the production rules above still hold for the code under test.

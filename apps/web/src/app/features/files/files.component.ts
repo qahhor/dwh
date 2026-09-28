@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, sign
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { finalize, Observable, Subscription, tap, throwError } from 'rxjs';
-import { ApiService } from '../../core/services/api.service';
+import { FilesApi } from './files.api';
 import { AuthService } from '../../core/services/auth.service';
 import { PermissionService } from '../../core/services/permission.service';
 import { ToastService } from '../../core/services/toast.service';
@@ -10,9 +10,8 @@ import { SMTButtonComponent } from '../../shared/ui-kit/components/button';
 import { TaskFile } from '../../core/models/task.models';
 import { TranslatePipe, I18nService } from '../../core/services/i18n.service';
 import { FileDetail, StorageStats } from './files.models';
-import { KeysetPage } from '../../core/models/common.models';
 import { QueryListMeta } from '../../core/models/query-meta.models';
-import { QueryMetaService, parseSort, toQueryParams } from '../../core/services/query-meta.service';
+import { QueryMetaService, parseSort } from '../../core/services/query-meta.service';
 import { KeysetPager } from '../../shared/paging/keyset-pager';
 import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
 import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
@@ -160,6 +159,7 @@ function formatBytes(bytes: number): string {
 })
 export class FilesComponent implements OnInit, OnDestroy {
   private readonly preview = inject(SMTFilePreviewService);
+  private readonly filesApi = inject(FilesApi);
   private readonly uiI18n = inject(I18nService);
   private readonly auth = inject(AuthService);
   private readonly queryMeta = inject(QueryMetaService);
@@ -188,20 +188,16 @@ export class FilesComponent implements OnInit, OnDestroy {
   /** Every request carries the scope, the search box, the sort and the filter; only the latest answer lands. */
   readonly pager = new KeysetPager<FileDetail>(
     (cursor, limit) =>
-      this.api.get<KeysetPage<FileDetail>>(
-        '/files',
+      this.filesApi.page(
+        this.scope,
         {
-          scope: this.scope,
-          limit,
-          ...(cursor ? { cursor } : {}),
-          ...toQueryParams({
-            sort: this.views.sort(),
-            conditions: this.views.filter(),
-            match: this.views.match(),
-            search: this.searchQuery,
-          }),
+          sort: this.views.sort(),
+          conditions: this.views.filter(),
+          match: this.views.match(),
+          search: this.searchQuery,
         },
-        { notifyError: false },
+        cursor,
+        limit,
       ),
     { pageSize: 15, destroyRef: this.destroyRef },
   );
@@ -215,7 +211,6 @@ export class FilesComponent implements OnInit, OnDestroy {
   readonly canDeleteFileBound = (file: FileDetail) => this.canDeleteFile(file);
 
   constructor(
-    private api: ApiService,
     private permService: PermissionService,
     private toast: ToastService,
   ) {}
@@ -244,7 +239,7 @@ export class FilesComponent implements OnInit, OnDestroy {
   loadStats() {
     if (this.destroyed) return;
     this.statsRequest?.unsubscribe();
-    this.statsRequest = this.api.get<StorageStats>('/files/storage/stats').subscribe({
+    this.statsRequest = this.filesApi.storageStats().subscribe({
       next: (res) => this.stats.set(res),
       error: () => {},
     });
@@ -344,7 +339,7 @@ export class FilesComponent implements OnInit, OnDestroy {
   }
 
   onBatchFileRemoved(taskFile: TaskFile) {
-    this.api.delete(`/files/${taskFile.fileId}`).subscribe({
+    this.filesApi.remove(taskFile.fileId).subscribe({
       next: () => {
         this.uploadedBatch.update((list) => list.filter((f) => f.fileId !== taskFile.fileId));
         this.refreshAll();
@@ -372,7 +367,7 @@ export class FilesComponent implements OnInit, OnDestroy {
       return throwError(() => ({ detail: this.uiI18n.translate('files.delete_not_allowed') }));
     }
     this.isDeleting.set(true);
-    return this.api.delete(`/files/${file.id}`, { notifyError: false }).pipe(
+    return this.filesApi.remove(file.id, true).pipe(
       tap(() => {
         this.toast.success(this.uiI18n.translate('files.deleted_named', { name: file.originalName }));
         this.refreshAll();

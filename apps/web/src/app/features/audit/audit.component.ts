@@ -1,19 +1,19 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 
-import { ApiService } from '../../core/services/api.service';
 import { ToastService } from '../../core/services/toast.service';
 import { TranslatePipe } from '../../core/services/i18n.service';
 import { KeysetPager } from '../../shared/paging/keyset-pager';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QueryListMeta } from '../../core/models/query-meta.models';
-import { QueryMetaService, parseSort, toQueryParams } from '../../core/services/query-meta.service';
+import { QueryMetaService, parseSort } from '../../core/services/query-meta.service';
 import { ListViewState, ListViewsApi } from '../../shared/list-views/list-views';
 import { TableColumnStateStore } from '../../shared/ui-kit/services/table-column-state.store';
 import { sortFromHeader } from '../../shared/ui/registry-table-config';
 import { OrderBy } from '../../shared/ui-kit/components/table/table.types';
 import { SMTAlertComponent } from '../../shared/ui-kit/components/alert';
 
-import { AuditRecord, SecurityEventRecord, AuditStats, AuditPage } from './audit.models';
+import { AuditRecord, SecurityEventRecord, AuditStats } from './audit.models';
+import { AuditApi } from './audit.api';
 
 import { AuditStatsTilesComponent } from './components/audit-stats-tiles.component';
 import { AuditLogsTableComponent } from './components/audit-logs-table.component';
@@ -153,6 +153,7 @@ export * from './audit.models';
 export class AuditComponent implements OnInit {
   /** Texts of the tabs below; translated again when the language changes. */
   private readonly tabText = inject(I18nService);
+  private readonly audit = inject(AuditApi);
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly queryMeta = inject(QueryMetaService);
@@ -214,31 +215,23 @@ export class AuditComponent implements OnInit {
      number only when that page arrives. */
   readonly auditPager = new KeysetPager<AuditRecord>(
     (cursor, limit) =>
-      this.api.get<AuditPage<AuditRecord>>('/audit/logs', {
-        ...this.auditFlatFilters(),
-        ...toQueryParams({
-          sort: this.auditViews.sort(),
-          conditions: this.auditViews.filter(),
-          match: this.auditViews.match(),
-        }),
+      this.audit.logs(
+        this.auditFlatFilters(),
+        { sort: this.auditViews.sort(), conditions: this.auditViews.filter(), match: this.auditViews.match() },
+        cursor,
         limit,
-        cursor: cursor ?? undefined,
-      }),
+      ),
     { destroyRef: this.destroyRef },
   );
 
   readonly securityPager = new KeysetPager<SecurityEventRecord>(
     (cursor, limit) =>
-      this.api.get<AuditPage<SecurityEventRecord>>('/audit/security-events', {
-        ...this.securityFlatFilters(),
-        ...toQueryParams({
-          sort: this.securityViews.sort(),
-          conditions: this.securityViews.filter(),
-          match: this.securityViews.match(),
-        }),
+      this.audit.securityEvents(
+        this.securityFlatFilters(),
+        { sort: this.securityViews.sort(), conditions: this.securityViews.filter(), match: this.securityViews.match() },
+        cursor,
         limit,
-        cursor: cursor ?? undefined,
-      }),
+      ),
     { destroyRef: this.destroyRef },
   );
   readonly auditTotal = this.auditPager.total;
@@ -250,10 +243,7 @@ export class AuditComponent implements OnInit {
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'audit' | 'security'>[]>();
 
-  constructor(
-    private api: ApiService,
-    private toast: ToastService,
-  ) {}
+  constructor(private toast: ToastService) {}
 
   get auditCurrentPage(): number {
     return this.auditPager.page();
@@ -292,7 +282,7 @@ export class AuditComponent implements OnInit {
 
   loadStats() {
     this.statsError.set(false);
-    this.api.get<AuditStats>('/audit/stats').subscribe({
+    this.audit.stats().subscribe({
       next: (res) => {
         this.stats.set(res);
         this.statsError.set(false);

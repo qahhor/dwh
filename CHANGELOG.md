@@ -686,6 +686,12 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Web components no longer call the HTTP layer themselves (plan 10/10,
+  item 2.4): each feature has a typed data service (`<feature>.api.ts`)
+  with its requests and their types, shared ones live in core (roles,
+  custom field definitions) and shared (reference lookups, entity bulk
+  actions, record history), and a lint rule refuses `ApiService` in a
+  component.
 - Every web component uses OnPush change detection (plan 10/10, item 2.3):
   178 of 178, up from 87. State a component changes in a callback (HTTP
   answers, timers) is a signal; plain fields change only in handlers of
