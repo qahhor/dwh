@@ -40,8 +40,7 @@
           smtTestId="upl-sheet-name"
           [smtInvalid]="sheetError(activeSheet(), 'sheetName')"
           [disabled]="!editable()"
-          [(ngModel)]="sheet.sheetName"
-          [ngModelOptions]="{ standalone: true }"
+          [(value)]="sheet.sheetName"
         />
         @if (sheetError(activeSheet(), 'sheetName'); as problem) {
           <span class="upl-field-error">{{ errorText(problem) }}</span>
@@ -57,8 +56,7 @@
         [smtMin]="1"
         [smtInvalid]="sheetError(activeSheet(), 'headerRow')"
         [disabled]="!editable()"
-        [(ngModel)]="sheet.headerRow"
-        [ngModelOptions]="{ standalone: true }"
+        [(value)]="sheet.headerRow"
       />
       <span class="upl-hint">{{ 'upl.format.hint.header_row' | t }}</span>
       @if (sheetError(activeSheet(), 'headerRow'); as problem) {
@@ -71,8 +69,7 @@
         smtFieldId="upl-total-marker"
         [smtInvalid]="sheetError(activeSheet(), 'totalRowMarker')"
         [disabled]="!editable()"
-        [(ngModel)]="sheet.totalRowMarker"
-        [ngModelOptions]="{ standalone: true }"
+        [(value)]="sheet.totalRowMarker"
       />
       <span class="upl-hint">{{ 'upl.format.hint.total_marker' | t }}</span>
       @if (sheetError(activeSheet(), 'totalRowMarker'); as problem) {
@@ -117,8 +114,7 @@
                   smtTestId="upl-cell-name-in-file"
                   [smtAriaLabel]="'upl.format.col.name_in_file' | t"
                   [disabled]="!editable()"
-                  [(ngModel)]="column.nameInFile"
-                  [ngModelOptions]="{ standalone: true }"
+                  [(value)]="column.nameInFile"
                 />
               </td>
               @if (model().matchColumnsBy !== 'position') {
@@ -143,8 +139,7 @@
                   smtTestId="upl-cell-target-field"
                   [smtAriaLabel]="'upl.format.col.target_field' | t"
                   [disabled]="!editable()"
-                  [(ngModel)]="column.targetField"
-                  [ngModelOptions]="{ standalone: true }"
+                  [(value)]="column.targetField"
                 />
               </td>
               <td
@@ -157,9 +152,8 @@
                   [disabled]="!editable()"
                   [options]="dataTypeOptions()"
                   [allowClear]="false"
-                  [(ngModel)]="column.dataType"
-                  [ngModelOptions]="{ standalone: true }"
-                  (ngModelChange)="onTypeChange(column)"
+                  [value]="column.dataType"
+                  (valueChange)="setType(column, $event)"
                 ></smt-select>
               </td>
               <td
@@ -172,8 +166,7 @@
                   data-testid="upl-cell-required"
                   [smtAriaLabel]="'upl.format.col.required' | t"
                   [disabled]="!editable()"
-                  [(ngModel)]="column.required"
-                  [ngModelOptions]="{ standalone: true }"
+                  [(checked)]="column.required"
                 ></span>
               </td>
               <td
@@ -188,9 +181,8 @@
                     [options]="unitOptions()"
                     placeholder="—"
                     emptyLabel="—"
-                    [(ngModel)]="column.sourceUnit"
-                    [ngModelOptions]="{ standalone: true }"
-                    (ngModelChange)="onUnitChange(column)"
+                    [value]="column.sourceUnit"
+                    (valueChange)="column.sourceUnit = $event; onUnitChange(column)"
                   ></smt-select>
                 }
               </td>
@@ -211,8 +203,7 @@
                     smtTestId="upl-cell-key-mask"
                     [smtAriaLabel]="'upl.format.col.key_mask' | t"
                     [disabled]="!editable()"
-                    [(ngModel)]="column.keyMask"
-                    [ngModelOptions]="{ standalone: true }"
+                    [(value)]="column.keyMask"
                   />
                 }
               </td>
@@ -233,8 +224,7 @@
                       smtTestId="upl-cell-key-pad-length"
                       [smtAriaLabel]="'upl.format.col.key_pad_length' | t"
                       [disabled]="!editable()"
-                      [(ngModel)]="column.keyPadLength"
-                      [ngModelOptions]="{ standalone: true }"
+                      [(value)]="column.keyPadLength"
                     />
                     <smt-input
                       class="upl-input-small"
@@ -243,8 +233,7 @@
                       smtTestId="upl-cell-key-pad-max"
                       [smtAriaLabel]="'upl.format.col.key_pad_max' | t"
                       [disabled]="!editable()"
-                      [(ngModel)]="column.keyPadMax"
-                      [ngModelOptions]="{ standalone: true }"
+                      [(value)]="column.keyPadMax"
                     />
                   </span>
                 }
@@ -258,8 +247,7 @@
                     smtTestId="upl-cell-ref-book"
                     [smtAriaLabel]="'upl.format.col.ref_book' | t"
                     [disabled]="!editable()"
-                    [(ngModel)]="column.refBookCode"
-                    [ngModelOptions]="{ standalone: true }"
+                    [(value)]="column.refBookCode"
                   />
                 }
               </td>
@@ -275,8 +263,7 @@
                     smtTestId="upl-cell-file-position"
                     [smtAriaLabel]="'upl.format.col.file_position' | t"
                     [disabled]="!editable()"
-                    [(ngModel)]="column.filePosition"
-                    [ngModelOptions]="{ standalone: true }"
+                    [(value)]="column.filePosition"
                   />
                 </td>
               }
