@@ -67,6 +67,9 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   styleUrl: './projects.component.css',
 })
 export class ProjectsComponent implements OnInit, OnDestroy {
+  permService = inject(PermissionService);
+  private router = inject(Router);
+
   readonly forms = inject(ProjectFormsService);
   /** The members dialog: whose members are shown, adding and removing them. */
   readonly members = inject(ProjectMembersService);
@@ -162,11 +165,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   selectedState: ProjectStateFilter = 'all';
 
   private readonly viewMemo = optionsMemo<SMTRadioOption<ProjectViewState>[]>();
-
-  constructor(
-    public permService: PermissionService,
-    private router: Router,
-  ) {}
 
   get createForm(): ProjectCreateForm {
     return this.forms.createForm;

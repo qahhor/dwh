@@ -39,6 +39,9 @@ export * from './login.models';
   styleUrl: './login.component.css',
 })
 export class LoginComponent {
+  private authService = inject(AuthService);
+  private passwordApi = inject(PasswordApi);
+
   readonly i18n = inject(I18nService);
   private readonly injector = inject(Injector);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -60,10 +63,7 @@ export class LoginComponent {
   readonly passwordPolicy = PASSWORD_POLICY;
   private readonly uiI18n = this.i18n;
 
-  constructor(
-    private authService: AuthService,
-    private passwordApi: PasswordApi,
-  ) {
+  constructor() {
     // Apply the saved theme on this public route before the app shell exists.
     inject(ThemeService);
     this.focusInput('login');

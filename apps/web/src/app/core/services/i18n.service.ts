@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, Optional, Pipe, PipeTransform, computed, signal } from '@angular/core';
+import { Injectable, Pipe, PipeTransform, computed, signal, inject } from '@angular/core';
 import {
   Observable,
   catchError,
@@ -86,6 +86,8 @@ interface CachedDictionary {
 
 @Injectable({ providedIn: 'root' })
 export class I18nService {
+  private readonly http = inject(HttpClient, { optional: true });
+
   readonly languages = signal<LanguageInfo[]>([FALLBACK_LANGUAGE]);
   readonly currentLang = signal<string>(RUSSIAN);
   readonly isLoading = signal(false);
@@ -106,8 +108,6 @@ export class I18nService {
   private readonly chosen = new Subject<string>();
   /** Languages the person chose here (saved to their settings), for the other open tabs to follow. */
   readonly languageChosen: Observable<string> = this.chosen.asObservable();
-
-  constructor(@Optional() private readonly http: HttpClient | null) {}
 
   initialize(): Promise<void> {
     if (this.initialization) return this.initialization;
@@ -437,7 +437,7 @@ export class I18nService {
   pure: false,
 })
 export class TranslatePipe implements PipeTransform {
-  constructor(private readonly i18n: I18nService) {}
+  private readonly i18n = inject(I18nService);
 
   transform(key: string, params?: Record<string, string | number>): string {
     return this.i18n.translate(key, params);

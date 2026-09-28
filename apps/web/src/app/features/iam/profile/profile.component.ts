@@ -48,6 +48,10 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   styleUrl: './profile.component.css',
 })
 export class ProfileComponent implements OnInit {
+  authService = inject(AuthService);
+  private profile = inject(ProfileApi);
+  private toast = inject(ToastService);
+
   public readonly permissionService = inject(PermissionService);
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
@@ -92,12 +96,6 @@ export class ProfileComponent implements OnInit {
     { value: '365', labelKey: 'iam.srok_1_god' },
     { value: 'never', labelKey: 'iam.bessrochno' },
   ];
-
-  constructor(
-    public authService: AuthService,
-    private profile: ProfileApi,
-    private toast: ToastService,
-  ) {}
 
   // Methods, not computed: the card edits the form object in place.
   passwordStrength(): PasswordStrength {

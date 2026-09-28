@@ -1,3 +1,4 @@
+import { Injector, runInInjectionContext } from '@angular/core';
 import { firstValueFrom, of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from './api.service';
@@ -28,11 +29,14 @@ describe('NotificationService API contract', () => {
         ),
       post: vi.fn(() => of(undefined)),
     };
-    const service = new NotificationService(
-      api as unknown as ApiService,
-      {} as ToastService,
-      { translate: (key: string) => key } as unknown as I18nService,
-    );
+    const injector = Injector.create({
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: ToastService, useValue: {} },
+        { provide: I18nService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+    const service = runInInjectionContext(injector, () => new NotificationService());
 
     const count = await firstValueFrom(service.fetchUnreadCount());
     const page = await firstValueFrom(service.fetchNotifications(50));
@@ -65,11 +69,14 @@ describe('NotificationService API contract', () => {
       get: vi.fn(),
       post: vi.fn(() => of(undefined)),
     };
-    const service = new NotificationService(
-      api as unknown as ApiService,
-      {} as ToastService,
-      { translate: (key: string) => key } as unknown as I18nService,
-    );
+    const injector = Injector.create({
+      providers: [
+        { provide: ApiService, useValue: api },
+        { provide: ToastService, useValue: {} },
+        { provide: I18nService, useValue: { translate: (key: string) => key } },
+      ],
+    });
+    const service = runInInjectionContext(injector, () => new NotificationService());
     service.unreadCount.set(2);
 
     await firstValueFrom(service.markAsRead(9));

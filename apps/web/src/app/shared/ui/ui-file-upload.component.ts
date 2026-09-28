@@ -123,6 +123,9 @@ interface UploadedFile {
   styleUrl: './ui-file-upload.component.css',
 })
 export class UiFileUploadComponent {
+  private http = inject(HttpClient);
+  private toast = inject(ToastService);
+
   private readonly preview = inject(SMTFilePreviewService);
   private readonly uiI18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
@@ -142,10 +145,7 @@ export class UiFileUploadComponent {
   private nextQueueId = 0;
   private current: Subscription | null = null;
 
-  constructor(
-    private http: HttpClient,
-    private toast: ToastService,
-  ) {
+  constructor() {
     this.destroyRef.onDestroy(() => this.current?.unsubscribe());
   }
 

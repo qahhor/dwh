@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { ToastService, ToastMessage } from '@core/services/toast.service';
 import { TranslatePipe } from '@core/services/i18n.service';
@@ -47,7 +47,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
   styleUrl: './ui-toast.component.css',
 })
 export class UiToastContainerComponent {
-  constructor(public toastService: ToastService) {}
+  toastService = inject(ToastService);
 
   getIcon(type: ToastMessage['type']): string {
     switch (type) {

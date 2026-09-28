@@ -1,9 +1,4 @@
 {
-  "src/app/app.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 1
-    }
-  },
   "src/app/core/guards/module-active.guard.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 3
@@ -14,30 +9,7 @@
       "count": 1
     }
   },
-  "src/app/core/services/api.service.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
-    }
-  },
-  "src/app/core/services/auth.service.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 6
-    }
-  },
-  "src/app/core/services/command-palette.service.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 1
-    }
-  },
-  "src/app/core/services/i18n.service.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
-    }
-  },
   "src/app/core/services/notification.service.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
-    },
     "@typescript-eslint/no-unused-vars": {
       "count": 1
     }
@@ -83,19 +55,9 @@
       "count": 1
     }
   },
-  "src/app/features/auth/login/login.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
-    }
-  },
   "src/app/features/files/components/files-toolbar.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
-    }
-  },
-  "src/app/features/files/files.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
     }
   },
   "src/app/features/iam/org-units/org-unit-editor.component.ts": {
@@ -123,16 +85,6 @@
       "count": 1
     }
   },
-  "src/app/features/iam/profile/profile.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
-    }
-  },
-  "src/app/features/iam/roles/roles.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
-    }
-  },
   "src/app/features/iam/users/components/user-create-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 2
@@ -148,11 +100,6 @@
       "count": 1
     }
   },
-  "src/app/features/iam/users/users.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 3
-    }
-  },
   "src/app/features/notifications/components/notification-preferences-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
@@ -164,11 +111,6 @@
   "src/app/features/reports/embedded-report.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
-    }
-  },
-  "src/app/features/settings/language-editor.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 4
     }
   },
   "src/app/features/settings/modules/components/modules-table.component.ts": {
@@ -204,9 +146,6 @@
   "src/app/features/tasks/components/task-detail-modal.component.ts": {
     "@angular-eslint/no-output-native": {
       "count": 1
-    },
-    "@angular-eslint/prefer-inject": {
-      "count": 1
     }
   },
   "src/app/features/tasks/components/task-dictionaries-modal.component.ts": {
@@ -232,11 +171,6 @@
   "src/app/features/tasks/projects/projects.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 3
-    }
-  },
-  "src/app/features/tasks/projects/projects.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
     }
   },
   "src/app/features/tasks/projects/projects.models.ts": {
@@ -763,11 +697,6 @@
       "count": 1
     }
   },
-  "src/app/shared/ui/ui-file-upload.component.ts": {
-    "@angular-eslint/prefer-inject": {
-      "count": 2
-    }
-  },
   "src/app/shared/ui/ui-list-views.component.spec.ts": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1
@@ -791,11 +720,6 @@
   },
   "src/app/shared/ui/ui-pagination.component.ts": {
     "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
-  "src/app/shared/ui/ui-toast.component.ts": {
-    "@angular-eslint/prefer-inject": {
       "count": 1
     }
   }

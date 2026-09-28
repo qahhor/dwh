@@ -52,6 +52,10 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   styleUrl: './users.component.css',
 })
 export class UsersComponent implements OnInit, OnDestroy {
+  permService = inject(PermissionService);
+  private elementRef = inject(ElementRef);
+  i18n = inject(I18nService);
+
   public readonly secService = inject(UserSecurityService);
   public readonly formsService = inject(UserFormsService);
   public readonly filterService = inject(UserFilterService);
@@ -90,12 +94,6 @@ export class UsersComponent implements OnInit, OnDestroy {
   // isEditModalOpen, searchQuery and editForm, so these stay on the page.
   readonly users = this.list.users;
   readonly isEditModalOpen = this.formsService.isEditModalOpen;
-
-  constructor(
-    public permService: PermissionService,
-    private elementRef: ElementRef,
-    public i18n: I18nService,
-  ) {}
 
   get searchQuery() {
     return this.filterService.searchQuery;
