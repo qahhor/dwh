@@ -66,6 +66,8 @@
 >
   <ul class="smt-time-picker__list" role="listbox" [id]="listboxId" [attr.aria-label]="i18n.messages().time.list">
     @for (slot of slots(); track slot; let index = $index) {
+      <!-- Focus stays in the combobox, which moves aria-activedescendant over the options with the keyboard. -->
+      <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
       <li
         class="smt-time-picker__option"
         role="option"

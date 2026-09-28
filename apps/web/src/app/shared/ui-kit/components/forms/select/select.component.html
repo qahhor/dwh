@@ -108,6 +108,8 @@
       [attr.aria-label]="ariaLabel() || listboxName() || i18n.messages().select.name"
     >
       @if (showNone()) {
+        <!-- Focus stays in the combobox, which moves aria-activedescendant over the options with the keyboard. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <li
           class="smt-select__option smt-select__option--none"
           role="option"
@@ -122,6 +124,8 @@
         </li>
       }
       @for (option of visibleOptions(); track $index; let index = $index) {
+        <!-- Focus stays in the combobox, which moves aria-activedescendant over the options with the keyboard. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <li
           class="smt-select__option"
           role="option"
@@ -158,6 +162,8 @@
         </li>
       }
       @if (showCreate()) {
+        <!-- Focus stays in the combobox, which moves aria-activedescendant over the options with the keyboard. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <li
           class="smt-select__option smt-select__option--create"
           role="option"

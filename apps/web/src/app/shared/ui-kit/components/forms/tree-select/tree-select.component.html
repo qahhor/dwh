@@ -91,6 +91,8 @@
       [attr.aria-label]="ariaLabel() || i18n.messages().select.name"
     >
       @for (row of rows(); track row.key) {
+        <!-- Focus stays in the combobox, which moves aria-activedescendant over the tree items with the keyboard. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <li
           class="smt-select__option smt-tree-select__node"
           role="treeitem"

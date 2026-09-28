@@ -1,3 +1,5 @@
+<!-- The whole row toggles for the mouse; the keyboard works on the focusable role="checkbox" inside. The hint only keeps its own clicks. -->
+<!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
 <div
   (click)="toggle($event)"
   [ngClass]="{
@@ -70,6 +72,8 @@
         <ng-content></ng-content>
       </p>
       @if (hasHint()) {
+        <!-- The whole row toggles for the mouse; the keyboard works on the focusable role="checkbox" inside. The hint only keeps its own clicks. -->
+        <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
         <span
           [id]="hintId"
           class="cursor-default text-gray-600"

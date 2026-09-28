@@ -36,7 +36,11 @@ import { ProjectDistribution } from '../analytics.models';
           @for (p of filteredProjects(); track p) {
             <div
               class="project-item clickable"
+              role="button"
+              tabindex="0"
               (click)="projectClick.emit(p.projectId)"
+              (keydown.enter)="projectClick.emit(p.projectId)"
+              (keydown.space)="$event.preventDefault(); projectClick.emit(p.projectId)"
               [title]="'projects.open_project' | t"
             >
               <div class="project-info-row">

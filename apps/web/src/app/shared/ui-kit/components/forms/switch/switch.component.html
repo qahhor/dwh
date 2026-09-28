@@ -17,5 +17,7 @@
   <span class="smt-switch__thumb" aria-hidden="true"></span>
 </button>
 @if (label()) {
+  <!-- The label toggles for the mouse like a native label; the keyboard uses the switch button it names. -->
+  <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
   <span class="smt-switch__label" [id]="labelId" (click)="toggle()">{{ label() }}</span>
 }

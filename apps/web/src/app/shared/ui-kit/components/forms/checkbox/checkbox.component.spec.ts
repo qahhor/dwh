@@ -9,7 +9,11 @@ import { SMTCheckboxComponent } from './checkbox.component';
 
 @Component({
   imports: [SMTCheckboxComponent, FormField],
-  template: `<label smt-checkbox [formField]="terms.accepted">I accept the terms</label>`,
+  template: `
+    <!-- The checkbox renders its own control inside the label. -->
+    <!-- eslint-disable-next-line @angular-eslint/template/label-has-associated-control -->
+    <label smt-checkbox [formField]="terms.accepted">I accept the terms</label>
+  `,
 })
 class FormHost {
   readonly model = signal({ accepted: false });

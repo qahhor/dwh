@@ -72,6 +72,21 @@ describe('AnalyticsProjectsCardComponent', () => {
     expect(clicked).toHaveBeenCalledWith(3);
   });
 
+  it('lets a keyboard user reach a project and open it with Enter or Space', () => {
+    const { host, clicked } = render();
+    const item = ([...host.querySelectorAll('.project-item')] as HTMLElement[])[1];
+
+    expect(item.getAttribute('role')).toBe('button');
+    expect(item.tabIndex).toBe(0);
+    item.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    const space = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+    item.dispatchEvent(space);
+
+    expect(clicked).toHaveBeenCalledTimes(2);
+    expect(clicked).toHaveBeenCalledWith(2);
+    expect(space.defaultPrevented).toBe(true);
+  });
+
   it('says no project was found when the search matches nothing', () => {
     const { host, search } = render();
 

@@ -133,7 +133,7 @@ export class SMTTreeTableComponent<T> {
   readonly selectionMode = input<'single' | 'multiple'>('single', { alias: 'smtSelectionMode' });
   readonly checkedIds = input<readonly string[]>([], { alias: 'smtCheckedIds' });
 
-  readonly select = output<TreeRow<T>>({ alias: 'smtSelect' });
+  readonly rowSelect = output<TreeRow<T>>({ alias: 'smtSelect' });
   readonly toggleCheck = output<TreeRow<T>>({ alias: 'smtToggle' });
 
   private readonly treeCell = viewChild.required<TemplateRef<unknown>>('treeCell');
@@ -255,7 +255,7 @@ export class SMTTreeTableComponent<T> {
     this.activeId.set(row.id);
     if (this.disabled()) return;
     if (this.multiple()) this.toggleCheck.emit(row);
-    else this.select.emit(row);
+    else this.rowSelect.emit(row);
   }
 
   /** Focus can reach a row without our keys (a click, a screen reader); it then becomes the active row. */
