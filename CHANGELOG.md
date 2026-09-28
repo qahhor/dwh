@@ -686,6 +686,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Web types and imports (plan 10/10, item 2.5): no explicit `any` in the
+  application code, and imports reach code two or more levels up by an
+  alias (`@core`, `@shared`, `@features`, `@layout`, `@app`, `@testing`);
+  lint refuses both.
 - Web components no longer call the HTTP layer themselves (plan 10/10,
   item 2.4): each feature has a typed data service (`<feature>.api.ts`)
   with its requests and their types, shared ones live in core (roles,
@@ -877,6 +881,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A failed profile channel binding or confirmation, token creation,
+  webhook creation, project member addition or navigation item change
+  showed a generic message after the general one: the handlers read a
+  field the error never has. They now show the server's reason, once.
 - The S3 storage integration test runs again: MinIO stopped publishing
   free images (`quay.io/minio/minio` answers 401, `minio/minio` left Docker
   Hub), so the test uses Chainguard's MinIO build, pinned by digest.
