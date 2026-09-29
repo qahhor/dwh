@@ -92,6 +92,9 @@ class ErrorTextsTest {
                 while (call.find()) {
                     for (String argument : topLevelArguments(source, call.end())) {
                         String trimmed = argument.strip();
+                        if (CALL.matcher(trimmed).find()) {
+                            continue; // a nested call (requirePresent's supplier) is scanned as a call of its own
+                        }
                         Matcher literal = LITERAL.matcher(trimmed);
                         if (!literal.find()) {
                             continue;
