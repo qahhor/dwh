@@ -30,7 +30,7 @@ class MdCustomFieldServiceTest {
 
         assertThatThrownBy(() -> service.validateAttributes("USER", Map.of()))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Ошибка валидации динамических атрибутов");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_attributes_invalid");
     }
 
     @Test
@@ -97,7 +97,7 @@ class MdCustomFieldServiceTest {
 
         assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("priority_level", "super_critical")))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Ошибка валидации динамических атрибутов");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_attributes_invalid");
     }
 
     @Test
@@ -117,16 +117,20 @@ class MdCustomFieldServiceTest {
     void shouldRejectInvalidOrReservedCode() {
         assertThatThrownBy(() -> service.createField("TASK", "id", "Идентификатор", "number", false, null, null, 0))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("зарезервирован");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_code_reserved")
+                .hasFieldOrPropertyWithValue("params", Map.of("code", "id"));
 
         assertThatThrownBy(() ->
                         service.createField("TASK", "invalid code!", "Невалидный", "string", false, null, null, 0))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Код поля должен начинаться с буквы");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_code_invalid");
 
         assertThatThrownBy(() ->
                         service.createField("TASK", "valid_code", "Валидный", "unknown_type", false, null, null, 0))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Недопустимый тип поля");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.custom_field_type_invalid")
+                .hasFieldOrPropertyWithValue(
+                        "params",
+                        Map.of("type", "unknown_type", "allowed", "boolean, date, number, select, string, user_ref"));
     }
 }

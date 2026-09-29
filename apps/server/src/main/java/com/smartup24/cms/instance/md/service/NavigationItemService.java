@@ -211,7 +211,8 @@ public class NavigationItemService {
         String permission = value.trim();
         if (!permissionService.getGrantablePairs().contains(permission)) {
             throw ApiException.validation(
-                    PERMISSION_UNKNOWN,
+                    "error.md.navigation_permission_unknown",
+                    Map.of("permission", permission),
                     List.of(new FieldErrorItem(
                             "requiredPermission", PERMISSION_UNKNOWN, "Право не найдено в каталоге: " + permission)));
         }
@@ -224,11 +225,11 @@ public class NavigationItemService {
         validateUrl(cmd.url());
         String code = cmd.code().trim().toLowerCase().replaceAll("[^a-z0-9_-]", "-");
         if (code.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Код пункта навигации не может быть пустым");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.navigation_code_required");
         }
 
         if (navigationRepository.findByCode(code).isPresent()) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "Пункт навигации с таким кодом уже существует: " + code);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.navigation_code_exists", Map.of("code", code));
         }
 
         NavigationItemRecord record = new NavigationItemRecord(
@@ -281,16 +282,14 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView updateItem(Long id, UpdateNavigationItemCommand cmd, Long userId) {
-        NavigationItemRecord existing = navigationRepository
-                .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Пункт навигации не найден: " + id));
+        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
 
         validateUrl(cmd.url());
         String code = cmd.code().trim().toLowerCase().replaceAll("[^a-z0-9_-]", "-");
 
         Optional<NavigationItemRecord> withSameCode = navigationRepository.findByCode(code);
         if (withSameCode.isPresent() && !withSameCode.get().id().equals(id)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "Пункт навигации с таким кодом уже существует: " + code);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.navigation_code_exists", Map.of("code", code));
         }
 
         NavigationItemRecord updated = new NavigationItemRecord(
@@ -357,9 +356,7 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView toggleState(Long id, Long userId) {
-        NavigationItemRecord existing = navigationRepository
-                .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Пункт навигации не найден: " + id));
+        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
 
         String newState = "A".equals(existing.state()) ? "P" : "A";
         navigationRepository.updateState(id, newState, userId);
@@ -378,25 +375,27 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public void deleteItem(Long id, Long userId) {
-        NavigationItemRecord existing = navigationRepository
-                .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Пункт навигации не найден: " + id));
+        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
 
         navigationRepository.delete(id);
         auditLogService.logChange(
                 "md_navigation_items", String.valueOf(id), "D", List.of("code"), Map.of("code", existing.code()), null);
     }
 
+    private static ApiException itemNotFound(Long id) {
+        return ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.navigation_item_not_found", Map.of("id", id));
+    }
+
     private void validateUrl(String url) {
         if (url == null || url.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "URL пункта навигации не может быть пустым");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.navigation_url_required");
         }
         String trimmed = url.trim();
         if (DANGEROUS_SCHEME.matcher(trimmed).matches()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Недопустимый или опасный протокол в URL");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.navigation_url_scheme_forbidden");
         }
         if (!SAFE_URL_PATTERN.matcher(trimmed).matches()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "URL должен начинаться с http://, https:// или /");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.navigation_url_invalid");
         }
     }
 }

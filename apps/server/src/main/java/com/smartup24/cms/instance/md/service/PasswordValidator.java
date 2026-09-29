@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
@@ -44,21 +45,20 @@ public class PasswordValidator {
         if (password == null || password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
             throw ApiException.badRequest(
                     ErrorCode.PASSWORD_POLICY,
-                    "Пароль должен содержать от " + MIN_PASSWORD_LENGTH + " до " + MAX_PASSWORD_LENGTH + " символов");
+                    "error.md.password_length",
+                    Map.of("min", MIN_PASSWORD_LENGTH, "max", MAX_PASSWORD_LENGTH));
         }
 
         String lower = password.toLowerCase().trim();
 
         if (COMMON_PASSWORDS.contains(lower)) {
-            throw ApiException.badRequest(
-                    ErrorCode.PASSWORD_POLICY,
-                    "Выбранный пароль слишком прост и входит в список скомпрометированных. Придумайте более надёжный пароль.");
+            throw ApiException.badRequest(ErrorCode.PASSWORD_POLICY, "error.md.password_common");
         }
 
         if (login != null
                 && !login.isBlank()
                 && lower.contains(login.toLowerCase().trim())) {
-            throw ApiException.badRequest(ErrorCode.PASSWORD_POLICY, "Пароль не должен содержать логин пользователя");
+            throw ApiException.badRequest(ErrorCode.PASSWORD_POLICY, "error.md.password_contains_login");
         }
     }
 }

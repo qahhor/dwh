@@ -35,7 +35,7 @@ public class MdUserHistorySources {
                 try {
                     userService.getUserById(Long.valueOf(recordId));
                 } catch (NumberFormatException e) {
-                    throw ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден");
+                    throw new ApiException(ErrorCode.USER_NOT_FOUND);
                 }
             }
 

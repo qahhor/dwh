@@ -17,6 +17,7 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -135,7 +136,8 @@ class MdAssignmentServiceIntegrationTest {
         assertThatThrownBy(() -> service.replacePersonalPermissions(
                         userId, List.of(new MdRoleRepository.PermissionPair("no.such.form", "view"))))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("no.such.form");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.permission_not_grantable")
+                .hasFieldOrPropertyWithValue("params", Map.of("permission", "no.such.form.view"));
     }
 
     @Test
@@ -146,7 +148,7 @@ class MdAssignmentServiceIntegrationTest {
 
         assertThatThrownBy(() -> service.assignRoles(onlyAdmin, List.of(roleId("user"))))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("последнего администратора");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.last_admin_role");
 
         // Права не пострадали: пользователь остался администратором
         assertThat(service.getUserRoleIds(onlyAdmin)).contains(roleId("admin"));

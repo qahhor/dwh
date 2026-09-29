@@ -52,11 +52,13 @@ class ModuleRegistryIntegrationTest {
     void systemModulesCannotBeDisabled() {
         assertThatThrownBy(() -> moduleService.toggleModuleStatus("iam", false))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Системный модуль");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.system_module_disable_forbidden")
+                .hasFieldOrPropertyWithValue("params", Map.of("code", "iam"));
 
         assertThatThrownBy(() -> moduleService.toggleModuleStatus("tasks", false))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Системный модуль");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.system_module_disable_forbidden")
+                .hasFieldOrPropertyWithValue("params", Map.of("code", "tasks"));
     }
 
     @Test

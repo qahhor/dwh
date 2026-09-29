@@ -68,15 +68,14 @@ public class MdUserService {
 
         scopeService.acquireMutationLock();
         if (userRepository.existsByLogin(login)) {
-            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Пользователь с таким логином уже существует");
+            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "error.md.user_login_exists");
         }
         if (userRepository.existsByEmail(email)) {
-            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "Пользователь с таким email уже существует");
+            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "error.md.user_email_exists");
         }
         String normalizedPhone = (phone != null && !phone.isBlank()) ? phone.trim() : null;
         if (normalizedPhone != null && userRepository.existsByPhone(normalizedPhone)) {
-            throw ApiException.conflict(
-                    ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
+            throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "error.md.user_phone_exists");
         }
 
         // FR-USR-2: Password complexity & dictionary check
@@ -165,9 +164,7 @@ public class MdUserService {
 
     @Transactional(readOnly = true)
     public MdUserRepository.UserRecord getUserById(Long userId) {
-        return userRepository
-                .findById(userId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+        return userRepository.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -202,8 +199,7 @@ public class MdUserService {
         String normalizedPhone = (phone != null && !phone.isBlank()) ? phone.trim() : null;
         if (normalizedPhone != null && !normalizedPhone.equals(existingUser.phone())) {
             if (userRepository.existsByPhone(normalizedPhone)) {
-                throw ApiException.conflict(
-                        ErrorCode.CODE_ALREADY_EXISTS, "Активный пользователь с таким номером телефона уже существует");
+                throw ApiException.conflict(ErrorCode.CODE_ALREADY_EXISTS, "error.md.user_phone_exists");
             }
         }
 
@@ -223,8 +219,7 @@ public class MdUserService {
                 roleRepository.findByPcode(MdPref.ROLE_ADMIN).ifPresent(adminRole -> {
                     if (!roleIds.contains(adminRole.id())) {
                         throw ApiException.conflict(
-                                ErrorCode.SUPERADMIN_IMMUTABLE,
-                                "Роль администратора не может быть снята с системного администратора");
+                                ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_role_remove_forbidden");
                     }
                 });
             }
@@ -252,7 +247,7 @@ public class MdUserService {
         }
 
         if (user.passwordHash() != null && !passwordHasher.verifyPassword(oldPassword, user.passwordHash())) {
-            throw ApiException.badRequest(ErrorCode.INVALID_CREDENTIALS, "Неверный текущий пароль");
+            throw ApiException.badRequest(ErrorCode.INVALID_CREDENTIALS, "error.md.current_password_invalid");
         }
 
         passwordValidator.validate(newPassword, user.login());
@@ -273,8 +268,7 @@ public class MdUserService {
 
         // Immutable Superadmin Protection: Admin user cannot be blocked (TRD-01 / I-IAM-1)
         if (targetUser.login().equalsIgnoreCase("admin") && MdPref.STATE_PASSIVE.equals(newState)) {
-            throw ApiException.conflict(
-                    ErrorCode.SUPERADMIN_IMMUTABLE, "Системный администратор не может быть заблокирован");
+            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_block_forbidden");
         }
 
         userRepository.setState(targetUserId, newState, currentUserId);
@@ -337,7 +331,7 @@ public class MdUserService {
 
         // I-IAM-1: Системный администратор не может быть удалён или анонимизирован
         if (targetUser.login().equalsIgnoreCase("admin")) {
-            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "Системный администратор не может быть удалён");
+            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_delete_forbidden");
         }
 
         // FR-USR-8: Анонимизация ПДн с сохранением реляционной целостности для аудита
