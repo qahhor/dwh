@@ -80,7 +80,7 @@ class JdbcFndRawWriterCopyTest extends EmbeddedPostgresTest {
         awkward.put("unicode", "Qoʻllash — ТЕСТ ✓");
         awkward.put("empty", null);
         List<FndRawRow> rows = List.of(
-                new FndRawRow(1, "Лист\t1\\", 2, awkward),
+                new FndRawRow(1, "Лист\t1\\\n2\r3", 2, awkward),
                 new FndRawRow(2, null, null, Map.of()),
                 new FndRawRow(3, "\\N", 4, null));
 
@@ -89,7 +89,7 @@ class JdbcFndRawWriterCopyTest extends EmbeddedPostgresTest {
         assertThat(written).isEqualTo(3);
         assertThat(rawWriter.count(loadId)).isEqualTo(3);
         List<FndRawRow> read = rawWriter.read(loadId);
-        assertThat(read.get(0).sheet()).isEqualTo("Лист\t1\\");
+        assertThat(read.get(0).sheet()).isEqualTo("Лист\t1\\\n2\r3");
         assertThat(read.get(0).sourceRowNo()).isEqualTo(2);
         // The application's JSON leaves null values out (non_null), as the row-by-row write always did: an empty cell
         // reads as absent, which the readers treat as null.
