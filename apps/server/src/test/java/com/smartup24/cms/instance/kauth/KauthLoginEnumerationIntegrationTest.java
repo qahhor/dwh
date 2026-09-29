@@ -97,7 +97,7 @@ class KauthLoginEnumerationIntegrationTest {
                     f.auth.verifyOtp(started.otpToken(), wrong, "10.2.0.10", "ua", "web");
                     return "accepted";
                 } catch (ApiException e) {
-                    return e.getMessage();
+                    return e.getMessageKey();
                 }
             });
         }
@@ -110,7 +110,7 @@ class KauthLoginEnumerationIntegrationTest {
             start.countDown();
             long compared = 0;
             for (var result : results) {
-                if (result.get().contains("Неверный код")) {
+                if (result.get().equals("error.otp_invalid")) {
                     compared++;
                 }
             }
@@ -172,6 +172,34 @@ class KauthLoginEnumerationIntegrationTest {
         }
 
         assertThat(Math.abs(p95(wrongPassword) - p95(unknownLogin)) / 1_000_000).isLessThan(50);
+    }
+
+    @Test
+    @DisplayName("3.1: an unknown login and a wrong password carry the same text key and no parameters")
+    void unknownLoginAndWrongPasswordShareTheText() {
+        Long id = f.user(false, false);
+        f.jdbc.sql("delete from kauth_login_attempts").update();
+        ApiException wrongPassword =
+                refusal(() -> f.auth.login(login(id), "Wrong-Password-0", "10.2.4.1", "ua", "web"));
+        ApiException unknownLogin =
+                refusal(() -> f.auth.login("nobody-" + UUID.randomUUID(), "Wrong-Password-0", "10.2.4.2", "ua", "web"));
+
+        assertThat(unknownLogin.getErrorCode()).isEqualTo(wrongPassword.getErrorCode());
+        assertThat(unknownLogin.getMessageKey())
+                .isEqualTo(wrongPassword.getMessageKey())
+                .isEqualTo("error.invalid_credentials");
+        assertThat(unknownLogin.getParams())
+                .isEqualTo(wrongPassword.getParams())
+                .isEmpty();
+    }
+
+    private static ApiException refusal(Runnable call) {
+        try {
+            call.run();
+        } catch (ApiException e) {
+            return e;
+        }
+        throw new AssertionError("the call was not refused");
     }
 
     private static long attempt(String login, String ip) {

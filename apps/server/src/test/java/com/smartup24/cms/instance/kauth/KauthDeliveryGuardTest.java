@@ -16,6 +16,7 @@ import com.smartup24.cms.spi.messenger.MessengerProvider;
 import com.smartup24.cms.spi.sms.SmsProvider;
 import com.smartup24.cms.spi.storage.StorageProvider;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -118,7 +119,8 @@ class KauthDeliveryGuardTest {
     void stubbedChannelCannotBeBound() {
         assertThatThrownBy(() -> sender("console_mail", "telegram", true).requireDeliverable("email"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("не настроен");
+                .hasFieldOrPropertyWithValue("messageKey", "error.auth.channel_not_deliverable")
+                .hasFieldOrPropertyWithValue("params", Map.of("channel", "email"));
         assertThatCode(() -> sender("console_mail", "telegram", true).requireDeliverable("telegram"))
                 .doesNotThrowAnyException();
         assertThatCode(() -> sender("console_mail", "telegram", false).requireDeliverable("email"))

@@ -38,14 +38,13 @@ public class RequiresPermissionInterceptor implements HandlerInterceptor {
         }
 
         if (!SecurityContext.isAuthenticated()) {
-            throw ApiException.unauthorized("Требуется авторизация для доступа к ресурсу");
+            throw ApiException.unauthorized("error.auth.sign_in_required");
         }
 
         if (SecurityContext.getPrincipal() != null
                 && SecurityContext.getPrincipal().forcePasswordChange()) {
             throw ApiException.forbidden(
-                    ErrorCode.MUST_CHANGE_PASSWORD,
-                    "Требуется обязательная смена временного пароля перед началом работы");
+                    ErrorCode.MUST_CHANGE_PASSWORD, "error.auth.temporary_password_change_required");
         }
 
         if (!SecurityContext.hasPermission(annotation.form(), annotation.action())) {

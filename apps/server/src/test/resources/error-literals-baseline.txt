@@ -1,22 +1,10 @@
 # Plan 10/10, item 3.1: files that still give ApiException a sentence instead of a catalog key.
 # ErrorTextsTest fails on a file not listed here and on a listed file that no longer has one.
-com/smartup24/cms/instance/audit/service/AuditLogService.java
-com/smartup24/cms/instance/audit/service/RecordHistoryService.java
 com/smartup24/cms/instance/common/entity/EntityBulkController.java
 com/smartup24/cms/instance/common/entity/EntityRegistry.java
 com/smartup24/cms/instance/common/entity/EntityValidator.java
 com/smartup24/cms/instance/common/entity/FormMetaController.java
 com/smartup24/cms/instance/common/query/QueryMetaController.java
-com/smartup24/cms/instance/kauth/controller/KauthApiTokenController.java
-com/smartup24/cms/instance/kauth/controller/KauthAuthController.java
-com/smartup24/cms/instance/kauth/controller/KauthSessionController.java
-com/smartup24/cms/instance/kauth/security/RequiresPermissionInterceptor.java
-com/smartup24/cms/instance/kauth/service/KauthAuthService.java
-com/smartup24/cms/instance/kauth/service/KauthChannelService.java
-com/smartup24/cms/instance/kauth/service/KauthOtpSender.java
-com/smartup24/cms/instance/kauth/service/KauthPasswordResetService.java
-com/smartup24/cms/instance/kwh/service/KwhWebhookService.java
-com/smartup24/cms/instance/kwh/service/WebhookTargetPolicy.java
 com/smartup24/cms/instance/mf/service/FileContentInspector.java
 com/smartup24/cms/instance/mf/service/MfFileMetadataService.java
 com/smartup24/cms/instance/mf/service/MfFileService.java

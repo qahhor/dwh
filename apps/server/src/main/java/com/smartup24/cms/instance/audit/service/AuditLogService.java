@@ -179,7 +179,7 @@ public class AuditLogService {
     }
 
     private ApiException invalidCursor() {
-        return ApiException.badRequest(ErrorCode.BAD_REQUEST, "Некорректный cursor журнала аудита");
+        return ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.audit.cursor_invalid");
     }
 
     private record AuditCursor(Instant timestamp, Long id, long totalEstimated) {}

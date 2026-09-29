@@ -32,7 +32,7 @@ public class KauthSessionController {
         var principal = SecurityContext.getPrincipal();
         Long userId = principal != null ? principal.userId() : null;
         if (userId == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
         Long currentSessionId = principal.sessionId();
@@ -47,7 +47,7 @@ public class KauthSessionController {
     public ResponseEntity<Void> closeOtherSessions() {
         var principal = SecurityContext.getPrincipal();
         if (principal == null || principal.userId() == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.auth.not_signed_in");
         }
         if (principal.sessionId() != null) {
             sessionService.closeOtherSessions(principal.userId(), principal.sessionId());
@@ -86,9 +86,7 @@ public class KauthSessionController {
     @GetMapping({"/users/{userId}/security", "/profile/sessions/users/{userId}/security"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<UserSecuritySummary> getUserSecuritySummary(@PathVariable("userId") Long userId) {
-        var user = userService
-                .findAuthUserById(userId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+        var user = userService.findAuthUserById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(sessionService.getUserSecuritySummary(userId, user));
     }
 

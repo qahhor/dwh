@@ -19,7 +19,7 @@ class WebhookTargetPolicyTest {
 
         assertThatThrownBy(() -> policy.validate("https://hooks.example/events"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("отключены");
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.disabled");
     }
 
     @Test
@@ -29,7 +29,7 @@ class WebhookTargetPolicyTest {
 
         assertThatThrownBy(() -> policy.validate("https://attacker.example/events"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("список разрешённых");
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.host_not_allowed");
     }
 
     @Test
@@ -42,7 +42,7 @@ class WebhookTargetPolicyTest {
             assertThatThrownBy(() -> policy.validate("https://hook.example/events"))
                     .as("address %s must not cross the outbound trust boundary", address)
                     .isInstanceOf(ApiException.class)
-                    .hasMessageContaining("внутренний или специальный адрес");
+                    .hasFieldOrPropertyWithValue("messageKey", "error.webhook.host_private");
         }
     }
 
