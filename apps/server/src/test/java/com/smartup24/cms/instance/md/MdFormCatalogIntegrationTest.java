@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.junit.jupiter.api.BeforeAll;
@@ -87,7 +88,8 @@ class MdFormCatalogIntegrationTest {
         assertThatThrownBy(() -> roleService.setRolePermissions(
                         role.id(), List.of(new MdRoleRepository.PermissionPair("notify.preferences", "view"))))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("недоступна для выдачи");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.permission_not_grantable")
+                .hasFieldOrPropertyWithValue("params", Map.of("permission", "notify.preferences.view"));
     }
 
     @Test

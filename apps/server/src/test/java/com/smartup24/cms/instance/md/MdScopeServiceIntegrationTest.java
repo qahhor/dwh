@@ -25,6 +25,7 @@ import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.support.TestDatabases;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -173,7 +174,7 @@ class MdScopeServiceIntegrationTest {
     void cannotMoveNodeUnderItsOwnDescendant() {
         assertThatThrownBy(() -> orgUnitService.update(regionTashkent, branchYunusabad, null, null, null, null))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("потомка");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.org_unit_move_under_descendant");
     }
 
     @Test
@@ -181,7 +182,7 @@ class MdScopeServiceIntegrationTest {
     void secondRootIsRejected() {
         assertThatThrownBy(() -> orgUnitService.create(null, "HQ-2", "Вторая компания", "company", 10))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Корень оргструктуры уже существует");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.org_unit_root_exists");
     }
 
     @Test
@@ -195,7 +196,7 @@ class MdScopeServiceIntegrationTest {
 
         assertThatThrownBy(() -> orgUnitService.delete(unit))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("сотрудники");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.org_unit_has_users");
     }
 
     // -------------------------------------------------- применение предиката
@@ -377,7 +378,9 @@ class MdScopeServiceIntegrationTest {
 
         assertThatThrownBy(() -> scopeService.setRoleRule(roleId, "EVERYTHING"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Неизвестное правило");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.scope_rule_unknown")
+                .hasFieldOrPropertyWithValue(
+                        "params", Map.of("rule", "EVERYTHING", "allowed", "ALL, SELF, SUBTREE, UNITS"));
     }
 
     // ------------------------------------------------------------- вспомогательное

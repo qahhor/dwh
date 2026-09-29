@@ -105,36 +105,34 @@ public class MdCustomFieldService {
             int orderNo) {
 
         if (entityType == null || !entityType.trim().toUpperCase().matches("^[A-Z][A-Z0-9_]{1,31}$")) {
-            throw ApiException.badRequest(
-                    ErrorCode.BAD_REQUEST,
-                    "Тип сущности должен содержать от 2 до 32 символов (заглавные латинские буквы, цифры, знак подчеркивания)");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.custom_field_entity_type_invalid");
         }
 
         String normalizedCode = (code != null ? code.trim().toLowerCase() : "");
         if (!normalizedCode.matches("^[a-z][a-z0-9_]{1,63}$")) {
-            throw ApiException.badRequest(
-                    ErrorCode.BAD_REQUEST,
-                    "Код поля должен начинаться с буквы и содержать только латинские буквы в нижнем регистре, цифры и символ подчеркивания (2-64 символа)");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.custom_field_code_invalid");
         }
 
         if (RESERVED_CODES.contains(normalizedCode)) {
             throw ApiException.badRequest(
-                    ErrorCode.BAD_REQUEST,
-                    "Код '" + normalizedCode
-                            + "' зарезервирован системой и не может использоваться для динамического поля");
+                    ErrorCode.BAD_REQUEST, "error.md.custom_field_code_reserved", Map.of("code", normalizedCode));
         }
 
         String normalizedFieldType = (fieldType != null ? fieldType.trim().toLowerCase() : "");
         if (!VALID_FIELD_TYPES.contains(normalizedFieldType)) {
             throw ApiException.badRequest(
                     ErrorCode.BAD_REQUEST,
-                    "Недопустимый тип поля: " + fieldType + ". Допустимые типы: "
-                            + String.join(", ", VALID_FIELD_TYPES));
+                    "error.md.custom_field_type_invalid",
+                    Map.of(
+                            "type",
+                            String.valueOf(fieldType),
+                            "allowed",
+                            String.join(", ", new TreeSet<>(VALID_FIELD_TYPES))));
         }
 
         if (customFieldRepository.findByCode(entityType, normalizedCode).isPresent()) {
             throw ApiException.conflict(
-                    ErrorCode.CODE_ALREADY_EXISTS, "Поле с таким кодом уже существует для сущности " + entityType);
+                    ErrorCode.CODE_ALREADY_EXISTS, "error.md.custom_field_exists", Map.of("entity", entityType));
         }
 
         var field = customFieldRepository.create(
@@ -210,7 +208,7 @@ public class MdCustomFieldService {
     private MdCustomFieldRepository.CustomFieldRecord requireField(Long id) {
         return customFieldRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Динамическое поле не найдено"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.custom_field_not_found"));
     }
 
     /**
@@ -318,7 +316,7 @@ public class MdCustomFieldService {
         }
 
         if (!errors.isEmpty()) {
-            throw ApiException.validation("Ошибка валидации динамических атрибутов", errors);
+            throw ApiException.validation("error.md.custom_field_attributes_invalid", errors);
         }
     }
 

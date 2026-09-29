@@ -98,12 +98,12 @@ public class ModuleRegistryService {
     public InstalledModuleView toggleModuleStatus(String code, boolean enable) {
         var existing = moduleRepository
                 .findByCode(code)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Модуль с кодом '" + code + "' не найден"));
+                .orElseThrow(() ->
+                        ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.module_not_found", Map.of("code", code)));
 
         if (existing.isSystem()) {
             throw ApiException.badRequest(
-                    ErrorCode.BAD_REQUEST, "Системный модуль '" + code + "' не может быть отключен");
+                    ErrorCode.BAD_REQUEST, "error.md.system_module_disable_forbidden", Map.of("code", code));
         }
 
         String newStatus = enable ? "ACTIVE" : "DISABLED";
@@ -123,8 +123,8 @@ public class ModuleRegistryService {
 
         var updated = moduleRepository
                 .findByCode(code)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Модуль с кодом '" + code + "' не найден"));
+                .orElseThrow(() ->
+                        ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.module_not_found", Map.of("code", code)));
         return InstalledModuleView.from(updated);
     }
 

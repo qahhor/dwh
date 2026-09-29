@@ -147,9 +147,7 @@ public class MdI18nRepository {
                 .optional();
 
         if (nextRevision.isEmpty()) {
-            throw ApiException.conflict(
-                    ErrorCode.I18N_REVISION_CONFLICT,
-                    "Языковой пакет изменён другим администратором. Обновите данные и повторите операцию");
+            throw new ApiException(ErrorCode.I18N_REVISION_CONFLICT);
         }
 
         jdbcClient

@@ -57,6 +57,35 @@ class MdOrgUnitControllerTest {
         org.mockito.Mockito.verify(repository).update(3L, 2L, "Renamed", "department", "A", -10);
     }
 
+    @Test
+    void blankNameAnswersWithTheCatalogKeyInTheRequestLanguage() throws Exception {
+        var repository = mock(MdOrgUnitRepository.class);
+        var scope = mock(MdScopeService.class);
+        when(repository.findById(3L))
+                .thenReturn(Optional.of(new MdOrgUnitRepository.OrgUnitRecord(
+                        3L, 2L, "CHILD", "Child", "department", "A", 0, Instant.EPOCH, Instant.EPOCH)));
+        var mvc = MockMvcBuilders.standaloneSetup(new MdOrgUnitController(
+                        new MdOrgUnitService(repository, scope, mock(AuditLogService.class)), scope))
+                .setControllerAdvice(new GlobalExceptionHandler(new PackagedProblemMessages()))
+                .build();
+
+        mvc.perform(patch("/api/v1/iam/org-units/3")
+                        .contentType("application/json")
+                        .characterEncoding(StandardCharsets.UTF_8)
+                        .content("{\"name\":\"  \"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.code").value("validation_failed"))
+                .andExpect(jsonPath("$.messageKey").value("error.md.org_unit_name_required"))
+                .andExpect(jsonPath("$.detail").value("Название не может быть пустым"));
+        mvc.perform(patch("/api/v1/iam/org-units/3")
+                        .header("Accept-Language", "en")
+                        .contentType("application/json")
+                        .content("{\"name\":\"  \"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value("The name cannot be empty"));
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).update(3L, 2L, "  ", "department", "A", 0);
+    }
+
     @AfterEach
     void clearSecurityContext() {
         SecurityContext.clear();

@@ -64,9 +64,7 @@ public class MdAssignmentService {
         List<Long> requested = roleIds != null ? roleIds : List.of();
 
         for (Long roleId : requested) {
-            ApiException.requirePresent(
-                    roleRepository.findById(roleId),
-                    () -> ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена: " + roleId));
+            ApiException.requirePresent(roleRepository.findById(roleId), () -> roleNotFound(roleId));
         }
 
         Set<Long> before = new TreeSet<>(roleRepository.getUserRoleIds(userId));
@@ -108,7 +106,8 @@ public class MdAssignmentService {
             if (!grantable.contains(p.formCode() + "." + p.action())) {
                 throw ApiException.badRequest(
                         ErrorCode.VALIDATION_FAILED,
-                        "Пара форма/действие недоступна для выдачи: " + p.formCode() + "." + p.action());
+                        "error.md.permission_not_grantable",
+                        Map.of("permission", p.formCode() + "." + p.action()));
             }
         }
 
@@ -153,15 +152,16 @@ public class MdAssignmentService {
         boolean hadAdmin = roleRepository.getUserRoleIds(userId).contains(adminRole.id());
         boolean keepsAdmin = newRoleIds.contains(adminRole.id());
         if (hadAdmin && !keepsAdmin && userRepository.countUsersWithRole(adminRole.id()) <= 1) {
-            throw ApiException.conflict(
-                    ErrorCode.LAST_ADMIN, "Нельзя снять роль администратора с последнего администратора системы");
+            throw ApiException.conflict(ErrorCode.LAST_ADMIN, "error.md.last_admin_role");
         }
     }
 
+    private static ApiException roleNotFound(Long roleId) {
+        return ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "error.md.role_not_found_id", Map.of("id", roleId));
+    }
+
     private void requireUser(Long userId) {
-        ApiException.requirePresent(
-                userRepository.findById(userId),
-                () -> ApiException.notFound(ErrorCode.USER_NOT_FOUND, "Пользователь не найден"));
+        ApiException.requirePresent(userRepository.findById(userId), () -> new ApiException(ErrorCode.USER_NOT_FOUND));
     }
 
     /** Одним запросом: идентификатор в имя. В журнале аудита имя роли читается, а идентификатор нет. */

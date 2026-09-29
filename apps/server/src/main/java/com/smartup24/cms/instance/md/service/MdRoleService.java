@@ -71,9 +71,7 @@ public class MdRoleService {
 
     @Transactional(readOnly = true)
     public MdRoleRepository.RoleRecord getRoleById(Long id) {
-        return roleRepository
-                .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.ROLE_NOT_FOUND, "Роль не найдена"));
+        return roleRepository.findById(id).orElseThrow(() -> new ApiException(ErrorCode.ROLE_NOT_FOUND));
     }
 
     @Transactional
@@ -81,8 +79,7 @@ public class MdRoleService {
         scopeRepository.lockScopeMutation();
         var role = getRoleById(id);
         if (role.pcode() != null && "admin".equals(role.pcode()) && "P".equalsIgnoreCase(state)) {
-            throw ApiException.forbidden(
-                    ErrorCode.SUPERADMIN_IMMUTABLE, "Роль администратора не может быть переведена в пассивный статус");
+            throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_role_passive_forbidden");
         }
         // Семантика частичного обновления: не переданное поле не меняется.
         // Раньше null в name уходил в базу и падал на not null, а не переданный
@@ -113,12 +110,11 @@ public class MdRoleService {
         scopeRepository.lockScopeMutation();
         var role = getRoleById(id);
         if (role.pcode() != null) {
-            throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "Системные роли не могут быть удалены");
+            throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.system_role_delete_forbidden");
         }
         List<Long> userIds = roleRepository.getUserIdsByRole(id);
         if (!userIds.isEmpty()) {
-            throw ApiException.conflict(
-                    ErrorCode.ROLE_NOT_FOUND, "Роль назначена пользователям и не может быть удалена");
+            throw ApiException.conflict(ErrorCode.ROLE_NOT_FOUND, "error.md.role_in_use");
         }
         roleRepository.delete(id);
 
@@ -147,7 +143,8 @@ public class MdRoleService {
             if (!grantable.contains(p.formCode() + "." + p.action())) {
                 throw ApiException.badRequest(
                         ErrorCode.VALIDATION_FAILED,
-                        "Пара форма/действие недоступна для выдачи: " + p.formCode() + "." + p.action());
+                        "error.md.permission_not_grantable",
+                        Map.of("permission", p.formCode() + "." + p.action()));
             }
         }
 
