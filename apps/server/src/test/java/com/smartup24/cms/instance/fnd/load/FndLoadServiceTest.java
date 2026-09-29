@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
 import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
+import com.smartup24.cms.instance.fnd.dwh.FndRawSource;
 import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
@@ -28,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -423,8 +423,9 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("AC-33: apply ждёт конца незавершённой записи строк — строки не попадают в применённую загрузку")
-    void applyWaitsForRunningWrite() throws Exception {
+    @DisplayName("AC-33: загрузку применили во время записи строк — запись отвергнута на коммите, строк в загрузке нет,"
+            + " транзакция OLTP запись не держит")
+    void applyDuringRunningWriteRefusesTheWrite() throws Exception {
         use(DepartmentFixture.departments().findFirst().orElseThrow());
         long loadId = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
         CountDownLatch writeStarted = new CountDownLatch(1);
@@ -456,20 +457,18 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         try {
             Future<?> write = pool.submit(() -> rawWriter.write(loadId, null, slowRows));
             assertThat(writeStarted.await(30, TimeUnit.SECONDS)).isTrue();
-            Future<?> apply = pool.submit(() -> loads.apply(loadId, 3, 3, 0, user));
-            assertThatThrownBy(() -> apply.get(700, TimeUnit.MILLISECONDS))
-                    .as("apply не должен завершиться, пока запись строк держит загрузку")
-                    .isInstanceOf(TimeoutException.class);
+            // Plan 10/10, item 3.8: the write holds no OLTP lock while rows stream, so apply does not wait for it
+            pool.submit(() -> loads.apply(loadId, 3, 3, 0, user)).get(30, TimeUnit.SECONDS);
             gate.countDown();
-            write.get(30, TimeUnit.SECONDS);
-            apply.get(30, TimeUnit.SECONDS);
+            assertThatThrownBy(() -> write.get(30, TimeUnit.SECONDS))
+                    .hasCauseInstanceOf(ConstraintViolationException.class);
         } finally {
             gate.countDown();
             pool.shutdownNow();
         }
         assertThat(loads.find(loadId).orElseThrow().status()).isEqualTo(FndLoad.APPLIED);
-        assertThat(rawWriter.read(loadId)).hasSize(3);
-        // После apply запись отвергается: статус уже не pending
+        assertThat(rawWriter.read(loadId)).isEmpty();
+        // После apply запись отвергается сразу: статус уже не pending
         assertThat(codeOf(() -> rawWriter.write(loadId, null, rows(1))))
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
     }
@@ -505,7 +504,12 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     /** Фасад, который всегда сообщает о недоступности pg-dwh (AC-26). */
     private static final class BrokenRawWriter implements FndRawWriter {
         @Override
-        public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
+        public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            throw new DwhUnavailableException(new java.sql.SQLException("pg-dwh недоступен TEST"));
+        }
+
+        @Override
+        public long count(long loadId) {
             throw new DwhUnavailableException(new java.sql.SQLException("pg-dwh недоступен TEST"));
         }
 

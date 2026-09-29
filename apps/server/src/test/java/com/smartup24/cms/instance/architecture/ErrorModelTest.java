@@ -33,7 +33,9 @@ class ErrorModelTest {
             "com.smartup24.cms.instance.search.repository.SearchProjectionReader$DocumentTooLargeException",
             "caught by the indexer, which skips the document and records it",
             "com.smartup24.cms.instance.search.typesense.TypesenseException",
-            "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)");
+            "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)",
+            "com.smartup24.cms.instance.fnd.dwh.JdbcFndRawWriter$CopyFailed",
+            "carries a server refusal out of the COPY callback and is unwrapped by the writer itself");
 
     /**
      * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary

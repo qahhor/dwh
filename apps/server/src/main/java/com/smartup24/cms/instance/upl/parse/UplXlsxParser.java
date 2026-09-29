@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult.ErrorRecord;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -38,7 +39,10 @@ import org.springframework.stereotype.Component;
 /**
  * Разбор xlsx-файла пакета по опубликованной анкете. Читает файл потоком за два прохода:
  * сначала структура (листы и колонки), потом значения. В базу и в журнал не пишет ничего —
- * итог возвращается в памяти.
+ * итог возвращается в памяти, а строки данных уходят в переданный приёмник по одной.
+ *
+ * <p>A workbook given as a stream is copied into memory whole by the reader (it needs random access to the zip); the
+ * jobs give a file on disk instead ({@link #parse(Path, FormatVersion, Consumer)}), so a 50 MB file costs no heap.
  */
 @Component
 public class UplXlsxParser {
@@ -96,16 +100,42 @@ public class UplXlsxParser {
      */
     public UplParseResult parse(InputStream content, FormatVersion format, Consumer<DataRow> rows) {
         try (ReadableWorkbook book = new ReadableWorkbook(content)) {
-            List<ErrorRecord> structure = new ArrayList<>();
-            List<SheetMatch> sheets = matchStructure(book, format, structure);
-            if (!structure.isEmpty()) {
-                return UplParseResult.rejected(
-                        UPL_PKG_STRUCTURE, Map.of("count", structure.size()), structure.size(), stored(structure));
-            }
-            return readValues(sheets, rows);
+            return parse(book, format, rows);
         } catch (IOException | ExcelReaderException unreadable) {
-            return UplParseResult.rejected(UPL_PKG_UNREADABLE, Map.of(), 0, List.of());
+            return unreadable();
         }
+    }
+
+    /** Разбирает файл на диске по анкете: книга читается с диска, в памяти не копируется. */
+    public UplParseResult parse(Path file, FormatVersion format) {
+        return parse(file, format, row -> {});
+    }
+
+    /**
+     * Разбирает файл на диске по анкете; строки данных отдаёт в {@code rows}, как {@link #parse(InputStream,
+     * FormatVersion, Consumer)}.
+     */
+    public UplParseResult parse(Path file, FormatVersion format, Consumer<DataRow> rows) {
+        try (ReadableWorkbook book = new ReadableWorkbook(file.toFile())) {
+            return parse(book, format, rows);
+        } catch (IOException | ExcelReaderException unreadable) {
+            return unreadable();
+        }
+    }
+
+    private UplParseResult parse(ReadableWorkbook book, FormatVersion format, Consumer<DataRow> rows)
+            throws IOException {
+        List<ErrorRecord> structure = new ArrayList<>();
+        List<SheetMatch> sheets = matchStructure(book, format, structure);
+        if (!structure.isEmpty()) {
+            return UplParseResult.rejected(
+                    UPL_PKG_STRUCTURE, Map.of("count", structure.size()), structure.size(), stored(structure));
+        }
+        return readValues(sheets, rows);
+    }
+
+    private static UplParseResult unreadable() {
+        return UplParseResult.rejected(UPL_PKG_UNREADABLE, Map.of(), 0, List.of());
     }
 
     // --- проход 1: структура ---

@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService.Upload;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -30,10 +31,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-/** API загрузок файлов: приём файла, список пакетов и ошибки пакета (контракт И5), применение пакета (И6). */
+/**
+ * API загрузок файлов: приём файла, список пакетов и ошибки пакета (контракт И5), применение пакета (И6). Both the
+ * upload and the apply answer 202: the work is a job, the package is the status resource.
+ */
 @RestController
-@RequestMapping("/api/v1/upl/packages")
+@RequestMapping(UplPackageController.BASE)
 public class UplPackageController {
+
+    static final String BASE = "/api/v1/upl/packages";
 
     private final UplUploadService uploads;
     private final UplPackageService packages;
@@ -140,10 +146,16 @@ public class UplPackageController {
         return result;
     }
 
-    /** Применяет пакет «проверен»: 200 и пакет «применён» или «отклонён системой» с причиной сверки. */
+    /**
+     * Ставит применение пакета «проверен» в очередь (план 10/10, п. 3.9): 202, пакет «применяется» и {@code Location}
+     * — the package itself, which the client polls until it turns «применён» or «отклонён системой».
+     */
     @PostMapping("/{id}/apply")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_APPLY)
     public ResponseEntity<PackageItem> apply(@PathVariable String id) {
-        return ResponseEntity.ok(PackageItem.of(applies.apply(id, userId())));
+        PackageItem item = PackageItem.of(applies.request(id, userId()));
+        return ResponseEntity.accepted()
+                .location(URI.create(BASE + "/" + item.id()))
+                .body(item);
     }
 }

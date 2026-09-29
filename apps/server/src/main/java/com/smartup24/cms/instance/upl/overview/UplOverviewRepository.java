@@ -95,9 +95,9 @@ public class UplOverviewRepository {
             LocalDate periodTo,
             Instant uploadedAt) {}
 
-    /** Checked uploads waiting to be applied, oldest first. */
+    /** Checked uploads waiting to be applied, oldest first; one being applied (it has a load number) waits for nobody. */
     public List<PackageAttentionRow> waitingToApply(int limit) {
-        return packages("p.status = 'verified'", null, limit);
+        return packages("p.status = 'verified' and p.load_id is null", null, limit);
     }
 
     /** Rejected uploads of the period that no later checked or applied upload of the same source and period replaced. */

@@ -19,6 +19,10 @@
         <!-- Coverage floor of this module (plan 10/10, item 1.4): raised, never lowered, towards 0.80. -->
         <coverage.line.minimum>0.83</coverage.line.minimum>
         <coverage.branch.minimum>0.69</coverage.branch.minimum>
+        <!-- Tests tagged "large" (plan 10/10, item 3.9: a 50 MB file applied in a 512 MB heap) run only with -Pupl-large. -->
+        <test.groups></test.groups>
+        <test.excludedGroups>large</test.excludedGroups>
+        <test.heap></test.heap>
     </properties>
 
     <dependencies>
@@ -183,6 +187,15 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <groups>${test.groups}</groups>
+                    <excludedGroups>${test.excludedGroups}</excludedGroups>
+                    <argLine>@{argLine} -XX:+EnableDynamicAgentLoading -Dnet.bytebuddy.experimental=true ${test.heap}</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <executions>
@@ -197,4 +210,19 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          Acceptance of plan 10/10, item 3.9 (docs/ops/operations-runbook.md, "UPL apply"): only the tests tagged "large",
+          in a JVM capped at 512 MB. Run with the test goal: mvn -pl apps/server test -Pupl-large
+        -->
+        <profile>
+            <id>upl-large</id>
+            <properties>
+                <test.groups>large</test.groups>
+                <test.excludedGroups></test.excludedGroups>
+                <test.heap>-Xmx512m</test.heap>
+            </properties>
+        </profile>
+    </profiles>
 </project>

@@ -26,11 +26,19 @@ import tools.jackson.databind.ObjectMapper;
 @Repository
 public class UplPackageRepository {
 
+    /**
+     * The status a reader sees: a verified package that got a load number is being applied (plan 10/10, item 3.9) — its
+     * load is open and the apply job has not closed it yet.
+     */
+    static final String STATUS_SQL =
+            "case when p.status = 'verified' and p.load_id is not null then 'applying' else p.status end";
+
     /** Колонки пакета; вместе с {@link #PACKAGE_FROM} — и для одиночного чтения, и для списка реестра. */
     static final String PACKAGE_COLUMNS = """
             p.id, p.public_id, p.source_id, s.code as source_code, s.name as source_name,
                    p.format_version, p.period_from, p.period_to, p.file_id, p.file_name, p.file_sha256,
-                   p.file_size_bytes, p.status, p.rows_total, p.rows_accepted, p.rows_rejected, p.errors_total,
+                   p.file_size_bytes, """ + STATUS_SQL + " as status, " + """
+                   p.rows_total, p.rows_accepted, p.rows_rejected, p.errors_total,
                    p.reject_code, p.reject_params::text as reject_params, p.load_id, p.raw_rows,
                    p.uploaded_at, p.uploaded_by""";
 
@@ -100,8 +108,16 @@ public class UplPackageRepository {
                 .optional();
     }
 
+    /** The package by its internal id, locked until the end of the transaction. */
+    public Optional<PackageRow> lockById(long id) {
+        return jdbc.sql(PACKAGE_SELECT + " where p.id = :id for update of p")
+                .param("id", id)
+                .query(this::mapPackage)
+                .optional();
+    }
+
     /**
-     * Пакеты «проверен», получившие номер загрузки больше {@code staleMinutes} минут назад, — кандидаты
+     * Пакеты «применяется» (проверен, получил номер загрузки) дольше {@code staleMinutes} минут — кандидаты
      * в прерванные применения (статус загрузки проверяет вызывающий через основу). Строки блокируются;
      * занятые другим воркером пропускаются.
      */
@@ -160,7 +176,10 @@ public class UplPackageRepository {
                 .update();
     }
 
-    /** Запоминает номер загрузки основы у пакета «проверен»; 0 — пакет не «проверен» или номер уже есть. */
+    /**
+     * Запоминает номер загрузки основы у пакета «проверен» — пакет становится «применяется»; 0 — пакет не «проверен»
+     * или номер уже есть.
+     */
     public int setLoadId(long id, long loadId) {
         return jdbc.sql("""
                         update upl_packages

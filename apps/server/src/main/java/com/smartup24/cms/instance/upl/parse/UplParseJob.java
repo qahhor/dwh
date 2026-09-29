@@ -18,8 +18,8 @@ import org.springframework.stereotype.Component;
 /**
  * Задание «разобрать файл пакета»: берёт файл из хранилища каркаса, разбирает его по анкете,
  * действовавшей на начало периода, и записывает итог. Сбой самого разбора закрывает пакет
- * причиной {@link #UPL_PKG_INTERNAL} в отдельной транзакции — иначе откат задания вернул бы
- * пакет в «получен» и он висел бы вечно.
+ * причиной {@link #UPL_PKG_INTERNAL}, и задание падает; его повтор находит пакет закрытым и ничего
+ * не делает. Разбор идёт вне транзакции (очередь не держит её на время работы, план 10/10, п. 3.8).
  */
 @Component
 public class UplParseJob implements FndJobHandler {
@@ -64,9 +64,10 @@ public class UplParseJob implements FndJobHandler {
      * закрывает пакет внутренней ошибкой.
      */
     private UplParseResult parse(PackageRow row) {
-        try (FileDownloadStream file = files.downloadFile(row.fileId())) {
+        try (FileDownloadStream file = files.downloadFile(row.fileId());
+                UplSpooledFile spooled = UplSpooledFile.of(file.inputStream())) {
             FormatVersion format = sources.getVersion(row.sourceId(), row.formatVersion());
-            return parser.parse(file.inputStream(), format);
+            return parser.parse(spooled.path(), format);
         } catch (IOException failure) {
             packages.rejectInNewTransaction(row.id(), UPL_PKG_INTERNAL);
             throw new UncheckedIOException("Файл пакета " + row.publicId() + " не читается из хранилища", failure);

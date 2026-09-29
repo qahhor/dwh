@@ -8,7 +8,9 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
+import com.smartup24.cms.instance.fnd.dwh.FndRawSource;
 import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
+import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
@@ -17,6 +19,7 @@ import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplParseJob;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
+import com.smartup24.cms.instance.upl.upload.UplApplyJob;
 import com.smartup24.cms.instance.upl.upload.UplApplyRecoveryJob;
 import com.smartup24.cms.instance.upl.upload.UplApplyService;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel;
@@ -26,7 +29,6 @@ import com.smartup24.cms.instance.upl.upload.UplPackageRepository;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -39,7 +41,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Применение пакета «проверен»: строки файла в raw, сверка и закрытие пакета (контракт И6). */
+/**
+ * Применение пакета «проверен» (контракт И6), asynchronous (plan 10/10, item 3.9): the request opens the load and
+ * queues the job, the job streams the rows into raw, reconciles and closes the package.
+ */
 class UplApplyServiceTest extends EmbeddedPostgresTest {
 
     private static final LocalDate PERIOD_FROM = LocalDate.of(2026, 3, 1);
@@ -49,7 +54,13 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     private UplApplyService applies;
 
     @Autowired
+    private UplApplyJob applyJob;
+
+    @Autowired
     private UplApplyRecoveryJob recovery;
+
+    @Autowired
+    private FndJobRunner jobs;
 
     @Autowired
     private UplPackageService packages;
@@ -100,9 +111,31 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
             actors.apply(actors.system());
             jdbc.sql("delete from upl_package_errors").update();
             jdbc.sql("delete from upl_packages").update();
+            jdbc.sql("delete from fnd_job_queue").update();
+            jdbc.sql("delete from fnd_job_runs").update();
         });
         dwhJdbc.sql("delete from raw.rows").update();
         sourceId = UplPackageTestData.publishedSource(sources, userId, LocalDate.of(2026, 1, 1));
+    }
+
+    @Test
+    @DisplayName("3.9: запрос только открывает загрузку и ставит задание — строк в raw нет, пакет «применяется»")
+    void requestQueuesTheJobAndWritesNothing() {
+        PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
+
+        PackageRow queued = applies.request(row.publicId().toString(), userId);
+
+        assertThat(queued.status()).isEqualTo(UplPackageModel.APPLYING);
+        assertThat(queued.loadId()).isNotNull();
+        assertThat(queued.rawRows()).isNull();
+        assertThat(rawCount(queued.loadId())).isZero();
+        assertThat(loads.find(queued.loadId()))
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.PENDING));
+        assertThat(jdbc.sql("select handler, args->>'packageId' from fnd_job_queue")
+                        .query((rs, n) -> rs.getString(1) + " " + rs.getString(2))
+                        .list())
+                .containsExactly(UplPref.JOB_APPLY + " " + row.publicId());
+        assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.APPLYING);
     }
 
     @Test
@@ -110,7 +143,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     void applyWritesAllDataRowsWithSourceAddress() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
 
-        PackageRow applied = applies.apply(row.publicId().toString(), userId);
+        PackageRow applied = apply(row);
 
         assertThat(applied.status()).isEqualTo(UplPackageModel.APPLIED);
         assertThat(applied.loadId()).isNotNull();
@@ -119,12 +152,16 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         long loadId = applied.loadId();
         assertThat(rawCount(loadId)).isEqualTo(10);
         assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id and sheet = :sheet"
-                                + " and source_row_no is not null")
+                                + " and source_row_no is not null and source_file_id = :file")
                         .param("id", loadId)
                         .param("sheet", UplPackageTestData.SHEET)
+                        .param("file", row.fileId())
                         .query(Long.class)
                         .single())
                 .isEqualTo(10);
+        assertThat(raw.read(loadId))
+                .extracting(FndRawRow::rowNo)
+                .containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
         assertThat(loads.find(loadId))
                 .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.APPLIED));
         assertThat(jdbc.sql("select count(*) from fnd_load_log where load_id = :id and event = 'applied'")
@@ -132,6 +169,10 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isEqualTo(1);
+        assertThat(jdbc.sql("select status from fnd_job_runs")
+                        .query(String.class)
+                        .list())
+                .containsExactly("done");
     }
 
     @Test
@@ -141,8 +182,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         PackageRow first = verifiedPackage(content);
         PackageRow second = verifiedPackage(content);
 
-        PackageRow firstApplied = applies.apply(first.publicId().toString(), userId);
-        PackageRow secondApplied = applies.apply(second.publicId().toString(), userId);
+        PackageRow firstApplied = apply(first);
+        PackageRow secondApplied = apply(second);
 
         assertThat(secondApplied.status()).isEqualTo(UplPackageModel.APPLIED);
         assertThat(secondApplied.loadId()).isNotNull().isNotEqualTo(firstApplied.loadId());
@@ -151,13 +192,15 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("AC-12: применить можно только «проверен»; нет пакета — 404")
+    @DisplayName("AC-12: применить можно только «проверен»; «применяется» и «применён» — 409, нет пакета — 404")
     void onlyVerifiedPackageCanBeApplied() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        PackageRow applied = applies.apply(row.publicId().toString(), userId);
+        PackageRow queued = applies.request(row.publicId().toString(), userId);
+        assertConflict(() -> applies.request(row.publicId().toString(), userId), "error.upl.pkg_not_verified");
+        assertThat(jobs.runQueued()).isEqualTo(1);
 
-        assertConflict(() -> applies.apply(row.publicId().toString(), userId), "error.upl.pkg_not_verified");
-        assertThat(rawCount(applied.loadId())).isEqualTo(10);
+        assertConflict(() -> applies.request(row.publicId().toString(), userId), "error.upl.pkg_not_verified");
+        assertThat(rawCount(queued.loadId())).isEqualTo(10);
         assertThat(dwhJdbc.sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
@@ -165,26 +208,30 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
         PackageRow broken = parsedPackage(UplPackageTestData.brokenStructure());
         assertThat(broken.status()).isEqualTo(UplPackageModel.REJECTED);
-        assertConflict(() -> applies.apply(broken.publicId().toString(), userId), "error.upl.pkg_not_verified");
+        assertConflict(() -> applies.request(broken.publicId().toString(), userId), "error.upl.pkg_not_verified");
 
-        assertNotFound(() -> applies.apply(UUID.randomUUID().toString(), userId));
-        assertNotFound(() -> applies.apply("abc", userId));
+        assertNotFound(() -> applies.request(UUID.randomUUID().toString(), userId));
+        assertNotFound(() -> applies.request("abc", userId));
     }
 
     @Test
     @DisplayName("AC-12: в загрузке нет принятых строк — применить нельзя, прежняя загрузка периода не заменяется")
     void packageWithoutAcceptedRowsCannotBeApplied() {
         PackageRow good = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        PackageRow applied = applies.apply(good.publicId().toString(), userId);
+        PackageRow applied = apply(good);
 
         for (byte[] content : List.of(UplPackageTestData.workbook(0, 3), UplPackageTestData.workbook(0, 0))) {
             String id = verifiedPackage(content).publicId().toString();
 
-            assertConflict(() -> applies.apply(id, userId), "error.upl.pkg_nothing_to_apply");
+            assertConflict(() -> applies.request(id, userId), "error.upl.pkg_nothing_to_apply");
             assertThat(packages.get(id).status()).isEqualTo(UplPackageModel.VERIFIED);
             assertThat(packages.get(id).loadId()).isNull();
         }
 
+        assertThat(jdbc.sql("select count(*) from fnd_job_queue")
+                        .query(Long.class)
+                        .single())
+                .isZero();
         assertThat(dwhJdbc.sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
@@ -198,46 +245,45 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-11: в raw легло меньше строк, чем в пакете — пакет «отклонён системой», загрузка неудачна")
     void reconciliationMismatchRejectsPackage() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        FndRawWriter losingLastRow = new FndRawWriter() {
+        FndRawWriter losingLastRow = new DelegatingWriter() {
             @Override
-            public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
-                List<FndRawRow> all = new ArrayList<>();
-                rows.forEach(all::add);
-                raw.write(loadId, sourceFileId, all.subList(0, all.size() - 1));
-            }
-
-            @Override
-            public List<FndRawRow> read(long loadId) {
-                return raw.read(loadId);
+            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+                // One row behind the source: the last one never reaches the copy
+                return raw.copy(loadId, sourceFileId, sink -> {
+                    FndRawRow[] held = {null};
+                    rows.emit(next -> {
+                        if (held[0] != null) {
+                            sink.accept(held[0]);
+                        }
+                        held[0] = next;
+                    });
+                });
             }
         };
 
-        PackageRow result = service(losingLastRow).apply(row.publicId().toString(), userId);
+        PackageRow result =
+                runWith(losingLastRow, applies.request(row.publicId().toString(), userId));
 
         assertThat(result.status()).isEqualTo(UplPackageModel.REJECTED);
         assertThat(result.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_RECONCILIATION);
         assertThat(result.rejectParams()).containsEntry("fileRows", 10).containsEntry("rawRows", 9);
+        assertThat(result.rawRows()).isEqualTo(9);
         assertThat(loads.find(result.loadId()))
                 .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
     }
 
     @Test
-    @DisplayName("AC-11: запись в raw упала — пакет «отклонён системой», загрузка неудачна, ответа 500 нет")
+    @DisplayName("AC-11: запись в raw упала — пакет «отклонён системой», загрузка неудачна, задание не падает")
     void rawWriteFailureRejectsPackage() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        FndRawWriter failing = new FndRawWriter() {
+        FndRawWriter failing = new DelegatingWriter() {
             @Override
-            public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
+            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
                 throw new IllegalStateException("TEST");
-            }
-
-            @Override
-            public List<FndRawRow> read(long loadId) {
-                return raw.read(loadId);
             }
         };
 
-        PackageRow result = service(failing).apply(row.publicId().toString(), userId);
+        PackageRow result = runWith(failing, applies.request(row.publicId().toString(), userId));
 
         assertThat(result.status()).isEqualTo(UplPackageModel.REJECTED);
         assertThat(result.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_RAW_WRITE_FAILED);
@@ -246,16 +292,65 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("P0: применение прервалось после выдачи номера загрузки — задание закрывает пакет и загрузку")
+    @DisplayName("3.9: узел упал после коммита raw — повтор задания закрывает пакет их числом, строки не дублируются")
+    void retryAfterCommittedRowsClosesWithoutSecondWrite() {
+        PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
+        PackageRow queued = applies.request(row.publicId().toString(), userId);
+        FndRawWriter diesAfterCommit = new DelegatingWriter() {
+            @Override
+            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+                raw.copy(loadId, sourceFileId, rows);
+                throw new AssertionError("TEST: процесс упал после коммита pg-dwh");
+            }
+        };
+        assertThatThrownBy(() -> job(diesAfterCommit).run(args(queued))).isInstanceOf(AssertionError.class);
+        assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.APPLYING);
+        assertThat(rawCount(queued.loadId())).isEqualTo(10);
+
+        FndRawWriter mustNotWrite = new DelegatingWriter() {
+            @Override
+            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+                throw new AssertionError("TEST: повтор не должен писать строки второй раз");
+            }
+        };
+        job(mustNotWrite).run(args(queued));
+
+        PackageRow applied = packages.get(row.publicId().toString());
+        assertThat(applied.status()).isEqualTo(UplPackageModel.APPLIED);
+        assertThat(applied.rawRows()).isEqualTo(10);
+        assertThat(rawCount(queued.loadId())).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("3.9: пакет уже закрыт (восстановлением или прежней попыткой) — задание ничего не делает")
+    void jobLeavesClosedPackageAlone() {
+        PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
+        PackageRow queued = applies.request(row.publicId().toString(), userId);
+        backdate(queued);
+        tx.executeWithoutResult(status -> recovery.run(Map.of("staleMinutes", 60)));
+
+        // The queued apply job of the package closed by recovery runs from the queue and leaves it alone.
+        assertThat(jobs.runQueued()).isEqualTo(1);
+
+        PackageRow closed = packages.get(row.publicId().toString());
+        assertThat(closed.status()).isEqualTo(UplPackageModel.REJECTED);
+        assertThat(closed.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_APPLY_INTERRUPTED);
+        assertThat(rawCount(queued.loadId())).isZero();
+
+        PackageRow done = apply(verifiedPackage(UplPackageTestData.workbook(2, 0)));
+        applyJob.run(args(done));
+        assertThat(packages.get(done.publicId().toString())).isEqualTo(done);
+        assertThat(rawCount(done.loadId())).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("P0: применение не закрылось дольше порога — задание восстановления закрывает пакет и загрузку")
     void interruptedApplyIsClosedByRecoveryJob() {
-        PackageRow stale = interruptedPackage();
-        PackageRow fresh = interruptedPackage();
-        tx.executeWithoutResult(status -> {
-            actors.apply(actors.system());
-            jdbc.sql("update upl_packages set modified_at = now() - interval '2 hours' where id = :id")
-                    .param("id", stale.id())
-                    .update();
-        });
+        PackageRow stale = applies.request(
+                verifiedPackage(UplPackageTestData.workbook(7, 3)).publicId().toString(), userId);
+        PackageRow fresh = applies.request(
+                verifiedPackage(UplPackageTestData.workbook(7, 3)).publicId().toString(), userId);
+        backdate(stale);
 
         tx.executeWithoutResult(status -> recovery.run(Map.of("staleMinutes", 60)));
 
@@ -269,11 +364,11 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isEqualTo(1);
-        assertConflict(() -> applies.apply(closed.publicId().toString(), userId), "error.upl.pkg_not_verified");
+        assertConflict(() -> applies.request(closed.publicId().toString(), userId), "error.upl.pkg_not_verified");
 
         // Применение моложе порога может ещё идти — его задание не трогает
         PackageRow running = packages.get(fresh.publicId().toString());
-        assertThat(running.status()).isEqualTo(UplPackageModel.VERIFIED);
+        assertThat(running.status()).isEqualTo(UplPackageModel.APPLYING);
         assertThat(loads.find(running.loadId()))
                 .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.PENDING));
     }
@@ -290,26 +385,33 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
     // ---------- помощники ----------
 
-    /** Пакет, чьё применение оборвалось на записи raw: Error не ловится, третий шаг не наступает. */
-    private PackageRow interruptedPackage() {
-        PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        FndRawWriter crashing = new FndRawWriter() {
-            @Override
-            public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
-                throw new AssertionError("TEST: процесс упал");
-            }
+    /** Asks to apply and runs the queue, as the worker would; the package as the client then reads it. */
+    private PackageRow apply(PackageRow row) {
+        applies.request(row.publicId().toString(), userId);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+        return packages.get(row.publicId().toString());
+    }
 
-            @Override
-            public List<FndRawRow> read(long loadId) {
-                return raw.read(loadId);
-            }
-        };
-        assertThatThrownBy(() -> service(crashing).apply(row.publicId().toString(), userId))
-                .isInstanceOf(AssertionError.class);
-        PackageRow stuck = packages.get(row.publicId().toString());
-        assertThat(stuck.status()).isEqualTo(UplPackageModel.VERIFIED);
-        assertThat(stuck.loadId()).isNotNull();
-        return stuck;
+    private PackageRow runWith(FndRawWriter writer, PackageRow queued) {
+        job(writer).run(args(queued));
+        return packages.get(queued.publicId().toString());
+    }
+
+    private UplApplyJob job(FndRawWriter writer) {
+        return new UplApplyJob(repo, sources, files, parser, loads, writer, actors, tx);
+    }
+
+    private Map<String, Object> args(PackageRow row) {
+        return Map.of("packageId", row.publicId().toString(), "userId", userId);
+    }
+
+    private void backdate(PackageRow row) {
+        tx.executeWithoutResult(status -> {
+            actors.apply(actors.system());
+            jdbc.sql("update upl_packages set modified_at = now() - interval '2 hours' where id = :id")
+                    .param("id", row.id())
+                    .update();
+        });
     }
 
     private PackageRow verifiedPackage(byte[] content) {
@@ -335,10 +437,6 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         return packages.get(row.publicId().toString());
     }
 
-    private UplApplyService service(FndRawWriter writer) {
-        return new UplApplyService(packages, repo, sources, files, parser, loads, writer, actors, tx);
-    }
-
     private long rawCount(long loadId) {
         return dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
                 .param("id", loadId)
@@ -359,5 +457,18 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
             assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
             assertThat(e.getMessageKey()).isEqualTo("error.upl.pkg_not_found");
         });
+    }
+
+    /** The real writer, with one method replaced by a test. */
+    private abstract class DelegatingWriter implements FndRawWriter {
+        @Override
+        public long count(long loadId) {
+            return raw.count(loadId);
+        }
+
+        @Override
+        public List<FndRawRow> read(long loadId) {
+            return raw.read(loadId);
+        }
     }
 }

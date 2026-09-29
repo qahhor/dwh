@@ -4,29 +4,19 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
-import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
+import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
-import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
-import com.smartup24.cms.instance.upl.format.UplSourceService;
-import com.smartup24.cms.instance.upl.parse.UplParseResult;
-import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
+import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
-import com.smartup24.cms.spi.storage.FileDownloadStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Применение пакета «проверен» (контракт И6, раздел 6): три шага, потому что raw лежит во второй базе —
- * сбой её записи должен стать причиной пакета, а не ответом 500.
+ * Применение пакета «проверен» (контракт И6, раздел 6), asynchronous since plan 10/10, item 3.9: the request opens
+ * the load of the foundation, turns the package «применяется» and queues {@link UplApplyJob}, which streams the rows
+ * into raw and closes the package. The request holds one short OLTP transaction and starts no long work, so it answers
+ * at once and an Idempotency-Key replays it (item 3.12).
  */
 @Service
 public class UplApplyService {
@@ -38,144 +28,61 @@ public class UplApplyService {
     /** Применение прервалось между шагами (падение процесса, сбой базы) — пакет закрыло задание восстановления. */
     public static final String UPL_PKG_APPLY_INTERRUPTED = "UPL_PKG_APPLY_INTERRUPTED";
 
-    private static final Logger log = LoggerFactory.getLogger(UplApplyService.class);
-
     private final UplPackageService packages;
     private final UplPackageRepository repo;
-    private final UplSourceService sources;
-    private final MfFileService files;
-    private final UplXlsxParser parser;
     private final FndLoadService loads;
-    private final FndRawWriter raw;
     private final FndActors actors;
+    private final FndJobRunner jobs;
     private final TransactionTemplate tx;
 
     public UplApplyService(
             UplPackageService packages,
             UplPackageRepository repo,
-            UplSourceService sources,
-            MfFileService files,
-            UplXlsxParser parser,
             FndLoadService loads,
-            FndRawWriter raw,
             FndActors actors,
+            FndJobRunner jobs,
             TransactionTemplate tx) {
         this.packages = packages;
         this.repo = repo;
-        this.sources = sources;
-        this.files = files;
-        this.parser = parser;
         this.loads = loads;
-        this.raw = raw;
         this.actors = actors;
+        this.jobs = jobs;
         this.tx = tx;
     }
 
     /**
-     * Применяет пакет: открывает загрузку основы, пишет строки файла в raw и по сверке закрывает пакет
-     * «применён» или «отклонён системой». Не «проверен» — 409, нет принятых строк — 409, нет пакета — 404.
+     * Ставит применение в очередь: открывает загрузку основы, переводит пакет в «применяется» и ставит задание — всё
+     * одной транзакцией (с Idempotency-Key — транзакцией запроса). Не «проверен» — 409, нет принятых строк — 409, нет
+     * пакета — 404.
+     *
+     * @return the package «применяется»: the status resource the client polls until it is applied or rejected
      */
-    public PackageRow apply(String publicId, long userId) {
+    public PackageRow request(String publicId, long userId) {
         UUID id = packages.get(publicId).publicId();
         FndActor actor = actors.user(userId);
-        Started started = tx.execute(status -> begin(id, actor));
-        Integer rawRows = writeRaw(started);
-        tx.executeWithoutResult(status -> finish(started, rawRows, actor));
-        return repo.findById(started.row().id())
-                .orElseThrow(() -> new IllegalStateException("Пакет " + id + " пропал во время применения"));
-    }
-
-    private record Started(PackageRow row, long loadId) {}
-
-    private Started begin(UUID id, FndActor actor) {
-        PackageRow row = repo.lockByPublicId(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found"));
-        if (!UplPackageModel.VERIFIED.equals(row.status()) || row.loadId() != null) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_not_verified");
-        }
-        if (row.rowsAccepted() == null || row.rowsAccepted() == 0) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_nothing_to_apply");
-        }
-        long loadId = loads.begin(
-                row.sourceCode(),
-                row.publicId(),
-                row.periodFrom(),
-                row.periodTo(),
-                String.valueOf(row.formatVersion()),
-                actor);
-        actors.apply(actor);
-        requireOne(repo.setLoadId(row.id(), loadId), row);
-        return new Started(row, loadId);
-    }
-
-    /** Пишет строки файла в raw; {@code null} — запись упала, причина уйдёт в пакет. */
-    private Integer writeRaw(Started started) {
-        try {
-            raw.write(started.loadId(), started.row().fileId(), readRows(started.row()));
-            return raw.read(started.loadId()).size();
-        } catch (IOException | RuntimeException failure) {
-            log.error(
-                    "Пакет {}: строки не записаны в raw ({})",
-                    started.row().publicId(),
-                    failure.getClass().getName());
-            return null;
-        }
-    }
-
-    private List<FndRawRow> readRows(PackageRow row) throws IOException {
-        try (FileDownloadStream file = files.downloadFile(row.fileId())) {
-            FormatVersion format = sources.getVersion(row.sourceId(), row.formatVersion());
-            List<FndRawRow> rows = new ArrayList<>();
-            UplParseResult result = parser.parse(
-                    file.inputStream(),
-                    format,
-                    data -> rows.add(new FndRawRow(rows.size() + 1, data.sheet(), data.sourceRowNo(), data.fields())));
-            if (result.outcome() != UplParseResult.Outcome.VERIFIED) {
-                throw new IllegalStateException(
-                        "Повторный разбор файла пакета " + row.publicId() + " не дал «проверен»");
+        return tx.execute(status -> {
+            PackageRow row = repo.lockByPublicId(id)
+                    .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found"));
+            if (!UplPackageModel.VERIFIED.equals(row.status()) || row.loadId() != null) {
+                throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_not_verified");
             }
-            return rows;
-        }
-    }
-
-    private void finish(Started started, Integer rawRows, FndActor actor) {
-        PackageRow row = started.row();
-        actors.apply(actor);
-        boolean reconciled = rawRows != null
-                && rawRows.intValue() == row.rowsTotal()
-                && row.rowsTotal() == row.rowsAccepted() + row.rowsRejected();
-        if (reconciled) {
-            loads.apply(started.loadId(), row.rowsTotal(), row.rowsAccepted(), row.rowsRejected(), actor);
-            requireOne(repo.markApplied(row.id(), rawRows), row);
-            loads.log(
+            if (row.rowsAccepted() == null || row.rowsAccepted() == 0) {
+                throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_nothing_to_apply");
+            }
+            long loadId = loads.begin(
+                    row.sourceCode(),
                     row.publicId(),
-                    "applied",
-                    UplPackageModel.VERIFIED,
-                    UplPackageModel.APPLIED,
-                    actor,
-                    null,
-                    row.fileSha256());
-        } else if (rawRows == null) {
-            loads.fail(started.loadId(), UPL_PKG_RAW_WRITE_FAILED, actor);
-            requireOne(repo.markApplyRejected(row.id(), UPL_PKG_RAW_WRITE_FAILED, Map.of(), null), row);
-        } else {
-            loads.fail(
-                    started.loadId(),
-                    UPL_PKG_RECONCILIATION + ": в файле " + row.rowsTotal() + ", в raw " + rawRows,
+                    row.periodFrom(),
+                    row.periodTo(),
+                    String.valueOf(row.formatVersion()),
                     actor);
-            requireOne(
-                    repo.markApplyRejected(
-                            row.id(),
-                            UPL_PKG_RECONCILIATION,
-                            Map.of("fileRows", row.rowsTotal(), "rawRows", rawRows),
-                            rawRows),
-                    row);
-        }
-    }
-
-    private static void requireOne(int updated, PackageRow row) {
-        if (updated != 1) {
-            throw new IllegalStateException("Пакет " + row.publicId() + " уже не в статусе «проверен»");
-        }
+            actors.apply(actor);
+            if (repo.setLoadId(row.id(), loadId) != 1) {
+                throw new IllegalStateException("Пакет " + row.publicId() + " уже не в статусе «проверен»");
+            }
+            jobs.enqueueOnce(UplPref.JOB_APPLY, UplApplyJob.args(row.publicId(), userId));
+            return repo.findById(row.id())
+                    .orElseThrow(() -> new IllegalStateException("Пакет " + id + " пропал при постановке применения"));
+        });
     }
 }

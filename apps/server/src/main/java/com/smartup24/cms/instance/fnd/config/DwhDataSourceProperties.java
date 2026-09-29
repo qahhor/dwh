@@ -15,6 +15,9 @@ import org.springframework.validation.annotation.Validated;
  * транзакции для всего пула (чтение витрин, запись raw пачками); {@code maintenance-statement-timeout}
  * — для заданий обслуживания, которые проходят весь raw ({@link FndDwhMaintenance}). У обоих есть
  * значения по умолчанию: без них пул уже не бывает «без таймаута».
+ *
+ * <p>{@code raw-write-timeout} bounds one streamed write of a load into raw (plan 10/10, item 3.9): a single
+ * {@code COPY} lasts as long as the file takes to parse, minutes for a million rows, so the pool limit would cut it.
  */
 @Validated
 @ConfigurationProperties(prefix = "app.dwh")
@@ -24,12 +27,14 @@ public record DwhDataSourceProperties(
         String password,
         @NotNull Duration connectTimeout,
         @DefaultValue("60s") Duration statementTimeout,
-        @DefaultValue("30m") Duration maintenanceStatementTimeout) {
+        @DefaultValue("30m") Duration maintenanceStatementTimeout,
+        @DefaultValue("30m") Duration rawWriteTimeout) {
 
     public DwhDataSourceProperties {
         requirePositive("app.dwh.connect-timeout", connectTimeout);
         requirePositive("app.dwh.statement-timeout", statementTimeout);
         requirePositive("app.dwh.maintenance-statement-timeout", maintenanceStatementTimeout);
+        requirePositive("app.dwh.raw-write-timeout", rawWriteTimeout);
     }
 
     private static void requirePositive(String name, Duration value) {

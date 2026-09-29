@@ -41,6 +41,10 @@ spring:
       max-lifetime: 1200000
       data-source-properties:
         defaultRowFetchSize: 500
+        # Plan 10/10, item 3.8: the server ends a statement that runs too long and a session that idles inside a
+        # transaction, so neither a runaway query nor a forgotten transaction holds a connection of the pool. Values
+        # are PostgreSQL durations (60s, 5min; 0 = off), set under smc.database below.
+        options: "-c statement_timeout=${smc.database.statement-timeout} -c idle_in_transaction_session_timeout=${smc.database.idle-in-transaction-timeout}"
   flyway:
     # NFR-10 / ADR-0007 2.3: приложение НЕ мигрирует схему. Миграции — только
     # отдельным запуском: --spring.profiles.active=migrate (batch-job фазы P).
@@ -102,6 +106,11 @@ management:
       enabled: false
 
 smc:
+  database:
+    # Limits of the main database pool (docs/ops/operations-runbook.md, "Background jobs and database timeouts").
+    # Background jobs hold no transaction while they work, so a job does not need a longer limit.
+    statement-timeout: ${SMC_DB_STATEMENT_TIMEOUT:60s}
+    idle-in-transaction-timeout: ${SMC_DB_IDLE_IN_TRANSACTION_TIMEOUT:60s}
   # Public address of the web application, e.g. https://cms.example.com. Password reset links are built from it and
   # never from the request's Host header. Empty -> no reset link is sent (the log says why).
   public-url: ${SMC_PUBLIC_URL:}
@@ -231,6 +240,15 @@ dwh:
     retention-days: ${DWH_IDEMPOTENCY_RETENTION_DAYS:14}
     cleanup-cron: ${DWH_IDEMPOTENCY_CLEANUP_CRON:0 15 2 * * *}
     lease-seconds: ${DWH_IDEMPOTENCY_LEASE_SECONDS:120}
+  fnd:
+    jobs:
+      # Job queue (plan 10/10, item 3.8): a failed job is retried after a pause that doubles each time, up to the
+      # limit, then marked failed; a node renews the lease of the job it runs, and a job whose lease ran out (the
+      # node died) is taken by another.
+      max-attempts: ${DWH_JOBS_MAX_ATTEMPTS:5}
+      retry-backoff: ${DWH_JOBS_RETRY_BACKOFF:30s}
+      retry-backoff-max: ${DWH_JOBS_RETRY_BACKOFF_MAX:1h}
+      lease: ${DWH_JOBS_LEASE:5m}
 
 
 logging:
@@ -259,3 +277,5 @@ app:
     # P0 DWH: предел запроса и простоя в транзакции для пула; задания обслуживания — свой, длиннее.
     statement-timeout: ${APP_DWH_STATEMENT_TIMEOUT:60s}
     maintenance-statement-timeout: ${APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT:30m}
+    # Plan 10/10, item 3.9: one streamed write of a load into raw (a UPL apply) lasts while its file is parsed.
+    raw-write-timeout: ${APP_DWH_RAW_WRITE_TIMEOUT:30m}

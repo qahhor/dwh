@@ -40,10 +40,11 @@ public class UplPackageQuery {
                     QueryField.enumeration(
                             "status",
                             "upl.pkg.col.status",
-                            "p.status",
+                            UplPackageRepository.STATUS_SQL,
                             List.of(
                                     UplPackageModel.RECEIVED,
                                     UplPackageModel.VERIFIED,
+                                    UplPackageModel.APPLYING,
                                     UplPackageModel.REJECTED,
                                     UplPackageModel.APPLIED),
                             "upl.pkg.status."),

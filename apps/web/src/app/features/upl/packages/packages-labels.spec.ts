@@ -80,6 +80,6 @@ describe('upl package labels', () => {
       expect(PACKAGED_RUSSIAN[UPL_PACKAGE_STATUS_KEY[status]]).toBeTruthy();
       expect(UPL_PACKAGE_STATUS_VARIANT[status]).toBeTruthy();
     }
-    expect(new Set(Object.values(UPL_PACKAGE_STATUS_VARIANT)).size).toBe(4);
+    expect(new Set(Object.values(UPL_PACKAGE_STATUS_VARIANT)).size).toBe(5);
   });
 });

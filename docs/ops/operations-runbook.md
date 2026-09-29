@@ -250,6 +250,45 @@ Tasks enforce monotonic compare-and-set versioning via the `revision` column:
 - Task exports (`/api/v1/reports/tasks-export-csv` and XML) stream directly to the client with `defaultRowFetchSize: 500` and a hard cap (`dwh.reports.export.max-rows`, default 50,000 rows).
 - If a client disconnects mid-download, `ReportService` catches `ClientAbortException | IOException`, cleanly aborts the database cursor, and returns the Hikari connection to the pool without leaking resources.
 
+## Background jobs and database timeouts
+
+Uploads are parsed and applied, exports written and maintenance run by the job
+queue (`fnd_job_queue`, plan 10/10 item 3.8). Every server instance runs it:
+
+- a job is leased in a short transaction and runs outside it; the instance
+  renews the lease while the job works. A job whose instance died is taken by
+  another one once its lease runs out (`DWH_JOBS_LEASE`, 5 minutes by default);
+- a failed job is retried after 30 seconds, then 1, 2, 4 minutes and so on up
+  to one hour (`DWH_JOBS_RETRY_BACKOFF`, `DWH_JOBS_RETRY_BACKOFF_MAX`); after 5
+  attempts (`DWH_JOBS_MAX_ATTEMPTS`) it is marked failed. Each attempt is a row
+  in `fnd_job_runs` with its error;
+- scheduled jobs are enqueued under an advisory lock, so several instances
+  enqueue each due job once;
+- `jobs_enabled=false` in the global settings (`md_settings`, `user_id is null`)
+  stops the queue on every instance.
+
+Failed jobs stay in the queue for inspection:
+
+```sql
+select q.id, q.handler, q.attempts, q.failed_at, r.error
+  from fnd_job_queue q
+  join lateral (select error from fnd_job_runs where queue_id = q.id order by id desc limit 1) r on true
+ where q.failed_at is not null;
+-- once the cause is fixed, run one again:
+update fnd_job_queue set failed_at = null, attempts = 0, next_run_at = now() where id = <id>;
+```
+
+The main database pool ends a statement that runs longer than
+`SMC_DB_STATEMENT_TIMEOUT` and a session idle inside a transaction longer than
+`SMC_DB_IDLE_IN_TRANSACTION_TIMEOUT` (both 60 seconds by default; PostgreSQL
+durations such as `90s` or `5min`, `0` turns a limit off). Jobs hold no
+transaction while they work, so they need no longer limit. The `migrate`
+profile turns both off: every migration file sets its own. pg-dwh has its own
+limits (`APP_DWH_STATEMENT_TIMEOUT`, `APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT`).
+A request that fails with SQL state `57014` (statement timeout) or a closed
+connection after `idle-in-transaction timeout` points at a query or code path
+to fix, not at a limit to raise.
+
 ## Incident closure
 
 Document impact, timeline, root cause, data/security assessment, remediation,

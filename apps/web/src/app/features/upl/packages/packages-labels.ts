@@ -5,6 +5,7 @@ import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 export const UPL_PACKAGE_STATUS_KEY: Record<UplPackageStatus, string> = {
   received: 'upl.pkg.status.received',
   verified: 'upl.pkg.status.verified',
+  applying: 'upl.pkg.status.applying',
   rejected: 'upl.pkg.status.rejected',
   applied: 'upl.pkg.status.applied',
 };
@@ -13,6 +14,7 @@ export const UPL_PACKAGE_STATUS_KEY: Record<UplPackageStatus, string> = {
 export const UPL_PACKAGE_STATUS_VARIANT: Record<UplPackageStatus, TBadgeVariant> = {
   received: 'gray',
   verified: 'success',
+  applying: 'warning',
   rejected: 'error',
   applied: 'blue',
 };
