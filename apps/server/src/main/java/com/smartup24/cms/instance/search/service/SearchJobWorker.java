@@ -103,86 +103,7 @@ public class SearchJobWorker implements AutoCloseable {
         }
         JobStatus job = claimed.get();
         try {
-            if (proofJob != null && !proofJob.equals(job.id())) discardProof();
-            var generation = generations.find(job.generationId()).orElseThrow();
-            boolean check = job.action().equals("CHECK");
-            if (!check && generation.schemaVersion() != 1) {
-                service.failOwned(job, owner, "GENERATION_REQUIRES_REBUILD");
-                return;
-            }
-            if (job.action().equals("ROLLBACK") && !generation.state().equals("RETAINED")) {
-                service.failOwned(job, owner, "GENERATION_NOT_RETAINED");
-                return;
-            }
-            if (job.state().equals("RUNNING")) {
-                if (!check) {
-                    storage.requireSpace();
-                    for (String type : List.of("TASK", "PROJECT", "USER"))
-                        collections.ensureCollection(
-                                generation.collections().get(type), type, generation.schemaProfile());
-                    if (!generation.discoveryEntity().equals("DONE")) {
-                        state.discoverPage(generation.delivery(state.snapshot().version()), owner, 100);
-                        jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
-                        return;
-                    }
-                    delivery.runGeneration(generation.delivery(state.snapshot().version()));
-                    if (generations.exhausted(generation.id()) > 0) {
-                        service.failOwned(job, owner, "DELIVERY_RETRIES_EXHAUSTED");
-                        return;
-                    }
-                    if (generations.pending(generation.id()) > 0) {
-                        jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
-                        return;
-                    }
-                }
-                frozen = generation;
-                expectedVersion = state.snapshot().version();
-                proof = reconciliation.begin(generation.delivery(expectedVersion));
-                proofJob = job.id();
-                if (!jobs.checkpoint(job.id(), owner, "VERIFYING", generations.processed(generation.id()), 0, null))
-                    discardProof();
-                return;
-            }
-            if (proof == null) {
-                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
-                return;
-            }
-            if (job.state().equals("ACTIVATING")) {
-                if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
-                    jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
-                discardProof();
-                return;
-            }
-            boolean complete = proof.advance();
-            if (!jobs.checkpoint(
-                    job.id(),
-                    owner,
-                    "VERIFYING",
-                    Math.max(job.processedCount(), proof.processed()),
-                    0,
-                    complete ? proof.summary() : null)) {
-                discardProof();
-                return;
-            }
-            if (!complete) return;
-            if (check) {
-                if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
-                    jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
-                discardProof();
-                return;
-            }
-            if (!proof.revisionsUnchanged() || proof.summary().pending() > 0) {
-                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, proof.summary());
-                discardProof();
-                return;
-            }
-            if (!proof.summary().successful()) {
-                service.failOwned(job, owner, "RECONCILIATION_MISMATCH");
-                discardProof();
-                return;
-            }
-            if (!jobs.checkpoint(job.id(), owner, "ACTIVATING", job.processedCount(), 0, proof.summary()))
-                discardProof();
+            advance(job);
         } catch (RuntimeException failure) {
             try {
                 if (!Thread.currentThread().isInterrupted()) service.failOwned(job, owner, safeFailure(failure));
@@ -190,21 +111,115 @@ public class SearchJobWorker implements AutoCloseable {
                 discardProof();
             }
         } finally {
-            if (state.owns(owner))
-                jobs.find(job.id())
-                        .filter(updated -> !updated.state().equals(job.state()))
-                        .ifPresent(updated -> {
-                            if (List.of("SUCCEEDED", "FAILED", "CANCELLED").contains(updated.state())) discardProof();
-                            metrics.job(
-                                    updated.action(),
-                                    updated.state(),
-                                    updated.finishedAt() == null
-                                            ? null
-                                            : Duration.between(updated.createdAt(), updated.finishedAt()));
-                            if (updated.state().equals("SUCCEEDED")
-                                    && !updated.action().equals("CHECK")) metrics.switched(updated.action());
-                        });
+            recordTransition(job);
         }
+    }
+
+    /** One step of the claimed job: deliver, begin the proof, verify one page, or activate. */
+    private void advance(JobStatus job) {
+        if (proofJob != null && !proofJob.equals(job.id())) discardProof();
+        var generation = generations.find(job.generationId()).orElseThrow();
+        boolean check = job.action().equals("CHECK");
+        if (!check && generation.schemaVersion() != 1) {
+            service.failOwned(job, owner, "GENERATION_REQUIRES_REBUILD");
+            return;
+        }
+        if (job.action().equals("ROLLBACK") && !generation.state().equals("RETAINED")) {
+            service.failOwned(job, owner, "GENERATION_NOT_RETAINED");
+            return;
+        }
+        if (job.state().equals("RUNNING")) {
+            if (!check && !delivered(job, generation)) return;
+            frozen = generation;
+            expectedVersion = state.snapshot().version();
+            proof = reconciliation.begin(generation.delivery(expectedVersion));
+            proofJob = job.id();
+            if (!jobs.checkpoint(job.id(), owner, "VERIFYING", generations.processed(generation.id()), 0, null))
+                discardProof();
+            return;
+        }
+        if (proof == null) {
+            jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
+            return;
+        }
+        if (job.state().equals("ACTIVATING")) {
+            if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
+                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
+            discardProof();
+            return;
+        }
+        verify(job, check);
+    }
+
+    /** True once every document of the generation is delivered; otherwise this cycle's step is done. */
+    private boolean delivered(JobStatus job, FrozenGeneration generation) {
+        storage.requireSpace();
+        for (String type : List.of("TASK", "PROJECT", "USER"))
+            collections.ensureCollection(generation.collections().get(type), type, generation.schemaProfile());
+        if (!generation.discoveryEntity().equals("DONE")) {
+            state.discoverPage(generation.delivery(state.snapshot().version()), owner, 100);
+            jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
+            return false;
+        }
+        delivery.runGeneration(generation.delivery(state.snapshot().version()));
+        if (generations.exhausted(generation.id()) > 0) {
+            service.failOwned(job, owner, "DELIVERY_RETRIES_EXHAUSTED");
+            return false;
+        }
+        if (generations.pending(generation.id()) > 0) {
+            jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
+            return false;
+        }
+        return true;
+    }
+
+    private void verify(JobStatus job, boolean check) {
+        boolean complete = proof.advance();
+        if (!jobs.checkpoint(
+                job.id(),
+                owner,
+                "VERIFYING",
+                Math.max(job.processedCount(), proof.processed()),
+                0,
+                complete ? proof.summary() : null)) {
+            discardProof();
+            return;
+        }
+        if (!complete) return;
+        if (check) {
+            if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
+                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
+            discardProof();
+            return;
+        }
+        if (!proof.revisionsUnchanged() || proof.summary().pending() > 0) {
+            jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, proof.summary());
+            discardProof();
+            return;
+        }
+        if (!proof.summary().successful()) {
+            service.failOwned(job, owner, "RECONCILIATION_MISMATCH");
+            discardProof();
+            return;
+        }
+        if (!jobs.checkpoint(job.id(), owner, "ACTIVATING", job.processedCount(), 0, proof.summary())) discardProof();
+    }
+
+    private void recordTransition(JobStatus job) {
+        if (state.owns(owner))
+            jobs.find(job.id())
+                    .filter(updated -> !updated.state().equals(job.state()))
+                    .ifPresent(updated -> {
+                        if (List.of("SUCCEEDED", "FAILED", "CANCELLED").contains(updated.state())) discardProof();
+                        metrics.job(
+                                updated.action(),
+                                updated.state(),
+                                updated.finishedAt() == null
+                                        ? null
+                                        : Duration.between(updated.createdAt(), updated.finishedAt()));
+                        if (updated.state().equals("SUCCEEDED")
+                                && !updated.action().equals("CHECK")) metrics.switched(updated.action());
+                    });
     }
 
     private static String safeFailure(RuntimeException failure) {

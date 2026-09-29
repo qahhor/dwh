@@ -134,30 +134,7 @@ public class SearchDeliveryWorker {
             }
             for (var batch : batches.entrySet()) {
                 if (Thread.currentThread().isInterrupted()) break;
-                try {
-                    var acks = documents.importDocuments(
-                            batch.getKey(),
-                            batch.getValue().stream()
-                                    .map(value -> value.projection().document())
-                                    .toList());
-                    for (int i = 0; i < batch.getValue().size(); i++) {
-                        var value = batch.getValue().get(i);
-                        if (acks.get(i).success())
-                            delivery.acknowledge(
-                                    value.claim(), value.projection().fingerprint());
-                        else
-                            delivery.failed(
-                                    value.claim(),
-                                    clock.instant()
-                                            .plus(retryDelay(value.claim().attempts() + 1)),
-                                    acks.get(i).errorCode());
-                    }
-                } catch (RuntimeException failure) {
-                    for (var value : batch.getValue())
-                        delivery.failed(
-                                value.claim(),
-                                clock.instant().plus(retryDelay(value.claim().attempts() + 1)));
-                }
+                importBatch(batch.getKey(), batch.getValue());
             }
         } finally {
             for (var claim : claims) delivery.release(claim);
@@ -166,6 +143,30 @@ public class SearchDeliveryWorker {
                     target.id().equals(state.snapshot().generationId()),
                     observation.pending(),
                     observation.lagSeconds());
+        }
+    }
+
+    /** Acknowledges or schedules a retry for every document of one collection batch. */
+    private void importBatch(String collection, List<PendingDocument> values) {
+        try {
+            var acks = documents.importDocuments(
+                    collection,
+                    values.stream().map(value -> value.projection().document()).toList());
+            for (int i = 0; i < values.size(); i++) {
+                var value = values.get(i);
+                if (acks.get(i).success())
+                    delivery.acknowledge(value.claim(), value.projection().fingerprint());
+                else
+                    delivery.failed(
+                            value.claim(),
+                            clock.instant().plus(retryDelay(value.claim().attempts() + 1)),
+                            acks.get(i).errorCode());
+            }
+        } catch (RuntimeException failure) {
+            for (var value : values)
+                delivery.failed(
+                        value.claim(),
+                        clock.instant().plus(retryDelay(value.claim().attempts() + 1)));
         }
     }
 
