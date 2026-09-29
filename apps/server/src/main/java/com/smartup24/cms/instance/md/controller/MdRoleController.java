@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,7 +72,7 @@ public class MdRoleController {
     @PutMapping("/roles/{id}/permissions")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "grant")
     public ResponseEntity<Void> setRolePermissions(
-            @PathVariable("id") Long id, @RequestBody List<RolePermission> permissions) {
+            @PathVariable("id") Long id, @RequestBody List<@NotNull @Valid RolePermission> permissions) {
 
         roleService.setRolePermissions(id, permissions);
         return ResponseEntity.noContent().build();

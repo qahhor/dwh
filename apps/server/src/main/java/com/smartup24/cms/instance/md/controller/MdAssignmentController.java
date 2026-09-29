@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.md.api.MdAssignmentDtos.ReplacePermissionsDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.RoleIdsResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,7 +43,7 @@ public class MdAssignmentController {
     @PutMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<PermissionsVersionResponse> assignRoles(
-            @PathVariable("userId") Long userId, @RequestBody AssignRolesDto body) {
+            @PathVariable("userId") Long userId, @Valid @RequestBody AssignRolesDto body) {
         long version = assignmentService.assignRoles(userId, body.roleIds());
         return ResponseEntity.ok(new PermissionsVersionResponse(version));
     }
@@ -56,7 +57,7 @@ public class MdAssignmentController {
     @PutMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
     public ResponseEntity<PermissionsVersionResponse> replacePersonalPermissions(
-            @PathVariable("userId") Long userId, @RequestBody ReplacePermissionsDto body) {
+            @PathVariable("userId") Long userId, @Valid @RequestBody ReplacePermissionsDto body) {
         long version = assignmentService.replacePersonalPermissions(userId, body.grants());
         return ResponseEntity.ok(new PermissionsVersionResponse(version));
     }

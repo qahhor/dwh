@@ -16,7 +16,8 @@ public final class MdRoleDtos {
     public record UpdateRoleDto(String name, String state, Integer orderNo) {}
 
     /** One pair of a role's permission matrix. */
-    public record RolePermission(String formCode, String action) {}
+    public record RolePermission(
+            @NotBlank String formCode, @NotBlank String action) {}
 
     public record FormCatalogItem(
             String formCode, String module, String formName, String action, String actionName, boolean isDeprecated) {}

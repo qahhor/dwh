@@ -28,6 +28,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -152,6 +153,27 @@ public class GlobalExceptionHandler {
             errors.add(new FieldErrorItem(fe.getField(), fe.getCode(), fe.getDefaultMessage()));
         }
 
+        String key = "error.validation_failed";
+        var problem = ProblemDetailRecord.ofValidation(
+                key, Map.of(), messages.render(request, key, Map.of()), request.getRequestURI(), errors);
+        return respond(HttpStatus.UNPROCESSABLE_ENTITY, problem);
+    }
+
+    /** Constraints on method parameters (a list body with checked elements): a client error, like a bean's. */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ProblemDetailRecord> handleMethodValidation(
+            HandlerMethodValidationException ex, HttpServletRequest request) {
+        List<FieldErrorItem> errors = new ArrayList<>();
+        ex.getParameterValidationResults()
+                .forEach(result -> result.getResolvableErrors()
+                        .forEach(error -> errors.add(new FieldErrorItem(
+                                result.getMethodParameter().getParameterName() == null
+                                        ? "body"
+                                        : result.getMethodParameter().getParameterName(),
+                                error.getCodes() == null || error.getCodes().length == 0
+                                        ? "invalid"
+                                        : error.getCodes()[error.getCodes().length - 1],
+                                error.getDefaultMessage()))));
         String key = "error.validation_failed";
         var problem = ProblemDetailRecord.ofValidation(
                 key, Map.of(), messages.render(request, key, Map.of()), request.getRequestURI(), errors);
