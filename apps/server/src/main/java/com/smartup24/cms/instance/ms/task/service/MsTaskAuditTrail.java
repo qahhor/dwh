@@ -63,6 +63,31 @@ public class MsTaskAuditTrail {
                 Map.of("statusId", newStatusId, "statusName", newStatusName));
     }
 
+    /** Participants of one kind replaced outside a PATCH (the older assignment endpoints). */
+    void membersReplaced(Long taskId, String involveKind, List<Long> userIds) {
+        List<Long> assigned = userIds == null
+                ? List.of()
+                : userIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+        auditLogService.logChange(
+                TABLE,
+                String.valueOf(taskId),
+                "U",
+                List.of("members_" + involveKind),
+                null,
+                Map.of("involveKind", involveKind, "userIds", assigned));
+    }
+
+    /** A file attached to the task or taken off it. */
+    void fileChanged(Long taskId, java.util.UUID fileId, boolean attached) {
+        auditLogService.logChange(
+                TABLE,
+                String.valueOf(taskId),
+                "U",
+                List.of("files"),
+                attached ? null : Map.of("fileId", fileId.toString()),
+                attached ? Map.of("fileId", fileId.toString()) : null);
+    }
+
     /** One entry for a PATCH: the row columns it wrote and the participant lists it replaced. */
     void patched(
             Long taskId,

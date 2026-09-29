@@ -17,10 +17,17 @@ public class MsTaskFileService {
     private final MsTaskAccess access;
     private final MfFileService fileService;
 
-    public MsTaskFileService(MsTaskFileRepository fileRepository, MsTaskAccess access, MfFileService fileService) {
+    private final MsTaskAuditTrail audit;
+
+    public MsTaskFileService(
+            MsTaskFileRepository fileRepository,
+            MsTaskAccess access,
+            MfFileService fileService,
+            MsTaskAuditTrail audit) {
         this.fileRepository = fileRepository;
         this.access = access;
         this.fileService = fileService;
+        this.audit = audit;
     }
 
     @Transactional
@@ -28,12 +35,14 @@ public class MsTaskFileService {
         access.find(taskId, currentUserId);
         fileService.getFileMetadata(fileId, currentUserId);
         fileRepository.attachFile(taskId, fileId);
+        audit.fileChanged(taskId, fileId, true);
     }
 
     @Transactional
     public void detachFile(Long taskId, UUID fileId, Long currentUserId) {
         access.find(taskId, currentUserId);
         fileRepository.detachFile(taskId, fileId);
+        audit.fileChanged(taskId, fileId, false);
     }
 
     @Transactional(readOnly = true)

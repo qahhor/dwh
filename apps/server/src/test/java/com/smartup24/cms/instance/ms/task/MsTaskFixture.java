@@ -127,8 +127,8 @@ public record MsTaskFixture(
         var audit = new MsTaskAuditTrail(with.audit());
         var statuses =
                 proxy.wrap(new MsTaskStatusService(repos.statuses(), repos.types(), with.search(), with.audit()));
-        var members = proxy.wrap(new MsTaskMemberService(repos.members(), access, with.events()));
-        var files = proxy.wrap(new MsTaskFileService(repos.files(), access, with.files()));
+        var members = proxy.wrap(new MsTaskMemberService(repos.members(), access, with.events(), audit));
+        var files = proxy.wrap(new MsTaskFileService(repos.files(), access, with.files(), audit));
         var tasks = proxy.wrap(new MsTaskService(
                 repos.tasks(),
                 repos.tree(),

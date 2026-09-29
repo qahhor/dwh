@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.audit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskAuditTrail;
+import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
 import com.smartup24.cms.instance.search.repository.SearchJobRepository;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -39,7 +41,21 @@ class AuditCoverageTest {
      * The worker also uses it on the activation connection, preserving pointer/job/audit atomicity.
      * This is audited delegation, not an exemption; behavioral coverage lives in the job tests.
      */
-    private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of("SearchJobService", SearchJobRepository.class);
+    private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of(
+            "SearchJobService",
+            SearchJobRepository.class,
+            // Plan 10/10, item 3.10: the task services write ms_tasks entries through one trail; the status view
+            // service adapts the status service, which audits the dictionaries itself.
+            "MsTaskService",
+            MsTaskAuditTrail.class,
+            "MsTaskWorkflowService",
+            MsTaskAuditTrail.class,
+            "MsTaskMemberService",
+            MsTaskAuditTrail.class,
+            "MsTaskFileService",
+            MsTaskAuditTrail.class,
+            "MsTaskStatusViewService",
+            MsTaskStatusService.class);
 
     /**
      * Сервисы без аудита — каждый с обоснованием. Список закрытый: новый сервис

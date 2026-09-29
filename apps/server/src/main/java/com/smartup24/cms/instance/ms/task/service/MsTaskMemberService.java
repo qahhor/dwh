@@ -25,12 +25,17 @@ public class MsTaskMemberService {
     private final MsTaskMemberRepository memberRepository;
     private final MsTaskAccess access;
     private final ApplicationEventPublisher eventPublisher;
+    private final MsTaskAuditTrail audit;
 
     public MsTaskMemberService(
-            MsTaskMemberRepository memberRepository, MsTaskAccess access, ApplicationEventPublisher eventPublisher) {
+            MsTaskMemberRepository memberRepository,
+            MsTaskAccess access,
+            ApplicationEventPublisher eventPublisher,
+            MsTaskAuditTrail audit) {
         this.memberRepository = memberRepository;
         this.access = access;
         this.eventPublisher = eventPublisher;
+        this.audit = audit;
     }
 
     /** The participants of a new task; the author is added as having seen it and is not notified. */
@@ -92,6 +97,8 @@ public class MsTaskMemberService {
     @Transactional
     public void setResponsible(Long taskId, Long responsibleUserId) {
         access.find(taskId);
+        audit.membersReplaced(
+                taskId, MsTaskPref.INVOLVE_RESPONSIBLE, java.util.Collections.singletonList(responsibleUserId));
         memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
         if (responsibleUserId != null) {
             memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
@@ -105,6 +112,8 @@ public class MsTaskMemberService {
     public void setResponsible(Long taskId, Long responsibleUserId, Long currentUserId) {
         access.find(taskId, currentUserId);
         access.requireParticipant(currentUserId, responsibleUserId);
+        audit.membersReplaced(
+                taskId, MsTaskPref.INVOLVE_RESPONSIBLE, java.util.Collections.singletonList(responsibleUserId));
         memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
         if (responsibleUserId != null) {
             memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
@@ -169,6 +178,7 @@ public class MsTaskMemberService {
         } else {
             access.find(taskId);
         }
+        audit.membersReplaced(taskId, involveKind, userIds);
         memberRepository.removeMembersByKind(taskId, involveKind);
         if (userIds != null) {
             addEach(taskId, userIds, involveKind);
