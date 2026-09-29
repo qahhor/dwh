@@ -36,7 +36,7 @@ public class FileContentInspector {
 
     public Inspection inspect(String declaredMimeType, InputStream source) {
         if (source == null) {
-            throw ApiException.badRequest(ErrorCode.FILE_CORRUPTED, "Содержимое файла отсутствует");
+            throw ApiException.badRequest(ErrorCode.FILE_CORRUPTED, "error.file.content_missing");
         }
 
         PushbackInputStream replayable = new PushbackInputStream(source, PREFIX_BYTES);
@@ -45,12 +45,11 @@ public class FileContentInspector {
             prefix = replayable.readNBytes(PREFIX_BYTES);
             replayable.unread(prefix);
         } catch (IOException exception) {
-            throw ApiException.badRequest(ErrorCode.FILE_CORRUPTED, "Не удалось прочитать содержимое файла");
+            throw ApiException.badRequest(ErrorCode.FILE_CORRUPTED, "error.file.content_unreadable");
         }
 
         if (isExecutable(prefix)) {
-            throw ApiException.badRequest(
-                    ErrorCode.FILE_TYPE_FORBIDDEN, "Обнаружена сигнатура исполняемого файла; загрузка запрещена");
+            throw ApiException.badRequest(ErrorCode.FILE_TYPE_FORBIDDEN, "error.file.executable_signature");
         }
 
         String declared = normalize(declaredMimeType);
@@ -73,10 +72,15 @@ public class FileContentInspector {
     }
 
     private static ApiException mimeMismatch(String declared, String detected) {
-        String actual = detected != null ? detected : "неизвестный тип";
-        return ApiException.badRequest(
-                ErrorCode.FILE_TYPE_FORBIDDEN,
-                "Заявленный MIME " + declared + " не соответствует содержимому файла (" + actual + ")");
+        return detected != null
+                ? ApiException.badRequest(
+                        ErrorCode.FILE_TYPE_FORBIDDEN,
+                        "error.file.mime_mismatch",
+                        Map.of("declared", declared, "actual", detected))
+                : ApiException.badRequest(
+                        ErrorCode.FILE_TYPE_FORBIDDEN,
+                        "error.file.mime_mismatch_unknown",
+                        Map.of("declared", declared));
     }
 
     private static String normalize(String mimeType) {

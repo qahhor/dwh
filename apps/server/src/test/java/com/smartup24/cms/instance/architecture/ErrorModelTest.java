@@ -35,12 +35,11 @@ class ErrorModelTest {
             "com.smartup24.cms.instance.search.typesense.TypesenseException",
             "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)");
 
-    /** Exceptions of modules not yet moved to the model; the module's step of item 3.1 empties this list. */
-    static final Set<String> PENDING = Set.of(
-            "com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException",
-            "com.smartup24.cms.instance.fnd.error.ConstraintViolationException",
-            "com.smartup24.cms.instance.fnd.error.StaleVersionException",
-            "com.smartup24.cms.instance.fnd.units.FndCoefficientMissingException");
+    /**
+     * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary
+     * exemption stays visible, and the check below fails when a listed class is already on the model.
+     */
+    static final Set<String> PENDING = Set.of();
 
     private static JavaClasses classes;
 

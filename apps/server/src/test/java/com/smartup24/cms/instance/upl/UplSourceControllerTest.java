@@ -354,7 +354,8 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
                                         + "{\"field\":\"lastPublishedVersion\",\"op\":\"contains\",\"value\":\"1\"}]")
                         .param("sort", "hasDraft"),
                 422);
-        assertThat((String) read(bad, "$.detail")).isEqualTo("QUERY_INVALID");
+        assertThat((String) read(bad, "$.detail")).isEqualTo("Проверьте условия фильтра, сортировку и поиск");
+        assertThat((String) read(bad, "$.messageKey")).isEqualTo("error.common.query_invalid");
         assertThat((List<String>) read(bad, "$.errors[*].field"))
                 .containsExactly("filter[0].field", "filter[1].op", "sort");
     }
@@ -404,7 +405,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         String outsiderLogin = "upl-user-" + rnd();
         createUser(outsiderLogin, "user");
         Session outsider = login(outsiderLogin);
-        assertThat((String) read(sendGet(outsider, url, 404), "$.detail")).isEqualTo("QUERY_LIST_NOT_FOUND");
+        assertThat((String) read(sendGet(outsider, url, 404), "$.detail")).isEqualTo("Список не найден или недоступен");
         sendGet(outsider, "/api/v1/query-meta/no.such.list", 404);
         assertThat(mvc.perform(get(url)).andReturn().getResponse().getStatus()).isEqualTo(401);
     }

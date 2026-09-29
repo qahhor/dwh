@@ -33,7 +33,7 @@ public final class EntityValidator {
     public static void check(EntityDefinition entity, Map<String, ?> values, boolean partial) {
         List<FieldErrorItem> errors = problems(entity, values, partial);
         if (!errors.isEmpty()) {
-            throw ApiException.validation("Проверьте поля записи", errors);
+            throw ApiException.validation("error.common.record_fields_invalid", errors);
         }
     }
 

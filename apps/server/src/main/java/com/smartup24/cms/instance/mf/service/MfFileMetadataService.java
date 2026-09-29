@@ -116,7 +116,7 @@ public class MfFileMetadataService {
     public DeletionResult delete(UUID id, Long currentUserId, boolean canDeleteAny, ScopeFilter scope) {
         var file = requireFile(id, scope);
         if (!canDeleteAny && (file.createdBy() == null || !file.createdBy().equals(currentUserId))) {
-            throw ApiException.forbidden("У вас нет прав на удаление этого файла");
+            throw ApiException.forbidden("error.file.delete_forbidden");
         }
 
         fileRepository.delete(id);
@@ -144,9 +144,7 @@ public class MfFileMetadataService {
 
     @Transactional(readOnly = true)
     public MfFileRepository.FileRecord requireFile(UUID id, ScopeFilter scope) {
-        return fileRepository
-                .findById(id, scope)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
+        return fileRepository.findById(id, scope).orElseThrow(() -> new ApiException(ErrorCode.FILE_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -179,8 +177,8 @@ public class MfFileMetadataService {
         if (exceedsQuota(companyUsed, requestedBytes, companyQuota)) {
             throw ApiException.badRequest(
                     ErrorCode.STORAGE_QUOTA_EXCEEDED,
-                    "Превышена дисковая квота компании (" + formatBytes(companyQuota) + "). Занято: "
-                            + formatBytes(companyUsed));
+                    "error.file.company_quota_exceeded",
+                    Map.of("quota", formatBytes(companyQuota), "used", formatBytes(companyUsed)));
         }
 
         if (ownerId != null) {
@@ -189,8 +187,8 @@ public class MfFileMetadataService {
             if (exceedsQuota(userUsed, requestedBytes, userQuota)) {
                 throw ApiException.badRequest(
                         ErrorCode.USER_STORAGE_QUOTA_EXCEEDED,
-                        "Превышена ваша персональная дисковая квота (" + formatBytes(userQuota) + "). Занято: "
-                                + formatBytes(userUsed));
+                        "error.file.user_quota_exceeded",
+                        Map.of("quota", formatBytes(userQuota), "used", formatBytes(userUsed)));
             }
         }
     }

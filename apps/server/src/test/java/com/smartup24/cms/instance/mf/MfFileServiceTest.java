@@ -56,7 +56,8 @@ class MfFileServiceTest {
         assertThatThrownBy(() -> service.uploadFile(
                         "malicious.sh", "text/plain", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Загрузка исполняемых файлов (.sh) запрещена");
+                .hasMessageContaining("error.file.extension_forbidden")
+                .hasMessageContaining("extension=.sh");
     }
 
     @Test
@@ -72,7 +73,7 @@ class MfFileServiceTest {
                         disguisedExecutable.length,
                         1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("исполняемого файла");
+                .hasMessageContaining("error.file.executable_signature");
 
         Mockito.verify(storageProvider, Mockito.never())
                 .upload(anyString(), anyString(), any(), anyLong(), anyString());
@@ -103,7 +104,7 @@ class MfFileServiceTest {
         assertThatThrownBy(() -> scanningService.uploadFile(
                         "invoice.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("вредоносное содержимое");
+                .hasMessageContaining("error.file.malware_rejected");
 
         Mockito.verify(storageProvider).delete(eq("instance-files"), startsWith("temp_"));
         Mockito.verify(fileRepository, Mockito.never())
@@ -222,7 +223,7 @@ class MfFileServiceTest {
         assertThatThrownBy(() -> service.uploadFile(
                         "data.bin", "application/octet-stream", new ByteArrayInputStream(content), content.length, 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Превышена дисковая квота компании");
+                .hasMessageContaining("error.file.company_quota_exceeded");
     }
 
     @Test
@@ -238,7 +239,7 @@ class MfFileServiceTest {
         assertThatThrownBy(() -> service.uploadFile(
                         "my_doc.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 2L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Превышена ваша персональная дисковая квота");
+                .hasMessageContaining("error.file.user_quota_exceeded");
     }
 
     @Test
@@ -284,7 +285,7 @@ class MfFileServiceTest {
         assertThatThrownBy(() -> service.uploadFile(
                         "report.pdf", "application/pdf", new ByteArrayInputStream(content), content.length, 9L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Превышена дисковая квота компании");
+                .hasMessageContaining("error.file.company_quota_exceeded");
 
         Mockito.verify(fileRepository).lockQuotaBudget();
         Mockito.verify(storageProvider).delete("instance-files", "e3/" + SHA);

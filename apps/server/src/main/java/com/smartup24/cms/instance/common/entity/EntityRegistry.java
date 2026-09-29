@@ -176,7 +176,7 @@ public class EntityRegistry {
                 try {
                     id = Long.parseLong(recordId);
                 } catch (NumberFormatException e) {
-                    throw ApiException.notFound(ErrorCode.NOT_FOUND, "Запись не найдена");
+                    throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.record_not_found");
                 }
                 records.requireVisible(id);
             }

@@ -176,7 +176,7 @@ class EntityDefinitionTest {
         for (String code : List.of(NOTES.code(), "nope")) {
             assertThatThrownBy(() -> controller.get(code)).isInstanceOfSatisfying(ApiException.class, e -> {
                 assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
-                assertThat(e.getMessage()).isEqualTo("ENTITY_NOT_FOUND");
+                assertThat(e.getMessageKey()).isEqualTo("error.common.entity_not_found");
             });
         }
     }

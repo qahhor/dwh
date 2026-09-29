@@ -80,7 +80,7 @@ public class FormMetaController {
     public ResponseEntity<FormMeta> get(@PathVariable String code) {
         EntityDefinition entity = registry.find(code)
                 .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "ENTITY_NOT_FOUND"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
         return ResponseEntity.ok(of(entity));
     }
 
