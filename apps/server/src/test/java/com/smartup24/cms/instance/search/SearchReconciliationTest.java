@@ -86,7 +86,7 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
             finish(proof);
             assertThat(proof.summary().successful()).isTrue();
             assertThat(proof.revisionsUnchanged()).isTrue();
-            users.updateUser(id, "After", null, null, null, null, null, null, null, null, id);
+            users.updateUser(id, "After", null, null, null, null, null, null, null, null, id, 1L);
             worker.runOnce();
             assertThat(delivered("USER", id)).isEqualTo(2);
             assertThat(proof.revisionsUnchanged()).isFalse();
@@ -98,7 +98,7 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         activeGeneration();
         long id = user("Before");
         worker.runOnce();
-        users.updateUser(id, "After", null, null, null, null, null, null, null, null, id);
+        users.updateUser(id, "After", null, null, null, null, null, null, null, null, id, 1L);
         var changed = new HashMap<String, Object>(documents.get("users/" + id));
         changed.remove("_projection_revision");
         changed.remove("_projection_fingerprint");

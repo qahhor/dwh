@@ -40,21 +40,22 @@ class MdOrgUnitControllerTest {
         var audit = mock(AuditLogService.class);
         when(repository.findById(3L))
                 .thenReturn(Optional.of(new MdOrgUnitRepository.OrgUnitRecord(
-                        3L, 2L, "CHILD", "Child", "department", "A", -10, Instant.EPOCH, Instant.EPOCH)));
+                        3L, 2L, "CHILD", "Child", "department", "A", -10, Instant.EPOCH, Instant.EPOCH, 1L)));
         when(repository.findById(2L))
                 .thenReturn(Optional.of(new MdOrgUnitRepository.OrgUnitRecord(
-                        2L, null, "ROOT", "Root", "company", "A", 0, Instant.EPOCH, Instant.EPOCH)));
+                        2L, null, "ROOT", "Root", "company", "A", 0, Instant.EPOCH, Instant.EPOCH, 1L)));
         var mvc = MockMvcBuilders.standaloneSetup(
                         new MdOrgUnitController(new MdOrgUnitService(repository, scope, audit), scope))
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
 
         mvc.perform(patch("/api/v1/iam/org-units/3")
+                        .header("If-Match", "\"1\"")
                         .contentType("application/json")
                         .content("{\"name\":\"Renamed\"}"))
                 .andExpect(status().isNoContent());
 
-        org.mockito.Mockito.verify(repository).update(3L, 2L, "Renamed", "department", "A", -10);
+        org.mockito.Mockito.verify(repository).update(3L, 2L, "Renamed", "department", "A", -10, 1L);
     }
 
     @Test
@@ -63,13 +64,14 @@ class MdOrgUnitControllerTest {
         var scope = mock(MdScopeService.class);
         when(repository.findById(3L))
                 .thenReturn(Optional.of(new MdOrgUnitRepository.OrgUnitRecord(
-                        3L, 2L, "CHILD", "Child", "department", "A", 0, Instant.EPOCH, Instant.EPOCH)));
+                        3L, 2L, "CHILD", "Child", "department", "A", 0, Instant.EPOCH, Instant.EPOCH, 1L)));
         var mvc = MockMvcBuilders.standaloneSetup(new MdOrgUnitController(
                         new MdOrgUnitService(repository, scope, mock(AuditLogService.class)), scope))
                 .setControllerAdvice(new GlobalExceptionHandler(new PackagedProblemMessages()))
                 .build();
 
         mvc.perform(patch("/api/v1/iam/org-units/3")
+                        .header("If-Match", "\"1\"")
                         .contentType("application/json")
                         .characterEncoding(StandardCharsets.UTF_8)
                         .content("{\"name\":\"  \"}"))
@@ -78,12 +80,14 @@ class MdOrgUnitControllerTest {
                 .andExpect(jsonPath("$.messageKey").value("error.md.org_unit_name_required"))
                 .andExpect(jsonPath("$.detail").value("Название не может быть пустым"));
         mvc.perform(patch("/api/v1/iam/org-units/3")
+                        .header("If-Match", "\"1\"")
                         .header("Accept-Language", "en")
                         .contentType("application/json")
                         .content("{\"name\":\"  \"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detail").value("The name cannot be empty"));
-        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never()).update(3L, 2L, "  ", "department", "A", 0);
+        org.mockito.Mockito.verify(repository, org.mockito.Mockito.never())
+                .update(3L, 2L, "  ", "department", "A", 0, 1L);
     }
 
     @AfterEach

@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kwh.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.web.Revisioned;
 import com.smartup24.cms.instance.kwh.repository.KwhOutboxRepository;
 import com.smartup24.cms.instance.kwh.repository.KwhSubscriptionRepository;
 import java.nio.charset.StandardCharsets;
@@ -86,13 +87,18 @@ public class KwhWebhookService {
     }
 
     @Transactional
-    public void updateSubscription(
-            Long id, String name, String targetUrl, List<String> subscribedEvents, String state) {
+    public long updateSubscription(
+            Long id,
+            String name,
+            String targetUrl,
+            List<String> subscribedEvents,
+            String state,
+            long expectedRevision) {
         if (targetUrl != null) {
             targetPolicy.validate(targetUrl);
         }
         var before = requireSubscription(id);
-        subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state);
+        long revision = subscriptionRepository.update(id, name, targetUrl, subscribedEvents, state, expectedRevision);
 
         auditLogService.logChange(
                 "kwh_subscriptions",
@@ -107,6 +113,7 @@ public class KwhWebhookService {
                         redact(targetUrl != null ? targetUrl : before.targetUrl()),
                         "state",
                         state != null ? state : before.state()));
+        return revision;
     }
 
     @Transactional
@@ -168,7 +175,8 @@ public class KwhWebhookService {
                 subscription.subscribedEvents(),
                 subscription.state(),
                 subscription.createdAt(),
-                subscription.createdBy());
+                subscription.createdBy(),
+                subscription.revision());
     }
 
     public record SubscriptionView(
@@ -178,7 +186,9 @@ public class KwhWebhookService {
             List<String> subscribedEvents,
             String state,
             Instant createdAt,
-            Long createdBy) {}
+            Long createdBy,
+            long revision)
+            implements Revisioned {}
 
     public record CreatedSubscription(
             Long id,

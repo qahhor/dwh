@@ -75,7 +75,7 @@ class KwhWebhookServiceTest {
                 policy(true, Set.of("127.0.0.1"), false));
 
         assertThatThrownBy(() ->
-                        privateTargetService.updateSubscription(10L, null, "http://127.0.0.1/internal", null, null))
+                        privateTargetService.updateSubscription(10L, null, "http://127.0.0.1/internal", null, null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.webhook.host_private");
         Mockito.verifyNoInteractions(subscriptionRepository);
@@ -92,6 +92,7 @@ class KwhWebhookServiceTest {
                 List.of("task.created"),
                 "A",
                 Instant.now(),
+                1L,
                 1L);
         Mockito.when(subscriptionRepository.create(
                         Mockito.anyString(),

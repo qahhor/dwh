@@ -112,7 +112,8 @@ public class MdCustomFieldService {
                 field.defaultValue(),
                 field.optionsJson(),
                 field.orderNo(),
-                field.createdAt());
+                field.createdAt(),
+                field.revision());
     }
 
     @Transactional
@@ -186,10 +187,17 @@ public class MdCustomFieldService {
 
     @Transactional
     @CacheEvict(value = "customFields", allEntries = true)
-    public void updateField(
-            Long id, String name, Boolean isRequired, String defaultValue, Object options, Integer orderNo) {
+    public long updateField(
+            Long id,
+            String name,
+            Boolean isRequired,
+            String defaultValue,
+            Object options,
+            Integer orderNo,
+            long expectedRevision) {
         var before = requireField(id);
-        customFieldRepository.update(id, name, isRequired, defaultValue, options, orderNo);
+        long revision =
+                customFieldRepository.update(id, name, isRequired, defaultValue, options, orderNo, expectedRevision);
         var after = requireField(id);
 
         // The stored rows, before and after: the default and the options change what users may enter, so they
@@ -201,6 +209,7 @@ public class MdCustomFieldService {
                 List.of("name", "is_required", "default_value", "options_json", "order_no"),
                 auditState(before),
                 auditState(after));
+        return revision;
     }
 
     private static Map<String, Object> auditState(MdCustomFieldRepository.CustomFieldRecord field) {

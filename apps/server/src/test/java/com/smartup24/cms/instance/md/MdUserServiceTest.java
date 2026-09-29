@@ -78,7 +78,8 @@ class MdUserServiceTest {
                 Instant.now(),
                 1L,
                 1L,
-                0);
+                0,
+                1L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
 
@@ -110,7 +111,8 @@ class MdUserServiceTest {
                 Instant.now(),
                 1L,
                 1L,
-                0);
+                0,
+                1L);
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
 
@@ -229,7 +231,8 @@ class MdUserServiceTest {
                 Instant.now(),
                 1L,
                 1L,
-                0);
+                0,
+                1L);
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
         when(passwordHasher.verifyPassword("WrongOldPassword!", "$argon2id$hashed"))
@@ -263,7 +266,8 @@ class MdUserServiceTest {
                 Instant.now(),
                 1L,
                 1L,
-                0);
+                0,
+                1L);
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 

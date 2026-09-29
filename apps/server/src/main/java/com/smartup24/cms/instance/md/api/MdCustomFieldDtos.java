@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.api;
 
+import com.smartup24.cms.instance.common.web.Revisioned;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 
@@ -19,7 +20,9 @@ public final class MdCustomFieldDtos {
             String defaultValue,
             String optionsJson,
             int orderNo,
-            Instant createdAt) {}
+            Instant createdAt,
+            long revision)
+            implements Revisioned {}
 
     public record CreateCustomFieldDto(
             @NotBlank String entityType,

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.api;
 
+import com.smartup24.cms.instance.common.web.Revisioned;
 import java.time.Instant;
 
 /** A task type of the dictionary. */
@@ -11,4 +12,6 @@ public record TaskTypeView(
         String color,
         int orderNo,
         boolean isSystem,
-        Instant createdAt) {}
+        Instant createdAt,
+        long revision)
+        implements Revisioned {}

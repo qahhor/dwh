@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.repository;
 
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -34,7 +35,7 @@ public class MdUserRepository {
                         :forcePasswordChange, now(), now(), :createdBy, :createdBy)
                 returning id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                           avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                          password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
+                          password_changed_at, created_at, modified_at, created_by, modified_by, auth_version, revision
                 """)
                 .param("name", data.name())
                 .param("login", data.login().toLowerCase().trim())
@@ -58,7 +59,7 @@ public class MdUserRepository {
         return jdbcClient.sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version, revision
                 from md_users
                 where id = :id
                 """).param("id", id).query(this::mapUser).optional();
@@ -69,7 +70,7 @@ public class MdUserRepository {
         return jdbcClient.sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version, revision
                 from md_users
                 where login = :ident or email = :ident
                 """).param("ident", clean).query(this::mapUser).optional();
@@ -84,7 +85,7 @@ public class MdUserRepository {
                 .sql("""
                 select id, name, login, email, phone, password_hash, state, manager_id, language, timezone,
                        avatar_file_id, attributes::text as attributes_str, is_2fa_enabled, force_password_change,
-                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version
+                       password_changed_at, created_at, modified_at, created_by, modified_by, auth_version, revision
                 from md_users
                 where email = :email
                 """)
@@ -186,7 +187,7 @@ public class MdUserRepository {
         jdbcClient
                 .sql("""
                 update md_users
-                set language = :language, modified_at = now(), modified_by = :modifiedBy
+                set language = :language, modified_at = now(), modified_by = :modifiedBy, revision = revision + 1
                 where id = :userId
                 """)
                 .param("userId", userId)
@@ -221,10 +222,11 @@ public class MdUserRepository {
                 .update();
     }
 
-    public void update(Long userId, UserUpdateData data, Long modifiedBy) {
+    /** Saves the profile made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
+    public long update(Long userId, UserUpdateData data, Long modifiedBy, long expectedRevision) {
         String attributesJson = data.attributes() != null ? toJson(data.attributes()) : null;
 
-        jdbcClient
+        return jdbcClient
                 .sql("""
                 update md_users
                 set name = coalesce(:name, name),
@@ -236,10 +238,10 @@ public class MdUserRepository {
                     attributes = coalesce(cast(:attributes as jsonb), attributes),
                     is_2fa_enabled = coalesce(cast(:is2faEnabled as boolean), is_2fa_enabled),
                     modified_at = now(),
-                    modified_by = :modifiedBy
-                where id = :userId
-
-
+                    modified_by = :modifiedBy,
+                    revision = revision + 1
+                where id = :userId and revision = :expectedRevision
+                returning revision
                 """)
                 .param("userId", userId)
                 .param("name", data.name())
@@ -251,7 +253,10 @@ public class MdUserRepository {
                 .param("attributes", attributesJson)
                 .param("is2faEnabled", data.is2faEnabled())
                 .param("modifiedBy", modifiedBy)
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     /** Reads a row of {@link MdUserListSql#LIST_COLUMNS}; the user list (registry {@code iam.users}) maps its pages with it. */
@@ -279,7 +284,8 @@ public class MdUserRepository {
                 rs.getTimestamp("modified_at").toInstant(),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
                 rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null,
-                rs.getLong("auth_version"));
+                rs.getLong("auth_version"),
+                rs.getLong("revision"));
     }
 
     private String toJson(Map<String, Object> map) {
@@ -330,7 +336,8 @@ public class MdUserRepository {
             Instant modifiedAt,
             Long createdBy,
             Long modifiedBy,
-            @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion) {}
+            @com.fasterxml.jackson.annotation.JsonIgnore long authenticationVersion,
+            long revision) {}
 
     public record UserCreateData(
             String name,

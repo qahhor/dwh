@@ -97,17 +97,26 @@ public class MdOrgUnitService {
                 unit.state(),
                 unit.orderNo(),
                 unit.createdAt(),
-                unit.modifiedAt());
+                unit.modifiedAt(),
+                unit.revision());
     }
 
     @Transactional
-    public void update(Long id, Long parentId, String name, String kind, String state, Integer orderNo) {
-        update(id, true, parentId, name, kind, state, orderNo);
+    public long update(
+            Long id, Long parentId, String name, String kind, String state, Integer orderNo, long expectedRevision) {
+        return update(id, true, parentId, name, kind, state, orderNo, expectedRevision);
     }
 
     @Transactional
-    public void update(
-            Long id, boolean parentIdPresent, Long parentId, String name, String kind, String state, Integer orderNo) {
+    public long update(
+            Long id,
+            boolean parentIdPresent,
+            Long parentId,
+            String name,
+            String kind,
+            String state,
+            Integer orderNo,
+            long expectedRevision) {
         scopeService.acquireMutationLock();
         var unit = requireUnit(id);
         Long finalParentId = parentIdPresent ? parentId : unit.parentId();
@@ -136,7 +145,8 @@ public class MdOrgUnitService {
         }
 
         var affectedUsers = new TreeSet<>(scopeService.getUserIdsAffectedByUnit(id));
-        orgUnitRepository.update(id, finalParentId, newName, newKind, newState, newOrderNo);
+        long revision =
+                orgUnitRepository.update(id, finalParentId, newName, newKind, newState, newOrderNo, expectedRevision);
         affectedUsers.addAll(scopeService.getUserIdsAffectedByUnit(id));
         for (Long userId : affectedUsers) {
             scopeService.recalculateFor(userId);
@@ -165,6 +175,7 @@ public class MdOrgUnitService {
                         newState,
                         "parent_id",
                         finalParentId != null ? finalParentId : "null"));
+        return revision;
     }
 
     @Transactional

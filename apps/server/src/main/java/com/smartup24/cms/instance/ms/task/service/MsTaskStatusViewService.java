@@ -30,8 +30,9 @@ public class MsTaskStatusViewService {
     }
 
     @Transactional
-    public void updateStatusRecord(Long id, String name, String color, Integer orderNo, Boolean isTerminal) {
-        statusService.updateStatusRecord(id, name, color, orderNo, isTerminal);
+    public long updateStatusRecord(
+            Long id, String name, String color, Integer orderNo, Boolean isTerminal, long expectedRevision) {
+        return statusService.updateStatusRecord(id, name, color, orderNo, isTerminal, expectedRevision);
     }
 
     @Transactional
@@ -55,8 +56,8 @@ public class MsTaskStatusViewService {
     }
 
     @Transactional
-    public void updateType(Long id, String name, String icon, String color, Integer orderNo) {
-        statusService.updateType(id, name, icon, color, orderNo);
+    public long updateType(Long id, String name, String icon, String color, Integer orderNo, long expectedRevision) {
+        return statusService.updateType(id, name, icon, color, orderNo, expectedRevision);
     }
 
     @Transactional

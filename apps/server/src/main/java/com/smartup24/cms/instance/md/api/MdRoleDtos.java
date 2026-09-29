@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.api;
 
+import com.smartup24.cms.instance.common.web.Revisioned;
 import jakarta.validation.constraints.NotBlank;
 import java.time.Instant;
 
@@ -9,7 +10,15 @@ public final class MdRoleDtos {
     private MdRoleDtos() {}
 
     public record RoleView(
-            Long id, String name, String pcode, String state, int orderNo, Instant createdAt, Instant modifiedAt) {}
+            Long id,
+            String name,
+            String pcode,
+            String state,
+            int orderNo,
+            Instant createdAt,
+            Instant modifiedAt,
+            long revision)
+            implements Revisioned {}
 
     public record CreateRoleDto(@NotBlank String name, int orderNo) {}
 

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +31,7 @@ public class MsTaskTypeRepository {
     public List<TypeRecord> listTypes() {
         return jdbcClient
                 .sql("""
-                select id, code, name, icon, color, order_no, is_system, created_at
+                select id, code, name, icon, color, order_no, is_system, created_at, revision
                 from ms_task_types
                 order by order_no asc, id asc
                 """)
@@ -42,14 +43,15 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()))
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getLong("revision")))
                 .list();
     }
 
     public Optional<TypeRecord> findById(Long id) {
         return jdbcClient
                 .sql("""
-                select id, code, name, icon, color, order_no, is_system, created_at
+                select id, code, name, icon, color, order_no, is_system, created_at, revision
                 from ms_task_types
                 where id = :id
                 """)
@@ -62,14 +64,15 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()))
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getLong("revision")))
                 .optional();
     }
 
     public Optional<TypeRecord> findByCode(String code) {
         return jdbcClient
                 .sql("""
-                select id, code, name, icon, color, order_no, is_system, created_at
+                select id, code, name, icon, color, order_no, is_system, created_at, revision
                 from ms_task_types
                 where code = :code
                 """)
@@ -82,7 +85,8 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()))
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getLong("revision")))
                 .optional();
     }
 
@@ -91,7 +95,7 @@ public class MsTaskTypeRepository {
                 .sql("""
                 insert into ms_task_types (code, name, icon, color, order_no, is_system, created_at)
                 values (:code, :name, :icon, :color, :orderNo, false, now())
-                returning id, code, name, icon, color, order_no, is_system, created_at
+                returning id, code, name, icon, color, order_no, is_system, created_at, revision
                 """)
                 .param("code", code.trim().toLowerCase())
                 .param("name", name.trim())
@@ -106,26 +110,32 @@ public class MsTaskTypeRepository {
                         rs.getString("color"),
                         rs.getInt("order_no"),
                         rs.getBoolean("is_system"),
-                        rs.getTimestamp("created_at").toInstant()))
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getLong("revision")))
                 .single();
     }
 
-    public void update(Long id, String name, String icon, String color, Integer orderNo) {
-        jdbcClient
+    public long update(Long id, String name, String icon, String color, Integer orderNo, long expectedRevision) {
+        return jdbcClient
                 .sql("""
                 update ms_task_types
                 set name = coalesce(:name, name),
                     icon = coalesce(:icon, icon),
                     color = coalesce(:color, color),
-                    order_no = coalesce(:orderNo, order_no)
-                where id = :id
+                    order_no = coalesce(:orderNo, order_no),
+                    revision = revision + 1
+                where id = :id and revision = :expectedRevision
+                returning revision
                 """)
                 .param("id", id)
                 .param("name", name != null && !name.isBlank() ? name.trim() : null)
                 .param("icon", icon != null && !icon.isBlank() ? icon.trim() : null)
                 .param("color", color != null && !color.isBlank() ? color.trim() : null)
                 .param("orderNo", orderNo)
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     public boolean delete(Long id) {
@@ -155,5 +165,6 @@ public class MsTaskTypeRepository {
             String color,
             int orderNo,
             boolean isSystem,
-            Instant createdAt) {}
+            Instant createdAt,
+            long revision) {}
 }

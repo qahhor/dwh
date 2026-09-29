@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CreateCustomFieldDto;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.UpdateCustomFieldDto;
@@ -52,11 +53,19 @@ public class MdCustomFieldController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateField(@PathVariable("id") Long id, @RequestBody UpdateCustomFieldDto body) {
-
-        customFieldService.updateField(
-                id, body.name(), body.isRequired(), body.defaultValue(), body.options(), body.orderNo());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> updateField(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateCustomFieldDto body) {
+        long revision = customFieldService.updateField(
+                id,
+                body.name(),
+                body.isRequired(),
+                body.defaultValue(),
+                body.options(),
+                body.orderNo(),
+                Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @DeleteMapping("/{id}")

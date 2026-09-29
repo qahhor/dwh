@@ -19,7 +19,7 @@ public final class MdUserListSql {
             md_users.state, md_users.manager_id, md_users.language, md_users.timezone, md_users.avatar_file_id,
             md_users.attributes::text as attributes_str, md_users.is_2fa_enabled, md_users.force_password_change,
             md_users.password_changed_at, md_users.created_at, md_users.modified_at, md_users.created_by,
-            md_users.modified_by, md_users.auth_version""";
+            md_users.modified_by, md_users.auth_version, md_users.revision""";
 
     /** The flat filters the list took before the registry, kept so existing callers keep working. */
     public record LegacyUserFilters(String state, Long roleId, Long managerId, Boolean is2faEnabled) {

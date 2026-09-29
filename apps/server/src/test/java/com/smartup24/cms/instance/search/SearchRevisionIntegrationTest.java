@@ -158,7 +158,7 @@ class SearchRevisionIntegrationTest {
         var beforeProject = reader.read("PROJECT", project).orElseThrow();
         var beforeTask = reader.read("TASK", task).orElseThrow();
         tx.executeWithoutResult(transaction -> {
-            projects.updateProject(project, "Uncommitted " + project, null, null, null);
+            projects.updateProject(project, "Uncommitted " + project, null, null, null, 1L);
             assertThat(reader.read("TASK", task).orElseThrow().document())
                     .containsEntry("project_name", "Uncommitted " + project);
             assertThat(reader.read("PROJECT", project).orElseThrow().revision()).isEqualTo(2);
@@ -166,7 +166,7 @@ class SearchRevisionIntegrationTest {
         });
         assertThat(reader.read("PROJECT", project).orElseThrow()).isEqualTo(beforeProject);
         assertThat(reader.read("TASK", task).orElseThrow()).isEqualTo(beforeTask);
-        projects.updateProject(project, "Committed " + project, null, null, null);
+        projects.updateProject(project, "Committed " + project, null, null, null, 1L);
         assertThat(reader.read("TASK", task).orElseThrow().document())
                 .containsEntry("project_name", "Committed " + project);
         assertThat(reader.read("TASK", task).orElseThrow().revision()).isEqualTo(2);
@@ -188,7 +188,7 @@ class SearchRevisionIntegrationTest {
         assertThat(next.document())
                 .containsEntry("_projection_revision", 2L)
                 .containsEntry("_projection_fingerprint", next.fingerprint());
-        projects.updateProject(project, null, null, "P", null);
+        projects.updateProject(project, null, null, "P", null, 1L);
         var excluded = reader.read("PROJECT", project).orElseThrow();
         assertThat(excluded.document()).isNull();
         tx.executeWithoutResult(status -> {
@@ -304,7 +304,9 @@ class SearchRevisionIntegrationTest {
             else taskServices.workflow().changeStatus(id.get(), status, reporter);
         };
         String renamed = "Renamed " + System.nanoTime();
-        Runnable rename = () -> taskServices.statusViews().updateStatusRecord(status, renamed, null, null, null);
+        Runnable rename = () -> taskServices
+                .statusViews()
+                .updateStatusRecord(status, renamed, null, null, null, revision("ms_task_statuses", status));
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
         assertThat(jdbc.sql(
                                 "select revision from search_projection_versions where entity_type='TASK' and entity_id=:id")
@@ -326,7 +328,7 @@ class SearchRevisionIntegrationTest {
                 .id();
         Runnable membership = () -> tasks.createTask(
                 project, null, "project member", "body", "medium", null, null, null, null, null, reporter);
-        Runnable rename = () -> projects.updateProject(project, "Renamed " + System.nanoTime(), null, null, null);
+        Runnable rename = () -> projects.updateProject(project, "Renamed " + System.nanoTime(), null, null, null, 1L);
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
     }
 
@@ -399,5 +401,13 @@ class SearchRevisionIntegrationTest {
             Thread.currentThread().interrupt();
             throw new AssertionError(e);
         }
+    }
+
+    /** The current revision of a row, the one a change of it names (plan item 3.6). */
+    private static long revision(String table, long id) {
+        return jdbc.sql("select revision from " + table + " where id = :id")
+                .param("id", id)
+                .query(Long.class)
+                .single();
     }
 }

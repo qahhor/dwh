@@ -325,7 +325,8 @@ class SecurityConfigTest {
                         Instant.now(),
                         null,
                         null,
-                        rejection.equals("stale-version") ? 1 : 0));
+                        rejection.equals("stale-version") ? 1 : 0,
+                        1L));
         var request = passwordMutation()
                 .header("Authorization", "Bearer rejected-api-token")
                 .cookie(new Cookie(SESSION_COOKIE, "raw-session"), new Cookie("XSRF-TOKEN", "existing-csrf"));
@@ -509,7 +510,8 @@ class SecurityConfigTest {
                 Instant.now(),
                 null,
                 null,
-                0);
+                0,
+                1L);
     }
 
     // ------------------------------------------------------------------

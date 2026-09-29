@@ -24,7 +24,8 @@ import org.springframework.context.annotation.Configuration;
 public class MsProjectQuery {
 
     public static final String COLUMNS = """
-            p.id, p.name, p.description, p.state, p.attributes::text as attributes_str, p.created_at, p.created_by""";
+            p.id, p.name, p.description, p.state, p.attributes::text as attributes_str, p.created_at, p.created_by,
+            p.revision""";
 
     public static final QueryList LIST = new QueryList(
                     "ms.projects",

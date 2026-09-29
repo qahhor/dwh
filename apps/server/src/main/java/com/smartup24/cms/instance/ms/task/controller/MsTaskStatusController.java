@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.task.api.CreateStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateTypeRequest;
 import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,9 +54,13 @@ public class MsTaskStatusController {
     @PatchMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateStatus(@PathVariable("id") Long id, @RequestBody UpdateStatusRequest body) {
-        statuses.updateStatusRecord(id, body.name(), body.color(), body.orderNo(), body.isTerminal());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> updateStatus(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateStatusRequest body) {
+        long revision = statuses.updateStatusRecord(
+                id, body.name(), body.color(), body.orderNo(), body.isTerminal(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @DeleteMapping("/statuses/{id}")
@@ -90,9 +96,13 @@ public class MsTaskStatusController {
     @PatchMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateType(@PathVariable("id") Long id, @RequestBody UpdateTypeRequest body) {
-        statuses.updateType(id, body.name(), body.icon(), body.color(), body.orderNo());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> updateType(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateTypeRequest body) {
+        long revision = statuses.updateType(
+                id, body.name(), body.icon(), body.color(), body.orderNo(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @DeleteMapping("/types/{id}")

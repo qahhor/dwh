@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService.NoteView;
 import java.util.Map;
@@ -63,11 +64,21 @@ public class MsNoteController {
 
     @PutMapping("/{id}")
     @RequiresPermission(form = "notes", action = "update")
-    public ResponseEntity<NoteView> updateNote(@PathVariable Long id, @RequestBody UpdateNoteRequest body) {
+    public ResponseEntity<NoteView> updateNote(
+            @PathVariable Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateNoteRequest body) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         return ResponseEntity.ok(noteService.updateNote(
-                id, body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId));
+                id,
+                body.title(),
+                body.contentMd(),
+                body.color(),
+                body.isPinned(),
+                body.attributes(),
+                userId,
+                Revisions.required(ifMatch)));
     }
 
     public record PinRequest(boolean pinned) {}

@@ -238,7 +238,8 @@ abstract class SearchSettingsIntegrationTestSupport {
                 Instant.now(),
                 null,
                 null,
-                0);
+                0,
+                1L);
         when(users.getUserById(actorId)).thenReturn(fixtureUser);
         when(users.findAuthUserById(actorId)).thenReturn(Optional.of(MdUserService.AuthUser.from(fixtureUser)));
         when(permissions.getEffectivePermissions(actorId)).thenReturn(allowed);

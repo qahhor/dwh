@@ -105,7 +105,7 @@ class MdOrgUnitWriteIntegrationTest {
         long oldVersion = version(oldManager), newVersion = version(newManager), otherVersion = version(otherManager);
         assertThat(scopeService.getUserScope(oldManager).visibleOrgUnitIds()).contains(child, grandchild);
 
-        transaction.executeWithoutResult(s -> orgUnitService.update(child, newParent, null, null, null, null));
+        transaction.executeWithoutResult(s -> orgUnitService.update(child, newParent, null, null, null, null, 1L));
 
         assertThat(scopeService.getUserScope(oldManager).visibleOrgUnitIds()).containsExactly(oldParent);
         assertThat(scopeService.getUserScope(newManager).visibleOrgUnitIds())
@@ -124,9 +124,9 @@ class MdOrgUnitWriteIntegrationTest {
         Long child = unit(parent);
         assertThat(scopeService.getUserScope(manager).visibleOrgUnitIds()).contains(child);
         assertThat(version(manager)).isEqualTo(before + 1);
-        orgUnitService.update(child, parent, null, null, "P", null);
+        orgUnitService.update(child, parent, null, null, "P", null, 1L);
         assertThat(scopeService.getUserScope(manager).visibleOrgUnitIds()).doesNotContain(child);
-        orgUnitService.update(child, parent, null, null, "A", null);
+        orgUnitService.update(child, parent, null, null, "A", null, 2L);
         assertThat(scopeService.getUserScope(manager).visibleOrgUnitIds()).contains(child);
         orgUnitService.delete(child);
         assertThat(scopeService.getUserScope(manager).visibleOrgUnitIds()).containsExactly(parent);
@@ -138,10 +138,10 @@ class MdOrgUnitWriteIntegrationTest {
         Long parent = unit(root), child = unit(parent), user = manager(parent);
         Long role = roles.getUserRoleIds(user).getFirst();
         long before = version(user);
-        roleService.updateRole(role, null, "P", null);
+        roleService.updateRole(role, null, "P", null, 1L);
         assertThat(scopeService.getUserScope(user).rule()).isEqualTo("ALL");
         assertThat(scopeService.getUserScope(user).visibleOrgUnitIds()).isEmpty();
-        roleService.updateRole(role, null, "A", null);
+        roleService.updateRole(role, null, "A", null, 2L);
         assertThat(scopeService.getUserScope(user).rule()).isEqualTo("SUBTREE");
         assertThat(scopeService.getUserScope(user).visibleOrgUnitIds()).containsExactlyInAnyOrder(parent, child);
         assertThat(version(user)).isEqualTo(before + 2);
@@ -151,6 +151,7 @@ class MdOrgUnitWriteIntegrationTest {
     void sparsePatchPreservesParentExplicitParentMovesAndNullConflicts() throws Exception {
         Long parent = unit(root), destination = unit(root), child = unit(parent);
         mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .header("If-Match", ifMatch("md_org_units", child))
                         .contentType("application/json")
                         .content("{\"name\":\" Renamed \",\"orderNo\":-2147483648}"))
                 .andExpect(status().isNoContent());
@@ -164,6 +165,7 @@ class MdOrgUnitWriteIntegrationTest {
                         .single())
                 .isEqualTo(parent.toString());
         mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .header("If-Match", ifMatch("md_org_units", child))
                         .contentType("application/json")
                         .content("{\"parentId\":" + destination + "}"))
                 .andExpect(status().isNoContent());
@@ -175,6 +177,7 @@ class MdOrgUnitWriteIntegrationTest {
                         .single())
                 .isEqualTo(destination.toString());
         mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .header("If-Match", ifMatch("md_org_units", child))
                         .contentType("application/json")
                         .content("{\"parentId\":null}"))
                 .andExpect(status().isConflict())
@@ -194,20 +197,24 @@ class MdOrgUnitWriteIntegrationTest {
                 "{\"kind\":\"  \"}",
                 "{\"parentId\":0}")) {
             mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                            .header("If-Match", ifMatch("md_org_units", child))
                             .contentType("application/json")
                             .content(body))
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.code").value("validation_failed"));
         }
         mvc.perform(patch("/api/v1/iam/org-units/0")
+                        .header("If-Match", "\"1\"")
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isUnprocessableEntity());
         mvc.perform(patch("/api/v1/iam/org-units/99999999")
+                        .header("If-Match", "\"1\"")
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isNotFound());
         mvc.perform(patch("/api/v1/iam/org-units/{id}", child)
+                        .header("If-Match", ifMatch("md_org_units", child))
                         .contentType("application/json")
                         .content("{\"parentId\":99999999}"))
                 .andExpect(status().isNotFound());
@@ -258,11 +265,13 @@ class MdOrgUnitWriteIntegrationTest {
         Long parent = unit(root), child = unit(parent);
         for (Long[] move : List.of(new Long[] {parent, parent}, new Long[] {parent, child}, new Long[] {root, child})) {
             mvc.perform(patch("/api/v1/iam/org-units/{id}", move[0])
+                            .header("If-Match", ifMatch("md_org_units", move[0]))
                             .contentType("application/json")
                             .content("{\"parentId\":" + move[1] + "}"))
                     .andExpect(status().isConflict());
         }
         mvc.perform(patch("/api/v1/iam/org-units/{id}", root)
+                        .header("If-Match", ifMatch("md_org_units", root))
                         .contentType("application/json")
                         .content("{\"parentId\":null,\"name\":\"Company\"}"))
                 .andExpect(status().isNoContent());
@@ -323,12 +332,12 @@ class MdOrgUnitWriteIntegrationTest {
                     started.countDown();
                     switch (operation) {
                         case "tree-create" -> unit(root);
-                        case "tree-update" -> orgUnitService.update(node, root, "Updated", null, null, null);
+                        case "tree-update" -> orgUnitService.update(node, root, "Updated", null, null, null, 1L);
                         case "tree-delete" -> orgUnitService.delete(emptyNode);
                         case "unit-assignment" -> scopeService.assignUserOrgUnits(user, List.of(emptyNode));
                         case "role-rule" -> scopeService.setRoleRule(role, "SELF");
                         case "role-create" -> roleService.createRole("new-" + sequence.incrementAndGet(), 0);
-                        case "role-update" -> roleService.updateRole(role, null, "P", null);
+                        case "role-update" -> roleService.updateRole(role, null, "P", null, 1L);
                         case "role-delete" -> roleService.deleteRole(unusedRole);
                         case "assign-roles" -> assignments.assignRoles(user, List.of(unusedRole));
                         case "user-create" -> {
@@ -360,7 +369,8 @@ class MdOrgUnitWriteIntegrationTest {
                                     null,
                                     null,
                                     List.of(unusedRole),
-                                    null);
+                                    null,
+                                    1L);
                         default -> throw new AssertionError(operation);
                     }
                 })));
@@ -404,7 +414,7 @@ class MdOrgUnitWriteIntegrationTest {
                 .logChange(anyString(), anyString(), anyString(), anyList(), any(), any());
         var failingService = proxy(new MdOrgUnitService(units, scopeService, failingAudit));
 
-        assertThatThrownBy(() -> failingService.update(child, newParent, "Rollback", null, null, null))
+        assertThatThrownBy(() -> failingService.update(child, newParent, "Rollback", null, null, null, 1L))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("synthetic audit failure");
         assertThat(units.findById(child)).isEqualTo(beforeUnit);
@@ -423,7 +433,7 @@ class MdOrgUnitWriteIntegrationTest {
         var secondPid = new AtomicInteger();
         try (var executor = Executors.newFixedThreadPool(2)) {
             var first = executor.submit(() -> transaction.execute(s -> {
-                orgUnitService.update(a, b, null, null, null, null);
+                orgUnitService.update(a, b, null, null, null, null, 1L);
                 firstMoved.countDown();
                 await(releaseFirst);
                 return "success";
@@ -437,7 +447,7 @@ class MdOrgUnitWriteIntegrationTest {
                                     .query(Integer.class)
                                     .single());
                             secondStarted.countDown();
-                            orgUnitService.update(b, a, null, null, null, null);
+                            orgUnitService.update(b, a, null, null, null, null, 1L);
                         });
                         return "success";
                     } catch (ApiException e) {
@@ -515,5 +525,15 @@ class MdOrgUnitWriteIntegrationTest {
         factory.setTransactionAttributes(attributes);
         factory.afterPropertiesSet();
         return (T) factory.getObject();
+    }
+
+    /** {@code If-Match} with the current revision of the row, as a client that just read it sends (item 3.6). */
+    private static String ifMatch(String table, Object id) {
+        Long revision = jdbc.sql("select revision from " + table + " where id = :id")
+                .param("id", ((Number) id).longValue())
+                .query(Long.class)
+                .optional()
+                .orElse(1L);
+        return "\"" + revision + "\"";
     }
 }

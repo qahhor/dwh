@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.api;
 
+import com.smartup24.cms.instance.common.web.Revisioned;
 import java.time.Instant;
 import java.util.Map;
 
@@ -11,4 +12,6 @@ public record ProjectView(
         String state,
         Map<String, Object> attributes,
         Instant createdAt,
-        Long createdBy) {}
+        Long createdBy,
+        long revision)
+        implements Revisioned {}

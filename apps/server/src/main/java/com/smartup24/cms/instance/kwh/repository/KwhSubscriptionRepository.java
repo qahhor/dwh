@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.kwh.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public class KwhSubscriptionRepository {
                 .sql("""
                 insert into kwh_subscriptions (name, target_url, secret_token, subscribed_events, state, created_at, created_by)
                 values (:name, :targetUrl, :secretToken, :events, 'A', now(), :createdBy)
-                returning id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
+                returning id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
                 """)
                 .param("name", name)
                 .param("targetUrl", targetUrl)
@@ -34,7 +35,7 @@ public class KwhSubscriptionRepository {
 
     public Optional<SubscriptionRecord> findById(Long id) {
         return jdbcClient.sql("""
-                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
+                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
                 from kwh_subscriptions
                 where id = :id
                 """).param("id", id).query(this::mapRecord).optional();
@@ -42,7 +43,7 @@ public class KwhSubscriptionRepository {
 
     public List<SubscriptionRecord> listSubscriptions() {
         return jdbcClient.sql("""
-                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
+                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
                 from kwh_subscriptions
                 order by created_at desc
                 """).query(this::mapRecord).list();
@@ -51,7 +52,7 @@ public class KwhSubscriptionRepository {
     public List<SubscriptionRecord> findActiveByEvent(String eventType) {
         return jdbcClient
                 .sql("""
-                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by
+                select id, name, target_url, secret_token, subscribed_events, state, created_at, created_by, revision
                 from kwh_subscriptions
                 where state = 'A' and :eventType = any(subscribed_events)
                 """)
@@ -60,22 +61,33 @@ public class KwhSubscriptionRepository {
                 .list();
     }
 
-    public void update(Long id, String name, String targetUrl, List<String> subscribedEvents, String state) {
-        jdbcClient
+    public long update(
+            Long id,
+            String name,
+            String targetUrl,
+            List<String> subscribedEvents,
+            String state,
+            long expectedRevision) {
+        return jdbcClient
                 .sql("""
                 update kwh_subscriptions
                 set name = coalesce(:name, name),
                     target_url = coalesce(:targetUrl, target_url),
                     subscribed_events = coalesce(:events, subscribed_events),
-                    state = coalesce(:state, state)
-                where id = :id
+                    state = coalesce(:state, state),
+                    revision = revision + 1
+                where id = :id and revision = :expectedRevision
+                returning revision
                 """)
                 .param("id", id)
                 .param("name", name)
                 .param("targetUrl", targetUrl)
                 .param("events", subscribedEvents != null ? subscribedEvents.toArray(new String[0]) : null)
                 .param("state", state)
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     public void delete(Long id) {
@@ -97,7 +109,8 @@ public class KwhSubscriptionRepository {
                 events,
                 rs.getString("state"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getObject("created_by") != null ? rs.getLong("created_by") : null);
+                rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
+                rs.getLong("revision"));
     }
 
     public record SubscriptionRecord(
@@ -108,5 +121,6 @@ public class KwhSubscriptionRepository {
             List<String> subscribedEvents,
             String state,
             Instant createdAt,
-            Long createdBy) {}
+            Long createdBy,
+            long revision) {}
 }

@@ -43,6 +43,6 @@ class MdCustomFieldFormFieldsTest {
     }
 
     private static CustomFieldRecord record(String code, String name, String type, boolean required, String options) {
-        return new CustomFieldRecord(1L, "NOTE", code, name, type, required, null, options, 0, Instant.EPOCH);
+        return new CustomFieldRecord(1L, "NOTE", code, name, type, required, null, options, 0, Instant.EPOCH, 1L);
     }
 }

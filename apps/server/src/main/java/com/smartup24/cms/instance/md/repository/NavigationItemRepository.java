@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -34,13 +35,14 @@ public class NavigationItemRepository {
             Long createdBy,
             Long modifiedBy,
             Instant createdAt,
-            Instant modifiedAt) {}
+            Instant modifiedAt,
+            long revision) {}
 
     public List<NavigationItemRecord> findAll() {
         return jdbcClient.sql("""
                 select id, code, title, title_key, section_id, parent_id, icon, target_type,
                        url, open_in_iframe, required_permission, sort_order, state,
-                       created_by, modified_by, created_at, modified_at
+                       created_by, modified_by, created_at, modified_at, revision
                 from md_navigation_items
                 order by section_id asc, sort_order asc, id asc
                 """).query(this::mapRecord).list();
@@ -50,7 +52,7 @@ public class NavigationItemRepository {
         return jdbcClient.sql("""
                 select id, code, title, title_key, section_id, parent_id, icon, target_type,
                        url, open_in_iframe, required_permission, sort_order, state,
-                       created_by, modified_by, created_at, modified_at
+                       created_by, modified_by, created_at, modified_at, revision
                 from md_navigation_items
                 where state = 'A'
                 order by section_id asc, sort_order asc, id asc
@@ -61,7 +63,7 @@ public class NavigationItemRepository {
         return jdbcClient.sql("""
                 select id, code, title, title_key, section_id, parent_id, icon, target_type,
                        url, open_in_iframe, required_permission, sort_order, state,
-                       created_by, modified_by, created_at, modified_at
+                       created_by, modified_by, created_at, modified_at, revision
                 from md_navigation_items
                 where id = :id
                 """).param("id", id).query(this::mapRecord).optional();
@@ -71,7 +73,7 @@ public class NavigationItemRepository {
         return jdbcClient.sql("""
                 select id, code, title, title_key, section_id, parent_id, icon, target_type,
                        url, open_in_iframe, required_permission, sort_order, state,
-                       created_by, modified_by, created_at, modified_at
+                       created_by, modified_by, created_at, modified_at, revision
                 from md_navigation_items
                 where code = :code
                 """).param("code", code).query(this::mapRecord).optional();
@@ -109,7 +111,7 @@ public class NavigationItemRepository {
                 .single();
     }
 
-    public int update(Long id, NavigationItemRecord item) {
+    public long update(Long id, NavigationItemRecord item, long expectedRevision) {
         return jdbcClient
                 .sql("""
                 update md_navigation_items
@@ -126,8 +128,10 @@ public class NavigationItemRepository {
                     sort_order = :sortOrder,
                     state = :state,
                     modified_by = :modifiedBy,
-                    modified_at = clock_timestamp()
-                where id = :id
+                    modified_at = clock_timestamp(),
+                    revision = revision + 1
+                where id = :id and revision = :expectedRevision
+                returning revision
                 """)
                 .param("id", id)
                 .param("code", item.code())
@@ -143,17 +147,25 @@ public class NavigationItemRepository {
                 .param("sortOrder", item.sortOrder())
                 .param("state", item.state() != null ? item.state() : "A")
                 .param("modifiedBy", item.modifiedBy())
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
+    /**
+     * Sets the state in one statement (plan item 3.6): the row is written only when the state changes, so of
+     * concurrent requests exactly those that changed it see 1, and only they are audited.
+     */
     public int updateState(Long id, String state, Long modifiedBy) {
         return jdbcClient
                 .sql("""
                 update md_navigation_items
                 set state = :state,
                     modified_by = :modifiedBy,
-                    modified_at = clock_timestamp()
-                where id = :id
+                    modified_at = clock_timestamp(),
+                    revision = revision + 1
+                where id = :id and state <> :state
                 """)
                 .param("id", id)
                 .param("state", state)
@@ -190,6 +202,7 @@ public class NavigationItemRepository {
                         : null,
                 rs.getTimestamp("modified_at") != null
                         ? rs.getTimestamp("modified_at").toInstant()
-                        : null);
+                        : null,
+                rs.getLong("revision"));
     }
 }

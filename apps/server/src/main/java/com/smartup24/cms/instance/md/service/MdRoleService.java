@@ -79,7 +79,8 @@ public class MdRoleService {
                 role.state(),
                 role.orderNo(),
                 role.createdAt(),
-                role.modifiedAt());
+                role.modifiedAt(),
+                role.revision());
     }
 
     @Transactional(readOnly = true)
@@ -88,7 +89,7 @@ public class MdRoleService {
     }
 
     @Transactional
-    public void updateRole(Long id, String name, String state, Integer orderNo) {
+    public long updateRole(Long id, String name, String state, Integer orderNo, long expectedRevision) {
         scopeRepository.lockScopeMutation();
         var role = getRoleById(id);
         if (role.pcode() != null && "admin".equals(role.pcode()) && "P".equalsIgnoreCase(state)) {
@@ -100,7 +101,7 @@ public class MdRoleService {
         String newName = name != null ? name : role.name();
         String newState = state != null ? state : role.state();
         int newOrderNo = orderNo != null ? orderNo : role.orderNo();
-        roleRepository.update(id, newName, newState, newOrderNo);
+        long revision = roleRepository.update(id, newName, newState, newOrderNo, expectedRevision);
         if (state != null && !state.equals(role.state())) {
             List<Long> userIds = scopeRepository.getUserIdsByRole(id);
             for (Long uid : userIds) {
@@ -116,6 +117,7 @@ public class MdRoleService {
                 List.of("name", "state", "order_no"),
                 Map.of("name", role.name(), "state", role.state(), "order_no", role.orderNo()),
                 Map.of("name", newName, "state", newState, "order_no", newOrderNo));
+        return revision;
     }
 
     @Transactional
@@ -146,7 +148,7 @@ public class MdRoleService {
     }
 
     @Transactional
-    public void setRolePermissions(Long roleId, List<RolePermission> requested) {
+    public long setRolePermissions(Long roleId, List<RolePermission> requested, long expectedRevision) {
         var role = getRoleById(roleId);
         List<MdRoleRepository.PermissionPair> permissions = requested == null
                 ? null
@@ -169,6 +171,7 @@ public class MdRoleService {
         // Снимок «до» нужен именно здесь: после replace старый набор восстановить неоткуда.
         Set<String> before = new TreeSet<>(roleRepository.getRolePermissions(roleId));
 
+        long revision = roleRepository.nextRevision(roleId, expectedRevision);
         roleRepository.replaceRolePermissions(roleId, permissions);
         List<Long> userIds = roleRepository.getUserIdsByRole(roleId);
         for (Long uid : userIds) {
@@ -193,6 +196,7 @@ public class MdRoleService {
                         diff(before, after),
                         "affected_users",
                         userIds.size()));
+        return revision;
     }
 
     /** Что есть в {@code from} и нет в {@code to} — читаемый диff для экрана аудита. */
