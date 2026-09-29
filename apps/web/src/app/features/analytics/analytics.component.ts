@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, Subscription, forkJoin } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 
@@ -17,6 +18,9 @@ import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-
 
 export * from './analytics.models';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
+
+/** The period shown when the screen opens. */
+const FIRST_RANGE = '7d';
 
 @Component({
   selector: 'app-analytics',
@@ -88,7 +92,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
         <app-analytics-trend-chart
           [trends]="trends()"
           [loading]="loading()"
-          [displayedRange]="displayedRange"
+          [displayedRange]="displayedRange()"
           [error]="error()"
         ></app-analytics-trend-chart>
 
@@ -158,7 +162,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     `,
   ],
 })
-export class AnalyticsComponent implements OnInit, OnDestroy {
+export class AnalyticsComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
@@ -166,33 +170,54 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private router = inject(Router);
 
-  readonly summary = signal<AnalyticsSummary | null>(null);
-  readonly trends = signal<TrendDataPoint[]>([]);
-  readonly projects = signal<ProjectDistribution[]>([]);
-  readonly workload = signal<UserWorkload[]>([]);
+  /* Each section keeps what it showed while a read is pending or failed, and a
+     full refresh replaces all of them together. */
+  readonly summary = linkedSignal<AnalyticsLoaded | undefined, AnalyticsSummary | null>({
+    source: () => this.loaded(),
+    computation: (loaded, previous) => (loaded?.snapshot ? loaded.snapshot.summary : (previous?.value ?? null)),
+  });
+  readonly trends = linkedSignal<AnalyticsLoaded | undefined, TrendDataPoint[]>({
+    source: () => this.loaded(),
+    computation: (loaded, previous) => loaded?.trends ?? previous?.value ?? [],
+  });
+  readonly projects = linkedSignal<AnalyticsLoaded | undefined, ProjectDistribution[]>({
+    source: () => this.loaded(),
+    computation: (loaded, previous) => (loaded?.snapshot ? loaded.snapshot.projects : (previous?.value ?? [])),
+  });
+  readonly workload = linkedSignal<AnalyticsLoaded | undefined, UserWorkload[]>({
+    source: () => this.loaded(),
+    computation: (loaded, previous) => (loaded?.snapshot ? loaded.snapshot.workload : (previous?.value ?? [])),
+  });
+  /** The period of the trend on screen, which lags the chosen one while its read is pending. */
+  readonly displayedRange = linkedSignal<AnalyticsLoaded | undefined, string>({
+    source: () => this.loaded(),
+    computation: (loaded, previous) => loaded?.range ?? previous?.value ?? FIRST_RANGE,
+  });
 
-  readonly loading = signal(false);
-  readonly error = signal('');
+  /** The read on screen; a new one cancels the read still in flight. */
+  private readonly read = signal<AnalyticsRead>({ range: FIRST_RANGE, full: true });
 
-  private activeRequest?: Subscription;
+  readonly error = computed(() => {
+    const result = this.result.value();
+    return result && 'failure' in result ? result.failure : '';
+  });
+  private readonly loaded = computed(() => {
+    const result = this.result.value();
+    return result && !('failure' in result) ? result : undefined;
+  });
+
+  selectedRange = FIRST_RANGE;
+  /** A failed or superseded refresh must be retried as a whole snapshot. */
   private refreshRequired = true;
-  selectedRange = '7d';
-  displayedRange = '7d';
+  private readonly result = rxResource({ params: this.read, stream: ({ params }) => this.fetch(params) });
+
+  readonly loading = this.result.isLoading;
 
   private readonly rangeMemo = optionsMemo<SMTRadioOption<string>[]>();
 
-  ngOnInit(): void {
-    this.loadAll();
-  }
-
-  ngOnDestroy(): void {
-    this.activeRequest?.unsubscribe();
-  }
-
   setRange(range: string): void {
     this.selectedRange = range;
-    if (this.refreshRequired) this.loadAll();
-    else this.loadTrends();
+    this.read.set({ range, full: this.refreshRequired });
   }
 
   navigateToProject(projectId: number): void {
@@ -204,25 +229,8 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
-    const range = this.selectedRange;
-    // A failed or superseded refresh must be retried as a whole snapshot.
     this.refreshRequired = true;
-    this.loadRequest(
-      forkJoin({
-        summary: this.http.get<AnalyticsSummary>('/api/v1/analytics/summary'),
-        trends: this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`),
-        projects: this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects'),
-        workload: this.http.get<UserWorkload[]>('/api/v1/analytics/workload'),
-      }),
-      (data) => {
-        this.summary.set(data.summary);
-        this.trends.set(data.trends);
-        this.projects.set(data.projects);
-        this.workload.set(data.workload);
-        this.displayedRange = range;
-        this.refreshRequired = false;
-      },
-    );
+    this.read.set({ range: this.selectedRange, full: true });
   }
 
   /** The periods as one segmented bar. */
@@ -234,25 +242,43 @@ export class AnalyticsComponent implements OnInit, OnDestroy {
     ]);
   }
 
-  private loadTrends(): void {
-    const range = this.selectedRange;
-    this.loadRequest(this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`), (data) => {
-      this.trends.set(data);
-      this.displayedRange = range;
-    });
+  /** The whole snapshot, or only the trend of a new period once a snapshot is on screen. */
+  private fetch({ range, full }: AnalyticsRead): Observable<AnalyticsLoaded | AnalyticsFailure> {
+    const trends = this.http.get<TrendDataPoint[]>(`/api/v1/analytics/trends?range=${range}`);
+    const read: Observable<AnalyticsLoaded> = full
+      ? forkJoin({
+          summary: this.http.get<AnalyticsSummary>('/api/v1/analytics/summary'),
+          trends,
+          projects: this.http.get<ProjectDistribution[]>('/api/v1/analytics/projects'),
+          workload: this.http.get<UserWorkload[]>('/api/v1/analytics/workload'),
+        }).pipe(
+          tap(() => (this.refreshRequired = false)),
+          map(({ trends: points, ...snapshot }) => ({ range, trends: points, snapshot })),
+        )
+      : trends.pipe(map((points) => ({ range, trends: points })));
+    return read.pipe(
+      catchError((e: { error?: { detail?: string } }) =>
+        of({
+          failure: e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'),
+        }),
+      ),
+    );
   }
+}
 
-  private loadRequest<T>(request: Observable<T>, apply: (data: T) => void): void {
-    this.activeRequest?.unsubscribe();
-    this.loading.set(true);
-    this.error.set('');
-    this.activeRequest = request.subscribe({
-      next: (data) => apply(data),
-      error: (e) => {
-        this.error.set(e?.error?.detail || this.uiI18n.translate('analytics.ne_udalos_zagruzit_dannye_analitiki'));
-        this.loading.set(false);
-      },
-      complete: () => this.loading.set(false),
-    });
-  }
+/** One read of the dashboard. */
+interface AnalyticsRead {
+  range: string;
+  full: boolean;
+}
+
+/** What a read brought: the trend of its period, and the other sections when it was a full refresh. */
+interface AnalyticsLoaded {
+  range: string;
+  trends: TrendDataPoint[];
+  snapshot?: { summary: AnalyticsSummary; projects: ProjectDistribution[]; workload: UserWorkload[] };
+}
+
+interface AnalyticsFailure {
+  failure: string;
 }

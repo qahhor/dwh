@@ -1,4 +1,5 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { EMPTY, catchError, finalize, tap } from 'rxjs';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -28,9 +29,11 @@ export class AnnouncementsStore {
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
-  readonly announcements = signal<AnnouncementAdminRecord[]>([]);
-  readonly isLoading = signal(true);
-  readonly loadError = signal(false);
+  /** A failed read keeps the list on screen; a save or a transition updates it here without a new request. */
+  readonly announcements = linkedSignal<AnnouncementAdminRecord[] | null | undefined, AnnouncementAdminRecord[]>({
+    source: () => (this.list.hasValue() ? (this.list.value() ?? null) : undefined),
+    computation: (records, previous) => (records === undefined ? (previous?.value ?? []) : (records ?? [])),
+  });
   readonly operationError = signal<string | null>(null);
   readonly isSaving = signal(false);
   readonly isEditorOpen = signal(false);
@@ -42,6 +45,11 @@ export class AnnouncementsStore {
   readonly draftTitles = signal<Record<string, string>>({ ru: '' });
   readonly draftBodies = signal<Record<string, string>>({ ru: '' });
   readonly editingId = signal<number | null>(null);
+
+  /** Bumped to read the list again; a new value cancels a read still in flight. */
+  private readonly listRevision = signal(0);
+
+  readonly loadError = computed(() => this.list.error() !== undefined);
 
   readonly draftCount = computed(() => this.announcements().filter((a) => a.state === 'DRAFT').length);
 
@@ -72,6 +80,10 @@ export class AnnouncementsStore {
     return list;
   });
 
+  /** Starts with the store, that is with the screen. */
+  private readonly list = rxResource({ params: this.listRevision, stream: () => this.announcementsApi.manageable() });
+  readonly isLoading = this.list.isLoading;
+
   private editingLockVersion: number | null = null;
 
   setStatusFilter(filter: AnnouncementStatusFilter): void {
@@ -84,18 +96,7 @@ export class AnnouncementsStore {
   }
 
   loadAnnouncements(): void {
-    this.isLoading.set(true);
-    this.loadError.set(false);
-    this.announcementsApi.manageable().subscribe({
-      next: (records) => {
-        this.announcements.set(records ?? []);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.loadError.set(true);
-        this.isLoading.set(false);
-      },
-    });
+    this.listRevision.update((revision) => revision + 1);
   }
 
   canCreate(): boolean {

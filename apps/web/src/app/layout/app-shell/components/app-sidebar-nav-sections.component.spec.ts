@@ -97,6 +97,7 @@ describe('AppSidebarNavSectionsComponent', () => {
 
     expect(links.some((link) => link.getAttribute('href') === '/audit')).toBe(false);
     expect(tasks.getAttribute('aria-current')).toBe('page');
+    expect(tasks.title).toBe(PACKAGED_RUSSIAN['nav.tasks']);
     expect(tasks.querySelector('.unread-chip')?.textContent?.trim()).toBe('2');
   });
 

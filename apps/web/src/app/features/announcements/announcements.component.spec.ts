@@ -167,9 +167,19 @@ describe('AnnouncementsComponent', () => {
       inScreen(failed.fixture.nativeElement).querySelector('[data-testid="announcements-load-error"][role="alert"]')
         ?.textContent,
     ).toContain('Не удалось загрузить объявления');
-    expect(
-      inScreen(failed.fixture.nativeElement).querySelector('button[aria-label="Повторить загрузку объявлений"]'),
-    ).not.toBeNull();
+    const retry = inScreen(failed.fixture.nativeElement).querySelector(
+      'button[aria-label="Повторить загрузку объявлений"]',
+    ) as HTMLButtonElement;
+    expect(retry).not.toBeNull();
+
+    failed.api.get.mockReturnValue(of([draft]));
+    retry.click();
+    failed.fixture.detectChanges();
+    await failed.fixture.whenStable();
+    failed.fixture.detectChanges();
+    expect(failed.api.get).toHaveBeenCalledTimes(2);
+    expect(inScreen(failed.fixture.nativeElement).querySelector('[data-testid="announcements-load-error"]')).toBeNull();
+    expect(failed.fixture.nativeElement.textContent).toContain('Плановые работы');
   });
 
   it('filters announcements by status and search text', async () => {

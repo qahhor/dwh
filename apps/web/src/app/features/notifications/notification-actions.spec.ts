@@ -30,6 +30,7 @@ describe('Notification action lifecycle', () => {
     fixture = TestBed.createComponent(NotificationsComponent);
     fixture.detectChanges();
     http.expectOne('/api/v1/notifications/inbox?limit=50').flush([record]);
+    await fixture.whenStable();
     service.unreadCount.set(1);
     fixture.detectChanges();
   });
@@ -85,18 +86,22 @@ describe('Notification action lifecycle', () => {
     requests[0].flush(null);
     expect(service.unreadCount()).toBe(2);
     http.expectOne('/api/v1/notifications/unread-count').flush({ unread_count: 1 });
+    fixture.detectChanges();
     http.expectOne('/api/v1/notifications/inbox?limit=50').flush([{ ...record, isRead: true }]);
     expect(service.unreadCount()).toBe(1);
     http.verify();
   });
 
-  it('cancels an obsolete inbox read and clamps the page after the list shrinks', () => {
+  it('cancels an obsolete inbox read and clamps the page after the list shrinks', async () => {
     fixture.componentInstance.currentPage.set(5);
     fixture.componentInstance.loadNotifications();
+    fixture.detectChanges();
     const old = http.expectOne('/api/v1/notifications/inbox?limit=50');
     fixture.componentInstance.loadNotifications();
+    fixture.detectChanges();
     expect(old.cancelled).toBe(true);
     http.expectOne('/api/v1/notifications/inbox?limit=50').flush([record]);
+    await fixture.whenStable();
     expect(fixture.componentInstance.currentPage()).toBe(1);
     expect(fixture.componentInstance.paginatedItems()).toHaveLength(1);
     http.verify();
@@ -116,6 +121,7 @@ describe('Notification action lifecycle', () => {
     service.connectSse();
     fixture.componentInstance.markAllAsRead();
     http.expectOne('/api/v1/notifications/inbox/read-all').flush(null);
+    fixture.detectChanges();
     http.expectOne('/api/v1/notifications/inbox?limit=50').flush([{ ...record, isRead: true }]);
     const staleCount = http.expectOne('/api/v1/notifications/unread-count');
     notify(new MessageEvent('notification', { data: JSON.stringify({ id: 8, title: 'Later notification' }) }));
@@ -129,6 +135,7 @@ describe('Notification action lifecycle', () => {
     fixture.componentInstance.markAsRead(fixture.componentInstance.items()[0]);
     const pending = http.expectOne('/api/v1/notifications/inbox/7/read');
     fixture.componentInstance.loadNotifications();
+    fixture.detectChanges();
     const read = http.expectOne('/api/v1/notifications/inbox?limit=50');
     fixture.destroy();
     expect(pending.cancelled).toBe(true);
