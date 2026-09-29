@@ -247,100 +247,119 @@ public class MdCustomFieldService {
         List<FieldErrorItem> errors = new ArrayList<>();
 
         for (var field : fieldDefs) {
-            Object value = safeAttrs.get(field.code());
-
-            if (field.isRequired() && (value == null || value.toString().trim().isEmpty())) {
-                errors.add(new FieldErrorItem(
-                        "attributes." + field.code(),
-                        "required",
-                        "Поле " + field.name() + " обязательно для заполнения"));
-                continue;
-            }
-
-            if (value != null) {
-                switch (field.fieldType().toLowerCase()) {
-                    case "string" -> {
-                        if (value.toString().length() > 4000) {
-                            errors.add(new FieldErrorItem(
-                                    "attributes." + field.code(),
-                                    "too_long",
-                                    "Значение поля " + field.name() + " не должно превышать 4000 символов"));
-                        }
-                    }
-                    case "number" -> {
-                        if (!(value instanceof Number)) {
-                            try {
-                                Double.parseDouble(value.toString());
-                            } catch (NumberFormatException e) {
-                                errors.add(new FieldErrorItem(
-                                        "attributes." + field.code(),
-                                        "invalid_number",
-                                        "Поле " + field.name() + " должно быть числом"));
-                            }
-                        }
-                    }
-                    case "boolean" -> {
-                        if (!(value instanceof Boolean)
-                                && !value.toString().equalsIgnoreCase("true")
-                                && !value.toString().equalsIgnoreCase("false")) {
-                            errors.add(new FieldErrorItem(
-                                    "attributes." + field.code(),
-                                    "invalid_boolean",
-                                    "Поле " + field.name() + " должно быть булевым"));
-                        }
-                    }
-                    case "date" -> {
-                        try {
-                            LocalDate.parse(value.toString());
-                        } catch (DateTimeParseException e) {
-                            errors.add(new FieldErrorItem(
-                                    "attributes." + field.code(),
-                                    "invalid_date",
-                                    "Поле " + field.name() + " должно содержать корректную дату"));
-                        }
-                    }
-                    case "select" -> {
-                        List<String> allowedOptions = parseSelectOptions(field.optionsJson());
-                        String valStr = value.toString();
-                        if (!allowedOptions.isEmpty() && !allowedOptions.contains(valStr)) {
-                            errors.add(new FieldErrorItem(
-                                    "attributes." + field.code(),
-                                    "invalid_option",
-                                    "Значение поля " + field.name() + " должно быть одним из вариантов: "
-                                            + String.join(", ", allowedOptions)));
-                        }
-                    }
-                    case "user_ref" -> {
-                        Long userId = null;
-                        if (value instanceof Number n) {
-                            userId = n.longValue();
-                        } else {
-                            try {
-                                userId = Long.parseLong(value.toString().trim());
-                            } catch (NumberFormatException e) {
-                                errors.add(new FieldErrorItem(
-                                        "attributes." + field.code(),
-                                        "invalid_user_ref",
-                                        "Поле " + field.name() + " должно содержать числовой ID пользователя"));
-                            }
-                        }
-                        if (userId != null && userRepository != null) {
-                            var userOpt = userRepository.findById(userId);
-                            if (userOpt.isEmpty() || !"A".equals(userOpt.get().state())) {
-                                errors.add(new FieldErrorItem(
-                                        "attributes." + field.code(),
-                                        "user_not_found",
-                                        "Пользователь с ID " + userId + " не найден или неактивен"));
-                            }
-                        }
-                    }
-                }
+            FieldErrorItem error = attributeError(field, safeAttrs.get(field.code()));
+            if (error != null) {
+                errors.add(error);
             }
         }
 
         if (!errors.isEmpty()) {
             throw ApiException.validation("error.md.custom_field_attributes_invalid", errors);
         }
+    }
+
+    /** The one problem of an attribute value against its definition, or null when the value fits. */
+    private FieldErrorItem attributeError(MdCustomFieldRepository.CustomFieldRecord field, Object value) {
+        if (field.isRequired() && (value == null || value.toString().trim().isEmpty())) {
+            return fieldError(field, "required", "Поле " + field.name() + " обязательно для заполнения");
+        }
+        if (value == null) {
+            return null;
+        }
+        return switch (field.fieldType().toLowerCase()) {
+            case "string" ->
+                value.toString().length() > 4000
+                        ? fieldError(
+                                field,
+                                "too_long",
+                                "Значение поля " + field.name() + " не должно превышать 4000 символов")
+                        : null;
+            case "number" ->
+                isNumber(value)
+                        ? null
+                        : fieldError(field, "invalid_number", "Поле " + field.name() + " должно быть числом");
+            case "boolean" ->
+                isBoolean(value)
+                        ? null
+                        : fieldError(field, "invalid_boolean", "Поле " + field.name() + " должно быть булевым");
+            case "date" ->
+                isDate(value)
+                        ? null
+                        : fieldError(
+                                field, "invalid_date", "Поле " + field.name() + " должно содержать корректную дату");
+            case "select" -> selectError(field, value.toString());
+            case "user_ref" -> userRefError(field, value);
+            default -> null;
+        };
+    }
+
+    private static FieldErrorItem fieldError(
+            MdCustomFieldRepository.CustomFieldRecord field, String code, String message) {
+        return new FieldErrorItem("attributes." + field.code(), code, message);
+    }
+
+    private static boolean isNumber(Object value) {
+        if (value instanceof Number) {
+            return true;
+        }
+        try {
+            Double.parseDouble(value.toString());
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private static boolean isBoolean(Object value) {
+        return value instanceof Boolean
+                || value.toString().equalsIgnoreCase("true")
+                || value.toString().equalsIgnoreCase("false");
+    }
+
+    private static boolean isDate(Object value) {
+        try {
+            LocalDate.parse(value.toString());
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
+    private FieldErrorItem selectError(MdCustomFieldRepository.CustomFieldRecord field, String value) {
+        List<String> allowedOptions = parseSelectOptions(field.optionsJson());
+        if (allowedOptions.isEmpty() || allowedOptions.contains(value)) {
+            return null;
+        }
+        return fieldError(
+                field,
+                "invalid_option",
+                "Значение поля " + field.name() + " должно быть одним из вариантов: "
+                        + String.join(", ", allowedOptions));
+    }
+
+    /** A reference is a numeric id of an active user; without a user repository only its form is checked. */
+    private FieldErrorItem userRefError(MdCustomFieldRepository.CustomFieldRecord field, Object value) {
+        Long userId;
+        if (value instanceof Number n) {
+            userId = n.longValue();
+        } else {
+            try {
+                userId = Long.parseLong(value.toString().trim());
+            } catch (NumberFormatException e) {
+                return fieldError(
+                        field,
+                        "invalid_user_ref",
+                        "Поле " + field.name() + " должно содержать числовой ID пользователя");
+            }
+        }
+        if (userRepository == null) {
+            return null;
+        }
+        var userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty() || !"A".equals(userOpt.get().state())) {
+            return fieldError(field, "user_not_found", "Пользователь с ID " + userId + " не найден или неактивен");
+        }
+        return null;
     }
 
     public List<String> parseSelectOptions(String optionsJson) {
