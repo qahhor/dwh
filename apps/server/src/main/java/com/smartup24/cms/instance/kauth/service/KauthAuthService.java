@@ -73,14 +73,13 @@ public class KauthAuthService {
         int failedIp = loginAttemptRepository.countFailedAttemptsForIpSince(ip, tenMinutesAgo);
         if (failedIp >= MAX_FAILED_ATTEMPTS_PER_IP) {
             auditLogService.logSecurityEvent("IP_RATE_LIMITED", null, ip, userAgent, Map.of("login", login));
-            throw ApiException.locked(ErrorCode.RATE_LIMITED, "Слишком много неудачных попыток входа с вашего IP");
+            throw ApiException.locked(ErrorCode.RATE_LIMITED, "error.auth.too_many_failed_logins_from_ip");
         }
 
         int failedUser = loginAttemptRepository.countFailedAttemptsForLoginSince(login, tenMinutesAgo);
         if (failedUser >= MAX_FAILED_ATTEMPTS_PER_USER) {
             auditLogService.logSecurityEvent("LOGIN_LOCKED", null, ip, userAgent, Map.of("login", login));
-            throw ApiException.locked(
-                    ErrorCode.LOGIN_LOCKED, "Учётная запись временно заблокирована из-за частых ошибок ввода пароля");
+            throw ApiException.locked(ErrorCode.LOGIN_LOCKED, "error.auth.account_temporarily_locked");
         }
 
         var userOpt = userService.findAuthUserByLogin(login);
@@ -100,7 +99,7 @@ public class KauthAuthService {
         var user = userOpt.get();
         if (MdPref.STATE_PASSIVE.equals(user.state())) {
             refuse(login, ip, userAgent, user.id(), "USER_BLOCKED");
-            throw ApiException.conflict(ErrorCode.USER_BLOCKED, "Учётная запись заблокирована");
+            throw ApiException.conflict(ErrorCode.USER_BLOCKED, "error.auth.account_blocked");
         }
 
         loginAttemptRepository.recordAttempt(login, ip, true, null);
@@ -156,7 +155,7 @@ public class KauthAuthService {
     @Transactional(noRollbackFor = ApiException.class)
     public LoginResult verifyOtp(String otpToken, String code, String ip, String userAgent, String deviceInfo) {
         if (otpToken == null || otpToken.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid");
         }
 
         // Код ищется по хешу выданного токена и только по нему. До V015 здесь
@@ -164,31 +163,31 @@ public class KauthAuthService {
         // любой непустой токен приводил к коду администратора.
         var otp = otpCodeRepository
                 .findActiveByTokenHash(KauthPasswordHasher.sha256(otpToken), "login")
-                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен"));
+                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid"));
         Long userId = otp.userId();
         if (otp.expiresAt().isBefore(Instant.now())) {
-            throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия OTP-кода истёк");
+            throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "error.auth.otp_code_expired");
         }
 
         // No attempt to claim: another request used the code, or took its last attempt, while this one waited.
         if (!otpCodeRepository.claimAttempt(otp.id())) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid");
         }
         String inputHash = KauthPasswordHasher.sha256(code);
         if (!inputHash.equals(otp.codeHash())) {
             if (otp.attemptsLeft() <= 1) {
-                throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "Превышено количество попыток ввода OTP");
+                throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "error.auth.otp_attempts_exceeded");
             }
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Неверный код подтверждения");
+            throw new ApiException(ErrorCode.OTP_INVALID);
         }
 
         var user = userService
                 .findAuthUserById(userId)
-                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен"));
+                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid"));
         if (!MdPref.STATE_ACTIVE.equals(user.state())
                 || user.authenticationVersion() != otp.authenticationVersion()
                 || !otpCodeRepository.consume(otp.id(), userId, otp.authenticationVersion(), "login")) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid");
         }
 
         String sessionToken = generateSecureToken();
@@ -199,7 +198,7 @@ public class KauthAuthService {
                     user.id(), otp.authenticationVersion(), sessionTokenHash, ip, userAgent, deviceInfo);
         } catch (ApiException e) {
             if (e.getErrorCode() == ErrorCode.INVALID_CREDENTIALS) {
-                throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный OTP токен");
+                throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.otp_token_invalid");
             }
             throw e;
         }

@@ -46,7 +46,7 @@ class KwhWebhookServiceTest {
     void shouldRejectInvalidTargetUrl() {
         assertThatThrownBy(() -> service.createSubscription("Test", "ftp://invalid-url", List.of("task.created"), 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("URL вебхука должен начинаться с http:// или https://");
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.url_scheme");
     }
 
     @Test
@@ -61,7 +61,7 @@ class KwhWebhookServiceTest {
         assertThatThrownBy(() -> disabledService.createSubscription(
                         "Test", "https://hooks.example/events", List.of("task.created"), 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("отключены");
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.disabled");
         Mockito.verifyNoInteractions(subscriptionRepository);
     }
 
@@ -77,7 +77,7 @@ class KwhWebhookServiceTest {
         assertThatThrownBy(() ->
                         privateTargetService.updateSubscription(10L, null, "http://127.0.0.1/internal", null, null))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("внутренний или специальный адрес");
+                .hasFieldOrPropertyWithValue("messageKey", "error.webhook.host_private");
         Mockito.verifyNoInteractions(subscriptionRepository);
     }
 

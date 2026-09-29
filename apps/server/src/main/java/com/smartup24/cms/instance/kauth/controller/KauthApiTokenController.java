@@ -30,7 +30,7 @@ public class KauthApiTokenController {
     public ResponseEntity<List<KauthApiTokenRepository.ApiTokenRecord>> listTokens() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
         return ResponseEntity.ok(apiTokenService.getUserTokens(userId));
@@ -43,7 +43,7 @@ public class KauthApiTokenController {
             @Valid @RequestBody CreateTokenDto body) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
         var result = apiTokenService.createToken(SecurityContext.getPrincipal(), body.name(), body.expiresAt());
@@ -55,7 +55,7 @@ public class KauthApiTokenController {
     public ResponseEntity<Void> revokeToken(@PathVariable("id") Long id) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
         apiTokenService.revokeToken(id, userId);

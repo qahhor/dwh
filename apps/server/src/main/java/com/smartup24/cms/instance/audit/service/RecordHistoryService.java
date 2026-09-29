@@ -51,7 +51,8 @@ public class RecordHistoryService {
     public KeysetPage<HistoryEntry> history(String key, String recordId, int limit, String cursor) {
         RecordHistorySource source = sources.get(key);
         if (source == null) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "Нет истории для записей вида «" + key + "»");
+            throw ApiException.notFound(
+                    ErrorCode.NOT_FOUND, "error.audit.history_source_not_found", Map.of("key", String.valueOf(key)));
         }
         if (!SecurityContext.hasPermission(source.form(), source.action())) {
             throw ApiException.permissionDenied(source.form(), source.action());
