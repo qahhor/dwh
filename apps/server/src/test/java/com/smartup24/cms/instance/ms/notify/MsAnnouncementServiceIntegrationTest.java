@@ -10,12 +10,14 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.ms.notify.controller.MsAnnouncementAdminController;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementDraftRequest;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
 import com.smartup24.cms.instance.ms.notify.service.MsAnnouncementService;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import org.flywaydb.core.Flyway;
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -177,18 +180,53 @@ class MsAnnouncementServiceIntegrationTest {
     void rejectsInvalidLocalizedContentAndBannerType() {
         assertThatThrownBy(() -> service.create(
                         draft(Map.of("en", "No Russian title"), Map.of("ru", "Текст"), "INFO", null), authorId))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("RU");
+                .isInstanceOfSatisfying(
+                        ApiException.class, error -> assertThat(russian(error)).isEqualTo("RU заголовок обязателен"));
 
         assertThatThrownBy(() ->
                         service.create(draft(Map.of("ru", "Заголовок"), Map.of("ru", "Текст"), "HTML", null), authorId))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("INFO");
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getMessageKey()).isEqualTo("error.notify.banner_type_invalid"));
 
         assertThatThrownBy(() -> service.create(
                         draft(Map.of("ru", "Заголовок"), Map.of("ru", "x".repeat(10_001)), "INFO", null), authorId))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("10000");
+                .isInstanceOfSatisfying(ApiException.class, error -> {
+                    assertThat(error.getMessageKey()).isEqualTo("error.notify.announcement_body_too_long");
+                    assertThat(russian(error)).isEqualTo("Значение поля текст не должно превышать 10000 символов");
+                });
+    }
+
+    @Test
+    void localizedFieldErrorsNameTheFieldInEachLanguage() {
+        assertThatThrownBy(() -> service.create(draft(Map.of(), Map.of("ru", "Текст"), "INFO", null), authorId))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(russian(error)).isEqualTo("Локализованный заголовок обязателен"));
+        assertThatThrownBy(() ->
+                        service.create(draft(Map.of("ru", "Заголовок"), Map.of("en", "Text"), "INFO", null), authorId))
+                .isInstanceOfSatisfying(
+                        ApiException.class, error -> assertThat(russian(error)).isEqualTo("RU текст обязателен"));
+
+        Map<String, String> tooMany = new HashMap<>();
+        for (int i = 0; i < 21; i++) {
+            tooMany.put("l" + i, "x");
+        }
+        assertThatThrownBy(() -> service.create(draft(tooMany, Map.of("ru", "Текст"), "INFO", null), authorId))
+                .isInstanceOfSatisfying(ApiException.class, error -> {
+                    assertThat(error.getParams()).containsEntry("max", 20);
+                    assertThat(russian(error)).isEqualTo("Для поля заголовок допускается не более 20 языков");
+                });
+        assertThatThrownBy(() -> service.update(999_999L, draft(Map.of("ru", "З"), Map.of("ru", "Т"), "INFO", 0L)))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(russian(error)).isEqualTo("Объявление не найдено: 999999"));
+    }
+
+    /** The detail a Russian client reads: the old sentence, now rendered from the catalog. */
+    private static String russian(ApiException error) {
+        return PackagedProblemMessages.russian()
+                .render(new MockHttpServletRequest(), error.getMessageKey(), error.getParams());
     }
 
     @Test

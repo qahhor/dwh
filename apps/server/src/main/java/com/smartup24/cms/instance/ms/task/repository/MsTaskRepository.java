@@ -214,11 +214,9 @@ public class MsTaskRepository {
 
         if (updated.isEmpty()) {
             if (data.expectedRevision() != null) {
-                throw ApiException.conflict(
-                        ErrorCode.TASK_REVISION_CONFLICT,
-                        "Задача была изменена другим пользователем. Обновите данные и повторите попытку.");
+                throw ApiException.conflict(ErrorCode.TASK_REVISION_CONFLICT, "error.task.revision_conflict");
             } else {
-                throw ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена");
+                throw new ApiException(ErrorCode.TASK_NOT_FOUND);
             }
         }
     }
@@ -268,11 +266,9 @@ public class MsTaskRepository {
 
         if (updated.isEmpty()) {
             if (patch.expectedRevision() != null) {
-                throw ApiException.conflict(
-                        ErrorCode.TASK_REVISION_CONFLICT,
-                        "Задача была изменена другим пользователем. Обновите данные и повторите попытку.");
+                throw ApiException.conflict(ErrorCode.TASK_REVISION_CONFLICT, "error.task.revision_conflict");
             } else {
-                throw ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена");
+                throw new ApiException(ErrorCode.TASK_NOT_FOUND);
             }
         }
     }
@@ -304,11 +300,9 @@ public class MsTaskRepository {
 
         if (updated.isEmpty()) {
             if (expectedRevision != null) {
-                throw ApiException.conflict(
-                        ErrorCode.TASK_REVISION_CONFLICT,
-                        "Задача была изменена другим пользователем. Обновите данные и повторите попытку.");
+                throw ApiException.conflict(ErrorCode.TASK_REVISION_CONFLICT, "error.task.revision_conflict");
             } else {
-                throw ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена");
+                throw new ApiException(ErrorCode.TASK_NOT_FOUND);
             }
         }
     }

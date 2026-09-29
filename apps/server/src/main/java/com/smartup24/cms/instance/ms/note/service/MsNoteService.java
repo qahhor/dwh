@@ -53,7 +53,7 @@ public class MsNoteService {
 
     private void checkModuleActive() {
         if (moduleRegistryService != null && !moduleRegistryService.isModuleActive("notes")) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Модуль 'notes' отключен администратором");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.note.module_disabled");
         }
     }
 
@@ -106,9 +106,10 @@ public class MsNoteService {
         checkModuleActive();
         var note = noteRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(
+                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!note.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
         }
         return NoteView.from(note);
     }
@@ -153,9 +154,10 @@ public class MsNoteService {
         checkModuleActive();
         var existing = noteRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(
+                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
         }
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
 
@@ -191,9 +193,10 @@ public class MsNoteService {
         checkModuleActive();
         var existing = noteRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(
+                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
         }
 
         return updateNote(id, null, null, null, !existing.isPinned(), null, userId);
@@ -204,9 +207,10 @@ public class MsNoteService {
         checkModuleActive();
         var existing = noteRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Заметка не найдена: " + id));
+                .orElseThrow(
+                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "Нет доступа к чужой заметке");
+            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
         }
 
         noteRepository.delete(id);

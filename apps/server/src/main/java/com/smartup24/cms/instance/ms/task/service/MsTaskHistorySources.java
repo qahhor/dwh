@@ -86,7 +86,7 @@ public class MsTaskHistorySources {
         try {
             return Long.valueOf(recordId);
         } catch (NumberFormatException e) {
-            throw ApiException.notFound(notFound, "Запись не найдена");
+            throw ApiException.notFound(notFound, "error.task.record_not_found");
         }
     }
 }

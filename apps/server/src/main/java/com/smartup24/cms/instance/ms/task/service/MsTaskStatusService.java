@@ -59,7 +59,7 @@ public class MsTaskStatusService {
     public MsTaskStatusRepository.StatusRecord createStatus(
             String pcode, String name, String color, int orderNo, boolean isTerminal) {
         if (name == null || name.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Название статуса обязательно");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.status_name_required");
         }
         var record = statusRepository.create(pcode, name, color, orderNo, isTerminal);
         if (auditLogService != null) {
@@ -77,8 +77,9 @@ public class MsTaskStatusService {
     @Transactional
     @CacheEvict(value = "taskStatuses", allEntries = true)
     public void updateStatusRecord(Long id, String name, String color, Integer orderNo, Boolean isTerminal) {
-        ApiException.requirePresent(
-                statusRepository.findById(id), () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
+        if (statusRepository.findById(id).isEmpty()) {
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.status_not_found");
+        }
         statusRepository.update(id, name, color, orderNo, isTerminal);
         if (name != null) searchChangePublisher.statusChanged(id);
         if (auditLogService != null) {
@@ -97,14 +98,13 @@ public class MsTaskStatusService {
     public void deleteStatus(Long id) {
         var status = statusRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.status_not_found"));
         if (status.pcode() != null) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Нельзя удалить базовый системный статус");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.status_system_delete");
         }
         boolean deleted = statusRepository.delete(id);
         if (!deleted) {
-            throw ApiException.badRequest(
-                    ErrorCode.BAD_REQUEST, "Нельзя удалить статус, который используется в задачах");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.status_in_use");
         }
         if (auditLogService != null) {
             auditLogService.logChange("ms_task_statuses", String.valueOf(id), "D", List.of("id"), null, null);
@@ -132,11 +132,11 @@ public class MsTaskStatusService {
     public MsTaskTypeRepository.TypeRecord createType(
             String code, String name, String icon, String color, int orderNo) {
         if (code == null || code.isBlank() || name == null || name.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Код и название типа обязательны");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.type_code_name_required");
         }
         String cleanCode = code.trim().toLowerCase().replaceAll("[^a-z0-9_]", "_");
         if (typeRepository.findByCode(cleanCode).isPresent()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Тип с таким кодом уже существует");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.type_code_exists");
         }
         var record = typeRepository.create(cleanCode, name, icon, color, orderNo);
         if (auditLogService != null) {
@@ -154,8 +154,9 @@ public class MsTaskStatusService {
     @Transactional
     @CacheEvict(value = "taskTypes", allEntries = true)
     public void updateType(Long id, String name, String icon, String color, Integer orderNo) {
-        ApiException.requirePresent(
-                typeRepository.findById(id), () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Тип задачи не найден"));
+        if (typeRepository.findById(id).isEmpty()) {
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.type_not_found");
+        }
         typeRepository.update(id, name, icon, color, orderNo);
         if (auditLogService != null) {
             auditLogService.logChange(
@@ -173,9 +174,9 @@ public class MsTaskStatusService {
     public void deleteType(Long id) {
         var type = typeRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Тип задачи не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.type_not_found"));
         if (type.isSystem()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Нельзя удалить системный тип задачи");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.type_system_delete");
         }
         typeRepository.delete(id);
         if (auditLogService != null) {

@@ -30,7 +30,7 @@ public class MsSseController {
     public SseEmitter stream() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("Требуется авторизация для подписки на события");
+            throw ApiException.unauthorized("error.notify.sse_auth_required");
         }
         return registry.subscribe(userId);
     }

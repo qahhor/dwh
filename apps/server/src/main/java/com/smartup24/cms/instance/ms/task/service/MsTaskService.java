@@ -117,8 +117,7 @@ public class MsTaskService {
 
         if (projectId != null) {
             ApiException.requirePresent(
-                    projectRepository.findById(projectId),
-                    () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+                    projectRepository.findById(projectId), () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
         }
 
         if (parentTaskId != null) {
@@ -140,8 +139,8 @@ public class MsTaskService {
                 .findByPcode(MsTaskPref.STATUS_NEW)
                 .orElseGet(() -> statusRepository.listStatuses().stream()
                         .findFirst()
-                        .orElseThrow(() ->
-                                ApiException.badRequest(ErrorCode.INTERNAL_ERROR, "Базовый статус задачи не найден")));
+                        .orElseThrow(
+                                () -> new ApiException(ErrorCode.INTERNAL_ERROR, "error.task.default_status_missing")));
 
         String safePriority = normalizePriority(priority);
 
@@ -284,16 +283,14 @@ public class MsTaskService {
 
     @Transactional(readOnly = true)
     public MsTaskRepository.TaskRecord getTaskById(Long taskId) {
-        return taskRepository
-                .findById(taskId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
+        return taskRepository.findById(taskId).orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
     public MsTaskRepository.TaskRecord getTaskById(Long taskId, Long currentUserId) {
         return taskRepository
                 .findById(taskId, scopeService.filterForTasks(currentUserId))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
+                .orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
     }
 
     @Transactional
@@ -303,16 +300,14 @@ public class MsTaskService {
         if (requested.projectIdPresent() && requested.projectId() != null) {
             ApiException.requirePresent(
                     projectRepository.findById(requested.projectId()),
-                    () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+                    () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
         }
 
         if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
             getTaskById(requested.parentTaskId(), currentUserId);
             if (requested.parentTaskId().equals(taskId)
                     || taskRepository.isDescendantOf(requested.parentTaskId(), taskId)) {
-                throw ApiException.conflict(
-                        ErrorCode.TASK_PARENT_CYCLE,
-                        "Нельзя установить дочернюю задачу в качестве родительской (цикл)");
+                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE, "error.task.parent_cycle");
             }
         }
 
@@ -431,17 +426,14 @@ public class MsTaskService {
 
         if (projectId != null) {
             ApiException.requirePresent(
-                    projectRepository.findById(projectId),
-                    () -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+                    projectRepository.findById(projectId), () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
         }
 
         // Cycle check
         if (parentTaskId != null) {
             getTaskById(parentTaskId, currentUserId);
             if (parentTaskId.equals(taskId) || taskRepository.isDescendantOf(parentTaskId, taskId)) {
-                throw ApiException.conflict(
-                        ErrorCode.TASK_PARENT_CYCLE,
-                        "Нельзя установить дочернюю задачу в качестве родительской (цикл)");
+                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE, "error.task.parent_cycle");
             }
         }
 
@@ -513,7 +505,7 @@ public class MsTaskService {
         searchChangePublisher.lockStatusMembership(newStatusId);
         var newStatus = statusRepository
                 .findById(newStatusId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Статус не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.status_not_found"));
 
         Instant resolvedTime = newStatus.isTerminal() ? Instant.now() : null;
         taskRepository.updateStatus(taskId, newStatusId, resolvedTime, expectedRevision, currentUserId);
@@ -748,7 +740,7 @@ public class MsTaskService {
         if (requested.titlePresent()
                 && requested.title() != null
                 && requested.title().isBlank()) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Заголовок задачи не может быть пустым");
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.task.title_blank");
         }
 
         boolean titlePresent = requested.titlePresent() && requested.title() != null;
@@ -786,8 +778,7 @@ public class MsTaskService {
         Instant begin = patch.beginTimePresent() ? patch.beginTime() : existing.beginTime();
         Instant end = patch.endTimePresent() ? patch.endTime() : existing.endTime();
         if (begin != null && end != null && begin.isAfter(end)) {
-            throw ApiException.badRequest(
-                    ErrorCode.VALIDATION_FAILED, "Дата начала задачи не может быть позже срока окончания");
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.task.begin_after_end");
         }
     }
 
@@ -931,7 +922,7 @@ public class MsTaskService {
 
     private void validateParticipant(Long actorId, Long userId) {
         if (userId != null && !scopeService.canAccessUser(actorId, userId)) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "Назначаемый пользователь недоступен");
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.assignee_unavailable");
         }
     }
 }

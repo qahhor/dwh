@@ -28,7 +28,7 @@ public class MsNotificationController {
             @RequestParam(name = "limit", defaultValue = "50") int limit) {
 
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         return ResponseEntity.ok(notificationService.getUserNotifications(userId, limit));
     }
@@ -37,7 +37,7 @@ public class MsNotificationController {
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<Map<String, Integer>> getUnreadCount() {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         int count = notificationService.getUnreadCount(userId);
         return ResponseEntity.ok(Map.of("unread_count", count));
@@ -47,7 +47,7 @@ public class MsNotificationController {
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<Void> markAsRead(@PathVariable("id") Long id) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         notificationService.markAsRead(id, userId);
         return ResponseEntity.noContent().build();
@@ -57,7 +57,7 @@ public class MsNotificationController {
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<Void> markAllAsRead() {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ РЅРµ Р°РІС‚РѕСЂРёР·РѕРІР°РЅ");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         notificationService.markAllAsRead(userId);
         return ResponseEntity.noContent().build();
@@ -67,7 +67,7 @@ public class MsNotificationController {
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<List<MsNotificationPrefRepository.NotificationPrefRecord>> getPreferences() {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         return ResponseEntity.ok(notificationService.getUserPreferences(userId));
     }
@@ -76,7 +76,7 @@ public class MsNotificationController {
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
     public ResponseEntity<Void> updatePreferences(@RequestBody List<MsNotificationService.PrefUpdateDto> updates) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         notificationService.updateUserPreferences(userId, updates);
         return ResponseEntity.noContent().build();

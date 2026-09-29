@@ -57,9 +57,7 @@ public class MsProjectService {
 
     @Transactional(readOnly = true)
     public MsProjectRepository.ProjectRecord getProjectById(Long id) {
-        return projectRepository
-                .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.PROJECT_NOT_FOUND, "Проект не найден"));
+        return projectRepository.findById(id).orElseThrow(() -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -95,7 +93,7 @@ public class MsProjectService {
         String normalizedName = name != null ? name.trim() : null;
         if ((required && normalizedName == null) || (normalizedName != null && normalizedName.isBlank())) {
             throw ApiException.validation(
-                    "Название проекта обязательно",
+                    "error.project.name_required",
                     List.of(new FieldErrorItem("name", "required", "Название проекта обязательно")));
         }
         return normalizedName;
@@ -104,7 +102,7 @@ public class MsProjectService {
     private void validateState(String state) {
         if (state != null && !state.equals("A") && !state.equals("P")) {
             throw ApiException.validation(
-                    "Недопустимый статус проекта",
+                    "error.project.state_invalid",
                     List.of(new FieldErrorItem("state", "invalid", "Допустимые значения: A, P")));
         }
     }
