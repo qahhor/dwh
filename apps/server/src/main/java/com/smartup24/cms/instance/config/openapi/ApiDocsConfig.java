@@ -1,21 +1,28 @@
 package com.smartup24.cms.instance.config.openapi;
 
 import com.smartup24.cms.core.error.ProblemDetailRecord;
+import com.smartup24.cms.instance.common.web.ApiDeprecations;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.headers.Header;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.media.Content;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -95,5 +102,61 @@ public class ApiDocsConfig {
             // Every tag an operation uses (one per controller) is declared once, in a stable order.
             openApi.setTags(tags.stream().map(name -> new Tag().name(name)).toList());
         };
+    }
+
+    /**
+     * The forms of {@link ApiDeprecations} are marked deprecated with the day they stop answering and their successor
+     * (plan item 3.4, ADR-0023); each snake_case parameter is listed, deprecated, next to its camelCase name; and a
+     * {@code 201} names the created resource in {@code Location}.
+     */
+    @Bean
+    OpenApiCustomizer deprecatedFormsAndLocations() {
+        return openApi -> {
+            if (openApi.getPaths() == null) {
+                return;
+            }
+            openApi.getPaths()
+                    .forEach((path, item) -> item.readOperationsMap().forEach((method, operation) -> {
+                        ApiDeprecations.successor(method.name(), path).ifPresent(successor -> {
+                            operation.setDeprecated(true);
+                            operation.addExtension("x-sunset", ApiDeprecations.SUNSET.toString());
+                            operation.addExtension("x-successor", successor.method() + " " + successor.path());
+                        });
+                        addLegacyParameters(operation);
+                        ApiResponse created = operation.getResponses() == null
+                                ? null
+                                : operation.getResponses().get("201");
+                        if (created != null) {
+                            created.addHeaderObject(
+                                    "Location",
+                                    new Header()
+                                            .description("Path of the created resource, when it has one")
+                                            .schema(new StringSchema()));
+                        }
+                    }));
+        };
+    }
+
+    private static void addLegacyParameters(Operation operation) {
+        if (operation.getParameters() == null) {
+            return;
+        }
+        Map<String, String> legacyByCurrent = new TreeMap<>();
+        ApiDeprecations.QUERY_PARAMETERS.forEach((legacy, current) -> legacyByCurrent.put(current, legacy));
+        List<Parameter> legacy = new ArrayList<>();
+        for (Parameter parameter : operation.getParameters()) {
+            String name = legacyByCurrent.get(parameter.getName());
+            if ("query".equals(parameter.getIn()) && name != null) {
+                legacy.add(new Parameter()
+                        .in("query")
+                        .name(name)
+                        .required(false)
+                        .deprecated(true)
+                        .description("Deprecated name of " + parameter.getName() + "; answers until "
+                                + ApiDeprecations.SUNSET)
+                        .schema(parameter.getSchema()));
+            }
+        }
+        legacy.forEach(operation::addParametersItem);
     }
 }
