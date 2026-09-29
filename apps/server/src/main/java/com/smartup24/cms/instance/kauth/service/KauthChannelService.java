@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
+import com.smartup24.cms.instance.kauth.api.ChannelView;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthOtpCodeRepository;
@@ -67,8 +68,10 @@ public class KauthChannelService {
     }
 
     @Transactional(readOnly = true)
-    public List<KauthChannelRepository.ChannelRecord> listChannels(Long userId) {
-        return channelRepository.findByUserId(userId);
+    public List<ChannelView> listChannels(Long userId) {
+        return channelRepository.findByUserId(userId).stream()
+                .map(c -> new ChannelView(c.id(), c.userId(), c.channel(), c.address(), c.isVerified(), c.createdAt()))
+                .toList();
     }
 
     /**

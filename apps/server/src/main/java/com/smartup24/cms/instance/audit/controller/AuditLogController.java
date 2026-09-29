@@ -1,8 +1,12 @@
 package com.smartup24.cms.instance.audit.controller;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.api.AuditLogFilter;
+import com.smartup24.cms.instance.audit.api.AuditLogView;
+import com.smartup24.cms.instance.audit.api.AuditStatsView;
+import com.smartup24.cms.instance.audit.api.SecurityEventFilter;
+import com.smartup24.cms.instance.audit.api.SecurityEventView;
 import com.smartup24.cms.instance.audit.pref.AuditPref;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditListService;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
@@ -27,13 +31,13 @@ public class AuditLogController {
 
     @GetMapping("/stats")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
-    public ResponseEntity<AuditLogRepository.AuditStats> getStats() {
+    public ResponseEntity<AuditStatsView> getStats() {
         return ResponseEntity.ok(auditLogService.getAuditStats());
     }
 
     @GetMapping("/logs")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
-    public ResponseEntity<KeysetPage<AuditLogRepository.AuditRecord>> listLogs(
+    public ResponseEntity<KeysetPage<AuditLogView>> listLogs(
             @RequestParam(name = "table_name", required = false) String tableName,
             @RequestParam(name = "row_pk", required = false) String rowPk,
             @RequestParam(name = "event", required = false) String event,
@@ -48,17 +52,12 @@ public class AuditLogController {
 
         // Registry list audit.logs (ADR-0016); the flat filters are kept for existing callers.
         return ResponseEntity.ok(auditListService.logs(
-                limit,
-                cursor,
-                filter,
-                sort,
-                query,
-                new AuditLogRepository.AuditLogFilters(tableName, rowPk, event, userId, from, to)));
+                limit, cursor, filter, sort, query, new AuditLogFilter(tableName, rowPk, event, userId, from, to)));
     }
 
     @GetMapping("/security-events")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
-    public ResponseEntity<KeysetPage<AuditLogRepository.SecurityEventRecord>> listSecurityEvents(
+    public ResponseEntity<KeysetPage<SecurityEventView>> listSecurityEvents(
             @RequestParam(name = "event_type", required = false) String eventType,
             @RequestParam(name = "user_id", required = false) Long userId,
             @RequestParam(name = "ip", required = false) String ip,
@@ -72,11 +71,6 @@ public class AuditLogController {
 
         // Registry list audit.security_events (ADR-0016); the flat filters are kept for existing callers.
         return ResponseEntity.ok(auditListService.securityEvents(
-                limit,
-                cursor,
-                filter,
-                sort,
-                query,
-                new AuditLogRepository.SecurityEventFilters(eventType, userId, ip, from, to)));
+                limit, cursor, filter, sort, query, new SecurityEventFilter(eventType, userId, ip, from, to)));
     }
 }

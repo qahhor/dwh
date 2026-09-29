@@ -2,8 +2,8 @@ package com.smartup24.cms.instance.audit.service;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.SecurityEventFilters;
+import com.smartup24.cms.instance.audit.api.AuditLogFilter;
+import com.smartup24.cms.instance.audit.api.SecurityEventFilter;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -49,7 +49,7 @@ public class AuditListExporters {
                         filter,
                         sort,
                         search,
-                        new AuditLogFilters(
+                        new AuditLogFilter(
                                 options.get("table_name"),
                                 options.get("row_pk"),
                                 options.get("event"),
@@ -83,7 +83,7 @@ public class AuditListExporters {
                         filter,
                         sort,
                         search,
-                        new SecurityEventFilters(
+                        new SecurityEventFilter(
                                 options.get("event_type"),
                                 number(options.get("user_id")),
                                 options.get("ip"),

@@ -4,12 +4,12 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
+import com.smartup24.cms.instance.kauth.api.ApiTokenView;
+import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
+import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +27,7 @@ public class KauthApiTokenController {
 
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
-    public ResponseEntity<List<KauthApiTokenRepository.ApiTokenRecord>> listTokens() {
+    public ResponseEntity<List<ApiTokenView>> listTokens() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
             throw ApiException.unauthorized("error.auth.not_signed_in");
@@ -39,8 +39,7 @@ public class KauthApiTokenController {
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
     @ReturnsSecret
-    public ResponseEntity<KauthApiTokenService.CreatedTokenResult> createToken(
-            @Valid @RequestBody CreateTokenDto body) {
+    public ResponseEntity<CreatedApiToken> createToken(@Valid @RequestBody CreateTokenRequest body) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
             throw ApiException.unauthorized("error.auth.not_signed_in");
@@ -61,6 +60,4 @@ public class KauthApiTokenController {
         apiTokenService.revokeToken(id, userId);
         return ResponseEntity.noContent().build();
     }
-
-    public record CreateTokenDto(@NotBlank String name, Instant expiresAt) {}
 }

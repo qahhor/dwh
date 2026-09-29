@@ -13,8 +13,8 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
+import com.smartup24.cms.instance.mf.api.FileView;
 import com.smartup24.cms.instance.mf.controller.MfFileController;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.api.TaskDetail;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
@@ -191,16 +191,7 @@ class TaskFileDataScopeControllerTest {
                 1L);
     }
 
-    private static MfFileRepository.FileRecord file(UUID id) {
-        return new MfFileRepository.FileRecord(
-                id,
-                "abc",
-                "scoped.txt",
-                1,
-                "text/plain",
-                "instance-files",
-                "ab/abc",
-                Instant.parse("2026-09-04T10:15:30Z"),
-                10L);
+    private static FileView file(UUID id) {
+        return new FileView(id, "scoped.txt", 1, "text/plain", Instant.parse("2026-09-04T10:15:30Z"), 10L);
     }
 }

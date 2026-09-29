@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import com.smartup24.cms.instance.kauth.api.ActiveSessionView;
+import com.smartup24.cms.instance.kauth.api.LoginAttemptView;
+import com.smartup24.cms.instance.kauth.api.SessionView;
+import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.service.MdUserService;
@@ -42,8 +46,42 @@ public class KauthSessionService {
                 user.createdAt(),
                 user.authenticationVersion(),
                 activeSessions.size(),
-                activeSessions,
-                recentAttempts);
+                activeSessions.stream().map(KauthSessionService::view).toList(),
+                recentAttempts.stream().map(KauthSessionService::view).toList());
+    }
+
+    /** The viewer's own active sessions, the one of this request marked {@code current}. */
+    @Transactional(readOnly = true)
+    public List<ActiveSessionView> listOwnActiveSessions(Long userId, Long currentSessionId) {
+        return sessionRepository.findActiveByUserId(userId).stream()
+                .map(s -> new ActiveSessionView(
+                        s.id(),
+                        s.userId(),
+                        s.ip(),
+                        s.userAgent(),
+                        s.deviceInfo(),
+                        s.createdAt(),
+                        s.lastSeenAt(),
+                        s.closedAt(),
+                        currentSessionId != null && currentSessionId.equals(s.id())))
+                .toList();
+    }
+
+    /** A user's active sessions for an administrator. */
+    @Transactional(readOnly = true)
+    public List<SessionView> listUserActiveSessions(Long userId) {
+        return sessionRepository.findActiveByUserId(userId).stream()
+                .map(KauthSessionService::view)
+                .toList();
+    }
+
+    private static SessionView view(KauthSessionRepository.SessionRecord s) {
+        return new SessionView(
+                s.id(), s.userId(), s.ip(), s.userAgent(), s.deviceInfo(), s.createdAt(), s.lastSeenAt(), s.closedAt());
+    }
+
+    private static LoginAttemptView view(KauthLoginAttemptRepository.LoginAttemptRecord a) {
+        return new LoginAttemptView(a.id(), a.login(), a.ip(), a.isSuccess(), a.failureReason(), a.attemptAt());
     }
 
     @Transactional(readOnly = true)
@@ -55,11 +93,6 @@ public class KauthSessionService {
     @Transactional
     public void updateLastSeen(Long sessionId) {
         sessionRepository.updateLastSeen(sessionId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<KauthSessionRepository.SessionRecord> getUserActiveSessions(Long userId) {
-        return sessionRepository.findActiveByUserId(userId);
     }
 
     @Transactional

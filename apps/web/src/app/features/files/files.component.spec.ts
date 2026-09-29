@@ -79,12 +79,9 @@ describe('FilesComponent request and deletion mechanics', () => {
   };
   const file = (id: number, createdBy = 17): FileDetail => ({
     id: String(id),
-    sha256: '0123456789abcdef',
     originalName: `report-${id}.pdf`,
     sizeBytes: 1024,
     mimeType: 'application/pdf',
-    storageBucket: 'files',
-    storageKey: String(id),
     createdAt: '2026-09-07T00:00:00Z',
     createdBy,
     creatorName: 'File Owner',
