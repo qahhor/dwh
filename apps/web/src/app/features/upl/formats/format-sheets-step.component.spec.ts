@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { ToastService } from '@core/services/toast.service';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { UplColumn, UplFormatDraftRequest, UplUnit } from '../upl-api';
@@ -88,6 +89,7 @@ describe('FormatSheetsStepComponent', () => {
     expect(all(fixture, 'upl-sheet-tab').map(text)).toEqual(['Продажи', 'Остатки']);
     expect((el(fixture).querySelector('#upl-sheet-name') as HTMLInputElement).value).toBe('Продажи');
     expect(namesInFile(fixture)).toEqual(['STIR', 'Volume', 'Comment']);
+    expect(all(fixture, 'upl-cell-file-position')).toHaveLength(0);
     expect(text(el(fixture).querySelector('[data-testid="upl-cell-base-unit"]'))).toBe('Килограмм (kg)');
     expect(el(fixture).querySelector('table')?.getAttribute('aria-label')).toBe('Колонки листа «Продажи»');
 
@@ -107,8 +109,16 @@ describe('FormatSheetsStepComponent', () => {
     name.value = 'Сумма';
     name.dispatchEvent(new Event('input'));
     const synonyms = all(fixture, 'upl-cell-header-synonyms')[0] as HTMLInputElement;
+    expect(synonyms.getAttribute('aria-label')).toBe('Также принимается заголовок');
     synonyms.value = 'Итого; Всего ;';
     synonyms.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+    expect(synonyms.value).toBe('Итого; Всего');
+    // The column flag is a named checkbox that toggles the draft.
+    const required = all(fixture, 'upl-cell-required')[0].querySelector<HTMLElement>('[role="checkbox"]')!;
+    expect(required.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['upl.format.col.required']);
+    click(fixture, required);
+    expect(model.sheets[0].columns[0].required).toBe(true);
 
     expect(all(fixture, 'upl-sheet-tab').map(text)).toEqual(['Лист 1']);
     expect(model.sheets).toHaveLength(1);
@@ -137,9 +147,14 @@ describe('FormatSheetsStepComponent', () => {
     expect(namesInFile(fixture)).toEqual(['Volume', 'STIR']);
   });
 
-  it('clears the unit of a column that stops being a number and says so', () => {
+  it('clears the unit of a column that stops being a number and says so, and drops the server errors', () => {
     const model = draft();
-    const { fixture, toast } = render(model);
+    const errors: UplFieldError[] = [
+      { sheet: 0, column: 1, field: 'sourceUnit', code: 'X', key: 'upl.err.X', message: 'Нет единицы' },
+    ];
+    const { fixture, toast } = render(model, { errors });
+    const errorsChange = vi.fn();
+    fixture.componentInstance.errors.subscribe(errorsChange);
 
     choose(fixture, all(fixture, 'upl-cell-type')[1], 'Текст');
 
@@ -147,7 +162,24 @@ describe('FormatSheetsStepComponent', () => {
       expect.objectContaining({ dataType: 'text', sourceUnit: null, baseUnit: null }),
     );
     expect(toast.info).toHaveBeenCalledWith('Единица/маска очищены');
+    expect(errorsChange).toHaveBeenCalledWith([]);
     expect(all(fixture, 'upl-cell-base-unit')).toHaveLength(0);
+
+    // A type change with nothing to clear says nothing, but the addresses of the errors are still stale.
+    choose(fixture, all(fixture, 'upl-cell-type')[2], PACKAGED_RUSSIAN['upl.format.type.date']);
+    expect(toast.info).toHaveBeenCalledTimes(1);
+    expect(errorsChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('fills the base unit from the chosen source unit', () => {
+    const model = draft();
+    Object.assign(model.sheets[0].columns[1], { sourceUnit: null, baseUnit: null });
+    const { fixture } = render(model);
+
+    choose(fixture, all(fixture, 'upl-cell-source-unit')[0], 'Тонна (ton)');
+
+    expect(model.sheets[0].columns[1]).toEqual(expect.objectContaining({ sourceUnit: 'ton', baseUnit: 'kg' }));
+    expect(text(all(fixture, 'upl-cell-base-unit')[0])).toBe('Килограмм (kg)');
   });
 
   it('removes a sheet only after the person confirms it, naming the columns lost', () => {
@@ -196,8 +228,18 @@ describe('FormatSheetsStepComponent', () => {
     expect(el(fixture).querySelector('#upl-sheet-name')).toBeNull();
     expect(all(fixture, 'upl-cell-header-synonyms')).toHaveLength(0);
     expect(all(fixture, 'upl-cell-file-position')).toHaveLength(3);
-    expect(all(fixture, 'upl-add-column')).toHaveLength(0);
-    expect(all(fixture, 'upl-remove-sheet')).toHaveLength(0);
+    for (const control of [
+      'upl-add-column',
+      'upl-add-sheet',
+      'upl-remove-sheet',
+      'upl-column-remove',
+      'upl-column-up',
+    ]) {
+      expect(all(fixture, control)).toHaveLength(0);
+    }
+    expect(
+      el(fixture).querySelector<HTMLButtonElement>('[data-testid="upl-cell-type"] [role="combobox"]')!.disabled,
+    ).toBe(true);
     expect((all(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
   });
 });

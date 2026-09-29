@@ -4,15 +4,17 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  ResourceRef,
   Signal,
   TemplateRef,
   computed,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription, filter, interval } from 'rxjs';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, filter, interval, map, of } from 'rxjs';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { RouterLink } from '@angular/router';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
@@ -33,6 +35,15 @@ import {
 } from './overview-api';
 import { optionsMemo, SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
+
+/**
+ * What a load leaves on screen. A failure is a value, so it never throws out of the resource, and it
+ * keeps the figures of the load before: a failed refresh leaves them on screen.
+ */
+interface OverviewLoad {
+  overview: UplOverview | null;
+  failed: boolean;
+}
 
 /** How often an open, visible overview asks for fresh figures. */
 const REFRESH_MS = 5 * 60 * 1000;
@@ -92,9 +103,10 @@ export class UplOverviewComponent implements OnInit {
   private readonly dueCell = viewChild.required<TemplateRef<unknown>>('dueCell');
 
   readonly days = signal<UplOverviewPeriod>(30);
-  readonly data = signal<UplOverview | null>(null);
-  readonly loading = signal(false);
-  readonly failed = signal(false);
+  /** The figures on screen: none while another period loads, the last ones while a refresh is on its way or fails. */
+  readonly data = computed<UplOverview | null>(() => this.overview.value()?.overview ?? null);
+  readonly loading = computed(() => this.overview.isLoading());
+  readonly failed = computed(() => !this.loading() && this.overview.value()?.failed === true);
 
   readonly chartSeries = computed<BarChartSeries[]>(() => [
     { key: 'applied', label: this.i18n.translate('upl.overview.totals.applied'), color: 'var(--success)' },
@@ -135,7 +147,17 @@ export class UplOverviewComponent implements OnInit {
   });
 
   readonly periods = UPL_OVERVIEW_PERIODS;
-  private request?: Subscription;
+  /** A new period cancels the answer still on its way, so the latest one wins. */
+  private readonly overview: ResourceRef<OverviewLoad | undefined> = rxResource({
+    params: () => this.days(),
+    stream: ({ params: days }) => {
+      const shown: UplOverview | null = untracked(this.data);
+      return this.api.get(days).pipe(
+        map((overview): OverviewLoad => ({ overview, failed: false })),
+        catchError(() => of<OverviewLoad>({ overview: shown, failed: true })),
+      );
+    },
+  });
 
   readonly freshnessSort = {
     source: (f: UplSourceFreshness) => f.name,
@@ -147,7 +169,6 @@ export class UplOverviewComponent implements OnInit {
   private readonly periodMemo = optionsMemo<SMTRadioOption<UplOverviewPeriod>[]>();
 
   ngOnInit(): void {
-    this.load();
     interval(REFRESH_MS)
       .pipe(
         filter(() => typeof document === 'undefined' || document.visibilityState === 'visible'),
@@ -207,30 +228,12 @@ export class UplOverviewComponent implements OnInit {
   }
 
   choose(period: UplOverviewPeriod): void {
-    if (period === this.days()) return;
     this.days.set(period);
-    this.data.set(null);
-    this.load();
   }
 
-  /** The latest answer wins: switching the period cancels the request still on its way. */
+  /** Asks for the figures of the chosen period again, keeping the ones on screen meanwhile. */
   load(): void {
-    this.request?.unsubscribe();
-    this.loading.set(true);
-    this.failed.set(false);
-    this.request = this.api
-      .get(this.days())
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (overview) => {
-          this.data.set(overview);
-          this.loading.set(false);
-        },
-        error: () => {
-          this.loading.set(false);
-          this.failed.set(true);
-        },
-      });
+    this.overview.reload();
   }
 
   periodOptions(): SMTRadioOption<UplOverviewPeriod>[] {

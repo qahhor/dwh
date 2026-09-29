@@ -7,10 +7,12 @@ import {
   TemplateRef,
   computed,
   inject,
+  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -102,7 +104,11 @@ export class PackagesComponent implements OnInit {
   /** Field metadata of the list (`query-meta/upl.packages`). */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
-  readonly selected = signal<UplPackageItem | null>(null);
+  /** The upload whose card is open; a link to one upload (from the data overview) opens its card at once. */
+  readonly selected = linkedSignal<UplPackageItem | null, UplPackageItem | null>({
+    source: () => this.linkedUpload(),
+    computation: (linked, previous) => linked ?? previous?.value ?? null,
+  });
 
   /** Options of the source lookup: the rows the last search returned, with the chosen one kept. */
   readonly sourceOptions = signal<SMTSelectOption<number>[]>([]);
@@ -174,13 +180,10 @@ export class PackagesComponent implements OnInit {
   /** The published format version of each source seen in the lookup, for the template link. */
   private readonly publishedVersions = new Map<number, number | null>();
 
+  private readonly linkedUpload = toSignal(this.uploadFromLink(), { initialValue: null });
+
   ngOnInit(): void {
     this.load();
-    // A link to one upload (from the data overview) opens its card at once.
-    const open = this.route.snapshot.queryParamMap.get('open');
-    if (open) {
-      this.api.get(open).subscribe({ next: (item) => this.openCard(item) });
-    }
     const created = this.route.snapshot.queryParamMap.get('source');
     if (this.canUpload() && created && /^\d+$/.test(created)) {
       this.api.source(created).subscribe({ next: (source) => this.chooseSource(source) });
@@ -247,14 +250,16 @@ export class PackagesComponent implements OnInit {
       return;
     }
     this.metaError.set(false);
+    // The saved views apply their sort over the metadata, so they load only once it is here.
     this.queryMeta
       .get('upl.packages')
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        tap((meta) => this.meta.set(meta)),
+        switchMap(() => this.views.load()),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
-        next: (meta) => {
-          this.meta.set(meta);
-          this.views.load().subscribe(() => this.pager.first());
-        },
+        next: () => this.pager.first(),
         error: () => this.metaError.set(true),
       });
   }
@@ -354,6 +359,12 @@ export class PackagesComponent implements OnInit {
     if (fileInput) {
       fileInput.nativeElement.value = '';
     }
+  }
+
+  /** The upload named by the `open` link, or nothing; a link that fails leaves the list on screen. */
+  private uploadFromLink(): Observable<UplPackageItem | null> {
+    const open = this.route.snapshot.queryParamMap.get('open');
+    return open ? this.api.get(open).pipe(catchError(() => of(null))) : of(null);
   }
 
   /** Открытая карточка подхватывает свежие данные списка; пропала из порции — остаётся как была. */

@@ -1,7 +1,8 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, ResourceRef, computed, effect, inject, linkedSignal, signal, untracked } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { applyWhen, disabled, form } from '@angular/forms/signals';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -24,6 +25,20 @@ export interface SourceForm {
 
 export type DraftMode = 'empty' | 'copy';
 
+interface SourceCardData {
+  source: UplSource;
+  versions: UplVersionItem[];
+}
+
+/**
+ * What a load leaves on screen. A refusal is a value, so it never throws out of the resource, and it
+ * keeps the data of the load before: a failed reload leaves the card as it was.
+ */
+interface SourceCardLoad {
+  data: SourceCardData | null;
+  problem: ProblemDetail | null;
+}
+
 /**
  * One source's card: loading the source and its versions, saving its
  * requisites and starting a new format draft. Provided by the card screen, so
@@ -39,17 +54,21 @@ export class SourceCardStore {
   private readonly route = inject(ActivatedRoute);
 
   readonly sourceId = signal<string | null>(null);
-  readonly source = signal<UplSource | null>(null);
+  /** The source as the server last gave it: loaded, or answered by a save. */
+  readonly source = linkedSignal(() => this.data()?.source ?? null);
 
-  readonly versions = signal<UplVersionItem[]>([]);
-
-  readonly isLoading = signal(true);
-  readonly loadError = signal(false);
-  readonly notFound = signal(false);
+  readonly versions = linkedSignal(() => this.data()?.versions ?? []);
 
   readonly isSaving = signal(false);
-  readonly fieldErrors = signal<Record<string, string>>({});
-  readonly saveError = signal<string | null>(null);
+  /* A source that arrives (loaded or saved) refills the form, so what was said about the last attempt goes. */
+  readonly fieldErrors = linkedSignal<UplSource | null, Record<string, string>>({
+    source: () => this.source(),
+    computation: () => ({}),
+  });
+  readonly saveError = linkedSignal<UplSource | null, string | null>({
+    source: () => this.source(),
+    computation: () => null,
+  });
   readonly conflict = signal(false);
 
   readonly isDraftOpen = signal(false);
@@ -60,18 +79,21 @@ export class SourceCardStore {
   readonly draftExists = signal(false);
 
   /** The requisites being edited; the card's fields write it through {@link requisites}. */
-  readonly form = signal<SourceForm>({
-    name: '',
-    ownerOrg: '',
-    ownerContact: '',
-    periodicity: 'month',
-    slaDays: 0,
-    reconciliationStrictness: 'error',
+  readonly form = linkedSignal<UplSource | null, SourceForm>({
+    source: () => this.source(),
+    computation: (source, previous) => (source ? formOf(source) : (previous?.value ?? emptyForm())),
   });
 
   /* The rules run only after a save attempt, so errors still appear on save (not while typing), as before. */
-  private readonly submitted = signal(false);
+  private readonly submitted = linkedSignal<UplSource | null, boolean>({
+    source: () => this.source(),
+    computation: () => false,
+  });
 
+  /** True until the first answer, and again while a reload is on its way. */
+  readonly isLoading = computed(() => !this.sourceId() || this.loaded.isLoading());
+  readonly notFound = computed(() => this.problem()?.status === 404);
+  readonly loadError = computed(() => this.problem() !== null && !this.notFound());
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly draftVersion = computed(() => this.versions().find((v) => v.status === 'draft') ?? null);
   /** Versions a draft can be copied from, newest first. */
@@ -80,6 +102,16 @@ export class SourceCardStore {
       .filter((v) => v.status === 'published' || v.status === 'superseded')
       .sort((a, b) => b.version - a.version),
   );
+  private readonly data = computed<SourceCardData | null>(() => this.loaded.value()?.data ?? null);
+  /** The refusal of the last load; a load that answers clears it. */
+  private readonly problem = computed(() => this.loaded.value()?.problem ?? null);
+
+  /** A link that asks for a new draft opens its dialog once the versions are known. */
+  private readonly draftFromQuery = effect(() => {
+    if (this.data()) {
+      untracked(() => this.openDraftDialogFromQuery());
+    }
+  });
 
   private readonly ruleMessage: UplRuleMessage = (key) => ({ kind: key, message: this.i18n.translate(key) });
   /** The card's form: without the edit right every field is disabled. */
@@ -93,37 +125,26 @@ export class SourceCardStore {
     );
   });
 
+  private readonly loaded: ResourceRef<SourceCardLoad | undefined> = rxResource({
+    params: () => this.sourceId() ?? undefined,
+    stream: ({ params: id }) => {
+      const shown: SourceCardData | null = untracked(this.data);
+      return forkJoin({ source: this.api.getSource(id), versions: this.api.listVersions(id) }).pipe(
+        map(({ source, versions }): SourceCardLoad => ({ data: { source, versions: versions ?? [] }, problem: null })),
+        catchError((problem: ProblemDetail) => of<SourceCardLoad>({ data: shown, problem })),
+      );
+    },
+  });
+
   /** Opens the source named by the route. */
   open(sourceId: string | null): void {
     this.sourceId.set(sourceId);
     this.reload();
   }
 
+  /** Asks for the source again; a new source id loads by itself. */
   reload(): void {
-    const id = this.sourceId();
-    if (!id) {
-      return;
-    }
-    this.isLoading.set(true);
-    this.loadError.set(false);
-    this.notFound.set(false);
-    forkJoin({ source: this.api.getSource(id), versions: this.api.listVersions(id) }).subscribe({
-      next: ({ source, versions }) => {
-        this.source.set(source);
-        this.versions.set(versions ?? []);
-        this.fillForm(source);
-        this.isLoading.set(false);
-        this.openDraftDialogFromQuery();
-      },
-      error: (problem: ProblemDetail) => {
-        this.isLoading.set(false);
-        if (problem?.status === 404) {
-          this.notFound.set(true);
-          return;
-        }
-        this.loadError.set(true);
-      },
-    });
+    this.loaded.reload();
   }
 
   save(): void {
@@ -157,7 +178,6 @@ export class SourceCardStore {
       next: (saved) => {
         this.isSaving.set(false);
         this.source.set(saved);
-        this.fillForm(saved);
         this.toast.success(this.i18n.translate('upl.source.saved'));
       },
       error: (problem: ProblemDetail) => {
@@ -235,20 +255,6 @@ export class SourceCardStore {
     });
   }
 
-  private fillForm(source: UplSource): void {
-    this.form.set({
-      name: source.name,
-      ownerOrg: source.ownerOrg,
-      ownerContact: source.ownerContact ?? '',
-      periodicity: source.periodicity,
-      slaDays: source.slaDays,
-      reconciliationStrictness: source.reconciliationStrictness,
-    });
-    this.submitted.set(false);
-    this.fieldErrors.set({});
-    this.saveError.set(null);
-  }
-
   private openDraftDialogFromQuery(): void {
     const wanted = this.route.snapshot?.queryParamMap?.get('newDraft') === '1';
     if (wanted && this.canEdit() && !this.draftVersion()) {
@@ -276,4 +282,27 @@ export class SourceCardStore {
   private problemText(problem: ProblemDetail): string {
     return uplProblemText(problem, (key) => this.i18n.translate(key));
   }
+}
+
+function emptyForm(): SourceForm {
+  return {
+    name: '',
+    ownerOrg: '',
+    ownerContact: '',
+    periodicity: 'month',
+    slaDays: 0,
+    reconciliationStrictness: 'error',
+  };
+}
+
+/** The requisites of a source as the form edits them. */
+function formOf(source: UplSource): SourceForm {
+  return {
+    name: source.name,
+    ownerOrg: source.ownerOrg,
+    ownerContact: source.ownerContact ?? '',
+    periodicity: source.periodicity,
+    slaDays: source.slaDays,
+    reconciliationStrictness: source.reconciliationStrictness,
+  };
 }

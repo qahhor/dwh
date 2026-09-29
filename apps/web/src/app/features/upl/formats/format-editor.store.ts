@@ -1,6 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, ResourceRef, computed, inject, linkedSignal, signal, untracked } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -10,6 +11,33 @@ import { UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labe
 import { UplFieldError, localFormatErrors, parseUplProblem } from './upl-format-errors';
 import { UplFormatStep, buildDraftRequest, emptyModel, uplErrorStep } from './upl-format-model';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
+
+/** Everything one opening of a version needs. */
+interface FormatEditorData {
+  source: UplSource;
+  version: UplFormatVersion;
+  versions: UplVersionItem[];
+  units: UplUnit[];
+}
+
+/**
+ * What a load leaves on screen. A refusal is a value, so it never throws out of the resource, and it
+ * keeps the data of the load before: a failed reload leaves the draft being edited as it was.
+ */
+interface FormatEditorLoad {
+  data: FormatEditorData | null;
+  problem: ProblemDetail | null;
+}
+
+/**
+ * The draft built from a version, with the text it is compared with to tell unsaved edits. Both are
+ * taken at once, so the snapshot never sees an edit made to the draft in place.
+ */
+interface FormatDraft {
+  model: UplFormatDraftRequest;
+  snapshot: string;
+  sheets: number;
+}
 
 /**
  * One format version being edited: loading it, the draft, saving, publishing
@@ -26,15 +54,20 @@ export class FormatEditorStore {
 
   readonly sourceId = signal('');
   readonly versionNumber = signal('');
-  readonly source = signal<UplSource | null>(null);
-  readonly version = signal<UplFormatVersion | null>(null);
-  readonly versions = signal<UplVersionItem[]>([]);
-  readonly units = signal<UplUnit[]>([]);
-  readonly isLoading = signal(true);
-  readonly loadError = signal(false);
-  readonly notFound = signal(false);
-  readonly activeSheet = signal(0);
-  readonly step = signal<UplFormatStep>('file');
+  /** The version as the server last gave it: loaded, or answered by a save. */
+  readonly version = linkedSignal(() => this.data()?.version ?? null);
+  /** A loaded version opens on its sheets when it has some, otherwise on the file settings. */
+  readonly step = linkedSignal<UplFormatStep>(() =>
+    (this.data()?.version.sheets ?? []).length > 0 ? 'sheets' : 'file',
+  );
+  /** Stays on a sheet that still exists when the draft is replaced. */
+  readonly activeSheet = linkedSignal<FormatDraft, number>({
+    source: () => this.draft(),
+    computation: (draft, previous) => {
+      const active = previous?.value ?? 0;
+      return active >= draft.sheets ? Math.max(0, draft.sheets - 1) : active;
+    },
+  });
   readonly errors = signal<UplFieldError[]>([]);
   readonly isSaving = signal(false);
   readonly isPublishing = signal(false);
@@ -44,12 +77,24 @@ export class FormatEditorStore {
   readonly validFrom = signal('');
   readonly publishDateError = signal<string | null>(null);
   /**
-   * The draft. The steps edit this one object in place (they redraw when shown);
-   * the signal changes only when the whole draft is replaced on load, save or revert.
+   * The draft. The steps edit its model in place (they redraw when shown); it is replaced when the
+   * version is loaded or saved, and on revert.
    */
-  readonly model = signal<UplFormatDraftRequest>(emptyModel());
-  private readonly savedSnapshot = signal(JSON.stringify(emptyModel()));
+  private readonly draft = linkedSignal<UplFormatVersion | null, FormatDraft>({
+    source: () => this.version(),
+    computation: (version) => draftOf(version),
+  });
+  private readonly savedSnapshot = linkedSignal(() => this.draft().snapshot);
+  private readonly opened = signal(false);
 
+  readonly source = computed(() => this.data()?.source ?? null);
+  readonly versions = computed(() => this.data()?.versions ?? []);
+  readonly units = computed(() => this.data()?.units ?? []);
+  readonly model = computed(() => this.draft().model);
+  /** True until the first answer, and again while a reload is on its way. */
+  readonly isLoading = computed(() => !this.opened() || this.loaded.isLoading());
+  readonly notFound = computed(() => this.problem()?.status === 404);
+  readonly loadError = computed(() => this.problem() !== null && !this.notFound());
   readonly canEdit = computed(() => this.permissions.hasPermission('upl.sources', 'edit'));
   readonly editable = computed(
     () => this.version()?.status === 'draft' && this.permissions.hasPermission('upl.sources', 'edit'),
@@ -72,45 +117,43 @@ export class FormatEditorStore {
     if (published.length === 0) return null;
     return published.reduce((latest, item) => (item.version > latest.version ? item : latest)).validFrom;
   });
+  private readonly data = computed<FormatEditorData | null>(() => this.loaded.value()?.data ?? null);
+  /** The refusal of the last load; a load that answers clears it. */
+  private readonly problem = computed(() => this.loaded.value()?.problem ?? null);
+
+  private readonly loaded: ResourceRef<FormatEditorLoad | undefined> = rxResource({
+    params: () => (this.opened() ? { sourceId: this.sourceId(), versionNumber: this.versionNumber() } : undefined),
+    stream: ({ params }) => {
+      const shown: FormatEditorData | null = untracked(this.data);
+      return forkJoin({
+        source: this.api.getSource(params.sourceId),
+        version: this.api.getVersion(params.sourceId, params.versionNumber),
+        versions: this.api.listVersions(params.sourceId),
+        units: this.api.listUnits(),
+      }).pipe(
+        map(({ source, version, versions, units }): FormatEditorLoad => ({
+          data: { source, version, versions: versions ?? [], units: units ?? [] },
+          problem: null,
+        })),
+        catchError((problem: ProblemDetail) => of<FormatEditorLoad>({ data: shown, problem })),
+      );
+    },
+  });
 
   /** Opens the version named by the route. */
   open(sourceId: string, versionNumber: string): void {
     this.sourceId.set(sourceId);
     this.versionNumber.set(versionNumber);
+    this.opened.set(true);
     this.reload();
   }
 
+  /** Asks for the version again. New route parameters load by themselves; then this only clears what was said. */
   reload(): void {
-    this.isLoading.set(true);
-    this.loadError.set(false);
-    this.notFound.set(false);
     this.conflict.set(false);
     this.actionError.set(null);
     this.errors.set([]);
-    forkJoin({
-      source: this.api.getSource(this.sourceId()),
-      version: this.api.getVersion(this.sourceId(), this.versionNumber()),
-      versions: this.api.listVersions(this.sourceId()),
-      units: this.api.listUnits(),
-    }).subscribe({
-      next: (loaded) => {
-        this.source.set(loaded.source);
-        this.versions.set(loaded.versions ?? []);
-        this.units.set(loaded.units ?? []);
-        this.version.set(loaded.version);
-        this.resetModel(loaded.version);
-        this.step.set(this.model().sheets.length > 0 ? 'sheets' : 'file');
-        this.isLoading.set(false);
-      },
-      error: (problem: ProblemDetail) => {
-        this.isLoading.set(false);
-        if (problem?.status === 404) {
-          this.notFound.set(true);
-        } else {
-          this.loadError.set(true);
-        }
-      },
-    });
+    this.loaded.reload();
   }
 
   discardAndReload(): void {
@@ -130,7 +173,7 @@ export class FormatEditorStore {
   revert(): void {
     const version = this.version();
     if (!version) return;
-    this.resetModel(version);
+    this.draft.set(draftOf(version));
     this.errors.set([]);
     this.actionError.set(null);
   }
@@ -149,7 +192,6 @@ export class FormatEditorStore {
       next: (saved) => {
         this.isSaving.set(false);
         this.version.set(saved);
-        this.resetModel(saved);
         this.errors.set([]);
         this.toast.success(this.i18n.translate('upl.format.saved'));
         onSaved?.();
@@ -221,22 +263,6 @@ export class FormatEditorStore {
     return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
   }
 
-  private resetModel(version: UplFormatVersion): void {
-    const model: UplFormatDraftRequest = {
-      lockVersion: version.lockVersion,
-      fileKind: version.fileKind ?? 'xlsx',
-      encoding: version.encoding,
-      delimiter: version.delimiter,
-      matchColumnsBy: version.matchColumnsBy ?? 'header',
-      sheets: structuredClone(version.sheets ?? []),
-    };
-    this.model.set(model);
-    if (this.activeSheet() >= model.sheets.length) {
-      this.activeSheet.set(Math.max(0, model.sheets.length - 1));
-    }
-    this.savedSnapshot.set(JSON.stringify(this.buildRequest()));
-  }
-
   private handleProblem(problem: ProblemDetail): void {
     if (problem?.status === 422) {
       const parsed = parseUplProblem(problem);
@@ -259,4 +285,25 @@ export class FormatEditorStore {
     }
     this.actionError.set(uplProblemText(problem, (key) => this.i18n.translate(key)));
   }
+}
+
+/** The draft of a version: a deep copy the steps may edit, and the request it gives unedited. */
+function draftOf(version: UplFormatVersion | null): FormatDraft {
+  if (!version) {
+    const model = emptyModel();
+    return { model, snapshot: JSON.stringify(model), sheets: 0 };
+  }
+  const model: UplFormatDraftRequest = {
+    lockVersion: version.lockVersion,
+    fileKind: version.fileKind ?? 'xlsx',
+    encoding: version.encoding,
+    delimiter: version.delimiter,
+    matchColumnsBy: version.matchColumnsBy ?? 'header',
+    sheets: structuredClone(version.sheets ?? []),
+  };
+  return {
+    model,
+    snapshot: JSON.stringify(buildDraftRequest(model, version.lockVersion)),
+    sheets: model.sheets.length,
+  };
 }

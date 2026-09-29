@@ -13,6 +13,7 @@ import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 import { SourcesListComponent } from './sources-list.component';
 import { ListViewsApi, SavedListView } from '@shared/list-views/list-views';
 import { inScreen } from '@testing/in-screen';
+import { metaField } from '@testing/registry-meta';
 
 function page(
   items: UplSourceItem[],
@@ -32,61 +33,15 @@ const META: QueryListMeta = {
   maxConditions: 20,
   maxInValues: 100,
   fields: [
-    {
-      key: 'code',
-      labelKey: 'upl.list.col.code',
-      type: 'text',
-      ops: ['eq'],
-      sortable: true,
-      nullable: false,
-      defaultVisible: true,
-      enumValues: [],
-      enumLabelPrefix: null,
-    },
-    {
-      key: 'name',
-      labelKey: 'upl.list.col.name',
-      type: 'text',
-      ops: ['eq'],
-      sortable: true,
-      nullable: false,
-      defaultVisible: true,
-      enumValues: [],
-      enumLabelPrefix: null,
-    },
-    {
-      key: 'periodicity',
-      labelKey: 'upl.list.col.periodicity',
-      type: 'enum',
+    metaField('code', 'upl.list.col.code', 'text', { sortable: true }),
+    metaField('name', 'upl.list.col.name', 'text', { sortable: true }),
+    metaField('periodicity', 'upl.list.col.periodicity', 'enum', {
       ops: ['in'],
-      sortable: false,
-      nullable: false,
-      defaultVisible: true,
       enumValues: ['month', 'quarter', 'year', 'adhoc'],
       enumLabelPrefix: 'upl.periodicity.',
-    },
-    {
-      key: 'lastPublishedVersion',
-      labelKey: 'upl.list.col.published_version',
-      type: 'number',
-      ops: ['gt'],
-      sortable: false,
-      nullable: true,
-      defaultVisible: true,
-      enumValues: [],
-      enumLabelPrefix: null,
-    },
-    {
-      key: 'hasDraft',
-      labelKey: 'upl.list.col.draft',
-      type: 'boolean',
-      ops: ['eq'],
-      sortable: false,
-      nullable: false,
-      defaultVisible: true,
-      enumValues: [],
-      enumLabelPrefix: null,
-    },
+    }),
+    metaField('lastPublishedVersion', 'upl.list.col.published_version', 'number', { ops: ['gt'], nullable: true }),
+    metaField('hasDraft', 'upl.list.col.draft', 'boolean'),
   ],
 };
 
@@ -112,7 +67,8 @@ const createdSource = { id: 7, code: 'cement.output', name: 'Vypusk cementa' } a
 
 interface FixtureOptions {
   pages?: Array<Observable<KeysetPage<UplSourceItem>>>;
-  createResult?: Observable<UplSource>;
+  /** What each create answers in turn, the last one ever after. */
+  createResults?: Array<Observable<UplSource>>;
   canCreate?: boolean;
   meta?: Array<Observable<QueryListMeta>>;
   views?: Observable<SavedListView[]>;
@@ -122,11 +78,11 @@ interface FixtureOptions {
 async function createFixture(options: FixtureOptions = {}) {
   const pages = options.pages ?? [of(page([firstItem, secondItem]))];
   const metas = options.meta ?? [of(META)];
-  let call = 0;
-  let metaCall = 0;
+  const creates = options.createResults ?? [of(createdSource)];
+  let [call, metaCall, createCall] = [0, 0, 0];
   const api = {
     listSources: vi.fn((..._args: unknown[]) => pages[Math.min(call++, pages.length - 1)]),
-    createSource: vi.fn(() => options.createResult ?? of(createdSource)),
+    createSource: vi.fn(() => creates[Math.min(createCall++, creates.length - 1)]),
   };
   const queryMeta = { get: vi.fn(() => metas[Math.min(metaCall++, metas.length - 1)]) };
   const listViews = { list: vi.fn(() => options.views ?? of([])), create: vi.fn(), update: vi.fn(), remove: vi.fn() };
@@ -195,10 +151,7 @@ async function openCreateForm(
   values: Partial<ReturnType<SourcesListComponent['createModel']>>,
 ): Promise<void> {
   fixture.componentInstance.openCreate();
-  fixture.detectChanges();
-  fixture.componentInstance.createModel.update((model) => ({ ...model, ...values }));
-  fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('submit', new Event('submit'));
-  fixture.detectChanges();
+  submitPrefilled(fixture, values);
 }
 
 describe('SourcesListComponent', () => {
@@ -423,16 +376,6 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-source-row')).toHaveLength(0);
   });
 
-  it('кнопку «Новый источник» показывает только при праве create', async () => {
-    const withoutRight = await createFixture({ canCreate: false });
-    expect(testId(withoutRight.fixture, 'upl-new-source')).toHaveLength(0);
-
-    TestBed.resetTestingModule();
-    const withRight = await createFixture({ canCreate: true });
-    expect(testId(withRight.fixture, 'upl-new-source')).toHaveLength(1);
-    expect(withRight.permissions.hasPermission).toHaveBeenCalledWith('upl.sources', 'create');
-  });
-
   it('не отправляет запрос при неверном коде', async () => {
     const { fixture, api } = await createFixture();
 
@@ -487,48 +430,34 @@ describe('SourcesListComponent', () => {
     );
     pick('upl-source-periodicity', PACKAGED_RUSSIAN['upl.periodicity.quarter']);
     pick('upl-source-strictness', PACKAGED_RUSSIAN['upl.strictness.warning']);
-    fixture.componentInstance.createModel.update((model) => ({
-      ...model,
-      code: 'cement.output',
-      name: 'Vypusk',
-      ownerOrg: 'Org',
-    }));
-    fixture.debugElement.query(By.css('#upl-source-create')).triggerEventHandler('submit', new Event('submit'));
-    fixture.detectChanges();
+    submitPrefilled(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
     expect(api.createSource).toHaveBeenCalledWith(
       expect.objectContaining({ periodicity: 'quarter', reconciliationStrictness: 'warning' }),
     );
   });
 
-  it('показывает занятый код под полем «Код», окно остаётся открытым', async () => {
-    const problem: ProblemDetail = {
+  it('показывает занятый код под полем «Код», окно остаётся открытым; узнаёт его и по коду каркаса', async () => {
+    const taken = (detail: string): ProblemDetail => ({
       title: 'Bad Request',
       status: 400,
       code: 'code_already_exists',
-      detail: 'UPL_SOURCE_CODE_TAKEN',
-    };
-    const { fixture } = await createFixture({ createResult: throwError(() => problem) });
+      detail,
+    });
+    // The second refusal carries a translated detail: the framework code alone tells it.
+    const { fixture } = await createFixture({
+      createResults: [
+        throwError(() => taken('UPL_SOURCE_CODE_TAKEN')),
+        throwError(() => taken('Такой код уже существует')),
+      ],
+    });
 
-    await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
-
-    expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
-    expect(fixture.componentInstance.isCreateOpen()).toBe(true);
-  });
-
-  it('«код занят» узнаётся по коду каркаса, даже если detail переведён', async () => {
-    const problem: ProblemDetail = {
-      title: 'Bad Request',
-      status: 400,
-      code: 'code_already_exists',
-      detail: 'Такой код уже существует',
-    };
-    const { fixture } = await createFixture({ createResult: throwError(() => problem) });
-
-    await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
-
-    expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
-    expect(fixture.componentInstance.isCreateOpen()).toBe(true);
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
+      expect(fieldError(document.body, 'upl-source-code')).not.toBeNull();
+      expect(fixture.componentInstance.isCreateOpen()).toBe(true);
+    }
+    expect(fixture.componentInstance.fieldErrors()).toEqual({ code: 'upl.err.UPL_SOURCE_CODE_TAKEN' });
   });
 
   it('раскладывает ошибки 422 по полям', async () => {
@@ -539,7 +468,7 @@ describe('SourcesListComponent', () => {
       detail: 'VALIDATION_FAILED: name',
       errors: [{ field: 'name', code: 'Size', message: 'x' }],
     };
-    const { fixture } = await createFixture({ createResult: throwError(() => problem) });
+    const { fixture } = await createFixture({ createResults: [throwError(() => problem)] });
 
     await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
 
@@ -550,52 +479,40 @@ describe('SourcesListComponent', () => {
     expect(testId(fixture, 'upl-create-error')).toHaveLength(1);
   });
 
-  it('в пустом списке без права create нет кнопки «Новый источник»', async () => {
+  it('кнопка «Новый источник», и в пустом списке тоже, есть только при праве create', async () => {
     const withoutRight = await createFixture({ pages: [of(page([]))], canCreate: false });
-
     expect(testId(withoutRight.fixture, 'upl-empty')).toHaveLength(1);
     expect(testId(withoutRight.fixture, 'upl-empty-new')).toHaveLength(0);
     expect(testId(withoutRight.fixture, 'upl-new-source')).toHaveLength(0);
 
     TestBed.resetTestingModule();
     const withRight = await createFixture({ pages: [of(page([]))], canCreate: true });
-
     expect(testId(withRight.fixture, 'upl-empty-new')).toHaveLength(1);
+    expect(testId(withRight.fixture, 'upl-new-source')).toHaveLength(1);
+    expect(withRight.permissions.hasPermission).toHaveBeenCalledWith('upl.sources', 'create');
   });
 
-  it('отказ в праве при создании показывает текстом, окно остаётся открытым', async () => {
-    const problem: ProblemDetail = {
-      title: 'Forbidden',
-      status: 403,
-      code: 'permission_denied',
-      detail: 'PERMISSION_DENIED',
-    };
-    const { fixture, navigate } = await createFixture({ createResult: throwError(() => problem) });
+  it('отказ в праве и неизвестную ошибку сервера показывает текстом, окно остаётся открытым', async () => {
+    const refusal = (status: number, code: string, detail: string): ProblemDetail => ({
+      title: 'x',
+      status,
+      code,
+      detail,
+    });
+    const { fixture, navigate } = await createFixture({
+      createResults: [
+        throwError(() => refusal(403, 'permission_denied', 'PERMISSION_DENIED')),
+        throwError(() => refusal(400, 'bad_request', 'UPL_SOMETHING_NEW')),
+      ],
+    });
 
-    await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
-
-    const errors = testId(fixture, 'upl-create-error');
-    expect(errors).toHaveLength(1);
-    expect(errors[0].textContent).toContain(PACKAGED_RUSSIAN['upl.err.PERMISSION_DENIED']);
-    expect(fixture.componentInstance.isCreateOpen()).toBe(true);
-    expect(navigate).not.toHaveBeenCalled();
-  });
-
-  it('неизвестную ошибку сервера не прячет', async () => {
-    const problem: ProblemDetail = {
-      title: 'Bad Request',
-      status: 400,
-      code: 'bad_request',
-      detail: 'UPL_SOMETHING_NEW',
-    };
-    const { fixture, navigate } = await createFixture({ createResult: throwError(() => problem) });
-
-    await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
-
-    const errors = testId(fixture, 'upl-create-error');
-    expect(errors).toHaveLength(1);
-    expect(errors[0].textContent).toContain('UPL_SOMETHING_NEW (bad_request)');
-    expect(fixture.componentInstance.isCreateOpen()).toBe(true);
+    for (const shown of [PACKAGED_RUSSIAN['upl.err.PERMISSION_DENIED'], 'UPL_SOMETHING_NEW (bad_request)']) {
+      await openCreateForm(fixture, { code: 'cement.output', name: 'Vypusk', ownerOrg: 'Org' });
+      const errors = testId(fixture, 'upl-create-error');
+      expect(errors).toHaveLength(1);
+      expect(errors[0].textContent).toContain(shown);
+      expect(fixture.componentInstance.isCreateOpen()).toBe(true);
+    }
     expect(navigate).not.toHaveBeenCalled();
   });
 });
