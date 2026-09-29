@@ -37,6 +37,7 @@
         "required_status_checks": [
           { "context": "backend (mvn verify + ArchUnit + SBOM)", "integration_id": 15368 },
           { "context": "frontend (unit + typecheck + build)", "integration_id": 15368 },
+          { "context": "api contract (Spectral + openapi-diff + web types)", "integration_id": 15368 },
           { "context": "release config (Compose + NGINX + fail-closed deploy)", "integration_id": 15368 },
           { "context": "e2e (clean deploy + Playwright Chromium, shard 1/2)", "integration_id": 15368 },
           { "context": "e2e (clean deploy + Playwright Chromium, shard 2/2)", "integration_id": 15368 },

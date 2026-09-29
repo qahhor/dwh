@@ -179,6 +179,31 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Plan 10/10, item 3.3: docs/api/openapi.json is generated from the controllers (OpenApiContractTest keeps it
+  # current in the backend job). Here it is linted, the web types are checked against it, and a pull request may not
+  # break the clients of its base branch unless it carries the api-breaking label.
+  api:
+    name: api contract (Spectral + openapi-diff + web types)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: '.node-version'
+          cache: npm
+          cache-dependency-path: tools/api-types/package-lock.json
+
+      - name: Validate the API description, the web types and compatibility
+        shell: pwsh
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
+          ALLOW_BREAKING: ${{ contains(github.event.pull_request.labels.*.name, 'api-breaking') }}
+        run: ./scripts/api/test-api-contract.ps1 -BaseRef $env:BASE_REF -AllowBreaking:($env:ALLOW_BREAKING -eq 'true')
+
   release-config:
     name: release config (Compose + NGINX + fail-closed deploy)
     runs-on: ubuntu-24.04
@@ -374,6 +399,18 @@ jobs:
           version: v0.70.0
           scan-type: fs
           scan-ref: e2e
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Trivy (API types generator)
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        env:
+          TRIVY_INCLUDE_DEV_DEPS: 'true'
+        with:
+          version: v0.70.0
+          scan-type: fs
+          scan-ref: tools/api-types
           severity: CRITICAL,HIGH
           exit-code: '1'
           ignore-unfixed: true
