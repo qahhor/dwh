@@ -1,13 +1,16 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.CreateRoleDto;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.RoleView;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.UpdateRoleDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
-import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +32,7 @@ public class MdRoleController {
 
     @GetMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
-    public ResponseEntity<List<MdRoleRepository.RoleRecord>> listRoles() {
+    public ResponseEntity<List<RoleView>> listRoles() {
         return ResponseEntity.ok(roleService.listRoles());
     }
 
@@ -41,7 +44,7 @@ public class MdRoleController {
 
     @PostMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "create")
-    public ResponseEntity<MdRoleRepository.RoleRecord> createRole(@Valid @RequestBody CreateRoleDto body) {
+    public ResponseEntity<RoleView> createRole(@Valid @RequestBody CreateRoleDto body) {
         var role = roleService.createRole(body.name(), body.orderNo());
         return ResponseEntity.status(HttpStatus.CREATED).body(role);
     }
@@ -69,7 +72,7 @@ public class MdRoleController {
     @PutMapping("/roles/{id}/permissions")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "grant")
     public ResponseEntity<Void> setRolePermissions(
-            @PathVariable("id") Long id, @RequestBody List<MdRoleRepository.PermissionPair> permissions) {
+            @PathVariable("id") Long id, @RequestBody List<@NotNull @Valid RolePermission> permissions) {
 
         roleService.setRolePermissions(id, permissions);
         return ResponseEntity.noContent().build();
@@ -77,11 +80,7 @@ public class MdRoleController {
 
     @GetMapping("/forms")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
-    public ResponseEntity<List<MdPermissionRepository.FormTreeItem>> getFormCatalog() {
-        return ResponseEntity.ok(permissionService.getFormCatalog());
+    public ResponseEntity<List<FormCatalogItem>> getFormCatalog() {
+        return ResponseEntity.ok(permissionService.getFormCatalogItems());
     }
-
-    public record CreateRoleDto(@NotBlank String name, int orderNo) {}
-
-    public record UpdateRoleDto(String name, String state, Integer orderNo) {}
 }

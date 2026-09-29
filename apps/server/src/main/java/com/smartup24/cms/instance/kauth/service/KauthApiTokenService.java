@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.kauth.service;
 
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
+import com.smartup24.cms.instance.kauth.api.ApiTokenView;
+import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -23,7 +25,7 @@ public class KauthApiTokenService {
     }
 
     @Transactional
-    public CreatedTokenResult createToken(KauthPrincipal principal, String name, Instant expiresAt) {
+    public CreatedApiToken createToken(KauthPrincipal principal, String name, Instant expiresAt) {
         credentialGuard.requireCurrent(principal);
         byte[] randomBytes = new byte[32];
         secureRandom.nextBytes(randomBytes);
@@ -34,7 +36,7 @@ public class KauthApiTokenService {
 
         var record = apiTokenRepository.create(
                 principal.userId(), principal.authenticationVersion(), name, tokenPrefix, tokenHash, expiresAt);
-        return new CreatedTokenResult(record, rawToken);
+        return new CreatedApiToken(view(record), rawToken);
     }
 
     @Transactional(readOnly = true)
@@ -52,8 +54,10 @@ public class KauthApiTokenService {
     }
 
     @Transactional(readOnly = true)
-    public List<KauthApiTokenRepository.ApiTokenRecord> getUserTokens(Long userId) {
-        return apiTokenRepository.findByUserId(userId);
+    public List<ApiTokenView> getUserTokens(Long userId) {
+        return apiTokenRepository.findByUserId(userId).stream()
+                .map(KauthApiTokenService::view)
+                .toList();
     }
 
     @Transactional
@@ -61,5 +65,16 @@ public class KauthApiTokenService {
         apiTokenRepository.revoke(tokenId, userId);
     }
 
-    public record CreatedTokenResult(KauthApiTokenRepository.ApiTokenRecord record, String rawSecretToken) {}
+    /** The token hash and authentication version never leave the server. */
+    private static ApiTokenView view(KauthApiTokenRepository.ApiTokenRecord token) {
+        return new ApiTokenView(
+                token.id(),
+                token.userId(),
+                token.name(),
+                token.tokenPrefix(),
+                token.expiresAt(),
+                token.createdAt(),
+                token.lastUsedAt(),
+                token.revokedAt());
+    }
 }

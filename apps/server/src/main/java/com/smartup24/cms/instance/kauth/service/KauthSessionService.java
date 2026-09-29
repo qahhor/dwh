@@ -1,5 +1,11 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.kauth.api.ActiveSessionView;
+import com.smartup24.cms.instance.kauth.api.LoginAttemptView;
+import com.smartup24.cms.instance.kauth.api.SessionView;
+import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.md.service.MdUserService;
@@ -42,8 +48,42 @@ public class KauthSessionService {
                 user.createdAt(),
                 user.authenticationVersion(),
                 activeSessions.size(),
-                activeSessions,
-                recentAttempts);
+                activeSessions.stream().map(KauthSessionService::view).toList(),
+                recentAttempts.stream().map(KauthSessionService::view).toList());
+    }
+
+    /** The viewer's own active sessions, the one of this request marked {@code current}. */
+    @Transactional(readOnly = true)
+    public List<ActiveSessionView> listOwnActiveSessions(Long userId, Long currentSessionId) {
+        return sessionRepository.findActiveByUserId(userId).stream()
+                .map(s -> new ActiveSessionView(
+                        s.id(),
+                        s.userId(),
+                        s.ip(),
+                        s.userAgent(),
+                        s.deviceInfo(),
+                        s.createdAt(),
+                        s.lastSeenAt(),
+                        s.closedAt(),
+                        currentSessionId != null && currentSessionId.equals(s.id())))
+                .toList();
+    }
+
+    /** A user's active sessions for an administrator. */
+    @Transactional(readOnly = true)
+    public List<SessionView> listUserActiveSessions(Long userId) {
+        return sessionRepository.findActiveByUserId(userId).stream()
+                .map(KauthSessionService::view)
+                .toList();
+    }
+
+    private static SessionView view(KauthSessionRepository.SessionRecord s) {
+        return new SessionView(
+                s.id(), s.userId(), s.ip(), s.userAgent(), s.deviceInfo(), s.createdAt(), s.lastSeenAt(), s.closedAt());
+    }
+
+    private static LoginAttemptView view(KauthLoginAttemptRepository.LoginAttemptRecord a) {
+        return new LoginAttemptView(a.id(), a.login(), a.ip(), a.isSuccess(), a.failureReason(), a.attemptAt());
     }
 
     @Transactional(readOnly = true)
@@ -57,14 +97,20 @@ public class KauthSessionService {
         sessionRepository.updateLastSeen(sessionId);
     }
 
-    @Transactional(readOnly = true)
-    public List<KauthSessionRepository.SessionRecord> getUserActiveSessions(Long userId) {
-        return sessionRepository.findActiveByUserId(userId);
-    }
-
     @Transactional
     public void closeSession(Long sessionId) {
         sessionRepository.close(sessionId);
+    }
+
+    /**
+     * Closes one session of a user. A session of someone else, a closed one and an unknown id all answer "not found":
+     * a caller learns nothing about sessions that are not the user's.
+     */
+    @Transactional
+    public void closeUserSession(Long userId, Long sessionId) {
+        if (sessionRepository.closeOwned(sessionId, userId) == 0) {
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.auth.session_not_found");
+        }
     }
 
     @Transactional

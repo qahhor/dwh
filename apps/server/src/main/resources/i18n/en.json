@@ -1612,6 +1612,7 @@
   "error.auth.otp_send_failed": "Could not send the code to the {channel} channel. Contact the administrator",
   "error.auth.otp_token_invalid": "Invalid OTP token",
   "error.auth.reset_link_invalid": "The link is invalid: it has expired or has already been used. Request a new one",
+  "error.auth.session_not_found": "Session not found",
   "error.auth.sign_in_required": "Sign-in is required to access the resource",
   "error.auth.temporary_password_change_required": "Change the temporary password before you start working",
   "error.auth.too_many_failed_logins_from_ip": "Too many failed sign-in attempts from your IP",

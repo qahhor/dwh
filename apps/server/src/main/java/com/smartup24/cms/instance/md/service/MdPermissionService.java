@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.service;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
 import com.smartup24.cms.instance.md.pref.MdFormCatalog;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import java.util.List;
@@ -47,6 +48,15 @@ public class MdPermissionService {
     @Transactional(readOnly = true)
     public List<MdPermissionRepository.FormTreeItem> getFormCatalog() {
         return permissionRepository.getAllFormsWithActions();
+    }
+
+    /** The catalog as the role editor reads it. */
+    @Transactional(readOnly = true)
+    public List<FormCatalogItem> getFormCatalogItems() {
+        return getFormCatalog().stream()
+                .map(i -> new FormCatalogItem(
+                        i.formCode(), i.module(), i.formName(), i.action(), i.actionName(), i.isDeprecated()))
+                .toList();
     }
 
     /**

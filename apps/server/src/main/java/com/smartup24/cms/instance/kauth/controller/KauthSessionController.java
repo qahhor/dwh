@@ -4,12 +4,12 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
+import com.smartup24.cms.instance.kauth.api.ActiveSessionView;
+import com.smartup24.cms.instance.kauth.api.SessionView;
+import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
-import com.smartup24.cms.instance.kauth.service.UserSecuritySummary;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
-import java.time.Instant;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,18 +28,14 @@ public class KauthSessionController {
 
     @GetMapping({"/profile/sessions", "/sessions"})
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
-    public ResponseEntity<List<ActiveSessionDto>> listActiveSessions() {
+    public ResponseEntity<List<ActiveSessionView>> listActiveSessions() {
         var principal = SecurityContext.getPrincipal();
         Long userId = principal != null ? principal.userId() : null;
         if (userId == null) {
             throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
-        Long currentSessionId = principal.sessionId();
-        List<ActiveSessionDto> list = sessionService.getUserActiveSessions(userId).stream()
-                .map(s -> ActiveSessionDto.from(s, currentSessionId))
-                .toList();
-        return ResponseEntity.ok(list);
+        return ResponseEntity.ok(sessionService.listOwnActiveSessions(userId, principal.sessionId()));
     }
 
     @DeleteMapping({"/profile/sessions/others", "/sessions/others"})
@@ -58,15 +54,19 @@ public class KauthSessionController {
     @DeleteMapping({"/profile/sessions/{id}", "/sessions/{id}"})
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     public ResponseEntity<Void> closeSession(@PathVariable("id") Long id) {
-        sessionService.closeSession(id);
+        var principal = SecurityContext.getPrincipal();
+        if (principal == null || principal.userId() == null) {
+            throw ApiException.unauthorized("error.auth.not_signed_in");
+        }
+        // Only the caller's own session: the id alone once closed anyone's (IDOR).
+        sessionService.closeUserSession(principal.userId(), id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping({"/users/{userId}/sessions", "/profile/sessions/users/{userId}"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
-    public ResponseEntity<List<KauthSessionRepository.SessionRecord>> listUserSessions(
-            @PathVariable("userId") Long userId) {
-        return ResponseEntity.ok(sessionService.getUserActiveSessions(userId));
+    public ResponseEntity<List<SessionView>> listUserSessions(@PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(sessionService.listUserActiveSessions(userId));
     }
 
     @DeleteMapping({"/users/{userId}/sessions", "/profile/sessions/users/{userId}"})
@@ -79,7 +79,7 @@ public class KauthSessionController {
     @DeleteMapping({"/users/{userId}/sessions/{id}", "/profile/sessions/users/{userId}/{id}"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     public ResponseEntity<Void> closeUserSession(@PathVariable("userId") Long userId, @PathVariable("id") Long id) {
-        sessionService.closeSession(id);
+        sessionService.closeUserSession(userId, id);
         return ResponseEntity.noContent().build();
     }
 
@@ -104,29 +104,5 @@ public class KauthSessionController {
         Long currentUserId = SecurityContext.getCurrentUserId();
         userService.reset2fa(userId, currentUserId);
         return ResponseEntity.noContent().build();
-    }
-
-    public record ActiveSessionDto(
-            Long id,
-            Long userId,
-            String ip,
-            String userAgent,
-            String deviceInfo,
-            Instant createdAt,
-            Instant lastSeenAt,
-            Instant closedAt,
-            boolean current) {
-        public static ActiveSessionDto from(KauthSessionRepository.SessionRecord record, Long currentSessionId) {
-            return new ActiveSessionDto(
-                    record.id(),
-                    record.userId(),
-                    record.ip(),
-                    record.userAgent(),
-                    record.deviceInfo(),
-                    record.createdAt(),
-                    record.lastSeenAt(),
-                    record.closedAt(),
-                    currentSessionId != null && currentSessionId.equals(record.id()));
-        }
     }
 }

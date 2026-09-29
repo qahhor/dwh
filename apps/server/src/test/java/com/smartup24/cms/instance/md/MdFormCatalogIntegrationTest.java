@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
@@ -86,7 +87,7 @@ class MdFormCatalogIntegrationTest {
         var role = roleRepository.create("Роль для устаревшего права", null, "A", 100);
 
         assertThatThrownBy(() -> roleService.setRolePermissions(
-                        role.id(), List.of(new MdRoleRepository.PermissionPair("notify.preferences", "view"))))
+                        role.id(), List.of(new RolePermission("notify.preferences", "view"))))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.permission_not_grantable")
                 .hasFieldOrPropertyWithValue("params", Map.of("permission", "notify.preferences.view"));

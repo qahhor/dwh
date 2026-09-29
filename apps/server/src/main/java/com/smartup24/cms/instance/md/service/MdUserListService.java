@@ -4,6 +4,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
+import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository.LegacyUserFilters;
@@ -47,6 +48,26 @@ public class MdUserListService {
             MdScopeService scopeService,
             MdRoleRepository roleRepository) {
         this(lists, userRepository, scopeService, roleRepository, null);
+    }
+
+    /** {@link #pageViews(Long, Integer, String, String, String, String, LegacyUserFilters)} for the API filters. */
+    @Transactional(readOnly = true)
+    public KeysetPage<MdUserView> pageViews(
+            Long viewerId,
+            Integer limit,
+            String cursor,
+            String filter,
+            String sort,
+            String search,
+            UserListFilters legacy) {
+        return pageViews(
+                viewerId,
+                limit,
+                cursor,
+                filter,
+                sort,
+                search,
+                new LegacyUserFilters(legacy.state(), legacy.roleId(), legacy.managerId(), legacy.is2faEnabled()));
     }
 
     /** The page as the API answers it: safe views with each user's roles. The screen and the export share it. */

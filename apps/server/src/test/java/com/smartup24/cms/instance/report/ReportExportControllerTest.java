@@ -17,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.dhatim.fastexcel.reader.Row;
@@ -38,6 +39,10 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
 
     private static final String BASE = "/api/v1/exports";
     private static final String PASSWORD = "StrongPassword2026!";
+    private static final String[] QUEUED_KEYS = {"id", "list", "state", "truncated", "createdAt", "expiresAt"};
+    private static final String[] DONE_KEYS = {
+        "id", "list", "state", "rowsCount", "truncated", "fileName", "sizeBytes", "createdAt", "finishedAt", "expiresAt"
+    };
 
     @Autowired
     private WebApplicationContext wac;
@@ -97,6 +102,8 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
         assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
         String id = read(queued, "$.id");
         assertThat((String) read(queued, "$.state")).isEqualTo("queued");
+        // The wire format of a journal entry is pinned; null fields are left out, storage internals never leave.
+        assertThat(keys(queued, "$")).containsExactlyInAnyOrder(QUEUED_KEYS);
 
         assertThat(jobs.runQueued()).isEqualTo(1);
 
@@ -104,6 +111,7 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(journal, "$[0].id")).isEqualTo(id);
         assertThat((String) read(journal, "$[0].state")).isEqualTo("done");
         assertThat((Integer) read(journal, "$[0].rowsCount")).isEqualTo(3);
+        assertThat(keys(journal, "$[0]")).containsExactlyInAnyOrder(DONE_KEYS);
         var file = send(admin, get(BASE + "/" + id + "/file"), null);
         assertThat(file.getStatus()).isEqualTo(200);
         assertThat(file.getHeader("Content-Disposition"))
@@ -297,6 +305,11 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
 
     private static <T> T read(MockHttpServletResponse response, String path) throws Exception {
         return JsonPath.read(response.getContentAsString(), path);
+    }
+
+    private static Set<String> keys(MockHttpServletResponse response, String path) throws Exception {
+        Map<String, Object> object = JsonPath.read(response.getContentAsString(), path);
+        return object.keySet();
     }
 
     private static String json(Object value) {

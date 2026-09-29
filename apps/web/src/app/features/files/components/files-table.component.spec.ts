@@ -28,12 +28,9 @@ const FILES_META: QueryListMeta = {
 
 const file = (overrides: Partial<FileDetail>): FileDetail => ({
   id: 'f-1',
-  sha256: 'abcdef0123456789abcdef',
   originalName: 'report.pdf',
   sizeBytes: 1536,
   mimeType: 'application/pdf',
-  storageBucket: 'files',
-  storageKey: 'key',
   createdAt: '2026-09-01T10:00:00Z',
   ...overrides,
 });
@@ -81,10 +78,11 @@ describe('FilesTableComponent', () => {
     expect(rows().map((row) => row.querySelector('.primary-name')?.textContent)).toEqual(['report.pdf', 'photo.png']);
   });
 
-  it('shows a short checksum, a readable size and who uploaded the file', () => {
+  it('shows a readable size and who uploaded the file, but no content hash', () => {
     const { rows } = render();
 
-    expect(rows()[0].querySelector('.sha-sub')?.textContent).toBe('abcdef012345...');
+    // The server no longer sends the hash: it would tell whether a given file exists in the system.
+    expect(rows()[0].querySelector('.sha-sub')).toBeNull();
     expect(rows()[0].querySelector('.size-pill')?.textContent).toMatch(/^1,5\sкб$/i);
     expect(rows()[0].querySelector('.creator-name')?.textContent).toBe('Анна');
     expect(rows()[0].querySelector('.creator-login')?.textContent).toBe('@anna');

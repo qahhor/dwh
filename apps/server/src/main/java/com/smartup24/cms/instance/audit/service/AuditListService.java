@@ -1,6 +1,10 @@
 package com.smartup24.cms.instance.audit.service;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.api.AuditLogFilter;
+import com.smartup24.cms.instance.audit.api.AuditLogView;
+import com.smartup24.cms.instance.audit.api.SecurityEventFilter;
+import com.smartup24.cms.instance.audit.api.SecurityEventView;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditRecord;
@@ -30,23 +34,57 @@ public class AuditListService {
 
     /** @param legacy the old flat filters; they narrow the list and are part of the cursor's fingerprint */
     @Transactional(readOnly = true)
-    public KeysetPage<AuditRecord> logs(
-            Integer limit, String cursor, String filter, String sort, String search, AuditLogFilters legacy) {
-        var plan = QueryCompiler.compile(AuditQuery.LOGS, filter, sort, limit, cursor, search, legacy.canonical());
+    public KeysetPage<AuditLogView> logs(
+            Integer limit, String cursor, String filter, String sort, String search, AuditLogFilter legacy) {
+        var filters = new AuditLogFilters(
+                legacy.tableName(), legacy.rowPk(), legacy.event(), legacy.userId(), legacy.from(), legacy.to());
+        var plan = QueryCompiler.compile(AuditQuery.LOGS, filter, sort, limit, cursor, search, filters.canonical());
         return lists.page(
                 plan,
-                (rs, row) -> auditLogService.redacted(repository.mapAuditRecord(rs, row)),
-                AuditLogRepository.logPredicate(legacy));
+                (rs, row) -> view(auditLogService.redacted(repository.mapAuditRecord(rs, row))),
+                AuditLogRepository.logPredicate(filters));
     }
 
     @Transactional(readOnly = true)
-    public KeysetPage<SecurityEventRecord> securityEvents(
-            Integer limit, String cursor, String filter, String sort, String search, SecurityEventFilters legacy) {
+    public KeysetPage<SecurityEventView> securityEvents(
+            Integer limit, String cursor, String filter, String sort, String search, SecurityEventFilter legacy) {
+        var filters =
+                new SecurityEventFilters(legacy.eventType(), legacy.userId(), legacy.ip(), legacy.from(), legacy.to());
         var plan = QueryCompiler.compile(
-                AuditQuery.SECURITY_EVENTS, filter, sort, limit, cursor, search, legacy.canonical());
+                AuditQuery.SECURITY_EVENTS, filter, sort, limit, cursor, search, filters.canonical());
         return lists.page(
                 plan,
-                (rs, row) -> auditLogService.redacted(repository.mapSecurityEvent(rs, row)),
-                AuditLogRepository.securityPredicate(legacy));
+                (rs, row) -> view(auditLogService.redacted(repository.mapSecurityEvent(rs, row))),
+                AuditLogRepository.securityPredicate(filters));
+    }
+
+    private static AuditLogView view(AuditRecord r) {
+        return new AuditLogView(
+                r.id(),
+                r.tableName(),
+                r.rowPk(),
+                r.event(),
+                r.changedBy(),
+                r.sessionId(),
+                r.isApi(),
+                r.changedAt(),
+                r.changedColumns(),
+                r.oldRow(),
+                r.newRow(),
+                r.changedByName(),
+                r.changedByLogin());
+    }
+
+    private static SecurityEventView view(SecurityEventRecord r) {
+        return new SecurityEventView(
+                r.id(),
+                r.eventType(),
+                r.userId(),
+                r.ip(),
+                r.userAgent(),
+                r.details(),
+                r.createdAt(),
+                r.userName(),
+                r.userLogin());
     }
 }

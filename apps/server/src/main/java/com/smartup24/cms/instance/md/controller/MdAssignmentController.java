@@ -1,12 +1,15 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.AssignRolesDto;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.EffectivePermissionsResponse;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantsResponse;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.PermissionsVersionResponse;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.ReplacePermissionsDto;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.RoleIdsResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
-import jakarta.validation.constraints.NotBlank;
-import java.util.List;
-import java.util.Map;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,55 +36,36 @@ public class MdAssignmentController {
 
     @GetMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
-    public ResponseEntity<Map<String, Object>> getUserRoles(@PathVariable("userId") Long userId) {
-        return ResponseEntity.ok(Map.of("roleIds", assignmentService.getUserRoleIds(userId)));
+    public ResponseEntity<RoleIdsResponse> getUserRoles(@PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(new RoleIdsResponse(assignmentService.getUserRoleIds(userId)));
     }
 
     @PutMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
-    public ResponseEntity<Map<String, Object>> assignRoles(
-            @PathVariable("userId") Long userId, @RequestBody AssignRolesDto body) {
+    public ResponseEntity<PermissionsVersionResponse> assignRoles(
+            @PathVariable("userId") Long userId, @Valid @RequestBody AssignRolesDto body) {
         long version = assignmentService.assignRoles(userId, body.roleIds());
-        return ResponseEntity.ok(Map.of("permissionsVersion", version));
+        return ResponseEntity.ok(new PermissionsVersionResponse(version));
     }
 
     @GetMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
-    public ResponseEntity<Map<String, Object>> getPersonalPermissions(@PathVariable("userId") Long userId) {
-        var items = assignmentService.getEffectivePermissions(userId).stream()
-                .filter(i -> "personal".equals(i.source()))
-                .map(i -> Map.of("form", i.formCode(), "action", i.action()))
-                .toList();
-        return ResponseEntity.ok(Map.of("grants", items));
+    public ResponseEntity<GrantsResponse> getPersonalPermissions(@PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(new GrantsResponse(assignmentService.getPersonalGrants(userId)));
     }
 
     @PutMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "assign")
-    public ResponseEntity<Map<String, Object>> replacePersonalPermissions(
-            @PathVariable("userId") Long userId, @RequestBody ReplacePermissionsDto body) {
-
-        List<MdRoleRepository.PermissionPair> pairs = body.grants() == null
-                ? List.of()
-                : body.grants().stream()
-                        .map(g -> new MdRoleRepository.PermissionPair(g.form(), g.action()))
-                        .toList();
-        long version = assignmentService.replacePersonalPermissions(userId, pairs);
-        return ResponseEntity.ok(Map.of("permissionsVersion", version));
+    public ResponseEntity<PermissionsVersionResponse> replacePersonalPermissions(
+            @PathVariable("userId") Long userId, @Valid @RequestBody ReplacePermissionsDto body) {
+        long version = assignmentService.replacePersonalPermissions(userId, body.grants());
+        return ResponseEntity.ok(new PermissionsVersionResponse(version));
     }
 
     /** Экран «права глазами пользователя» (FR-PERM-10): что есть и откуда пришло. */
     @GetMapping("/effective-permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
-    public ResponseEntity<Map<String, Object>> getEffectivePermissions(@PathVariable("userId") Long userId) {
-        var items = assignmentService.getEffectivePermissions(userId).stream()
-                .map(i -> Map.of("form", i.formCode(), "action", i.action(), "source", i.source()))
-                .toList();
-        return ResponseEntity.ok(Map.of("items", items));
+    public ResponseEntity<EffectivePermissionsResponse> getEffectivePermissions(@PathVariable("userId") Long userId) {
+        return ResponseEntity.ok(new EffectivePermissionsResponse(assignmentService.getEffectivePermissions(userId)));
     }
-
-    public record AssignRolesDto(List<Long> roleIds) {}
-
-    public record ReplacePermissionsDto(List<GrantDto> grants) {}
-
-    public record GrantDto(@NotBlank String form, @NotBlank String action) {}
 }

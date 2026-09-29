@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantDto;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -92,7 +93,7 @@ class MdAssignmentServiceIntegrationTest {
         assertThat(effective).isNotEmpty();
         assertThat(effective).allSatisfy(i -> assertThat(i.source()).startsWith("role:"));
         assertThat(effective).anySatisfy(i -> {
-            assertThat(i.formCode()).isEqualTo("tasks.items");
+            assertThat(i.form()).isEqualTo("tasks.items");
             assertThat(i.action()).isEqualTo("create");
         });
     }
@@ -103,14 +104,14 @@ class MdAssignmentServiceIntegrationTest {
         Long userId = createUser("personal_target");
         service.assignRoles(userId, List.of(roleId("user")));
 
-        service.replacePersonalPermissions(userId, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
 
         var effective = service.getEffectivePermissions(userId);
         assertThat(effective)
                 .filteredOn(i -> "personal".equals(i.source()))
                 .singleElement()
                 .satisfies(i -> {
-                    assertThat(i.formCode()).isEqualTo("audit.log");
+                    assertThat(i.form()).isEqualTo("audit.log");
                     assertThat(i.action()).isEqualTo("view");
                 });
         assertThat(effective).anySatisfy(i -> assertThat(i.source()).startsWith("role:"));
@@ -120,7 +121,7 @@ class MdAssignmentServiceIntegrationTest {
     @DisplayName("Замена набора прав — именно замена: прежние персональные права снимаются")
     void replaceSemanticsRemovesPrevious() {
         Long userId = createUser("replace_target");
-        service.replacePersonalPermissions(userId, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
         service.replacePersonalPermissions(userId, List.of());
 
         assertThat(service.getEffectivePermissions(userId))
@@ -133,8 +134,8 @@ class MdAssignmentServiceIntegrationTest {
     void rejectsPermissionOutsideCatalog() {
         Long userId = createUser("bad_perm_target");
 
-        assertThatThrownBy(() -> service.replacePersonalPermissions(
-                        userId, List.of(new MdRoleRepository.PermissionPair("no.such.form", "view"))))
+        assertThatThrownBy(
+                        () -> service.replacePersonalPermissions(userId, List.of(new GrantDto("no.such.form", "view"))))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.permission_not_grantable")
                 .hasFieldOrPropertyWithValue("params", Map.of("permission", "no.such.form.view"));
@@ -221,7 +222,7 @@ class MdAssignmentServiceIntegrationTest {
     void personalPermissionChangeIsAudited() {
         Long userId = createUser("audited_perms");
 
-        service.replacePersonalPermissions(userId, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
+        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
         service.replacePersonalPermissions(userId, List.of());
 
         var rows = auditRows("md_user_permissions", userId);

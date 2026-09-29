@@ -9,6 +9,8 @@ import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewRequest;
+import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository;
 import com.smartup24.cms.instance.md.repository.MdListViewRepository.ListView;
 import java.util.ArrayList;
@@ -61,19 +63,20 @@ public class MdListViewService {
         this.audit = audit;
     }
 
-    public record ViewData(String name, JsonNode state, boolean isDefault) {}
-
     @Transactional(readOnly = true)
-    public List<ListView> list(long userId, String listCode) {
+    public List<ViewResponse> list(long userId, String listCode) {
         visibleList(listCode);
-        return repo.list(userId, listCode);
+        return repo.list(userId, listCode).stream()
+                .map(MdListViewService::response)
+                .toList();
     }
 
     @Transactional
-    public ListView create(long userId, String listCode, ViewData data) {
+    public ViewResponse create(long userId, String listCode, ViewRequest data) {
         QueryList list = visibleList(listCode);
         String name = checkName(data.name());
         String state = canonicalState(list, data.state());
+        boolean isDefault = Boolean.TRUE.equals(data.isDefault());
         if (repo.count(userId, listCode) >= MAX_VIEWS_PER_LIST) {
             throw ApiException.validation(
                     "error.md.list_view_limit",
@@ -81,32 +84,33 @@ public class MdListViewService {
                     List.of(new FieldErrorItem(
                             "name", LIST_VIEW_LIMIT, "at most " + MAX_VIEWS_PER_LIST + " views per list")));
         }
-        if (data.isDefault()) {
+        if (isDefault) {
             repo.clearDefault(userId, listCode, null);
         }
         long id;
         try {
-            id = repo.insert(userId, listCode, name, state, data.isDefault());
+            id = repo.insert(userId, listCode, name, state, isDefault);
         } catch (DuplicateKeyException e) {
             throw nameTaken();
         }
         ListView created = repo.find(userId, listCode, id).orElseThrow();
         audit.logChange(TABLE, Long.toString(id), "I", AUDITED, null, row(created));
-        return created;
+        return response(created);
     }
 
     @Transactional
-    public ListView update(long userId, String listCode, long id, int lockVersion, ViewData data) {
+    public ViewResponse update(long userId, String listCode, long id, int lockVersion, ViewRequest data) {
         QueryList list = visibleList(listCode);
         String name = checkName(data.name());
         String state = canonicalState(list, data.state());
+        boolean isDefault = Boolean.TRUE.equals(data.isDefault());
         ListView before = repo.find(userId, listCode, id).orElseThrow(MdListViewService::notFound);
-        if (data.isDefault()) {
+        if (isDefault) {
             repo.clearDefault(userId, listCode, id);
         }
         int updated;
         try {
-            updated = repo.update(userId, listCode, id, lockVersion, name, state, data.isDefault());
+            updated = repo.update(userId, listCode, id, lockVersion, name, state, isDefault);
         } catch (DuplicateKeyException e) {
             throw nameTaken();
         }
@@ -115,7 +119,7 @@ public class MdListViewService {
         }
         ListView after = repo.find(userId, listCode, id).orElseThrow();
         audit.logChange(TABLE, Long.toString(id), "U", AUDITED, row(before), row(after));
-        return after;
+        return response(after);
     }
 
     @Transactional
@@ -252,6 +256,17 @@ public class MdListViewService {
                 into.add(item.asString());
             }
         }
+    }
+
+    /** The state goes out as JSON, not as the stored text; the list code is in the URL already. */
+    private static ViewResponse response(ListView view) {
+        return new ViewResponse(
+                view.id(),
+                view.name(),
+                JSON.readTree(view.stateJson()),
+                view.isDefault(),
+                view.lockVersion(),
+                view.modifiedAt());
     }
 
     private static Map<String, Object> row(ListView view) {

@@ -3,7 +3,8 @@ package com.smartup24.cms.instance.ms.notify.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.ms.notify.model.AnnouncementDraftRequest;
+import com.smartup24.cms.instance.ms.notify.api.AnnouncementDraftRequest;
+import com.smartup24.cms.instance.ms.notify.api.ManagedAnnouncementView;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
 import java.util.LinkedHashMap;
@@ -65,12 +66,12 @@ public class MsAnnouncementService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsAnnouncementRepository.ManagedAnnouncementRecord> listAll() {
-        return repository.findAll();
+    public List<ManagedAnnouncementView> listAll() {
+        return repository.findAll().stream().map(MsNotifyViews::managed).toList();
     }
 
     @Transactional
-    public MsAnnouncementRepository.ManagedAnnouncementRecord create(AnnouncementDraftRequest request, Long authorId) {
+    public ManagedAnnouncementView create(AnnouncementDraftRequest request, Long authorId) {
         validateDraft(request, false);
         if (authorId == null) {
             throw ApiException.unauthorized("error.notify.not_authenticated");
@@ -85,11 +86,11 @@ public class MsAnnouncementService {
                 List.of("title_json", "body_json", "banner_type", "state", "created_by"),
                 Map.of(),
                 snapshot(created));
-        return created;
+        return MsNotifyViews.managed(created);
     }
 
     @Transactional
-    public MsAnnouncementRepository.ManagedAnnouncementRecord update(Long id, AnnouncementDraftRequest request) {
+    public ManagedAnnouncementView update(Long id, AnnouncementDraftRequest request) {
         validateDraft(request, true);
         var current = getById(id);
         requireState(current, AnnouncementState.DRAFT, "error.notify.announcement_edit_draft_only");
@@ -105,11 +106,11 @@ public class MsAnnouncementService {
                 .orElseThrow(MsAnnouncementService::staleVersion);
         auditMutation(
                 current, updated, List.of("title_json", "body_json", "banner_type", "modified_at", "lock_version"));
-        return updated;
+        return MsNotifyViews.managed(updated);
     }
 
     @Transactional
-    public MsAnnouncementRepository.ManagedAnnouncementRecord publish(Long id, Long lockVersion) {
+    public ManagedAnnouncementView publish(Long id, Long lockVersion) {
         requireValidVersion(lockVersion);
         var current = getById(id);
         requireState(current, AnnouncementState.DRAFT, "error.notify.announcement_publish_draft_only");
@@ -117,11 +118,11 @@ public class MsAnnouncementService {
 
         var published = repository.publish(id, lockVersion).orElseThrow(MsAnnouncementService::staleVersion);
         auditMutation(current, published, List.of("state", "published_at", "modified_at", "lock_version"));
-        return published;
+        return MsNotifyViews.managed(published);
     }
 
     @Transactional
-    public MsAnnouncementRepository.ManagedAnnouncementRecord archive(Long id, Long lockVersion) {
+    public ManagedAnnouncementView archive(Long id, Long lockVersion) {
         requireValidVersion(lockVersion);
         var current = getById(id);
         requireState(current, AnnouncementState.PUBLISHED, "error.notify.announcement_archive_published_only");
@@ -129,7 +130,7 @@ public class MsAnnouncementService {
 
         var archived = repository.archive(id, lockVersion).orElseThrow(MsAnnouncementService::staleVersion);
         auditMutation(current, archived, List.of("state", "archived_at", "modified_at", "lock_version"));
-        return archived;
+        return MsNotifyViews.managed(archived);
     }
 
     private MsAnnouncementRepository.ManagedAnnouncementRecord getById(Long id) {

@@ -3,8 +3,10 @@ package com.smartup24.cms.instance.mf.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.mf.api.FileListItem;
+import com.smartup24.cms.instance.mf.api.FileView;
+import com.smartup24.cms.instance.mf.api.StorageStats;
 import com.smartup24.cms.instance.mf.pref.MfPref;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -30,11 +32,10 @@ public class MfFileController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequiresPermission(form = MfPref.FORM_FILES, action = "upload")
-    public ResponseEntity<MfFileRepository.FileRecord> uploadFile(@RequestParam("file") MultipartFile file)
-            throws IOException {
+    public ResponseEntity<FileView> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
-        var record = fileService.uploadFile(
+        var record = fileService.upload(
                 file.getOriginalFilename(),
                 file.getContentType(),
                 file.getInputStream(),
@@ -46,14 +47,14 @@ public class MfFileController {
 
     @GetMapping("/storage/stats")
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
-    public ResponseEntity<MfFileService.StorageStats> getStorageStats() {
+    public ResponseEntity<StorageStats> getStorageStats() {
         Long currentUserId = SecurityContext.getCurrentUserId();
         return ResponseEntity.ok(fileService.getStorageStats(currentUserId));
     }
 
     @GetMapping
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
-    public ResponseEntity<KeysetPage<MfFileRepository.FileDetailRecord>> listFiles(
+    public ResponseEntity<KeysetPage<FileListItem>> listFiles(
             @RequestParam(name = "scope", defaultValue = "all") String scope,
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "limit", required = false) Integer limit,
@@ -76,7 +77,7 @@ public class MfFileController {
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MfPref.FORM_FILES, action = "view")
-    public ResponseEntity<MfFileRepository.FileRecord> getFileMetadata(@PathVariable("id") UUID id) {
+    public ResponseEntity<FileView> getFileMetadata(@PathVariable("id") UUID id) {
         return ResponseEntity.ok(fileService.getFileMetadata(id, SecurityContext.getCurrentUserId()));
     }
 

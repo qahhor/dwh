@@ -686,6 +686,23 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The API speaks DTOs (plan 10/10, item 3.2). The 18 controllers that
+  returned or took repository records (tasks, projects, comments,
+  notifications, announcements, users, roles, assignments, org units,
+  custom fields, list views, sessions, tokens, channels, audit, files,
+  exports) use records of their module's `api` package, built by the
+  services; the rule "controllers see no repository" is strict now (100
+  frozen violations before). The JSON stays the same, pinned by wire
+  format tests per module, except that file responses no longer carry
+  `storageBucket`, `storageKey` and `sha256` (the web files table drops
+  the checksum).
+- An operation with an `Idempotency-Key` happens exactly once (plan 10/10,
+  item 3.12). The request runs in one transaction that its writes join,
+  and its answer is stored in it before the commit: a process that dies
+  after the commit leaves the answer for the retry. A 5xx rolls the
+  request back and frees the key, a failed commit answers 500 instead of
+  the buffered success, and each bulk item runs in its own savepoint.
+
 - One error model on the server (plan 10/10, item 3.1, ADR-0021). Every
   error a request can end with is an `ApiException` (the fnd constraint
   and coefficient errors joined it) carrying an `ErrorCode`, the catalog
@@ -944,6 +961,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- A session could be closed by anyone with the profile right: `DELETE
+  /profile/sessions/{id}` closed any session by its id and the
+  administrator variant ignored the user in its path. A session is closed
+  now only together with its owner; another user's session answers 404.
+- Request bodies with a missing or blank element (personal grants, role
+  assignments, role permissions) answer 422 instead of 500; the
+  assignment bodies were not validated at all.
 
 - Found while moving errors to catalog keys (plan 10/10, item 3.1): the
   fnd constraint and coefficient errors answered 500; four notification

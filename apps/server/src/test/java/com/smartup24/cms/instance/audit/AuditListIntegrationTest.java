@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
+import com.smartup24.cms.instance.audit.api.AuditLogFilter;
+import com.smartup24.cms.instance.audit.api.AuditLogView;
+import com.smartup24.cms.instance.audit.api.SecurityEventFilter;
+import com.smartup24.cms.instance.audit.api.SecurityEventView;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditLogFilters;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.AuditRecord;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.SecurityEventFilters;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository.SecurityEventRecord;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditListExporters;
 import com.smartup24.cms.instance.audit.service.AuditListService;
@@ -53,13 +53,13 @@ class AuditListIntegrationTest {
         long oldest = insertAudit("al_tie", "1", "U", TIE, "{}");
         long middle = insertAudit("al_tie", "2", "U", TIE, "{}");
         long newest = insertAudit("al_tie", "3", "U", TIE, "{}");
-        var filters = new AuditLogFilters("al_tie", null, null, null, null, null);
+        var filters = new AuditLogFilter("al_tie", null, null, null, null, null);
 
         var first = audit.logs(2, null, null, null, null, filters);
         var second = audit.logs(2, first.nextCursor(), null, null, null, filters);
 
-        assertThat(first.items()).extracting(AuditRecord::id).containsExactly(newest, middle);
-        assertThat(second.items()).extracting(AuditRecord::id).containsExactly(oldest);
+        assertThat(first.items()).extracting(AuditLogView::id).containsExactly(newest, middle);
+        assertThat(second.items()).extracting(AuditLogView::id).containsExactly(oldest);
         assertThat(first.totalEstimated()).isEqualTo(3);
     }
 
@@ -68,14 +68,14 @@ class AuditListIntegrationTest {
     void dslAndCursorOnAuditRows() {
         insertAudit("al_dsl", "1", "I", TIE, "{}");
         insertAudit("al_dsl", "2", "D", TIE.plusSeconds(1), "{}");
-        var table = new AuditLogFilters("al_dsl", null, null, null, null, null);
+        var table = new AuditLogFilter("al_dsl", null, null, null, null, null);
 
         assertThat(audit.logs(null, null, "[{\"field\":\"event\",\"op\":\"eq\",\"value\":\"D\"}]", null, null, table)
                         .items())
-                .extracting(AuditRecord::rowPk)
+                .extracting(AuditLogView::rowPk)
                 .containsExactly("2");
         assertThat(audit.logs(null, null, null, "changedAt", null, table).items())
-                .extracting(AuditRecord::rowPk)
+                .extracting(AuditLogView::rowPk)
                 .containsExactly("1", "2");
 
         var first = audit.logs(1, null, null, null, null, table);
@@ -85,7 +85,7 @@ class AuditListIntegrationTest {
                         null,
                         null,
                         null,
-                        new AuditLogFilters("al_dsl", null, "I", null, null, null)))
+                        new AuditLogFilter("al_dsl", null, "I", null, null, null)))
                 .isInstanceOfSatisfying(
                         ApiException.class,
                         error -> assertThat(error.getFieldErrors())
@@ -96,7 +96,7 @@ class AuditListIntegrationTest {
     @Test
     @DisplayName("Only the event time sorts: a large partitioned log is never sorted by an unindexed column")
     void onlyTheEventTimeSorts() {
-        assertThatThrownBy(() -> audit.logs(null, null, null, "tableName", null, AuditLogFilters.none()))
+        assertThatThrownBy(() -> audit.logs(null, null, null, "tableName", null, AuditLogFilter.none()))
                 .isInstanceOfSatisfying(
                         ApiException.class,
                         error -> assertThat(error.getFieldErrors())
@@ -111,13 +111,13 @@ class AuditListIntegrationTest {
         insertSecurityEvent("AL_SECRET", "10.0.0.7", "{\"token\":\"live-token\",\"reason\":\"x\"}", TIE);
 
         var row = audit.logs(
-                        null, null, null, null, null, new AuditLogFilters("al_secret", null, null, null, null, null))
+                        null, null, null, null, null, new AuditLogFilter("al_secret", null, null, null, null, null))
                 .items()
                 .getFirst();
         assertThat(row.newRow()).containsEntry("password_hash", "[REDACTED]").containsEntry("state", "A");
 
         var event = audit.securityEvents(
-                        null, null, null, null, null, new SecurityEventFilters("AL_SECRET", null, null, null, null))
+                        null, null, null, null, null, new SecurityEventFilter("AL_SECRET", null, null, null, null))
                 .items()
                 .getFirst();
         assertThat(event.details()).containsEntry("token", "[REDACTED]").containsEntry("reason", "x");
@@ -129,15 +129,15 @@ class AuditListIntegrationTest {
         long oldest = insertSecurityEvent("AL_TIE", "10.1.1.1", "{}", TIE);
         long middle = insertSecurityEvent("AL_TIE", "10.1.1.2", "{}", TIE);
         long newest = insertSecurityEvent("AL_TIE", "10.9.9.9", "{}", TIE);
-        var type = new SecurityEventFilters("AL_TIE", null, null, null, null);
+        var type = new SecurityEventFilter("AL_TIE", null, null, null, null);
 
         var first = audit.securityEvents(2, null, null, null, null, type);
         var second = audit.securityEvents(2, first.nextCursor(), null, null, null, type);
-        assertThat(first.items()).extracting(SecurityEventRecord::id).containsExactly(newest, middle);
-        assertThat(second.items()).extracting(SecurityEventRecord::id).containsExactly(oldest);
+        assertThat(first.items()).extracting(SecurityEventView::id).containsExactly(newest, middle);
+        assertThat(second.items()).extracting(SecurityEventView::id).containsExactly(oldest);
 
         assertThat(audit.securityEvents(null, null, null, null, "10.9.9", type).items())
-                .extracting(SecurityEventRecord::id)
+                .extracting(SecurityEventView::id)
                 .containsExactly(newest);
         assertThat(audit.securityEvents(
                                 null,
@@ -145,9 +145,9 @@ class AuditListIntegrationTest {
                                 null,
                                 null,
                                 null,
-                                new SecurityEventFilters("AL_TIE", null, "10.1.1", null, null))
+                                new SecurityEventFilter("AL_TIE", null, "10.1.1", null, null))
                         .items())
-                .extracting(SecurityEventRecord::id)
+                .extracting(SecurityEventView::id)
                 .containsExactly(middle, oldest);
     }
 
@@ -155,10 +155,10 @@ class AuditListIntegrationTest {
     @DisplayName("Every registry field is a property of the row the client receives")
     void everyFieldIsARowProperty() {
         assertThat(AuditQuery.LOGS.fields())
-                .allSatisfy(field -> assertThat(properties(AuditRecord.class)).contains(field.key()));
+                .allSatisfy(field -> assertThat(properties(AuditLogView.class)).contains(field.key()));
         assertThat(AuditQuery.SECURITY_EVENTS.fields())
-                .allSatisfy(field ->
-                        assertThat(properties(SecurityEventRecord.class)).contains(field.key()));
+                .allSatisfy(
+                        field -> assertThat(properties(SecurityEventView.class)).contains(field.key()));
     }
 
     @Test

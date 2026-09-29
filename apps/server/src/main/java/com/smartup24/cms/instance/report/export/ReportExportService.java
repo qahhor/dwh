@@ -14,6 +14,8 @@ import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.md.service.MdI18nService;
+import com.smartup24.cms.instance.report.api.ExportItem;
+import com.smartup24.cms.instance.report.api.ExportRequest;
 import com.smartup24.cms.instance.report.repository.ReportExportRepository;
 import com.smartup24.cms.instance.report.repository.ReportExportRepository.ExportRow;
 import com.smartup24.cms.spi.storage.StorageProvider;
@@ -113,18 +115,8 @@ public class ReportExportService {
         this.maxRows = maxRows;
     }
 
-    /** What the client asks to export: the list as it stands on screen. */
-    public record ExportRequest(
-            String list,
-            String filter,
-            String sort,
-            String q,
-            List<String> columns,
-            Map<String, String> options,
-            String lang) {}
-
     @Transactional
-    public ExportRow request(ExportRequest request) {
+    public ExportItem request(ExportRequest request) {
         long userId = SecurityContext.getCurrentUserId();
         QueryList list = registry.find(request.list())
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
@@ -174,12 +166,30 @@ public class ReportExportService {
                 List.of("list_code"),
                 null,
                 Map.of("listCode", list.code()));
-        return row;
+        return item(row);
     }
 
     @Transactional(readOnly = true)
-    public List<ExportRow> journal() {
-        return repo.listForUser(SecurityContext.getCurrentUserId(), JOURNAL_SIZE);
+    public List<ExportItem> journal() {
+        return repo.listForUser(SecurityContext.getCurrentUserId(), JOURNAL_SIZE).stream()
+                .map(ReportExportService::item)
+                .toList();
+    }
+
+    /** The journal entry the client sees: the storage key, owner and stored request stay here. */
+    private static ExportItem item(ExportRow row) {
+        return new ExportItem(
+                row.publicId(),
+                row.listCode(),
+                row.state(),
+                row.rowsCount(),
+                row.truncated(),
+                row.fileName(),
+                row.sizeBytes(),
+                row.errorCode(),
+                row.createdAt(),
+                row.finishedAt(),
+                row.expiresAt());
     }
 
     /** A person's own finished export; somebody else's is as unknown as a missing one. */

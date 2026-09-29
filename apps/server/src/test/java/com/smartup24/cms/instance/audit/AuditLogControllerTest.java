@@ -8,8 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.api.AuditLogView;
+import com.smartup24.cms.instance.audit.api.SecurityEventView;
 import com.smartup24.cms.instance.audit.controller.AuditLogController;
-import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditListService;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -35,7 +36,7 @@ class AuditLogControllerTest {
     @Test
     void returnsAuditLogsAsCursorPage() throws Exception {
         AuditListService service = mock(AuditListService.class);
-        var record = new AuditLogRepository.AuditRecord(
+        var record = new AuditLogView(
                 10L,
                 "md_users",
                 "5",
@@ -64,7 +65,7 @@ class AuditLogControllerTest {
     @Test
     void returnsSecurityEventsAsCursorPage() throws Exception {
         AuditListService service = mock(AuditListService.class);
-        var record = new AuditLogRepository.SecurityEventRecord(
+        var record = new SecurityEventView(
                 11L,
                 "LOGIN_FAILED",
                 5L,

@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import java.time.LocalDate;
@@ -92,9 +93,31 @@ public class MdCustomFieldService {
         return customFieldRepository.findByEntityType(entityType);
     }
 
+    /** The definitions as the settings screen reads them; the cached list stays the source. */
+    @Transactional(readOnly = true)
+    public List<CustomFieldView> listFields(String entityType) {
+        return getSelf().getFields(entityType).stream()
+                .map(MdCustomFieldService::view)
+                .toList();
+    }
+
+    private static CustomFieldView view(MdCustomFieldRepository.CustomFieldRecord field) {
+        return new CustomFieldView(
+                field.id(),
+                field.entityType(),
+                field.code(),
+                field.name(),
+                field.fieldType(),
+                field.isRequired(),
+                field.defaultValue(),
+                field.optionsJson(),
+                field.orderNo(),
+                field.createdAt());
+    }
+
     @Transactional
     @CacheEvict(value = "customFields", allEntries = true)
-    public MdCustomFieldRepository.CustomFieldRecord createField(
+    public CustomFieldView createField(
             String entityType,
             String code,
             String name,
@@ -158,7 +181,7 @@ public class MdCustomFieldService {
                         "is_required",
                         isRequired));
 
-        return field;
+        return view(field);
     }
 
     @Transactional

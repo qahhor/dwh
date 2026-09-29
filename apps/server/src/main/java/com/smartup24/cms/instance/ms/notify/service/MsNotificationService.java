@@ -1,5 +1,9 @@
 package com.smartup24.cms.instance.ms.notify.service;
 
+import com.smartup24.cms.instance.ms.notify.api.AnnouncementView;
+import com.smartup24.cms.instance.ms.notify.api.NotificationPrefUpdate;
+import com.smartup24.cms.instance.ms.notify.api.NotificationPrefView;
+import com.smartup24.cms.instance.ms.notify.api.NotificationView;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository;
 import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
@@ -47,13 +51,15 @@ public class MsNotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsNotificationPrefRepository.NotificationPrefRecord> getUserPreferences(Long userId) {
+    public List<NotificationPrefView> getUserPreferences(Long userId) {
         if (prefRepository == null) return List.of();
-        return prefRepository.findByUserId(userId);
+        return prefRepository.findByUserId(userId).stream()
+                .map(MsNotifyViews::preference)
+                .toList();
     }
 
     @Transactional
-    public void updateUserPreferences(Long userId, List<PrefUpdateDto> updates) {
+    public void updateUserPreferences(Long userId, List<NotificationPrefUpdate> updates) {
         if (prefRepository == null || updates == null) return;
         for (var pref : updates) {
             prefRepository.upsert(userId, pref.eventType(), pref.channel(), pref.isEnabled());
@@ -65,8 +71,6 @@ public class MsNotificationService {
         if (prefRepository == null) return true;
         return prefRepository.isEnabled(userId, eventType, channel, true);
     }
-
-    public record PrefUpdateDto(String eventType, String channel, boolean isEnabled) {}
 
     @Transactional
     public void sendInAppNotification(
@@ -83,8 +87,10 @@ public class MsNotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsNotificationRepository.NotificationRecord> getUserNotifications(Long userId, int limit) {
-        return notificationRepository.listUserNotifications(userId, limit);
+    public List<NotificationView> getUserNotifications(Long userId, int limit) {
+        return notificationRepository.listUserNotifications(userId, limit).stream()
+                .map(MsNotifyViews::notification)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -103,8 +109,10 @@ public class MsNotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsAnnouncementRepository.AnnouncementRecord> getActiveAnnouncements(Long userId, String language) {
-        return announcementRepository.getActiveUnreadAnnouncements(userId, language);
+    public List<AnnouncementView> getActiveAnnouncements(Long userId, String language) {
+        return announcementRepository.getActiveUnreadAnnouncements(userId, language).stream()
+                .map(MsNotifyViews::announcement)
+                .toList();
     }
 
     @Transactional

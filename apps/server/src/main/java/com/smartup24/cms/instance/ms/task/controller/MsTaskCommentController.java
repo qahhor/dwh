@@ -4,11 +4,11 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.ms.task.api.AddCommentRequest;
+import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,15 +25,14 @@ public class MsTaskCommentController {
 
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "view")
-    public ResponseEntity<List<MsTaskCommentRepository.CommentRecord>> listComments(
-            @PathVariable("taskId") Long taskId) {
+    public ResponseEntity<List<TaskCommentView>> listComments(@PathVariable("taskId") Long taskId) {
         return ResponseEntity.ok(commentService.listComments(taskId, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "create")
-    public ResponseEntity<MsTaskCommentRepository.CommentRecord> addComment(
-            @PathVariable("taskId") Long taskId, @RequestBody AddCommentDto body) {
+    public ResponseEntity<TaskCommentView> addComment(
+            @PathVariable("taskId") Long taskId, @RequestBody AddCommentRequest body) {
 
         String text = body != null ? body.resolveText() : null;
         if (text == null || text.isBlank()) {
@@ -43,17 +42,5 @@ public class MsTaskCommentController {
         Long currentUserId = SecurityContext.getCurrentUserId();
         var comment = commentService.addComment(taskId, currentUserId, text, body.fileIds());
         return ResponseEntity.status(HttpStatus.CREATED).body(comment);
-    }
-
-    public record AddCommentDto(String textMarkdown, String commentMarkdown, List<UUID> fileIds) {
-        public String resolveText() {
-            if (textMarkdown != null && !textMarkdown.isBlank()) {
-                return textMarkdown.trim();
-            }
-            if (commentMarkdown != null && !commentMarkdown.isBlank()) {
-                return commentMarkdown.trim();
-            }
-            return "";
-        }
     }
 }
