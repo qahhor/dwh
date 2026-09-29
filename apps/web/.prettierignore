@@ -1,5 +1,7 @@
 # Generated from the server catalog by npm run i18n:sync-ru; CI compares it byte for byte.
 src/app/core/i18n/packaged-russian.ts
+# Generated from docs/api/openapi.json by npm run api:types (plan 10/10, item 3.3); CI compares it byte for byte.
+src/app/core/api/openapi.d.ts
 dist/
 coverage/
 .angular/

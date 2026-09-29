@@ -80,6 +80,22 @@ updates:
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
 
+  # Generator of the web's API types (plan 10/10, item 3.3).
+  - package-ecosystem: npm
+    directory: /tools/api-types
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Tashkent
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: build(deps)
+    ignore:
+      # openapi-typescript 7 declares TypeScript ^5: a new major waits for the generator.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:

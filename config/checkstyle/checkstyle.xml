@@ -30,11 +30,10 @@
         <property name="files" value="[\\/]src[\\/]test[\\/]"/>
         <property name="checks" value="FileLength|MethodLength"/>
     </module>
-    <!-- Temporary waivers, each removed by the item named:
-         OpenApiController is deleted by item 3.3 (the springdoc-based contract replaces it);
-         UplXlsxParser streams rows since item 3.9; splitting its reading from its checks is the next step. -->
+    <!-- Temporary waiver: UplXlsxParser streams rows since item 3.9; splitting its reading from its checks is the
+         next step. -->
     <module name="SuppressionSingleFilter">
-        <property name="files" value="[\\/]config[\\/]openapi[\\/]OpenApiController\.java$|[\\/]upl[\\/]parse[\\/]UplXlsxParser\.java$"/>
+        <property name="files" value="[\\/]upl[\\/]parse[\\/]UplXlsxParser\.java$"/>
         <property name="checks" value="FileLength|MethodLength"/>
     </module>
 

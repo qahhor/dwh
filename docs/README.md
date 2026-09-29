@@ -52,10 +52,13 @@ Current ADRs that are not superseded:
   `query-meta` and filter and sort through one checked JSON DSL.
 
 - [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
-- [ADR-0020 — database naming and types](adr/ADR-0020-database-naming.md)
-- [ADR-0021 — one error model](adr/ADR-0021-error-model.md)
   — an entity is one server declaration from which lists, forms, cards,
   permissions and menus are built.
+- [ADR-0020 — database naming and types](adr/ADR-0020-database-naming.md)
+- [ADR-0021 — one error model](adr/ADR-0021-error-model.md)
+- [ADR-0022 — the API description comes from the code](adr/ADR-0022-openapi-from-code.md)
+  — `docs/api/openapi.json` is generated from the controllers; the web types
+  and the breaking-change check read it.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

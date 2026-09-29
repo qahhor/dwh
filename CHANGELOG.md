@@ -9,6 +9,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- The API description comes from the code (plan 10/10, item 3.3, ADR-0022).
+  springdoc-openapi generates `/api/v1/openapi.json` (OpenAPI 3.1) from the
+  controllers and DTOs; the hand-written `OpenApiController` is gone, and with
+  it the last size waiver but `UplXlsxParser`. Every operation names its
+  problem-details error response and both ways to authenticate.
+  `docs/api/openapi.json` is the committed copy: `OpenApiContractTest` fails
+  when a handler is missing from it or it is stale. The web's types are
+  generated from it (`npm run api:types`, generator in `tools/api-types`), and
+  a type test keeps the web error model in step with the server's. A new CI
+  job, `api contract`, lints the description with Spectral, checks the web
+  types byte for byte and runs openapi-diff against the base branch: a pull
+  request that breaks clients fails unless it carries the `api-breaking`
+  label.
 - Branch and tag protection as code, and a release that cannot tag an
   unscanned image (plan 10/10, item 1.9). `.github/rulesets` holds the main
   ruleset (reviewed pull requests with code owners, merge commits only, the
