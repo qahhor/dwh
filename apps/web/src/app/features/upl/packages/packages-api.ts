@@ -6,7 +6,7 @@ import { toQueryParams } from '@core/services/query-meta.service';
 import { KeysetPage } from '@core/models/common.models';
 import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 
-export type UplPackageStatus = 'received' | 'verified' | 'rejected' | 'applied';
+export type UplPackageStatus = 'received' | 'verified' | 'applying' | 'rejected' | 'applied';
 
 /** Параметры русского текста ошибки: подставляются в фигурные скобки ключа `upl.err.*`. */
 export type UplPackageParams = Record<string, string | number>;
@@ -92,7 +92,10 @@ export class UplPackagesApiService {
     });
   }
 
-  /** Применяет проверенную загрузку: ответ — пакет «применён» или «отклонён системой» с причиной сверки. */
+  /**
+   * Ставит применение проверенной загрузки в очередь (plan 10/10, item 3.9): ответ 202 — пакет «применяется»; итог
+   * («применён» или «отклонён системой» с причиной сверки) читается через {@link get}.
+   */
   apply(id: string): Observable<UplPackageItem> {
     return this.api.post<UplPackageItem>(`${PACKAGES}/${id}/apply`, null, { notifyError: false });
   }

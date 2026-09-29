@@ -10,9 +10,11 @@ import {
   signal,
   input,
   output,
+  DestroyRef,
+  OnInit,
 } from '@angular/core';
-import { rxResource } from '@angular/core/rxjs-interop';
-import { catchError, map, of } from 'rxjs';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, filter, map, of, switchMap, take, timer } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
@@ -77,6 +79,16 @@ type ErrorsLoad = { errors: UplPackageErrors | null } | { problem: ProblemDetail
         }}</smt-badge>
       </div>
       <div class="upl-pkg-card-meta" data-testid="upl-pkg-card-meta">{{ metaText() }}</div>
+      @if (item().status === 'applying') {
+        <smt-alert smtTone="info" class="upl-pkg-alert" role="status" data-testid="upl-pkg-applying">{{
+          'upl.pkg.card.applying' | t
+        }}</smt-alert>
+      }
+      @if (applyLost()) {
+        <smt-alert smtTone="warning" class="upl-pkg-alert" data-testid="upl-pkg-applying-lost">{{
+          'upl.pkg.card.applying_lost' | t
+        }}</smt-alert>
+      }
       @if (applyError(); as message) {
         <smt-alert smtTone="danger" class="upl-pkg-alert" data-testid="upl-pkg-apply-error">{{ message }}</smt-alert>
       }
@@ -176,8 +188,9 @@ type ErrorsLoad = { errors: UplPackageErrors | null } | { problem: ProblemDetail
   `,
   styleUrl: './package-card.component.css',
 })
-export class PackageCardComponent {
+export class PackageCardComponent implements OnInit {
   private readonly api = inject(UplPackagesApiService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly i18n = inject(I18nService);
 
   readonly item = input.required<UplPackageItem>();
@@ -192,6 +205,8 @@ export class PackageCardComponent {
   private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
 
   readonly applying = signal(false);
+  /** The result of a queued apply could not be read three times in a row: the person refreshes by hand. */
+  readonly applyLost = signal(false);
   /** Another upload in the card starts without the refusal of the previous one. */
   readonly applyError = linkedSignal<UplPackageItem, string | null>({
     source: () => this.item(),
@@ -238,6 +253,11 @@ export class PackageCardComponent {
       columnsOrder: ['sheet', 'row', 'column', 'value', 'what'],
     };
   });
+
+  /** How often a card asks for the result of an apply that runs as a job. */
+  static readonly POLL_MS = 2000;
+  /** Failed reads in a row after which the card stops asking. */
+  static readonly POLL_TRIES = 3;
 
   /** The stored errors are all on screen, so a header click sorts them all: by sheet, row, column or reason. */
   readonly errorSortValues = {
@@ -297,6 +317,12 @@ export class PackageCardComponent {
   }
 
   /** Строка сверки: только у применённой загрузки и только когда сервер отдал оба числа — экран чисел не выдумывает. */
+  ngOnInit(): void {
+    if (this.item().status === 'applying') {
+      this.waitForResult(this.item().id);
+    }
+  }
+
   reconciliationText(): string {
     const { status, rowsTotal, rawRows } = this.item();
     if (status !== 'applied' || rowsTotal == null || rawRows == null) {
@@ -309,9 +335,9 @@ export class PackageCardComponent {
     this.applying.set(true);
     this.applyError.set(null);
     this.api.apply(this.item().id).subscribe({
-      next: (result) => {
-        this.applying.set(false);
-        this.applied.emit(result);
+      next: (queued) => {
+        this.applied.emit(queued);
+        this.waitForResult(queued.id);
       },
       error: (problem: ProblemDetail) => {
         this.applying.set(false);
@@ -336,6 +362,42 @@ export class PackageCardComponent {
 
   reloadErrors(): void {
     this.errorsLoad.reload();
+  }
+
+  /**
+   * The apply runs as a job (plan 10/10, item 3.9): the card asks for the package until it is no longer applying, then
+   * hands the result on. A package opened while applying is followed the same way.
+   */
+  private waitForResult(id: string): void {
+    this.applying.set(true);
+    this.applyLost.set(false);
+    let failures = 0;
+    timer(PackageCardComponent.POLL_MS, PackageCardComponent.POLL_MS)
+      .pipe(
+        switchMap(() =>
+          this.api.get(id).pipe(
+            map((item) => {
+              failures = 0;
+              return item;
+            }),
+            catchError(() => {
+              failures++;
+              return of(null);
+            }),
+          ),
+        ),
+        filter((item) => (item !== null && item.status !== 'applying') || failures >= PackageCardComponent.POLL_TRIES),
+        take(1),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((result) => {
+        this.applying.set(false);
+        if (result === null) {
+          this.applyLost.set(true);
+        } else {
+          this.applied.emit(result);
+        }
+      });
   }
 
   /** Отказ сервера: ошибка загрузки — текстом её ключа, прочее (нет права, сбой сети) — общим текстом. */

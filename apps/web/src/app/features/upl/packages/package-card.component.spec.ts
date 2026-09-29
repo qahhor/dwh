@@ -68,6 +68,7 @@ async function createFixture(
   const api = {
     errors: vi.fn(() => results[Math.min(call++, results.length - 1)]),
     apply: vi.fn(),
+    get: vi.fn(),
   };
   await TestBed.configureTestingModule({
     imports: [PackageCardComponent],
@@ -348,18 +349,73 @@ describe('PackageCardComponent', () => {
     expect(testId(nothingAccepted.fixture, 'upl-pkg-apply')).toHaveLength(0);
   });
 
-  it('AC-13: «Применить» вызывает сервер и отдаёт применённую загрузку', async () => {
-    const { fixture, api } = await createFixture(item(), [of(errorsPage([]))], true);
-    const result = item({ status: 'applied', loadId: 9, rawRows: 120 });
-    api.apply.mockReturnValue(of(result));
-    const applied = vi.fn();
-    fixture.componentInstance.applied.subscribe(applied);
+  it('3.9: «Применить» ставит применение в очередь и ждёт итога, опрашивая загрузку', async () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, api } = await createFixture(item(), [of(errorsPage([]))], true);
+      const queued = item({ status: 'applying', loadId: 9 });
+      const result = item({ status: 'applied', loadId: 9, rawRows: 120 });
+      api.apply.mockReturnValue(of(queued));
+      api.get.mockReturnValueOnce(of(queued)).mockReturnValue(of(result));
+      const applied = vi.fn();
+      fixture.componentInstance.applied.subscribe(applied);
 
-    click(fixture, 'upl-pkg-apply');
+      click(fixture, 'upl-pkg-apply');
 
-    expect(api.apply).toHaveBeenCalledWith(item().id);
-    expect(applied).toHaveBeenCalledWith(result);
-    expect(testId(fixture, 'upl-pkg-apply-error')).toHaveLength(0);
+      expect(api.apply).toHaveBeenCalledWith(item().id);
+      expect(applied).toHaveBeenLastCalledWith(queued);
+      expect(fixture.componentInstance.applying()).toBe(true);
+
+      vi.advanceTimersByTime(PackageCardComponent.POLL_MS);
+      expect(applied).toHaveBeenCalledTimes(1);
+      vi.advanceTimersByTime(PackageCardComponent.POLL_MS);
+
+      expect(applied).toHaveBeenLastCalledWith(result);
+      expect(fixture.componentInstance.applying()).toBe(false);
+      expect(api.get).toHaveBeenCalledTimes(2);
+      expect(testId(fixture, 'upl-pkg-apply-error')).toHaveLength(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('3.9: три неудачных опроса подряд — карточка перестаёт спрашивать и просит обновить', async () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, api } = await createFixture(item({ status: 'applying', loadId: 9 }), [of(errorsPage([]))], true);
+      api.get.mockReturnValue(throwError(() => problem(503, 'down', 'service_unavailable')));
+      fixture.detectChanges();
+      expect(testId(fixture, 'upl-pkg-applying')[0].getAttribute('role')).toBe('status');
+
+      vi.advanceTimersByTime(PackageCardComponent.POLL_MS * PackageCardComponent.POLL_TRIES);
+      fixture.detectChanges();
+
+      expect(api.get).toHaveBeenCalledTimes(PackageCardComponent.POLL_TRIES);
+      expect(testId(fixture, 'upl-pkg-applying-lost')[0].textContent).toContain(
+        PACKAGED_RUSSIAN['upl.pkg.card.applying_lost'],
+      );
+      vi.advanceTimersByTime(PackageCardComponent.POLL_MS * 2);
+      expect(api.get).toHaveBeenCalledTimes(PackageCardComponent.POLL_TRIES);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('3.9: карточка загрузки, которая уже применяется, сама дожидается итога', async () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture, api } = await createFixture(item({ status: 'applying', loadId: 9 }), [of(errorsPage([]))], true);
+      const result = item({ status: 'rejected', loadId: 9 });
+      api.get.mockReturnValue(of(result));
+      const applied = vi.fn();
+      fixture.componentInstance.applied.subscribe(applied);
+
+      vi.advanceTimersByTime(PackageCardComponent.POLL_MS);
+
+      expect(applied).toHaveBeenCalledWith(result);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('AC-13: отказ сервера с кодом загрузки — красная полоса текстом словаря', async () => {
