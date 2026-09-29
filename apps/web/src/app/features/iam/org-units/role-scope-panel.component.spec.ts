@@ -67,6 +67,23 @@ describe('RoleScopePanelComponent', () => {
     slow.complete();
   });
 
+  it.each([
+    ['another role', { roleId: 6, rule: 'SELF' }],
+    ['an unknown rule', { roleId: 5, rule: 'EVERYTHING' }],
+  ])('refuses a snapshot of %s and never saves from it', (_case, snapshot) => {
+    const { fixture, panel, api } = setup();
+    api.roleRule.mockReturnValueOnce(of(snapshot as RoleRuleSnapshot));
+    panel.reload();
+    fixture.detectChanges();
+
+    expect(panel.loaded()).toBe(false);
+    expect(panel.loadError()).not.toBeNull();
+    panel.selectRule('SELF');
+    panel.save();
+    panel.confirmSave();
+    expect(api.saveRoleRule).not.toHaveBeenCalled();
+  });
+
   it('uses iam.org_units.assign independently from rbac.roles.grant', () => {
     const grantOnly = setup({ permissions: ['iam.org_units.view', 'rbac.roles.grant'] });
     grantOnly.panel.selectRule('SELF');

@@ -1,14 +1,16 @@
-import { ChangeDetectionStrategy, Component, OnInit, signal, computed, inject, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, signal, computed, inject, viewChild } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 
 import { AuthService } from '@core/services/auth.service';
 import { ProfileApi } from './profile.api';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
-import { Observable, finalize, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
 import { fitsPasswordPolicy, PASSWORD_POLICY } from '@core/security/password-policy';
+import { lastLoaded } from '@features/iam/last-loaded';
 
 import {
   UserSession,
@@ -47,7 +49,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   templateUrl: './profile.component.html',
   styleUrl: './profile.component.css',
 })
-export class ProfileComponent implements OnInit {
+export class ProfileComponent {
   authService = inject(AuthService);
 
   public readonly permissionService = inject(PermissionService);
@@ -58,13 +60,6 @@ export class ProfileComponent implements OnInit {
 
   readonly channelsCard = viewChild<ProfileChannelsCardComponent>('channelsCard');
 
-  readonly sessions = signal<UserSession[]>([]);
-  readonly tokens = signal<ApiToken[]>([]);
-  readonly channels = signal<UserChannel[]>([]);
-
-  readonly isLoadingSessions = signal<boolean>(false);
-  readonly isLoadingTokens = signal<boolean>(false);
-  readonly isLoadingChannels = signal<boolean>(false);
   readonly isCreatingToken = signal<boolean>(false);
   readonly isTerminatingSession = signal<boolean>(false);
   readonly isBindingChannel = signal<boolean>(false);
@@ -88,7 +83,21 @@ export class ProfileComponent implements OnInit {
     confirmPassword: '',
   });
 
+  readonly isLoadingSessions = computed(() => this.sessionsRead.isLoading());
+  readonly isLoadingTokens = computed(() => this.tokensRead.isLoading());
+  readonly isLoadingChannels = computed(() => this.channelsRead.isLoading());
+
   readonly canManageChannels = computed(() => this.permissionService.hasPermission('iam.profile', 'manage_channels'));
+
+  /* Reads only: the reload after ending a session, revoking a token or changing a channel
+     asks for the list again and never repeats the action. */
+  private readonly sessionsRead = rxResource({ stream: () => listOrNull(this.profile.sessions()) });
+  private readonly tokensRead = rxResource({ stream: () => listOrNull(this.profile.tokens()) });
+  private readonly channelsRead = rxResource({ stream: () => listOrNull(this.profile.channels()) });
+
+  readonly sessions = lastLoaded<UserSession[]>(() => this.sessionsRead.value(), []);
+  readonly tokens = lastLoaded<ApiToken[]>(() => this.tokensRead.value(), []);
+  readonly channels = lastLoaded<UserChannel[]>(() => this.channelsRead.value(), []);
 
   tokenExpirationOptions: TokenExpirationOption[] = [
     { value: '30', labelKey: 'iam.srok_30_dney' },
@@ -122,23 +131,8 @@ export class ProfileComponent implements OnInit {
     return !!p1 && !!p2 && p1 === p2;
   }
 
-  ngOnInit() {
-    this.loadSessions();
-    this.loadTokens();
-    this.loadChannels();
-  }
-
   loadChannels() {
-    this.isLoadingChannels.set(true);
-    this.profile.channels().subscribe({
-      next: (res) => {
-        this.channels.set(res || []);
-        this.isLoadingChannels.set(false);
-      },
-      error: () => {
-        this.isLoadingChannels.set(false);
-      },
-    });
+    this.channelsRead.reload();
   }
 
   onBindChannel(event: { channel: string; address: string }) {
@@ -191,16 +185,7 @@ export class ProfileComponent implements OnInit {
   }
 
   loadSessions() {
-    this.isLoadingSessions.set(true);
-    this.profile.sessions().subscribe({
-      next: (res) => {
-        this.sessions.set(res || []);
-        this.isLoadingSessions.set(false);
-      },
-      error: () => {
-        this.isLoadingSessions.set(false);
-      },
-    });
+    this.sessionsRead.reload();
   }
 
   requestTerminateSession(session: UserSession) {
@@ -269,16 +254,7 @@ export class ProfileComponent implements OnInit {
   }
 
   loadTokens() {
-    this.isLoadingTokens.set(true);
-    this.profile.tokens().subscribe({
-      next: (res) => {
-        this.tokens.set(res || []);
-        this.isLoadingTokens.set(false);
-      },
-      error: () => {
-        this.isLoadingTokens.set(false);
-      },
-    });
+    this.tokensRead.reload();
   }
 
   openCreateTokenModal() {
@@ -369,4 +345,12 @@ export class ProfileComponent implements OnInit {
       })
       .subscribe();
   }
+}
+
+/** The list (empty for no answer), or null when the request failed, so the list on screen stays. */
+function listOrNull<T>(request: Observable<T[] | null>): Observable<T[] | null> {
+  return request.pipe(
+    map((list) => list ?? []),
+    catchError(() => of(null)),
+  );
 }
