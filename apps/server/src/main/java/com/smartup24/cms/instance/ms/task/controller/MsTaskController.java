@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.bulk.BulkItemScope;
 import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
@@ -27,6 +28,8 @@ import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,9 +47,18 @@ public class MsTaskController {
     private final MsTaskService taskService;
     private final MsTaskListService taskListService;
 
+    private final @Nullable BulkItemScope bulkItems;
+
     public MsTaskController(MsTaskService taskService, MsTaskListService taskListService) {
+        this(taskService, taskListService, null);
+    }
+
+    @Autowired
+    public MsTaskController(
+            MsTaskService taskService, MsTaskListService taskListService, @Nullable BulkItemScope bulkItems) {
         this.taskService = taskService;
         this.taskListService = taskListService;
+        this.bulkItems = bulkItems;
     }
 
     @GetMapping
@@ -254,8 +266,8 @@ public class MsTaskController {
                         .noneMatch(status -> Long.valueOf(statusId).equals(status.id()))) {
                     throw BulkRunner.invalidParam("statusId", "unknown status");
                 }
-                yield ResponseEntity.ok(
-                        BulkRunner.run(action, ids, id -> taskService.changeStatus(id, statusId, currentUserId)));
+                yield ResponseEntity.ok(BulkRunner.run(
+                        action, ids, id -> taskService.changeStatus(id, statusId, currentUserId), bulkItems));
             }
             case "priority" -> {
                 String priority = body.params() == null
@@ -264,8 +276,8 @@ public class MsTaskController {
                 if (!PRIORITIES.contains(priority)) {
                     throw BulkRunner.invalidParam("priority", "one of " + PRIORITIES);
                 }
-                yield ResponseEntity.ok(
-                        BulkRunner.run(action, ids, id -> taskService.changePriority(id, priority, currentUserId)));
+                yield ResponseEntity.ok(BulkRunner.run(
+                        action, ids, id -> taskService.changePriority(id, priority, currentUserId), bulkItems));
             }
             default -> throw BulkRunner.unknownAction(action);
         };

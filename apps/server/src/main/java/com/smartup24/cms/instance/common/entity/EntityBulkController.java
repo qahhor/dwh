@@ -2,12 +2,15 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.bulk.BulkItemScope;
 import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,9 +30,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class EntityBulkController {
 
     private final EntityRegistry registry;
+    private final @Nullable BulkItemScope bulkItems;
 
     public EntityBulkController(EntityRegistry registry) {
+        this(registry, null);
+    }
+
+    @Autowired
+    public EntityBulkController(EntityRegistry registry, @Nullable BulkItemScope bulkItems) {
         this.registry = registry;
+        this.bulkItems = bulkItems;
     }
 
     /** Anyone signed in may ask; the entity's own right is checked below. */
@@ -51,6 +61,6 @@ public class EntityBulkController {
             throw ApiException.permissionDenied(entity.form(), delete.permission());
         }
         EntityRecords records = registry.records(code).orElseThrow();
-        return ResponseEntity.ok(BulkRunner.run(action, ids, records::delete));
+        return ResponseEntity.ok(BulkRunner.run(action, ids, records::delete, bulkItems));
     }
 }

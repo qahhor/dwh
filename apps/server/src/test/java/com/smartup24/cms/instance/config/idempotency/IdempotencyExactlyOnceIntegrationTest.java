@@ -133,6 +133,30 @@ class IdempotencyExactlyOnceIntegrationTest {
     }
 
     @Test
+    @DisplayName("3.12: a success whose writes rolled back underneath answers 500 and frees the key")
+    void successOverARolledBackRequestIsAServerError() throws Exception {
+        UUID key = UUID.randomUUID();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request(key), response, (request, servletResponse) -> {
+            // A failure swallowed on the way: the participant marked the request rollback-only.
+            var inner = transactions.getTransaction(new DefaultTransactionDefinition());
+            jdbc.sql("insert into idem_business (note) values ('lost')").update();
+            inner.setRollbackOnly();
+            transactions.commit(inner);
+            respond((HttpServletResponse) servletResponse, 200, "{\"ok\":true}");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(500);
+        assertThat(response.getContentAsString()).contains("internal_error");
+        assertThat(rows()).isZero();
+        assertThat(jdbc.sql("select count(*) from idempotency_keys where key = :key")
+                        .param("key", key)
+                        .query(Long.class)
+                        .single())
+                .isZero();
+    }
+
+    @Test
     @DisplayName(
             "3.12: when the commit itself fails the client gets a 500, not the buffered success, and the key is free")
     void failedCommitAnswersServerError() throws Exception {

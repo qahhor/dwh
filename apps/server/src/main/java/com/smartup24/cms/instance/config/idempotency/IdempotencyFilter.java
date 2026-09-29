@@ -314,6 +314,20 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                         "error.internal_error",
                         request.getRequestURI());
             }
+        } else if (storable && status < 400) {
+            // The handler reports success although something in the request rolled back (a failure swallowed on
+            // the way): nothing was written, so a success must not reach the client or be replayed.
+            log.error("idempotent_success_rolled_back key={} uri={} status={}", key, request.getRequestURI(), status);
+            transactionManager.rollback(tx);
+            idempotencyService.release(key, reservationToken);
+            responseWrapper.resetBuffer();
+            writeProblemDetail(
+                    request,
+                    responseWrapper,
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    ErrorCode.INTERNAL_ERROR,
+                    "error.internal_error",
+                    request.getRequestURI());
         } else {
             transactionManager.rollback(tx);
             if (storable) {

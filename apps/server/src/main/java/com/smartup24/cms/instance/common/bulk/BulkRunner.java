@@ -12,6 +12,7 @@ import java.util.function.LongConsumer;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.support.TransactionOperations;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -99,11 +100,23 @@ public final class BulkRunner {
 
     /** Выполняет операцию для каждой записи и собирает итог; ожидаемые отказы — с кодом одиночной операции. */
     public static BulkResult run(String action, List<Long> ids, LongConsumer operation) {
+        return run(action, ids, operation, TransactionOperations.withoutTransaction());
+    }
+
+    /**
+     * As {@link #run(String, List, LongConsumer)}, each item in the scope's savepoint ({@link BulkItemScope}); without
+     * a scope (slice tests) each item runs as the single operation does.
+     */
+    public static BulkResult run(String action, List<Long> ids, LongConsumer operation, @Nullable BulkItemScope scope) {
+        return run(action, ids, operation, scope == null ? TransactionOperations.withoutTransaction() : scope.items());
+    }
+
+    private static BulkResult run(String action, List<Long> ids, LongConsumer operation, TransactionOperations items) {
         List<BulkItemResult> results = new ArrayList<>(ids.size());
         int succeeded = 0;
         for (long id : ids) {
             try {
-                operation.accept(id);
+                items.executeWithoutResult(status -> operation.accept(id));
                 results.add(new BulkItemResult(id, true, null, null, null, null));
                 succeeded++;
             } catch (ApiException e) {
