@@ -303,7 +303,7 @@ class MdIamWireFormatTest {
                         .param("managerId", "9")
                         .param("is2faEnabled", "true"),
                 200);
-        assertThat(keys(page)).isEqualTo(Set.of("items", "nextCursor", "hasMore", "totalEstimated"));
+        assertThat(keys(page)).isEqualTo(Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
         assertThat(keys(page.get("items").get(0))).isEqualTo(USER);
     }
 

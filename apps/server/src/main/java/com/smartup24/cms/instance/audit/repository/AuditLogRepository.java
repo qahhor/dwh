@@ -136,6 +136,9 @@ public class AuditLogRepository {
             a.changed_at, a.changed_columns, a.old_row::text as old_str, a.new_row::text as new_str,
             u.name as changed_by_name, u.login as changed_by_login""";
 
+    /** Below this many rows (by the statistics) a total is counted; above, it is the estimate. */
+    static final long COUNT_BELOW = 100_000;
+
     public static final String LOG_FROM = "audit_log a left join md_users u on u.id = a.changed_by";
 
     /** Columns of a security event as {@link #mapSecurityEvent} reads them ({@code audit.security_events}). */
@@ -277,25 +280,39 @@ public class AuditLogRepository {
         return query.query(Long.class).single();
     }
 
+    /** Audit screen totals: counted while small, PostgreSQL statistics once large (item 3.5); last day exact. */
     public AuditStats getAuditStats() {
-        long totalLogs = jdbcClient
-                .sql("select count(*) from audit_log")
-                .query(Long.class)
-                .single();
+        long totalLogs = rows(
+                "audit_log",
+                "select coalesce(sum(greatest(reltuples, 0)), 0)::bigint from pg_class where oid in"
+                        + " (select inhrelid from pg_inherits where inhparent = 'audit_log'::regclass)");
+        long totalSecurity = rows(
+                "security_events",
+                "select greatest(reltuples, 0)::bigint from pg_class where oid = 'security_events'::regclass");
         var secStats = jdbcClient
                 .sql("""
                 select
-                    count(*) as total_sec,
-                    count(*) filter (where created_at >= now() - interval '24 hours') as sec_24h,
-                    count(*) filter (where event_type in ('LOGIN_FAILED', 'LOGIN_LOCKED', 'IP_RATE_LIMITED')
-                                      and created_at >= now() - interval '24 hours') as failed_24h
+                    count(*) as sec_24h,
+                    count(*) filter (where event_type in ('LOGIN_FAILED', 'LOGIN_LOCKED', 'IP_RATE_LIMITED'))
+                        as failed_24h
                 from security_events
+                where created_at >= now() - interval '24 hours'
                 """)
-                .query((rs, rowNum) ->
-                        new long[] {rs.getLong("total_sec"), rs.getLong("sec_24h"), rs.getLong("failed_24h")})
+                .query((rs, rowNum) -> new long[] {rs.getLong("sec_24h"), rs.getLong("failed_24h")})
                 .single();
 
-        return new AuditStats(totalLogs, secStats[0], secStats[1], secStats[2], Instant.now());
+        return new AuditStats(totalLogs, totalSecurity, secStats[0], secStats[1], Instant.now());
+    }
+
+    /** Rows of a table: its statistics once they pass {@link #COUNT_BELOW}, a count before. */
+    private long rows(String table, String estimateSql) {
+        long estimate = jdbcClient.sql(estimateSql).query(Long.class).single();
+        return estimate >= COUNT_BELOW
+                ? estimate
+                : jdbcClient
+                        .sql("select count(*) from " + table)
+                        .query(Long.class)
+                        .single();
     }
 
     /** Reads a row of {@link #LOG_COLUMNS}. */

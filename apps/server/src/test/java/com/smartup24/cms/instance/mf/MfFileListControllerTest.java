@@ -104,7 +104,7 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
         Set<String> file = Set.of("id", "originalName", "sizeBytes", "mimeType", "createdAt", "createdBy");
 
         var list = json(fetch(admin, "/api/v1/files?q=" + tag));
-        assertThat(keys(list)).isEqualTo(Set.of("items", "hasMore", "totalEstimated"));
+        assertThat(keys(list)).isEqualTo(Set.of("items", "hasMore", "totalEstimated", "totalExact"));
         assertThat(keys(list.get("items").get(0))).isEqualTo(union(file, Set.of("creatorName", "creatorLogin")));
 
         var detail = json(fetch(admin, "/api/v1/files/" + id));

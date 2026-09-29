@@ -20,62 +20,68 @@ import org.springframework.context.annotation.Configuration;
 public class AuditQuery {
 
     public static final QueryList LOGS = new QueryList(
-            "audit.logs",
-            AuditPref.FORM_AUDIT_LOG,
-            "view",
-            AuditLogRepository.LOG_COLUMNS,
-            AuditLogRepository.LOG_FROM,
-            "a.id",
-            List.of(
-                    QueryField.of("id", "audit.col.id", QueryFieldType.NUMBER, "a.id"),
-                    QueryField.of("tableName", "audit.col.table", QueryFieldType.TEXT, "a.table_name"),
-                    QueryField.of("rowPk", "audit.col.row", QueryFieldType.TEXT, "a.row_pk"),
-                    QueryField.enumeration(
-                            "event", "audit.col.event", "a.event", List.of("I", "U", "D"), "audit.event."),
-                    QueryField.of("changedByName", "audit.col.changed_by", QueryFieldType.TEXT, "u.name")
-                            .asNullable()
-                            .asSearchable(),
-                    QueryField.of("changedBy", "audit.col.changed_by_id", QueryFieldType.NUMBER, "a.changed_by")
-                            .asNullable()
-                            .asHidden()
-                            .refersTo(QueryRef.paged("/iam/users", "name")),
-                    QueryField.of("isApi", "audit.col.channel", QueryFieldType.BOOLEAN, "a.is_api"),
-                    QueryField.of("changedAt", "audit.col.changed_at", QueryFieldType.INSTANT, "a.changed_at")
-                            .asSortable()),
-            "changedAt",
-            true,
-            QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT);
+                    "audit.logs",
+                    AuditPref.FORM_AUDIT_LOG,
+                    "view",
+                    AuditLogRepository.LOG_COLUMNS,
+                    AuditLogRepository.LOG_FROM,
+                    "a.id",
+                    List.of(
+                            QueryField.of("id", "audit.col.id", QueryFieldType.NUMBER, "a.id"),
+                            QueryField.of("tableName", "audit.col.table", QueryFieldType.TEXT, "a.table_name"),
+                            QueryField.of("rowPk", "audit.col.row", QueryFieldType.TEXT, "a.row_pk"),
+                            QueryField.enumeration(
+                                    "event", "audit.col.event", "a.event", List.of("I", "U", "D"), "audit.event."),
+                            QueryField.of("changedByName", "audit.col.changed_by", QueryFieldType.TEXT, "u.name")
+                                    .asNullable()
+                                    .asSearchable(),
+                            QueryField.of("changedBy", "audit.col.changed_by_id", QueryFieldType.NUMBER, "a.changed_by")
+                                    .asNullable()
+                                    .asHidden()
+                                    .refersTo(QueryRef.paged("/iam/users", "name")),
+                            QueryField.of("isApi", "audit.col.channel", QueryFieldType.BOOLEAN, "a.is_api"),
+                            QueryField.of("changedAt", "audit.col.changed_at", QueryFieldType.INSTANT, "a.changed_at")
+                                    .asSortable()),
+                    "changedAt",
+                    true,
+                    QueryList.DEFAULT_LIMIT,
+                    QueryList.MAX_LIMIT)
+            // The log grows without bound (50 million rows is a normal year): the first page reports the planner's
+            // estimate, not a count of every partition (plan 10/10, item 3.5).
+            .withEstimatedTotal();
 
     public static final QueryList SECURITY_EVENTS = new QueryList(
-            "audit.security_events",
-            AuditPref.FORM_AUDIT_LOG,
-            "view",
-            AuditLogRepository.SECURITY_COLUMNS,
-            AuditLogRepository.SECURITY_FROM,
-            "s.id",
-            List.of(
-                    QueryField.of("id", "audit.col.id", QueryFieldType.NUMBER, "s.id"),
-                    QueryField.of("eventType", "audit.col.event_type", QueryFieldType.TEXT, "s.event_type"),
-                    QueryField.of("userName", "audit.col.user", QueryFieldType.TEXT, "u.name")
-                            .asNullable()
-                            .asSearchable(),
-                    QueryField.of("userId", "audit.col.user_id", QueryFieldType.NUMBER, "s.user_id")
-                            .asNullable()
-                            .asHidden()
-                            .refersTo(QueryRef.paged("/iam/users", "name")),
-                    QueryField.of("ip", "audit.col.ip", QueryFieldType.TEXT, "host(s.ip)")
-                            .asNullable()
-                            .asSearchable(),
-                    QueryField.of("userAgent", "audit.col.user_agent", QueryFieldType.TEXT, "s.user_agent")
-                            .asNullable()
-                            .asSearchable(),
-                    QueryField.of("createdAt", "audit.col.created_at", QueryFieldType.INSTANT, "s.created_at")
-                            .asSortable()),
-            "createdAt",
-            true,
-            QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT);
+                    "audit.security_events",
+                    AuditPref.FORM_AUDIT_LOG,
+                    "view",
+                    AuditLogRepository.SECURITY_COLUMNS,
+                    AuditLogRepository.SECURITY_FROM,
+                    "s.id",
+                    List.of(
+                            QueryField.of("id", "audit.col.id", QueryFieldType.NUMBER, "s.id"),
+                            QueryField.of("eventType", "audit.col.event_type", QueryFieldType.TEXT, "s.event_type"),
+                            QueryField.of("userName", "audit.col.user", QueryFieldType.TEXT, "u.name")
+                                    .asNullable()
+                                    .asSearchable(),
+                            QueryField.of("userId", "audit.col.user_id", QueryFieldType.NUMBER, "s.user_id")
+                                    .asNullable()
+                                    .asHidden()
+                                    .refersTo(QueryRef.paged("/iam/users", "name")),
+                            QueryField.of("ip", "audit.col.ip", QueryFieldType.TEXT, "host(s.ip)")
+                                    .asNullable()
+                                    .asSearchable(),
+                            QueryField.of("userAgent", "audit.col.user_agent", QueryFieldType.TEXT, "s.user_agent")
+                                    .asNullable()
+                                    .asSearchable(),
+                            QueryField.of("createdAt", "audit.col.created_at", QueryFieldType.INSTANT, "s.created_at")
+                                    .asSortable()),
+                    "createdAt",
+                    true,
+                    QueryList.DEFAULT_LIMIT,
+                    QueryList.MAX_LIMIT)
+            // The log grows without bound (50 million rows is a normal year): the first page reports the planner's
+            // estimate, not a count of every partition (plan 10/10, item 3.5).
+            .withEstimatedTotal();
 
     @Bean
     public QueryList auditLogsQueryList() {

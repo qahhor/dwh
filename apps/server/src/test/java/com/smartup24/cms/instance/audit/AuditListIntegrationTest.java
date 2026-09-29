@@ -60,7 +60,13 @@ class AuditListIntegrationTest {
 
         assertThat(first.items()).extracting(AuditLogView::id).containsExactly(newest, middle);
         assertThat(second.items()).extracting(AuditLogView::id).containsExactly(oldest);
-        assertThat(first.totalEstimated()).isEqualTo(3);
+        // The log grows without bound (plan item 3.5): a first page with more after it reports the planner's
+        // estimate, never less than the rows it has seen; a page that holds the whole result counts it exactly.
+        assertThat(first.totalExact()).isFalse();
+        assertThat(first.totalEstimated()).isGreaterThanOrEqualTo(3);
+        var whole = audit.logs(10, null, null, null, null, filters);
+        assertThat(whole.totalExact()).isTrue();
+        assertThat(whole.totalEstimated()).isEqualTo(3);
     }
 
     @Test
