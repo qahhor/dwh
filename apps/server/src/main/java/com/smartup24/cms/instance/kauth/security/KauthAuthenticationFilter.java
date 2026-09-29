@@ -60,29 +60,13 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                 var tokenOpt = apiTokenService.validateToken(rawToken);
                 if (tokenOpt.isPresent()) {
                     var token = tokenOpt.get();
-                    try {
-                        var user = userService.getUserById(token.userId());
-                        if (MdPref.STATE_ACTIVE.equals(user.state())
-                                && user.authenticationVersion() == token.authenticationVersion()) {
-                            apiTokenService.recordTokenUsage(token.id());
-                            Set<String> permissions = permissionService.getEffectivePermissions(user.id());
-                            long version = permissionService.getPermissionVersion(user.id());
-                            authenticate(new SecurityContext.KauthPrincipal(
-                                    user.id(),
-                                    user.login(),
-                                    user.email(),
-                                    null,
-                                    true,
-                                    permissions,
-                                    version,
-                                    user.forcePasswordChange(),
-                                    token.authenticationVersion(),
-                                    token.id()));
-                        }
-                    } catch (DataAccessException e) {
-                        throw e;
-                    } catch (Exception ignored) {
-                    }
+                    authenticateUser(
+                            token.userId(),
+                            token.authenticationVersion(),
+                            () -> apiTokenService.recordTokenUsage(token.id()),
+                            null,
+                            true,
+                            token.id());
                 }
             }
 
@@ -93,29 +77,13 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
                     var sessionOpt = sessionService.getActiveSession(sessionCookieValue);
                     if (sessionOpt.isPresent()) {
                         var session = sessionOpt.get();
-                        try {
-                            var user = userService.getUserById(session.userId());
-                            if (MdPref.STATE_ACTIVE.equals(user.state())
-                                    && user.authenticationVersion() == session.authenticationVersion()) {
-                                sessionService.updateLastSeen(session.id());
-                                Set<String> permissions = permissionService.getEffectivePermissions(user.id());
-                                long version = permissionService.getPermissionVersion(user.id());
-                                authenticate(new SecurityContext.KauthPrincipal(
-                                        user.id(),
-                                        user.login(),
-                                        user.email(),
-                                        session.id(),
-                                        false,
-                                        permissions,
-                                        version,
-                                        user.forcePasswordChange(),
-                                        session.authenticationVersion(),
-                                        null));
-                            }
-                        } catch (DataAccessException e) {
-                            throw e;
-                        } catch (Exception ignored) {
-                        }
+                        authenticateUser(
+                                session.userId(),
+                                session.authenticationVersion(),
+                                () -> sessionService.updateLastSeen(session.id()),
+                                session.id(),
+                                false,
+                                null);
                     }
                 }
             }
@@ -126,6 +94,37 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
             // ручная очистка здесь стирала бы аутентификацию ДО того, как
             // ExceptionTranslationFilter (выше по цепочке) разберёт исключение.
             SecurityContext.clear();
+        }
+    }
+
+    /**
+     * Authenticates the owner of a valid token or session while the account is active and the credential belongs
+     * to its current authentication version. {@code touch} records the use (token usage or session last-seen).
+     * A database failure propagates; any other failure leaves the request anonymous.
+     */
+    private void authenticateUser(
+            Long userId, long authenticationVersion, Runnable touch, Long sessionId, boolean api, Long apiTokenId) {
+        try {
+            var user = userService.getUserById(userId);
+            if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == authenticationVersion) {
+                touch.run();
+                Set<String> permissions = permissionService.getEffectivePermissions(user.id());
+                long version = permissionService.getPermissionVersion(user.id());
+                authenticate(new SecurityContext.KauthPrincipal(
+                        user.id(),
+                        user.login(),
+                        user.email(),
+                        sessionId,
+                        api,
+                        permissions,
+                        version,
+                        user.forcePasswordChange(),
+                        authenticationVersion,
+                        apiTokenId));
+            }
+        } catch (DataAccessException e) {
+            throw e;
+        } catch (Exception ignored) {
         }
     }
 
