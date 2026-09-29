@@ -143,6 +143,36 @@ class MsTaskServiceTest {
     }
 
     @Test
+    @DisplayName("The task card reads every part in the viewer's scope, then marks the task viewed")
+    void taskDetailReadsEveryPartInViewerScope() {
+        var scope = ScopeFilter.taskSelf(17L);
+        Instant now = Instant.parse("2026-09-04T10:15:30Z");
+        var task = new MsTaskRepository.TaskRecord(
+                10L, 1L, null, "Задача", "", 1L, "medium", 17L, Map.of(), null, null, null, now, now, 17L, 17L);
+        var child = new MsTaskRepository.TaskRecord(
+                11L, 1L, 10L, "Подзадача", "", 1L, "low", 17L, Map.of(), null, null, null, now, now, 17L, 17L);
+        var file = new MsTaskRepository.TaskFileRecord(
+                java.util.UUID.fromString("6db360cf-26ba-4729-b8c9-f5adcf2df74c"), "a.txt", 3, "text/plain", now);
+        when(scopeService.filterForTasks(17L)).thenReturn(scope);
+        when(taskRepository.findById(10L, scope)).thenReturn(Optional.of(task));
+        when(taskRepository.findSubtasks(10L, scope)).thenReturn(java.util.List.of(child));
+        when(taskRepository.findAncestorChain(10L, scope)).thenReturn(java.util.List.of());
+        when(taskRepository.listTaskFiles(10L)).thenReturn(java.util.List.of(file));
+
+        var detail = service.getTaskDetail(10L, 17L);
+
+        assertThat(detail.task().id()).isEqualTo(10L);
+        assertThat(detail.task().revision()).isEqualTo(1L);
+        assertThat(detail.subtasks()).extracting(view -> view.id()).containsExactly(11L);
+        assertThat(detail.ancestors()).isEmpty();
+        assertThat(detail.files()).extracting(view -> view.fileName()).containsExactly("a.txt");
+        verify(taskRepository).findSubtasks(10L, scope);
+        verify(taskRepository).findAncestorChain(10L, scope);
+        verify(memberRepository).getTaskMembers(10L);
+        verify(memberRepository).markViewed(10L, 17L);
+    }
+
+    @Test
     @DisplayName("Нельзя назначить участника за пределами data scope инициатора")
     void participantOutsideActorScopeIsRejected() {
         var task = new MsTaskRepository.TaskRecord(

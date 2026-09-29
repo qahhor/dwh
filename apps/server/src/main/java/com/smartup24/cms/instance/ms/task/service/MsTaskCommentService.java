@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
+import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import java.util.List;
@@ -35,8 +36,7 @@ public class MsTaskCommentService {
     }
 
     @Transactional
-    public MsTaskCommentRepository.CommentRecord addComment(
-            Long taskId, Long userId, String textMarkdown, List<UUID> fileIds) {
+    public TaskCommentView addComment(Long taskId, Long userId, String textMarkdown, List<UUID> fileIds) {
         var task = taskService.getTaskById(taskId, userId);
         if (fileIds != null) {
             for (UUID fileId : fileIds) {
@@ -69,7 +69,7 @@ public class MsTaskCommentService {
                         "files_attached",
                         fileIds != null ? fileIds.size() : 0));
 
-        return comment;
+        return MsTaskViews.comment(comment);
     }
 
     @Transactional(readOnly = true)
@@ -78,8 +78,8 @@ public class MsTaskCommentService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsTaskCommentRepository.CommentRecord> listComments(Long taskId, Long currentUserId) {
+    public List<TaskCommentView> listComments(Long taskId, Long currentUserId) {
         taskService.getTaskById(taskId, currentUserId);
-        return commentRepository.listComments(taskId);
+        return MsTaskViews.all(commentRepository.listComments(taskId), MsTaskViews::comment);
     }
 }

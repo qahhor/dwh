@@ -16,9 +16,10 @@ import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.mf.controller.MfFileController;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileService;
+import com.smartup24.cms.instance.ms.task.api.TaskDetail;
+import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskCommentController;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import java.time.Instant;
@@ -53,7 +54,7 @@ class TaskFileDataScopeControllerTest {
     void taskEndpointReturnsNotFoundForOutOfScopeIdentifier() throws Exception {
         MsTaskService service = mock(MsTaskService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
-        when(service.getTaskById(42L, 10L))
+        when(service.getTaskDetail(42L, 10L))
                 .thenThrow(ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
 
         taskMvc(service)
@@ -66,22 +67,16 @@ class TaskFileDataScopeControllerTest {
     void taskEndpointPassesAuthenticatedUserToEveryScopedRead() throws Exception {
         MsTaskService service = mock(MsTaskService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
-        when(service.getTaskById(42L, 10L)).thenReturn(task(42L));
-        when(service.getTaskMembers(42L, 10L)).thenReturn(List.of());
-        when(service.getSubtasks(42L, 10L)).thenReturn(List.of());
-        when(service.getAncestorChain(42L, 10L)).thenReturn(List.of());
-        when(service.listTaskFiles(42L, 10L)).thenReturn(List.of());
+        // Each part of the card is read in this user's scope: MsTaskServiceTest checks the service side.
+        when(service.getTaskDetail(42L, 10L))
+                .thenReturn(new TaskDetail(task(42L), List.of(), List.of(), List.of(), List.of()));
 
         taskMvc(service)
                 .perform(get("/api/v1/tasks/42"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.task.id").value(42));
 
-        verify(service).getTaskById(42L, 10L);
-        verify(service).getTaskMembers(42L, 10L);
-        verify(service).getSubtasks(42L, 10L);
-        verify(service).getAncestorChain(42L, 10L);
-        verify(service).listTaskFiles(42L, 10L);
+        verify(service).getTaskDetail(42L, 10L);
     }
 
     @Test
@@ -174,10 +169,26 @@ class TaskFileDataScopeControllerTest {
                 10L, "scoped", "scoped@example.invalid", 20L, false, permissions, 1L, false, 0, null);
     }
 
-    private static MsTaskRepository.TaskRecord task(Long id) {
+    private static TaskView task(Long id) {
         Instant now = Instant.parse("2026-09-04T10:15:30Z");
-        return new MsTaskRepository.TaskRecord(
-                id, null, null, "Scoped task", "", 1L, "medium", 10L, Map.of(), null, null, null, now, now, 10L, 10L);
+        return new TaskView(
+                id,
+                null,
+                null,
+                "Scoped task",
+                "",
+                1L,
+                "medium",
+                10L,
+                Map.of(),
+                null,
+                null,
+                null,
+                now,
+                now,
+                10L,
+                10L,
+                1L);
     }
 
     private static MfFileRepository.FileRecord file(UUID id) {

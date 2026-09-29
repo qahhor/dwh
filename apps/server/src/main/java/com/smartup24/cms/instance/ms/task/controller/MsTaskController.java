@@ -6,20 +6,26 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.ms.task.MsTaskPatch;
+import com.smartup24.cms.instance.ms.task.api.AttachFileRequest;
+import com.smartup24.cms.instance.ms.task.api.ChangeStatusRequest;
+import com.smartup24.cms.instance.ms.task.api.CreateStatusRequest;
+import com.smartup24.cms.instance.ms.task.api.CreateTaskRequest;
+import com.smartup24.cms.instance.ms.task.api.CreateTypeRequest;
+import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
+import com.smartup24.cms.instance.ms.task.api.TaskDetail;
+import com.smartup24.cms.instance.ms.task.api.TaskFileView;
+import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
+import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
+import com.smartup24.cms.instance.ms.task.api.TaskTypeView;
+import com.smartup24.cms.instance.ms.task.api.TaskView;
+import com.smartup24.cms.instance.ms.task.api.UpdateStatusRequest;
+import com.smartup24.cms.instance.ms.task.api.UpdateTaskRequest;
+import com.smartup24.cms.instance.ms.task.api.UpdateTypeRequest;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +51,7 @@ public class MsTaskController {
 
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<KeysetPage<MsTaskRepository.TaskRecord>> listTasks(
+    public ResponseEntity<KeysetPage<TaskView>> listTasks(
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor,
             @RequestParam(name = "filter", required = false) String filter,
@@ -62,14 +68,14 @@ public class MsTaskController {
             @RequestParam(name = "overdue", required = false) Boolean overdue) {
 
         // Registry list ms.tasks (ADR-0016); `search` and the flat filters are kept for existing callers.
-        return ResponseEntity.ok(taskListService.page(
+        return ResponseEntity.ok(taskListService.viewPage(
                 SecurityContext.getCurrentUserId(),
                 limit,
                 cursor,
                 filter,
                 sort,
                 query != null && !query.isBlank() ? query : search,
-                new MsTaskRepository.LegacyTaskFilters(
+                new TaskListFilters(
                         projectId, statusId, priority, hideTerminal, assignedUserId, memberRole, reporterId, overdue)));
     }
 
@@ -77,13 +83,13 @@ public class MsTaskController {
     // Statuses API
     @GetMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<MsTaskStatusRepository.StatusRecord>> listStatuses() {
+    public ResponseEntity<List<TaskStatusView>> listStatuses() {
         return ResponseEntity.ok(taskService.listStatuses());
     }
 
     @PostMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
-    public ResponseEntity<MsTaskStatusRepository.StatusRecord> createStatus(@Valid @RequestBody CreateStatusDto body) {
+    public ResponseEntity<TaskStatusView> createStatus(@Valid @RequestBody CreateStatusRequest body) {
         var status =
                 taskService.createStatus(body.pcode(), body.name(), body.color(), body.orderNo(), body.isTerminal());
         return ResponseEntity.status(HttpStatus.CREATED).body(status);
@@ -91,7 +97,7 @@ public class MsTaskController {
 
     @PatchMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> updateStatus(@PathVariable("id") Long id, @RequestBody UpdateStatusDto body) {
+    public ResponseEntity<Void> updateStatus(@PathVariable("id") Long id, @RequestBody UpdateStatusRequest body) {
         taskService.updateStatusRecord(id, body.name(), body.color(), body.orderNo(), body.isTerminal());
         return ResponseEntity.noContent().build();
     }
@@ -115,20 +121,20 @@ public class MsTaskController {
     // =========================================================================
     @GetMapping("/types")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<MsTaskTypeRepository.TypeRecord>> listTypes() {
+    public ResponseEntity<List<TaskTypeView>> listTypes() {
         return ResponseEntity.ok(taskService.listTypes());
     }
 
     @PostMapping("/types")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
-    public ResponseEntity<MsTaskTypeRepository.TypeRecord> createType(@Valid @RequestBody CreateTypeDto body) {
+    public ResponseEntity<TaskTypeView> createType(@Valid @RequestBody CreateTypeRequest body) {
         var type = taskService.createType(body.code(), body.name(), body.icon(), body.color(), body.orderNo());
         return ResponseEntity.status(HttpStatus.CREATED).body(type);
     }
 
     @PatchMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> updateType(@PathVariable("id") Long id, @RequestBody UpdateTypeDto body) {
+    public ResponseEntity<Void> updateType(@PathVariable("id") Long id, @RequestBody UpdateTypeRequest body) {
         taskService.updateType(id, body.name(), body.icon(), body.color(), body.orderNo());
         return ResponseEntity.noContent().build();
     }
@@ -152,7 +158,7 @@ public class MsTaskController {
     // =========================================================================
     @GetMapping("/projects/stats")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<MsTaskRepository.ProjectTaskStats>> getProjectStats() {
+    public ResponseEntity<List<ProjectTaskStatsView>> getProjectStats() {
         return ResponseEntity.ok(taskService.getProjectTaskStats(SecurityContext.getCurrentUserId()));
     }
 
@@ -161,30 +167,19 @@ public class MsTaskController {
     // =========================================================================
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<TaskDetailResponse> getTask(@PathVariable("id") Long id) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        var task = taskService.getTaskById(id, currentUserId);
-        var members = taskService.getTaskMembers(id, currentUserId);
-        var subtasks = taskService.getSubtasks(id, currentUserId);
-        var ancestors = taskService.getAncestorChain(id, currentUserId);
-        var files = taskService.listTaskFiles(id, currentUserId);
-
-        if (currentUserId != null) {
-            taskService.markViewed(id, currentUserId);
-        }
-
-        return ResponseEntity.ok(new TaskDetailResponse(task, members, subtasks, ancestors, files));
+    public ResponseEntity<TaskDetail> getTask(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(taskService.getTaskDetail(id, SecurityContext.getCurrentUserId()));
     }
 
     @GetMapping("/{id}/files")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<MsTaskRepository.TaskFileRecord>> getTaskFiles(@PathVariable("id") Long id) {
+    public ResponseEntity<List<TaskFileView>> getTaskFiles(@PathVariable("id") Long id) {
         return ResponseEntity.ok(taskService.listTaskFiles(id, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping("/{id}/files")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> attachFile(@PathVariable("id") Long id, @RequestBody AttachFileDto body) {
+    public ResponseEntity<Void> attachFile(@PathVariable("id") Long id, @RequestBody AttachFileRequest body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         taskService.attachFile(id, body.fileId(), currentUserId);
         return ResponseEntity.noContent().build();
@@ -200,13 +195,13 @@ public class MsTaskController {
 
     @GetMapping("/{id}/subtasks")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<MsTaskRepository.TaskRecord>> getSubtasks(@PathVariable("id") Long id) {
+    public ResponseEntity<List<TaskView>> getSubtasks(@PathVariable("id") Long id) {
         return ResponseEntity.ok(taskService.getSubtasks(id, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
-    public ResponseEntity<MsTaskRepository.TaskRecord> createTask(@Valid @RequestBody CreateTaskDto body) {
+    public ResponseEntity<TaskView> createTask(@Valid @RequestBody CreateTaskRequest body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
         var task = taskService.createTask(
@@ -228,10 +223,10 @@ public class MsTaskController {
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskDto body) {
+    public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskRequest body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
-        taskService.updateTask(id, body.toPatch(), currentUserId);
+        taskService.updateTask(id, body, currentUserId);
 
         return ResponseEntity.noContent().build();
     }
@@ -269,11 +264,8 @@ public class MsTaskController {
                 if (!PRIORITIES.contains(priority)) {
                     throw BulkRunner.invalidParam("priority", "one of " + PRIORITIES);
                 }
-                MsTaskPatch patch = new MsTaskPatch(
-                        false, null, false, null, false, null, false, null, true, priority, false, null, false, null,
-                        false, null, false, null, false, null, false, null);
                 yield ResponseEntity.ok(
-                        BulkRunner.run(action, ids, id -> taskService.updateTask(id, patch, currentUserId)));
+                        BulkRunner.run(action, ids, id -> taskService.changePriority(id, priority, currentUserId)));
             }
             default -> throw BulkRunner.unknownAction(action);
         };
@@ -281,151 +273,10 @@ public class MsTaskController {
 
     @PostMapping("/{id}/status")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> changeStatus(@PathVariable("id") Long id, @Valid @RequestBody ChangeStatusDto body) {
+    public ResponseEntity<Void> changeStatus(
+            @PathVariable("id") Long id, @Valid @RequestBody ChangeStatusRequest body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         taskService.changeStatus(id, body.statusId(), body.expectedRevision(), currentUserId);
         return ResponseEntity.noContent().build();
     }
-
-    public record CreateTaskDto(
-            @NotBlank String title,
-            String descriptionMarkdown,
-            Long projectId,
-            Long parentTaskId,
-            String priority,
-            Long responsibleUserId,
-            List<Long> executorUserIds,
-            List<Long> observerUserIds,
-            Map<String, Object> attributes,
-            Instant beginTime,
-            Instant endTime) {}
-
-    public static final class UpdateTaskDto {
-        private boolean projectIdPresent;
-        private Long projectId;
-        private boolean titlePresent;
-        private String title;
-        private boolean descriptionMarkdownPresent;
-        private String descriptionMarkdown;
-        private boolean parentTaskIdPresent;
-        private Long parentTaskId;
-        private boolean priorityPresent;
-        private String priority;
-        private boolean responsibleUserIdPresent;
-        private Long responsibleUserId;
-        private boolean executorUserIdsPresent;
-        private List<Long> executorUserIds;
-        private boolean observerUserIdsPresent;
-        private List<Long> observerUserIds;
-        private boolean attributesPresent;
-        private Map<String, Object> attributes;
-        private boolean beginTimePresent;
-        private Instant beginTime;
-        private boolean endTimePresent;
-        private Instant endTime;
-        private boolean expectedRevisionPresent;
-        private Long expectedRevision;
-
-        public UpdateTaskDto() {}
-
-        public void setProjectId(Long projectId) {
-            this.projectIdPresent = true;
-            this.projectId = projectId;
-        }
-
-        public void setTitle(String title) {
-            this.titlePresent = true;
-            this.title = title;
-        }
-
-        public void setDescriptionMarkdown(String descriptionMarkdown) {
-            this.descriptionMarkdownPresent = true;
-            this.descriptionMarkdown = descriptionMarkdown;
-        }
-
-        public void setParentTaskId(Long parentTaskId) {
-            this.parentTaskIdPresent = true;
-            this.parentTaskId = parentTaskId;
-        }
-
-        public void setPriority(String priority) {
-            this.priorityPresent = true;
-            this.priority = priority;
-        }
-
-        public void setResponsibleUserId(Long responsibleUserId) {
-            this.responsibleUserIdPresent = true;
-            this.responsibleUserId = responsibleUserId;
-        }
-
-        public void setExecutorUserIds(List<Long> executorUserIds) {
-            this.executorUserIdsPresent = true;
-            this.executorUserIds = executorUserIds;
-        }
-
-        public void setObserverUserIds(List<Long> observerUserIds) {
-            this.observerUserIdsPresent = true;
-            this.observerUserIds = observerUserIds;
-        }
-
-        public void setAttributes(Map<String, Object> attributes) {
-            this.attributesPresent = true;
-            this.attributes = attributes;
-        }
-
-        public void setBeginTime(Instant beginTime) {
-            this.beginTimePresent = true;
-            this.beginTime = beginTime;
-        }
-
-        public void setEndTime(Instant endTime) {
-            this.endTimePresent = true;
-            this.endTime = endTime;
-        }
-
-        public void setExpectedRevision(Long expectedRevision) {
-            this.expectedRevisionPresent = true;
-            this.expectedRevision = expectedRevision;
-        }
-
-        MsTaskPatch toPatch() {
-            return new MsTaskPatch(
-                    projectIdPresent, projectId,
-                    titlePresent, title,
-                    descriptionMarkdownPresent, descriptionMarkdown,
-                    parentTaskIdPresent, parentTaskId,
-                    priorityPresent, priority,
-                    responsibleUserIdPresent, responsibleUserId,
-                    executorUserIdsPresent, executorUserIds,
-                    observerUserIdsPresent, observerUserIds,
-                    attributesPresent, attributes,
-                    beginTimePresent, beginTime,
-                    endTimePresent, endTime,
-                    expectedRevisionPresent, expectedRevision);
-        }
-    }
-
-    public record ChangeStatusDto(Long statusId, Long expectedRevision) {
-        public ChangeStatusDto(Long statusId) {
-            this(statusId, null);
-        }
-    }
-
-    public record CreateStatusDto(String pcode, @NotBlank String name, String color, int orderNo, boolean isTerminal) {}
-
-    public record UpdateStatusDto(String name, String color, Integer orderNo, Boolean isTerminal) {}
-
-    public record CreateTypeDto(
-            @NotBlank String code, @NotBlank String name, String icon, String color, int orderNo) {}
-
-    public record UpdateTypeDto(String name, String icon, String color, Integer orderNo) {}
-
-    public record AttachFileDto(@NotNull UUID fileId) {}
-
-    public record TaskDetailResponse(
-            MsTaskRepository.TaskRecord task,
-            List<MsTaskMemberRepository.TaskMemberRecord> members,
-            List<MsTaskRepository.TaskRecord> subtasks,
-            List<MsTaskRepository.TaskRecord> ancestors,
-            List<MsTaskRepository.TaskFileRecord> files) {}
 }

@@ -16,6 +16,7 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
@@ -154,7 +155,7 @@ class MsTaskListIntegrationTest {
     @Test
     @DisplayName("Every registry field is a property of the row the client receives")
     void everyFieldIsARowProperty() {
-        var properties = Arrays.stream(TaskRecord.class.getRecordComponents())
+        var properties = Arrays.stream(TaskView.class.getRecordComponents())
                 .map(java.lang.reflect.RecordComponent::getName)
                 .toList();
         assertThat(MsTaskQuery.LIST.fields())

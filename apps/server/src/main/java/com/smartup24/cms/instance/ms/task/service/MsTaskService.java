@@ -7,6 +7,14 @@ import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.MsTaskPatch;
+import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
+import com.smartup24.cms.instance.ms.task.api.TaskDetail;
+import com.smartup24.cms.instance.ms.task.api.TaskFileView;
+import com.smartup24.cms.instance.ms.task.api.TaskMemberView;
+import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
+import com.smartup24.cms.instance.ms.task.api.TaskTypeView;
+import com.smartup24.cms.instance.ms.task.api.TaskView;
+import com.smartup24.cms.instance.ms.task.api.UpdateTaskRequest;
 import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
@@ -101,7 +109,7 @@ public class MsTaskService {
     }
 
     @Transactional
-    public MsTaskRepository.TaskRecord createTask(
+    public TaskView createTask(
             Long projectId,
             Long parentTaskId,
             String title,
@@ -225,7 +233,7 @@ public class MsTaskService {
                         "priority",
                         safePriority));
 
-        return task;
+        return MsTaskViews.task(task);
     }
 
     @Transactional
@@ -247,14 +255,14 @@ public class MsTaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsTaskRepository.TaskFileRecord> listTaskFiles(Long taskId, Long currentUserId) {
+    public List<TaskFileView> listTaskFiles(Long taskId, Long currentUserId) {
         getTaskById(taskId, currentUserId);
-        return taskRepository.listTaskFiles(taskId);
+        return MsTaskViews.all(taskRepository.listTaskFiles(taskId), MsTaskViews::file);
     }
 
     // Overload for backwards compatibility
     @Transactional
-    public MsTaskRepository.TaskRecord createTask(
+    public TaskView createTask(
             Long projectId,
             Long parentTaskId,
             String title,
@@ -291,6 +299,39 @@ public class MsTaskService {
         return taskRepository
                 .findById(taskId, scopeService.filterForTasks(currentUserId))
                 .orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
+    }
+
+    /**
+     * The task card: every part read in the viewer's data scope, then the task is marked viewed for the viewer.
+     */
+    @Transactional
+    public TaskDetail getTaskDetail(Long taskId, Long currentUserId) {
+        var task = MsTaskViews.task(getTaskById(taskId, currentUserId));
+        var members = getTaskMembers(taskId, currentUserId);
+        var subtasks = getSubtasks(taskId, currentUserId);
+        var ancestors = getAncestorChain(taskId, currentUserId);
+        var files = listTaskFiles(taskId, currentUserId);
+        if (currentUserId != null) {
+            markViewed(taskId, currentUserId);
+        }
+        return new TaskDetail(task, members, subtasks, ancestors, files);
+    }
+
+    /** The PATCH body: only the properties the client sent change. */
+    @Transactional
+    public void updateTask(Long taskId, UpdateTaskRequest request, Long currentUserId) {
+        updateTask(taskId, request.toPatch(), currentUserId);
+    }
+
+    /** The priority alone, as the bulk action sets it. */
+    @Transactional
+    public void changePriority(Long taskId, String priority, Long currentUserId) {
+        updateTask(
+                taskId,
+                new MsTaskPatch(
+                        false, null, false, null, false, null, false, null, true, priority, false, null, false, null,
+                        false, null, false, null, false, null, false, null),
+                currentUserId);
     }
 
     @Transactional
@@ -624,9 +665,9 @@ public class MsTaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsTaskMemberRepository.TaskMemberRecord> getTaskMembers(Long taskId, Long currentUserId) {
+    public List<TaskMemberView> getTaskMembers(Long taskId, Long currentUserId) {
         getTaskById(taskId, currentUserId);
-        return memberRepository.getTaskMembers(taskId);
+        return MsTaskViews.all(memberRepository.getTaskMembers(taskId), MsTaskViews::member);
     }
 
     @Transactional(readOnly = true)
@@ -635,9 +676,11 @@ public class MsTaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsTaskRepository.TaskRecord> getSubtasks(Long parentTaskId, Long currentUserId) {
+    public List<TaskView> getSubtasks(Long parentTaskId, Long currentUserId) {
         getTaskById(parentTaskId, currentUserId);
-        return taskRepository.findSubtasks(parentTaskId, scopeService.filterForTasks(currentUserId));
+        return MsTaskViews.all(
+                taskRepository.findSubtasks(parentTaskId, scopeService.filterForTasks(currentUserId)),
+                MsTaskViews::task);
     }
 
     @Transactional(readOnly = true)
@@ -646,9 +689,11 @@ public class MsTaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsTaskRepository.TaskRecord> getAncestorChain(Long taskId, Long currentUserId) {
+    public List<TaskView> getAncestorChain(Long taskId, Long currentUserId) {
         getTaskById(taskId, currentUserId);
-        return taskRepository.findAncestorChain(taskId, scopeService.filterForTasks(currentUserId));
+        return MsTaskViews.all(
+                taskRepository.findAncestorChain(taskId, scopeService.filterForTasks(currentUserId)),
+                MsTaskViews::task);
     }
 
     @Transactional(readOnly = true)
@@ -657,8 +702,9 @@ public class MsTaskService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsTaskRepository.ProjectTaskStats> getProjectTaskStats(Long currentUserId) {
-        return taskRepository.getProjectTaskStats(scopeService.filterForTasks(currentUserId));
+    public List<ProjectTaskStatsView> getProjectTaskStats(Long currentUserId) {
+        return MsTaskViews.all(
+                taskRepository.getProjectTaskStats(scopeService.filterForTasks(currentUserId)), MsTaskViews::stats);
     }
 
     @Transactional
@@ -671,14 +717,13 @@ public class MsTaskService {
     // Dynamic Statuses & Types (Delegated to MsTaskStatusService)
     // =========================================================================
     @Transactional
-    public List<MsTaskStatusRepository.StatusRecord> listStatuses() {
-        return statusService.listStatuses();
+    public List<TaskStatusView> listStatuses() {
+        return MsTaskViews.all(statusService.listStatuses(), MsTaskViews::status);
     }
 
     @Transactional
-    public MsTaskStatusRepository.StatusRecord createStatus(
-            String pcode, String name, String color, int orderNo, boolean isTerminal) {
-        return statusService.createStatus(pcode, name, color, orderNo, isTerminal);
+    public TaskStatusView createStatus(String pcode, String name, String color, int orderNo, boolean isTerminal) {
+        return MsTaskViews.status(statusService.createStatus(pcode, name, color, orderNo, isTerminal));
     }
 
     @Transactional
@@ -692,14 +737,13 @@ public class MsTaskService {
     }
 
     @Transactional
-    public List<MsTaskTypeRepository.TypeRecord> listTypes() {
-        return statusService.listTypes();
+    public List<TaskTypeView> listTypes() {
+        return MsTaskViews.all(statusService.listTypes(), MsTaskViews::type);
     }
 
     @Transactional
-    public MsTaskTypeRepository.TypeRecord createType(
-            String code, String name, String icon, String color, int orderNo) {
-        return statusService.createType(code, name, icon, color, orderNo);
+    public TaskTypeView createType(String code, String name, String icon, String color, int orderNo) {
+        return MsTaskViews.type(statusService.createType(code, name, icon, color, orderNo));
     }
 
     @Transactional
