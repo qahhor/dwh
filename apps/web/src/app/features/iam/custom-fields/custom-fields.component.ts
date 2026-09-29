@@ -291,13 +291,17 @@ export class CustomFieldsComponent {
     const editing = this.editingField();
     if (editing) {
       this.customFields
-        .update(editing.id, {
-          name: this.formData().name,
-          isRequired: this.formData().isRequired,
-          defaultValue: this.formData().defaultValue,
-          options,
-          orderNo: Number(this.formData().orderNo) || 0,
-        })
+        .update(
+          editing.id,
+          {
+            name: this.formData().name,
+            isRequired: this.formData().isRequired,
+            defaultValue: this.formData().defaultValue,
+            options,
+            orderNo: Number(this.formData().orderNo) || 0,
+          },
+          editing.revision,
+        )
         .subscribe({
           next: () => {
             this.saving.set(false);

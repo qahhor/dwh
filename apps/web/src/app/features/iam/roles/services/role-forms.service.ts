@@ -98,17 +98,19 @@ export class RoleFormsService {
     }
 
     this.isSubmittingRole.set(true);
-    this.api.patch(`/iam/roles/${this.editingRole.id}`, this.editRoleForm).subscribe({
-      next: () => {
-        this.isSubmittingRole.set(false);
-        this.isEditModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('iam.dannye_roli_obnovleny'));
-        onSuccess();
-      },
-      error: () => {
-        this.isSubmittingRole.set(false);
-      },
-    });
+    this.api
+      .patch(`/iam/roles/${this.editingRole.id}`, this.editRoleForm, { ifMatch: this.editingRole.revision })
+      .subscribe({
+        next: () => {
+          this.isSubmittingRole.set(false);
+          this.isEditModalOpen.set(false);
+          this.toast.success(this.uiI18n.translate('iam.dannye_roli_obnovleny'));
+          onSuccess();
+        },
+        error: () => {
+          this.isSubmittingRole.set(false);
+        },
+      });
   }
 
   openDeleteRoleModal(role: Role, isSaving: boolean, isScopeBusy: boolean) {

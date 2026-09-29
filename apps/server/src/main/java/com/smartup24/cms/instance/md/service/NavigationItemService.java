@@ -5,10 +5,10 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.api.NavigationItemView;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository.FormTreeItem;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository.NavigationItemRecord;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,46 +48,6 @@ public class NavigationItemService {
     /** Пара каталога, которую можно назначить пункту меню: {@code form.action} и её названия. */
     public record PermissionChoice(String permission, String formName, String actionName) {}
 
-    public record NavigationItemView(
-            Long id,
-            String code,
-            String title,
-            String titleKey,
-            String sectionId,
-            Long parentId,
-            String icon,
-            String targetType,
-            String url,
-            boolean openInIframe,
-            String requiredPermission,
-            int sortOrder,
-            String state,
-            Long createdBy,
-            Long modifiedBy,
-            Instant createdAt,
-            Instant modifiedAt) {
-        public static NavigationItemView from(NavigationItemRecord r) {
-            return new NavigationItemView(
-                    r.id(),
-                    r.code(),
-                    r.title(),
-                    r.titleKey(),
-                    r.sectionId(),
-                    r.parentId(),
-                    r.icon(),
-                    r.targetType(),
-                    r.url(),
-                    r.openInIframe(),
-                    r.requiredPermission(),
-                    r.sortOrder(),
-                    r.state(),
-                    r.createdBy(),
-                    r.modifiedBy(),
-                    r.createdAt(),
-                    r.modifiedAt());
-        }
-    }
-
     public record CreateNavigationItemCommand(
             String code,
             String title,
@@ -119,7 +79,7 @@ public class NavigationItemService {
     @Cacheable(value = "navigationItems", key = "'all'")
     public List<NavigationItemView> getAllItems() {
         return navigationRepository.findAll().stream()
-                .map(NavigationItemView::from)
+                .map(NavigationItemService::view)
                 .toList();
     }
 
@@ -127,18 +87,18 @@ public class NavigationItemService {
     @Cacheable(value = "navigationItems", key = "'active'")
     public List<NavigationItemView> getActiveItems() {
         return navigationRepository.findActive().stream()
-                .map(NavigationItemView::from)
+                .map(NavigationItemService::view)
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public Optional<NavigationItemView> getItemById(Long id) {
-        return navigationRepository.findById(id).map(NavigationItemView::from);
+        return navigationRepository.findById(id).map(NavigationItemService::view);
     }
 
     @Transactional(readOnly = true)
     public Optional<NavigationItemView> getItemByCode(String code) {
-        return navigationRepository.findByCode(code).map(NavigationItemView::from);
+        return navigationRepository.findByCode(code).map(NavigationItemService::view);
     }
 
     /**
@@ -179,7 +139,7 @@ public class NavigationItemService {
 
     private List<NavigationItemView> getAllItemsUncached() {
         return navigationRepository.findAll().stream()
-                .map(NavigationItemView::from)
+                .map(NavigationItemService::view)
                 .toList();
     }
 
@@ -249,7 +209,8 @@ public class NavigationItemService {
                 userId,
                 userId,
                 null,
-                null);
+                null,
+                1L);
 
         Long id = navigationRepository.insert(record);
         auditLogService.logChange(
@@ -275,7 +236,7 @@ public class NavigationItemService {
 
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
-    public NavigationItemView updateItem(Long id, UpdateNavigationItemCommand cmd, Long userId) {
+    public NavigationItemView updateItem(Long id, UpdateNavigationItemCommand cmd, Long userId, long expectedRevision) {
         NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
 
         validateUrl(cmd.url());
@@ -303,9 +264,10 @@ public class NavigationItemService {
                 existing.createdBy(),
                 userId,
                 existing.createdAt(),
-                null);
+                null,
+                existing.revision());
 
-        navigationRepository.update(id, updated);
+        navigationRepository.update(id, updated, expectedRevision);
         auditLogService.logChange(
                 "md_navigation_items",
                 String.valueOf(id),
@@ -354,16 +316,16 @@ public class NavigationItemService {
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView setActive(Long id, Long userId, boolean active) {
-        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
+        if (navigationRepository.findById(id).isEmpty()) throw itemNotFound(id);
         String newState = active ? "A" : "P";
-        if (!newState.equals(existing.state())) {
-            navigationRepository.updateState(id, newState, userId);
+        // One conditional write (plan item 3.6): only a request that changed the state is audited.
+        if (navigationRepository.updateState(id, newState, userId) == 1) {
             auditLogService.logChange(
                     "md_navigation_items",
                     String.valueOf(id),
                     "U",
                     List.of("state"),
-                    Map.of("state", existing.state()),
+                    Map.of("state", active ? "P" : "A"),
                     Map.of("state", newState));
         }
         return getItemById(id).orElseThrow();
@@ -394,5 +356,27 @@ public class NavigationItemService {
         if (!SAFE_URL_PATTERN.matcher(trimmed).matches()) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.navigation_url_invalid");
         }
+    }
+
+    static NavigationItemView view(NavigationItemRecord r) {
+        return new NavigationItemView(
+                r.id(),
+                r.code(),
+                r.title(),
+                r.titleKey(),
+                r.sectionId(),
+                r.parentId(),
+                r.icon(),
+                r.targetType(),
+                r.url(),
+                r.openInIframe(),
+                r.requiredPermission(),
+                r.sortOrder(),
+                r.state(),
+                r.createdBy(),
+                r.modifiedBy(),
+                r.createdAt(),
+                r.modifiedAt(),
+                r.revision());
     }
 }

@@ -223,7 +223,11 @@ describe('Record routes with the actual router and actual templates', () => {
       const identity = document.body.querySelector('[data-record-id="41"]');
       expect(identity?.textContent).toContain(restored.name);
       if (exit === 'save')
-        expect(api.patch).toHaveBeenCalledWith('/iam/users/41', expect.objectContaining({ name: 'Saved user' }));
+        expect(api.patch).toHaveBeenCalledWith(
+          '/iam/users/41',
+          expect.objectContaining({ name: 'Saved user' }),
+          expect.any(Object),
+        );
       else expect(api.patch).not.toHaveBeenCalled();
 
       // Exercise the existing list-row binding while a detail route is active:
@@ -334,7 +338,11 @@ describe('Record routes with the actual router and actual templates', () => {
     expect(await cancelled).toBe(false);
     expect(page.editForm.title).toBe('Unsaved');
     page.submitEditTask();
-    expect(api.patch).toHaveBeenCalledWith('/tasks/123', expect.objectContaining({ title: 'Unsaved' }));
+    expect(api.patch).toHaveBeenCalledWith(
+      '/tasks/123',
+      expect.objectContaining({ title: 'Unsaved' }),
+      expect.any(Object),
+    );
     expect(router.url).toBe('/tasks/items/123');
   });
 

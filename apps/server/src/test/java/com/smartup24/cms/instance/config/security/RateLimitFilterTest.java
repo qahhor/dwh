@@ -428,7 +428,8 @@ class RateLimitFilterTest {
                         Instant.now(),
                         null,
                         null,
-                        0));
+                        0,
+                        1L));
         when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
     }
@@ -458,7 +459,8 @@ class RateLimitFilterTest {
                         Instant.now(),
                         null,
                         null,
-                        0));
+                        0,
+                        1L));
         when(permissionService.getEffectivePermissions(userId)).thenReturn(Set.of("*.*"));
         when(permissionService.getPermissionVersion(userId)).thenReturn(1L);
     }

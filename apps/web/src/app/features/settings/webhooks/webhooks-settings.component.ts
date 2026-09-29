@@ -232,7 +232,7 @@ export class WebhooksSettingsComponent {
 
   toggleState(sub: WebhookSubscription): void {
     const nextState = sub.state === 'A' ? 'P' : 'A';
-    this.webhooks.setState(sub.id, nextState).subscribe({
+    this.webhooks.setState(sub.id, nextState, sub.revision).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('settings.webhooks.updated_success'));
         this.loadSubscriptions();

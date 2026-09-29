@@ -43,6 +43,13 @@ async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH', path: string
   const token = storageState.cookies.find(cookie => cookie.name === 'XSRF-TOKEN')?.value;
   if (!token) throw new Error('Authenticated fixture has no CSRF cookie');
 
+  // A change names the revision it was made from (plan item 3.6): read the record as the screen would first.
+  const headers: Record<string, string> = { 'X-XSRF-TOKEN': token };
+  if (method === 'PATCH') {
+    const current = await api<{ revision?: number; task?: { revision?: number } }>(page, 'GET', path, 200);
+    headers['If-Match'] = `"${current.revision ?? current.task?.revision ?? 1}"`;
+  }
+
   let isolated;
   let response;
   try {
@@ -55,7 +62,7 @@ async function api<T>(page: Page, method: 'GET' | 'POST' | 'PATCH', path: string
       });
       response = await isolated.fetch(`/api/v1${path}`, {
         method,
-        headers: { 'X-XSRF-TOKEN': token },
+        headers,
         data,
         timeout: 30_000,
         maxRedirects: 0,

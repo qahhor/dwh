@@ -9,6 +9,11 @@ import { isSessionLoss } from '../http/session-bound';
 
 export interface ApiRequestOptions {
   notifyError?: boolean;
+  /**
+   * The revision the change is made from (plan item 3.6): sent as `If-Match`. The server refuses a change of a
+   * record without it (428) and a change from a revision that is no longer the record's (409).
+   */
+  ifMatch?: number | null;
 }
 
 /** Query parameters of a GET: anything that has a text form. */
@@ -67,7 +72,7 @@ export class ApiService {
   patch<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .patch<T>(`${this.baseUrl}${path}`, body || {}, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(options.ifMatch),
         withCredentials: true,
       })
       .pipe(catchError((err) => this.handleError(err, options)));
@@ -76,7 +81,7 @@ export class ApiService {
   put<T>(path: string, body?: unknown, options: ApiRequestOptions = {}): Observable<T> {
     return this.http
       .put<T>(`${this.baseUrl}${path}`, body || {}, {
-        headers: this.getHeaders(),
+        headers: this.getHeaders(options.ifMatch),
         withCredentials: true,
       })
       .pipe(catchError((err) => this.handleError(err, options)));
@@ -97,8 +102,11 @@ export class ApiService {
     return match ? decodeURIComponent(match[1]) : null;
   }
 
-  private getHeaders(): HttpHeaders {
+  private getHeaders(ifMatch?: number | null): HttpHeaders {
     let headers = new HttpHeaders();
+    if (ifMatch != null) {
+      headers = headers.set('If-Match', `"${ifMatch}"`);
+    }
     const lang = untracked(() => (this.i18n?.currentLang ? this.i18n.currentLang() : null));
     if (lang) {
       headers = headers.set('Accept-Language', lang);

@@ -31,6 +31,18 @@ describe('ApiService localized Problem Details', () => {
     http.verify();
   });
 
+  it('sends the revision a change is made from as If-Match, and nothing when there is none (plan item 3.6)', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const api = TestBed.inject(ApiService);
+    const http = TestBed.inject(HttpTestingController);
+
+    api.put('/notes/5', { title: 'x' }, { ifMatch: 3 }).subscribe();
+    api.patch('/tasks/projects/5', { name: 'y' }).subscribe();
+
+    expect(http.expectOne('/api/v1/notes/5').request.headers.get('If-Match')).toBe('"3"');
+    expect(http.expectOne('/api/v1/tasks/projects/5').request.headers.has('If-Match')).toBe(false);
+  });
+
   it('lets PUT callers own a conflict locally without losing its status or detail', () => {
     TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
     let failure: unknown;

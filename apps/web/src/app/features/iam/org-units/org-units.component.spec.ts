@@ -241,7 +241,7 @@ describe('OrgUnitsComponent lifecycle', () => {
     const editor = edit(root);
     editor.draft.name = 'Root renamed';
     editor.submit();
-    expect(api.update).toHaveBeenCalledWith(1, { name: 'Root renamed' });
+    expect(api.update).toHaveBeenCalledWith(1, { name: 'Root renamed' }, undefined);
   });
   it('does not replace draft context with a tree reload while editing', () => {
     const { page, api, edit } = setup();

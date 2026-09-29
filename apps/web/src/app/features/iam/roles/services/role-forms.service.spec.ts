@@ -65,7 +65,11 @@ describe('RoleFormsService', () => {
 
     forms.editRoleForm.name = 'Ревизор';
     forms.submitEditRole(saved);
-    expect(api.patch).toHaveBeenCalledWith('/iam/roles/4', { name: 'Ревизор', state: 'A', orderNo: 3 });
+    expect(api.patch).toHaveBeenCalledWith(
+      '/iam/roles/4',
+      { name: 'Ревизор', state: 'A', orderNo: 3 },
+      expect.any(Object),
+    );
     expect(saved).toHaveBeenCalledTimes(1);
     expect(forms.isEditModalOpen()).toBe(false);
   });

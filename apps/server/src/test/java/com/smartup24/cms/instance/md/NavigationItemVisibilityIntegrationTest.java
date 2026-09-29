@@ -9,12 +9,12 @@ import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.api.NavigationItemView;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.NavigationItemService;
 import com.smartup24.cms.instance.md.service.NavigationItemService.CreateNavigationItemCommand;
-import com.smartup24.cms.instance.md.service.NavigationItemService.NavigationItemView;
 import com.smartup24.cms.instance.md.service.NavigationItemService.PermissionChoice;
 import com.smartup24.cms.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
 import com.smartup24.cms.instance.support.TestDatabases;
@@ -126,7 +126,8 @@ class NavigationItemVisibilityIntegrationTest {
                                 "nobody.nothing",
                                 10,
                                 null),
-                        null))
+                        null,
+                        1L))
                 .isInstanceOf(ApiException.class);
 
         NavigationItemView cleared = service.updateItem(
@@ -144,7 +145,8 @@ class NavigationItemVisibilityIntegrationTest {
                         " ",
                         10,
                         null),
-                null);
+                null,
+                1L);
         assertThat(cleared.requiredPermission()).isNull();
     }
 

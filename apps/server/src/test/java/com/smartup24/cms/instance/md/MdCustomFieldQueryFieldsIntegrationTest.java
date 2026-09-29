@@ -145,7 +145,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
     @DisplayName("Changing a field's options and default is audited with the values before and after")
     void optionsChangeIsAudited() {
         var field = fields.createField("USER", "cfr_level", "Уровень", "select", false, null, List.of("a", "b"), 10);
-        fields.updateField(field.id(), null, null, "b", List.of("a", "b", "c"), null);
+        fields.updateField(field.id(), null, null, "b", List.of("a", "b", "c"), null, 1L);
 
         var row = jdbc.sql("""
                         select old_row::text as old_row, new_row::text as new_row from audit_log

@@ -32,13 +32,16 @@ class MsTaskStatusServiceTest {
         refused(() -> service.createStatus(null, " ", "gray", 1, false), ErrorCode.BAD_REQUEST, "status_name_required");
 
         when(statuses.findById(9L)).thenReturn(Optional.empty());
-        refused(() -> service.updateStatusRecord(9L, "X", null, null, null), ErrorCode.NOT_FOUND, "status_not_found");
+        refused(
+                () -> service.updateStatusRecord(9L, "X", null, null, null, 1L),
+                ErrorCode.NOT_FOUND,
+                "status_not_found");
         refused(() -> service.deleteStatus(9L), ErrorCode.NOT_FOUND, "status_not_found");
 
-        when(statuses.findById(1L)).thenReturn(Optional.of(new StatusRecord(1L, "new", "New", "gray", 1, false)));
+        when(statuses.findById(1L)).thenReturn(Optional.of(new StatusRecord(1L, "new", "New", "gray", 1, false, 1L)));
         refused(() -> service.deleteStatus(1L), ErrorCode.BAD_REQUEST, "status_system_delete");
 
-        when(statuses.findById(2L)).thenReturn(Optional.of(new StatusRecord(2L, null, "Own", "gray", 2, false)));
+        when(statuses.findById(2L)).thenReturn(Optional.of(new StatusRecord(2L, null, "Own", "gray", 2, false, 1L)));
         when(statuses.delete(2L)).thenReturn(false);
         refused(() -> service.deleteStatus(2L), ErrorCode.BAD_REQUEST, "status_in_use");
     }
@@ -49,7 +52,7 @@ class MsTaskStatusServiceTest {
         refused(() -> service.createType("bug", " ", null, null, 1), ErrorCode.BAD_REQUEST, "type_code_name_required");
 
         when(types.findById(9L)).thenReturn(Optional.empty());
-        refused(() -> service.updateType(9L, "X", null, null, null), ErrorCode.NOT_FOUND, "type_not_found");
+        refused(() -> service.updateType(9L, "X", null, null, null, 1L), ErrorCode.NOT_FOUND, "type_not_found");
         refused(() -> service.deleteType(9L), ErrorCode.NOT_FOUND, "type_not_found");
         verify(types, never()).delete(any());
     }

@@ -1248,6 +1248,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -2470,6 +2477,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -3180,6 +3194,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -3258,6 +3279,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -3664,6 +3692,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -4867,6 +4902,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -5172,6 +5214,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -5921,6 +5970,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -6005,6 +6061,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -7419,6 +7482,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -7612,6 +7682,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -7692,6 +7769,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -7860,6 +7944,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -8311,6 +8402,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -8605,6 +8703,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -8783,6 +8888,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -8857,6 +8969,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -9013,6 +9132,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "requestBody" : {
@@ -10168,6 +10294,13 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "requestBody" : {
           "content" : {
@@ -11322,6 +11455,10 @@
           "orderNo" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -12658,6 +12795,10 @@
           "phone" : {
             "type" : "string"
           },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "roleIds" : {
             "type" : "array",
             "items" : {
@@ -12761,6 +12902,10 @@
           "requiredPermission" : {
             "type" : "string"
           },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "sectionId" : {
             "type" : "string"
           },
@@ -12816,6 +12961,10 @@
           "modifiedAt" : {
             "type" : "string",
             "format" : "date-time"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
           },
           "title" : {
             "type" : "string"
@@ -12918,6 +13067,10 @@
             "format" : "int32"
           },
           "parentId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "revision" : {
             "type" : "integer",
             "format" : "int64"
           },
@@ -13314,6 +13467,10 @@
           "name" : {
             "type" : "string"
           },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "state" : {
             "type" : "string"
           }
@@ -13461,6 +13618,10 @@
           },
           "pcode" : {
             "type" : "string"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
           },
           "state" : {
             "type" : "string"
@@ -14019,6 +14180,10 @@
           "name" : {
             "type" : "string"
           },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
           "state" : {
             "type" : "string"
           },
@@ -14205,6 +14370,10 @@
           },
           "pcode" : {
             "type" : "string"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },
@@ -14237,6 +14406,10 @@
           "orderNo" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "revision" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         }
       },

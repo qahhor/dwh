@@ -20,8 +20,8 @@ export class WebhooksApi {
     return this.api.post<CreatedWebhookSubscription>('/webhooks/subscriptions', body, { notifyError: false });
   }
 
-  setState(id: number, state: string): Observable<void> {
-    return this.api.patch<void>(`/webhooks/subscriptions/${id}`, { state });
+  setState(id: number, state: string, revision: number | undefined): Observable<void> {
+    return this.api.patch<void>(`/webhooks/subscriptions/${id}`, { state }, { ifMatch: revision });
   }
 
   /** The confirmation shows the failure, so no general error toast. */

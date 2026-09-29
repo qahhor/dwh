@@ -32,8 +32,9 @@ export class CustomFieldsApi {
     return this.api.post<CustomField>('/custom-fields', field);
   }
 
-  update(id: number, changes: CustomFieldChanges): Observable<CustomField> {
-    return this.api.patch<CustomField>(`/custom-fields/${id}`, changes);
+  /** Saves the field changed from `revision` (plan item 3.6): a stale revision is 409. */
+  update(id: number, changes: CustomFieldChanges, revision: number | undefined): Observable<CustomField> {
+    return this.api.patch<CustomField>(`/custom-fields/${id}`, changes, { ifMatch: revision });
   }
 
   /** The confirmation shows the failure, so no general error toast. */

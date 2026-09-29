@@ -3,11 +3,13 @@ package com.smartup24.cms.instance.ms.note.repository;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -33,7 +35,8 @@ public class MsNoteRepository {
             Long createdBy,
             Long modifiedBy,
             Instant createdAt,
-            Instant modifiedAt) {}
+            Instant modifiedAt,
+            long revision) {}
 
     public NoteRecord create(
             String title,
@@ -47,7 +50,7 @@ public class MsNoteRepository {
                 .sql("""
                 insert into ms_notes(title, content_md, color, is_pinned, attributes, created_by, modified_by, created_at, modified_at)
                 values(:title, :contentMd, :color, :isPinned, cast(:attributes as jsonb), :userId, :userId, clock_timestamp(), clock_timestamp())
-                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
                 """)
                 .param("title", title)
                 .param("contentMd", contentMd != null ? contentMd : "")
@@ -61,7 +64,7 @@ public class MsNoteRepository {
 
     public Optional<NoteRecord> findById(Long id) {
         return jdbcClient.sql("""
-                select id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
+                select id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
                 from ms_notes
                 where id = :id
                 """).param("id", id).query(this::mapNote).optional();
@@ -86,7 +89,8 @@ public class MsNoteRepository {
             String color,
             Boolean isPinned,
             Map<String, Object> attributes,
-            Long userId) {
+            Long userId,
+            @Nullable Long expectedRevision) {
         String attrsJson = attributes == null ? null : toJson(attributes);
         return jdbcClient
                 .sql("""
@@ -97,9 +101,10 @@ public class MsNoteRepository {
                     is_pinned = coalesce(:isPinned, is_pinned),
                     attributes = coalesce(cast(:attributes as jsonb), attributes),
                     modified_by = :userId,
-                    modified_at = clock_timestamp()
-                where id = :id
-                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at
+                    modified_at = clock_timestamp(),
+                    revision = revision + 1
+                where id = :id and (cast(:expectedRevision as bigint) is null or revision = :expectedRevision)
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
                 """)
                 .param("id", id)
                 .param("title", title)
@@ -108,8 +113,29 @@ public class MsNoteRepository {
                 .param("isPinned", isPinned)
                 .param("attributes", attrsJson)
                 .param("userId", userId)
+                .param("expectedRevision", expectedRevision)
                 .query(this::mapNote)
-                .single();
+                .optional()
+                .orElseThrow(Revisions::conflict);
+    }
+
+    /**
+     * Sets the pin in one statement (plan 10/10, item 3.6): the row is written only when the pin changes, so of
+     * concurrent requests exactly those that changed it return a row, and only they are audited.
+     */
+    public Optional<NoteRecord> setPinned(Long id, boolean pinned, Long userId) {
+        return jdbcClient
+                .sql("""
+                update ms_notes
+                set is_pinned = :pinned, modified_by = :userId, modified_at = clock_timestamp(), revision = revision + 1
+                where id = :id and is_pinned <> :pinned
+                returning id, title, content_md, color, is_pinned, attributes::text as attributes_str, created_by, modified_by, created_at, modified_at, revision
+                """)
+                .param("id", id)
+                .param("pinned", pinned)
+                .param("userId", userId)
+                .query(this::mapNote)
+                .optional();
     }
 
     public boolean delete(Long id) {
@@ -135,7 +161,8 @@ public class MsNoteRepository {
                         : null,
                 rs.getTimestamp("modified_at") != null
                         ? rs.getTimestamp("modified_at").toInstant()
-                        : null);
+                        : null,
+                rs.getLong("revision"));
     }
 
     private String toJson(Map<String, Object> map) {

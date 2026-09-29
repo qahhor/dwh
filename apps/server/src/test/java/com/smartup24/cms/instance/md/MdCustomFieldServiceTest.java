@@ -26,7 +26,7 @@ class MdCustomFieldServiceTest {
     void shouldRejectMissingRequiredField() {
         when(customFieldRepository.findByEntityType("USER"))
                 .thenReturn(List.of(new MdCustomFieldRepository.CustomFieldRecord(
-                        1L, "USER", "inn", "ИНН", "number", true, null, "[]", 0, Instant.now())));
+                        1L, "USER", "inn", "ИНН", "number", true, null, "[]", 0, Instant.now(), 1L)));
 
         assertThatThrownBy(() -> service.validateAttributes("USER", Map.of()))
                 .isInstanceOf(ApiException.class)
@@ -39,9 +39,19 @@ class MdCustomFieldServiceTest {
         when(customFieldRepository.findByEntityType("USER"))
                 .thenReturn(List.of(
                         new MdCustomFieldRepository.CustomFieldRecord(
-                                1L, "USER", "inn", "ИНН", "number", true, null, "[]", 0, Instant.now()),
+                                1L, "USER", "inn", "ИНН", "number", true, null, "[]", 0, Instant.now(), 1L),
                         new MdCustomFieldRepository.CustomFieldRecord(
-                                2L, "USER", "is_vip", "VIP клиент", "boolean", false, "false", "[]", 1, Instant.now()),
+                                2L,
+                                "USER",
+                                "is_vip",
+                                "VIP клиент",
+                                "boolean",
+                                false,
+                                "false",
+                                "[]",
+                                1,
+                                Instant.now(),
+                                1L),
                         new MdCustomFieldRepository.CustomFieldRecord(
                                 3L,
                                 "USER",
@@ -52,7 +62,8 @@ class MdCustomFieldServiceTest {
                                 null,
                                 "[]",
                                 2,
-                                Instant.now())));
+                                Instant.now(),
+                                1L)));
 
         assertThatCode(() -> service.validateAttributes(
                         "USER", Map.of("inn", 123456789, "is_vip", true, "birth_date", "2026-08-29")))
@@ -65,9 +76,9 @@ class MdCustomFieldServiceTest {
         when(customFieldRepository.findByEntityType("TASK"))
                 .thenReturn(List.of(
                         new MdCustomFieldRepository.CustomFieldRecord(
-                                1L, "TASK", "deadline", "Срок", "date", false, null, "[]", 0, Instant.now()),
+                                1L, "TASK", "deadline", "Срок", "date", false, null, "[]", 0, Instant.now(), 1L),
                         new MdCustomFieldRepository.CustomFieldRecord(
-                                2L, "TASK", "cost", "Стоимость", "number", false, null, "[]", 1, Instant.now())));
+                                2L, "TASK", "cost", "Стоимость", "number", false, null, "[]", 1, Instant.now(), 1L)));
 
         assertThatThrownBy(() -> service.validateAttributes("TASK", Map.of("deadline", "invalid-date")))
                 .isInstanceOf(ApiException.class);
@@ -90,7 +101,8 @@ class MdCustomFieldServiceTest {
                         null,
                         "[\"low\", \"medium\", \"high\"]",
                         0,
-                        Instant.now())));
+                        Instant.now(),
+                        1L)));
 
         assertThatCode(() -> service.validateAttributes("TASK", Map.of("priority_level", "medium")))
                 .doesNotThrowAnyException();
@@ -105,7 +117,7 @@ class MdCustomFieldServiceTest {
     void shouldRejectTooLongString() {
         when(customFieldRepository.findByEntityType("NOTE"))
                 .thenReturn(List.of(new MdCustomFieldRepository.CustomFieldRecord(
-                        1L, "NOTE", "memo", "Заметка", "string", false, null, "[]", 0, Instant.now())));
+                        1L, "NOTE", "memo", "Заметка", "string", false, null, "[]", 0, Instant.now(), 1L)));
 
         String longStr = "x".repeat(4001);
         assertThatThrownBy(() -> service.validateAttributes("NOTE", Map.of("memo", longStr)))

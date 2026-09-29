@@ -147,6 +147,7 @@ class MsTaskPatchIntegrationTest {
         signIn(actor);
 
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("{\"title\":\"Renamed\"}"))
                 .andExpect(status().isNoContent());
@@ -159,6 +160,7 @@ class MsTaskPatchIntegrationTest {
         assertThat(responsible(task)).isEqualTo(responsible);
 
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("""
                                 {"projectId":null,"parentTaskId":null,"responsibleUserId":null,
@@ -185,12 +187,14 @@ class MsTaskPatchIntegrationTest {
         signIn(actor);
 
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("{\"title\":\"Still observed\"}"))
                 .andExpect(status().isNoContent());
         assertThat(members(task, MsTaskPref.INVOLVE_OBSERVER)).containsExactly(observer);
 
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("{\"observerUserIds\":[]}"))
                 .andExpect(status().isNoContent());
@@ -207,6 +211,7 @@ class MsTaskPatchIntegrationTest {
         signIn(actor);
 
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("{\"title\":\"Must roll back\",\"responsibleUserId\":9223372036854770000}"))
                 .andExpect(status().isNotFound());
@@ -329,6 +334,7 @@ class MsTaskPatchIntegrationTest {
     private static void assertPatchVisible(Long actor, Long task) throws Exception {
         signIn(actor);
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("{\"title\":\"Visible " + task + "\"}"))
                 .andExpect(status().isNoContent());
@@ -339,6 +345,7 @@ class MsTaskPatchIntegrationTest {
         String before = (String) taskValues(task).get("title");
         signIn(actor);
         mvc.perform(patch("/api/v1/tasks/{id}", task)
+                        .header("If-Match", ifMatch("ms_tasks", task))
                         .contentType("application/json")
                         .content("{\"title\":\"Forbidden\"}"))
                 .andExpect(status().isNotFound());
@@ -527,5 +534,15 @@ class MsTaskPatchIntegrationTest {
                 false,
                 0,
                 null));
+    }
+
+    /** {@code If-Match} with the current revision of the row, as a client that just read it sends (item 3.6). */
+    private static String ifMatch(String table, Object id) {
+        Long revision = jdbc.sql("select revision from " + table + " where id = :id")
+                .param("id", ((Number) id).longValue())
+                .query(Long.class)
+                .optional()
+                .orElse(1L);
+        return "\"" + revision + "\"";
     }
 }

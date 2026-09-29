@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
+import com.smartup24.cms.instance.common.web.Revisioned;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
@@ -66,7 +67,9 @@ public class MsNoteService {
             Map<String, Object> attributes,
             Long createdBy,
             Instant createdAt,
-            Instant modifiedAt) {
+            Instant modifiedAt,
+            long revision)
+            implements Revisioned {
         public static NoteView from(NoteRecord r) {
             return new NoteView(
                     r.id(),
@@ -77,7 +80,8 @@ public class MsNoteService {
                     r.attributes(),
                     r.createdBy(),
                     r.createdAt(),
-                    r.modifiedAt());
+                    r.modifiedAt(),
+                    r.revision());
         }
     }
 
@@ -150,7 +154,8 @@ public class MsNoteService {
             String color,
             Boolean isPinned,
             Map<String, Object> attributes,
-            Long userId) {
+            Long userId,
+            long expectedRevision) {
         checkModuleActive();
         var existing = noteRepository
                 .findById(id)
@@ -165,7 +170,8 @@ public class MsNoteService {
             customFieldService.validateAttributes("NOTE", attributes);
         }
 
-        var updated = noteRepository.update(id, title, contentMd, color, isPinned, attributes, userId);
+        var updated =
+                noteRepository.update(id, title, contentMd, color, isPinned, attributes, userId, expectedRevision);
 
         auditLogService.logChange(
                 "ms_notes",
@@ -194,11 +200,23 @@ public class MsNoteService {
         return setPinned(id, userId, !ownNote(id, userId).isPinned());
     }
 
-    /** Sets the pin (PUT /notes/{id}/pin, plan item 3.4): the same call twice leaves the same note. */
+    /**
+     * Sets the pin (PUT /notes/{id}/pin, plan item 3.4): the same call twice leaves the same note. The write happens
+     * only when the pin changes (plan item 3.6), so concurrent calls leave one state and one audit row per change.
+     */
     @Transactional
     public NoteView setPinned(Long id, Long userId, boolean pinned) {
-        ownNote(id, userId);
-        return updateNote(id, null, null, null, pinned, null, userId);
+        var before = ownNote(id, userId);
+        noteRepository
+                .setPinned(id, pinned, userId)
+                .ifPresent(changed -> auditLogService.logChange(
+                        "ms_notes",
+                        String.valueOf(id),
+                        "U",
+                        List.of("is_pinned"),
+                        Map.of("is_pinned", !changed.isPinned()),
+                        Map.of("is_pinned", changed.isPinned())));
+        return NoteView.from(noteRepository.findById(id).orElse(before));
     }
 
     private NoteRecord ownNote(Long id, Long userId) {

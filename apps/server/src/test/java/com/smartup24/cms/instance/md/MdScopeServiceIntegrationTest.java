@@ -162,7 +162,7 @@ class MdScopeServiceIntegrationTest {
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactlyInAnyOrder(region, branch);
 
-        orgUnitService.update(region, company, null, null, "P", null);
+        orgUnitService.update(region, company, null, null, "P", null, 1L);
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds())
                 .as("выключение региона обязано унести и его филиал")
@@ -174,7 +174,7 @@ class MdScopeServiceIntegrationTest {
     @Test
     @DisplayName("I-ORG-1: узел нельзя перенести под собственного потомка")
     void cannotMoveNodeUnderItsOwnDescendant() {
-        assertThatThrownBy(() -> orgUnitService.update(regionTashkent, branchYunusabad, null, null, null, null))
+        assertThatThrownBy(() -> orgUnitService.update(regionTashkent, branchYunusabad, null, null, null, null, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.org_unit_move_under_descendant");
     }

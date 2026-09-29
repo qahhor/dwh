@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.AssignUnitsDto;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.CreateOrgUnitDto;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -67,10 +69,20 @@ public class MdOrgUnitController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> update(@PathVariable("id") Long id, @RequestBody UpdateOrgUnitDto body) {
-        orgUnitService.update(
-                id, body.parentIdPresent(), body.parentId(), body.name(), body.kind(), body.state(), body.orderNo());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> update(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateOrgUnitDto body) {
+        long revision = orgUnitService.update(
+                id,
+                body.parentIdPresent(),
+                body.parentId(),
+                body.name(),
+                body.kind(),
+                body.state(),
+                body.orderNo(),
+                Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @DeleteMapping("/{id}")

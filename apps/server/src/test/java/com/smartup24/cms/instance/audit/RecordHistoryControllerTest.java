@@ -63,7 +63,9 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
         Session admin = login(user("chief_admin"));
         long task = createTask(admin, "TEST history before");
         var patched = send(
-                admin, patch("/api/v1/tasks/" + task), Map.of("title", "TEST history after", "priority", "medium"));
+                admin,
+                patch("/api/v1/tasks/" + task),
+                Map.of("title", "TEST history after", "priority", "medium", "expectedRevision", 1));
         assertThat(patched.getStatus()).as(patched.getContentAsString()).isLessThan(300);
 
         var response = send(admin, get("/api/v1/history/tasks/" + task), null);

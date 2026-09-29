@@ -66,8 +66,13 @@ export class NavigationSettingsStore {
   }
 
   /** `onSaved` runs before the list reloads. */
-  updateItem(id: number, payload: UpdateNavigationItemPayload, onSaved: () => void): void {
-    this.submit(this.navService.updateItem(id, payload), onSaved);
+  updateItem(
+    id: number,
+    payload: UpdateNavigationItemPayload,
+    revision: number | undefined,
+    onSaved: () => void,
+  ): void {
+    this.submit(this.navService.updateItem(id, payload, revision), onSaved);
   }
 
   toggleItem(item: CustomNavigationItem): void {

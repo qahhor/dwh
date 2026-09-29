@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,7 +27,7 @@ public class MdRoleRepository {
                 .sql("""
                 insert into md_roles (name, pcode, state, order_no, created_at, modified_at)
                 values (:name, :pcode, :state, :orderNo, now(), now())
-                returning id, name, pcode, state, order_no, created_at, modified_at
+                returning id, name, pcode, state, order_no, created_at, modified_at, revision
                 """)
                 .param("name", name)
                 .param("pcode", pcode)
@@ -39,14 +40,15 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()))
+                        rs.getTimestamp("modified_at").toInstant(),
+                        rs.getLong("revision")))
                 .single();
     }
 
     public Optional<RoleRecord> findById(Long id) {
         return jdbcClient
                 .sql("""
-                select id, name, pcode, state, order_no, created_at, modified_at
+                select id, name, pcode, state, order_no, created_at, modified_at, revision
                 from md_roles
                 where id = :id
                 """)
@@ -58,14 +60,15 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()))
+                        rs.getTimestamp("modified_at").toInstant(),
+                        rs.getLong("revision")))
                 .optional();
     }
 
     public Optional<RoleRecord> findByPcode(String pcode) {
         return jdbcClient
                 .sql("""
-                select id, name, pcode, state, order_no, created_at, modified_at
+                select id, name, pcode, state, order_no, created_at, modified_at, revision
                 from md_roles
                 where pcode = :pcode
                 """)
@@ -77,14 +80,15 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()))
+                        rs.getTimestamp("modified_at").toInstant(),
+                        rs.getLong("revision")))
                 .optional();
     }
 
     public List<RoleRecord> listRoles() {
         return jdbcClient
                 .sql("""
-                select id, name, pcode, state, order_no, created_at, modified_at
+                select id, name, pcode, state, order_no, created_at, modified_at, revision
                 from md_roles
                 order by order_no asc, id asc
                 """)
@@ -95,22 +99,46 @@ public class MdRoleRepository {
                         rs.getString("state"),
                         rs.getInt("order_no"),
                         rs.getTimestamp("created_at").toInstant(),
-                        rs.getTimestamp("modified_at").toInstant()))
+                        rs.getTimestamp("modified_at").toInstant(),
+                        rs.getLong("revision")))
                 .list();
     }
 
-    public void update(Long id, String name, String state, int orderNo) {
-        jdbcClient
+    /** Saves the role made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
+    public long update(Long id, String name, String state, int orderNo, long expectedRevision) {
+        return jdbcClient
                 .sql("""
                 update md_roles
-                set name = :name, state = :state, order_no = :orderNo, modified_at = now()
-                where id = :id
+                set name = :name, state = :state, order_no = :orderNo, modified_at = now(), revision = revision + 1
+                where id = :id and revision = :expectedRevision
+                returning revision
                 """)
                 .param("id", id)
                 .param("name", name)
                 .param("state", state)
                 .param("orderNo", orderNo)
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
+    }
+
+    /**
+     * Claims the next revision of a role for a change of its rights (plan item 3.6): the matrix is part of the role,
+     * so a save of it made from an older revision is refused like a save of the name.
+     */
+    public long nextRevision(Long id, long expectedRevision) {
+        return jdbcClient
+                .sql("""
+                update md_roles set modified_at = now(), revision = revision + 1
+                where id = :id and revision = :expectedRevision
+                returning revision
+                """)
+                .param("id", id)
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     public void delete(Long id) {
@@ -212,7 +240,14 @@ public class MdRoleRepository {
     }
 
     public record RoleRecord(
-            Long id, String name, String pcode, String state, int orderNo, Instant createdAt, Instant modifiedAt) {}
+            Long id,
+            String name,
+            String pcode,
+            String state,
+            int orderNo,
+            Instant createdAt,
+            Instant modifiedAt,
+            long revision) {}
 
     public record PermissionPair(String formCode, String action) {}
 }

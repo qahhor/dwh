@@ -9,6 +9,8 @@ export interface OrgUnit {
   orderNo: number;
   createdAt: string;
   modifiedAt: string;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 export interface UserAssignments {
   userId: number;

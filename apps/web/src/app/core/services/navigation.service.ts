@@ -64,9 +64,13 @@ export class NavigationService {
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
-  updateItem(id: number, payload: UpdateNavigationItemPayload): Observable<CustomNavigationItem> {
+  updateItem(
+    id: number,
+    payload: UpdateNavigationItemPayload,
+    revision: number | undefined,
+  ): Observable<CustomNavigationItem> {
     return this.api
-      .put<CustomNavigationItem>(`/navigation/items/${id}`, payload, { notifyError: false })
+      .put<CustomNavigationItem>(`/navigation/items/${id}`, payload, { notifyError: false, ifMatch: revision })
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 

@@ -18,7 +18,7 @@ public class MsNoteQuery {
 
     public static final String COLUMNS = """
             n.id, n.title, n.content_md, n.color, n.is_pinned, n.attributes::text as attributes_str,
-            n.created_by, n.modified_by, n.created_at, n.modified_at""";
+            n.created_by, n.modified_by, n.created_at, n.modified_at, n.revision""";
 
     private static final String RANK = "(case when n.is_pinned then '1' else '0' end"
             + " || to_char(n.modified_at at time zone 'UTC', 'YYYYMMDDHH24MISSUS'))";

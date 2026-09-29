@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class MsProjectRepository {
                 .sql("""
                 insert into ms_task_projects (name, description, state, attributes, created_at, created_by)
                 values (:name, :description, :state, cast(:attributes as jsonb), now(), :createdBy)
-                returning id, name, description, state, attributes::text as attributes_str, created_at, created_by
+                returning id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
                 """)
                 .param("name", name.trim())
                 .param("description", description)
@@ -41,7 +42,7 @@ public class MsProjectRepository {
 
     public Optional<ProjectRecord> findById(Long id) {
         return jdbcClient.sql("""
-                select id, name, description, state, attributes::text as attributes_str, created_at, created_by
+                select id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
                 from ms_task_projects
                 where id = :id
                 """).param("id", id).query(this::mapRecord).optional();
@@ -49,7 +50,7 @@ public class MsProjectRepository {
 
     public List<ProjectRecord> listProjects(String state) {
         StringBuilder sql = new StringBuilder("""
-                select id, name, description, state, attributes::text as attributes_str, created_at, created_by
+                select id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
                 from ms_task_projects
                 where 1=1
                 """);
@@ -65,24 +66,36 @@ public class MsProjectRepository {
         return query.query(this::mapRecord).list();
     }
 
-    public void update(Long id, String name, String description, String state, Map<String, Object> attributes) {
+    /** Saves the project made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
+    public long update(
+            Long id,
+            String name,
+            String description,
+            String state,
+            Map<String, Object> attributes,
+            long expectedRevision) {
         String attrsJson = attributes != null ? toJson(attributes) : null;
 
-        jdbcClient
+        return jdbcClient
                 .sql("""
                 update ms_task_projects
                 set name = coalesce(:name, name),
                     description = coalesce(:description, description),
                     state = coalesce(:state, state),
-                    attributes = coalesce(cast(:attributes as jsonb), attributes)
-                where id = :id
+                    attributes = coalesce(cast(:attributes as jsonb), attributes),
+                    revision = revision + 1
+                where id = :id and revision = :expectedRevision
+                returning revision
                 """)
                 .param("id", id)
                 .param("name", name)
                 .param("description", description)
                 .param("state", state)
                 .param("attributes", attrsJson)
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     public void addMember(Long projectId, Long userId, String accessKind) {
@@ -134,7 +147,8 @@ public class MsProjectRepository {
                 rs.getString("state"),
                 parseJson(rs.getString("attributes_str")),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getObject("created_by") != null ? rs.getLong("created_by") : null);
+                rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
+                rs.getLong("revision"));
     }
 
     private String toJson(Map<String, Object> map) {
@@ -163,7 +177,8 @@ public class MsProjectRepository {
             String state,
             Map<String, Object> attributes,
             Instant createdAt,
-            Long createdBy) {}
+            Long createdBy,
+            long revision) {}
 
     public record ProjectMemberRecord(
             Long projectId, Long userId, String userName, String userEmail, String accessKind) {}

@@ -206,7 +206,7 @@ public class MdUserService {
     }
 
     @Transactional
-    public void updateUser(
+    public long updateUser(
             Long userId,
             String name,
             String phone,
@@ -217,7 +217,8 @@ public class MdUserService {
             Map<String, Object> attributes,
             Boolean is2faEnabled,
             List<Long> roleIds,
-            Long modifiedBy) {
+            Long modifiedBy,
+            long expectedRevision) {
 
         if (roleIds != null) {
             scopeService.acquireMutationLock();
@@ -235,11 +236,12 @@ public class MdUserService {
             customFieldService.validateAttributes("USER", attributes);
         }
 
-        userRepository.update(
+        long revision = userRepository.update(
                 userId,
                 new MdUserRepository.UserUpdateData(
                         name, normalizedPhone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled),
-                modifiedBy);
+                modifiedBy,
+                expectedRevision);
 
         if (roleIds != null) {
             // I-IAM-1: Нельзя снять роль администратора с системного администратора admin
@@ -264,6 +266,7 @@ public class MdUserService {
                 List.of("name", "phone", "language", "timezone"),
                 Map.of("name", existingUser.name(), "phone", existingUser.phone() != null ? existingUser.phone() : ""),
                 Map.of("name", name != null ? name : existingUser.name(), "phone", phone != null ? phone : ""));
+        return revision;
     }
 
     public record AuthUser(
@@ -283,7 +286,8 @@ public class MdUserService {
             boolean forcePasswordChange,
             long authenticationVersion,
             Instant createdAt,
-            Instant modifiedAt) {
+            Instant modifiedAt,
+            long revision) {
         public static AuthUser from(MdUserRepository.UserRecord u) {
             return new AuthUser(
                     u.id(),
@@ -302,7 +306,8 @@ public class MdUserService {
                     u.forcePasswordChange(),
                     u.authenticationVersion(),
                     u.createdAt(),
-                    u.modifiedAt());
+                    u.modifiedAt(),
+                    u.revision());
         }
 
         public MdUserView toView(List<Long> roleIds) {
@@ -322,7 +327,8 @@ public class MdUserService {
                     forcePasswordChange,
                     roleIds != null ? roleIds : List.of(),
                     createdAt,
-                    modifiedAt);
+                    modifiedAt,
+                    revision);
         }
 
         public MdUserView toView() {

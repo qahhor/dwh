@@ -157,6 +157,7 @@ describe('NavigationSettingsComponent', () => {
       expect.objectContaining({
         title: 'Обновленный отчет',
       }),
+      undefined,
     );
     expect(toast.success).toHaveBeenCalled();
   });
@@ -175,6 +176,7 @@ describe('NavigationSettingsComponent', () => {
         requiredPermission: 'platform.navigation.manage',
         parentId: 7,
       }),
+      undefined,
     );
   });
 

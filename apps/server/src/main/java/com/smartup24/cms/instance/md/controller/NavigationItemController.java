@@ -3,10 +3,11 @@ package com.smartup24.cms.instance.md.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.instance.md.api.NavigationItemView;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.NavigationItemService;
 import com.smartup24.cms.instance.md.service.NavigationItemService.CreateNavigationItemCommand;
-import com.smartup24.cms.instance.md.service.NavigationItemService.NavigationItemView;
 import com.smartup24.cms.instance.md.service.NavigationItemService.PermissionChoice;
 import com.smartup24.cms.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
 import jakarta.validation.Valid;
@@ -74,9 +75,11 @@ public class NavigationItemController {
     @PutMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     public ResponseEntity<NavigationItemView> updateItem(
-            @PathVariable Long id, @Valid @RequestBody UpdateNavigationItemCommand cmd) {
+            @PathVariable Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody UpdateNavigationItemCommand cmd) {
         Long userId = SecurityContext.getCurrentUserId();
-        return ResponseEntity.ok(navigationService.updateItem(id, cmd, userId));
+        return ResponseEntity.ok(navigationService.updateItem(id, cmd, userId, Revisions.required(ifMatch)));
     }
 
     public record ActiveRequest(boolean active) {}

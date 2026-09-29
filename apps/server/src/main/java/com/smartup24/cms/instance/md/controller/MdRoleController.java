@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.CreateRoleDto;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.FormCatalogItem;
 import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
@@ -54,9 +55,13 @@ public class MdRoleController {
     @PatchMapping("/roles/{id}")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateRole(@PathVariable("id") Long id, @RequestBody UpdateRoleDto body) {
-        roleService.updateRole(id, body.name(), body.state(), body.orderNo());
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> updateRole(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateRoleDto body) {
+        long revision =
+                roleService.updateRole(id, body.name(), body.state(), body.orderNo(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @DeleteMapping("/roles/{id}")
@@ -77,10 +82,12 @@ public class MdRoleController {
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "grant")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> setRolePermissions(
-            @PathVariable("id") Long id, @RequestBody List<@NotNull @Valid RolePermission> permissions) {
-
-        roleService.setRolePermissions(id, permissions);
-        return ResponseEntity.noContent().build();
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody List<@NotNull @Valid RolePermission> permissions) {
+        // The matrix is part of the role: it is saved from the role's revision (plan item 3.6).
+        long revision = roleService.setRolePermissions(id, permissions, Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @GetMapping("/forms")

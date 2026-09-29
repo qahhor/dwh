@@ -21,6 +21,8 @@ export interface Note {
   createdBy: number;
   createdAt: string;
   modifiedAt: string;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 /**
@@ -38,10 +40,10 @@ export class NotesApi {
   }
 
   /** Creates a note, or updates the one with `id`; a 422 names the fields it rejects. */
-  save(id: number | null, payload: Record<string, unknown>): Observable<Note> {
+  save(id: number | null, payload: Record<string, unknown>, revision?: number): Observable<Note> {
     return id === null
       ? this.api.post<Note>('/notes', payload, { notifyError: false })
-      : this.api.put<Note>(`/notes/${id}`, payload, { notifyError: false });
+      : this.api.put<Note>(`/notes/${id}`, payload, { notifyError: false, ifMatch: revision });
   }
 
   /** Pins or unpins the note: the request states the result, so a repeat leaves the same note. */

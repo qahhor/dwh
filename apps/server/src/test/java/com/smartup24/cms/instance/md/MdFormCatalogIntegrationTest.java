@@ -87,7 +87,7 @@ class MdFormCatalogIntegrationTest {
         var role = roleRepository.create("Роль для устаревшего права", null, "A", 100);
 
         assertThatThrownBy(() -> roleService.setRolePermissions(
-                        role.id(), List.of(new RolePermission("notify.preferences", "view"))))
+                        role.id(), List.of(new RolePermission("notify.preferences", "view")), 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.permission_not_grantable")
                 .hasFieldOrPropertyWithValue("params", Map.of("permission", "notify.preferences.view"));

@@ -84,7 +84,9 @@ class MsNoteIntegrationTest {
         assertThat(found.getFirst().id()).isEqualTo(note.id());
 
         // Обновление
-        var updated = noteService.updateNote(note.id(), "Обновленный манифест", null, "yellow", null, null, user1Id);
+        long revision = noteService.getNote(note.id(), user1Id).revision();
+        var updated = noteService.updateNote(
+                note.id(), "Обновленный манифест", null, "yellow", null, null, user1Id, revision);
         assertThat(updated.title()).isEqualTo("Обновленный манифест");
         assertThat(updated.color()).isEqualTo("yellow");
 
@@ -108,7 +110,7 @@ class MsNoteIntegrationTest {
         assertThat(user2Notes.stream().map(MsNoteService.NoteView::id)).doesNotContain(user1Note.id());
 
         // Пользователь 2 не может изменить чужую заметку
-        assertThatThrownBy(() -> noteService.updateNote(user1Note.id(), "Хак", null, null, null, null, user2Id))
+        assertThatThrownBy(() -> noteService.updateNote(user1Note.id(), "Хак", null, null, null, null, user2Id, 1L))
                 .isInstanceOf(ApiException.class);
 
         // Пользователь 2 не может удалить чужую заметку
@@ -192,10 +194,10 @@ class MsNoteIntegrationTest {
 
         var note = noteService.createNote("Проверка", "", "default", false, null, user1Id);
         assertThat(noteService
-                        .updateNote(note.id(), null, "только текст", null, null, null, user1Id)
+                        .updateNote(note.id(), null, "только текст", null, null, null, user1Id, 1L)
                         .title())
                 .isEqualTo("Проверка");
-        assertThatThrownBy(() -> noteService.updateNote(note.id(), "", null, null, null, null, user1Id))
+        assertThatThrownBy(() -> noteService.updateNote(note.id(), "", null, null, null, null, user1Id, 1L))
                 .isInstanceOfSatisfying(
                         ApiException.class,
                         e -> assertThat(e.getFieldErrors())

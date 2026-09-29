@@ -341,20 +341,22 @@ export class TaskFormsService {
     const editedTask = this.editingTask;
     const returnTask = this.editReturnTask;
     this.isSubmitting.set(true);
-    this.editSaveRequest = this.api.patch(`/tasks/${editedTask.id}`, payload).subscribe({
-      next: () => {
-        if (this.editingTask?.id !== editedTask.id) return;
-        this.isSubmitting.set(false);
-        this.closeEditModal(false, () => {});
-        this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
-        onSuccess(returnTask, editedTask.id);
-      },
-      error: (err) => {
-        if (this.editingTask?.id !== editedTask.id) return;
-        this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_obnovlenii_zadachi'));
-      },
-    });
+    this.editSaveRequest = this.api
+      .patch(`/tasks/${editedTask.id}`, payload, { ifMatch: editedTask.revision })
+      .subscribe({
+        next: () => {
+          if (this.editingTask?.id !== editedTask.id) return;
+          this.isSubmitting.set(false);
+          this.closeEditModal(false, () => {});
+          this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
+          onSuccess(returnTask, editedTask.id);
+        },
+        error: (err) => {
+          if (this.editingTask?.id !== editedTask.id) return;
+          this.isSubmitting.set(false);
+          this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_obnovlenii_zadachi'));
+        },
+      });
   }
 
   cleanup(): void {

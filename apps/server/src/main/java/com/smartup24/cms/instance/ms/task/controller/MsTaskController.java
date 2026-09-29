@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.task.api.ChangeStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateTaskRequest;
 import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -142,7 +144,12 @@ public class MsTaskController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskRequest body) {
+    public ResponseEntity<Void> updateTask(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateTaskRequest body) {
+        // The revision the change was made from is required (plan item 3.6): If-Match, or expectedRevision.
+        body.setExpectedRevision(Revisions.required(ifMatch, body.toPatch().expectedRevision()));
         taskService.updateTask(id, body, SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
@@ -158,8 +165,14 @@ public class MsTaskController {
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> changeStatus(
-            @PathVariable("id") Long id, @Valid @RequestBody ChangeStatusRequest body) {
-        workflowService.changeStatus(id, body.statusId(), body.expectedRevision(), SecurityContext.getCurrentUserId());
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody ChangeStatusRequest body) {
+        workflowService.changeStatus(
+                id,
+                body.statusId(),
+                Revisions.required(ifMatch, body.expectedRevision()),
+                SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 }

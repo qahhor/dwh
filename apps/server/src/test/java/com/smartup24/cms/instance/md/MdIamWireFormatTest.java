@@ -77,9 +77,9 @@ class MdIamWireFormatTest {
     private static final Instant AT = Instant.parse("2026-09-01T10:00:00Z");
 
     private static final Set<String> ROLE =
-            Set.of("id", "name", "pcode", "state", "orderNo", "createdAt", "modifiedAt");
+            Set.of("id", "name", "pcode", "state", "orderNo", "createdAt", "modifiedAt", "revision");
     private static final Set<String> ORG_UNIT =
-            Set.of("id", "parentId", "code", "name", "kind", "state", "orderNo", "createdAt", "modifiedAt");
+            Set.of("id", "parentId", "code", "name", "kind", "state", "orderNo", "createdAt", "modifiedAt", "revision");
     private static final Set<String> CUSTOM_FIELD = Set.of(
             "id",
             "entityType",
@@ -90,7 +90,8 @@ class MdIamWireFormatTest {
             "defaultValue",
             "optionsJson",
             "orderNo",
-            "createdAt");
+            "createdAt",
+            "revision");
     private static final Set<String> USER = Set.of(
             "id",
             "name",
@@ -107,7 +108,8 @@ class MdIamWireFormatTest {
             "forcePasswordChange",
             "roleIds",
             "createdAt",
-            "modifiedAt");
+            "modifiedAt",
+            "revision");
 
     private final MdRoleRepository roles = mock(MdRoleRepository.class);
     private final MdPermissionRepository permissions = mock(MdPermissionRepository.class);
@@ -119,7 +121,7 @@ class MdIamWireFormatTest {
     @Test
     @DisplayName("roles: list and create answer with the role properties, the form catalog with its own")
     void roles() throws Exception {
-        var record = new MdRoleRepository.RoleRecord(3L, "Менеджер", "manager", "A", 10, AT, AT);
+        var record = new MdRoleRepository.RoleRecord(3L, "Менеджер", "manager", "A", 10, AT, AT, 1L);
         when(roles.listRoles()).thenReturn(List.of(record));
         when(roles.create("Новая", null, "A", 5)).thenReturn(record);
         when(permissionService.getFormCatalog())
@@ -140,12 +142,16 @@ class MdIamWireFormatTest {
     @DisplayName("role matrix: the request items are read as formCode and action")
     void rolePermissionsRequest() throws Exception {
         when(roles.findById(3L))
-                .thenReturn(Optional.of(new MdRoleRepository.RoleRecord(3L, "Менеджер", null, "A", 10, AT, AT)));
+                .thenReturn(Optional.of(new MdRoleRepository.RoleRecord(3L, "Менеджер", null, "A", 10, AT, AT, 1L)));
         when(permissionService.getGrantablePairs()).thenReturn(Set.of("audit.log.view"));
         var roleService = new MdRoleService(roles, permissionService, audit, mock(MdScopeRepository.class));
         MockMvc mvc = mvc(new MdRoleController(roleService, permissionService));
 
-        send(mvc, put("/api/v1/iam/roles/3/permissions").content("[{\"formCode\":\"audit.log\",\"action\":\"view\"}]"))
+        send(
+                        mvc,
+                        put("/api/v1/iam/roles/3/permissions")
+                                .header("If-Match", "\"1\"")
+                                .content("[{\"formCode\":\"audit.log\",\"action\":\"view\"}]"))
                 .andStatus(204);
 
         verify(roles).replaceRolePermissions(3L, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
@@ -157,7 +163,7 @@ class MdIamWireFormatTest {
         when(users.findById(42L)).thenReturn(Optional.of(user(42L)));
         when(roles.getUserRoleIds(42L)).thenReturn(List.of(3L));
         when(roles.findById(3L))
-                .thenReturn(Optional.of(new MdRoleRepository.RoleRecord(3L, "Менеджер", null, "A", 10, AT, AT)));
+                .thenReturn(Optional.of(new MdRoleRepository.RoleRecord(3L, "Менеджер", null, "A", 10, AT, AT, 1L)));
         when(permissions.getEffectivePermissionsWithSource(42L))
                 .thenReturn(List.of(
                         new MdPermissionRepository.EffectivePermissionItem("audit.log", "view", "personal"),
@@ -199,8 +205,8 @@ class MdIamWireFormatTest {
     @DisplayName("org units: list, one and create answer with the unit properties; a root has no parentId")
     void orgUnits() throws Exception {
         var repository = mock(MdOrgUnitRepository.class);
-        var root = new MdOrgUnitRepository.OrgUnitRecord(1L, null, "HQ", "Company", "company", "A", 0, AT, AT);
-        var child = new MdOrgUnitRepository.OrgUnitRecord(2L, 1L, "SALES", "Sales", "department", "A", 1, AT, AT);
+        var root = new MdOrgUnitRepository.OrgUnitRecord(1L, null, "HQ", "Company", "company", "A", 0, AT, AT, 1L);
+        var child = new MdOrgUnitRepository.OrgUnitRecord(2L, 1L, "SALES", "Sales", "department", "A", 1, AT, AT, 1L);
         when(repository.listAll()).thenReturn(List.of(root, child));
         when(repository.findById(1L)).thenReturn(Optional.of(root));
         when(repository.findById(2L)).thenReturn(Optional.of(child));
@@ -230,7 +236,7 @@ class MdIamWireFormatTest {
     void customFields() throws Exception {
         var repository = mock(MdCustomFieldRepository.class);
         var record = new MdCustomFieldRepository.CustomFieldRecord(
-                5L, "USER", "cf_shift", "Смена", "select", false, "day", "[\"day\",\"night\"]", 1, AT);
+                5L, "USER", "cf_shift", "Смена", "select", false, "day", "[\"day\",\"night\"]", 1, AT, 1L);
         when(repository.findByEntityType("USER")).thenReturn(List.of(record));
         when(repository.create(
                         eq("USER"),
@@ -328,7 +334,8 @@ class MdIamWireFormatTest {
                 AT,
                 1L,
                 1L,
-                4L);
+                4L,
+                1L);
     }
 
     private static MockMvc mvc(Object controller) {

@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.kwh.pref.KwhPref;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
 import jakarta.validation.Valid;
@@ -47,10 +48,12 @@ public class KwhSubscriptionController {
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateSubscription(
-            @PathVariable("id") Long id, @RequestBody UpdateSubscriptionDto body) {
-
-        webhookService.updateSubscription(id, body.name(), body.targetUrl(), body.subscribedEvents(), body.state());
-        return ResponseEntity.noContent().build();
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateSubscriptionDto body) {
+        long revision = webhookService.updateSubscription(
+                id, body.name(), body.targetUrl(), body.subscribedEvents(), body.state(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @DeleteMapping("/{id}")

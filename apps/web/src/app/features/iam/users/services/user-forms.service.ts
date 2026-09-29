@@ -105,22 +105,24 @@ export class UserFormsService {
     const currentEditSessionId = this.editSessionId;
     const saveRequestId = ++this.editSaveRequestId;
     this.isSubmitting.set(true);
-    this.api.patch(`/iam/users/${this.editingUser.id}`, this.editForm).subscribe({
-      next: () => {
-        if (isDestroyed()) return;
-        if (saveRequestId === this.editSaveRequestId) {
-          this.isSubmitting.set(false);
-          onCloseModal(currentEditSessionId);
-        }
-        this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
-        onSuccess();
-      },
-      error: () => {
-        if (!isDestroyed() && saveRequestId === this.editSaveRequestId) {
-          this.isSubmitting.set(false);
-        }
-      },
-    });
+    this.api
+      .patch(`/iam/users/${this.editingUser.id}`, this.editForm, { ifMatch: this.editingUser.revision })
+      .subscribe({
+        next: () => {
+          if (isDestroyed()) return;
+          if (saveRequestId === this.editSaveRequestId) {
+            this.isSubmitting.set(false);
+            onCloseModal(currentEditSessionId);
+          }
+          this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
+          onSuccess();
+        },
+        error: () => {
+          if (!isDestroyed() && saveRequestId === this.editSaveRequestId) {
+            this.isSubmitting.set(false);
+          }
+        },
+      });
   }
 
   /** Fills the create form with a generated password that avoids the login. */

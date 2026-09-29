@@ -66,7 +66,13 @@ final class MsTaskViews {
 
     static TaskStatusView status(StatusRecord status) {
         return new TaskStatusView(
-                status.id(), status.pcode(), status.name(), status.color(), status.orderNo(), status.isTerminal());
+                status.id(),
+                status.pcode(),
+                status.name(),
+                status.color(),
+                status.orderNo(),
+                status.isTerminal(),
+                status.revision());
     }
 
     static TaskTypeView type(TypeRecord type) {
@@ -78,7 +84,8 @@ final class MsTaskViews {
                 type.color(),
                 type.orderNo(),
                 type.isSystem(),
-                type.createdAt());
+                type.createdAt(),
+                type.revision());
     }
 
     static ProjectTaskStatsView stats(ProjectTaskStats stats) {
@@ -93,7 +100,8 @@ final class MsTaskViews {
                 project.state(),
                 project.attributes(),
                 project.createdAt(),
-                project.createdBy());
+                project.createdBy(),
+                project.revision());
     }
 
     static ProjectMemberView projectMember(ProjectMemberRecord member) {

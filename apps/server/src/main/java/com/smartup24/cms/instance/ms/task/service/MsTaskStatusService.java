@@ -77,11 +77,12 @@ public class MsTaskStatusService {
 
     @Transactional
     @CacheEvict(value = "taskStatuses", allEntries = true)
-    public void updateStatusRecord(Long id, String name, String color, Integer orderNo, Boolean isTerminal) {
+    public long updateStatusRecord(
+            Long id, String name, String color, Integer orderNo, Boolean isTerminal, long expectedRevision) {
         if (statusRepository.findById(id).isEmpty()) {
             throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.status_not_found");
         }
-        statusRepository.update(id, name, color, orderNo, isTerminal);
+        long revision = statusRepository.update(id, name, color, orderNo, isTerminal, expectedRevision);
         if (name != null) searchChangePublisher.statusChanged(id);
         if (auditLogService != null) {
             auditLogService.logChange(
@@ -92,6 +93,7 @@ public class MsTaskStatusService {
                     null,
                     Map.of("name", name != null ? name : ""));
         }
+        return revision;
     }
 
     @Transactional
@@ -170,11 +172,11 @@ public class MsTaskStatusService {
 
     @Transactional
     @CacheEvict(value = "taskTypes", allEntries = true)
-    public void updateType(Long id, String name, String icon, String color, Integer orderNo) {
+    public long updateType(Long id, String name, String icon, String color, Integer orderNo, long expectedRevision) {
         if (typeRepository.findById(id).isEmpty()) {
             throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.type_not_found");
         }
-        typeRepository.update(id, name, icon, color, orderNo);
+        long revision = typeRepository.update(id, name, icon, color, orderNo, expectedRevision);
         if (auditLogService != null) {
             auditLogService.logChange(
                     "ms_task_types",
@@ -184,6 +186,7 @@ public class MsTaskStatusService {
                     null,
                     Map.of("name", name != null ? name : ""));
         }
+        return revision;
     }
 
     @Transactional

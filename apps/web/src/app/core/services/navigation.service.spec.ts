@@ -105,9 +105,9 @@ describe('NavigationService', () => {
     api.put.mockReturnValue(of({ ...sampleItem, title: 'Обновленное название' }));
     api.get.mockReturnValue(of([]));
 
-    const updated = await firstValueFrom(service.updateItem(1, payload));
+    const updated = await firstValueFrom(service.updateItem(1, payload, 4));
 
-    expect(api.put).toHaveBeenCalledWith('/navigation/items/1', payload, { notifyError: false });
+    expect(api.put).toHaveBeenCalledWith('/navigation/items/1', payload, { notifyError: false, ifMatch: 4 });
     expect(updated.title).toBe('Обновленное название');
   });
 

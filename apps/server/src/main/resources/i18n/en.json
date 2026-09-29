@@ -2611,5 +2611,10 @@
   "iam.users.loading": "Loading users…",
   "iam.users.load_error": "Could not load users.",
   "common.requirement_met": "Met",
-  "common.requirement_not_met": "Not met"
+  "common.requirement_not_met": "Not met",
+  "error.precondition_required": "The save was refused: the record version is missing. Open the record again and retry",
+  "error.revision_conflict": "Someone else has changed this record. Refresh it and save again",
+  "error.common.precondition_required": "The save was refused: the record version is missing. Open the record again and retry",
+  "error.common.revision_conflict": "Someone else has changed this record. Refresh it and save again",
+  "error.common.if_match_invalid": "The If-Match header must hold the record version"
 }

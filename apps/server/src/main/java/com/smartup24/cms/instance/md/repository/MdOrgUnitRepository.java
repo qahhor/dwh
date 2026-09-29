@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -24,7 +25,7 @@ public class MdOrgUnitRepository {
                 .sql("""
                         insert into md_org_units (parent_id, code, name, kind, state, order_no)
                         values (:parentId, :code, :name, :kind, 'A', :orderNo)
-                        returning id, parent_id, code, name, kind, state, order_no, created_at, modified_at
+                        returning id, parent_id, code, name, kind, state, order_no, created_at, modified_at, revision
                         """)
                 .param("parentId", parentId)
                 .param("code", code)
@@ -35,13 +36,16 @@ public class MdOrgUnitRepository {
                 .single();
     }
 
-    public void update(Long id, Long parentId, String name, String kind, String state, int orderNo) {
-        jdbcClient
+    public long update(
+            Long id, Long parentId, String name, String kind, String state, int orderNo, long expectedRevision) {
+        return jdbcClient
                 .sql("""
                         update md_org_units
                         set parent_id = :parentId, name = :name, kind = :kind,
-                            state = :state, order_no = :orderNo, modified_at = now()
-                        where id = :id
+                            state = :state, order_no = :orderNo, modified_at = now(),
+                            revision = revision + 1
+                        where id = :id and revision = :expectedRevision
+                        returning revision
                         """)
                 .param("id", id)
                 .param("parentId", parentId)
@@ -49,7 +53,10 @@ public class MdOrgUnitRepository {
                 .param("kind", kind)
                 .param("state", state)
                 .param("orderNo", orderNo)
-                .update();
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional()
+                .orElseThrow(Revisions::conflict);
     }
 
     public void delete(Long id) {
@@ -61,14 +68,14 @@ public class MdOrgUnitRepository {
 
     public Optional<OrgUnitRecord> findById(Long id) {
         return jdbcClient.sql("""
-                        select id, parent_id, code, name, kind, state, order_no, created_at, modified_at
+                        select id, parent_id, code, name, kind, state, order_no, created_at, modified_at, revision
                         from md_org_units where id = :id
                         """).param("id", id).query(this::map).optional();
     }
 
     public List<OrgUnitRecord> listAll() {
         return jdbcClient.sql("""
-                        select id, parent_id, code, name, kind, state, order_no, created_at, modified_at
+                        select id, parent_id, code, name, kind, state, order_no, created_at, modified_at, revision
                         from md_org_units
                         order by coalesce(parent_id, 0), order_no, id
                         """).query(this::map).list();
@@ -144,7 +151,8 @@ public class MdOrgUnitRepository {
                 rs.getString("state"),
                 rs.getInt("order_no"),
                 rs.getTimestamp("created_at").toInstant(),
-                rs.getTimestamp("modified_at").toInstant());
+                rs.getTimestamp("modified_at").toInstant(),
+                rs.getLong("revision"));
     }
 
     public record OrgUnitRecord(
@@ -156,5 +164,6 @@ public class MdOrgUnitRepository {
             String state,
             int orderNo,
             Instant createdAt,
-            Instant modifiedAt) {}
+            Instant modifiedAt,
+            long revision) {}
 }

@@ -4,6 +4,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
 import com.smartup24.cms.instance.md.api.MdUserDtos.UpdateUserDto;
 import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
@@ -74,10 +75,14 @@ public class MdUserController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateUser(@PathVariable("id") Long id, @RequestBody UpdateUserDto body) {
+    public ResponseEntity<Void> updateUser(
+            @PathVariable("id") Long id,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody UpdateUserDto body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        long expectedRevision = Revisions.required(ifMatch);
 
-        userService.updateUser(
+        long revision = userService.updateUser(
                 id,
                 body.name(),
                 body.phone(),
@@ -88,9 +93,10 @@ public class MdUserController {
                 body.attributes(),
                 body.is2faEnabled(),
                 body.roleIds(),
-                currentUserId);
+                currentUserId,
+                expectedRevision);
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @PostMapping("/{id}/block")

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.service;
 
+import com.smartup24.cms.instance.common.web.Revisioned;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import java.time.Instant;
 import java.util.List;
@@ -27,7 +28,9 @@ public record MdUserView(
         boolean forcePasswordChange,
         List<Long> roleIds,
         Instant createdAt,
-        Instant modifiedAt) {
+        Instant modifiedAt,
+        long revision)
+        implements Revisioned {
     public static MdUserView from(MdUserRepository.UserRecord u, List<Long> roleIds) {
         return new MdUserView(
                 u.id(),
@@ -45,7 +48,8 @@ public record MdUserView(
                 u.forcePasswordChange(),
                 roleIds != null ? roleIds : List.of(),
                 u.createdAt(),
-                u.modifiedAt());
+                u.modifiedAt(),
+                u.revision());
     }
 
     public static MdUserView from(MdUserRepository.UserRecord u) {
@@ -73,6 +77,7 @@ public record MdUserView(
                 u.forcePasswordChange(),
                 roleIds != null ? roleIds : List.of(),
                 u.createdAt(),
-                u.modifiedAt());
+                u.modifiedAt(),
+                u.revision());
     }
 }

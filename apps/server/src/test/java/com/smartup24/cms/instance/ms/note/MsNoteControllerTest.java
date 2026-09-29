@@ -39,7 +39,7 @@ class MsNoteControllerTest {
                 () -> controller.getNotes(null, null, null, null, null),
                 () -> controller.getNote(1L),
                 () -> controller.createNote(create),
-                () -> controller.updateNote(1L, update),
+                () -> controller.updateNote(1L, "\"1\"", update),
                 () -> controller.togglePin(1L),
                 () -> controller.setPin(1L, new MsNoteController.PinRequest(true)),
                 () -> controller.deleteNote(1L));
@@ -63,11 +63,11 @@ class MsNoteControllerTest {
         controller.getNote(3L);
         when(service.createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L))
                 .thenReturn(new MsNoteService.NoteView(
-                        11L, "Title", "Body", "blue", true, Map.of("x", 1), 7L, Instant.EPOCH, Instant.EPOCH));
+                        11L, "Title", "Body", "blue", true, Map.of("x", 1), 7L, Instant.EPOCH, Instant.EPOCH, 1L));
         var created = controller.createNote(create);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getHeaders().getLocation()).hasToString("/api/v1/notes/11");
-        controller.updateNote(3L, update);
+        controller.updateNote(3L, "\"1\"", update);
         controller.setPin(3L, new MsNoteController.PinRequest(false));
         controller.togglePin(3L);
         assertThat(controller.deleteNote(3L).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
@@ -75,7 +75,7 @@ class MsNoteControllerTest {
         verify(service).getNotes(7L, 20, "c", "[]", "-title", "q");
         verify(service).getNote(3L, 7L);
         verify(service).createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L);
-        verify(service).updateNote(3L, "New", "Text", "red", false, Map.of(), 7L);
+        verify(service).updateNote(3L, "New", "Text", "red", false, Map.of(), 7L, 1L);
         verify(service).setPinned(3L, 7L, false);
         verify(service).togglePinned(3L, 7L);
         verify(service).deleteNote(3L, 7L);

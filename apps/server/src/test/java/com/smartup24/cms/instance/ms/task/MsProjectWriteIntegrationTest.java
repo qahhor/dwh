@@ -1,8 +1,10 @@
 package com.smartup24.cms.instance.ms.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -127,6 +129,7 @@ class MsProjectWriteIntegrationTest {
         signIn(actor, Set.of("*.*"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content(json(Map.of("name", invalidName, "description", "must not persist"))))
                 .andExpect(status().isUnprocessableEntity())
@@ -148,6 +151,7 @@ class MsProjectWriteIntegrationTest {
         signIn(actor, Set.of("*.*"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content(json(Map.of("state", invalidState, "description", "must not persist"))))
                 .andExpect(status().isUnprocessableEntity())
@@ -243,6 +247,7 @@ class MsProjectWriteIntegrationTest {
         signIn(actor, Set.of("*.*"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content(json(Map.of("name", "  " + normalizedName + "  "))))
                 .andExpect(status().isNoContent());
@@ -261,18 +266,27 @@ class MsProjectWriteIntegrationTest {
         signIn(actor, Set.of("*.*"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isNoContent());
-        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
+        assertThat(projects.findById(projectId).orElseThrow())
+                .usingRecursiveComparison()
+                .ignoringFields("revision")
+                .isEqualTo(before);
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content("{\"name\":null,\"description\":null,\"state\":null}"))
                 .andExpect(status().isNoContent());
-        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
+        assertThat(projects.findById(projectId).orElseThrow())
+                .usingRecursiveComparison()
+                .ignoringFields("revision")
+                .isEqualTo(before);
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content("{\"description\":\"\"}"))
                 .andExpect(status().isNoContent());
@@ -284,13 +298,16 @@ class MsProjectWriteIntegrationTest {
                         before.state(),
                         before.attributes(),
                         before.createdAt(),
-                        before.createdBy()));
+                        before.createdBy(),
+                        // Three saves, each from the revision before it (plan item 3.6).
+                        before.revision() + 3));
     }
 
     @Test
-    void overlappingNameOnlyUpdateKeepsNewlyCommittedAttributes() throws Exception {
+    void overlappingSaveFromAStaleRevisionIsRefused() throws Exception {
         Long actor = user("Overlapping-update actor");
         Long projectId = project(actor, "Concurrent project", "Original description", "A", Map.of("owner", "original"));
+        String originalName = projects.findById(projectId).orElseThrow().name();
         var readComplete = new CountDownLatch(1);
         var continueUpdate = new CountDownLatch(1);
         var pausingProjects = new PausingProjectRepository(jdbc, objectMapper, readComplete, continueUpdate);
@@ -302,12 +319,16 @@ class MsProjectWriteIntegrationTest {
 
         try {
             var nameUpdate = executor.submit(
-                    () -> overlappingService.updateProject(projectId, "  Concurrent rename  ", null, null, null));
+                    () -> overlappingService.updateProject(projectId, "  Concurrent rename  ", null, null, null, 1L));
             assertThat(readComplete.await(10, TimeUnit.SECONDS)).isTrue();
 
-            projectService.updateProject(projectId, null, null, null, Map.of("owner", "concurrent"));
+            projectService.updateProject(projectId, null, null, null, Map.of("owner", "concurrent"), 1L);
             continueUpdate.countDown();
-            nameUpdate.get(10, TimeUnit.SECONDS);
+            // The rename was made from revision 1, which the other save has just replaced (plan item 3.6): it is
+            // refused whole instead of writing over what it never saw.
+            assertThatThrownBy(() -> nameUpdate.get(10, TimeUnit.SECONDS))
+                    .hasCauseInstanceOf(ApiException.class)
+                    .hasMessageContaining("error.common.revision_conflict");
         } finally {
             continueUpdate.countDown();
             executor.shutdownNow();
@@ -315,13 +336,14 @@ class MsProjectWriteIntegrationTest {
         }
 
         var after = projects.findById(projectId).orElseThrow();
-        assertThat(after.name()).isEqualTo("Concurrent rename");
+        assertThat(after.name()).isEqualTo(originalName);
         assertThat(after.description()).isEqualTo("Original description");
         assertThat(after.state()).isEqualTo("A");
         assertThat(after.attributes()).isEqualTo(Map.of("owner", "concurrent"));
-        assertThat(auditCount(projectId)).isEqualTo(2);
+        assertThat(after.revision()).isEqualTo(2L);
+        assertThat(auditCount(projectId)).isEqualTo(1);
         verify(searchChangePublisher).projectChanged(projectId);
-        verify(localIndexer).projectChanged(projectId);
+        verify(localIndexer, never()).projectChanged(projectId);
     }
 
     @Test
@@ -332,6 +354,7 @@ class MsProjectWriteIntegrationTest {
         signIn(actor, Set.of("*.*"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", Long.MAX_VALUE)
+                        .header("If-Match", ifMatch("ms_task_projects", Long.MAX_VALUE))
                         .contentType("application/json")
                         .content("{\"name\":\"   \",\"state\":\"X\"}"))
                 .andExpect(status().isNotFound())
@@ -352,6 +375,7 @@ class MsProjectWriteIntegrationTest {
         signIn(actor, Set.of(MsTaskPref.FORM_PROJECTS + ".view"));
 
         mvc.perform(patch("/api/v1/tasks/projects/{id}", projectId)
+                        .header("If-Match", ifMatch("ms_task_projects", projectId))
                         .contentType("application/json")
                         .content("{\"name\":\"Forbidden rename\",\"description\":\"must not persist\"}"))
                 .andExpect(status().isForbidden())
@@ -434,7 +458,10 @@ class MsProjectWriteIntegrationTest {
     }
 
     private static void assertUnchanged(Long projectId, MsProjectRepository.ProjectRecord before, long auditBefore) {
-        assertThat(projects.findById(projectId).orElseThrow()).isEqualTo(before);
+        assertThat(projects.findById(projectId).orElseThrow())
+                .usingRecursiveComparison()
+                .ignoringFields("revision")
+                .isEqualTo(before);
         assertThat(auditCount(projectId)).isEqualTo(auditBefore);
     }
 
@@ -503,5 +530,15 @@ class MsProjectWriteIntegrationTest {
             }
             return project;
         }
+    }
+
+    /** {@code If-Match} with the current revision of the row, as a client that just read it sends (item 3.6). */
+    private static String ifMatch(String table, Object id) {
+        Long revision = jdbc.sql("select revision from " + table + " where id = :id")
+                .param("id", ((Number) id).longValue())
+                .query(Long.class)
+                .optional()
+                .orElse(1L);
+        return "\"" + revision + "\"";
     }
 }

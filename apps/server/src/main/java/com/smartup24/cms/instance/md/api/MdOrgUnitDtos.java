@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.smartup24.cms.instance.common.web.Revisioned;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -21,7 +22,9 @@ public final class MdOrgUnitDtos {
             String state,
             int orderNo,
             Instant createdAt,
-            Instant modifiedAt) {}
+            Instant modifiedAt,
+            long revision)
+            implements Revisioned {}
 
     public record CreateOrgUnitDto(
             Long parentId, @NotBlank String code, @NotBlank String name, String kind, int orderNo) {}

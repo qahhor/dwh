@@ -23,7 +23,7 @@ type OrgUnit = {
   state: string;
   orderNo: number;
 };
-type Role = { id: number; name: string };
+type Role = { id: number; name: string; revision?: number };
 type User = { id: number; name: string; login: string };
 type TaskRecord = { id: number; title: string };
 type TaskPage = { items: TaskRecord[] };
@@ -150,12 +150,15 @@ async function api<T>(
   path: string,
   expectedStatus: number,
   data?: unknown,
+  ifMatch?: number,
 ): Promise<T> {
+  const headers = method === 'GET' ? {} : await csrfHeaders(context);
   const response = await context.request.fetch(`/api/v1${path}`, {
     method,
     maxRedirects: 0,
     maxRetries: 0,
-    ...(method === 'GET' ? {} : { headers: await csrfHeaders(context), data }),
+    // A change of a record names the revision it was made from (plan item 3.6).
+    ...(method === 'GET' ? {} : { headers: ifMatch === undefined ? headers : { ...headers, 'If-Match': `"${ifMatch}"` }, data }),
   });
   try {
     if (response.status() !== expectedStatus) {
@@ -195,7 +198,7 @@ async function createRole(page: Page): Promise<Role> {
     { formCode: 'tasks.projects', action: 'view' },
     { formCode: 'md.custom_fields', action: 'view' },
     { formCode: 'iam.profile', action: 'view' },
-  ]);
+  ], role.revision ?? 1);
   return role;
 }
 

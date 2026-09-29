@@ -81,7 +81,7 @@ export class NoteFormDialogComponent {
 
     this.saving.set(true);
     this.notes
-      .save(note?.id ?? null, recordPayload(meta, this.values(), note ? { ...note } : null))
+      .save(note?.id ?? null, recordPayload(meta, this.values(), note ? { ...note } : null), note?.revision)
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
         next: (saved) => {

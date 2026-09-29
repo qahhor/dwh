@@ -144,7 +144,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
         assertKeys(first(page.get("items")), TASK);
 
-        Set<String> status = Set.of("id", "pcode", "name", "color", "orderNo", "isTerminal");
+        Set<String> status = Set.of("id", "pcode", "name", "color", "orderNo", "isTerminal", "revision");
         assertKeys(
                 created(send(
                         s,
@@ -153,7 +153,8 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                 status);
         assertKeys(first(array(ok(send(s, get("/api/v1/tasks/statuses"), null)))), status);
 
-        Set<String> type = Set.of("id", "code", "name", "icon", "color", "orderNo", "isSystem", "createdAt");
+        Set<String> type =
+                Set.of("id", "code", "name", "icon", "color", "orderNo", "isSystem", "createdAt", "revision");
         assertKeys(
                 created(send(
                         s,
@@ -191,7 +192,8 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         String login = user();
         long userId = userId(login);
         Session s = login(login);
-        Set<String> project = Set.of("id", "name", "description", "state", "attributes", "createdAt", "createdBy");
+        Set<String> project =
+                Set.of("id", "name", "description", "state", "attributes", "createdAt", "createdBy", "revision");
 
         Map<String, Object> created = created(send(
                 s,

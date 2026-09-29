@@ -360,8 +360,20 @@ class TaskConcurrencyIntegrationTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("task_revision_conflict"));
 
-        // 5. Omitted expectedRevision -> 204 No Content (revision increments to 4)
+        // 5. Omitted expectedRevision -> 428 (plan item 3.6): a change names the revision it was made from
         mvc.perform(patch("/api/v1/tasks/{id}", task.id())
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                    "title": "No OCC Header"
+                                }
+                                """))
+                .andExpect(status().isPreconditionRequired())
+                .andExpect(jsonPath("$.code").value("precondition_required"));
+
+        // 6. The same change through If-Match -> 204 (revision increments to 4)
+        mvc.perform(patch("/api/v1/tasks/{id}", task.id())
+                        .header("If-Match", "\"3\"")
                         .contentType("application/json")
                         .content("""
                                 {

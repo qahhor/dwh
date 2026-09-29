@@ -72,14 +72,20 @@ public class MsProjectService {
     }
 
     @Transactional
-    public void updateProject(Long id, String name, String description, String state, Map<String, Object> attributes) {
+    public long updateProject(
+            Long id,
+            String name,
+            String description,
+            String state,
+            Map<String, Object> attributes,
+            long expectedRevision) {
         var before = findProject(id);
         String normalizedName = validateAndNormalizeName(name, false);
         validateState(state);
         if (attributes != null) {
             customFieldService.validateAttributes("PROJECT", attributes);
         }
-        projectRepository.update(id, normalizedName, description, state, attributes);
+        long revision = projectRepository.update(id, normalizedName, description, state, attributes, expectedRevision);
         searchChangePublisher.projectChanged(id);
 
         auditLogService.logChange(
@@ -93,6 +99,7 @@ public class MsProjectService {
                         normalizedName != null ? normalizedName : before.name(),
                         "state",
                         state != null ? state : before.state()));
+        return revision;
     }
 
     private String validateAndNormalizeName(String name, boolean required) {
