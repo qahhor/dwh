@@ -69,7 +69,7 @@ class AuditWireFormatTest extends EmbeddedPostgresTest {
                         "failedLoginsLast24h",
                         "computedAt"));
 
-        JsonNode logs = fetch(session, "/api/v1/audit/logs?table_name=md_users&row_pk=" + userId + "&limit=5");
+        JsonNode logs = fetch(session, "/api/v1/audit/logs?tableName=md_users&rowPk=" + userId + "&limit=5");
         assertThat(keys(logs)).containsAll(PAGE).isSubsetOf(union(PAGE, Set.of("nextCursor")));
         assertThat(logs.get("items").size()).isPositive();
         for (JsonNode row : logs.get("items")) {
@@ -91,7 +91,7 @@ class AuditWireFormatTest extends EmbeddedPostgresTest {
                             "changedByLogin"));
         }
 
-        JsonNode events = fetch(session, "/api/v1/audit/security-events?user_id=" + userId + "&limit=5");
+        JsonNode events = fetch(session, "/api/v1/audit/security-events?userId=" + userId + "&limit=5");
         assertThat(keys(events)).containsAll(PAGE).isSubsetOf(union(PAGE, Set.of("nextCursor")));
         assertThat(events.get("items").size()).isPositive();
         for (JsonNode event : events.get("items")) {

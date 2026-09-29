@@ -31,6 +31,7 @@ public class MsTaskCommentController {
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<TaskCommentView> addComment(
             @PathVariable("taskId") Long taskId, @RequestBody AddCommentRequest body) {
 

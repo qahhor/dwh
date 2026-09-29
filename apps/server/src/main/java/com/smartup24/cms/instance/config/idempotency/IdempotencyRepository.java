@@ -4,6 +4,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -27,13 +28,15 @@ public class IdempotencyRepository {
             String requestHash,
             Integer responseStatus,
             String responseBody,
+            @Nullable String responseLocation,
             State state,
             Instant createdAt) {}
 
     public Optional<IdempotencyRecord> findByKey(UUID key) {
         return jdbcClient
                 .sql("""
-                select key, user_id, request_hash, response_status, response_body::text, state, created_at
+                select key, user_id, request_hash, response_status, response_body::text, response_location, state,
+                       created_at
                 from idempotency_keys
                 where key = :key
                 """)
@@ -44,6 +47,7 @@ public class IdempotencyRepository {
                         rs.getString("request_hash"),
                         rs.getObject("response_status", Integer.class),
                         rs.getString("response_body"),
+                        rs.getString("response_location"),
                         State.valueOf(rs.getString("state")),
                         rs.getTimestamp("created_at").toInstant()))
                 .optional();
@@ -77,13 +81,19 @@ public class IdempotencyRepository {
                 key, userId, requestHash, reservationToken, Instant.now().minusSeconds(120));
     }
 
-    public boolean complete(UUID key, UUID reservationToken, int responseStatus, String responseBodyJson) {
+    public boolean complete(
+            UUID key,
+            UUID reservationToken,
+            int responseStatus,
+            String responseBodyJson,
+            @Nullable String responseLocation) {
         String safeBody = (responseBodyJson == null || responseBodyJson.isBlank()) ? "{}" : responseBodyJson;
         return jdbcClient
                         .sql("""
                 update idempotency_keys
                 set response_status = :responseStatus,
                     response_body = :responseBody::jsonb,
+                    response_location = :responseLocation,
                     state = 'COMPLETED',
                     reservation_token = null
                 where key = :key
@@ -93,6 +103,7 @@ public class IdempotencyRepository {
                         .param("key", key)
                         .param("responseStatus", responseStatus)
                         .param("responseBody", safeBody)
+                        .param("responseLocation", responseLocation)
                         .param("reservationToken", reservationToken)
                         .update()
                 == 1;

@@ -5,6 +5,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.api.UplSourceDtos.CreateDraftRequest;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** API анкеты файла: источники и версии формата (контракт И3). */
@@ -73,9 +75,10 @@ public class UplSourceController {
 
     @PostMapping
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_CREATE)
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<SourceResponse> create(@Valid @RequestBody SourceRequest request) {
-        var view = service.createSource(request.toData(), userId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(SourceResponse.of(view));
+        SourceResponse created = SourceResponse.of(service.createSource(request.toData(), userId()));
+        return Created.at("/api/v1/upl/sources/{id}", created.id(), created);
     }
 
     @GetMapping("/{id}")
@@ -111,11 +114,14 @@ public class UplSourceController {
 
     @PostMapping("/{id}/format-versions")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<FormatVersionResponse> createDraft(
             @PathVariable long id, @Valid @RequestBody(required = false) CreateDraftRequest request) {
         Integer copyFrom = request == null ? null : request.copyFrom();
         var draft = service.createDraft(id, copyFrom, userId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(FormatVersionResponse.of(draft));
+        FormatVersionResponse created = FormatVersionResponse.of(draft);
+        return Created.at(
+                "/api/v1/upl/sources/{id}/format-versions/{v}", new Object[] {id, created.version()}, created);
     }
 
     @GetMapping("/{id}/format-versions/{v}")
@@ -167,6 +173,7 @@ public class UplSourceController {
 
     @PostMapping("/{id}/format-versions/{v}/publish")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_PUBLISH)
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> publish(
             @PathVariable long id, @PathVariable int v, @Valid @RequestBody PublishRequest request) {
         service.publish(id, v, request.validFrom(), userId());

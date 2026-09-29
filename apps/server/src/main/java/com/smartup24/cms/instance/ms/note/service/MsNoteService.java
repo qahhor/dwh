@@ -188,8 +188,20 @@ public class MsNoteService {
         return values;
     }
 
+    /** Flips the pin; kept for the deprecated POST /notes/{id}/pin until its sunset (ADR-0023). */
     @Transactional
     public NoteView togglePinned(Long id, Long userId) {
+        return setPinned(id, userId, !ownNote(id, userId).isPinned());
+    }
+
+    /** Sets the pin (PUT /notes/{id}/pin, plan item 3.4): the same call twice leaves the same note. */
+    @Transactional
+    public NoteView setPinned(Long id, Long userId, boolean pinned) {
+        ownNote(id, userId);
+        return updateNote(id, null, null, null, pinned, null, userId);
+    }
+
+    private NoteRecord ownNote(Long id, Long userId) {
         checkModuleActive();
         var existing = noteRepository
                 .findById(id)
@@ -198,20 +210,12 @@ public class MsNoteService {
         if (!existing.createdBy().equals(userId)) {
             throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
         }
-
-        return updateNote(id, null, null, null, !existing.isPinned(), null, userId);
+        return existing;
     }
 
     @Transactional
     public void deleteNote(Long id, Long userId) {
-        checkModuleActive();
-        var existing = noteRepository
-                .findById(id)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
-        if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
-        }
+        var existing = ownNote(id, userId);
 
         noteRepository.delete(id);
 

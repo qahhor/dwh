@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
 import com.smartup24.cms.instance.md.api.MdUserDtos.UpdateUserDto;
 import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
@@ -41,9 +42,9 @@ public class MdUserController {
             @RequestParam(name = "q", required = false) String query,
             @RequestParam(name = "search", required = false) String search,
             @RequestParam(name = "state", required = false) String state,
-            @RequestParam(name = "role_id", required = false) Long roleId,
-            @RequestParam(name = "manager_id", required = false) Long managerId,
-            @RequestParam(name = "is_2fa_enabled", required = false) Boolean is2faEnabled) {
+            @RequestParam(name = "roleId", required = false) Long roleId,
+            @RequestParam(name = "managerId", required = false) Long managerId,
+            @RequestParam(name = "is2faEnabled", required = false) Boolean is2faEnabled) {
 
         // Registry list iam.users (ADR-0016); `search` and the flat filters are kept for existing callers.
         return ResponseEntity.ok(userListService.pageViews(
@@ -64,13 +65,15 @@ public class MdUserController {
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<MdUserView> createUser(@Valid @RequestBody CreateUserDto body) {
         var user = userService.createUser(body, SecurityContext.getCurrentUserId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+        return Created.at("/api/v1/iam/users/{id}", user.id(), user);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateUser(@PathVariable("id") Long id, @RequestBody UpdateUserDto body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
@@ -92,6 +95,7 @@ public class MdUserController {
 
     @PostMapping("/{id}/block")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> blockUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         userSecurityService.setUserState(id, MdPref.STATE_PASSIVE, currentUserId);
@@ -100,6 +104,7 @@ public class MdUserController {
 
     @PostMapping("/{id}/unblock")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "unblock")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> unblockUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         userSecurityService.setUserState(id, MdPref.STATE_ACTIVE, currentUserId);
@@ -108,6 +113,7 @@ public class MdUserController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         userSecurityService.anonymizeUser(id, currentUserId);

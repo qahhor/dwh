@@ -167,12 +167,12 @@ class MsTaskListIntegrationTest {
     void exportChecksOptionValues() {
         var exporter = new MsTaskListExporters().msTasksExporter(tasks);
         assertThat(exporter.checkOptions(
-                        Map.of("status_id", "3", "priority", "high", "hide_terminal", "true", "member_role", "E")))
+                        Map.of("statusId", "3", "priority", "high", "hideTerminal", "true", "memberRole", "E")))
                 .isEmpty();
         assertThat(exporter.checkOptions(
-                        Map.of("status_id", "x", "priority", "urgent", "overdue", "yes", "member_role", "Z")))
+                        Map.of("statusId", "x", "priority", "urgent", "overdue", "yes", "memberRole", "Z")))
                 .extracting(FieldErrorItem::field)
-                .containsExactlyInAnyOrder("status_id", "priority", "overdue", "member_role");
+                .containsExactlyInAnyOrder("statusId", "priority", "overdue", "memberRole");
     }
 
     private static LegacyTaskFilters filters(

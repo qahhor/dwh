@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.ms.task.api.CreateStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateTypeRequest;
 import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** The task status and type dictionaries, under the same paths as the tasks. */
@@ -41,13 +43,15 @@ public class MsTaskStatusController {
 
     @PostMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<TaskStatusView> createStatus(@Valid @RequestBody CreateStatusRequest body) {
         var status = statuses.createStatus(body.pcode(), body.name(), body.color(), body.orderNo(), body.isTerminal());
-        return ResponseEntity.status(HttpStatus.CREATED).body(status);
+        return Created.at("/api/v1/tasks/statuses/{id}", status.id(), status);
     }
 
     @PatchMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateStatus(@PathVariable("id") Long id, @RequestBody UpdateStatusRequest body) {
         statuses.updateStatusRecord(id, body.name(), body.color(), body.orderNo(), body.isTerminal());
         return ResponseEntity.noContent().build();
@@ -55,6 +59,7 @@ public class MsTaskStatusController {
 
     @DeleteMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteStatus(@PathVariable("id") Long id) {
         statuses.deleteStatus(id);
         return ResponseEntity.noContent().build();
@@ -62,6 +67,7 @@ public class MsTaskStatusController {
 
     @PostMapping("/statuses/reorder")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> reorderStatuses(@RequestBody List<Long> orderedIds) {
         statuses.reorderStatuses(orderedIds);
         return ResponseEntity.noContent().build();
@@ -75,13 +81,15 @@ public class MsTaskStatusController {
 
     @PostMapping("/types")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<TaskTypeView> createType(@Valid @RequestBody CreateTypeRequest body) {
         var type = statuses.createType(body.code(), body.name(), body.icon(), body.color(), body.orderNo());
-        return ResponseEntity.status(HttpStatus.CREATED).body(type);
+        return Created.at("/api/v1/tasks/types/{id}", type.id(), type);
     }
 
     @PatchMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateType(@PathVariable("id") Long id, @RequestBody UpdateTypeRequest body) {
         statuses.updateType(id, body.name(), body.icon(), body.color(), body.orderNo());
         return ResponseEntity.noContent().build();
@@ -89,6 +97,7 @@ public class MsTaskStatusController {
 
     @DeleteMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteType(@PathVariable("id") Long id) {
         statuses.deleteType(id);
         return ResponseEntity.noContent().build();
@@ -96,6 +105,7 @@ public class MsTaskStatusController {
 
     @PostMapping("/types/reorder")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> reorderTypes(@RequestBody List<Long> orderedIds) {
         statuses.reorderTypes(orderedIds);
         return ResponseEntity.noContent().build();

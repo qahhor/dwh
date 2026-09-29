@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kwh.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.kwh.pref.KwhPref;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
 import jakarta.validation.Valid;
@@ -32,17 +33,19 @@ public class KwhSubscriptionController {
     @PostMapping
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     @ReturnsSecret
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<KwhWebhookService.CreatedSubscription> createSubscription(
             @Valid @RequestBody CreateSubscriptionDto body) {
 
         Long currentUserId = SecurityContext.getCurrentUserId();
         var sub = webhookService.createSubscription(
                 body.name(), body.targetUrl(), body.subscribedEvents(), currentUserId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(sub);
+        return Created.at("/api/v1/webhooks/subscriptions/{id}", sub.id(), sub);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateSubscription(
             @PathVariable("id") Long id, @RequestBody UpdateSubscriptionDto body) {
 
@@ -52,6 +55,7 @@ public class KwhSubscriptionController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteSubscription(@PathVariable("id") Long id) {
         webhookService.deleteSubscription(id);
         return ResponseEntity.noContent().build();

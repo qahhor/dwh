@@ -204,13 +204,15 @@ class IdempotencyFilterTest {
         FilterChain chain = (req, res) -> {
             HttpServletResponse httpRes = (HttpServletResponse) res;
             httpRes.setStatus(201);
+            httpRes.setHeader("Location", "/api/v1/tasks/10");
             httpRes.getOutputStream().write("{\"id\":10}".getBytes(StandardCharsets.UTF_8));
         };
 
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(201);
-        verify(idempotencyService).complete(eq(key), eq(token), eq(201), eq("{\"id\":10}"));
+        // The Location of a create is stored with the answer (plan item 3.4): a replay names the same resource.
+        verify(idempotencyService).complete(eq(key), eq(token), eq(201), eq("{\"id\":10}"), eq("/api/v1/tasks/10"));
     }
 
     @Test
@@ -223,7 +225,14 @@ class IdempotencyFilterTest {
         request.setContent("{\"title\":\"Task 1\"}".getBytes(StandardCharsets.UTF_8));
 
         var existing = new IdempotencyRepository.IdempotencyRecord(
-                key, null, "hash123", 201, "{\"id\":10}", IdempotencyRepository.State.COMPLETED, Instant.now());
+                key,
+                null,
+                "hash123",
+                201,
+                "{\"id\":10}",
+                "/api/v1/tasks/10",
+                IdempotencyRepository.State.COMPLETED,
+                Instant.now());
 
         when(idempotencyService.computeRequestHash(anyString(), anyString(), any(), any()))
                 .thenReturn("hash123");
@@ -239,6 +248,7 @@ class IdempotencyFilterTest {
         assertThat(response.getHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY))
                 .isEqualTo("true");
         assertThat(response.getContentAsString()).isEqualTo("{\"id\":10}");
+        assertThat(response.getHeader("Location")).isEqualTo("/api/v1/tasks/10");
         verifyNoInteractions(chain);
     }
 
@@ -268,7 +278,7 @@ class IdempotencyFilterTest {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(200);
-        verify(idempotencyService, never()).complete(any(), any(), anyInt(), anyString());
+        verify(idempotencyService, never()).complete(any(), any(), anyInt(), anyString(), any());
         verify(idempotencyService).release(eq(key), eq(token));
     }
 }

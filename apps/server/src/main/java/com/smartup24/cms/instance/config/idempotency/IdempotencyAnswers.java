@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.ObjectMapper;
 
@@ -36,6 +37,9 @@ final class IdempotencyAnswers {
         response.setStatus(stored.responseStatus());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY, "true");
+        if (stored.responseLocation() != null) {
+            response.setHeader(HttpHeaders.LOCATION, stored.responseLocation());
+        }
         response.getOutputStream().write(stored.responseBody().getBytes(StandardCharsets.UTF_8));
         response.getOutputStream().flush();
     }

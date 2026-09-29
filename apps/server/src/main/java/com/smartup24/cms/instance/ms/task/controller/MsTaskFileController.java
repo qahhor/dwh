@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.service.MsTaskFileService;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Files attached to a task, under the same paths as the tasks. */
@@ -36,6 +38,7 @@ public class MsTaskFileController {
 
     @PostMapping("/{id}/files")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> attachFile(@PathVariable("id") Long id, @RequestBody AttachFileRequest body) {
         files.attachFile(id, body.fileId(), SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
@@ -43,6 +46,7 @@ public class MsTaskFileController {
 
     @DeleteMapping("/{id}/files/{fileId}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> detachFile(@PathVariable("id") Long id, @PathVariable("fileId") UUID fileId) {
         files.detachFile(id, fileId, SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();

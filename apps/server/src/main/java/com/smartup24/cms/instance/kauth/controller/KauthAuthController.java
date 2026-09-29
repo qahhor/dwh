@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
@@ -85,6 +86,7 @@ public class KauthAuthController {
     }
 
     @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> logout(HttpServletRequest request, HttpServletResponse response) {
         var principal = SecurityContext.getPrincipal();
         if (principal != null && principal.sessionId() != null) {

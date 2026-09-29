@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.ms.notify.api.AnnouncementView;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,6 +34,7 @@ public class MsAnnouncementController {
 
     @PostMapping("/{id}/read")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "view")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> markAsRead(@PathVariable("id") Long id) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");

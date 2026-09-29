@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -297,7 +298,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         boolean storable = status >= 200 && status < 500 && body.length <= MAX_RESPONSE_BODY_BYTES;
         if (storable && !tx.isRollbackOnly()) {
             try {
-                idempotencyService.complete(key, reservationToken, status, new String(body, StandardCharsets.UTF_8));
+                idempotencyService.complete(key, reservationToken, status, text(body), location(responseWrapper));
                 transactionManager.commit(tx);
             } catch (RuntimeException e) {
                 // The commit failed after the handler answered: the operation did not happen, so the buffered
@@ -331,7 +332,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         } else {
             transactionManager.rollback(tx);
             if (storable) {
-                idempotencyService.complete(key, reservationToken, status, new String(body, StandardCharsets.UTF_8));
+                idempotencyService.complete(key, reservationToken, status, text(body), location(responseWrapper));
             } else {
                 idempotencyService.release(key, reservationToken);
             }
@@ -360,7 +361,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                         && status < 500
                         && responseBytes.length <= MAX_RESPONSE_BODY_BYTES) {
                     idempotencyService.complete(
-                            key, reservationToken, status, new String(responseBytes, StandardCharsets.UTF_8));
+                            key, reservationToken, status, text(responseBytes), location(responseWrapper));
                 } else {
                     idempotencyService.release(key, reservationToken);
                 }
@@ -368,5 +369,13 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 responseWrapper.copyBodyToResponse();
             }
         }
+    }
+
+    private static String text(byte[] body) {
+        return new String(body, StandardCharsets.UTF_8);
+    }
+
+    private static @Nullable String location(HttpServletResponse response) {
+        return response.getHeader(HttpHeaders.LOCATION);
     }
 }

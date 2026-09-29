@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.NavigationItemService;
 import com.smartup24.cms.instance.md.service.NavigationItemService.CreateNavigationItemCommand;
@@ -63,10 +64,11 @@ public class NavigationItemController {
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<NavigationItemView> createItem(@Valid @RequestBody CreateNavigationItemCommand cmd) {
         Long userId = SecurityContext.getCurrentUserId();
         NavigationItemView created = navigationService.createItem(cmd, userId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+        return Created.at("/api/v1/navigation/items/{id}", created.id(), created);
     }
 
     @PutMapping("/{id}")
@@ -77,6 +79,17 @@ public class NavigationItemController {
         return ResponseEntity.ok(navigationService.updateItem(id, cmd, userId));
     }
 
+    public record ActiveRequest(boolean active) {}
+
+    /** Shows or hides the item (plan item 3.4): the body states the result, so a repeat changes nothing. */
+    @PutMapping("/{id}/active")
+    @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
+    public ResponseEntity<NavigationItemView> setActive(@PathVariable Long id, @RequestBody ActiveRequest body) {
+        Long userId = SecurityContext.getCurrentUserId();
+        return ResponseEntity.ok(navigationService.setActive(id, userId, body.active()));
+    }
+
+    /** Flips the state: deprecated for PUT /{id}/active, answers until its sunset (ADR-0023). */
     @PostMapping("/{id}/toggle")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     public ResponseEntity<NavigationItemView> toggleItem(@PathVariable Long id) {
@@ -86,6 +99,7 @@ public class NavigationItemController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
         Long userId = SecurityContext.getCurrentUserId();
         navigationService.deleteItem(id, userId);

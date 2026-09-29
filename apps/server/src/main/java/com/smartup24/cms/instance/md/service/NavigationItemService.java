@@ -342,22 +342,30 @@ public class NavigationItemService {
                 Objects.toString(item.requiredPermission(), ""));
     }
 
+    /** Flips the state; kept for the deprecated POST …/toggle until its sunset (ADR-0023). */
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView toggleState(Long id, Long userId) {
         NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
+        return setActive(id, userId, !"A".equals(existing.state()));
+    }
 
-        String newState = "A".equals(existing.state()) ? "P" : "A";
-        navigationRepository.updateState(id, newState, userId);
-
-        auditLogService.logChange(
-                "md_navigation_items",
-                String.valueOf(id),
-                "U",
-                List.of("state"),
-                Map.of("state", existing.state()),
-                Map.of("state", newState));
-
+    /** Sets the state (PUT …/active, plan item 3.4): repeating the call changes nothing and audits nothing. */
+    @Transactional
+    @CacheEvict(value = "navigationItems", allEntries = true)
+    public NavigationItemView setActive(Long id, Long userId, boolean active) {
+        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
+        String newState = active ? "A" : "P";
+        if (!newState.equals(existing.state())) {
+            navigationRepository.updateState(id, newState, userId);
+            auditLogService.logChange(
+                    "md_navigation_items",
+                    String.valueOf(id),
+                    "U",
+                    List.of("state"),
+                    Map.of("state", existing.state()),
+                    Map.of("state", newState));
+        }
         return getItemById(id).orElseThrow();
     }
 

@@ -16,16 +16,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MsTaskListExporters {
 
-    private static final List<String> NUMBERS = List.of("project_id", "status_id", "assigned_user_id", "reporter_id");
-    private static final List<String> FLAGS = List.of("hide_terminal", "overdue");
+    private static final List<String> NUMBERS = List.of("projectId", "statusId", "assignedUserId", "reporterId");
+    private static final List<String> FLAGS = List.of("hideTerminal", "overdue");
     private static final Set<String> TASK_OPTIONS = Set.of(
-            "project_id",
-            "status_id",
+            "projectId",
+            "statusId",
             "priority",
-            "hide_terminal",
-            "assigned_user_id",
-            "member_role",
-            "reporter_id",
+            "hideTerminal",
+            "assignedUserId",
+            "memberRole",
+            "reporterId",
             "overdue");
 
     @Bean
@@ -53,13 +53,13 @@ public class MsTaskListExporters {
                         sort,
                         search,
                         new LegacyTaskFilters(
-                                number(options.get("project_id")),
-                                number(options.get("status_id")),
+                                number(options.get("projectId")),
+                                number(options.get("statusId")),
                                 options.get("priority"),
-                                flag(options.get("hide_terminal")),
-                                number(options.get("assigned_user_id")),
-                                options.get("member_role"),
-                                number(options.get("reporter_id")),
+                                flag(options.get("hideTerminal")),
+                                number(options.get("assignedUserId")),
+                                options.get("memberRole"),
+                                number(options.get("reporterId")),
                                 flag(options.get("overdue"))));
             }
         };
@@ -117,9 +117,9 @@ public class MsTaskListExporters {
                         .contains(priority.strip())) {
             errors.add(new FieldErrorItem("priority", "EXPORT_INVALID", "unknown priority"));
         }
-        String role = options.get("member_role");
+        String role = options.get("memberRole");
         if (role != null && !role.isBlank() && !List.of("R", "E", "O").contains(role.strip())) {
-            errors.add(new FieldErrorItem("member_role", "EXPORT_INVALID", "R, E or O"));
+            errors.add(new FieldErrorItem("memberRole", "EXPORT_INVALID", "R, E or O"));
         }
         return errors;
     }

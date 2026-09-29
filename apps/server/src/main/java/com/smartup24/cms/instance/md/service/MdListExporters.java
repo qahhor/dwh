@@ -27,12 +27,12 @@ public class MdListExporters {
             }
 
             public Set<String> options() {
-                return Set.of("state", "role_id", "manager_id", "is_2fa_enabled");
+                return Set.of("state", "roleId", "managerId", "is2faEnabled");
             }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
                 List<FieldErrorItem> errors = new ArrayList<>();
-                for (String key : List.of("role_id", "manager_id")) {
+                for (String key : List.of("roleId", "managerId")) {
                     if (!isNumber(options.get(key))) {
                         errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "not a number: " + options.get(key)));
                     }
@@ -41,11 +41,11 @@ public class MdListExporters {
                 if (state != null && !state.isBlank() && !List.of("A", "P").contains(state.strip())) {
                     errors.add(new FieldErrorItem("state", "EXPORT_INVALID", "state is A or P"));
                 }
-                String twoFactor = options.get("is_2fa_enabled");
+                String twoFactor = options.get("is2faEnabled");
                 if (twoFactor != null
                         && !twoFactor.isBlank()
                         && !List.of("true", "false").contains(twoFactor.strip())) {
-                    errors.add(new FieldErrorItem("is_2fa_enabled", "EXPORT_INVALID", "true or false"));
+                    errors.add(new FieldErrorItem("is2faEnabled", "EXPORT_INVALID", "true or false"));
                 }
                 return errors;
             }
@@ -61,9 +61,9 @@ public class MdListExporters {
                         search,
                         new LegacyUserFilters(
                                 options.get("state"),
-                                number(options.get("role_id")),
-                                number(options.get("manager_id")),
-                                flag(options.get("is_2fa_enabled"))));
+                                number(options.get("roleId")),
+                                number(options.get("managerId")),
+                                flag(options.get("is2faEnabled"))));
             }
         };
     }

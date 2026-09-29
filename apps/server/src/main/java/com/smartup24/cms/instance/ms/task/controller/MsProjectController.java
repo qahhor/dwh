@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.ms.task.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.ms.task.api.AddProjectMemberRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateProjectRequest;
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
@@ -61,15 +62,17 @@ public class MsProjectController {
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<ProjectView> createProject(@Valid @RequestBody CreateProjectRequest body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         var project = projectService.createProject(
                 body.name(), body.description(), body.state(), body.attributes(), currentUserId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(project);
+        return Created.at("/api/v1/tasks/projects/{id}", project.id(), project);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateProject(@PathVariable("id") Long id, @RequestBody UpdateProjectRequest body) {
         projectService.updateProject(id, body.name(), body.description(), body.state(), body.attributes());
         return ResponseEntity.noContent().build();
@@ -77,6 +80,7 @@ public class MsProjectController {
 
     @PostMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> addMember(
             @PathVariable("id") Long id, @Valid @RequestBody AddProjectMemberRequest body) {
         projectService.addProjectMember(id, body.userId(), body.accessKind());
@@ -85,6 +89,7 @@ public class MsProjectController {
 
     @DeleteMapping("/{id}/members/{userId}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> removeMember(@PathVariable("id") Long id, @PathVariable("userId") Long userId) {
         projectService.removeProjectMember(id, userId);
         return ResponseEntity.noContent().build();

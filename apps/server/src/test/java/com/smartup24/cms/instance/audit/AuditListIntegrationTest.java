@@ -167,13 +167,13 @@ class AuditListIntegrationTest {
         var exporters = new AuditListExporters();
         assertThat(exporters
                         .auditLogsExporter(audit)
-                        .checkOptions(Map.of("event", "U", "user_id", "4", "from", "2026-09-01T00:00:00Z")))
+                        .checkOptions(Map.of("event", "U", "userId", "4", "from", "2026-09-01T00:00:00Z")))
                 .isEmpty();
         assertThat(exporters
                         .auditLogsExporter(audit)
-                        .checkOptions(Map.of("event", "X", "user_id", "me", "to", "yesterday")))
+                        .checkOptions(Map.of("event", "X", "userId", "me", "to", "yesterday")))
                 .extracting(FieldErrorItem::field)
-                .containsExactlyInAnyOrder("event", "user_id", "to");
+                .containsExactlyInAnyOrder("event", "userId", "to");
         assertThat(exporters.auditSecurityEventsExporter(audit).checkOptions(Map.of("from", "soon")))
                 .extracting(FieldErrorItem::field)
                 .containsExactly("from");

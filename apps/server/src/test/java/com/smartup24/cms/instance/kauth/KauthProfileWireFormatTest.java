@@ -105,7 +105,7 @@ class KauthProfileWireFormatTest extends EmbeddedPostgresTest {
                 admin,
                 post("/api/v1/iam/profile/channels"),
                 Map.of("channel", "telegram", "address", "wire-" + admin.userId()));
-        assertThat(bound.getStatus()).as(bound.getContentAsString()).isEqualTo(200);
+        assertThat(bound.getStatus()).as(bound.getContentAsString()).isEqualTo(202);
         assertThat(keys(json(bound))).isEqualTo(Set.of("verifyToken"));
     }
 

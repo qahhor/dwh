@@ -4,6 +4,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.kauth.api.ApiTokenView;
 import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
 import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
@@ -39,6 +40,7 @@ public class KauthApiTokenController {
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
     @ReturnsSecret
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<CreatedApiToken> createToken(@Valid @RequestBody CreateTokenRequest body) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
@@ -46,11 +48,12 @@ public class KauthApiTokenController {
         }
 
         var result = apiTokenService.createToken(SecurityContext.getPrincipal(), body.name(), body.expiresAt());
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        return Created.at("/api/v1/iam/profile/tokens/{id}", result.record().id(), result);
     }
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_tokens")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> revokeToken(@PathVariable("id") Long id) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {

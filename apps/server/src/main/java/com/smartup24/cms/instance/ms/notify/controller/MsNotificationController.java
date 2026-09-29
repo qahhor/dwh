@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,6 +47,7 @@ public class MsNotificationController {
 
     @PostMapping("/inbox/{id}/read")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> markAsRead(@PathVariable("id") Long id) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
@@ -56,6 +58,7 @@ public class MsNotificationController {
 
     @PostMapping("/inbox/read-all")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> markAllAsRead() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
@@ -75,6 +78,7 @@ public class MsNotificationController {
 
     @PutMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updatePreferences(@RequestBody List<NotificationPrefUpdate> updates) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");

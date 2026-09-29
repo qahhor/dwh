@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,6 +45,7 @@ public class KauthSessionController {
 
     @DeleteMapping({"/profile/sessions/others", "/sessions/others"})
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeOtherSessions() {
         var principal = SecurityContext.getPrincipal();
         if (principal == null || principal.userId() == null) {
@@ -57,6 +59,7 @@ public class KauthSessionController {
 
     @DeleteMapping({"/profile/sessions/{id}", "/sessions/{id}"})
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeSession(@PathVariable("id") Long id) {
         var principal = SecurityContext.getPrincipal();
         if (principal == null || principal.userId() == null) {
@@ -75,6 +78,7 @@ public class KauthSessionController {
 
     @DeleteMapping({"/users/{userId}/sessions", "/profile/sessions/users/{userId}"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeAllUserSessions(@PathVariable("userId") Long userId) {
         sessionService.closeAllUserSessions(userId);
         return ResponseEntity.noContent().build();
@@ -82,6 +86,7 @@ public class KauthSessionController {
 
     @DeleteMapping({"/users/{userId}/sessions/{id}", "/profile/sessions/users/{userId}/{id}"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeUserSession(@PathVariable("userId") Long userId, @PathVariable("id") Long id) {
         sessionService.closeUserSession(userId, id);
         return ResponseEntity.noContent().build();
@@ -96,6 +101,7 @@ public class KauthSessionController {
 
     @PostMapping({"/users/{userId}/force-password-change", "/profile/sessions/users/{userId}/force-password-change"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> forcePasswordChange(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         userSecurityService.setForcePasswordChange(userId, true, currentUserId);
@@ -104,6 +110,7 @@ public class KauthSessionController {
 
     @PostMapping({"/users/{userId}/reset-2fa", "/profile/sessions/users/{userId}/reset-2fa"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> reset2fa(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         userSecurityService.reset2fa(userId, currentUserId);
