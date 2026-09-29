@@ -35,7 +35,7 @@ public class MsNoteController {
             @RequestParam(required = false) String filter,
             @RequestParam(required = false) String sort) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         // Registry list ms.notes (ADR-0016): pages instead of the whole list, the owner's notes only.
         return ResponseEntity.ok(noteService.getNotes(userId, limit, cursor, filter, sort, q));
     }
@@ -44,7 +44,7 @@ public class MsNoteController {
     @RequiresPermission(form = "notes", action = "view")
     public ResponseEntity<NoteView> getNote(@PathVariable Long id) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         return ResponseEntity.ok(noteService.getNote(id, userId));
     }
 
@@ -52,7 +52,7 @@ public class MsNoteController {
     @RequiresPermission(form = "notes", action = "create")
     public ResponseEntity<NoteView> createNote(@RequestBody CreateNoteRequest body) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         return ResponseEntity.ok(noteService.createNote(
                 body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId));
     }
@@ -61,7 +61,7 @@ public class MsNoteController {
     @RequiresPermission(form = "notes", action = "update")
     public ResponseEntity<NoteView> updateNote(@PathVariable Long id, @RequestBody UpdateNoteRequest body) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         return ResponseEntity.ok(noteService.updateNote(
                 id, body.title(), body.contentMd(), body.color(), body.isPinned(), body.attributes(), userId));
     }
@@ -70,7 +70,7 @@ public class MsNoteController {
     @RequiresPermission(form = "notes", action = "update")
     public ResponseEntity<NoteView> togglePin(@PathVariable Long id) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         return ResponseEntity.ok(noteService.togglePinned(id, userId));
     }
 
@@ -78,7 +78,7 @@ public class MsNoteController {
     @RequiresPermission(form = "notes", action = "delete")
     public ResponseEntity<Void> deleteNote(@PathVariable Long id) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
         noteService.deleteNote(id, userId);
         return ResponseEntity.noContent().build();
     }

@@ -202,6 +202,7 @@ class MsProjectWriteIntegrationTest {
         assertThat(failure).isInstanceOf(ApiException.class);
         ApiException exception = (ApiException) failure;
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+        assertThat(exception.getMessageKey()).isEqualTo("error.project.name_required");
         assertThat(exception.getFieldErrors())
                 .containsExactly(new FieldErrorItem("name", "required", "Название проекта обязательно"));
         assertThat(projectCount()).isEqualTo(projectsBefore);

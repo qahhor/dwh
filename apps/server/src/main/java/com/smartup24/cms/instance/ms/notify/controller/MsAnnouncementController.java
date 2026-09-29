@@ -26,7 +26,7 @@ public class MsAnnouncementController {
             @RequestParam(name = "language", defaultValue = "ru") String language) {
 
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         return ResponseEntity.ok(notificationService.getActiveAnnouncements(userId, language));
     }
@@ -35,7 +35,7 @@ public class MsAnnouncementController {
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "view")
     public ResponseEntity<Void> markAsRead(@PathVariable("id") Long id) {
         Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("Пользователь не авторизован");
+        if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
         notificationService.markAnnouncementAsRead(id, userId);
         return ResponseEntity.noContent().build();
