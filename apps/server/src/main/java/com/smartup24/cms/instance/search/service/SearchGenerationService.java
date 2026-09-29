@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchGenerationRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,8 @@ public class SearchGenerationService {
 
     public void requireCapacity() {
         if (generations.registeredCount() >= maximum)
-            throw new ApiException(ErrorCode.CONFLICT, "GENERATION_LIMIT_REACHED");
+            throw new ApiException(
+                    ErrorCode.CONFLICT, "error.search.generation_limit_reached", Map.of("maximum", maximum));
     }
 
     public void failed(UUID generation) {
@@ -40,15 +42,15 @@ public class SearchGenerationService {
 
     public void retry(UUID generation) {
         if (!generations.retryBuild(generation))
-            throw new ApiException(ErrorCode.CONFLICT, "GENERATION_CANNOT_BE_RETRIED");
+            throw new ApiException(ErrorCode.CONFLICT, "error.search.generation_cannot_be_retried");
     }
 
     public void retryRollback(UUID generation) {
         var retained = generations
                 .find(generation)
-                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "GENERATION_NOT_FOUND"));
+                .orElseThrow(() -> new ApiException(ErrorCode.NOT_FOUND, "error.search.generation_not_found"));
         if (!retained.state().equals("RETAINED") || retained.schemaVersion() != 1)
-            throw new ApiException(ErrorCode.CONFLICT, "GENERATION_REQUIRES_REBUILD");
+            throw new ApiException(ErrorCode.CONFLICT, "error.search.generation_requires_rebuild");
         generations.resetRetries(generation);
     }
 

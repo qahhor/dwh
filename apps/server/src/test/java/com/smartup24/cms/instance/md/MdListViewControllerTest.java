@@ -117,7 +117,8 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
 
         var duplicate = send(analyst, post(BASE), view("все", Map.of(), false, null));
         assertThat(duplicate.getStatus()).isEqualTo(422);
-        assertThat((String) read(duplicate, "$.detail")).isEqualTo(MdListViewService.LIST_VIEW_NAME_TAKEN);
+        assertThat((String) read(duplicate, "$.messageKey")).isEqualTo("error.md.list_view_name_taken");
+        assertThat((String) read(duplicate, "$.errors[0].code")).isEqualTo(MdListViewService.LIST_VIEW_NAME_TAKEN);
 
         var renamed =
                 send(analyst, put(BASE + "/" + first), view("Месячные по имени", Map.of("sort", "name"), false, 0));
@@ -125,7 +126,7 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(renamed, "$.lockVersion")).isEqualTo(1);
         var stale = send(analyst, put(BASE + "/" + first), view("Снова", Map.of(), false, 0));
         assertThat(stale.getStatus()).isEqualTo(409);
-        assertThat((String) read(stale, "$.detail")).isEqualTo("STALE_VERSION");
+        assertThat((String) read(stale, "$.messageKey")).isEqualTo("error.md.list_view_stale");
 
         assertThat(send(analyst, delete(BASE + "/" + first), null).getStatus()).isEqualTo(204);
         assertThat(send(analyst, delete(BASE + "/" + first), null).getStatus()).isEqualTo(404);
@@ -154,7 +155,7 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
         var response = send(analyst, post(BASE), view("", bad, false, null));
         assertThat(response.getStatus()).isEqualTo(422);
         var single = send(analyst, post(BASE), view("Плохое", bad, false, null));
-        assertThat((String) read(single, "$.detail")).isEqualTo(MdListViewService.LIST_VIEW_INVALID);
+        assertThat((String) read(single, "$.messageKey")).isEqualTo("error.md.list_view_invalid");
         assertThat((List<String>) read(single, "$.errors[*].field"))
                 .containsExactlyInAnyOrder(
                         "state.extra",
@@ -187,7 +188,8 @@ class MdListViewControllerTest extends EmbeddedPostgresTest {
         Session outsider = login(user("user"));
         var hidden = send(outsider, get(BASE), null);
         assertThat(hidden.getStatus()).isEqualTo(404);
-        assertThat((String) read(hidden, "$.detail")).isEqualTo("QUERY_LIST_NOT_FOUND");
+        assertThat((String) read(hidden, "$.messageKey")).isEqualTo("error.md.query_list_not_found");
+        assertThat((String) read(hidden, "$.detail")).isEqualTo("Список не найден");
         assertThat(send(outsider, get("/api/v1/list-views/no.such.list"), null).getStatus())
                 .isEqualTo(404);
     }

@@ -41,25 +41,24 @@ public class MdOrgUnitService {
         requirePositiveId(id);
         return orgUnitRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.org_unit_not_found"));
     }
 
     @Transactional
     public MdOrgUnitRepository.OrgUnitRecord create(Long parentId, String code, String name, String kind, int orderNo) {
         scopeService.acquireMutationLock();
-        code = requiredText(code, "Код");
-        name = requiredText(name, "Название");
-        kind = kind == null ? "department" : requiredText(kind, "Вид узла");
+        code = requiredText(code, "error.md.org_unit_code_required");
+        name = requiredText(name, "error.md.org_unit_name_required");
+        kind = kind == null ? "department" : requiredText(kind, "error.md.org_unit_kind_required");
         if (parentId != null) {
             getById(parentId);
         } else if (orgUnitRepository.hasRoot()) {
             // Экземпляр принадлежит одному клиенту (ADR-0004), поэтому дерево одно.
             // Без этой проверки ограничение БД срабатывало бы конфликтом без объяснения.
-            throw ApiException.conflict(
-                    ErrorCode.CONFLICT, "Корень оргструктуры уже существует — укажите родительский узел");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_root_exists");
         }
         if (orgUnitRepository.existsByCode(code)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "Узел с таким кодом уже существует");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_code_exists");
         }
         var unit = orgUnitRepository.create(parentId, code, name, kind, orderNo);
         scopeService.recalculateForUnitSubtree(unit.id());
@@ -95,27 +94,27 @@ public class MdOrgUnitService {
         var unit = getById(id);
         Long finalParentId = parentIdPresent ? parentId : unit.parentId();
 
-        String newName = name != null ? requiredText(name, "Название") : unit.name();
-        String newKind = kind != null ? requiredText(kind, "Вид узла") : unit.kind();
+        String newName = name != null ? requiredText(name, "error.md.org_unit_name_required") : unit.name();
+        String newKind = kind != null ? requiredText(kind, "error.md.org_unit_kind_required") : unit.kind();
         String newState = state != null ? state : unit.state();
         if (!"A".equals(newState) && !"P".equals(newState)) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Состояние должно быть A или P");
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.md.org_unit_state_invalid");
         }
         int newOrderNo = orderNo != null ? orderNo : unit.orderNo();
 
         if (finalParentId == null && unit.parentId() != null) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "Некорневому узлу необходимо указать родителя");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_parent_required");
         }
         if (finalParentId != null) {
             getById(finalParentId);
             if (unit.parentId() == null) {
-                throw ApiException.conflict(ErrorCode.CONFLICT, "Корень оргструктуры нельзя перенести под другой узел");
+                throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_root_move_forbidden");
             }
         }
 
         // I-ORG-1: перенос под собственного потомка отрезал бы ветку от корня — молча.
         if (finalParentId != null && orgUnitRepository.isDescendant(id, finalParentId)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "Узел нельзя перенести под собственного потомка");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_move_under_descendant");
         }
 
         var affectedUsers = new TreeSet<>(scopeService.getUserIdsAffectedByUnit(id));
@@ -158,11 +157,10 @@ public class MdOrgUnitService {
         // I-ORG-2: у узла есть дети или сотрудники — удаление здесь означало бы
         // либо каскад по дереву, либо потерю привязок. И то и другое молча.
         if (orgUnitRepository.hasChildren(id)) {
-            throw ApiException.conflict(
-                    ErrorCode.CONFLICT, "У узла есть подчинённые узлы — сначала перенесите или удалите их");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_has_children");
         }
         if (orgUnitRepository.isAssignedToUsers(id)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, "К узлу привязаны сотрудники — сначала снимите привязку");
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_has_users");
         }
 
         var affectedUsers = scopeService.getUserIdsAffectedByUnit(id);
@@ -182,15 +180,14 @@ public class MdOrgUnitService {
 
     private static void requirePositiveId(Long id) {
         if (id == null || id <= 0) {
-            throw ApiException.badRequest(
-                    ErrorCode.VALIDATION_FAILED, "Идентификатор узла должен быть положительным числом");
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.md.org_unit_id_invalid");
         }
     }
 
-    private static String requiredText(String value, String field) {
+    private static String requiredText(String value, String emptyKey) {
         String normalized = value == null ? "" : value.trim();
         if (normalized.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, field + " не может быть пустым");
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, emptyKey);
         }
         return normalized;
     }

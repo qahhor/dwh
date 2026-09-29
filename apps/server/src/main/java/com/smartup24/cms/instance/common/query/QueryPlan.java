@@ -80,6 +80,10 @@ public record QueryPlan(
         StringBuilder sql = new StringBuilder();
         String expr = condition.field().sql();
         List<Object> values = condition.values();
+        String attributes = containmentColumn(condition.field());
+        if (attributes != null && (condition.op() == QueryOp.EQ || condition.op() == QueryOp.IN)) {
+            return containment(attributes, condition, p, params);
+        }
         switch (condition.op()) {
             case EQ -> sql.append(expr).append(" = :").append(p);
             case NE -> sql.append(expr).append(" is distinct from :").append(p);
@@ -112,6 +116,29 @@ public record QueryPlan(
             default -> params.put(p, values.getFirst());
         }
         return sql.toString();
+    }
+
+    /**
+     * The jsonb column of a text or choice custom field (plan 10/10, item 3.7): equality on it is written as
+     * containment, which the GIN index of the column serves; {@code attributes->>'code' = ?} would scan the table.
+     * Only string values are stored for these types, so {@code @>} finds exactly the rows the comparison would.
+     */
+    private @Nullable String containmentColumn(QueryField field) {
+        boolean textual = field.type() == QueryFieldType.TEXT || field.type() == QueryFieldType.ENUM;
+        return textual && field.attribute() != null ? list.attributesSql() : null;
+    }
+
+    /** {@code attributes @> {"code": value}} for each value; the key is bound as a parameter too. */
+    private static String containment(String attributes, Condition condition, String p, Map<String, Object> params) {
+        params.put(p + "_k", condition.field().attribute());
+        List<String> tests = new ArrayList<>();
+        List<Object> values = condition.values();
+        for (int i = 0; i < values.size(); i++) {
+            params.put(p + "_" + i, String.valueOf(values.get(i)));
+            tests.add(attributes + " @> jsonb_build_object(cast(:" + p + "_k as text), cast(:" + p + "_" + i
+                    + " as text))");
+        }
+        return tests.size() == 1 ? tests.getFirst() : "(" + String.join(" or ", tests) + ")";
     }
 
     private void appendSearch(StringBuilder sql, Map<String, Object> params) {

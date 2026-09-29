@@ -19,7 +19,7 @@ import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.compone
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { UiLocalTableComponent } from '@shared/ui/ui-local-table.component';
 import { TableConfig } from '@shared/ui-kit/components/table/table.types';
-import { uplErrorKey } from '../upl-labels';
+import { UPL_ERROR, uplProblemText } from '../upl-labels';
 import { UplPackageErrorItem, UplPackageErrors, UplPackageItem, UplPackagesApiService } from './packages-api';
 import { UplTranslate, uplPackageCodeText } from './packages-errors';
 import {
@@ -30,8 +30,8 @@ import {
 } from './packages-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
-/** Подкод ответа, при котором показываем «Загрузка не найдена», а не общий текст сбоя. */
-const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
+/** Ключи текстов ошибок модуля UPL начинаются так. */
+const UPL_ERROR_PREFIX = 'error.upl.';
 
 /** The stored errors of an upload or the refusal to give them, so a failure never throws out of the resource. */
 type ErrorsLoad = { errors: UplPackageErrors | null } | { problem: ProblemDetail };
@@ -338,16 +338,17 @@ export class PackageCardComponent {
     this.errorsLoad.reload();
   }
 
-  /** Отказ сервера: код загрузки — текстом словаря, прочее (нет права, сбой сети) — общим текстом. */
+  /** Отказ сервера: ошибка загрузки — текстом её ключа, прочее (нет права, сбой сети) — общим текстом. */
   private applyErrorText(problem: ProblemDetail | null | undefined): string {
-    const detail = problem?.detail;
-    return detail && detail.startsWith('UPL_')
-      ? uplPackageCodeText(detail, null, this.translate)
+    return problem?.messageKey?.startsWith(UPL_ERROR_PREFIX)
+      ? uplProblemText(problem, this.translate)
       : this.i18n.translate('upl.pkg.card.apply_failed');
   }
 
+  /** «Загрузка не найдена» — текстом ошибки, прочие сбои — общим текстом. */
   private loadErrorText(problem: ProblemDetail | null | undefined): string {
-    const key = problem?.detail === NOT_FOUND ? uplErrorKey(NOT_FOUND) : 'upl.pkg.load_error';
-    return this.i18n.translate(key);
+    return problem?.messageKey === UPL_ERROR.packageNotFound
+      ? uplProblemText(problem, this.translate)
+      : this.i18n.translate('upl.pkg.load_error');
   }
 }

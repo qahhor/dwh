@@ -110,7 +110,7 @@ public class KauthAuthController {
     public ResponseEntity<MeResponse> me() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.auth.not_signed_in");
         }
 
         var user = userService.getUserById(userId);

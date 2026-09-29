@@ -1,5 +1,5 @@
 import { ProblemDetail } from '@core/models/common.models';
-import { uplErrorKey, uplProblemText } from '../upl-labels';
+import { UPL_ERROR, UplTranslateFn, uplErrorKey, uplProblemText } from '../upl-labels';
 import { UplPackageParams } from './packages-api';
 
 /** Все коды ошибок загрузки из контракта (раздел 8): у каждого есть ключ `upl.err.<КОД>` в словаре. */
@@ -33,7 +33,7 @@ export const UPL_PACKAGE_CODES = [
 ] as const;
 
 /** Перевод с параметрами: `I18nService.translate` либо его заглушка в тестах. */
-export type UplTranslate = (key: string, params?: UplPackageParams) => string;
+export type UplTranslate = UplTranslateFn;
 
 /** Русский текст кода ошибки; перевода нет — показываем сам код, а не пустую строку. */
 export function uplPackageCodeText(
@@ -67,8 +67,8 @@ const FIELD_PLACE: Record<string, UplFormPlace> = {
 /** Отказы по размеру приходят с этим кодом и от нашей проверки, и от каркаса. */
 const FILE_SIZE_CODE = 'file_size_exceeded';
 
-/** Подкоды, которые относятся к выбранному источнику. */
-const SOURCE_DETAILS = ['UPL_SOURCE_NOT_FOUND', 'UPL_PKG_NO_FORMAT_AT_DATE'];
+/** Ключи ошибок, которые относятся к выбранному источнику. */
+const SOURCE_KEYS: readonly string[] = [UPL_ERROR.sourceNotFound, UPL_ERROR.noFormatAtDate];
 
 function emptyErrors(): UplPackageFormErrors {
   return { source: [], period: [], file: [], form: [] };
@@ -103,9 +103,8 @@ export function mapUplUploadProblem(
     }
     return errors;
   }
-  const detail = problem?.detail ?? '';
-  if (SOURCE_DETAILS.includes(detail)) {
-    add(errors, 'source', translate(uplErrorKey(detail)));
+  if (SOURCE_KEYS.includes(problem?.messageKey ?? '')) {
+    add(errors, 'source', uplProblemText(problem, translate));
     return errors;
   }
   add(errors, 'form', uplProblemText(problem, translate));

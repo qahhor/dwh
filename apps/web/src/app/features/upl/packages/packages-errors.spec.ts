@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 import { FieldErrorItem, ProblemDetail } from '@core/models/common.models';
@@ -10,9 +11,16 @@ import {
   uplPackageCodeText,
 } from './packages-errors';
 
+/** Русский каталог сервера: тексты ключей ошибок (`error.upl.*`), которых в упакованном словаре может ещё не быть. */
+const SERVER_RUSSIAN = JSON.parse(readFileSync('../server/src/main/resources/i18n/ru.json', 'utf8')) as Record<
+  string,
+  string
+>;
+const DICTIONARY: Record<string, string> = { ...PACKAGED_RUSSIAN, ...SERVER_RUSSIAN };
+
 /** Настоящий словарь плюс подстановка параметров — как в `I18nService.translate`. */
 const translate: UplTranslate = (key: string, params?: UplPackageParams) => {
-  const template = PACKAGED_RUSSIAN[key];
+  const template = DICTIONARY[key];
   if (template === undefined) return key;
   if (!params) return template;
   return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (placeholder: string, name: string) =>
@@ -116,11 +124,25 @@ describe('mapUplUploadProblem', () => {
     expect(errors.form).toEqual([text('UPL_PKG_INTERNAL')]);
   });
 
-  it('puts a missing source and a missing format under the source', () => {
-    const notFound = mapUplUploadProblem(problem(404, 'not_found', 'UPL_SOURCE_NOT_FOUND'), translate);
-    const noFormat = mapUplUploadProblem(problem(409, 'conflict', 'UPL_PKG_NO_FORMAT_AT_DATE'), translate);
-    expect(notFound.source).toEqual([text('UPL_SOURCE_NOT_FOUND')]);
-    expect(noFormat.source).toEqual([text('UPL_PKG_NO_FORMAT_AT_DATE')]);
+  it('puts a missing source and a missing format under the source, by the key of the error', () => {
+    const keyed = (status: number, code: string, messageKey: string): ProblemDetail => ({
+      ...problem(status, code, 'TEST detail'),
+      messageKey,
+    });
+    const notFound = mapUplUploadProblem(keyed(404, 'not_found', 'error.upl.source_not_found'), translate);
+    const noFormat = mapUplUploadProblem(keyed(409, 'conflict', 'error.upl.pkg_no_format_at_date'), translate);
+    expect(notFound.source).toEqual([DICTIONARY['error.upl.source_not_found']]);
+    expect(noFormat.source).toEqual([DICTIONARY['error.upl.pkg_no_format_at_date']]);
+    expect(notFound.form).toEqual([]);
+  });
+
+  it('puts a refusal named by another key over the form with its text', () => {
+    const errors = mapUplUploadProblem(
+      { ...problem(409, 'conflict', 'TEST detail'), messageKey: 'error.upl.pkg_not_verified' },
+      translate,
+    );
+    expect(errors.source).toEqual([]);
+    expect(errors.form).toEqual([DICTIONARY['error.upl.pkg_not_verified']]);
   });
 
   it('puts an unknown refusal over the form with its code', () => {

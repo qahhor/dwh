@@ -93,12 +93,15 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         SourceView updated = service.updateSource(id, 0, data(code), userId);
         assertThat(updated.source().lockVersion()).isEqualTo(1);
 
-        assertApi(() -> service.updateSource(id, 0, data(code), userId), ErrorCode.CONFLICT, "STALE_VERSION");
+        assertApi(() -> service.updateSource(id, 0, data(code), userId), ErrorCode.CONFLICT, "error.upl.stale_version");
         assertApi(
                 () -> service.updateSource(id, 1, data(code + "x"), userId),
                 ErrorCode.VALIDATION_FAILED,
-                "UPL_SOURCE_CODE_IMMUTABLE");
-        assertApi(() -> service.updateSource(-1, 0, data(code), userId), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
+                "error.upl.source_code_immutable");
+        assertApi(
+                () -> service.updateSource(-1, 0, data(code), userId),
+                ErrorCode.NOT_FOUND,
+                "error.upl.source_not_found");
     }
 
     @Test
@@ -107,7 +110,9 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         String code = newCode();
         service.createSource(data(code), userId);
         assertApi(
-                () -> service.createSource(data(code), userId), ErrorCode.CODE_ALREADY_EXISTS, "UPL_SOURCE_CODE_TAKEN");
+                () -> service.createSource(data(code), userId),
+                ErrorCode.CODE_ALREADY_EXISTS,
+                "error.upl.source_code_taken");
     }
 
     @Test
@@ -132,7 +137,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         }
         assertThat(ours).containsExactly(prefix + "a", prefix + "b", prefix + "c");
 
-        assertApi(() -> service.getSource(-1), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
+        assertApi(() -> service.getSource(-1), ErrorCode.NOT_FOUND, "error.upl.source_not_found");
         assertApi(() -> service.listSources(0, null), ErrorCode.VALIDATION_FAILED, null);
         assertApi(() -> service.listSources(1, "%%%"), ErrorCode.VALIDATION_FAILED, null);
     }
@@ -144,7 +149,8 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         FormatVersion draft = service.createDraft(id, null, userId);
         assertThat(draft.status()).isEqualTo("draft");
         assertThat(service.getSource(id).hasDraft()).isTrue();
-        assertApi(() -> service.createDraft(id, null, userId), ErrorCode.CONFLICT, "FND_VERSION_DRAFT_EXISTS");
+        assertApi(
+                () -> service.createDraft(id, null, userId), ErrorCode.CONFLICT, "error.upl.fnd_version_draft_exists");
     }
 
     @Test
@@ -160,7 +166,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertApi(
                 () -> service.replaceDraft(id, version, lock, validDraft(), userId),
                 ErrorCode.CONFLICT,
-                "STALE_VERSION");
+                "error.upl.stale_version");
     }
 
     @Test
@@ -344,7 +350,10 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         replace(id, v1, validDraft());
         service.publish(id, v1, LocalDate.of(2026, 1, 1), userId);
         assertThat(service.versionAt(id, LocalDate.of(2026, 3, 1)).version()).isEqualTo(v1);
-        assertApi(() -> service.versionAt(id, LocalDate.of(2025, 12, 31)), ErrorCode.NOT_FOUND, "FND_VERSION_UNKNOWN");
+        assertApi(
+                () -> service.versionAt(id, LocalDate.of(2025, 12, 31)),
+                ErrorCode.NOT_FOUND,
+                "error.upl.fnd_version_unknown");
 
         FormatVersion first = service.getVersion(id, v1);
         FormatVersion copy = service.createDraft(id, v1, userId);
@@ -376,7 +385,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertApi(
                 () -> service.publish(id, v3, LocalDate.of(2026, 4, 1), userId),
                 ErrorCode.CONFLICT,
-                "FND_VERSION_NOT_AFTER_PREVIOUS");
+                "error.upl.fnd_version_not_after_previous");
         assertThat(service.getVersion(id, v3).status()).isEqualTo("draft");
     }
 
@@ -392,11 +401,11 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertApi(
                 () -> service.replaceDraft(id, version, lock, validDraft(), userId),
                 ErrorCode.CONFLICT,
-                "UPL_FORMAT_NOT_DRAFT");
+                "error.upl.format_not_draft");
         assertApi(
                 () -> service.publish(id, version, LocalDate.of(2026, 2, 1), userId),
                 ErrorCode.CONFLICT,
-                "UPL_FORMAT_NOT_DRAFT");
+                "error.upl.format_not_draft");
         assertThat(service.getVersion(id, version).status()).isEqualTo("published");
     }
 
@@ -443,7 +452,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     void concurrentDraftsYieldOneConflict() throws Exception {
         for (int attempt = 0; attempt < 5; attempt++) {
             long id = newSource();
-            assertOneWinner(() -> service.createDraft(id, null, userId), "FND_VERSION_DRAFT_EXISTS");
+            assertOneWinner(() -> service.createDraft(id, null, userId), "error.upl.fnd_version_draft_exists");
         }
     }
 
@@ -459,7 +468,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
                         service.publish(id, version, LocalDate.of(2026, 1, 1), userId);
                         return null;
                     },
-                    "UPL_FORMAT_NOT_DRAFT");
+                    "error.upl.format_not_draft");
             assertThat(service.getVersion(id, version).status()).isEqualTo("published");
         }
     }
@@ -499,7 +508,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
                     .cause()
                     .isInstanceOfSatisfying(ApiException.class, e -> {
                         assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-                        assertThat(e.getMessage()).isEqualTo("UPL_FORMAT_INVALID");
+                        assertThat(e.getMessageKey()).isEqualTo("error.upl.format_invalid");
                     });
             assertThat(service.getVersion(id, version).status()).isEqualTo("draft");
         } finally {
@@ -538,12 +547,12 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("М-4: версии несуществующего источника — UPL_SOURCE_NOT_FOUND")
     void versionsOfMissingSource() {
-        assertApi(() -> service.getVersion(-1, 1), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
-        assertApi(() -> service.createDraft(-1, null, userId), ErrorCode.NOT_FOUND, "UPL_SOURCE_NOT_FOUND");
+        assertApi(() -> service.getVersion(-1, 1), ErrorCode.NOT_FOUND, "error.upl.source_not_found");
+        assertApi(() -> service.createDraft(-1, null, userId), ErrorCode.NOT_FOUND, "error.upl.source_not_found");
         assertApi(
                 () -> service.publish(-1, 1, LocalDate.of(2026, 1, 1), userId),
                 ErrorCode.NOT_FOUND,
-                "UPL_SOURCE_NOT_FOUND");
+                "error.upl.source_not_found");
     }
 
     @Test
@@ -580,7 +589,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
             assertThat(succeeded).as("успешных вызовов, ошибки: %s", failures).isEqualTo(1);
             assertThat(failures).singleElement().isInstanceOfSatisfying(ApiException.class, e -> {
                 assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CONFLICT);
-                assertThat(e.getMessage()).isEqualTo(loserDetail);
+                assertThat(e.getMessageKey()).isEqualTo(loserDetail);
             });
         } finally {
             pool.shutdownNow();
@@ -624,7 +633,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertThatThrownBy(() -> service.publish(id, version, LocalDate.of(2026, 1, 1), userId))
                 .isInstanceOfSatisfying(ApiException.class, e -> {
                     assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-                    assertThat(e.getMessage()).isEqualTo("UPL_FORMAT_INVALID");
+                    assertThat(e.getMessageKey()).isEqualTo("error.upl.format_invalid");
                     errors.addAll(e.getFieldErrors());
                 });
         return errors;
@@ -773,7 +782,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(code);
             if (message != null) {
-                assertThat(e.getMessage()).isEqualTo(message);
+                assertThat(e.getMessageKey()).isEqualTo(message);
             }
         });
     }

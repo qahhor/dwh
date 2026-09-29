@@ -3,27 +3,53 @@ package com.smartup24.cms.instance.common.error;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Base domain exception holding a typed ErrorCode.
+ * The one base of the errors a request can end with (plan 10/10, item 3.1).
+ *
+ * <p>An error carries a code ({@link ErrorCode}, the contract a client builds on), the key of its text in the i18n
+ * catalogs ({@code error.<module>.<name>}) and the values of the text's {@code {placeholders}}. The text itself is
+ * rendered for the response by {@code GlobalExceptionHandler} in the request's language, so the code that throws
+ * never writes a sentence. A domain exception extends this class; the handler covers every subclass.
  */
 public class ApiException extends RuntimeException {
 
+    /** What a message key looks like: dotted lower-case segments, {@code error.md.language_not_found}. */
+    public static final Pattern MESSAGE_KEY = Pattern.compile("[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+");
+
     private final ErrorCode errorCode;
+    private final String messageKey;
+    private final Map<String, Object> params;
     private final @Nullable List<FieldErrorItem> fieldErrors;
 
-    public ApiException(ErrorCode errorCode, String message) {
-        super(message);
-        this.errorCode = errorCode;
-        this.fieldErrors = null;
+    /** An error whose text is the code's own ({@code error.<code>}). */
+    public ApiException(ErrorCode errorCode) {
+        this(errorCode, defaultKey(errorCode), Map.of(), null);
     }
 
-    public ApiException(ErrorCode errorCode, String message, List<FieldErrorItem> fieldErrors) {
-        super(message);
+    public ApiException(ErrorCode errorCode, String messageKey) {
+        this(errorCode, messageKey, Map.of(), null);
+    }
+
+    public ApiException(ErrorCode errorCode, String messageKey, Map<String, ?> params) {
+        this(errorCode, messageKey, params, null);
+    }
+
+    public ApiException(ErrorCode errorCode, String messageKey, List<FieldErrorItem> fieldErrors) {
+        this(errorCode, messageKey, Map.of(), fieldErrors);
+    }
+
+    public ApiException(
+            ErrorCode errorCode, String messageKey, Map<String, ?> params, @Nullable List<FieldErrorItem> fieldErrors) {
+        super(messageKey);
         this.errorCode = errorCode;
+        this.messageKey = messageKey;
+        this.params = Map.copyOf(params);
         this.fieldErrors = fieldErrors;
     }
 
@@ -31,8 +57,32 @@ public class ApiException extends RuntimeException {
         return errorCode;
     }
 
+    /** The key of the text in the i18n catalogs. */
+    public String getMessageKey() {
+        return messageKey;
+    }
+
+    /** Values of the text's {@code {placeholders}}, by name. */
+    public Map<String, Object> getParams() {
+        return params;
+    }
+
     public @Nullable List<FieldErrorItem> getFieldErrors() {
         return fieldErrors;
+    }
+
+    /** Whether the key names a catalog entry; until item 3.1 is complete an older caller may still pass a sentence. */
+    public boolean hasMessageKey() {
+        return MESSAGE_KEY.matcher(messageKey).matches();
+    }
+
+    @Override
+    public String getMessage() {
+        return params.isEmpty() ? messageKey : messageKey + " " + params;
+    }
+
+    public static String defaultKey(ErrorCode errorCode) {
+        return "error." + errorCode.getCode();
     }
 
     /** Refuses when a lookup found nothing: an existence check that keeps the "not found" of the caller. */
@@ -42,48 +92,76 @@ public class ApiException extends RuntimeException {
         }
     }
 
-    public static ApiException unauthorized(String message) {
-        return new ApiException(ErrorCode.UNAUTHORIZED, message);
+    public static ApiException unauthorized(String messageKey) {
+        return new ApiException(ErrorCode.UNAUTHORIZED, messageKey);
+    }
+
+    public static ApiException unauthorized(String messageKey, Map<String, ?> params) {
+        return new ApiException(ErrorCode.UNAUTHORIZED, messageKey, params);
     }
 
     public static ApiException invalidCredentials() {
-        return new ApiException(ErrorCode.INVALID_CREDENTIALS, "Неверный логин или пароль");
+        return new ApiException(ErrorCode.INVALID_CREDENTIALS);
     }
 
     public static ApiException permissionDenied(String form, String action) {
         return new ApiException(
-                ErrorCode.PERMISSION_DENIED, "Недостаточно прав для выполнения действия " + form + "." + action);
+                ErrorCode.PERMISSION_DENIED, "error.permission_denied_action", Map.of("right", form + "." + action));
     }
 
-    public static ApiException notFound(ErrorCode code, String message) {
-        return new ApiException(code, message);
+    public static ApiException notFound(ErrorCode code, String messageKey) {
+        return new ApiException(code, messageKey);
     }
 
-    public static ApiException conflict(ErrorCode code, String message) {
-        return new ApiException(code, message);
+    public static ApiException notFound(ErrorCode code, String messageKey, Map<String, ?> params) {
+        return new ApiException(code, messageKey, params);
     }
 
-    public static ApiException badRequest(ErrorCode code, String message) {
-        return new ApiException(code, message);
+    public static ApiException conflict(ErrorCode code, String messageKey) {
+        return new ApiException(code, messageKey);
     }
 
-    public static ApiException forbidden(ErrorCode code, String message) {
-        return new ApiException(code, message);
+    public static ApiException conflict(ErrorCode code, String messageKey, Map<String, ?> params) {
+        return new ApiException(code, messageKey, params);
     }
 
-    public static ApiException forbidden(String message) {
-        return new ApiException(ErrorCode.FORBIDDEN, message);
+    public static ApiException badRequest(ErrorCode code, String messageKey) {
+        return new ApiException(code, messageKey);
     }
 
-    public static ApiException locked(ErrorCode code, String message) {
-        return new ApiException(code, message);
+    public static ApiException badRequest(ErrorCode code, String messageKey, Map<String, ?> params) {
+        return new ApiException(code, messageKey, params);
     }
 
-    public static ApiException rateLimited(String message) {
-        return new ApiException(ErrorCode.RATE_LIMITED, message);
+    public static ApiException forbidden(ErrorCode code, String messageKey) {
+        return new ApiException(code, messageKey);
     }
 
-    public static ApiException validation(String message, List<FieldErrorItem> errors) {
-        return new ApiException(ErrorCode.VALIDATION_FAILED, message, errors);
+    public static ApiException forbidden(ErrorCode code, String messageKey, Map<String, ?> params) {
+        return new ApiException(code, messageKey, params);
+    }
+
+    public static ApiException forbidden(String messageKey) {
+        return new ApiException(ErrorCode.FORBIDDEN, messageKey);
+    }
+
+    public static ApiException locked(ErrorCode code, String messageKey) {
+        return new ApiException(code, messageKey);
+    }
+
+    public static ApiException locked(ErrorCode code, String messageKey, Map<String, ?> params) {
+        return new ApiException(code, messageKey, params);
+    }
+
+    public static ApiException rateLimited(String messageKey) {
+        return new ApiException(ErrorCode.RATE_LIMITED, messageKey);
+    }
+
+    public static ApiException validation(String messageKey, List<FieldErrorItem> errors) {
+        return new ApiException(ErrorCode.VALIDATION_FAILED, messageKey, errors);
+    }
+
+    public static ApiException validation(String messageKey, Map<String, ?> params, List<FieldErrorItem> errors) {
+        return new ApiException(ErrorCode.VALIDATION_FAILED, messageKey, params, errors);
     }
 }

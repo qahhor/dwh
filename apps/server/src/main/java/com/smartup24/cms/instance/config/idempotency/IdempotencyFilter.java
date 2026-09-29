@@ -4,12 +4,15 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
+import com.smartup24.cms.instance.config.error.ProblemMessages;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -41,6 +44,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
+    private final ProblemMessages messages;
     /** Finds the handler of a request, to honour {@link ReturnsSecret}; absent in slice tests. */
     private final ObjectProvider<RequestMappingHandlerMapping> handlerMapping;
 
@@ -48,14 +52,25 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     public IdempotencyFilter(
             IdempotencyService idempotencyService,
             ObjectMapper objectMapper,
+            ObjectProvider<ProblemMessages> messages,
             @Qualifier("requestMappingHandlerMapping") ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
+        this(idempotencyService, objectMapper, messages.getIfAvailable(PackagedProblemMessages::new), handlerMapping);
+    }
+
+    public IdempotencyFilter(
+            IdempotencyService idempotencyService,
+            ObjectMapper objectMapper,
+            ProblemMessages messages,
+            ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
         this.idempotencyService = idempotencyService;
         this.objectMapper = objectMapper;
+        this.messages = messages;
         this.handlerMapping = handlerMapping;
     }
 
-    public IdempotencyFilter(IdempotencyService idempotencyService, ObjectMapper objectMapper) {
-        this(idempotencyService, objectMapper, null);
+    public IdempotencyFilter(
+            IdempotencyService idempotencyService, ObjectMapper objectMapper, ProblemMessages messages) {
+        this(idempotencyService, objectMapper, messages, null);
     }
 
     private boolean isUnsupportedPath(String uri) {
@@ -100,10 +115,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         // 1. Validate sensitive / unsupported endpoint
         if (isUnsupportedPath(request.getRequestURI())) {
             writeProblemDetail(
+                    request,
                     response,
                     HttpServletResponse.SC_BAD_REQUEST,
                     ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
-                    "Идемпотентность не поддерживается для эндпоинтов авторизации и генерации секретов.",
+                    "error.idempotency_auth_unsupported",
                     request.getRequestURI());
             return;
         }
@@ -118,10 +134,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         String contentType = request.getContentType();
         if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
             writeProblemDetail(
+                    request,
                     response,
                     HttpServletResponse.SC_BAD_REQUEST,
                     ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
-                    "Идемпотентность не поддерживается для multipart-загрузок файлов.",
+                    "error.idempotency_multipart_unsupported",
                     request.getRequestURI());
             return;
         }
@@ -129,10 +146,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         int contentLength = request.getContentLength();
         if (contentLength > MAX_REQUEST_BODY_BYTES) {
             writeProblemDetail(
+                    request,
                     response,
                     413,
                     ErrorCode.PAYLOAD_TOO_LARGE,
-                    "Размер тела запроса с Idempotency-Key превышает допустимый лимит (64 КБ).",
+                    "error.idempotency_body_too_large",
                     request.getRequestURI());
             return;
         }
@@ -143,10 +161,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             idempotencyKey = UUID.fromString(keyHeader.trim());
         } catch (IllegalArgumentException ex) {
             writeProblemDetail(
+                    request,
                     response,
                     HttpServletResponse.SC_BAD_REQUEST,
                     ErrorCode.IDEMPOTENCY_KEY_INVALID,
-                    "Некорректный формат Idempotency-Key. Ожидается валидный UUID.",
+                    "error.idempotency_key_format",
                     request.getRequestURI());
             return;
         }
@@ -155,10 +174,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         byte[] requestBody = request.getInputStream().readNBytes(MAX_REQUEST_BODY_BYTES + 1);
         if (requestBody.length > MAX_REQUEST_BODY_BYTES) {
             writeProblemDetail(
+                    request,
                     response,
                     413,
                     ErrorCode.PAYLOAD_TOO_LARGE,
-                    "Размер тела запроса с Idempotency-Key превышает допустимый лимит (64 КБ).",
+                    "error.idempotency_body_too_large",
                     request.getRequestURI());
             return;
         }
@@ -181,6 +201,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             }
             case PAYLOAD_MISMATCH -> {
                 writeProblemDetail(
+                        request,
                         response,
                         HttpServletResponse.SC_CONFLICT,
                         ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
@@ -190,6 +211,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             }
             case IN_PROGRESS -> {
                 writeProblemDetail(
+                        request,
                         response,
                         HttpServletResponse.SC_CONFLICT,
                         ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS,
@@ -232,11 +254,17 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     }
 
     private void writeProblemDetail(
-            HttpServletResponse response, int status, ErrorCode errorCode, String detail, String instance)
+            HttpServletRequest request,
+            HttpServletResponse response,
+            int status,
+            ErrorCode errorCode,
+            String key,
+            String instance)
             throws IOException {
         response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        ProblemDetailRecord problem = ProblemDetailRecord.of(errorCode, detail, instance);
+        ProblemDetailRecord problem =
+                ProblemDetailRecord.of(errorCode, key, null, messages.render(request, key, Map.of()), instance);
         response.getOutputStream().write(objectMapper.writeValueAsBytes(problem));
         response.getOutputStream().flush();
     }

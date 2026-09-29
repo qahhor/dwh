@@ -101,16 +101,14 @@ public class MdScopeService {
         acquireMutationLock();
         requireUser(userId);
         if (orgUnitIds == null) {
-            throw validation("Список подразделений обязателен; для снятия всех назначений передайте пустой массив");
+            throw validation("error.md.scope_units_required");
         }
         for (Long unitId : orgUnitIds) {
-            requirePositiveId(unitId, "Идентификатор подразделения");
+            requirePositiveId(unitId, "error.md.scope_unit_id_invalid");
         }
         List<Long> requested = List.copyOf(new TreeSet<>(orgUnitIds));
         for (Long unitId : requested) {
-            ApiException.requirePresent(
-                    orgUnitRepository.findById(unitId),
-                    () -> ApiException.notFound(ErrorCode.NOT_FOUND, "Узел оргструктуры не найден: " + unitId));
+            ApiException.requirePresent(orgUnitRepository.findById(unitId), () -> unitNotFound(unitId));
         }
 
         Set<Long> before = scopeRepository.getUserOrgUnitIds(userId);
@@ -246,33 +244,38 @@ public class MdScopeService {
         if (!VALID_RULES.contains(normalized)) {
             throw ApiException.badRequest(
                     ErrorCode.VALIDATION_FAILED,
-                    "Неизвестное правило видимости: " + rule + ". Допустимо: " + VALID_RULES);
+                    "error.md.scope_rule_unknown",
+                    Map.of("rule", String.valueOf(rule), "allowed", String.join(", ", new TreeSet<>(VALID_RULES))));
         }
         return normalized;
     }
 
     private void requireUser(Long userId) {
-        requirePositiveId(userId, "Идентификатор пользователя");
+        requirePositiveId(userId, "error.md.user_id_invalid");
         if (!scopeRepository.userExists(userId)) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "Пользователь не найден: " + userId);
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.user_not_found_id", Map.of("id", userId));
         }
     }
 
     private void requireRole(Long roleId) {
-        requirePositiveId(roleId, "Идентификатор роли");
+        requirePositiveId(roleId, "error.md.role_id_invalid");
         if (!scopeRepository.roleExists(roleId)) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "Роль не найдена: " + roleId);
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.role_not_found_id", Map.of("id", roleId));
         }
     }
 
-    private static void requirePositiveId(Long id, String field) {
+    private static ApiException unitNotFound(Long unitId) {
+        return ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.org_unit_not_found_id", Map.of("id", unitId));
+    }
+
+    private static void requirePositiveId(Long id, String invalidKey) {
         if (id == null || id <= 0) {
-            throw validation(field + " должен быть положительным числом");
+            throw validation(invalidKey);
         }
     }
 
-    private static ApiException validation(String message) {
-        return ApiException.badRequest(ErrorCode.VALIDATION_FAILED, message);
+    private static ApiException validation(String messageKey) {
+        return ApiException.badRequest(ErrorCode.VALIDATION_FAILED, messageKey);
     }
 
     public record UserScope(String rule, Set<Long> visibleOrgUnitIds) {}

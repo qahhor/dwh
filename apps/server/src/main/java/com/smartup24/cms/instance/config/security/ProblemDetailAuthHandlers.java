@@ -2,12 +2,18 @@ package com.smartup24.cms.instance.config.security;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.ProblemDetailRecord;
+import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
+import com.smartup24.cms.instance.config.error.ProblemMessages;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -27,9 +33,17 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProblemDetailAuthHandlers.class);
 
     private final ObjectMapper objectMapper;
+    private final ProblemMessages messages;
 
-    public ProblemDetailAuthHandlers(ObjectMapper objectMapper) {
+    /** A context without the i18n service (a web slice) renders from the packaged catalogs. */
+    @Autowired
+    public ProblemDetailAuthHandlers(ObjectMapper objectMapper, ObjectProvider<ProblemMessages> messages) {
+        this(objectMapper, messages.getIfAvailable(PackagedProblemMessages::new));
+    }
+
+    public ProblemDetailAuthHandlers(ObjectMapper objectMapper, ProblemMessages messages) {
         this.objectMapper = objectMapper;
+        this.messages = messages;
     }
 
     @Override
@@ -40,11 +54,7 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
             log.debug("Authentication failure after response commit on {}", request.getRequestURI());
             return;
         }
-        writeProblem(
-                response,
-                ErrorCode.UNAUTHORIZED,
-                "Требуется аутентификация для доступа к ресурсу",
-                request.getRequestURI());
+        writeProblem(request, response, ErrorCode.UNAUTHORIZED, "error.authentication_required", Map.of());
     }
 
     @Override
@@ -57,9 +67,6 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
         }
         ErrorCode code =
                 accessDeniedException instanceof CsrfException ? ErrorCode.CSRF_TOKEN_INVALID : ErrorCode.FORBIDDEN;
-        String detail = code == ErrorCode.CSRF_TOKEN_INVALID
-                ? "Отсутствует или недействителен CSRF-токен (заголовок X-XSRF-TOKEN)"
-                : "Доступ запрещён";
         log.warn(
                 "AccessDenied [code={}] on {} | exceptionType={}, csrfHeaderPresent={}, cookieNames={}",
                 code,
@@ -71,15 +78,23 @@ public class ProblemDetailAuthHandlers implements AuthenticationEntryPoint, Acce
                                 .map(jakarta.servlet.http.Cookie::getName)
                                 .toList()
                         : List.of());
-        writeProblem(response, code, detail, request.getRequestURI());
+        writeProblem(request, response, code, ApiException.defaultKey(code), Map.of());
     }
 
-    public void writeProblem(HttpServletResponse response, ErrorCode code, String detail, String uri)
+    /** Writes the problem of {@code code} with the text of {@code key}, in the request's language. */
+    public void writeProblem(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            ErrorCode code,
+            String key,
+            Map<String, Object> params)
             throws IOException {
         if (response.isCommitted()) {
             return;
         }
-        ProblemDetailRecord problem = ProblemDetailRecord.of(code, detail, uri);
+        String uri = request.getRequestURI();
+        ProblemDetailRecord problem =
+                ProblemDetailRecord.of(code, key, params, messages.render(request, key, params), uri);
         response.setStatus(code.getDefaultStatus());
         response.setContentType(PROBLEM_JSON);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());

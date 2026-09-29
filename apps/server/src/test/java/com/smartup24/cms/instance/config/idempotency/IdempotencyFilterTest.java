@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.controller.KauthApiTokenController;
 import com.smartup24.cms.instance.kwh.controller.KwhSubscriptionController;
 import jakarta.servlet.FilterChain;
@@ -35,7 +36,7 @@ class IdempotencyFilterTest {
     void setup() {
         idempotencyService = Mockito.mock(IdempotencyService.class);
         objectMapper = new ObjectMapper();
-        filter = new IdempotencyFilter(idempotencyService, objectMapper);
+        filter = new IdempotencyFilter(idempotencyService, objectMapper, PackagedProblemMessages.russian());
     }
 
     @Test
@@ -108,7 +109,8 @@ class IdempotencyFilterTest {
         @SuppressWarnings("unchecked")
         ObjectProvider<RequestMappingHandlerMapping> provider = Mockito.mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(mapping);
-        IdempotencyFilter secretAware = new IdempotencyFilter(idempotencyService, objectMapper, provider);
+        IdempotencyFilter secretAware =
+                new IdempotencyFilter(idempotencyService, objectMapper, PackagedProblemMessages.russian(), provider);
 
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/iam/profile/tokens");
         request.addHeader(

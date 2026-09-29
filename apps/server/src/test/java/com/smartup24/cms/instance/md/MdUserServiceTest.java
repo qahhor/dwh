@@ -76,7 +76,7 @@ class MdUserServiceTest {
 
         assertThatThrownBy(() -> userService.setUserState(1L, MdPref.STATE_PASSIVE, 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Системный администратор не может быть заблокирован");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.admin_block_forbidden");
     }
 
     @Test
@@ -108,7 +108,7 @@ class MdUserServiceTest {
 
         assertThatThrownBy(() -> userService.anonymizeUser(1L, 1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Системный администратор не может быть удалён");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.admin_delete_forbidden");
     }
 
     @Test
@@ -129,7 +129,8 @@ class MdUserServiceTest {
                         null,
                         1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Пароль должен содержать от 8 до 20 символов");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.password_length")
+                .hasFieldOrPropertyWithValue("params", Map.of("min", 8, "max", 20));
     }
 
     @Test
@@ -150,7 +151,7 @@ class MdUserServiceTest {
                         null,
                         1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("слишком прост и входит в список скомпрометированных");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.password_common");
     }
 
     @Test
@@ -171,7 +172,7 @@ class MdUserServiceTest {
                         null,
                         1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("не должен содержать логин");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.password_contains_login");
     }
 
     @Test
@@ -194,7 +195,7 @@ class MdUserServiceTest {
                         null,
                         1L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("с таким номером телефона уже существует");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.user_phone_exists");
     }
 
     @Test
@@ -228,7 +229,7 @@ class MdUserServiceTest {
 
         assertThatThrownBy(() -> userService.changePassword(2L, 0, "WrongOldPassword!", "NewValidPass2026!"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Неверный текущий пароль");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.current_password_invalid");
     }
 
     @Test

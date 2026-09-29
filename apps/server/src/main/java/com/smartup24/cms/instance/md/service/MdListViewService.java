@@ -34,11 +34,10 @@ import tools.jackson.databind.node.ObjectNode;
 @Service
 public class MdListViewService {
 
+    // Field error codes (errors[].code); the problem itself names its text by key (item 3.1).
     public static final String LIST_VIEW_INVALID = "LIST_VIEW_INVALID";
     public static final String LIST_VIEW_NAME_TAKEN = "LIST_VIEW_NAME_TAKEN";
     public static final String LIST_VIEW_LIMIT = "LIST_VIEW_LIMIT";
-    public static final String LIST_VIEW_NOT_FOUND = "LIST_VIEW_NOT_FOUND";
-    public static final String STALE_VERSION = "STALE_VERSION";
 
     /** Больше представлений одного списка человек не различает в меню. */
     public static final int MAX_VIEWS_PER_LIST = 20;
@@ -77,7 +76,8 @@ public class MdListViewService {
         String state = canonicalState(list, data.state());
         if (repo.count(userId, listCode) >= MAX_VIEWS_PER_LIST) {
             throw ApiException.validation(
-                    LIST_VIEW_LIMIT,
+                    "error.md.list_view_limit",
+                    Map.of("max", MAX_VIEWS_PER_LIST),
                     List.of(new FieldErrorItem(
                             "name", LIST_VIEW_LIMIT, "at most " + MAX_VIEWS_PER_LIST + " views per list")));
         }
@@ -111,7 +111,7 @@ public class MdListViewService {
             throw nameTaken();
         }
         if (updated == 0) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, STALE_VERSION);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.list_view_stale");
         }
         ListView after = repo.find(userId, listCode, id).orElseThrow();
         audit.logChange(TABLE, Long.toString(id), "U", AUDITED, row(before), row(after));
@@ -130,14 +130,14 @@ public class MdListViewService {
     private QueryList visibleList(String listCode) {
         return registry.find(listCode)
                 .filter(list -> SecurityContext.hasPermission(list.form(), list.action()))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "QUERY_LIST_NOT_FOUND"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.query_list_not_found"));
     }
 
     private static String checkName(String raw) {
         String name = raw == null ? "" : raw.strip();
         if (name.isEmpty() || name.length() > MAX_NAME) {
             throw ApiException.validation(
-                    LIST_VIEW_INVALID,
+                    "error.md.list_view_invalid",
                     List.of(new FieldErrorItem(
                             "name", LIST_VIEW_INVALID, "name must be 1 to " + MAX_NAME + " characters")));
         }
@@ -264,16 +264,16 @@ public class MdListViewService {
     }
 
     private static ApiException invalid(List<FieldErrorItem> errors) {
-        return ApiException.validation(LIST_VIEW_INVALID, errors);
+        return ApiException.validation("error.md.list_view_invalid", errors);
     }
 
     private static ApiException nameTaken() {
         return ApiException.validation(
-                LIST_VIEW_NAME_TAKEN,
+                "error.md.list_view_name_taken",
                 List.of(new FieldErrorItem("name", LIST_VIEW_NAME_TAKEN, "a view with this name already exists")));
     }
 
     private static ApiException notFound() {
-        return ApiException.notFound(ErrorCode.NOT_FOUND, LIST_VIEW_NOT_FOUND);
+        return ApiException.notFound(ErrorCode.NOT_FOUND, "error.md.list_view_not_found");
     }
 }

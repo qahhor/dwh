@@ -174,7 +174,12 @@ describe('SourceCardComponent', () => {
 
   it('shows not found message on 404', async () => {
     const { fixture } = await createFixture({
-      loadError: { status: 404, code: 'NOT_FOUND', detail: 'UPL_SOURCE_NOT_FOUND' },
+      loadError: {
+        status: 404,
+        code: 'NOT_FOUND',
+        detail: 'Источник или версия не найдены',
+        messageKey: 'error.upl.source_not_found',
+      },
     });
     expect(el(fixture, 'upl-not-found')).not.toBeNull();
   });
@@ -203,9 +208,14 @@ describe('SourceCardComponent', () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
-  it('keeps user input and offers refresh on 409 STALE_VERSION', async () => {
+  it('keeps user input and offers refresh on 409 error.upl.stale_version', async () => {
     const { fixture, api } = await createFixture({
-      updateError: { status: 409, code: 'CONFLICT', detail: 'STALE_VERSION' },
+      updateError: {
+        status: 409,
+        code: 'CONFLICT',
+        detail: 'Запись изменена другим пользователем. Обновите',
+        messageKey: 'error.upl.stale_version',
+      },
     });
     setInput(fixture, 'upl-field-name', 'Edited TEST');
     clickUiButton(fixture, 'upl-save-source');
@@ -245,9 +255,14 @@ describe('SourceCardComponent', () => {
     expect(empty.api.createDraft).toHaveBeenCalledWith('7', undefined);
   });
 
-  it('offers to open the existing draft on FND_VERSION_DRAFT_EXISTS', async () => {
+  it('offers to open the existing draft on error.upl.fnd_version_draft_exists', async () => {
     const { fixture } = await createFixture({
-      createDraftError: { status: 409, code: 'CONFLICT', detail: 'FND_VERSION_DRAFT_EXISTS' },
+      createDraftError: {
+        status: 409,
+        code: 'CONFLICT',
+        detail: 'Черновик уже есть',
+        messageKey: 'error.upl.fnd_version_draft_exists',
+      },
     });
     clickUiButton(fixture, 'upl-new-draft');
     clickUiButton(fixture, 'upl-create-draft');

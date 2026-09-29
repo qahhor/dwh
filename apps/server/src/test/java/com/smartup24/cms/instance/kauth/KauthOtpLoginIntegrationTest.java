@@ -193,7 +193,7 @@ class KauthOtpLoginIntegrationTest {
 
         assertThatThrownBy(() -> authService.verifyOtp(second.otpToken(), firstCode, "10.0.0.4", "ua", "dev"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Неверный код");
+                .hasFieldOrPropertyWithValue("messageKey", "error.otp_invalid");
     }
 
     @Test
@@ -207,7 +207,7 @@ class KauthOtpLoginIntegrationTest {
         // До V015 любой непустой токен приводил к коду пользователя с id = 1
         assertThatThrownBy(() -> authService.verifyOtp("forged-token", code, "10.0.0.6", "ua", "dev"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Некорректный OTP токен");
+                .hasFieldOrPropertyWithValue("messageKey", "error.auth.otp_token_invalid");
     }
 
     @Test
@@ -221,7 +221,7 @@ class KauthOtpLoginIntegrationTest {
 
         assertThatThrownBy(() -> authService.login("otp_no_channel", PASSWORD, "10.0.0.7", "ua", "dev"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("подтверждённого канала связи нет");
+                .hasFieldOrPropertyWithValue("messageKey", "error.auth.otp_channel_missing");
 
         assertThat(countOtpCodes(userId))
                 .as("код, который некуда отправить, выпускать нельзя")

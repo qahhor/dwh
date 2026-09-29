@@ -83,7 +83,7 @@ public class MdListViewController {
             @PathVariable String listCode, @PathVariable long id, @RequestBody ViewRequest request) {
         if (request.lockVersion() == null) {
             throw ApiException.validation(
-                    MdListViewService.LIST_VIEW_INVALID,
+                    "error.md.list_view_invalid",
                     List.of(new FieldErrorItem(
                             "lockVersion", MdListViewService.LIST_VIEW_INVALID, "lockVersion required")));
         }

@@ -31,10 +31,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class UplApplyService {
 
-    /** Применить можно только пакет «проверен», ещё не получивший номер загрузки. */
-    public static final String UPL_PKG_NOT_VERIFIED = "UPL_PKG_NOT_VERIFIED";
-    /** В пакете «проверен» нет ни одной принятой строки — применять нечего. */
-    public static final String UPL_PKG_NOTHING_TO_APPLY = "UPL_PKG_NOTHING_TO_APPLY";
     /** Строк в raw не столько, сколько в пакете, или счётчики пакета не сходятся. */
     public static final String UPL_PKG_RECONCILIATION = "UPL_PKG_RECONCILIATION";
     /** Строки пакета не записаны в raw. */
@@ -93,12 +89,12 @@ public class UplApplyService {
 
     private Started begin(UUID id, FndActor actor) {
         PackageRow row = repo.lockByPublicId(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UplPackageService.UPL_PKG_NOT_FOUND));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found"));
         if (!UplPackageModel.VERIFIED.equals(row.status()) || row.loadId() != null) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, UPL_PKG_NOT_VERIFIED);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_not_verified");
         }
         if (row.rowsAccepted() == null || row.rowsAccepted() == 0) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, UPL_PKG_NOTHING_TO_APPLY);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_nothing_to_apply");
         }
         long loadId = loads.begin(
                 row.sourceCode(),

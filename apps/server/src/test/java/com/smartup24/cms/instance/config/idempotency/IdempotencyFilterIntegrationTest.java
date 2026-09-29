@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.config.idempotency;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -50,7 +51,8 @@ class IdempotencyFilterIntegrationTest {
                 .migrate();
         jdbc = JdbcClient.create(dataSource);
         var repository = new IdempotencyRepository(jdbc);
-        filter = new IdempotencyFilter(new IdempotencyService(repository), new ObjectMapper());
+        filter = new IdempotencyFilter(
+                new IdempotencyService(repository), new ObjectMapper(), PackagedProblemMessages.russian());
     }
 
     @BeforeEach

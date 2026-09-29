@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.repository.*;
 import com.smartup24.cms.instance.md.service.*;
@@ -88,7 +89,7 @@ class MdOrgUnitWriteIntegrationTest {
         orgUnitService = proxy(new MdOrgUnitService(units, scopeService, audit));
         roleService = proxy(new MdRoleService(roles, permissions, audit, scopes));
         mvc = MockMvcBuilders.standaloneSetup(new MdOrgUnitController(orgUnitService, scopeService))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
         root = orgUnitService.create(null, "HQ", "Company", "company", 0).id();
     }

@@ -114,7 +114,7 @@ public class MdSettingService {
                     .map(key -> new FieldErrorItem(key, SETTING_NOT_PERSONAL, "not a personal setting: " + key))
                     .toList();
             if (!foreign.isEmpty()) {
-                throw ApiException.validation(SETTING_NOT_PERSONAL, foreign);
+                throw ApiException.validation("error.md.setting_not_personal", foreign);
             }
             Map<String, String> normalized = new HashMap<>(settings);
             String language = null;
@@ -150,7 +150,7 @@ public class MdSettingService {
         }
         if (strict) {
             throw ApiException.validation(
-                    SETTING_INVALID,
+                    "error.md.setting_invalid",
                     List.of(new FieldErrorItem(
                             IDLE_LOCK_MINUTES, SETTING_INVALID, "minutes from 0 to " + MAX_IDLE_LOCK_MINUTES)));
         }

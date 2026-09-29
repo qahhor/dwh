@@ -1,9 +1,11 @@
 package com.smartup24.cms.instance.ms.task;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
@@ -73,8 +75,10 @@ class MsTaskServiceTest {
         when(taskRepository.findById(10L, ScopeFilter.unrestricted())).thenReturn(Optional.of(task));
 
         assertThatThrownBy(() -> service.updateTask(10L, "Задача 1", "", "medium", 10L, null, null, null, 1L))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("цикл");
+                .isInstanceOfSatisfying(ApiException.class, error -> {
+                    assertThat(error.getErrorCode()).isEqualTo(ErrorCode.TASK_PARENT_CYCLE);
+                    assertThat(error.getMessageKey()).isEqualTo("error.task.parent_cycle");
+                });
     }
 
     @Test
@@ -103,8 +107,10 @@ class MsTaskServiceTest {
         when(taskRepository.isDescendantOf(20L, 10L)).thenReturn(true);
 
         assertThatThrownBy(() -> service.updateTask(10L, "Задача 1", "", "medium", 20L, null, null, null, 1L))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("цикл");
+                .isInstanceOfSatisfying(ApiException.class, error -> {
+                    assertThat(error.getErrorCode()).isEqualTo(ErrorCode.TASK_PARENT_CYCLE);
+                    assertThat(error.getMessageKey()).isEqualTo("error.task.parent_cycle");
+                });
     }
 
     @Test
@@ -161,7 +167,9 @@ class MsTaskServiceTest {
         when(scopeService.canAccessUser(17L, 99L)).thenReturn(false);
 
         assertThatThrownBy(() -> service.setResponsible(10L, 99L, 17L))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("пользователь недоступен");
+                .isInstanceOfSatisfying(ApiException.class, error -> {
+                    assertThat(error.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
+                    assertThat(error.getMessageKey()).isEqualTo("error.task.assignee_unavailable");
+                });
     }
 }

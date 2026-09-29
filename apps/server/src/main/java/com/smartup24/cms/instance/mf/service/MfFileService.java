@@ -12,6 +12,7 @@ import com.smartup24.cms.spi.storage.StorageProvider;
 import com.smartup24.cms.spi.storage.StoredFileMetadata;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
@@ -23,7 +24,8 @@ import org.springframework.stereotype.Service;
 public class MfFileService {
 
     private static final String DEFAULT_BUCKET = "instance-files";
-    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+    private static final int MAX_FILE_SIZE_MEGABYTES = 50;
+    private static final long MAX_FILE_SIZE = MAX_FILE_SIZE_MEGABYTES * 1024L * 1024L;
     private static final Set<String> FORBIDDEN_EXTENSIONS =
             Set.of(".exe", ".sh", ".bat", ".cmd", ".vbs", ".msi", ".jar");
 
@@ -76,12 +78,14 @@ public class MfFileService {
     public MfFileRepository.FileRecord uploadFile(
             String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
         if (!uploadLimiter.tryAcquire()) {
-            throw ApiException.rateLimited(
-                    "Превышен лимит одновременных загрузок файлов; пожалуйста, повторите попытку позже");
+            throw ApiException.rateLimited("error.file.uploads_busy");
         }
         try {
             if (sizeBytes > MAX_FILE_SIZE) {
-                throw ApiException.badRequest(ErrorCode.FILE_SIZE_EXCEEDED, "Размер файла превышает лимит 50 МБ");
+                throw ApiException.badRequest(
+                        ErrorCode.FILE_SIZE_EXCEEDED,
+                        "error.file.size_limit",
+                        Map.of("megabytes", MAX_FILE_SIZE_MEGABYTES));
             }
 
             validateFileExtension(originalName);
@@ -211,7 +215,7 @@ public class MfFileService {
         var metadata = getFileMetadata(id);
         var stream = storageProvider.download(metadata.storageBucket(), metadata.storageKey());
         if (stream == null) {
-            throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Физический файл не найден в хранилище");
+            throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "error.file.object_missing");
         }
         return stream;
     }
@@ -220,7 +224,7 @@ public class MfFileService {
         var metadata = getFileMetadata(id, currentUserId);
         var stream = storageProvider.download(metadata.storageBucket(), metadata.storageKey());
         if (stream == null) {
-            throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Физический файл не найден в хранилище");
+            throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "error.file.object_missing");
         }
         return stream;
     }
@@ -231,8 +235,7 @@ public class MfFileService {
         for (String ext : FORBIDDEN_EXTENSIONS) {
             if (lower.endsWith(ext)) {
                 throw ApiException.badRequest(
-                        ErrorCode.FILE_TYPE_FORBIDDEN,
-                        "Загрузка исполняемых файлов (" + ext + ") запрещена правилами безопасности");
+                        ErrorCode.FILE_TYPE_FORBIDDEN, "error.file.extension_forbidden", Map.of("extension", ext));
             }
         }
     }
@@ -248,13 +251,12 @@ public class MfFileService {
                     throw new IllegalStateException("File scanner returned no verdict: " + scanner.getProviderCode());
                 }
                 if (result.verdict() == FileScanner.Verdict.INFECTED) {
-                    throw new ApiException(
-                            ErrorCode.FILE_MALWARE_DETECTED, "Файл содержит вредоносное содержимое и был отклонён");
+                    throw new ApiException(ErrorCode.FILE_MALWARE_DETECTED, "error.file.malware_rejected");
                 }
             } catch (ApiException exception) {
                 throw exception;
             } catch (Exception exception) {
-                throw new ApiException(ErrorCode.FILE_SCAN_FAILED, "Проверка файла не завершена; загрузка отменена");
+                throw new ApiException(ErrorCode.FILE_SCAN_FAILED, "error.file.scan_incomplete");
             }
         }
     }

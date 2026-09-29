@@ -10,7 +10,14 @@ import {
 } from './upl-format-errors';
 
 function problem(extra: Partial<ProblemDetail>): ProblemDetail {
-  return { title: 'Ошибка', status: 422, code: 'validation_failed', detail: 'UPL_FORMAT_INVALID', ...extra };
+  return {
+    title: 'Ошибка',
+    status: 422,
+    code: 'validation_failed',
+    detail: 'Анкета не прошла проверку',
+    messageKey: 'error.upl.format_invalid',
+    ...extra,
+  };
 }
 
 describe('upl format field errors', () => {

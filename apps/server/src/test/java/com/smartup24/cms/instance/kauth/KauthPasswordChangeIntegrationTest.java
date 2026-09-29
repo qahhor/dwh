@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.controller.KauthAuthController;
 import com.smartup24.cms.instance.kauth.controller.KauthPasswordController;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
@@ -123,7 +124,7 @@ class KauthPasswordChangeIntegrationTest {
                                 userService,
                                 CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilters(new KauthAuthenticationFilter(sessionService, tokenService, userService, permissions))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }
 

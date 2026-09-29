@@ -171,7 +171,9 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
         }
         var busy = send(admin, post(BASE), Map.of("list", "upl.sources"));
         assertThat(busy.getStatus()).isEqualTo(409);
-        assertThat((String) read(busy, "$.detail")).isEqualTo("EXPORT_BUSY");
+        assertThat((String) read(busy, "$.messageKey")).isEqualTo("error.report.export_busy");
+        assertThat((String) read(busy, "$.detail"))
+                .isEqualTo("Уже ожидают или выполняются выгрузки: 3. Дождитесь их завершения");
 
         Session plain = login(user("user"));
         assertThat(send(plain, post(BASE), Map.of("list", "upl.sources")).getStatus())

@@ -126,7 +126,7 @@ public class KwhWebhookService {
     private KwhSubscriptionRepository.SubscriptionRecord requireSubscription(Long id) {
         return subscriptionRepository
                 .findById(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Подписка на события не найдена"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.webhook.subscription_not_found"));
     }
 
     @Transactional

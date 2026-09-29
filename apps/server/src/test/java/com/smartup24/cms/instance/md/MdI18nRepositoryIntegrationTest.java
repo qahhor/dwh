@@ -84,7 +84,7 @@ class MdI18nRepositoryIntegrationTest {
 
         assertThatThrownBy(() -> repository.replaceOverrides("fr", Map.of("nav.tasks", "Travail"), 1L, actorId))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("изменён другим администратором");
+                .hasFieldOrPropertyWithValue("messageKey", "error.i18n_revision_conflict");
 
         assertThat(repository.findOverrides("fr"))
                 .containsEntry("nav.tasks", "Tâches")

@@ -40,6 +40,10 @@ public class KauthChannelService {
     private static final Set<String> SUPPORTED_CHANNELS =
             Set.of(KauthPref.CHANNEL_TELEGRAM, KauthPref.CHANNEL_SMS, KauthPref.CHANNEL_EMAIL);
 
+    /** Sorted: a Set prints in a different order on every run, and the text shows the list. */
+    private static final String ALLOWED_CHANNELS =
+            String.join(", ", SUPPORTED_CHANNELS.stream().sorted().toList());
+
     private static final int VERIFICATION_TTL_MINUTES = 15;
 
     private final KauthChannelRepository channelRepository;
@@ -78,7 +82,7 @@ public class KauthChannelService {
         Long userId = principal.userId();
         String normalized = normalizeChannel(channel);
         if (address == null || address.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "Адрес канала не может быть пустым");
+            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.auth.channel_address_required");
         }
 
         otpSender.requireDeliverable(normalized);
@@ -120,31 +124,32 @@ public class KauthChannelService {
         Long userId = principal.userId();
         var otp = otpCodeRepository
                 .findActiveByTokenHash(KauthPasswordHasher.sha256(verifyToken), "channel_verify")
-                .orElseThrow(() -> ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения"));
+                .orElseThrow(
+                        () -> ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.verification_token_invalid"));
 
         if (!otp.userId().equals(userId) || otp.authenticationVersion() != principal.authenticationVersion()) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.verification_token_invalid");
         }
         if (otp.expiresAt().isBefore(Instant.now())) {
-            throw ApiException.badRequest(ErrorCode.OTP_EXPIRED, "Срок действия кода подтверждения истёк");
+            throw new ApiException(ErrorCode.OTP_EXPIRED);
         }
         // Попытка берётся до сравнения: сравнение до списания пропускало параллельные подборы.
         if (!otpCodeRepository.claimAttempt(otp.id())) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.verification_token_invalid");
         }
         if (!KauthPasswordHasher.sha256(code).equals(otp.codeHash())) {
             if (otp.attemptsLeft() <= 1) {
-                throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "Превышено количество попыток");
+                throw ApiException.locked(ErrorCode.OTP_ATTEMPTS_EXCEEDED, "error.auth.attempts_exceeded");
             }
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Неверный код подтверждения");
+            throw new ApiException(ErrorCode.OTP_INVALID);
         }
 
         if (!otpCodeRepository.consume(otp.id(), userId, principal.authenticationVersion(), "channel_verify")) {
-            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "Некорректный токен подтверждения");
+            throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.verification_token_invalid");
         }
         var channel = channelRepository
                 .findByUserIdAndChannel(userId, otp.channel())
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "Канал не найден"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.auth.channel_not_found"));
         channelRepository.bindOrUpdate(userId, channel.channel(), channel.address(), true);
 
         auditLogService.logChange(
@@ -185,18 +190,17 @@ public class KauthChannelService {
                 }
             }
         }
-        throw ApiException.conflict(
-                ErrorCode.OTP_CHANNEL_MISSING,
-                "Двухфакторный вход включён, но подтверждённого канала связи нет. "
-                        + "Привяжите канал в профиле или обратитесь к администратору");
+        throw ApiException.conflict(ErrorCode.OTP_CHANNEL_MISSING, "error.auth.otp_channel_missing");
     }
 
     private static String normalizeChannel(String channel) {
         String normalized = channel != null ? channel.trim().toLowerCase() : "";
         if (!SUPPORTED_CHANNELS.contains(normalized)) {
+            // The old text echoed the caller's own input back to the same caller; the parameter keeps it.
             throw ApiException.badRequest(
                     ErrorCode.VALIDATION_FAILED,
-                    "Неизвестный канал: " + channel + ". Допустимо: " + SUPPORTED_CHANNELS);
+                    "error.auth.channel_unknown",
+                    Map.of("channel", String.valueOf(channel), "allowed", ALLOWED_CHANNELS));
         }
         return normalized;
     }

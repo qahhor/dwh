@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
@@ -30,7 +31,8 @@ class ProblemDetailAuthHandlersTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         when(response.isCommitted()).thenReturn(true);
 
-        ProblemDetailAuthHandlers handlers = new ProblemDetailAuthHandlers(new ObjectMapper());
+        ProblemDetailAuthHandlers handlers =
+                new ProblemDetailAuthHandlers(new ObjectMapper(), PackagedProblemMessages.russian());
         handlers.commence(request, response, new BadCredentialsException("invalid"));
         handlers.handle(request, response, new AccessDeniedException("denied"));
 
@@ -60,7 +62,8 @@ class ProblemDetailAuthHandlersTest {
             var expected = new DefaultCsrfToken("X-XSRF-TOKEN", "_csrf", "expected-token");
             var exception = new InvalidCsrfTokenException(expected, csrfSentinel);
 
-            new ProblemDetailAuthHandlers(new ObjectMapper()).handle(request, response, exception);
+            new ProblemDetailAuthHandlers(new ObjectMapper(), PackagedProblemMessages.russian())
+                    .handle(request, response, exception);
 
             String logMessages = appender.list.stream()
                     .map(ILoggingEvent::getFormattedMessage)

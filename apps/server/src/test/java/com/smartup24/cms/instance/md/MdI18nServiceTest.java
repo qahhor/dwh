@@ -81,7 +81,8 @@ class MdI18nServiceTest {
         assertThat(service.requireActiveLanguageCode(" EN ")).isEqualTo("en");
         assertThatThrownBy(() -> service.requireActiveLanguageCode("fr"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("не найден или отключён");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.language_not_found_or_inactive")
+                .hasFieldOrPropertyWithValue("params", Map.of("code", "fr"));
     }
 
     @Test
@@ -114,7 +115,8 @@ class MdI18nServiceTest {
         assertThatThrownBy(() -> service.updateTranslations(
                         "en", new UpdateTranslationsRequest(1, Map.of("typo.unknown", "Wert")), 7L))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Неизвестный ключ")
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.translation_key_unknown")
+                .hasFieldOrPropertyWithValue("params", Map.of("key", "typo.unknown"))
                 .satisfies(error -> assertThat(((ApiException) error).getErrorCode())
                         .isEqualTo(ErrorCode.I18N_TRANSLATION_INVALID));
 

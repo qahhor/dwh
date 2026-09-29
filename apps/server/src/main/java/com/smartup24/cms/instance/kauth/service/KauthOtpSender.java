@@ -81,8 +81,8 @@ public class KauthOtpSender {
         if (deliveryEnforced && isStub(providerCode(channel))) {
             throw ApiException.conflict(
                     ErrorCode.DELIVERY_CHANNEL_NOT_CONFIGURED,
-                    "Канал " + channel + " не настроен на сервере: сообщения туда не доставляются. "
-                            + "Обратитесь к администратору");
+                    "error.auth.channel_not_deliverable",
+                    Map.of("channel", channel));
         }
     }
 
@@ -111,15 +111,16 @@ public class KauthOtpSender {
                         .isSuccess();
             default ->
                 throw ApiException.badRequest(
-                        ErrorCode.VALIDATION_FAILED, "Неизвестный канал доставки: " + channel.channel());
+                        ErrorCode.VALIDATION_FAILED,
+                        "error.auth.delivery_channel_unknown",
+                        Map.of("channel", channel.channel()));
         };
 
         if (!delivered) {
             // Адрес получателя — персональные данные, в журнал не пишем.
             log.warn("Код не доставлен в канал {}", channel.channel());
             throw new ApiException(
-                    ErrorCode.OTP_SEND_FAILED,
-                    "Не удалось отправить код в канал " + channel.channel() + ". Обратитесь к администратору");
+                    ErrorCode.OTP_SEND_FAILED, "error.auth.otp_send_failed", Map.of("channel", channel.channel()));
         }
     }
 

@@ -90,22 +90,50 @@ describe('ApiService localized Problem Details', () => {
     } as unknown as HttpClient;
     const toast = { error: vi.fn() } as unknown as ToastService;
     const i18n = {
-      translate: (key: string) => translations[key] ?? key,
+      translate: (key: string, params?: Record<string, string | number>) =>
+        Object.entries(params ?? {}).reduce(
+          (text, [name, value]) => text.replace(`{${name}}`, String(value)),
+          translations[key] ?? key,
+        ),
     } as I18nService;
     return { service: withDeps(http, toast, i18n), toast };
   }
 
-  it('uses a catalog message for a known stable error code', async () => {
+  it('renders the text the server names by key, with its parameters, from the client catalog', async () => {
     const { service, toast } = serviceFor(
-      { code: 'i18n_revision_conflict', detail: 'server detail' },
-      { 'error.i18n_revision_conflict': 'Пакет уже изменён другим администратором' },
+      {
+        code: 'i18n_language_not_found',
+        detail: 'server rendering',
+        messageKey: 'error.md.language_not_found',
+        params: { code: 'de' },
+      },
+      { 'error.md.language_not_found': 'Язык {code} не найден' },
     );
 
     await expect(firstValueFrom(service.get('/test'))).rejects.toMatchObject({
-      code: 'i18n_revision_conflict',
+      code: 'i18n_language_not_found',
+      detail: 'Язык de не найден',
+    });
+    expect(toast.error).toHaveBeenCalledWith('Язык de не найден');
+  });
+
+  it('keeps the server text when the client catalog lacks the key', async () => {
+    const { service } = serviceFor({ code: 'conflict', detail: 'Текст сервера', messageKey: 'error.new_key' });
+
+    await expect(firstValueFrom(service.get('/test'))).rejects.toMatchObject({ detail: 'Текст сервера' });
+  });
+
+  it('keeps a specific server detail without a key; the code text only fills an empty one', async () => {
+    const translations = { 'error.i18n_revision_conflict': 'Пакет уже изменён другим администратором' };
+    const specific = serviceFor({ code: 'i18n_revision_conflict', detail: 'Точный текст сервера' }, translations);
+    await expect(firstValueFrom(specific.service.get('/test'))).rejects.toMatchObject({
+      detail: 'Точный текст сервера',
+    });
+
+    const empty = serviceFor({ code: 'i18n_revision_conflict' }, translations);
+    await expect(firstValueFrom(empty.service.get('/test'))).rejects.toMatchObject({
       detail: 'Пакет уже изменён другим администратором',
     });
-    expect(toast.error).toHaveBeenCalledWith('Пакет уже изменён другим администратором');
   });
 
   it('preserves an unknown server detail as the fallback', async () => {

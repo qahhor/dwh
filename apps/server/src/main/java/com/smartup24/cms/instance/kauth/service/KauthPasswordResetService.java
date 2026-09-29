@@ -137,8 +137,7 @@ public class KauthPasswordResetService {
         Instant windowStart = Instant.now().minus(FAILURE_WINDOW);
         if (attemptRepository.countFailedAttemptsForIpSince(ip, ATTEMPT_REJECTED, windowStart) >= MAX_FAILED_CONFIRMS) {
             auditLogService.logSecurityEvent("PASSWORD_RESET_LOCKED", null, ip, userAgent, Map.of());
-            throw ApiException.locked(
-                    ErrorCode.RATE_LIMITED, "Слишком много неверных ссылок сброса пароля. Повторите позже");
+            throw ApiException.locked(ErrorCode.RATE_LIMITED, "error.auth.too_many_reset_links");
         }
 
         var reset = token == null || token.isBlank()
@@ -174,9 +173,7 @@ public class KauthPasswordResetService {
     }
 
     private static ApiException rejectedLink() {
-        return ApiException.badRequest(
-                ErrorCode.RESET_CODE_INVALID,
-                "Ссылка недействительна: она устарела или уже использована. Запросите новую");
+        return ApiException.badRequest(ErrorCode.RESET_CODE_INVALID, "error.auth.reset_link_invalid");
     }
 
     private Optional<KauthChannelRepository.ChannelRecord> confirmedChannel(Long userId) {

@@ -92,20 +92,17 @@ public class MdI18nService {
     @Transactional(readOnly = true)
     public String requireActiveLanguageCode(String requestedCode) {
         String code = normalizeRequiredCode(requestedCode);
-        ApiException.requirePresent(
-                repository.findLanguage(code).filter(LanguageRecord::active),
-                () -> ApiException.notFound(
-                        ErrorCode.I18N_LANGUAGE_NOT_FOUND, "Язык " + code + " не найден или отключён"));
+        if (repository.findLanguage(code).filter(LanguageRecord::active).isEmpty()) {
+            throw ApiException.notFound(
+                    ErrorCode.I18N_LANGUAGE_NOT_FOUND, "error.md.language_not_found_or_inactive", Map.of("code", code));
+        }
         return code;
     }
 
     @Transactional(readOnly = true)
     public TranslationEditor editor(String requestedCode) {
         String code = normalizeRequiredCode(requestedCode);
-        LanguageRecord language = repository
-                .findLanguage(code)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.I18N_LANGUAGE_NOT_FOUND, "Язык " + code + " не найден"));
+        LanguageRecord language = repository.findLanguage(code).orElseThrow(() -> languageNotFound(code));
 
         Map<String, String> russian = mergedRussian();
         Map<String, String> bundled = catalog.bundled(code);
@@ -129,13 +126,12 @@ public class MdI18nService {
     @Transactional
     public LanguageSummary createLanguage(CreateLanguageRequest request, Long userId) {
         if (request == null) {
-            throw ApiException.badRequest(ErrorCode.I18N_LANGUAGE_INVALID, "Параметры языка обязательны");
+            throw ApiException.badRequest(ErrorCode.I18N_LANGUAGE_INVALID, "error.md.language_params_required");
         }
         String code = normalizeRequiredCode(request.code());
         String name = request.name() == null ? "" : request.name().trim();
         if (name.isEmpty() || name.length() > 100) {
-            throw ApiException.badRequest(
-                    ErrorCode.I18N_LANGUAGE_INVALID, "Название языка должно содержать от 1 до 100 символов");
+            throw ApiException.badRequest(ErrorCode.I18N_LANGUAGE_INVALID, "error.md.language_name_invalid");
         }
         Map<String, String> overrides = validatedOverrides(request.translations());
         Optional<LanguageRecord> existing = repository.findLanguage(code);
@@ -147,7 +143,7 @@ public class MdI18nService {
             created = repository
                     .reactivateLanguage(code, name, userId)
                     .orElseThrow(() -> ApiException.conflict(
-                            ErrorCode.I18N_LANGUAGE_EXISTS, "Язык с кодом " + code + " уже существует"));
+                            ErrorCode.I18N_LANGUAGE_EXISTS, "error.md.language_exists", Map.of("code", code)));
             previousOverrides = repository.findOverrides(code);
             auditLogService.logChange(
                     "md_i18n_languages",
@@ -194,12 +190,9 @@ public class MdI18nService {
     public LanguageSummary updateTranslations(String requestedCode, UpdateTranslationsRequest request, Long userId) {
         String code = normalizeRequiredCode(requestedCode);
         if (request == null) {
-            throw ApiException.badRequest(ErrorCode.I18N_TRANSLATION_INVALID, "Языковой пакет обязателен");
+            throw ApiException.badRequest(ErrorCode.I18N_TRANSLATION_INVALID, "error.md.translations_required");
         }
-        LanguageRecord language = repository
-                .findLanguage(code)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.I18N_LANGUAGE_NOT_FOUND, "Язык " + code + " не найден"));
+        LanguageRecord language = repository.findLanguage(code).orElseThrow(() -> languageNotFound(code));
         Map<String, String> oldOverrides = repository.findOverrides(code);
         Map<String, String> newOverrides = validatedOverrides(request.translations());
 
@@ -276,21 +269,23 @@ public class MdI18nService {
             return Map.of();
         }
         if (requested.size() > 5000) {
-            throw ApiException.badRequest(
-                    ErrorCode.I18N_TRANSLATION_INVALID, "Языковой пакет не может содержать более 5000 значений");
+            throw ApiException.badRequest(ErrorCode.I18N_TRANSLATION_INVALID, "error.md.translations_too_many");
         }
 
         LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
         requested.forEach((key, value) -> {
             if (key == null || !catalog.russianKeys().contains(key)) {
-                throw ApiException.badRequest(ErrorCode.I18N_TRANSLATION_INVALID, "Неизвестный ключ перевода: " + key);
+                throw ApiException.badRequest(
+                        ErrorCode.I18N_TRANSLATION_INVALID,
+                        "error.md.translation_key_unknown",
+                        Map.of("key", String.valueOf(key)));
             }
             if (value == null || value.isBlank()) {
                 return;
             }
             if (value.length() > 4000) {
                 throw ApiException.badRequest(
-                        ErrorCode.I18N_TRANSLATION_INVALID, "Перевод " + key + " превышает 4000 символов");
+                        ErrorCode.I18N_TRANSLATION_INVALID, "error.md.translation_too_long", Map.of("key", key));
             }
             normalized.put(key, value);
         });
@@ -326,9 +321,17 @@ public class MdI18nService {
     private String normalizeRequiredCode(String code) {
         String normalized = code == null ? "" : code.trim().toLowerCase();
         if (!LANGUAGE_CODE.matcher(normalized).matches()) {
-            throw ApiException.badRequest(ErrorCode.I18N_LANGUAGE_INVALID, "Некорректный код языка: " + code);
+            throw ApiException.badRequest(
+                    ErrorCode.I18N_LANGUAGE_INVALID,
+                    "error.md.language_code_invalid",
+                    Map.of("code", String.valueOf(code)));
         }
         return normalized;
+    }
+
+    private static ApiException languageNotFound(String code) {
+        return ApiException.notFound(
+                ErrorCode.I18N_LANGUAGE_NOT_FOUND, "error.md.language_not_found", Map.of("code", code));
     }
 
     private record CachedDictionary(long languageRevision, long russianRevision, Map<String, String> values) {}

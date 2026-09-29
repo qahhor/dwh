@@ -32,26 +32,26 @@ public class WebhookTargetPolicy {
     public URI validate(String rawUrl) {
         properties.validate();
         if (!properties.isEnabled()) {
-            throw invalid("Исходящие вебхуки отключены оператором");
+            throw invalid("error.webhook.disabled");
         }
 
         URI uri;
         try {
             uri = URI.create(rawUrl);
         } catch (RuntimeException exception) {
-            throw invalid("Некорректный формат URL вебхука");
+            throw invalid("error.webhook.url_malformed");
         }
 
         String scheme = uri.getScheme();
         String host = normalizeHost(uri.getHost());
         if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))) {
-            throw invalid("URL вебхука должен начинаться с http:// или https://");
+            throw invalid("error.webhook.url_scheme");
         }
         if (host == null || host.isBlank() || uri.getUserInfo() != null || uri.getFragment() != null) {
-            throw invalid("URL вебхука не должен содержать credentials или fragment и обязан иметь host");
+            throw invalid("error.webhook.url_parts");
         }
         if (uri.getPort() == 0 || uri.getPort() < -1 || uri.getPort() > 65535) {
-            throw invalid("Некорректный порт URL вебхука");
+            throw invalid("error.webhook.url_port");
         }
 
         Set<String> allowedHosts = properties.getAllowedHosts().stream()
@@ -59,23 +59,21 @@ public class WebhookTargetPolicy {
                 .filter(value -> value != null && !value.isBlank())
                 .collect(Collectors.toUnmodifiableSet());
         if (!allowedHosts.contains(host)) {
-            throw invalid("Host вебхука не входит в список разрешённых оператором");
+            throw invalid("error.webhook.host_not_allowed");
         }
 
         List<InetAddress> addresses;
         try {
             addresses = hostResolver.resolve(host);
         } catch (UnknownHostException exception) {
-            throw ApiException.badRequest(
-                    ErrorCode.WEBHOOK_TARGET_UNREACHABLE, "Host вебхука не разрешается через DNS");
+            throw ApiException.badRequest(ErrorCode.WEBHOOK_TARGET_UNREACHABLE, "error.webhook.host_unresolved");
         }
         if (addresses == null || addresses.isEmpty()) {
-            throw ApiException.badRequest(
-                    ErrorCode.WEBHOOK_TARGET_UNREACHABLE, "Host вебхука не разрешается через DNS");
+            throw ApiException.badRequest(ErrorCode.WEBHOOK_TARGET_UNREACHABLE, "error.webhook.host_unresolved");
         }
         if (!properties.isAllowPrivateAddresses()
                 && addresses.stream().anyMatch(WebhookTargetPolicy::isSpecialAddress)) {
-            throw invalid("Host вебхука разрешается во внутренний или специальный адрес");
+            throw invalid("error.webhook.host_private");
         }
 
         return uri;
@@ -132,8 +130,8 @@ public class WebhookTargetPolicy {
         return uniqueLocal || documentation;
     }
 
-    private static ApiException invalid(String message) {
-        return ApiException.badRequest(ErrorCode.INVALID_URL, message);
+    private static ApiException invalid(String messageKey) {
+        return ApiException.badRequest(ErrorCode.INVALID_URL, messageKey);
     }
 
     @FunctionalInterface

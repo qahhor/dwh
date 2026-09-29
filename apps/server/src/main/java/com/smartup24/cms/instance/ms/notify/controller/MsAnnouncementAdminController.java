@@ -68,7 +68,7 @@ public class MsAnnouncementAdminController {
     private static Long currentUserId() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) {
-            throw ApiException.unauthorized("Пользователь не авторизован");
+            throw ApiException.unauthorized("error.notify.not_authenticated");
         }
         return userId;
     }

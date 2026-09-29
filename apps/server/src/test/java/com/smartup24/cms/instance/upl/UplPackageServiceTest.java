@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.fnd.FndActors;
@@ -273,14 +274,14 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
     private static void assertNotFound(ThrowingCallable call) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
-            assertThat(e.getMessage()).isEqualTo(UplPackageService.UPL_PKG_NOT_FOUND);
+            assertThat(e.getMessageKey()).isEqualTo("error.upl.pkg_not_found");
         });
     }
 
     private static void assertValidation(ThrowingCallable call, String code) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-            assertThat(e.getMessage()).isEqualTo(code);
+            assertThat(e.getFieldErrors()).extracting(FieldErrorItem::code).containsExactly(code);
         });
     }
 }

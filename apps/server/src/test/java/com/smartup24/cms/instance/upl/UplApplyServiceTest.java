@@ -156,7 +156,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
         PackageRow applied = applies.apply(row.publicId().toString(), userId);
 
-        assertConflict(() -> applies.apply(row.publicId().toString(), userId), UplApplyService.UPL_PKG_NOT_VERIFIED);
+        assertConflict(() -> applies.apply(row.publicId().toString(), userId), "error.upl.pkg_not_verified");
         assertThat(rawCount(applied.loadId())).isEqualTo(10);
         assertThat(dwhJdbc.sql("select count(*) from raw.rows")
                         .query(Long.class)
@@ -165,7 +165,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
         PackageRow broken = parsedPackage(UplPackageTestData.brokenStructure());
         assertThat(broken.status()).isEqualTo(UplPackageModel.REJECTED);
-        assertConflict(() -> applies.apply(broken.publicId().toString(), userId), UplApplyService.UPL_PKG_NOT_VERIFIED);
+        assertConflict(() -> applies.apply(broken.publicId().toString(), userId), "error.upl.pkg_not_verified");
 
         assertNotFound(() -> applies.apply(UUID.randomUUID().toString(), userId));
         assertNotFound(() -> applies.apply("abc", userId));
@@ -180,7 +180,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         for (byte[] content : List.of(UplPackageTestData.workbook(0, 3), UplPackageTestData.workbook(0, 0))) {
             String id = verifiedPackage(content).publicId().toString();
 
-            assertConflict(() -> applies.apply(id, userId), UplApplyService.UPL_PKG_NOTHING_TO_APPLY);
+            assertConflict(() -> applies.apply(id, userId), "error.upl.pkg_nothing_to_apply");
             assertThat(packages.get(id).status()).isEqualTo(UplPackageModel.VERIFIED);
             assertThat(packages.get(id).loadId()).isNull();
         }
@@ -269,7 +269,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isEqualTo(1);
-        assertConflict(() -> applies.apply(closed.publicId().toString(), userId), UplApplyService.UPL_PKG_NOT_VERIFIED);
+        assertConflict(() -> applies.apply(closed.publicId().toString(), userId), "error.upl.pkg_not_verified");
 
         // Применение моложе порога может ещё идти — его задание не трогает
         PackageRow running = packages.get(fresh.publicId().toString());
@@ -350,14 +350,14 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CONFLICT);
             assertThat(e.getErrorCode().getDefaultStatus()).isEqualTo(409);
-            assertThat(e.getMessage()).isEqualTo(code);
+            assertThat(e.getMessageKey()).isEqualTo(code);
         });
     }
 
     private static void assertNotFound(ThrowingCallable call) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
-            assertThat(e.getMessage()).isEqualTo(UplPackageService.UPL_PKG_NOT_FOUND);
+            assertThat(e.getMessageKey()).isEqualTo("error.upl.pkg_not_found");
         });
     }
 }

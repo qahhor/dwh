@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -22,10 +23,12 @@ class PasswordValidatorTest {
 
         assertThatThrownBy(() -> validator.validate("Kx7#mQ2", "someone"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("от 8 до 20");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.password_length")
+                .hasFieldOrPropertyWithValue("params", Map.of("min", 8, "max", 20));
         assertThatThrownBy(() -> validator.validate("Kx7#mQ2vLp9$wR4tZn8&1", "someone"))
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("от 8 до 20");
+                .hasFieldOrPropertyWithValue("messageKey", "error.md.password_length")
+                .hasFieldOrPropertyWithValue("params", Map.of("min", 8, "max", 20));
         assertThatThrownBy(() -> validator.validate(null, "someone")).isInstanceOf(ApiException.class);
     }
 }

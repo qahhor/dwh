@@ -129,12 +129,14 @@ class MsNoteIntegrationTest {
 
         try {
             assertThatThrownBy(() -> restrictedNoteService.getNotes(user1Id, null, null, null, null, null))
-                    .isInstanceOf(ApiException.class)
-                    .hasMessageContaining("Модуль 'notes' отключен администратором");
+                    .isInstanceOfSatisfying(
+                            ApiException.class,
+                            error -> assertThat(error.getMessageKey()).isEqualTo("error.note.module_disabled"));
 
             assertThatThrownBy(() -> restrictedNoteService.createNote("Test", "Body", "blue", false, null, user1Id))
-                    .isInstanceOf(ApiException.class)
-                    .hasMessageContaining("Модуль 'notes' отключен администратором");
+                    .isInstanceOfSatisfying(
+                            ApiException.class,
+                            error -> assertThat(error.getMessageKey()).isEqualTo("error.note.module_disabled"));
         } finally {
             // Restore notes module
             jdbc.sql("update md_installed_modules set status = 'ACTIVE' where code = 'notes'")

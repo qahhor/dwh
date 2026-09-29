@@ -20,6 +20,9 @@ interface RawProblem {
   detail?: string;
   message?: string;
   code?: string;
+  /** Catalog key of the text and its parameters (plan 10/10, item 3.1); `detail` is the server's rendering of it. */
+  messageKey?: string;
+  params?: Record<string, string | number>;
   errors?: ProblemDetail['errors'];
   invalid_params?: ProblemDetail['invalid_params'];
 }
@@ -113,10 +116,11 @@ export class ApiService {
     if (error.error && typeof error.error === 'object') {
       const p = error.error as RawProblem;
       let detail = p.detail || p.message;
-      const errorCode = String(p.code || 'API_ERROR').toLowerCase();
-      const errorKey = `error.${errorCode}`;
-      const localizedDetail = this.i18n.translate(errorKey);
-      if (localizedDetail !== errorKey) {
+      // The server names the text by key: the client renders it from its own catalog (the language may have
+      // changed since the request). Older answers without a key get the code's generic text.
+      const errorKey = p.messageKey || `error.${String(p.code || 'API_ERROR').toLowerCase()}`;
+      const localizedDetail = this.i18n.translate(errorKey, p.messageKey ? p.params : undefined);
+      if (localizedDetail !== errorKey && (p.messageKey || !detail)) {
         detail = localizedDetail;
       }
       if (Array.isArray(p.invalid_params) && p.invalid_params.length > 0) {
@@ -128,6 +132,8 @@ export class ApiService {
         status: error.status || 400,
         code: p.code || 'API_ERROR',
         detail: detail || p.title || this.i18n.translate('common.operation_failed'),
+        messageKey: p.messageKey,
+        params: p.params,
         errors: Array.isArray(p.errors) ? p.errors : undefined,
         invalid_params: p.invalid_params,
       };

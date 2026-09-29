@@ -96,7 +96,13 @@ describe('ui-list-views', () => {
 
   it('saves a new view by name and keeps the dialog open when the name is taken', async () => {
     const { fixture, openMenu, item, toast } = await render();
-    api.create.mockReturnValueOnce(throwError(() => ({ status: 422, detail: 'LIST_VIEW_NAME_TAKEN' })));
+    api.create.mockReturnValueOnce(
+      throwError(() => ({
+        status: 422,
+        detail: 'Представление с таким названием уже есть',
+        messageKey: 'error.md.list_view_name_taken',
+      })),
+    );
     openMenu();
     item('views-save-as')!.click();
     fixture.detectChanges();

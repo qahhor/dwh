@@ -37,7 +37,7 @@ public class MsTaskCommentController {
 
         String text = body != null ? body.resolveText() : null;
         if (text == null || text.isBlank()) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Текст комментария не может быть пустым");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.task.comment_blank");
         }
 
         Long currentUserId = SecurityContext.getCurrentUserId();

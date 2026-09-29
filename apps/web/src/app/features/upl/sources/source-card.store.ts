@@ -10,7 +10,7 @@ import { ToastService } from '@core/services/toast.service';
 import { markSMTFormFieldsTouched } from '@shared/ui-kit/forms/form-control-validation';
 import { UplApiService, UplPeriodicity, UplSource, UplSourceRequest, UplStrictness, UplVersionItem } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
-import { uplProblemText } from '../upl-labels';
+import { UPL_ERROR, uplProblemText } from '../upl-labels';
 import { UplRuleMessage, uplSourceLengthLimits, uplSourceRequisiteRules } from './source-form-rules';
 
 /** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
@@ -226,7 +226,7 @@ export class SourceCardStore {
       },
       error: (problem: ProblemDetail) => {
         this.isCreatingDraft.set(false);
-        if (problem?.detail === 'FND_VERSION_DRAFT_EXISTS') {
+        if (problem?.messageKey === UPL_ERROR.draftExists) {
           this.draftExists.set(true);
           return;
         }
@@ -263,7 +263,7 @@ export class SourceCardStore {
   }
 
   private handleSaveError(problem: ProblemDetail): void {
-    if (problem?.status === 409 && problem?.detail === 'STALE_VERSION') {
+    if (problem?.status === 409 && problem?.messageKey === UPL_ERROR.staleVersion) {
       this.conflict.set(true);
       return;
     }
@@ -280,7 +280,7 @@ export class SourceCardStore {
   }
 
   private problemText(problem: ProblemDetail): string {
-    return uplProblemText(problem, (key) => this.i18n.translate(key));
+    return uplProblemText(problem, (key, params) => this.i18n.translate(key, params));
   }
 }
 

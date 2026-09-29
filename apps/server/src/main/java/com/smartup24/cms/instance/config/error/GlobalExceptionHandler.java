@@ -7,10 +7,13 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpMethod;
@@ -29,20 +32,41 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+/**
+ * Turns every error of a request into RFC 9457 problem details, {@code application/problem+json} (plan 10/10, item
+ * 3.1): the code, the catalog key of the text with its parameters, and the text rendered in the request's language.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    /** The multipart limit of the application (spring.servlet.multipart.max-file-size). */
+    private static final int UPLOAD_LIMIT_MEGABYTES = 50;
+
+    private final ProblemMessages messages;
+
+    /** A context without the i18n service (a web slice) renders from the packaged catalogs. */
+    @Autowired
+    public GlobalExceptionHandler(ObjectProvider<ProblemMessages> messages) {
+        this(messages.getIfAvailable(PackagedProblemMessages::new));
+    }
+
+    public GlobalExceptionHandler(ProblemMessages messages) {
+        this.messages = messages;
+    }
+
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ProblemDetailRecord> handleApiException(ApiException ex, HttpServletRequest request) {
-        HttpStatus status = HttpStatus.valueOf(ex.getErrorCode().getDefaultStatus());
+        // Until item 3.1 is complete an older caller may still pass a sentence instead of a key: it goes out as is.
+        String key = ex.hasMessageKey() ? ex.getMessageKey() : null;
+        String detail = key != null ? messages.render(request, key, ex.getParams()) : ex.getMessageKey();
+        Map<String, Object> params = key != null ? ex.getParams() : null;
 
         var problem = ex.getFieldErrors() != null && !ex.getFieldErrors().isEmpty()
-                ? ProblemDetailRecord.ofValidation(ex.getMessage(), request.getRequestURI(), ex.getFieldErrors())
-                : ProblemDetailRecord.of(ex.getErrorCode(), ex.getMessage(), request.getRequestURI());
-
-        return ResponseEntity.status(status).body(problem);
+                ? ProblemDetailRecord.ofValidation(key, params, detail, request.getRequestURI(), ex.getFieldErrors())
+                : ProblemDetailRecord.of(ex.getErrorCode(), key, params, detail, request.getRequestURI());
+        return respond(HttpStatus.valueOf(ex.getErrorCode().getDefaultStatus()), problem);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -51,9 +75,7 @@ public class GlobalExceptionHandler {
         // Некорректный JSON — вина клиента, а не сервера: 400, не 500.
         // Текст исключения наружу не отдаём (может содержать фрагменты тела).
         log.warn("Некорректное тело запроса {}: {}", request.getRequestURI(), ex.getMessage());
-        var problem = ProblemDetailRecord.of(
-                ErrorCode.BAD_REQUEST, "Некорректный формат тела запроса", request.getRequestURI());
-        return ResponseEntity.badRequest().body(problem);
+        return problem(HttpStatus.BAD_REQUEST, ErrorCode.BAD_REQUEST, "error.request_body_invalid", Map.of(), request);
     }
 
     /**
@@ -67,18 +89,21 @@ public class GlobalExceptionHandler {
             HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
         log.warn("Метод {} не поддержан маршрутом {}", ex.getMethod(), request.getRequestURI());
 
-        var problem = ProblemDetailRecord.of(
+        var response = problem(
+                HttpStatus.METHOD_NOT_ALLOWED,
                 ErrorCode.METHOD_NOT_ALLOWED,
-                "Метод " + ex.getMethod() + " не поддерживается этим ресурсом",
-                request.getRequestURI());
-
-        var builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+                "error.method_not_allowed_method",
+                Map.of("method", ex.getMethod()),
+                request);
         Set<HttpMethod> supported = ex.getSupportedHttpMethods();
         if (supported != null && !supported.isEmpty()) {
             String allow = supported.stream().map(HttpMethod::name).collect(Collectors.joining(", "));
-            return builder.header("Allow", allow).body(problem);
+            return ResponseEntity.status(response.getStatusCode())
+                    .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                    .header("Allow", allow)
+                    .body(response.getBody());
         }
-        return builder.body(problem);
+        return response;
     }
 
     /**
@@ -98,27 +123,25 @@ public class GlobalExceptionHandler {
                 ex.getMostSpecificCause().getMessage());
 
         ErrorCode code = ex instanceof DuplicateKeyException ? ErrorCode.CODE_ALREADY_EXISTS : ErrorCode.CONFLICT;
-        var problem =
-                ProblemDetailRecord.of(code, "Запрос нарушает ограничение целостности данных", request.getRequestURI());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(problem);
+        return problem(HttpStatus.CONFLICT, code, "error.integrity_violation", Map.of(), request);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ProblemDetailRecord> handleMaxUploadSizeExceeded(
             MaxUploadSizeExceededException ex, HttpServletRequest request) {
         log.warn("Upload rejected because it exceeds the configured size boundary: {}", request.getRequestURI());
-        var problem = ProblemDetailRecord.of(
-                ErrorCode.FILE_SIZE_EXCEEDED, "Размер файла превышает допустимые 50 МБ", request.getRequestURI());
-        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
-                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(problem);
+        return problem(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                ErrorCode.FILE_SIZE_EXCEEDED,
+                "error.file_size_exceeded_limit",
+                Map.of("megabytes", UPLOAD_LIMIT_MEGABYTES),
+                request);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ProblemDetailRecord> handleNoResourceFound(
             NoResourceFoundException ex, HttpServletRequest request) {
-        var problem = ProblemDetailRecord.of(ErrorCode.NOT_FOUND, "Ресурс не найден", request.getRequestURI());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(problem);
+        return problem(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "error.not_found", Map.of(), request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -129,10 +152,10 @@ public class GlobalExceptionHandler {
             errors.add(new FieldErrorItem(fe.getField(), fe.getCode(), fe.getDefaultMessage()));
         }
 
-        var problem =
-                ProblemDetailRecord.ofValidation("Ошибка валидации входных данных", request.getRequestURI(), errors);
-
-        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(problem);
+        String key = "error.validation_failed";
+        var problem = ProblemDetailRecord.ofValidation(
+                key, Map.of(), messages.render(request, key, Map.of()), request.getRequestURI(), errors);
+        return respond(HttpStatus.UNPROCESSABLE_ENTITY, problem);
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -143,20 +166,24 @@ public class GlobalExceptionHandler {
                 request.getRequestURI(),
                 ex.getName(),
                 ex.getValue());
-        var problem = ProblemDetailRecord.of(
-                ErrorCode.BAD_REQUEST, "Некорректный параметр запроса: " + ex.getName(), request.getRequestURI());
-        return ResponseEntity.badRequest().body(problem);
+        return problem(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.BAD_REQUEST,
+                "error.request_param_invalid",
+                Map.of("name", ex.getName()),
+                request);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ProblemDetailRecord> handleMissingParam(
             MissingServletRequestParameterException ex, HttpServletRequest request) {
         log.warn("Отсутствует обязательный параметр запроса {}: '{}'", request.getRequestURI(), ex.getParameterName());
-        var problem = ProblemDetailRecord.of(
+        return problem(
+                HttpStatus.BAD_REQUEST,
                 ErrorCode.BAD_REQUEST,
-                "Отсутствует обязательный параметр запроса: " + ex.getParameterName(),
-                request.getRequestURI());
-        return ResponseEntity.badRequest().body(problem);
+                "error.request_param_missing",
+                Map.of("name", ex.getParameterName()),
+                request);
     }
 
     @ExceptionHandler(AsyncRequestNotUsableException.class)
@@ -168,12 +195,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetailRecord> handleGenericException(Exception ex, HttpServletRequest request) {
         log.error("Unhandled exception at {}", request.getRequestURI(), ex);
+        return problem(
+                HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR, "error.internal_error", Map.of(), request);
+    }
 
+    private ResponseEntity<ProblemDetailRecord> problem(
+            HttpStatus status, ErrorCode code, String key, Map<String, Object> params, HttpServletRequest request) {
         var problem = ProblemDetailRecord.of(
-                ErrorCode.INTERNAL_ERROR,
-                "Внутренняя ошибка сервера. Обратитесь к администратору.",
-                request.getRequestURI());
+                code, key, params, messages.render(request, key, params), request.getRequestURI());
+        return respond(status, problem);
+    }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
+    private static ResponseEntity<ProblemDetailRecord> respond(HttpStatus status, ProblemDetailRecord problem) {
+        return ResponseEntity.status(status)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem.withStatus(status.value()));
     }
 }
