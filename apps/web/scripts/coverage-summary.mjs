@@ -10,7 +10,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
-const FLOOR = { lines: 83, statements: 80, functions: 65, branches: 69 };
+const FLOOR = { lines: 88, statements: 85, functions: 77, branches: 78 };
 const LABEL = { lines: 'Lines', statements: 'Statements', functions: 'Functions', branches: 'Branches' };
 
 const reportPath = path.resolve(process.cwd(), process.argv[2] ?? 'coverage/web/coverage-summary.json');
