@@ -11,6 +11,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Закрывает применения, прервавшиеся между шагами {@link UplApplyService} (P0 DWH). Первый шаг
@@ -49,7 +50,9 @@ public class UplApplyRecoveryJob implements FndJobHandler {
         return CODE;
     }
 
+    /** One transaction: the stale packages stay locked until each is closed with its load (the runner opens none). */
     @Override
+    @Transactional
     public void run(Map<String, Object> args) {
         int staleMinutes = args.get("staleMinutes") instanceof Number minutes
                 ? Math.max(1, minutes.intValue())

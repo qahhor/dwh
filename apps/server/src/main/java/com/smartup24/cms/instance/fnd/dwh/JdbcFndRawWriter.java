@@ -27,11 +27,13 @@ import tools.jackson.databind.ObjectMapper;
  * видят только этот фасад, поэтому переход с общей таблицы на таблицу-на-источник их не затронет.
  *
  * <p>Статус загрузки живёт в OLTP, строки — в pg-dwh; распределённой транзакции между ними нет
- * (02 п.18). Поэтому порядок такой: в транзакции OLTP строка загрузки берётся {@code for share}
- * и проверяется статус {@code pending}, затем строки пишутся одной транзакцией pg-dwh, и только
- * после её коммита отпускается OLTP-блокировка. Параллельный {@code apply}/{@code fail} (они берут
- * {@code for update}) ждёт конца записи — строки не попадут в уже применённую загрузку (13 инв.4).
- * Сбой на любой строке — откат всей записи.
+ * (02 п.18). Строки пишутся одной транзакцией pg-dwh, а OLTP-транзакция открывается только на её
+ * коммит (план 10/10, п. 3.8: раньше она держала {@code for share} всю запись, и миллион строк
+ * означал минуты открытой транзакции OLTP): строка загрузки берётся {@code for share}, проверяется
+ * статус {@code pending}, коммитится pg-dwh, и только затем отпускается блокировка. Параллельный
+ * {@code apply}/{@code fail} (они берут {@code for update}) ждёт лишь коммита; загрузка, закрытая во
+ * время записи, отвергает её на коммите — строки не попадут в уже применённую загрузку (13 инв.4).
+ * Статус проверяется и до записи, чтобы не писать зря. Сбой на любой строке — откат всей записи.
  */
 @Component
 public class JdbcFndRawWriter implements FndRawWriter {
@@ -61,10 +63,8 @@ public class JdbcFndRawWriter implements FndRawWriter {
 
     @Override
     public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
-        oltpTx.executeWithoutResult(status -> {
-            requirePending(loadId);
-            writeRows(loadId, sourceFileId, rows);
-        });
+        oltpTx.executeWithoutResult(status -> requirePending(loadId));
+        writeRows(loadId, sourceFileId, rows);
     }
 
     private void writeRows(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
@@ -95,7 +95,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
                 if (inBatch > 0) {
                     statement.executeBatch();
                 }
-                connection.commit();
+                commitWhilePending(loadId, connection);
             } catch (RuntimeException | SQLException failure) {
                 // Источник строк тоже может бросить исключение (AC-34): в raw не должно остаться ничего
                 rollback(connection);
@@ -134,7 +134,19 @@ public class JdbcFndRawWriter implements FndRawWriter {
         return rows;
     }
 
-    /** Проверка статуса под {@code for share}: блокировка держится до конца OLTP-транзакции {@link #write}. */
+    /** Commits pg-dwh inside a short OLTP transaction that holds the load {@code for share} and finds it pending. */
+    private void commitWhilePending(long loadId, Connection connection) {
+        oltpTx.executeWithoutResult(status -> {
+            requirePending(loadId);
+            try {
+                connection.commit();
+            } catch (SQLException failure) {
+                throw new DwhUnavailableException(failure);
+            }
+        });
+    }
+
+    /** Проверка статуса под {@code for share}: блокировка держится до конца OLTP-транзакции вызывающего. */
     private void requirePending(long loadId) {
         String status = oltp.sql("select status from fnd_loads where id = :id for share")
                 .param("id", loadId)
