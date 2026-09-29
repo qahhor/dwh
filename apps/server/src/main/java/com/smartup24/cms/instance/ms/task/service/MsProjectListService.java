@@ -7,7 +7,7 @@ import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -39,14 +39,14 @@ public class MsProjectListService {
     private final QueryListRepository lists;
     private final QueryListRegistry registry;
     private final MsProjectRepository projects;
-    private final MsTaskRepository tasks;
+    private final MsTaskStatsRepository tasks;
     private final MdScopeService scopes;
 
     public MsProjectListService(
             QueryListRepository lists,
             QueryListRegistry registry,
             MsProjectRepository projects,
-            MsTaskRepository tasks,
+            MsTaskStatsRepository tasks,
             MdScopeService scopes) {
         this.lists = lists;
         this.registry = registry;
@@ -74,7 +74,7 @@ public class MsProjectListService {
         var page = lists.page(plan, projects::mapRecord, new QueryPlan.SqlFragment(sql.toString(), params));
 
         boolean counts = plan.shows("progress");
-        Map<Long, MsTaskRepository.ProjectTaskStats> stats = new HashMap<>();
+        Map<Long, MsTaskStatsRepository.ProjectTaskStats> stats = new HashMap<>();
         if (counts && !page.items().isEmpty()) {
             tasks.getProjectTaskStats(scope).forEach(entry -> stats.put(entry.projectId(), entry));
         }

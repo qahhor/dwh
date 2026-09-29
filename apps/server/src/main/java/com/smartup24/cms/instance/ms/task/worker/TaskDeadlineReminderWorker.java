@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.ms.task.worker;
 
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Duration;
 import java.util.List;
 import org.slf4j.Logger;
@@ -15,10 +15,10 @@ public class TaskDeadlineReminderWorker {
     private static final Logger log = LoggerFactory.getLogger(TaskDeadlineReminderWorker.class);
     private static final Duration DEADLINE_WINDOW = Duration.ofHours(24);
 
-    private final MsTaskRepository taskRepository;
+    private final MsTaskStatsRepository taskRepository;
     private final MsNotificationService notificationService;
 
-    public TaskDeadlineReminderWorker(MsTaskRepository taskRepository, MsNotificationService notificationService) {
+    public TaskDeadlineReminderWorker(MsTaskStatsRepository taskRepository, MsNotificationService notificationService) {
         this.taskRepository = taskRepository;
         this.notificationService = notificationService;
     }
@@ -32,7 +32,7 @@ public class TaskDeadlineReminderWorker {
     /** A failure on one task is logged and the scan goes on with the next one. */
     @Scheduled(fixedDelay = 600000, initialDelay = 30000)
     public void scanAndNotifyDeadlines() {
-        List<MsTaskRepository.TaskDeadlineCandidate> rows;
+        List<MsTaskStatsRepository.TaskDeadlineCandidate> rows;
         try {
             rows = taskRepository.findUpcomingDeadlines(DEADLINE_WINDOW);
         } catch (RuntimeException e) {
@@ -48,7 +48,7 @@ public class TaskDeadlineReminderWorker {
         }
     }
 
-    private void remind(MsTaskRepository.TaskDeadlineCandidate row) {
+    private void remind(MsTaskStatsRepository.TaskDeadlineCandidate row) {
         if (!notificationService.isNotificationEnabled(row.userId(), "task_deadline_reminder", "in_app")) {
             return;
         }

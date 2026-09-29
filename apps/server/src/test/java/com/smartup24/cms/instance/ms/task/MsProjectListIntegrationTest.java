@@ -19,7 +19,7 @@ import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectListService.ProjectListItem;
 import com.smartup24.cms.instance.ms.task.service.MsProjectQuery;
@@ -61,7 +61,7 @@ class MsProjectListIntegrationTest {
                 new QueryListRepository(jdbc),
                 registry,
                 new MsProjectRepository(jdbc, new ObjectMapper()),
-                new MsTaskRepository(jdbc, new ObjectMapper()),
+                new MsTaskStatsRepository(jdbc),
                 scopes);
 
         admin = user("pl_admin");

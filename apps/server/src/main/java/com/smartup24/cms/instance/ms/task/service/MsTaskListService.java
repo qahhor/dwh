@@ -7,8 +7,8 @@ import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
+import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -76,9 +76,6 @@ public class MsTaskListService {
             LegacyTaskFilters legacy) {
         var list = registry == null ? MsTaskQuery.LIST : registry.resolve(MsTaskQuery.LIST);
         var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
-        return lists.page(
-                plan,
-                taskRepository::mapRecord,
-                MsTaskRepository.listPredicate(scopeService.filterForTasks(viewerId), legacy));
+        return lists.page(plan, taskRepository::mapRecord, legacy.listPredicate(scopeService.filterForTasks(viewerId)));
     }
 }

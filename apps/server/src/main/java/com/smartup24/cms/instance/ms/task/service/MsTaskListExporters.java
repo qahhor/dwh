@@ -4,7 +4,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.LegacyTaskFilters;
+import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +18,15 @@ public class MsTaskListExporters {
 
     private static final List<String> NUMBERS = List.of("project_id", "status_id", "assigned_user_id", "reporter_id");
     private static final List<String> FLAGS = List.of("hide_terminal", "overdue");
+    private static final Set<String> TASK_OPTIONS = Set.of(
+            "project_id",
+            "status_id",
+            "priority",
+            "hide_terminal",
+            "assigned_user_id",
+            "member_role",
+            "reporter_id",
+            "overdue");
 
     @Bean
     public QueryListExporter msTasksExporter(MsTaskListService tasks) {
@@ -27,48 +36,11 @@ public class MsTaskListExporters {
             }
 
             public Set<String> options() {
-                return Set.of(
-                        "project_id",
-                        "status_id",
-                        "priority",
-                        "hide_terminal",
-                        "assigned_user_id",
-                        "member_role",
-                        "reporter_id",
-                        "overdue");
+                return TASK_OPTIONS;
             }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
-                List<FieldErrorItem> errors = new ArrayList<>();
-                for (String key : NUMBERS) {
-                    String value = options.get(key);
-                    if (value != null && !value.isBlank() && !value.strip().matches("\\d{1,18}")) {
-                        errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "not a number: " + value));
-                    }
-                }
-                for (String key : FLAGS) {
-                    String value = options.get(key);
-                    if (value != null
-                            && !value.isBlank()
-                            && !List.of("true", "false").contains(value.strip())) {
-                        errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "true or false"));
-                    }
-                }
-                String priority = options.get("priority");
-                if (priority != null
-                        && !priority.isBlank()
-                        && !MsTaskQuery.LIST
-                                .field("priority")
-                                .orElseThrow()
-                                .enumValues()
-                                .contains(priority.strip())) {
-                    errors.add(new FieldErrorItem("priority", "EXPORT_INVALID", "unknown priority"));
-                }
-                String role = options.get("member_role");
-                if (role != null && !role.isBlank() && !List.of("R", "E", "O").contains(role.strip())) {
-                    errors.add(new FieldErrorItem("member_role", "EXPORT_INVALID", "R, E or O"));
-                }
-                return errors;
+                return checkTaskOptions(options);
             }
 
             public KeysetPage<?> page(
@@ -118,6 +90,38 @@ public class MsTaskListExporters {
                         SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, search, options.get("state"));
             }
         };
+    }
+
+    /** The screen's flat filters, each checked before the export job starts. */
+    static List<FieldErrorItem> checkTaskOptions(Map<String, String> options) {
+        List<FieldErrorItem> errors = new ArrayList<>();
+        for (String key : NUMBERS) {
+            String value = options.get(key);
+            if (value != null && !value.isBlank() && !value.strip().matches("\\d{1,18}")) {
+                errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "not a number: " + value));
+            }
+        }
+        for (String key : FLAGS) {
+            String value = options.get(key);
+            if (value != null && !value.isBlank() && !List.of("true", "false").contains(value.strip())) {
+                errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "true or false"));
+            }
+        }
+        String priority = options.get("priority");
+        if (priority != null
+                && !priority.isBlank()
+                && !MsTaskQuery.LIST
+                        .field("priority")
+                        .orElseThrow()
+                        .enumValues()
+                        .contains(priority.strip())) {
+            errors.add(new FieldErrorItem("priority", "EXPORT_INVALID", "unknown priority"));
+        }
+        String role = options.get("member_role");
+        if (role != null && !role.isBlank() && !List.of("R", "E", "O").contains(role.strip())) {
+            errors.add(new FieldErrorItem("member_role", "EXPORT_INVALID", "R, E or O"));
+        }
+        return errors;
     }
 
     /** Checked by {@code checkOptions} before the job starts. */

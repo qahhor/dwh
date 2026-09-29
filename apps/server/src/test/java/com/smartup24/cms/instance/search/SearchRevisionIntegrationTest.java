@@ -10,7 +10,7 @@ import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.mf.service.MfFileService;
+import com.smartup24.cms.instance.ms.task.MsTaskFixture;
 import com.smartup24.cms.instance.ms.task.repository.*;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
@@ -25,7 +25,6 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.aop.framework.ProxyFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.AbstractDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -59,6 +58,7 @@ class SearchRevisionIntegrationTest {
 
     static JdbcClient jdbc;
     static TransactionTemplate tx;
+    static MsTaskFixture taskServices;
     static MsTaskService tasks;
     static MsProjectService projects;
     static SearchChangePublisher publisher;
@@ -79,20 +79,16 @@ class SearchRevisionIntegrationTest {
         var scopes = mock(MdScopeService.class);
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
         publisher = proxied(new SearchChangePublisher(jdbc), manager);
-        tasks = proxied(
-                new MsTaskService(
-                        new MsTaskRepository(jdbc, mapper),
-                        new MsTaskStatusRepository(jdbc),
-                        new MsTaskTypeRepository(jdbc),
-                        new MsTaskMemberRepository(jdbc),
-                        new MsProjectRepository(jdbc, mapper),
-                        mock(MdCustomFieldService.class),
-                        scopes,
-                        mock(MfFileService.class),
-                        mock(ApplicationEventPublisher.class),
-                        publisher,
-                        mock(AuditLogService.class)),
-                manager);
+        taskServices = MsTaskFixture.wire(
+                MsTaskFixture.Repositories.jdbc(jdbc, mapper),
+                MsTaskFixture.Collaborators.with(scopes, publisher, mock(AuditLogService.class)),
+                new MsTaskFixture.Proxy() {
+                    @Override
+                    public <T> T wrap(T target) {
+                        return proxied(target, manager);
+                    }
+                });
+        tasks = taskServices.tasks();
         projects = proxied(
                 new MsProjectService(
                         new MsProjectRepository(jdbc, mapper),
@@ -297,15 +293,18 @@ class SearchRevisionIntegrationTest {
                 .single();
         var id = new AtomicLong(create ? 0 : create("moving task"));
         if (!create) {
-            long other = tasks.createStatus(null, "Other", "#000000", 99, false).id();
-            tasks.changeStatus(id.get(), other, reporter);
+            long other = taskServices
+                    .statusViews()
+                    .createStatus(null, "Other", "#000000", 99, false)
+                    .id();
+            taskServices.workflow().changeStatus(id.get(), other, reporter);
         }
         Runnable membership = () -> {
             if (create) id.set(create("joining task"));
-            else tasks.changeStatus(id.get(), status, reporter);
+            else taskServices.workflow().changeStatus(id.get(), status, reporter);
         };
         String renamed = "Renamed " + System.nanoTime();
-        Runnable rename = () -> tasks.updateStatusRecord(status, renamed, null, null, null);
+        Runnable rename = () -> taskServices.statusViews().updateStatusRecord(status, renamed, null, null, null);
         runSerialized(renameFirst ? rename : membership, renameFirst ? membership : rename);
         assertThat(jdbc.sql(
                                 "select revision from search_projection_versions where entity_type='TASK' and entity_id=:id")
