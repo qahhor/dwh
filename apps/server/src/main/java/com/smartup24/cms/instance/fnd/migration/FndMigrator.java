@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.fnd.migration;
 
 import com.smartup24.cms.instance.fnd.FndPref;
+import java.util.Map;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
@@ -35,9 +36,13 @@ public final class FndMigrator {
     static final String UTC_INIT_SQL = "set time zone 'UTC'";
 
     private static int migrate(DataSource dataSource, String location, String db) {
+        // As in FlywayUtcConfiguration: a concurrent index file runs outside a transaction (ADR-0020, rule 8) and
+        // Flyway's lock is taken at session level, so the build does not wait for it.
         Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
                 .initSql(UTC_INIT_SQL)
+                .mixed(true)
+                .configuration(Map.of("flyway.postgresql.transactional.lock", "false"))
                 .locations("classpath:" + location)
                 .baselineOnMigrate(false)
                 .validateOnMigrate(true)
