@@ -1,13 +1,11 @@
 package com.smartup24.cms.instance.report.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.report.api.ExportItem;
+import com.smartup24.cms.instance.report.api.ExportRequest;
 import com.smartup24.cms.instance.report.export.ReportExportService;
-import com.smartup24.cms.instance.report.export.ReportExportService.ExportRequest;
-import com.smartup24.cms.instance.report.repository.ReportExportRepository.ExportRow;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -36,46 +34,16 @@ public class ReportExportController {
         this.exports = exports;
     }
 
-    /** One export in the journal; the file is there while {@code state} is {@code done} and it has not expired. */
-    public record ExportItem(
-            UUID id,
-            String list,
-            String state,
-            Integer rowsCount,
-            boolean truncated,
-            String fileName,
-            Long sizeBytes,
-            String errorCode,
-            Instant createdAt,
-            Instant finishedAt,
-            Instant expiresAt) {
-
-        static ExportItem of(ExportRow row) {
-            return new ExportItem(
-                    row.publicId(),
-                    row.listCode(),
-                    row.state(),
-                    row.rowsCount(),
-                    row.truncated(),
-                    row.fileName(),
-                    row.sizeBytes(),
-                    row.errorCode(),
-                    row.createdAt(),
-                    row.finishedAt(),
-                    row.expiresAt());
-        }
-    }
-
     @PostMapping
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<ExportItem> request(@RequestBody ExportRequest request) {
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ExportItem.of(exports.request(request)));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(exports.request(request));
     }
 
     @GetMapping
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<List<ExportItem>> journal() {
-        return ResponseEntity.ok(exports.journal().stream().map(ExportItem::of).toList());
+        return ResponseEntity.ok(exports.journal());
     }
 
     @GetMapping("/{id}/file")
