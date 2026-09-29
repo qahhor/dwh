@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +17,7 @@ import org.mockito.Mockito;
 
 class TaskDeadlineReminderWorkerTest {
 
-    private final MsTaskRepository taskRepository = Mockito.mock(MsTaskRepository.class);
+    private final MsTaskStatsRepository taskRepository = Mockito.mock(MsTaskStatsRepository.class);
     private final MsNotificationService notificationService = Mockito.mock(MsNotificationService.class);
     private final TaskDeadlineReminderWorker worker =
             new TaskDeadlineReminderWorker(taskRepository, notificationService);
@@ -31,7 +31,7 @@ class TaskDeadlineReminderWorkerTest {
     @Test
     @DisplayName("Отправляет уведомление о дедлайне, если оно не отправлялось ранее")
     void sendsDeadlineNotificationWhenNotSentRecently() {
-        var candidate = new MsTaskRepository.TaskDeadlineCandidate(101L, "Сдать финансовый отчёт", 10L);
+        var candidate = new MsTaskStatsRepository.TaskDeadlineCandidate(101L, "Сдать финансовый отчёт", 10L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(candidate));
         when(notificationService.hasRecentNotification(eq(10L), eq("task_deadline_101"), any(Duration.class)))
                 .thenReturn(false);
@@ -51,7 +51,7 @@ class TaskDeadlineReminderWorkerTest {
     @Test
     @DisplayName("Не отправляет повторное уведомление, если оно уже отправлялось недавно")
     void suppressesNotificationWhenAlreadySentRecently() {
-        var candidate = new MsTaskRepository.TaskDeadlineCandidate(102L, "Обновить сертификаты", 20L);
+        var candidate = new MsTaskStatsRepository.TaskDeadlineCandidate(102L, "Обновить сертификаты", 20L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(candidate));
         when(notificationService.hasRecentNotification(eq(20L), eq("task_deadline_102"), any(Duration.class)))
                 .thenReturn(true);
@@ -65,7 +65,7 @@ class TaskDeadlineReminderWorkerTest {
     @Test
     @DisplayName("Не отправляет уведомление, если отключено в настройках пользователя")
     void suppressesNotificationWhenDisabledInPreferences() {
-        var candidate = new MsTaskRepository.TaskDeadlineCandidate(103L, "Провести аудит", 30L);
+        var candidate = new MsTaskStatsRepository.TaskDeadlineCandidate(103L, "Провести аудит", 30L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(candidate));
         when(notificationService.isNotificationEnabled(eq(30L), eq("task_deadline_reminder"), eq("in_app")))
                 .thenReturn(false);
@@ -90,8 +90,8 @@ class TaskDeadlineReminderWorkerTest {
     @Test
     @DisplayName("Сбой на одной задаче не останавливает напоминания по остальным")
     void failureOnOneTaskDoesNotStopTheScan() {
-        var broken = new MsTaskRepository.TaskDeadlineCandidate(104L, "Сломанная", 40L);
-        var fine = new MsTaskRepository.TaskDeadlineCandidate(105L, "Рабочая", 50L);
+        var broken = new MsTaskStatsRepository.TaskDeadlineCandidate(104L, "Сломанная", 40L);
+        var fine = new MsTaskStatsRepository.TaskDeadlineCandidate(105L, "Рабочая", 50L);
         when(taskRepository.findUpcomingDeadlines(any(Duration.class))).thenReturn(List.of(broken, fine));
         when(notificationService.hasRecentNotification(eq(40L), anyString(), any(Duration.class)))
                 .thenThrow(new IllegalStateException("db down"));

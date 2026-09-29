@@ -24,18 +24,11 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
-import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
@@ -47,7 +40,6 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -109,21 +101,17 @@ class TaskConcurrencyIntegrationTest {
                 new MdPermissionService(new MdPermissionRepository(jdbc)),
                 audit);
 
-        var taskServiceTarget = new MsTaskService(
-                taskRepository,
-                statusRepository,
-                new MsTaskTypeRepository(jdbc),
-                new MsTaskMemberRepository(jdbc),
-                new MsProjectRepository(jdbc, objectMapper),
-                mock(MdCustomFieldService.class),
-                scopes,
-                mock(MfFileService.class),
-                mock(ApplicationEventPublisher.class),
-                mock(SearchChangePublisher.class),
-                audit);
-        MsTaskService taskService = transactional(taskServiceTarget, transactions, MsTaskService.class);
+        var tasks = MsTaskFixture.wire(
+                MsTaskFixture.Repositories.jdbc(taskRepository, statusRepository, jdbc, objectMapper),
+                MsTaskFixture.Collaborators.with(scopes, mock(SearchChangePublisher.class), audit),
+                new MsTaskFixture.Proxy() {
+                    @Override
+                    public <T> T wrap(T target) {
+                        return transactional(target, transactions);
+                    }
+                });
 
-        mvc = MockMvcBuilders.standaloneSetup(new MsTaskController(taskService, null))
+        mvc = MockMvcBuilders.standaloneSetup(tasks.controllers(null))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
@@ -444,7 +432,8 @@ class TaskConcurrencyIntegrationTest {
                 null));
     }
 
-    private static <T> T transactional(T target, DataSourceTransactionManager tx, Class<T> type) {
+    @SuppressWarnings("unchecked")
+    private static <T> T transactional(T target, DataSourceTransactionManager tx) {
         var proxy = new TransactionProxyFactoryBean();
         proxy.setTarget(target);
         proxy.setProxyTargetClass(true);
@@ -453,6 +442,6 @@ class TaskConcurrencyIntegrationTest {
         props.setProperty("*", "PROPAGATION_REQUIRED");
         proxy.setTransactionAttributes(props);
         proxy.afterPropertiesSet();
-        return type.cast(proxy.getObject());
+        return (T) proxy.getObject();
     }
 }

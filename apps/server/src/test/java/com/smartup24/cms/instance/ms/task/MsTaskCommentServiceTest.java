@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskMemberService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import java.time.Instant;
 import java.util.List;
@@ -22,11 +23,12 @@ class MsTaskCommentServiceTest {
 
     private final MsTaskCommentRepository commentRepository = mock(MsTaskCommentRepository.class);
     private final MsTaskService taskService = mock(MsTaskService.class);
+    private final MsTaskMemberService memberService = mock(MsTaskMemberService.class);
     private final MfFileService fileService = mock(MfFileService.class);
     private final ApplicationEventPublisher eventPublisher = mock(ApplicationEventPublisher.class);
     private final AuditLogService auditLogService = mock(AuditLogService.class);
-    private final MsTaskCommentService service =
-            new MsTaskCommentService(commentRepository, taskService, fileService, eventPublisher, auditLogService);
+    private final MsTaskCommentService service = new MsTaskCommentService(
+            commentRepository, taskService, memberService, fileService, eventPublisher, auditLogService);
 
     @Test
     void addCommentValidatesTaskAndEveryAttachmentBeforeWriting() {
@@ -36,7 +38,7 @@ class MsTaskCommentServiceTest {
                 7L, 42L, 10L, "Комментарий", List.of(fileId), Instant.parse("2026-09-04T10:15:30Z"), "Автор", "author");
         when(taskService.getTaskById(42L, 10L)).thenReturn(task);
         when(commentRepository.create(42L, 10L, "Комментарий", List.of(fileId))).thenReturn(comment);
-        when(taskService.getTaskMembers(42L)).thenReturn(List.of());
+        when(memberService.getTaskMembers(42L)).thenReturn(List.of());
 
         service.addComment(42L, 10L, "Комментарий", List.of(fileId));
 

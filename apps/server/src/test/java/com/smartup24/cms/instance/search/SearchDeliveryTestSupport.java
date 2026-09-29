@@ -13,8 +13,7 @@ import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
-import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.repository.*;
+import com.smartup24.cms.instance.ms.task.MsTaskFixture;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
@@ -37,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -138,20 +136,16 @@ abstract class SearchDeliveryTestSupport {
         var scopes = mock(MdScopeService.class);
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
         var audit = mock(AuditLogService.class);
-        tasks = SearchRevisionIntegrationTest.proxied(
-                new MsTaskService(
-                        new MsTaskRepository(jdbc, mapper),
-                        new MsTaskStatusRepository(jdbc),
-                        new MsTaskTypeRepository(jdbc),
-                        new MsTaskMemberRepository(jdbc),
-                        new MsProjectRepository(jdbc, mapper),
-                        mock(MdCustomFieldService.class),
-                        scopes,
-                        mock(MfFileService.class),
-                        mock(ApplicationEventPublisher.class),
-                        publisher,
-                        audit),
-                manager);
+        tasks = MsTaskFixture.wire(
+                        MsTaskFixture.Repositories.jdbc(jdbc, mapper),
+                        MsTaskFixture.Collaborators.with(scopes, publisher, audit),
+                        new MsTaskFixture.Proxy() {
+                            @Override
+                            public <T> T wrap(T target) {
+                                return SearchRevisionIntegrationTest.proxied(target, manager);
+                            }
+                        })
+                .tasks();
         users = SearchRevisionIntegrationTest.proxied(
                 new MdUserService(
                         new MdUserRepository(jdbc, mapper),

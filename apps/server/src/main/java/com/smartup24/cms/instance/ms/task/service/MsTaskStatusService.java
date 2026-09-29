@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.ms.task.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
@@ -115,6 +116,22 @@ public class MsTaskStatusService {
     @CacheEvict(value = "taskStatuses", allEntries = true)
     public void reorderStatuses(List<Long> orderedIds) {
         statusRepository.reorder(orderedIds);
+    }
+
+    /**
+     * The status a new task starts in: {@code NEW}, or the first status when an installation removed it. Seeds the
+     * default statuses and types on first use; reads the table, not the cache, as a new task must see a fresh list.
+     */
+    @Transactional
+    public MsTaskStatusRepository.StatusRecord defaultStatus() {
+        statusRepository.initDefaultStatusesIfEmpty();
+        typeRepository.initDefaultTypesIfEmpty();
+        return statusRepository
+                .findByPcode(MsTaskPref.STATUS_NEW)
+                .orElseGet(() -> statusRepository.listStatuses().stream()
+                        .findFirst()
+                        .orElseThrow(
+                                () -> new ApiException(ErrorCode.INTERNAL_ERROR, "error.task.default_status_missing")));
     }
 
     // =========================================================================

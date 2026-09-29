@@ -1,0 +1,50 @@
+package com.smartup24.cms.instance.ms.task.controller;
+
+import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.ms.task.api.AttachFileRequest;
+import com.smartup24.cms.instance.ms.task.api.TaskFileView;
+import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
+import com.smartup24.cms.instance.ms.task.service.MsTaskFileService;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/** Files attached to a task, under the same paths as the tasks. */
+@RestController
+@RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
+public class MsTaskFileController {
+
+    private final MsTaskFileService files;
+
+    public MsTaskFileController(MsTaskFileService files) {
+        this.files = files;
+    }
+
+    @GetMapping("/{id}/files")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    public ResponseEntity<List<TaskFileView>> getTaskFiles(@PathVariable("id") Long id) {
+        return ResponseEntity.ok(files.listTaskFiles(id, SecurityContext.getCurrentUserId()));
+    }
+
+    @PostMapping("/{id}/files")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> attachFile(@PathVariable("id") Long id, @RequestBody AttachFileRequest body) {
+        files.attachFile(id, body.fileId(), SecurityContext.getCurrentUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/{id}/files/{fileId}")
+    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    public ResponseEntity<Void> detachFile(@PathVariable("id") Long id, @PathVariable("fileId") UUID fileId) {
+        files.detachFile(id, fileId, SecurityContext.getCurrentUserId());
+        return ResponseEntity.noContent().build();
+    }
+}
