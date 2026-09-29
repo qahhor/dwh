@@ -232,7 +232,7 @@ class MsAnnouncementServiceIntegrationTest {
 
     @Test
     void adminControllerUsesPermissionSpecificActions() throws Exception {
-        assertPermission("manage", "update");
+        assertPermission("manage", "update", Integer.class, String.class);
         assertPermission("create", "create", AnnouncementDraftRequest.class);
         assertPermission("update", "update", Long.class, AnnouncementDraftRequest.class);
         assertPermission("publish", "publish", Long.class, AnnouncementVersionRequest.class);

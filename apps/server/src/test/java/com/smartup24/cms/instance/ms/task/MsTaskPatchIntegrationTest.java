@@ -299,9 +299,9 @@ class MsTaskPatchIntegrationTest {
 
         mvc.perform(get("/api/v1/tasks/{taskId}/comments", task))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].userName").value("Public Author"))
-                .andExpect(jsonPath("$[0].userLogin").value(login(actor)))
-                .andExpect(jsonPath("$[0].userEmail").doesNotExist());
+                .andExpect(jsonPath("$.items[0].userName").value("Public Author"))
+                .andExpect(jsonPath("$.items[0].userLogin").value(login(actor)))
+                .andExpect(jsonPath("$.items[0].userEmail").doesNotExist());
     }
 
     @Test
@@ -321,9 +321,9 @@ class MsTaskPatchIntegrationTest {
 
         mvc.perform(get("/api/v1/tasks/{taskId}/comments", task))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].userId").value(9223372036854770000L))
-                .andExpect(jsonPath("$[0].userName").value(nullValue()))
-                .andExpect(jsonPath("$[0].userLogin").value(nullValue()));
+                .andExpect(jsonPath("$.items[0].userId").value(9223372036854770000L))
+                .andExpect(jsonPath("$.items[0].userName").value(nullValue()))
+                .andExpect(jsonPath("$.items[0].userLogin").value(nullValue()));
     }
 
     private static void assertPatchVisible(Long actor, Long task) throws Exception {
