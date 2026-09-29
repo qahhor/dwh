@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
+import { User } from '@core/models/auth.models';
 import { ApiService } from '@core/services/api.service';
 import { ProjectMember } from '../projects.models';
 import { ProjectMembersModalComponent } from './project-members-modal.component';
@@ -11,10 +12,14 @@ const members: ProjectMember[] = [
   { projectId: 7, userId: 3, userName: 'Бахром Алиев', userEmail: 'bahrom@example.test', accessKind: 'AUDITOR' },
 ];
 
-async function createFixture(canUpdateProject: boolean, list: ProjectMember[] = members) {
+async function createFixture(
+  canUpdateProject: boolean,
+  list: ProjectMember[] = members,
+  get: (url: string, params: { search: string }) => Observable<unknown> = () => of({ items: [] }),
+) {
   await TestBed.configureTestingModule({
     imports: [ProjectMembersModalComponent],
-    providers: [{ provide: ApiService, useValue: { get: vi.fn(() => of({ items: [] })) } }],
+    providers: [{ provide: ApiService, useValue: { get } }],
   }).compileComponents();
   const fixture = TestBed.createComponent(ProjectMembersModalComponent);
   fixture.componentRef.setInput('isOpen', true);
@@ -80,5 +85,44 @@ describe('ProjectMembersModalComponent', () => {
 
     expect(table(document.body).textContent).toContain('В проекте пока нет участников.');
     fixture.destroy();
+  });
+
+  it('searches users after a pause, keeps searching after a failed search, and hands the pick to the page', async () => {
+    const alisher = { id: 5, name: 'Алишер', login: 'alisher' } as User;
+    const get = vi.fn((_url: string, params: { search: string }) =>
+      params.search === 'bad' ? throwError(() => ({ status: 503 })) : of({ items: [alisher] }),
+    );
+    const fixture = await createFixture(true, members, get);
+    const modal = fixture.componentInstance;
+    const added = vi.fn();
+    modal.addMember.subscribe(added);
+    vi.useFakeTimers();
+    try {
+      const search = async (text: string) => {
+        modal.onSearchInput(text);
+        fixture.detectChanges();
+        await vi.advanceTimersByTimeAsync(250);
+      };
+
+      await search('bad');
+      expect(modal.foundUsers()).toEqual([]);
+      expect(modal.isUserDropdownOpen()).toBe(false);
+      await search('али');
+      expect(get).toHaveBeenLastCalledWith('/iam/users', { state: 'A', search: 'али', limit: 15 });
+      expect(modal.foundUsers()).toEqual([alisher]);
+      expect(modal.isUserDropdownOpen()).toBe(true);
+
+      modal.selectUser(alisher);
+      fixture.detectChanges();
+      await vi.advanceTimersByTimeAsync(250);
+      modal.submitAddMember();
+      expect(added).toHaveBeenCalledWith({ projectId: 7, userId: 5, accessKind: 'MEMBER' });
+      expect(modal.selectedUser()).toBeNull();
+      // Choosing and clearing the user fill the box without searching again.
+      expect(get).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+      fixture.destroy();
+    }
   });
 });

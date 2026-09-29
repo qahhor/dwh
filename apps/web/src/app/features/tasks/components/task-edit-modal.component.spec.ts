@@ -114,6 +114,17 @@ describe('TaskEditModalComponent', () => {
     expect(titleError(screen)).toBe('Обязательное поле');
   });
 
+  it('makes every control inert while the changes are being saved', () => {
+    const types = [{ id: 1, code: 'task', name: 'Задача', icon: 'task', color: '#000', orderNo: 1, isSystem: true }];
+    const { screen } = render({ editingTask: TASK, isSubmitting: true, taskTypes: types });
+    const form = screen.querySelector('fieldset.task-edit-form') as HTMLFieldSetElement;
+    const controls = [...form.querySelectorAll('input, select, textarea, button')] as HTMLElement[];
+
+    expect(form.disabled).toBe(true);
+    expect(controls.length).toBeGreaterThan(5);
+    expect(controls.every((control) => control.matches(':disabled'))).toBe(true);
+  });
+
   it('does not offer the task itself as its own parent', () => {
     const { fixture } = render({ editingTask: TASK });
 

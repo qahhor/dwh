@@ -8,11 +8,11 @@ import {
   signal,
   inject,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { canonicalRecordId, recordResponseMatches, safeNumericRecordId } from '@core/services/search-target';
-import { Subscription, Observable } from 'rxjs';
+import { Subscription, Observable, catchError, map, of } from 'rxjs';
 import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { ProjectsApi } from './projects.api';
 import { PermissionService } from '@core/services/permission.service';
@@ -93,7 +93,7 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly metaError = signal(false);
   readonly listLoaded = signal<boolean>(false);
 
-  readonly projectCustomFields = signal<CustomField[]>([]);
+  readonly projectCustomFields = computed(() => this.customFields.value() ?? []);
 
   /** The counts the server sent with each row; empty for someone who may not view tasks. */
   readonly projectStats = computed<Record<number, ProjectTaskStats>>(() => {
@@ -112,6 +112,21 @@ export class ProjectsComponent implements OnInit, OnDestroy {
   readonly statsLoaded = computed(() => this.canViewTasks() && this.isListReady());
   readonly statsLoading = computed(() => false);
   readonly statsLoadError = computed(() => false);
+
+  /** Only well-formed fields: a malformed one would break the record and the forms. */
+  private readonly customFields = rxResource({
+    stream: () =>
+      this.customFieldsApi.list('PROJECT').pipe(
+        map((res) =>
+          Array.isArray(res)
+            ? res.filter(
+                (f) => f && typeof f === 'object' && typeof f.code === 'string' && typeof f.fieldType === 'string',
+              )
+            : [],
+        ),
+        catchError(() => of<CustomField[]>([])),
+      ),
+  });
 
   private exportFilters: Record<string, string> = {};
 
@@ -188,7 +203,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
     };
     this.forms.onProjectUpdated = () => this.loadProjects();
     this.loadProjects();
-    this.loadProjectCustomFields();
     this.recordRouteSubscription = this.recordRoute?.paramMap?.subscribe((params) =>
       this.loadRecordView(params.get('id')),
     );
@@ -351,22 +365,6 @@ export class ProjectsComponent implements OnInit, OnDestroy {
 
   closeRecordView() {
     this.router.navigate(['/tasks/projects'], { queryParamsHandling: 'preserve' });
-  }
-
-  loadProjectCustomFields() {
-    this.customFieldsApi.list('PROJECT').subscribe({
-      next: (res) => {
-        if (Array.isArray(res)) {
-          const validFields = res.filter(
-            (f) => f && typeof f === 'object' && typeof f.code === 'string' && typeof f.fieldType === 'string',
-          );
-          this.projectCustomFields.set(validFields);
-        } else {
-          this.projectCustomFields.set([]);
-        }
-      },
-      error: () => {},
-    });
   }
 
   viewOptions(): SMTRadioOption<ProjectViewState>[] {

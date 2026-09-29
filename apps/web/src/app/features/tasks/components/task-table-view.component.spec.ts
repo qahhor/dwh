@@ -35,7 +35,9 @@ const STATUSES = [
   { id: 3, name: 'Готово' },
 ] as unknown as TaskStatus[];
 
-async function render(options: { canUpdate?: boolean; post?: ReturnType<typeof vi.fn> } = {}) {
+async function render(
+  options: { canUpdate?: boolean; post?: ReturnType<typeof vi.fn>; inputs?: Record<string, unknown> } = {},
+) {
   const post = options.post ?? vi.fn(() => of({ action: 'status', succeeded: 2, failed: 0, results: [] }));
   const toast = { success: vi.fn(), error: vi.fn() };
   await TestBed.configureTestingModule({
@@ -60,6 +62,7 @@ async function render(options: { canUpdate?: boolean; post?: ReturnType<typeof v
   fixture.componentRef.setInput('getProjectName', () => null);
   fixture.componentRef.setInput('getStatusColor', () => '');
   fixture.componentRef.setInput('getDeadlineInfo', () => ({ state: 'none', label: '' }));
+  for (const [name, value] of Object.entries(options.inputs ?? {})) fixture.componentRef.setInput(name, value);
   fixture.detectChanges();
   pager.first();
   fixture.detectChanges();
@@ -160,5 +163,54 @@ describe('TaskTableViewComponent bulk actions', () => {
     expect(reload).not.toHaveBeenCalled();
     expect(fixture.componentInstance.bulkStatusId()).toBe(3);
     expect(fixture.componentInstance.selectedTasks().map((task) => task.id)).toEqual([11]);
+  });
+});
+
+describe('TaskTableViewComponent rows', () => {
+  const rows = (fixture: ComponentFixture<TaskTableViewComponent>) =>
+    [...el(fixture).querySelectorAll('[role="rowgroup"] > [role="row"]')] as HTMLElement[];
+
+  it('opens a task from its row or its named title button, never from the row controls', async () => {
+    const { fixture } = await render();
+    const opened: number[] = [];
+    fixture.componentInstance.openTaskDetails.subscribe((task) => opened.push(task.id));
+    const row = rows(fixture)[0];
+    const title = row.querySelector('.task-title-open') as HTMLButtonElement;
+
+    // A plain row: the title button is the keyboard way in, the row is not a stop of its own.
+    expect(row.getAttribute('tabindex')).toBeNull();
+    expect(title.type).toBe('button');
+    expect(title.getAttribute('aria-label')).toBe('Открыть задачу #11: Отчёт за январь');
+    (row.querySelector('.inline-priority-select [role="combobox"]') as HTMLButtonElement).click();
+    const status = row.querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement;
+    status.click();
+    status.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(opened).toEqual([]);
+
+    (row.querySelector('.task-type-badge') as HTMLElement).click();
+    title.click();
+    expect(opened).toEqual([11, 11]);
+  });
+
+  it('marks an overdue row and shows the status by name beside its colour dot', async () => {
+    const { fixture } = await render({
+      inputs: {
+        isOverdue: () => true,
+        getStatusColor: () => '#ff0000',
+        getDeadlineInfo: () => ({ state: 'overdue', label: 'Просрочено на 2 дн.' }),
+        getProjectName: () => 'Склад',
+      },
+    });
+    const status = el(fixture).querySelector('.table-status') as HTMLElement;
+    const select = el(fixture).querySelector('.inline-status-select [role="combobox"]') as HTMLButtonElement;
+
+    expect(rows(fixture).every((row) => row.classList.contains('task-row-overdue'))).toBe(true);
+    expect(el(fixture).querySelector('.deadline-pill.overdue')?.textContent).toContain('Просрочено на 2 дн.');
+    expect(el(fixture).querySelector('.project-tag')?.textContent).toContain('Склад');
+    expect(status.textContent).toContain('Новая');
+    expect(status.style.color).toBe('');
+    expect((status.querySelector('.status-dot') as HTMLElement).style.backgroundColor).toBe('rgb(255, 0, 0)');
+    (select.closest('[role="cell"]') as HTMLElement).style.color = 'rgb(255, 0, 0)';
+    expect(getComputedStyle(select).color).toBe('var(--text-main)');
   });
 });

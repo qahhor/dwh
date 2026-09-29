@@ -1,5 +1,6 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { finalize, tap } from 'rxjs';
+import { Injectable, ResourceRef, computed, inject, signal, untracked } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, finalize, map, of, tap } from 'rxjs';
 import { Project } from '@core/models/task.models';
 import { I18nService } from '@core/services/i18n.service';
 import { ToastService } from '@core/services/toast.service';
@@ -17,33 +18,33 @@ export class ProjectMembersService {
   private readonly modal = inject(SMTModalService);
 
   readonly selectedProjectForMembers = signal<Project | null>(null);
-  readonly projectMembers = signal<ProjectMember[]>([]);
-  readonly isLoadingMembers = signal<boolean>(false);
   readonly isAddingMember = signal<boolean>(false);
   readonly removingMemberId = signal<number | null>(null);
 
+  readonly projectMembers = computed(() => this.membersResource.value());
+  readonly isLoadingMembers = computed(() => this.membersResource.isLoading());
+
+  /** The members of the project in the dialog, read again after each change; a closed dialog has none. */
+  private readonly membersResource: ResourceRef<ProjectMember[]> = rxResource({
+    params: () => this.selectedProjectForMembers()?.id,
+    defaultValue: [],
+    stream: ({ params: projectId }) =>
+      this.projectsApi.members(projectId).pipe(
+        map((res) => res || []),
+        catchError(() => {
+          this.toast.error(this.uiI18n.translate('projects.oshibka_zagruzki_uchastnikov'));
+          // A failed reload keeps the members on screen.
+          return of(untracked(this.membersResource.value));
+        }),
+      ),
+  });
+
   openMembersModal(project: Project): void {
     this.selectedProjectForMembers.set(project);
-    this.loadProjectMembers(project.id);
   }
 
   closeMembersModal(): void {
     this.selectedProjectForMembers.set(null);
-    this.projectMembers.set([]);
-  }
-
-  loadProjectMembers(projectId: number): void {
-    this.isLoadingMembers.set(true);
-    this.projectsApi.members(projectId).subscribe({
-      next: (res) => {
-        this.projectMembers.set(res || []);
-        this.isLoadingMembers.set(false);
-      },
-      error: () => {
-        this.isLoadingMembers.set(false);
-        this.toast.error(this.uiI18n.translate('projects.oshibka_zagruzki_uchastnikov'));
-      },
-    });
   }
 
   onAddProjectMember(event: { projectId: number; userId: number; accessKind: string }): void {
@@ -52,7 +53,7 @@ export class ProjectMembersService {
       next: () => {
         this.isAddingMember.set(false);
         this.toast.success(this.uiI18n.translate('projects.uchastnik_uspeshno_dobavlen'));
-        this.loadProjectMembers(event.projectId);
+        this.membersResource.reload();
       },
       error: (err: unknown) => {
         this.isAddingMember.set(false);
@@ -76,7 +77,7 @@ export class ProjectMembersService {
           return this.projectsApi.removeMember(event.projectId, event.userId).pipe(
             tap(() => {
               this.toast.success(t('projects.uchastnik_uspeshno_udalen'));
-              this.loadProjectMembers(event.projectId);
+              this.membersResource.reload();
             }),
             finalize(() => this.removingMemberId.set(null)),
           );

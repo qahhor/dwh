@@ -1,9 +1,10 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, ResourceRef, inject, signal, untracked } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
 import { TaskStatus, TaskType } from '@core/models/task.models';
-import { tap } from 'rxjs';
+import { catchError, map, of, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
 
@@ -16,24 +17,39 @@ export class TaskDictionariesService {
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
-  readonly statuses = signal<TaskStatus[]>([]);
-  readonly taskTypes = signal<TaskType[]>([]);
   readonly isSettingsModalOpen = signal<boolean>(false);
+
+  // A failed read answers with the list already on screen, so a reload that fails keeps it.
+  private readonly statusesResource: ResourceRef<TaskStatus[]> = rxResource({
+    defaultValue: [],
+    stream: () =>
+      this.api.get<TaskStatus[]>('/tasks/statuses').pipe(
+        map((res) => res || []),
+        catchError(() => of(untracked(this.statusesResource.value))),
+      ),
+  });
+  private readonly typesResource: ResourceRef<TaskType[]> = rxResource({
+    defaultValue: [],
+    stream: () =>
+      this.api.get<TaskType[]>('/tasks/types').pipe(
+        map((res) => res || []),
+        catchError(() => of(untracked(this.typesResource.value))),
+      ),
+  });
+
+  /** Writable: a new order is shown before the server confirms it. */
+  readonly statuses = this.statusesResource.value;
+  readonly taskTypes = this.typesResource.value;
   settingsTab: 'types' | 'statuses' = 'types';
   dictionaryDeleteTarget: { kind: 'type' | 'status'; id: number; name: string } | null = null;
 
+  /** The service outlives the screen, so each visit asks again; the first read is already on its way. */
   loadStatuses(): void {
-    this.api.get<TaskStatus[]>('/tasks/statuses').subscribe({
-      next: (res) => this.statuses.set(res || []),
-      error: () => {},
-    });
+    this.statusesResource.reload();
   }
 
   loadTypes(): void {
-    this.api.get<TaskType[]>('/tasks/types').subscribe({
-      next: (res) => this.taskTypes.set(res || []),
-      error: () => {},
-    });
+    this.typesResource.reload();
   }
 
   openSettingsModal(): void {
