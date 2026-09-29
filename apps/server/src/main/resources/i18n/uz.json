@@ -1612,6 +1612,7 @@
   "error.auth.otp_send_failed": "Kodni {channel} kanaliga yuborib bo'lmadi. Administratorga murojaat qiling",
   "error.auth.otp_token_invalid": "OTP tokeni noto'g'ri",
   "error.auth.reset_link_invalid": "Havola yaroqsiz: muddati o'tgan yoki allaqachon ishlatilgan. Yangisini so'rang",
+  "error.auth.session_not_found": "Seans topilmadi",
   "error.auth.sign_in_required": "Resursga kirish uchun tizimga kirish talab qilinadi",
   "error.auth.temporary_password_change_required": "Ishni boshlashdan oldin vaqtinchalik parolni almashtirish shart",
   "error.auth.too_many_failed_logins_from_ip": "IP manzilingizdan kirishga juda ko'p muvaffaqiyatsiz urinishlar bo'ldi",

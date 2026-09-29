@@ -54,7 +54,12 @@ public class KauthSessionController {
     @DeleteMapping({"/profile/sessions/{id}", "/sessions/{id}"})
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     public ResponseEntity<Void> closeSession(@PathVariable("id") Long id) {
-        sessionService.closeSession(id);
+        var principal = SecurityContext.getPrincipal();
+        if (principal == null || principal.userId() == null) {
+            throw ApiException.unauthorized("error.auth.not_signed_in");
+        }
+        // Only the caller's own session: the id alone once closed anyone's (IDOR).
+        sessionService.closeUserSession(principal.userId(), id);
         return ResponseEntity.noContent().build();
     }
 
@@ -74,7 +79,7 @@ public class KauthSessionController {
     @DeleteMapping({"/users/{userId}/sessions/{id}", "/profile/sessions/users/{userId}/{id}"})
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     public ResponseEntity<Void> closeUserSession(@PathVariable("userId") Long userId, @PathVariable("id") Long id) {
-        sessionService.closeSession(id);
+        sessionService.closeUserSession(userId, id);
         return ResponseEntity.noContent().build();
     }
 

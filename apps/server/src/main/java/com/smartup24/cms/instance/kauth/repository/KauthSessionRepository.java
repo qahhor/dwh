@@ -94,6 +94,19 @@ public class KauthSessionRepository {
                 """).param("sessionId", sessionId).update();
     }
 
+    /** Closes a session only when it belongs to the user; the number of sessions closed (0 or 1). */
+    public int closeOwned(Long sessionId, Long userId) {
+        return jdbcClient
+                .sql("""
+                update kauth_sessions
+                set closed_at = now()
+                where id = :sessionId and user_id = :userId and closed_at is null
+                """)
+                .param("sessionId", sessionId)
+                .param("userId", userId)
+                .update();
+    }
+
     public void closeAllUserSessions(Long userId) {
         jdbcClient.sql("""
                 update kauth_sessions

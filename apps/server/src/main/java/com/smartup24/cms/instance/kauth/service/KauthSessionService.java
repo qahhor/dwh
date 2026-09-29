@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.kauth.service;
 
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.kauth.api.ActiveSessionView;
 import com.smartup24.cms.instance.kauth.api.LoginAttemptView;
 import com.smartup24.cms.instance.kauth.api.SessionView;
@@ -98,6 +100,17 @@ public class KauthSessionService {
     @Transactional
     public void closeSession(Long sessionId) {
         sessionRepository.close(sessionId);
+    }
+
+    /**
+     * Closes one session of a user. A session of someone else, a closed one and an unknown id all answer "not found":
+     * a caller learns nothing about sessions that are not the user's.
+     */
+    @Transactional
+    public void closeUserSession(Long userId, Long sessionId) {
+        if (sessionRepository.closeOwned(sessionId, userId) == 0) {
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.auth.session_not_found");
+        }
     }
 
     @Transactional
