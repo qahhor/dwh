@@ -1,11 +1,12 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CreateCustomFieldDto;
+import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
+import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.UpdateCustomFieldDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,18 +24,17 @@ public class MdCustomFieldController {
 
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "view")
-    public ResponseEntity<List<MdCustomFieldRepository.CustomFieldRecord>> getFields(
+    public ResponseEntity<List<CustomFieldView>> getFields(
             @RequestParam(name = "entity_type", required = false) String entityType) {
 
-        return ResponseEntity.ok(customFieldService.getFields(entityType));
+        return ResponseEntity.ok(customFieldService.listFields(entityType));
     }
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "create")
-    public ResponseEntity<MdCustomFieldRepository.CustomFieldRecord> createField(
-            @Valid @RequestBody CreateCustomFieldDto body) {
+    public ResponseEntity<CustomFieldView> createField(@Valid @RequestBody CreateCustomFieldDto body) {
 
-        var record = customFieldService.createField(
+        var field = customFieldService.createField(
                 body.entityType(),
                 body.code(),
                 body.name(),
@@ -44,7 +44,7 @@ public class MdCustomFieldController {
                 body.options(),
                 body.orderNo());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(record);
+        return ResponseEntity.status(HttpStatus.CREATED).body(field);
     }
 
     @PatchMapping("/{id}")
@@ -62,17 +62,4 @@ public class MdCustomFieldController {
         customFieldService.deleteField(id);
         return ResponseEntity.noContent().build();
     }
-
-    public record CreateCustomFieldDto(
-            @NotBlank String entityType,
-            @NotBlank String code,
-            @NotBlank String name,
-            @NotBlank String fieldType,
-            boolean isRequired,
-            String defaultValue,
-            Object options,
-            int orderNo) {}
-
-    public record UpdateCustomFieldDto(
-            String name, Boolean isRequired, String defaultValue, Object options, Integer orderNo) {}
 }

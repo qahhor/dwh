@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
@@ -160,6 +161,32 @@ public class MdUserService {
                 false,
                 roleIds,
                 createdBy);
+    }
+
+    /** The create request as the API sends it; the answer is the safe view with the roles the user got. */
+    @Transactional
+    public MdUserView createUser(CreateUserDto body, Long createdBy) {
+        var user = createUser(
+                body.name(),
+                body.login(),
+                body.email(),
+                body.phone(),
+                body.password(),
+                body.managerId(),
+                body.language(),
+                body.timezone(),
+                body.avatarFileId(),
+                body.attributes(),
+                body.is2faEnabled(),
+                Boolean.TRUE.equals(body.forcePasswordChange()),
+                body.roleIds(),
+                createdBy);
+        return MdUserView.from(user, roleRepository.getUserRoleIds(user.id()));
+    }
+
+    @Transactional(readOnly = true)
+    public MdUserView getUserView(Long userId) {
+        return MdUserView.from(getUserById(userId), roleRepository.getUserRoleIds(userId));
     }
 
     @Transactional(readOnly = true)
