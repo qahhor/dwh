@@ -1,7 +1,9 @@
 package com.smartup24.cms.instance.ms.notify.controller;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.ms.notify.api.AnnouncementDraftRequest;
@@ -10,7 +12,6 @@ import com.smartup24.cms.instance.ms.notify.api.ManagedAnnouncementView;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsAnnouncementService;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,12 +20,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/announcements")
 public class MsAnnouncementAdminController {
+
+    static final int MANAGE_PAGE = 50;
+    static final int MANAGE_MAX = 200;
 
     private final MsAnnouncementService service;
 
@@ -34,8 +39,11 @@ public class MsAnnouncementAdminController {
 
     @GetMapping("/manage")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "update")
-    public ResponseEntity<List<ManagedAnnouncementView>> manage() {
-        return ResponseEntity.ok(service.listAll());
+    public ResponseEntity<KeysetPage<ManagedAnnouncementView>> manage(
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor) {
+        // Every announcement ever written, last changed first: a page at a time (plan 10/10, item 3.5).
+        return ResponseEntity.ok(service.listPage(TimePage.of(limit, cursor, MANAGE_PAGE, MANAGE_MAX)));
     }
 
     @PostMapping

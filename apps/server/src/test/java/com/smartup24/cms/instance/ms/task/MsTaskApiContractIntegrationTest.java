@@ -141,7 +141,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
 
         Map<String, Object> page =
                 object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId + "&limit=1&sort=title"), null)));
-        assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated"));
+        assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated", "totalExact"));
         assertKeys(first(page.get("items")), TASK);
 
         Set<String> status = Set.of("id", "pcode", "name", "color", "orderNo", "isTerminal");
@@ -226,7 +226,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                         post("/api/v1/tasks/" + taskId + "/comments"),
                         Map.of("textMarkdown", "TEST comment", "fileIds", List.of(fileId)))),
                 comment);
-        assertKeys(first(array(ok(send(s, get("/api/v1/tasks/" + taskId + "/comments"), null)))), comment);
+        assertKeys(first(items(ok(send(s, get("/api/v1/tasks/" + taskId + "/comments"), null)))), comment);
     }
 
     private static void assertKeys(Map<String, Object> node, Set<String> expected) {
@@ -278,6 +278,14 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> object(MockHttpServletResponse response) throws Exception {
         return JSON.readValue(response.getContentAsString(StandardCharsets.UTF_8), Map.class);
+    }
+
+    /** The items of a page (plan item 3.5: growing collections answer KeysetPage). */
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> items(MockHttpServletResponse response) throws Exception {
+        Map<String, Object> page = object(response);
+        assertThat(page).containsKeys("items", "hasMore", "totalEstimated", "totalExact");
+        return (List<Map<String, Object>>) page.get("items");
     }
 
     @SuppressWarnings("unchecked")

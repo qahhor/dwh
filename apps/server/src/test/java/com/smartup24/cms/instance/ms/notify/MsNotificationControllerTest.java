@@ -30,7 +30,7 @@ class MsNotificationControllerTest {
     void withoutUserEveryEndpointAnswersUnauthorizedInReadableRussian() {
         SecurityContext.clear();
         List<Runnable> calls = List.of(
-                () -> controller.getInbox(50),
+                () -> controller.getInbox(50, null),
                 controller::getUnreadCount,
                 () -> controller.markAsRead(1L),
                 controller::markAllAsRead,

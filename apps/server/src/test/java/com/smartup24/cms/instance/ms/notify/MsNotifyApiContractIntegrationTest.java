@@ -120,7 +120,7 @@ class MsNotifyApiContractIntegrationTest extends EmbeddedPostgresTest {
                 Map.of("lockVersion", published.get("lockVersion")))));
         assertKeys(archived, with(with(DRAFT, "publishedAt"), "archivedAt"));
         assertKeys(
-                array(ok(send(s, get("/api/v1/announcements/manage"), null))).stream()
+                items(ok(send(s, get("/api/v1/announcements/manage?limit=200"), null))).stream()
                         .filter(item -> ((Number) item.get("id")).longValue() == id)
                         .findFirst()
                         .orElseThrow(),
@@ -139,7 +139,7 @@ class MsNotifyApiContractIntegrationTest extends EmbeddedPostgresTest {
         notifications.sendInAppNotification(userId, "info", "TEST title", "TEST body", "/tasks/1", "task:1");
 
         assertKeys(
-                first(array(ok(send(s, get("/api/v1/notifications/inbox"), null)))),
+                first(items(ok(send(s, get("/api/v1/notifications/inbox"), null)))),
                 Set.of("id", "userId", "type", "title", "body", "formLink", "sourceCode", "isRead", "createdAt"));
 
         var saved = send(
@@ -150,6 +150,41 @@ class MsNotifyApiContractIntegrationTest extends EmbeddedPostgresTest {
         List<Map<String, Object>> preferences = array(ok(send(s, get("/api/v1/notifications/preferences"), null)));
         assertKeys(first(preferences), Set.of("userId", "eventType", "channel", "isEnabled"));
         assertThat(preferences.getFirst().get("isEnabled")).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("3.5: the inbox is read newest first a page at a time; a limit over 100 or a bad cursor is 422")
+    void inboxPages() throws Exception {
+        String login = user();
+        long userId = jdbc.sql("select id from md_users where login = :login")
+                .param("login", login)
+                .query(Long.class)
+                .single();
+        Session s = login(login);
+        for (int i = 1; i <= 3; i++) {
+            notifications.sendInAppNotification(userId, "info", "TEST " + i, "TEST body", "/tasks/1", "task:" + i);
+        }
+
+        Map<String, Object> first = object(ok(send(s, get("/api/v1/notifications/inbox?limit=2"), null)));
+        assertThat(first.get("hasMore")).isEqualTo(true);
+        assertThat(titles(first)).containsExactly("TEST 3", "TEST 2");
+        Map<String, Object> second =
+                object(ok(send(s, get("/api/v1/notifications/inbox?limit=2&cursor=" + first.get("nextCursor")), null)));
+        assertThat(second.get("hasMore")).isEqualTo(false);
+        assertThat(second.get("nextCursor")).isNull();
+        assertThat(titles(second)).containsExactly("TEST 1");
+
+        assertThat(send(s, get("/api/v1/notifications/inbox?limit=101"), null).getStatus())
+                .isEqualTo(422);
+        assertThat(send(s, get("/api/v1/notifications/inbox?cursor=not-a-cursor"), null)
+                        .getStatus())
+                .isEqualTo(422);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> titles(Map<String, Object> page) {
+        return ((List<Map<String, Object>>) page.get("items"))
+                .stream().map(item -> item.get("title")).toList();
     }
 
     private static void assertKeys(Map<String, Object> node, Set<String> expected) {
@@ -180,6 +215,14 @@ class MsNotifyApiContractIntegrationTest extends EmbeddedPostgresTest {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> object(MockHttpServletResponse response) throws Exception {
         return JSON.readValue(response.getContentAsString(StandardCharsets.UTF_8), Map.class);
+    }
+
+    /** The items of a page (plan item 3.5: growing collections answer KeysetPage). */
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> items(MockHttpServletResponse response) throws Exception {
+        Map<String, Object> page = object(response);
+        assertThat(page).containsKeys("items", "hasMore", "totalEstimated", "totalExact");
+        return (List<Map<String, Object>>) page.get("items");
     }
 
     @SuppressWarnings("unchecked")

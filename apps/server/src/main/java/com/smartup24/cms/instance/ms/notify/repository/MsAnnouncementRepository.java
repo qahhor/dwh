@@ -1,8 +1,10 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -69,9 +71,16 @@ public class MsAnnouncementRepository {
                 .update();
     }
 
-    public List<ManagedAnnouncementRecord> findAll() {
+    /** Last changed first, {@code limit + 1} rows after the position of the page (plan 10/10, item 3.5). */
+    public List<ManagedAnnouncementRecord> findPage(TimePage page) {
+        TimePage.Position after = page.after();
         return jdbcClient
-                .sql("select " + MANAGED_COLUMNS + " from ms_announcements order by modified_at desc, id desc")
+                .sql("select " + MANAGED_COLUMNS + " from ms_announcements"
+                        + (after == null ? "" : " where (modified_at, id) < (:afterAt, :afterId)")
+                        + " order by modified_at desc, id desc limit :limit")
+                .param("afterAt", after == null ? null : Timestamp.from(after.at()))
+                .param("afterId", after == null ? null : after.id())
+                .param("limit", page.limit() + 1)
                 .query(managedMapper)
                 .list();
     }

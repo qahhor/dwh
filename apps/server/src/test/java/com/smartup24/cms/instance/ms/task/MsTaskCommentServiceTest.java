@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
@@ -50,11 +51,12 @@ class MsTaskCommentServiceTest {
 
     @Test
     void listCommentsValidatesTaskScopeBeforeReadingRows() {
-        service.listComments(42L, 10L);
+        TimePage page = TimePage.of(null, null, 50, 200);
+        service.listComments(42L, 10L, page);
 
         InOrder order = inOrder(taskService, commentRepository);
         order.verify(taskService).getTaskById(42L, 10L);
-        order.verify(commentRepository).listComments(42L);
+        order.verify(commentRepository).listComments(42L, page);
     }
 
     private static MsTaskRepository.TaskRecord task(Long id) {

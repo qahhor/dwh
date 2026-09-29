@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.ms.notify.service;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.ms.notify.api.AnnouncementView;
 import com.smartup24.cms.instance.ms.notify.api.NotificationPrefUpdate;
 import com.smartup24.cms.instance.ms.notify.api.NotificationPrefView;
@@ -87,10 +89,12 @@ public class MsNotificationService {
     }
 
     @Transactional(readOnly = true)
-    public List<NotificationView> getUserNotifications(Long userId, int limit) {
-        return notificationRepository.listUserNotifications(userId, limit).stream()
-                .map(MsNotifyViews::notification)
-                .toList();
+    public KeysetPage<NotificationView> getUserNotifications(Long userId, TimePage page) {
+        return page.page(
+                notificationRepository.listUserNotifications(userId, page).stream()
+                        .map(MsNotifyViews::notification)
+                        .toList(),
+                view -> new TimePage.Position(view.createdAt(), view.id()));
     }
 
     @Transactional(readOnly = true)

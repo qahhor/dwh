@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
+import com.smartup24.cms.instance.common.query.TimePage;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -41,17 +43,22 @@ public class MsNotificationRepository {
                 .single();
     }
 
-    public List<NotificationRecord> listUserNotifications(Long userId, int limit) {
+    /** Newest first, {@code limit + 1} rows after the position of the page (plan 10/10, item 3.5). */
+    public List<NotificationRecord> listUserNotifications(Long userId, TimePage page) {
+        TimePage.Position after = page.after();
         return jdbcClient
                 .sql("""
                 select id, user_id, type, title, body, form_link, source_code, is_read, created_at
                 from ms_notifications
                 where user_id = :userId
-                order by created_at desc
+                """ + (after == null ? "" : " and (created_at, id) < (:afterAt, :afterId)") + """
+                 order by created_at desc, id desc
                 limit :limit
                 """)
                 .param("userId", userId)
-                .param("limit", limit)
+                .param("afterAt", after == null ? null : Timestamp.from(after.at()))
+                .param("afterId", after == null ? null : after.id())
+                .param("limit", page.limit() + 1)
                 .query((rs, rowNum) -> new NotificationRecord(
                         rs.getLong("id"),
                         rs.getLong("user_id"),

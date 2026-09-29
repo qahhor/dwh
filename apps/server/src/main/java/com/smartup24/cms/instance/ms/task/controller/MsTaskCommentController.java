@@ -1,14 +1,15 @@
 package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.task.api.AddCommentRequest;
 import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
-import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,9 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping({"/api/v1/tasks/items/{taskId}/comments", "/api/v1/tasks/{taskId}/comments"})
 public class MsTaskCommentController {
+
+    static final int COMMENTS_PAGE = 50;
+    static final int COMMENTS_MAX = 200;
 
     private final MsTaskCommentService commentService;
 
@@ -25,8 +29,13 @@ public class MsTaskCommentController {
 
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "view")
-    public ResponseEntity<List<TaskCommentView>> listComments(@PathVariable("taskId") Long taskId) {
-        return ResponseEntity.ok(commentService.listComments(taskId, SecurityContext.getCurrentUserId()));
+    public ResponseEntity<KeysetPage<TaskCommentView>> listComments(
+            @PathVariable("taskId") Long taskId,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor) {
+        // A thread grows without bound: it is read oldest first, a page at a time (plan 10/10, item 3.5).
+        return ResponseEntity.ok(commentService.listComments(
+                taskId, SecurityContext.getCurrentUserId(), TimePage.of(limit, cursor, COMMENTS_PAGE, COMMENTS_MAX)));
     }
 
     @PostMapping
