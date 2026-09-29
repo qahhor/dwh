@@ -274,15 +274,11 @@ public class ReportExportService {
                             text,
                             ExportWorkbookWriter.APPLICATION,
                             ExportWorkbookWriter.APP_VERSION)) {
+                Map<String, String> options = currentOptions(request.options());
                 String cursor = null;
                 do {
-                    KeysetPage<?> page = exporter.page(
-                            PAGE_SIZE,
-                            cursor,
-                            request.filter(),
-                            request.sort(),
-                            request.q(),
-                            currentOptions(request.options()));
+                    KeysetPage<?> page =
+                            exporter.page(PAGE_SIZE, cursor, request.filter(), request.sort(), request.q(), options);
                     for (Object item : page.items()) {
                         if (writer.rows() >= maxRows) {
                             truncated = true;
