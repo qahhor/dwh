@@ -176,12 +176,17 @@ describe('FormatEditorStore', () => {
 
   it('reloads a draft published meanwhile and says so', async () => {
     const { store, api, toast, settle } = await openStore({
-      save: throwError(() => ({ status: 409, detail: 'UPL_FORMAT_NOT_DRAFT' })),
+      save: throwError(() => ({
+        status: 409,
+        code: 'conflict',
+        detail: 'Версия уже опубликована, изменить нельзя',
+        messageKey: 'error.upl.format_not_draft',
+      })),
     });
     store.save();
     await settle();
 
-    expect(toast.info).toHaveBeenCalledWith(PACKAGED_RUSSIAN['upl.err.UPL_FORMAT_NOT_DRAFT']);
+    expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('Версия уже опубликована, изменить нельзя'));
     expect(api.getVersion).toHaveBeenCalledTimes(2);
   });
 
@@ -206,11 +211,15 @@ describe('FormatEditorStore', () => {
 
   it('publishes from the chosen day, or shows why the day does not fit', async () => {
     const late = await openStore({
-      publish: throwError(() => ({ status: 409, detail: 'FND_VERSION_NOT_AFTER_PREVIOUS' })),
+      publish: throwError(() => ({
+        status: 409,
+        detail: 'Дата должна быть позже даты прежней версии',
+        messageKey: 'error.upl.fnd_version_not_after_previous',
+      })),
     });
     late.store.openPublish();
     late.store.confirmPublish();
-    expect(late.store.publishDateError()).toBe('upl.err.FND_VERSION_NOT_AFTER_PREVIOUS');
+    expect(late.store.publishDateError()).toBe('error.upl.fnd_version_not_after_previous');
     expect(late.store.isPublishOpen()).toBe(true);
 
     TestBed.resetTestingModule();

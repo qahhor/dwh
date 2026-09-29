@@ -34,15 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UplSourceService {
 
-    public static final String UPL_SOURCE_NOT_FOUND = "UPL_SOURCE_NOT_FOUND";
-    public static final String UPL_SOURCE_CODE_TAKEN = "UPL_SOURCE_CODE_TAKEN";
+    /** Codes of field errors ({@code errors[].code}): the web maps them to its own texts. */
     public static final String UPL_SOURCE_CODE_IMMUTABLE = "UPL_SOURCE_CODE_IMMUTABLE";
-    public static final String UPL_FORMAT_NOT_DRAFT = "UPL_FORMAT_NOT_DRAFT";
-    public static final String UPL_FORMAT_INVALID = "UPL_FORMAT_INVALID";
-    public static final String STALE_VERSION = "STALE_VERSION";
-    public static final String FND_VERSION_UNKNOWN = "FND_VERSION_UNKNOWN";
-    public static final String FND_VERSION_DRAFT_EXISTS = "FND_VERSION_DRAFT_EXISTS";
-    public static final String FND_VERSION_NOT_AFTER_PREVIOUS = "FND_VERSION_NOT_AFTER_PREVIOUS";
+
     public static final String VALID_FROM_REQUIRED = "VALID_FROM_REQUIRED";
 
     private static final String TABLE = UplPref.TABLE_FORMAT_VERSIONS;
@@ -84,7 +78,7 @@ public class UplSourceService {
             id = repo.insertSource(data, actor.name());
         } catch (DataIntegrityViolationException e) {
             if (UplErrors.chainContains(e, CODE_UNIQUE_INDEX)) {
-                throw ApiException.badRequest(ErrorCode.CODE_ALREADY_EXISTS, UPL_SOURCE_CODE_TAKEN);
+                throw ApiException.badRequest(ErrorCode.CODE_ALREADY_EXISTS, "error.upl.source_code_taken");
             }
             throw UplErrors.toApi(e);
         }
@@ -98,7 +92,7 @@ public class UplSourceService {
         Source current = requireSource(id);
         if (d.code() != null && !d.code().equals(current.code())) {
             throw ApiException.validation(
-                    UPL_SOURCE_CODE_IMMUTABLE,
+                    "error.upl.source_code_immutable",
                     List.of(new FieldErrorItem("code", UPL_SOURCE_CODE_IMMUTABLE, UPL_SOURCE_CODE_IMMUTABLE)));
         }
         SourceData data = new SourceData(
@@ -117,7 +111,7 @@ public class UplSourceService {
             throw UplErrors.toApi(e);
         }
         if (updated == 0) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, STALE_VERSION);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.stale_version");
         }
         return view(id);
     }
@@ -149,7 +143,7 @@ public class UplSourceService {
     public FormatVersion getVersion(long sourceId, int version) {
         requireSource(sourceId);
         return repo.findVersion(sourceId, version)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, FND_VERSION_UNKNOWN));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.fnd_version_unknown"));
     }
 
     @Transactional(readOnly = true)
@@ -157,7 +151,7 @@ public class UplSourceService {
         requireSource(sourceId);
         int version = versioning
                 .versionAt(TABLE, sourceId, at)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, FND_VERSION_UNKNOWN));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.fnd_version_unknown"));
         return getVersion(sourceId, version);
     }
 
@@ -216,13 +210,15 @@ public class UplSourceService {
         actors.apply(actor);
         requireSource(sourceId);
         if (validFrom == null) {
-            throw invalidField("validFrom", VALID_FROM_REQUIRED);
+            throw ApiException.validation(
+                    "error.upl.valid_from_required",
+                    List.of(new FieldErrorItem("validFrom", VALID_FROM_REQUIRED, VALID_FROM_REQUIRED)));
         }
         lockDraft(sourceId, version);
         FormatVersion draft = getVersion(sourceId, version);
         List<FieldErrorItem> errors = validator.validate(draft);
         if (!errors.isEmpty()) {
-            throw ApiException.validation(UPL_FORMAT_INVALID, errors);
+            throw ApiException.validation("error.upl.format_invalid", errors);
         }
         try {
             versioning.publish(TABLE, sourceId, version, validFrom, null, actor);
@@ -234,20 +230,21 @@ public class UplSourceService {
     private SourceView view(long id) {
         Source source = requireSource(id);
         SourceSummary summary = repo.findSummary(id)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_SOURCE_NOT_FOUND));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.source_not_found"));
         return new SourceView(source, summary.lastPublishedVersion(), summary.hasDraft());
     }
 
     private Source requireSource(long id) {
-        return repo.findSource(id).orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_SOURCE_NOT_FOUND));
+        return repo.findSource(id)
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.source_not_found"));
     }
 
     /** Блокирует строку версии до конца транзакции: параллельные правка и публикация идут по очереди. */
     private void lockDraft(long sourceId, int version) {
         String status = repo.lockVersionStatus(sourceId, version)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, FND_VERSION_UNKNOWN));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.fnd_version_unknown"));
         if (!FndVersion.DRAFT.equals(status)) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, UPL_FORMAT_NOT_DRAFT);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.format_not_draft");
         }
     }
 
@@ -258,9 +255,5 @@ public class UplSourceService {
         columns.put("delimiter", delimiter);
         columns.put("match_columns_by", match.db());
         return columns;
-    }
-
-    private static ApiException invalidField(String field, String code) {
-        return ApiException.validation(code, List.of(new FieldErrorItem(field, code, code)));
     }
 }

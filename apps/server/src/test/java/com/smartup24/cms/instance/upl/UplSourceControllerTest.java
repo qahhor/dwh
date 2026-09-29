@@ -88,7 +88,8 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         assertThat((Integer) read(updated, "$.lockVersion")).isEqualTo(1);
 
         var stale = send(admin, put(BASE + "/" + id), sourceBody(code, "TEST source 3", "quarter", 0));
-        assertProblem(stale, 409, ErrorCode.CONFLICT, "STALE_VERSION");
+        assertProblem(stale, 409, ErrorCode.CONFLICT, "error.upl.stale_version");
+        assertThat((String) read(stale, "$.detail")).isEqualTo("Запись изменена другим пользователем. Обновите");
         var kept = sendGet(admin, BASE + "/" + id, 200);
         assertThat((String) read(kept, "$.name")).isEqualTo("TEST source 2");
         assertThat((String) read(kept, "$.periodicity")).isEqualTo("quarter");
@@ -116,7 +117,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         assertThat(columnOrdinals).containsExactly(1, 2);
         sendGet(admin, versions + "/99", 404);
         var noSource = sendGet(admin, BASE + "/-1/format-versions/1", 404);
-        assertThat((String) read(noSource, "$.detail")).isEqualTo("UPL_SOURCE_NOT_FOUND");
+        assertThat((String) read(noSource, "$.messageKey")).isEqualTo("error.upl.source_not_found");
 
         assertThat(send(admin, post(versions + "/1/publish"), Map.of("validFrom", "2026-01-01"))
                         .getStatus())
@@ -145,7 +146,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(list, "$[0].status")).isNotEqualTo("draft");
 
         var notDraft = send(admin, put(versions + "/1"), draftBody(0));
-        assertProblem(notDraft, 409, ErrorCode.CONFLICT, "UPL_FORMAT_NOT_DRAFT");
+        assertProblem(notDraft, 409, ErrorCode.CONFLICT, "error.upl.format_not_draft");
 
         var source = sendGet(admin, BASE + "/" + id, 200);
         assertThat((Integer) read(source, "$.lastPublishedVersion")).isEqualTo(2);
@@ -162,7 +163,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         long id = ((Number) read(created, "$.id")).longValue();
 
         var taken = send(admin, post(BASE), sourceBody(code, "TEST dup", "month", null));
-        assertProblem(taken, 400, ErrorCode.CODE_ALREADY_EXISTS, "UPL_SOURCE_CODE_TAKEN");
+        assertProblem(taken, 400, ErrorCode.CODE_ALREADY_EXISTS, "error.upl.source_code_taken");
 
         var invalid = send(admin, post(BASE), sourceBody("test.api." + rnd(), "", "weekly", null));
         assertThat(invalid.getStatus()).isEqualTo(422);
@@ -175,7 +176,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         var emptyPublish = send(admin, post(versions + "/1/publish"), Map.of("validFrom", "2026-01-01"));
         assertThat(emptyPublish.getStatus()).isEqualTo(422);
         assertThat((Integer) read(emptyPublish, "$.status")).isEqualTo(422);
-        assertThat((String) read(emptyPublish, "$.detail")).isEqualTo("UPL_FORMAT_INVALID");
+        assertThat((String) read(emptyPublish, "$.messageKey")).isEqualTo("error.upl.format_invalid");
         List<String> codes = read(emptyPublish, "$.errors[*].code");
         assertThat(codes).contains("UPL_NO_SHEETS");
 
@@ -184,7 +185,7 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(missing, "$.code")).isNotBlank();
 
         var secondDraft = send(admin, post(versions), null);
-        assertProblem(secondDraft, 409, ErrorCode.CONFLICT, "FND_VERSION_DRAFT_EXISTS");
+        assertProblem(secondDraft, 409, ErrorCode.CONFLICT, "error.upl.fnd_version_draft_exists");
 
         assertThat(idempotencyEnabled).as("IdempotencyFilter в контексте").isTrue();
         String idemCode = "test.api." + rnd();
@@ -521,12 +522,13 @@ class UplSourceControllerTest extends EmbeddedPostgresTest {
         return response;
     }
 
-    private static void assertProblem(MockHttpServletResponse response, int status, ErrorCode code, String detail)
+    private static void assertProblem(MockHttpServletResponse response, int status, ErrorCode code, String messageKey)
             throws Exception {
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(status);
         assertThat((Integer) read(response, "$.status")).isEqualTo(status);
         assertThat((String) read(response, "$.code")).isEqualTo(wireCode(code));
-        assertThat((String) read(response, "$.detail")).isEqualTo(detail);
+        assertThat((String) read(response, "$.messageKey")).isEqualTo(messageKey);
+        assertThat((String) read(response, "$.detail")).isNotBlank().isNotEqualTo(messageKey);
     }
 
     private void assertInvalidSource(Session admin, Map<String, Object> body, String field, long rowsAfter)

@@ -44,8 +44,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/upl/sources")
 public class UplSourceController {
 
-    private static final String VALIDATION_FAILED = "VALIDATION_FAILED";
-
     private final UplSourceService service;
     private final UplTemplateBuilder templates;
     private final MdI18nService i18n;
@@ -91,7 +89,8 @@ public class UplSourceController {
     public ResponseEntity<SourceResponse> update(@PathVariable long id, @Valid @RequestBody SourceRequest request) {
         if (request.lockVersion() == null) {
             throw ApiException.validation(
-                    VALIDATION_FAILED, List.of(new FieldErrorItem("lockVersion", "REQUIRED", "lockVersion required")));
+                    "error.validation_failed",
+                    List.of(new FieldErrorItem("lockVersion", "REQUIRED", "lockVersion required")));
         }
         var view = service.updateSource(id, request.lockVersion(), request.toData(), userId());
         return ResponseEntity.ok(SourceResponse.of(view));

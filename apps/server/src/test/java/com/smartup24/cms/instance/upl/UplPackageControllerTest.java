@@ -16,8 +16,6 @@ import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel;
-import com.smartup24.cms.instance.upl.upload.UplPackageService;
-import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadValidator;
 import jakarta.servlet.http.Cookie;
 import java.time.LocalDate;
@@ -218,11 +216,11 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         var noFormat = upload(admin, String.valueOf(sourceId), "2025-12-01", "2025-12-31", content);
         assertThat(noFormat.getStatus()).as(noFormat.getContentAsString()).isEqualTo(409);
-        assertThat((String) read(noFormat, "$.detail")).isEqualTo(UplUploadService.UPL_PKG_NO_FORMAT_AT_DATE);
+        assertThat((String) read(noFormat, "$.messageKey")).isEqualTo("error.upl.pkg_no_format_at_date");
 
         var noSource = upload(admin, "999999999", PERIOD_FROM, PERIOD_TO, content);
         assertThat(noSource.getStatus()).as(noSource.getContentAsString()).isEqualTo(404);
-        assertThat((String) read(noSource, "$.detail")).isEqualTo(UplSourceService.UPL_SOURCE_NOT_FOUND);
+        assertThat((String) read(noSource, "$.messageKey")).isEqualTo("error.upl.source_not_found");
 
         assertThat(packageCount()).isZero();
     }
@@ -255,7 +253,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(413);
         assertThat((String) read(response, "$.code")).isEqualTo("file_size_exceeded");
-        assertThat((String) read(response, "$.detail")).isEqualTo(UplUploadService.UPL_PKG_FILE_TOO_LARGE);
+        assertThat((String) read(response, "$.messageKey")).isEqualTo("error.upl.pkg_file_too_large");
+        assertThat((String) read(response, "$.detail")).isEqualTo("Файл больше 20 МБ");
         assertThat(packageCount()).isZero();
     }
 
@@ -265,10 +264,10 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         Session admin = login(adminLogin);
 
         var unknown = sendGet(admin, BASE + "/" + UUID.randomUUID() + "/errors", 404);
-        assertThat((String) read(unknown, "$.detail")).isEqualTo(UplPackageService.UPL_PKG_NOT_FOUND);
+        assertThat((String) read(unknown, "$.messageKey")).isEqualTo("error.upl.pkg_not_found");
 
         var notUuid = sendGet(admin, BASE + "/not-a-uuid/errors", 404);
-        assertThat((String) read(notUuid, "$.detail")).isEqualTo(UplPackageService.UPL_PKG_NOT_FOUND);
+        assertThat((String) read(notUuid, "$.messageKey")).isEqualTo("error.upl.pkg_not_found");
     }
 
     @Test
@@ -319,7 +318,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         var notParsed = send(admin, post(BASE + "/" + id + "/apply"));
         assertThat(notParsed.getStatus()).as(notParsed.getContentAsString()).isEqualTo(409);
-        assertThat((String) read(notParsed, "$.detail")).isEqualTo("UPL_PKG_NOT_VERIFIED");
+        assertThat((String) read(notParsed, "$.messageKey")).isEqualTo("error.upl.pkg_not_verified");
 
         assertThat(jobs.runQueued()).isEqualTo(1);
 
@@ -334,7 +333,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         var repeated = send(admin, post(BASE + "/" + id + "/apply"));
         assertThat(repeated.getStatus()).as(repeated.getContentAsString()).isEqualTo(409);
-        assertThat((String) read(repeated, "$.detail")).isEqualTo("UPL_PKG_NOT_VERIFIED");
+        assertThat((String) read(repeated, "$.messageKey")).isEqualTo("error.upl.pkg_not_verified");
 
         var unknown = send(admin, post(BASE + "/00000000-0000-0000-0000-000000000000/apply"));
         assertThat(unknown.getStatus()).as(unknown.getContentAsString()).isEqualTo(404);
@@ -445,7 +444,10 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(sendGet(admin, BASE + "/" + waiting, 200), "$.id"))
                 .isEqualTo(waiting);
         sendGet(admin, BASE + "/" + UUID.randomUUID(), 404);
-        sendGet(admin, "/api/v1/upl/overview?days=5", 422);
+        var badPeriod = sendGet(admin, "/api/v1/upl/overview?days=5", 422);
+        assertThat((String) read(badPeriod, "$.messageKey")).isEqualTo("error.upl.overview_period_invalid");
+        assertThat((String) read(badPeriod, "$.detail")).isEqualTo("Выберите период из списка: 7, 30, 90 дней");
+        assertThat((List<String>) read(badPeriod, "$.errors[*].code")).containsExactly("UPL_OVERVIEW_PERIOD_INVALID");
         sendGet(login(strangerLogin), "/api/v1/upl/overview", 403);
     }
 

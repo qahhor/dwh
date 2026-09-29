@@ -6,8 +6,11 @@ package com.smartup24.cms.instance.upl;
  */
 public final class UplLimits {
 
+    /** Наибольший размер принимаемого файла в мегабайтах: предел загрузки, не норматив. */
+    public static final long MAX_FILE_MEGABYTES = 20;
+
     /** Наибольший размер принимаемого файла в байтах: предел загрузки, не норматив. */
-    public static final long MAX_FILE_BYTES = 20L * 1024 * 1024;
+    public static final long MAX_FILE_BYTES = MAX_FILE_MEGABYTES * 1024 * 1024;
 
     /** Наибольшее число заполненных ячеек в файле: предел загрузки, не норматив. */
     public static final long MAX_CELLS = 1000000;

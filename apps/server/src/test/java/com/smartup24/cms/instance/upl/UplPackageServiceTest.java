@@ -274,7 +274,7 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
     private static void assertNotFound(ThrowingCallable call) {
         assertThatThrownBy(call).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND);
-            assertThat(e.getMessage()).isEqualTo(UplPackageService.UPL_PKG_NOT_FOUND);
+            assertThat(e.getMessageKey()).isEqualTo("error.upl.pkg_not_found");
         });
     }
 

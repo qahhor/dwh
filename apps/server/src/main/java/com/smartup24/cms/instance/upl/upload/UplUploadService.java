@@ -30,13 +30,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class UplUploadService {
 
-    /** Сообщение ответа 422, когда поля запроса не прошли проверку. */
-    public static final String UPL_PACKAGE_INVALID = "UPL_PACKAGE_INVALID";
-    /** У источника нет опубликованной анкеты на дату начала периода. */
-    public static final String UPL_PKG_NO_FORMAT_AT_DATE = "UPL_PKG_NO_FORMAT_AT_DATE";
-    /** Файл больше предела приёма. */
-    public static final String UPL_PKG_FILE_TOO_LARGE = "UPL_PKG_FILE_TOO_LARGE";
-
     private static final String XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     private final UplSourceService sources;
@@ -85,7 +78,7 @@ public class UplUploadService {
                 upload.fileName(),
                 upload.sizeBytes());
         if (!errors.isEmpty()) {
-            throw ApiException.validation(UPL_PACKAGE_INVALID, errors);
+            throw ApiException.validation("error.upl.package_invalid", errors);
         }
         long sourceId = Long.parseLong(upload.sourceId().strip());
         LocalDate periodFrom = LocalDate.parse(upload.periodFrom().strip());
@@ -94,9 +87,12 @@ public class UplUploadService {
         sources.getSource(sourceId);
         int formatVersion = versioning
                 .versionAt(UplPref.TABLE_FORMAT_VERSIONS, sourceId, periodFrom)
-                .orElseThrow(() -> ApiException.conflict(ErrorCode.CONFLICT, UPL_PKG_NO_FORMAT_AT_DATE));
+                .orElseThrow(() -> ApiException.conflict(ErrorCode.CONFLICT, "error.upl.pkg_no_format_at_date"));
         if (upload.sizeBytes() > UplLimits.MAX_FILE_BYTES) {
-            throw ApiException.badRequest(ErrorCode.FILE_SIZE_EXCEEDED, UPL_PKG_FILE_TOO_LARGE);
+            throw ApiException.badRequest(
+                    ErrorCode.FILE_SIZE_EXCEEDED,
+                    "error.upl.pkg_file_too_large",
+                    Map.of("megabytes", UplLimits.MAX_FILE_MEGABYTES));
         }
 
         FileRecord file = store(upload, userId);

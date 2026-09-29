@@ -39,6 +39,7 @@ public class UplOverviewService {
     /** Periods the overview offers, in days. */
     public static final Set<Integer> PERIODS = Set.of(7, 30, 90);
 
+    /** Code of the field error ({@code errors[].code}) for a period outside {@link #PERIODS}. */
     public static final String OVERVIEW_PERIOD_INVALID = "UPL_OVERVIEW_PERIOD_INVALID";
     /** At most this many items of each kind reach the attention block; the lists say where the rest is. */
     static final int ATTENTION_PER_KIND = 10;
@@ -102,8 +103,10 @@ public class UplOverviewService {
     public Overview overview(int days) {
         if (!PERIODS.contains(days)) {
             throw ApiException.validation(
-                    OVERVIEW_PERIOD_INVALID,
-                    List.of(new FieldErrorItem("days", OVERVIEW_PERIOD_INVALID, "days must be one of " + PERIODS)));
+                    "error.upl.overview_period_invalid",
+                    Map.of("periods", periodList()),
+                    List.of(new FieldErrorItem(
+                            "days", OVERVIEW_PERIOD_INVALID, "days must be one of " + periodList())));
         }
         Instant now = clock.instant();
         Instant since = now.minus(Duration.ofDays(days));
@@ -210,5 +213,10 @@ public class UplOverviewService {
                 row.lastAppliedAt(),
                 expected,
                 dueBy);
+    }
+
+    /** The offered periods in ascending order, for the error text ("7, 30, 90"). */
+    private static String periodList() {
+        return String.join(", ", PERIODS.stream().sorted().map(String::valueOf).toList());
     }
 }
