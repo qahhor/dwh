@@ -229,8 +229,8 @@ export class UiListViewsComponent {
           this.toast.success(this.i18n.translate('ui.views.saved'));
         },
         error: (problem: ProblemDetail) => {
-          if (problem?.detail === 'LIST_VIEW_NAME_TAKEN') this.nameError.set('ui.views.name_taken');
-          else if (problem?.detail === 'LIST_VIEW_LIMIT') this.nameError.set('ui.views.limit');
+          if (problem?.messageKey === 'error.md.list_view_name_taken') this.nameError.set('ui.views.name_taken');
+          else if (problem?.messageKey === 'error.md.list_view_limit') this.nameError.set('ui.views.limit');
           else this.toast.error(this.i18n.translate('ui.views.save_error'));
         },
       });
@@ -243,7 +243,9 @@ export class UiListViewsComponent {
         next: () => this.toast.success(this.i18n.translate('ui.views.saved')),
         error: (problem: ProblemDetail) =>
           this.toast.error(
-            this.i18n.translate(problem?.detail === 'STALE_VERSION' ? 'ui.views.stale' : 'ui.views.save_error'),
+            this.i18n.translate(
+              problem?.messageKey === 'error.md.list_view_stale' ? 'ui.views.stale' : 'ui.views.save_error',
+            ),
           ),
       });
   }

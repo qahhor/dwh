@@ -71,6 +71,7 @@ public class ReportExportService {
 
     /** The code of a refused option or column and of a job that failed on its stored request. */
     public static final String EXPORT_INVALID = "EXPORT_INVALID";
+
     static final String EXPORT_FORBIDDEN = "EXPORT_FORBIDDEN";
     static final String EXPORT_FAILED = "EXPORT_FAILED";
 
