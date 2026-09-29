@@ -59,3 +59,21 @@ creates it skips an existing one.
 - Do not delete rows from `flyway_schema_history` or edit checksums by hand.
 - Do not restore the old text of V100 or the file V101: databases created after
   2026-09-20 would then fail the same way.
+
+## An interrupted concurrent index build
+
+A file that builds indexes concurrently (V129 is the first) runs outside a
+transaction (ADR-0020, rule 8). If the build is interrupted (a lock wait over
+`lock_timeout`, a restart, a cancelled session), PostgreSQL keeps the index as
+invalid and Flyway records the migration as failed. Such an index is not used
+by queries, and `create index concurrently if not exists` would skip it on the
+next run. Before running the migration again, find and remove the invalid
+indexes:
+
+```sql
+select indexrelid::regclass from pg_index where not indisvalid;
+drop index concurrently <name>;
+```
+
+Then clear the failed row with `flyway repair` (it only removes failed
+entries) and start the migration again.
