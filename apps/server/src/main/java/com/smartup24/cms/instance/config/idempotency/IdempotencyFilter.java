@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.config.idempotency;
 
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.core.error.ProblemDetailRecord;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
@@ -12,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -21,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -47,8 +44,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(IdempotencyFilter.class);
 
     private final IdempotencyService idempotencyService;
-    private final ObjectMapper objectMapper;
-    private final ProblemMessages messages;
+    private final IdempotencyAnswers answers;
     /** Finds the handler of a request, to honour {@link ReturnsSecret}; absent in slice tests. */
     private final ObjectProvider<RequestMappingHandlerMapping> handlerMapping;
     /**
@@ -79,8 +75,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             @Nullable PlatformTransactionManager transactions,
             ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
         this.idempotencyService = idempotencyService;
-        this.objectMapper = objectMapper;
-        this.messages = messages;
+        this.answers = new IdempotencyAnswers(objectMapper, messages);
         this.transactions = transactions;
         this.handlerMapping = handlerMapping;
     }
@@ -139,13 +134,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
         // 1. Validate sensitive / unsupported endpoint
         if (isUnsupportedPath(request.getRequestURI())) {
-            writeProblemDetail(
+            answers.problem(
                     request,
                     response,
                     HttpServletResponse.SC_BAD_REQUEST,
                     ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
-                    "error.idempotency_auth_unsupported",
-                    request.getRequestURI());
+                    "error.idempotency_auth_unsupported");
             return;
         }
 
@@ -155,56 +149,19 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 2. Validate multipart and content-length header
-        String contentType = request.getContentType();
-        if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
-            writeProblemDetail(
-                    request,
-                    response,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
-                    "error.idempotency_multipart_unsupported",
-                    request.getRequestURI());
+        if (refusedByShape(request, response)) {
             return;
         }
 
-        int contentLength = request.getContentLength();
-        if (contentLength > MAX_REQUEST_BODY_BYTES) {
-            writeProblemDetail(
-                    request,
-                    response,
-                    413,
-                    ErrorCode.PAYLOAD_TOO_LARGE,
-                    "error.idempotency_body_too_large",
-                    request.getRequestURI());
-            return;
-        }
-
-        // 3. Validate UUID format
-        UUID idempotencyKey;
-        try {
-            idempotencyKey = UUID.fromString(keyHeader.trim());
-        } catch (IllegalArgumentException ex) {
-            writeProblemDetail(
-                    request,
-                    response,
-                    HttpServletResponse.SC_BAD_REQUEST,
-                    ErrorCode.IDEMPOTENCY_KEY_INVALID,
-                    "error.idempotency_key_format",
-                    request.getRequestURI());
+        UUID idempotencyKey = parseKey(request, response, keyHeader);
+        if (idempotencyKey == null) {
             return;
         }
 
         // 4. Read and cache request body up to limit + 1 byte (handles chunked/unknown content-length safely)
         byte[] requestBody = request.getInputStream().readNBytes(MAX_REQUEST_BODY_BYTES + 1);
         if (requestBody.length > MAX_REQUEST_BODY_BYTES) {
-            writeProblemDetail(
-                    request,
-                    response,
-                    413,
-                    ErrorCode.PAYLOAD_TOO_LARGE,
-                    "error.idempotency_body_too_large",
-                    request.getRequestURI());
+            answers.problem(request, response, 413, ErrorCode.PAYLOAD_TOO_LARGE, "error.idempotency_body_too_large");
             return;
         }
         CachedBodyHttpServletRequest wrappedRequest = new CachedBodyHttpServletRequest(request, requestBody);
@@ -214,39 +171,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
         Long userId = SecurityContext.getCurrentUserId();
         IdempotencyService.Claim claim = idempotencyService.claim(idempotencyKey, userId, requestHash);
-        switch (claim.state()) {
-            case REPLAY -> {
-                var existing = claim.existing();
-                response.setStatus(existing.responseStatus());
-                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                response.setHeader(HEADER_IDEMPOTENT_REPLAY, "true");
-                response.getOutputStream().write(existing.responseBody().getBytes(StandardCharsets.UTF_8));
-                response.getOutputStream().flush();
-                return;
-            }
-            case PAYLOAD_MISMATCH -> {
-                writeProblemDetail(
-                        request,
-                        response,
-                        HttpServletResponse.SC_CONFLICT,
-                        ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
-                        "error.idempotency_key_payload_mismatch",
-                        request.getRequestURI());
-                return;
-            }
-            case IN_PROGRESS -> {
-                writeProblemDetail(
-                        request,
-                        response,
-                        HttpServletResponse.SC_CONFLICT,
-                        ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS,
-                        "error.idempotency_request_in_progress",
-                        request.getRequestURI());
-                return;
-            }
-            case ACQUIRED -> {
-                // Continue below: this request owns the database reservation.
-            }
+        if (answeredByClaim(claim, request, response)) {
+            return;
         }
 
         ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
@@ -261,6 +187,82 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                     idempotencyKey,
                     claim.reservationToken());
         }
+    }
+
+    /** Multipart bodies and bodies over the limit are not kept for replay: refused before the body is read. */
+    private boolean refusedByShape(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String contentType = request.getContentType();
+        if (contentType != null && contentType.toLowerCase().startsWith("multipart/")) {
+            answers.problem(
+                    request,
+                    response,
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    ErrorCode.IDEMPOTENCY_NOT_SUPPORTED,
+                    "error.idempotency_multipart_unsupported");
+            return true;
+        }
+
+        int contentLength = request.getContentLength();
+        if (contentLength > MAX_REQUEST_BODY_BYTES) {
+            answers.problem(request, response, 413, ErrorCode.PAYLOAD_TOO_LARGE, "error.idempotency_body_too_large");
+            return true;
+        }
+
+        return false;
+    }
+
+    /** The key as a UUID, or null after answering 400 for a key of another shape. */
+    private @Nullable UUID parseKey(HttpServletRequest request, HttpServletResponse response, String keyHeader)
+            throws IOException {
+        try {
+            return UUID.fromString(keyHeader.trim());
+        } catch (IllegalArgumentException ex) {
+            answers.problem(
+                    request,
+                    response,
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    ErrorCode.IDEMPOTENCY_KEY_INVALID,
+                    "error.idempotency_key_format");
+            return null;
+        }
+    }
+
+    /**
+     * Answers a request whose key is already taken: the stored answer is replayed, another payload or a request still
+     * running is refused. False when this request owns the reservation and must run.
+     */
+    private boolean answeredByClaim(
+            IdempotencyService.Claim claim, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        switch (claim.state()) {
+            case REPLAY -> {
+                answers.replay(response, claim.existing());
+                return true;
+            }
+            case PAYLOAD_MISMATCH -> {
+                answers.problem(
+                        request,
+                        response,
+                        HttpServletResponse.SC_CONFLICT,
+                        ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
+                        "error.idempotency_key_payload_mismatch");
+                return true;
+            }
+            case IN_PROGRESS -> {
+                answers.problem(
+                        request,
+                        response,
+                        HttpServletResponse.SC_CONFLICT,
+                        ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS,
+                        "error.idempotency_request_in_progress");
+                return true;
+            }
+            case ACQUIRED -> {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -306,13 +308,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 }
                 idempotencyService.release(key, reservationToken);
                 responseWrapper.resetBuffer();
-                writeProblemDetail(
+                answers.problem(
                         request,
                         responseWrapper,
                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                         ErrorCode.INTERNAL_ERROR,
-                        "error.internal_error",
-                        request.getRequestURI());
+                        "error.internal_error");
             }
         } else if (storable && status < 400) {
             // The handler reports success although something in the request rolled back (a failure swallowed on
@@ -321,13 +322,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             transactionManager.rollback(tx);
             idempotencyService.release(key, reservationToken);
             responseWrapper.resetBuffer();
-            writeProblemDetail(
+            answers.problem(
                     request,
                     responseWrapper,
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                     ErrorCode.INTERNAL_ERROR,
-                    "error.internal_error",
-                    request.getRequestURI());
+                    "error.internal_error");
         } else {
             transactionManager.rollback(tx);
             if (storable) {
@@ -368,21 +368,5 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 responseWrapper.copyBodyToResponse();
             }
         }
-    }
-
-    private void writeProblemDetail(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            int status,
-            ErrorCode errorCode,
-            String key,
-            String instance)
-            throws IOException {
-        response.setStatus(status);
-        response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-        ProblemDetailRecord problem =
-                ProblemDetailRecord.of(errorCode, key, null, messages.render(request, key, Map.of()), instance);
-        response.getOutputStream().write(objectMapper.writeValueAsBytes(problem));
-        response.getOutputStream().flush();
     }
 }

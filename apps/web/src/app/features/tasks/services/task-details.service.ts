@@ -107,6 +107,7 @@ export class TaskDetailsService {
             this.taskSubtasks.set(res.subtasks || []);
             this.taskAncestors.set(res.ancestors || []);
             this.taskFiles.set(res.files || []);
+            this.markViewed(res.task.id);
           } else {
             this.detailLoadError.set(true);
           }
@@ -118,6 +119,14 @@ export class TaskDetailsService {
           this.detailNotFound.set(error?.status === 404 || error?.status === 403);
         },
       });
+  }
+
+  /**
+   * Reading a task does not change it (plan 10/10, item 3.10): the card marks it viewed by a separate command once it
+   * is shown. A failure only leaves the unread mark, so it is not reported.
+   */
+  private markViewed(taskId: number): void {
+    this.api.post(`/tasks/${taskId}/view`, null, { notifyError: false }).subscribe({ error: () => undefined });
   }
 
   retryTaskDetails(routeRecordId: () => string | null): void {

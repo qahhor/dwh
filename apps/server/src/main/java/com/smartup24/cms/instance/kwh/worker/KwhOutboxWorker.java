@@ -47,6 +47,25 @@ public class KwhOutboxWorker {
         this.restClient = RestClient.builder().requestFactory(requestFactory).build();
     }
 
+    /** One signed delivery to the subscription's checked address. */
+    private org.springframework.http.ResponseEntity<Void> post(KwhOutboxRepository.KwhOutboxRecord item) {
+        var target = targetPolicy.validate(item.targetUrl());
+        String payloadJson = objectMapper.writeValueAsString(item.payload());
+        String signature = KwhWebhookService.computeHmacSha256(payloadJson, item.secretToken());
+        long timestamp = Instant.now().getEpochSecond();
+        return restClient
+                .post()
+                .uri(target)
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Signature-SHA256", signature)
+                .header("X-Signature-Timestamp", String.valueOf(timestamp))
+                .header("X-Event-Type", item.eventType())
+                .header("X-Delivery-Id", String.valueOf(item.id()))
+                .body(payloadJson)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     @Scheduled(fixedDelay = 3000)
     public void processWebhooks() {
         if (!properties.isEnabled()) {
@@ -64,22 +83,7 @@ public class KwhOutboxWorker {
             String lastError = null;
 
             try {
-                var target = targetPolicy.validate(item.targetUrl());
-                String payloadJson = objectMapper.writeValueAsString(item.payload());
-                String signature = KwhWebhookService.computeHmacSha256(payloadJson, item.secretToken());
-                long timestamp = Instant.now().getEpochSecond();
-
-                var response = restClient
-                        .post()
-                        .uri(target)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .header("X-Signature-SHA256", signature)
-                        .header("X-Signature-Timestamp", String.valueOf(timestamp))
-                        .header("X-Event-Type", item.eventType())
-                        .header("X-Delivery-Id", String.valueOf(item.id()))
-                        .body(payloadJson)
-                        .retrieve()
-                        .toBodilessEntity();
+                var response = post(item);
 
                 httpStatus = response.getStatusCode().value();
                 isSuccess = response.getStatusCode().is2xxSuccessful();

@@ -136,97 +136,89 @@ public record ScopeFilter(
                 """, userId);
     }
 
-    /** UNITS/SUBTREE for files: scoped owner or attachment to a scoped task. */
-    public static ScopeFilter fileByOwnerOrTaskOrgUnit(Long userId) {
-        return scoped("""
-                 and (
-                      exists (
-                          select 1
-                          from md_users scope_owner
-                          where scope_owner.id = f.created_by
-                            and (
-                                 scope_owner.org_unit_id in (
-                                     select org_unit_id
-                                     from md_effective_scope
-                                     where user_id = :scopeUserId
-                                 )
-                              or exists (
-                                     select 1
-                                     from md_user_org_units scope_owner_uou
-                                     join md_effective_scope scope_owner_es
-                                       on scope_owner_es.org_unit_id = scope_owner_uou.org_unit_id
-                                      and scope_owner_es.user_id = :scopeUserId
-                                     where scope_owner_uou.user_id = scope_owner.id
-                                 )
-                            )
+    /** The file's author is in the viewer's scope, by home unit or by an additional unit. */
+    private static final String FILE_OWNER_IN_SCOPE = """
+            exists (
+                select 1
+                from md_users scope_owner
+                where scope_owner.id = f.created_by
+                  and (
+                       scope_owner.org_unit_id in (
+                           select org_unit_id
+                           from md_effective_scope
+                           where user_id = :scopeUserId
+                       )
+                    or exists (
+                           select 1
+                           from md_user_org_units scope_owner_uou
+                           join md_effective_scope scope_owner_es
+                             on scope_owner_es.org_unit_id = scope_owner_uou.org_unit_id
+                            and scope_owner_es.user_id = :scopeUserId
+                           where scope_owner_uou.user_id = scope_owner.id
+                       )
+                  )
+            )
+            """;
+
+    /** A participant of task {@code t} (author, reporter or member) is in the viewer's scope. */
+    private static final String TASK_PARTICIPANT_IN_SCOPE = """
+            exists (
+                select 1
+                from (
+                    select t.created_by as user_id
+                    union
+                    select t.reporter_id
+                    union
+                    select scope_tm.user_id
+                    from ms_task_members scope_tm
+                    where scope_tm.task_id = t.id
+                ) scope_participant
+                join md_users scope_u on scope_u.id = scope_participant.user_id
+                where scope_u.org_unit_id in (
+                          select org_unit_id
+                          from md_effective_scope
+                          where user_id = :scopeUserId
                       )
                    or exists (
-                        select 1
-                        from ms_task_files scope_tf
-                        join ms_tasks t on t.id = scope_tf.task_id
-                        where scope_tf.file_id = f.id
-                          and exists (
-                              select 1
-                              from (
-                                  select t.created_by as user_id
-                                  union
-                                  select t.reporter_id
-                                  union
-                                  select scope_tm.user_id
-                                  from ms_task_members scope_tm
-                                  where scope_tm.task_id = t.id
-                              ) scope_participant
-                              join md_users scope_u on scope_u.id = scope_participant.user_id
-                              where scope_u.org_unit_id in (
-                                        select org_unit_id
-                                        from md_effective_scope
-                                        where user_id = :scopeUserId
-                                    )
-                                 or exists (
-                                        select 1
-                                        from md_user_org_units scope_uou
-                                        join md_effective_scope scope_es
-                                          on scope_es.org_unit_id = scope_uou.org_unit_id
-                                         and scope_es.user_id = :scopeUserId
-                                        where scope_uou.user_id = scope_participant.user_id
-                                    )
-                          )
-                   )
-                   or exists (
-                        select 1
-                        from ms_task_comment_files scope_cf
-                        join ms_task_comments scope_c on scope_c.id = scope_cf.comment_id
-                        join ms_tasks t on t.id = scope_c.task_id
-                        where scope_cf.file_id = f.id
-                          and exists (
-                              select 1
-                              from (
-                                  select t.created_by as user_id
-                                  union
-                                  select t.reporter_id
-                                  union
-                                  select scope_tm.user_id
-                                  from ms_task_members scope_tm
-                                  where scope_tm.task_id = t.id
-                              ) scope_participant
-                              join md_users scope_u on scope_u.id = scope_participant.user_id
-                              where scope_u.org_unit_id in (
-                                        select org_unit_id
-                                        from md_effective_scope
-                                        where user_id = :scopeUserId
-                                    )
-                                 or exists (
-                                        select 1
-                                        from md_user_org_units scope_uou
-                                        join md_effective_scope scope_es
-                                          on scope_es.org_unit_id = scope_uou.org_unit_id
-                                         and scope_es.user_id = :scopeUserId
-                                        where scope_uou.user_id = scope_participant.user_id
-                                    )
-                          )
-                   )
-                 )
-                """, userId);
+                          select 1
+                          from md_user_org_units scope_uou
+                          join md_effective_scope scope_es
+                            on scope_es.org_unit_id = scope_uou.org_unit_id
+                           and scope_es.user_id = :scopeUserId
+                          where scope_uou.user_id = scope_participant.user_id
+                      )
+            )
+            """;
+
+    /** The file is attached to a task {@code t} with a participant in the viewer's scope. */
+    private static final String TASK_FILE = """
+            exists (
+                select 1
+                from ms_task_files scope_tf
+                join ms_tasks t on t.id = scope_tf.task_id
+                where scope_tf.file_id = f.id
+                  and
+            """;
+
+    /** The file is attached to a comment of such a task. */
+    private static final String COMMENT_FILE = """
+            exists (
+                select 1
+                from ms_task_comment_files scope_cf
+                join ms_task_comments scope_c on scope_c.id = scope_cf.comment_id
+                join ms_tasks t on t.id = scope_c.task_id
+                where scope_cf.file_id = f.id
+                  and
+            """;
+
+    /** UNITS/SUBTREE for files: scoped owner or attachment to a scoped task (directly or through a comment). */
+    public static ScopeFilter fileByOwnerOrTaskOrgUnit(Long userId) {
+        return scoped(
+                " and (" + FILE_OWNER_IN_SCOPE
+                        + " or " + TASK_FILE + TASK_PARTICIPANT_IN_SCOPE + ")"
+                        + " or " + COMMENT_FILE + TASK_PARTICIPANT_IN_SCOPE + ")"
+                        + ")",
+                userId);
     }
 
     private static ScopeFilter scoped(String sql, Long userId) {

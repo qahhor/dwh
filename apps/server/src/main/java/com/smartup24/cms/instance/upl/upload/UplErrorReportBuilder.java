@@ -42,43 +42,7 @@ public class UplErrorReportBuilder {
         try (Workbook workbook =
                 new Workbook(out, UplTemplateBuilder.XLSX_APPLICATION, UplTemplateBuilder.XLSX_APP_VERSION)) {
             Worksheet ws = workbook.newWorksheet(sheetName(text.apply("upl.errfile.sheet", Map.of())));
-            int row = 0;
-            ws.value(row, 0, text.apply("upl.errfile.title", Map.of("file", pkg.fileName())));
-            ws.style(row, 0).bold().fontSize(14).set();
-            row += 2;
-            row = fact(
-                    ws,
-                    row,
-                    text.apply("upl.errfile.source", Map.of()),
-                    pkg.sourceName() + " (" + pkg.sourceCode() + ")");
-            row = fact(ws, row, text.apply("upl.errfile.period", Map.of()), period(pkg));
-            row = fact(
-                    ws,
-                    row,
-                    text.apply("upl.errfile.uploaded_at", Map.of()),
-                    pkg.uploadedAt() == null ? "" : MOMENT.format(pkg.uploadedAt()) + " UTC");
-            row = fact(
-                    ws,
-                    row,
-                    text.apply("upl.errfile.status", Map.of()),
-                    text.apply("upl.pkg.status." + pkg.status(), Map.of()));
-            row = fact(ws, row, text.apply("upl.errfile.rows", Map.of()), counters(pkg, text));
-            if (pkg.rejectCode() != null) {
-                row = fact(
-                        ws,
-                        row,
-                        text.apply("upl.errfile.reason", Map.of()),
-                        codeText(pkg.rejectCode(), pkg.rejectParams(), text));
-            }
-            if (errors.items().size() < errors.total()) {
-                ws.value(
-                        row++,
-                        0,
-                        text.apply(
-                                "upl.errfile.truncated",
-                                Map.of("shown", errors.items().size(), "total", errors.total())));
-            }
-            row++;
+            int row = writeFacts(ws, pkg, errors, text);
 
             String[] headers = {
                 text.apply("upl.pkg.errors.col.sheet", Map.of()),
@@ -119,6 +83,46 @@ public class UplErrorReportBuilder {
             throw new UncheckedIOException(e);
         }
         return new ReportFile(reportName(pkg.fileName()), out.toByteArray());
+    }
+
+    /** The package's title and facts (source, period, upload, status, counters, reason) above the error table. */
+    private int writeFacts(
+            Worksheet ws, PackageRow pkg, ErrorsView errors, BiFunction<String, Map<String, Object>, String> text) {
+        int row = 0;
+        ws.value(row, 0, text.apply("upl.errfile.title", Map.of("file", pkg.fileName())));
+        ws.style(row, 0).bold().fontSize(14).set();
+        row += 2;
+        row = fact(
+                ws, row, text.apply("upl.errfile.source", Map.of()), pkg.sourceName() + " (" + pkg.sourceCode() + ")");
+        row = fact(ws, row, text.apply("upl.errfile.period", Map.of()), period(pkg));
+        row = fact(
+                ws,
+                row,
+                text.apply("upl.errfile.uploaded_at", Map.of()),
+                pkg.uploadedAt() == null ? "" : MOMENT.format(pkg.uploadedAt()) + " UTC");
+        row = fact(
+                ws,
+                row,
+                text.apply("upl.errfile.status", Map.of()),
+                text.apply("upl.pkg.status." + pkg.status(), Map.of()));
+        row = fact(ws, row, text.apply("upl.errfile.rows", Map.of()), counters(pkg, text));
+        if (pkg.rejectCode() != null) {
+            row = fact(
+                    ws,
+                    row,
+                    text.apply("upl.errfile.reason", Map.of()),
+                    codeText(pkg.rejectCode(), pkg.rejectParams(), text));
+        }
+        if (errors.items().size() < errors.total()) {
+            ws.value(
+                    row++,
+                    0,
+                    text.apply(
+                            "upl.errfile.truncated",
+                            Map.of("shown", errors.items().size(), "total", errors.total())));
+        }
+        row++;
+        return row;
     }
 
     private static int fact(Worksheet ws, int row, String label, String value) {

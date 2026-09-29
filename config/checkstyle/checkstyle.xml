@@ -32,7 +32,7 @@
     </module>
     <!-- Temporary waivers, each removed by the item named:
          OpenApiController is deleted by item 3.3 (the springdoc-based contract replaces it);
-         UplXlsxParser is being reworked by the UPL task running in parallel with 3.10 and is split there. -->
+         UplXlsxParser streams rows since item 3.9; splitting its reading from its checks is the next step. -->
     <module name="SuppressionSingleFilter">
         <property name="files" value="[\\/]config[\\/]openapi[\\/]OpenApiController\.java$|[\\/]upl[\\/]parse[\\/]UplXlsxParser\.java$"/>
         <property name="checks" value="FileLength|MethodLength"/>
