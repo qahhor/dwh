@@ -211,8 +211,28 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     // Retry load
     shouldFail = false;
     component.loadAll();
+    fixture.detectChanges();
+    await fixture.whenStable();
 
     expect(component.loadError()).toBe(false);
     expect(component.effectiveItems().length).toBe(3);
+  });
+
+  it('asks again for another user, drops the previous draft and keeps the catalog', async () => {
+    const { fixture, api } = await createFixture();
+    const component = fixture.componentInstance;
+    component.removePersonalGrant('iam.users', 'create');
+    expect(component.hasUnsavedChanges()).toBe(true);
+
+    fixture.componentRef.setInput('userId', 11);
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(api.get).toHaveBeenCalledWith('/iam/users/11/effective-permissions');
+    expect(api.get).toHaveBeenCalledWith('/iam/users/11/permissions');
+    expect(api.get.mock.calls.filter(([path]) => path === '/iam/roles/forms')).toHaveLength(1);
+    expect(component.hasUnsavedChanges()).toBe(false);
+    expect(component.effectiveItems()).toEqual([]);
+    expect(component.personalGrants()).toEqual([]);
   });
 });

@@ -58,23 +58,29 @@ describe('RolesComponent permission matrix lifecycle', () => {
     TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.grant']);
     fixture = TestBed.createComponent(RolesComponent);
     host = fixture.nativeElement;
-    fixture.detectChanges();
+    await settle();
     http.expectOne('/api/v1/rbac/forms').flush(forms);
     http.expectOne('/api/v1/rbac/roles').flush(roles);
     http.expectOne('/api/v1/iam/roles/user-counts').flush({});
-    fixture.detectChanges();
+    await settle();
   });
 
   afterEach(() => http.verify());
 
-  function selectRole(index: number) {
-    host.querySelectorAll<HTMLButtonElement>('.role-select-btn')[index].click();
+  /** The matrix is a resource: its request starts, and its answer lands, on a later task. */
+  async function settle() {
+    await new Promise((resolve) => setTimeout(resolve));
     fixture.detectChanges();
   }
 
-  function loadRoleA() {
+  async function selectRole(index: number) {
+    host.querySelectorAll<HTMLButtonElement>('.role-select-btn')[index].click();
+    await settle();
+  }
+
+  async function loadRoleA() {
     http.expectOne('/api/v1/rbac/roles/1/permissions').flush(['tasks.items.view']);
-    fixture.detectChanges();
+    await settle();
   }
 
   function checkbox(action: string) {
@@ -88,12 +94,12 @@ describe('RolesComponent permission matrix lifecycle', () => {
     );
   }
 
-  it('saves only role B permissions after a late role A response', () => {
+  it('saves only role B permissions after a late role A response', async () => {
     const slowA = http.expectOne('/api/v1/rbac/roles/1/permissions');
-    selectRole(1);
+    await selectRole(1);
     http.expectOne('/api/v1/rbac/roles/2/permissions').flush(['tasks.items.update']);
     if (!slowA.cancelled) slowA.flush(['tasks.items.view']);
-    fixture.detectChanges();
+    await settle();
     saveButton()!.click();
     const write = http.expectOne('/api/v1/rbac/roles/2/permissions');
 
@@ -103,9 +109,9 @@ describe('RolesComponent permission matrix lifecycle', () => {
     write.flush(null);
   });
 
-  it('cannot save or edit the previous matrix before role B permissions arrive', () => {
-    loadRoleA();
-    selectRole(1);
+  it('cannot save or edit the previous matrix before role B permissions arrive', async () => {
+    await loadRoleA();
+    await selectRole(1);
     const pendingB = http.expectOne('/api/v1/rbac/roles/2/permissions');
 
     expect.soft(checkbox('view').checked).toBe(false);
@@ -118,12 +124,12 @@ describe('RolesComponent permission matrix lifecycle', () => {
     for (const write of writes) write.flush(null);
 
     pendingB.flush(['tasks.items.update']);
-    fixture.detectChanges();
+    await settle();
     expect(saveButton()?.disabled).toBe(false);
     expect(checkbox('update').checked).toBe(true);
   });
 
-  it('cannot submit an accidental empty permission set during initial loading', () => {
+  it('cannot submit an accidental empty permission set during initial loading', async () => {
     const pendingA = http.expectOne('/api/v1/rbac/roles/1/permissions');
     saveButton()!.click();
     fixture.componentInstance.matrix.savePermissions();
@@ -133,13 +139,13 @@ describe('RolesComponent permission matrix lifecycle', () => {
     pendingA.flush(['tasks.items.view']);
   });
 
-  it('keeps a failed role disabled and offers a retry for its own permissions', () => {
-    loadRoleA();
-    selectRole(1);
+  it('keeps a failed role disabled and offers a retry for its own permissions', async () => {
+    await loadRoleA();
+    await selectRole(1);
     http
       .expectOne('/api/v1/rbac/roles/2/permissions')
       .flush({ detail: 'Permission lookup unavailable' }, { status: 503, statusText: 'Service Unavailable' });
-    fixture.detectChanges();
+    await settle();
 
     expect.soft(host.querySelector('[role="alert"]')?.textContent ?? '').toContain('Permission lookup unavailable');
     expect.soft(saveButton()?.disabled).toBe(true);
@@ -154,18 +160,19 @@ describe('RolesComponent permission matrix lifecycle', () => {
     );
     expect(retry).toBeDefined();
     retry!.click();
+    await settle();
     http.expectOne('/api/v1/rbac/roles/2/permissions').flush(['tasks.items.update']);
-    fixture.detectChanges();
+    await settle();
     expect(host.querySelector('[role="alert"]')).toBeNull();
     expect(saveButton()?.disabled).toBe(false);
     expect(checkbox('update').checked).toBe(true);
   });
 
-  it('freezes the saved matrix and role selection until its single PUT completes', () => {
-    loadRoleA();
+  it('freezes the saved matrix and role selection until its single PUT completes', async () => {
+    await loadRoleA();
     saveButton()!.click();
     const firstWrite = http.expectOne('/api/v1/rbac/roles/1/permissions');
-    fixture.detectChanges();
+    await settle();
 
     expect.soft(checkbox('view').disabled).toBe(true);
     expect.soft(host.querySelector<HTMLButtonElement>('.role-select-btn')?.disabled).toBe(true);
@@ -191,20 +198,20 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect.soft(component.matrix.selectedRole()?.id).toBe(1);
     expect.soft(Array.from(component.matrix.rolePermissions())).toEqual(['tasks.items.view']);
     firstWrite.flush(null);
-    fixture.detectChanges();
+    await settle();
     expect(saveButton()?.disabled).toBe(false);
     expect(checkbox('view').disabled).toBe(false);
   });
 
-  it('keeps the matrix draft available for a failed save retry', () => {
-    loadRoleA();
+  it('keeps the matrix draft available for a failed save retry', async () => {
+    await loadRoleA();
     checkbox('update').click();
-    fixture.detectChanges();
+    await settle();
     saveButton()!.click();
     http
       .expectOne('/api/v1/rbac/roles/1/permissions')
       .flush({ detail: 'Save unavailable' }, { status: 503, statusText: 'Service Unavailable' });
-    fixture.detectChanges();
+    await settle();
 
     expect(saveButton()?.disabled).toBe(false);
     expect(checkbox('view').checked).toBe(true);
@@ -218,10 +225,10 @@ describe('RolesComponent permission matrix lifecycle', () => {
     retry.flush(null);
   });
 
-  it('requires grant permission rather than role update permission to edit a matrix', () => {
-    loadRoleA();
+  it('requires grant permission rather than role update permission to edit a matrix', async () => {
+    await loadRoleA();
     TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.update']);
-    fixture.detectChanges();
+    await settle();
 
     expect.soft(saveButton()).toBeNull();
     expect.soft(checkbox('view').disabled).toBe(true);
@@ -234,11 +241,11 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect(Array.from(component.matrix.rolePermissions())).toEqual(['tasks.items.view']);
   });
 
-  it('does not submit changes to the administrator matrix', () => {
-    loadRoleA();
-    selectRole(2);
+  it('does not submit changes to the administrator matrix', async () => {
+    await loadRoleA();
+    await selectRole(2);
     http.expectOne('/api/v1/rbac/roles/3/permissions').flush(['tasks.items.view']);
-    fixture.detectChanges();
+    await settle();
     saveButton()?.click();
     fixture.componentInstance.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
@@ -248,7 +255,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect(checkbox('update').disabled).toBe(true);
   });
 
-  it('ignores a permission response after leaving the roles screen', () => {
+  it('ignores a permission response after leaving the roles screen', async () => {
     const pending = http.expectOne('/api/v1/rbac/roles/1/permissions');
     const component = fixture.componentInstance;
     fixture.destroy();

@@ -1,6 +1,7 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription } from 'rxjs';
+import { DestroyRef, Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
+import { ProblemDetail } from '@core/models/common.models';
 import { PermissionPair, Role } from '@core/models/rbac.models';
 import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
@@ -40,12 +41,21 @@ export class RolePermissionsEditor {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly selectedRole = signal<Role | null>(null);
-  readonly rolePermissions = signal<Set<string>>(new Set());
-  readonly originalRolePermissions = signal<Set<string>>(new Set());
-  readonly isLoading = signal<boolean>(false);
-  readonly permissionsError = signal('');
   readonly isSaving = signal<boolean>(false);
-  private readonly loadedPermissionsRoleId = signal<number | null>(null);
+
+  /* The loaded matrix is the saved state and the start of the draft; a new answer (or none,
+     while another role loads) replaces both, so a draft never outlives its role. */
+  readonly originalRolePermissions = linkedSignal(() => new Set(this.loadedMatrix()?.perms));
+  readonly rolePermissions = linkedSignal(() => new Set(this.loadedMatrix()?.perms));
+  /** The role whose matrix is asked; a new object asks again for the same role. */
+  private readonly matrixOf = signal<{ roleId: number } | undefined>(undefined);
+  private readonly loadedPermissionsRoleId = linkedSignal(() => this.loadedMatrix()?.roleId ?? null);
+
+  readonly isLoading = computed(() => this.matrixRead.isLoading());
+  readonly permissionsError = computed(() => {
+    const answer = this.matrixRead.value();
+    return answer && 'error' in answer ? answer.error : '';
+  });
 
   readonly isPermissionsDirty = computed<boolean>(() =>
     arePermissionsDirty(this.originalRolePermissions(), this.rolePermissions()),
@@ -54,6 +64,10 @@ export class RolePermissionsEditor {
   readonly dirtyPermissionsCount = computed<number>(() =>
     countDirtyPermissions(this.originalRolePermissions(), this.rolePermissions()),
   );
+  private readonly loadedMatrix = computed(() => {
+    const answer = this.matrixRead.value();
+    return answer && 'perms' in answer ? answer : undefined;
+  });
 
   // Arrow fields: the matrix takes them as inputs, so they keep one identity.
   readonly hasPermission = (formCode: string, action: string): boolean =>
@@ -65,7 +79,15 @@ export class RolePermissionsEditor {
     return this.originalRolePermissions().has(key) !== this.rolePermissions().has(key);
   };
 
-  private permissionsRequest?: Subscription;
+  /** Asking for another role cancels the answer still due for the previous one. */
+  private readonly matrixRead = rxResource({
+    params: () => this.matrixOf(),
+    stream: ({ params }) =>
+      this.rolesApi.permissions(params.roleId).pipe(
+        map((res) => ({ roleId: params.roleId, perms: res || [] })),
+        catchError((error: Partial<ProblemDetail>) => of({ error: error.detail || error.title || '' })),
+      ),
+  });
 
   canGrant(): boolean {
     return (
@@ -89,42 +111,15 @@ export class RolePermissionsEditor {
   /** Selects the role and loads its matrix; an answer for a role no longer selected is dropped. */
   load(role: Role): void {
     if (this.destroyRef.destroyed) return;
-    this.permissionsRequest?.unsubscribe();
     this.selectedRole.set(role);
-    this.rolePermissions.set(new Set());
-    this.originalRolePermissions.set(new Set());
-    this.loadedPermissionsRoleId.set(null);
-    this.permissionsError.set('');
-    this.isLoading.set(true);
-    this.permissionsRequest = this.rolesApi
-      .permissions(role.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (res) => {
-          if (this.selectedRole()?.id !== role.id) return;
-          const perms = new Set(res || []);
-          this.rolePermissions.set(new Set(perms));
-          this.originalRolePermissions.set(new Set(perms));
-          this.loadedPermissionsRoleId.set(role.id);
-          this.isLoading.set(false);
-        },
-        error: (error) => {
-          if (this.selectedRole()?.id !== role.id) return;
-          this.permissionsError.set(error.detail || error.title);
-          this.isLoading.set(false);
-        },
-      });
+    this.matrixOf.set({ roleId: role.id });
   }
 
-  /** Forgets the selection when that role is gone. */
+  /** Forgets the selection, and its matrix and draft, when that role is gone. */
   clearIfSelected(roleId: number): void {
     if (this.selectedRole()?.id !== roleId) return;
-    this.permissionsRequest?.unsubscribe();
     this.selectedRole.set(null);
-    this.rolePermissions.set(new Set());
-    this.loadedPermissionsRoleId.set(null);
-    this.permissionsError.set('');
-    this.isLoading.set(false);
+    this.matrixOf.set(undefined);
   }
 
   togglePermission(formCode: string, action: string, checked: boolean): void {
