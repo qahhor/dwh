@@ -186,11 +186,11 @@ async function createOrgUnit(
 }
 
 async function createRole(page: Page): Promise<Role> {
-  const role = await api<Role>(page.context(), 'POST', '/rbac/roles', 201, {
+  const role = await api<Role>(page.context(), 'POST', '/iam/roles', 201, {
     name: fixtureNames.role,
     orderNo: 9000,
   });
-  await api<void>(page.context(), 'PUT', `/rbac/roles/${role.id}/permissions`, 204, [
+  await api<void>(page.context(), 'PUT', `/iam/roles/${role.id}/permissions`, 204, [
     { formCode: 'tasks.items', action: 'view' },
     { formCode: 'tasks.projects', action: 'view' },
     { formCode: 'md.custom_fields', action: 'view' },
@@ -219,7 +219,7 @@ async function createUser(page: Page, roleId: number, suffix: string): Promise<{
 }
 
 async function createTask(page: Page, suffix: string, participantId: number): Promise<TaskRecord> {
-  return api<TaskRecord>(page.context(), 'POST', '/tasks/items', 201, {
+  return api<TaskRecord>(page.context(), 'POST', '/tasks', 201, {
     title: `${runPrefix} task ${suffix}`,
     descriptionMarkdown: 'Synthetic organization-scope browser fixture',
     priority: 'medium',
