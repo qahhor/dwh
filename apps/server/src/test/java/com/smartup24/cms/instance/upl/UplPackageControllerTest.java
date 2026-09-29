@@ -254,7 +254,7 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(413);
         assertThat((String) read(response, "$.code")).isEqualTo("file_size_exceeded");
         assertThat((String) read(response, "$.messageKey")).isEqualTo("error.upl.pkg_file_too_large");
-        assertThat((String) read(response, "$.detail")).isEqualTo("Файл больше 20 МБ");
+        assertThat((String) read(response, "$.detail")).isEqualTo("Файл больше 50 МБ");
         assertThat(packageCount()).isZero();
     }
 
@@ -327,7 +327,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
         assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
         assertThat(queued.getHeader("Location")).isEqualTo(BASE + "/" + id);
         assertThat((String) read(queued, "$.status")).isEqualTo(UplPackageModel.APPLYING);
-        assertThat((Object) read(queued, "$.rawRows")).isNull();
+        // Not applied yet: no raw rows, and a null field is left out of the JSON.
+        assertThat(queued.getContentAsString()).doesNotContain("\"rawRows\"");
         assertThat((Object) read(queued, "$.loadId")).isNotNull();
         assertThat(jdbc.sql("select handler from fnd_job_queue")
                         .query(String.class)

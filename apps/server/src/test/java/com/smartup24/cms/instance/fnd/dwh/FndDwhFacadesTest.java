@@ -119,7 +119,9 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
 
         // Фасад умеет только писать, считать и читать: правки и удаления в контракте нет
-        assertThat(FndRawWriter.class.getDeclaredMethods())
+        // Synthetic methods (a default method's lambda, coverage probes) are not part of the contract.
+        assertThat(java.util.Arrays.stream(FndRawWriter.class.getDeclaredMethods())
+                        .filter(method -> !method.isSynthetic()))
                 .extracting(java.lang.reflect.Method::getName)
                 .containsExactlyInAnyOrder("write", "copy", "count", "read");
     }

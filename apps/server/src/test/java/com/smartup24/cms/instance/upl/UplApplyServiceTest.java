@@ -329,7 +329,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         backdate(queued);
         tx.executeWithoutResult(status -> recovery.run(Map.of("staleMinutes", 60)));
 
-        applyJob.run(args(queued));
+        // The queued apply job of the package closed by recovery runs from the queue and leaves it alone.
+        assertThat(jobs.runQueued()).isEqualTo(1);
 
         PackageRow closed = packages.get(row.publicId().toString());
         assertThat(closed.status()).isEqualTo(UplPackageModel.REJECTED);

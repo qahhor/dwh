@@ -37,8 +37,8 @@ public class UplPackageRepository {
     static final String PACKAGE_COLUMNS = """
             p.id, p.public_id, p.source_id, s.code as source_code, s.name as source_name,
                    p.format_version, p.period_from, p.period_to, p.file_id, p.file_name, p.file_sha256,
-                   p.file_size_bytes, """ + STATUS_SQL + """
-             as status, p.rows_total, p.rows_accepted, p.rows_rejected, p.errors_total,
+                   p.file_size_bytes, """ + STATUS_SQL + " as status, " + """
+                   p.rows_total, p.rows_accepted, p.rows_rejected, p.errors_total,
                    p.reject_code, p.reject_params::text as reject_params, p.load_id, p.raw_rows,
                    p.uploaded_at, p.uploaded_by""";
 
