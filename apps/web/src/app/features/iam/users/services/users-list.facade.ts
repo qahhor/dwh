@@ -1,7 +1,7 @@
 import { DestroyRef, Injectable, OnDestroy, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Subscription, finalize, tap } from 'rxjs';
+import { Subscription, catchError, finalize, map, of, tap } from 'rxjs';
 import { User } from '@core/models/auth.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { QueryListMeta } from '@core/models/query-meta.models';
@@ -17,6 +17,7 @@ import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { OrderBy } from '@shared/ui-kit/components/table/table.types';
 import { TableColumnStateStore } from '@shared/ui-kit/services/table-column-state.store';
 import { problemText } from '@shared/ui/problem-text';
+import { lastLoaded } from '@features/iam/last-loaded';
 import { sortFromHeader } from '@shared/ui/registry-table-config';
 import { UsersApi } from '../users.api';
 import { UserDirectoryService } from './user-directory.service';
@@ -47,8 +48,27 @@ export class UsersListFacade implements OnDestroy {
   /** Field metadata of the list (`query-meta/iam.users`), roadmap item 48. */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
-  readonly roles = signal<Role[]>([]);
-  readonly customFields = signal<CustomField[]>([]);
+  /** Set by init(): the reads below wait for the screen to start. */
+  private readonly started = signal(false);
+  /** The roles of the role filter and of the new-user form. */
+  private readonly rolesRead = rxResource({
+    params: () => this.started() || undefined,
+    stream: () =>
+      this.rolesApi.list().pipe(
+        map((res) => res || []),
+        catchError(() => of(null)),
+      ),
+  });
+  private readonly customFieldsRead = rxResource({
+    params: () => this.started() || undefined,
+    stream: () =>
+      this.customFieldsApi.list('USER').pipe(
+        map((res) => res || []),
+        catchError(() => of(null)),
+      ),
+  });
+  readonly roles = lastLoaded<Role[]>(() => this.rolesRead.value(), []);
+  readonly customFields = lastLoaded<CustomField[]>(() => this.customFieldsRead.value(), []);
 
   /** Sort, filter and columns of the list; saved views keep them under a name. */
   readonly views = new ListViewState('iam.users', inject(ListViewsApi), {
@@ -86,14 +106,8 @@ export class UsersListFacade implements OnDestroy {
         this.filters.selectedRoleId = Number(roleParam);
       }
     });
-    this.rolesApi.list().subscribe({
-      next: (res) => this.roles.set(res || []),
-      error: () => {},
-    });
+    this.started.set(true);
     this.loadUsers(true);
-    this.customFieldsApi.list('USER').subscribe((res) => {
-      this.customFields.set(res || []);
-    });
   }
 
   ngOnDestroy(): void {

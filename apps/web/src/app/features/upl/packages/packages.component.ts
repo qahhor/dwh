@@ -7,10 +7,12 @@ import {
   TemplateRef,
   computed,
   inject,
+  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { Observable, catchError, of, switchMap, tap } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -45,7 +47,7 @@ import {
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
-/** Fields of the "new upload" form: a plain object the kit controls write into through `[(value)]`. */
+/** Fields of the "new upload" form; the form signal holds them and is replaced on every change. */
 interface PackageUploadForm {
   sourceId: number | null;
   periodFrom: string;
@@ -102,12 +104,19 @@ export class PackagesComponent implements OnInit {
   /** Field metadata of the list (`query-meta/upl.packages`). */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
-  readonly selected = signal<UplPackageItem | null>(null);
+  /** The upload whose card is open; a link to one upload (from the data overview) opens its card at once. */
+  readonly selected = linkedSignal<UplPackageItem | null, UplPackageItem | null>({
+    source: () => this.linkedUpload(),
+    computation: (linked, previous) => linked ?? previous?.value ?? null,
+  });
 
   /** Options of the source lookup: the rows the last search returned, with the chosen one kept. */
   readonly sourceOptions = signal<SMTSelectOption<number>[]>([]);
   readonly isSending = signal(false);
   readonly formErrors = signal<UplPackageFormErrors>(emptyFormErrors());
+  /* A signal, so that a change made in a callback (a source chosen from a link, the file cleared after an
+     upload) redraws this OnPush screen by itself. */
+  readonly form = signal<PackageUploadForm>(emptyForm());
 
   readonly tableConfig = computed<TableConfig<UplPackageItem> | null>(() => {
     const meta = this.meta();
@@ -149,7 +158,7 @@ export class PackagesComponent implements OnInit {
     { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: (rows) => this.syncSelected(rows) },
   );
   readonly items = this.pager.items;
-  readonly selectedSource = () => this.form.sourceId;
+  readonly selectedSource = () => this.form().sourceId;
   readonly sourceLookup = new LookupChannel<UplSourceItem, number | null>(
     (query, cursor, pageSize) => this.api.searchSources(query, cursor, pageSize),
     (rows, append, selected) => {
@@ -167,20 +176,15 @@ export class PackagesComponent implements OnInit {
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
 
-  form: PackageUploadForm = emptyForm();
-
   private readonly translate: UplTranslate = (key, params) => this.i18n.translate(key, params);
 
   /** The published format version of each source seen in the lookup, for the template link. */
   private readonly publishedVersions = new Map<number, number | null>();
 
+  private readonly linkedUpload = toSignal(this.uploadFromLink(), { initialValue: null });
+
   ngOnInit(): void {
     this.load();
-    // A link to one upload (from the data overview) opens its card at once.
-    const open = this.route.snapshot.queryParamMap.get('open');
-    if (open) {
-      this.api.get(open).subscribe({ next: (item) => this.openCard(item) });
-    }
     const created = this.route.snapshot.queryParamMap.get('source');
     if (this.canUpload() && created && /^\d+$/.test(created)) {
       this.api.source(created).subscribe({ next: (source) => this.chooseSource(source) });
@@ -233,7 +237,7 @@ export class PackagesComponent implements OnInit {
    * so a supplier starts from the right headers. None until a source with a published version is chosen.
    */
   templateLink(): { href: string; version: number } | null {
-    const id = this.form.sourceId;
+    const id = this.form().sourceId;
     const version = id === null || id === undefined ? null : (this.publishedVersions.get(id) ?? null);
     if (id === null || id === undefined || version === null) return null;
     const lang = encodeURIComponent(this.i18n.currentLang());
@@ -247,14 +251,16 @@ export class PackagesComponent implements OnInit {
       return;
     }
     this.metaError.set(false);
+    // The saved views apply their sort over the metadata, so they load only once it is here.
     this.queryMeta
       .get('upl.packages')
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        tap((meta) => this.meta.set(meta)),
+        switchMap(() => this.views.load()),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
-        next: (meta) => {
-          this.meta.set(meta);
-          this.views.load().subscribe(() => this.pager.first());
-        },
+        next: () => this.pager.first(),
         error: () => this.metaError.set(true),
       });
   }
@@ -268,17 +274,22 @@ export class PackagesComponent implements OnInit {
 
   pickFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.form.file = input.files && input.files.length > 0 ? input.files[0] : null;
+    this.patchForm({ file: input.files && input.files.length > 0 ? input.files[0] : null });
+  }
+
+  patchForm(patch: Partial<PackageUploadForm>): void {
+    this.form.update((form) => ({ ...form, ...patch }));
   }
 
   /** Кнопка «Загрузить» оживает, только когда заполнены все четыре поля. */
   isReady(): boolean {
+    const form = this.form();
     return (
       !this.isSending() &&
-      this.form.sourceId !== null &&
-      this.form.periodFrom.length > 0 &&
-      this.form.periodTo.length > 0 &&
-      this.form.file !== null
+      form.sourceId !== null &&
+      form.periodFrom.length > 0 &&
+      form.periodTo.length > 0 &&
+      form.file !== null
     );
   }
 
@@ -286,14 +297,15 @@ export class PackagesComponent implements OnInit {
     if (!this.isReady()) {
       return;
     }
-    const file = this.form.file as File;
+    const form = this.form();
+    const file = form.file as File;
     this.isSending.set(true);
     this.formErrors.set(emptyFormErrors());
     this.api
       .upload({
-        sourceId: Number(this.form.sourceId),
-        periodFrom: this.form.periodFrom,
-        periodTo: this.form.periodTo,
+        sourceId: Number(form.sourceId),
+        periodFrom: form.periodFrom,
+        periodTo: form.periodTo,
         file,
       })
       .subscribe({
@@ -329,7 +341,7 @@ export class PackagesComponent implements OnInit {
   private chooseSource(source: UplSource | UplSourceItem): void {
     const option = this.sourceOption(source);
     this.sourceOptions.update((current) => [option, ...current.filter((item) => item.id !== option.id)]);
-    this.form = { ...this.form, sourceId: source.id };
+    this.patchForm({ sourceId: source.id });
   }
 
   private sourceOption(source: UplSource | UplSourceItem): SMTSelectOption<number> {
@@ -349,11 +361,17 @@ export class PackagesComponent implements OnInit {
 
   /** После успеха чистим только файл: источник и период нужны для следующего файла. */
   private clearFile(): void {
-    this.form.file = null;
+    this.patchForm({ file: null });
     const fileInput = this.fileInput();
     if (fileInput) {
       fileInput.nativeElement.value = '';
     }
+  }
+
+  /** The upload named by the `open` link, or nothing; a link that fails leaves the list on screen. */
+  private uploadFromLink(): Observable<UplPackageItem | null> {
+    const open = this.route.snapshot.queryParamMap.get('open');
+    return open ? this.api.get(open).pipe(catchError(() => of(null))) : of(null);
   }
 
   /** Открытая карточка подхватывает свежие данные списка; пропала из порции — остаётся как была. */

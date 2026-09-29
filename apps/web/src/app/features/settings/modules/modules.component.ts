@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
 
 import { ModulesApi } from './modules.api';
 import { PermissionService } from '@core/services/permission.service';
@@ -96,18 +98,23 @@ export type { InstalledModule, ModuleFilterTab };
   `,
   styleUrl: './modules.component.css',
 })
-export class ModulesComponent implements OnInit {
+export class ModulesComponent {
   private readonly modulesApi = inject(ModulesApi);
   private readonly permissions = inject(PermissionService);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
 
-  readonly modules = signal<InstalledModule[]>([]);
-  readonly isLoading = signal(false);
+  /** A toggle changes it at once; a failed reload keeps the list on screen. */
+  readonly modules = linkedSignal<InstalledModule[] | undefined, InstalledModule[]>({
+    source: () => this.modulesResource.value(),
+    computation: (loaded, previous) => loaded ?? previous?.value ?? [],
+  });
   readonly togglingCode = signal<string | null>(null);
 
   readonly searchQuery = signal('');
   readonly filterTab = signal<ModuleFilterTab>('all');
+
+  readonly isLoading = computed(() => this.modulesResource.isLoading());
 
   readonly activeCount = computed(() => this.modules().filter((m) => m.isActive).length);
 
@@ -141,26 +148,23 @@ export class ModulesComponent implements OnInit {
     return list;
   });
 
-  ngOnInit(): void {
-    this.loadModules();
-  }
+  private readonly modulesResource = rxResource({
+    stream: () =>
+      this.modulesApi.list().pipe(
+        map((list) => list || []),
+        catchError(() => {
+          this.toast.error(this.i18n.translate('modules.load_error'));
+          return of(undefined);
+        }),
+      ),
+  });
 
   canManage(): boolean {
     return this.permissions.canManage('platform.modules');
   }
 
   loadModules(): void {
-    this.isLoading.set(true);
-    this.modulesApi.list().subscribe({
-      next: (data) => {
-        this.modules.set(data || []);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-        this.toast.error(this.i18n.translate('modules.load_error'));
-      },
-    });
+    this.modulesResource.reload();
   }
 
   /** Shows the change at once and takes it back if the server refuses it. */

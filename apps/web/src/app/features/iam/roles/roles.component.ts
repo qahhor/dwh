@@ -9,9 +9,10 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
-import { Observable, Subscription } from 'rxjs';
+import { Observable, Subscription, catchError, map, of, tap } from 'rxjs';
+import { lastLoaded } from '@features/iam/last-loaded';
 import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
@@ -63,10 +64,8 @@ export class RolesComponent implements OnInit {
   private readonly scopePanel = viewChild(RoleScopePanelComponent);
 
   readonly roles = signal<Role[]>([]);
-  readonly forms = signal<FormTreeItem[]>([]);
   /** The scope panel's unsaved or saving state; a panel that goes away (another role, no right) is not busy. */
   readonly scopePanelBusy = linkedSignal({ source: this.scopePanel, computation: () => false });
-  readonly roleUserCounts = signal<Record<number, number>>({});
   readonly isDiscardPermissionsModalOpen = signal<boolean>(false);
   private readonly pendingRoleToSelect = signal<Role | null>(null);
 
@@ -83,12 +82,30 @@ export class RolesComponent implements OnInit {
 
   moduleGroups: ModuleGroup[] = [];
 
+  /** Every form action, asked once; the matrix groups them by module (the groups keep their open state). */
+  readonly forms = toSignal(
+    this.rolesApi.forms().pipe(
+      map((res) => res || []),
+      catchError(() => of<FormTreeItem[]>([])),
+      tap((items) => this.buildModuleGroups(items)),
+    ),
+    { initialValue: [] },
+  );
+  /** How many users hold each role; asked again with the role list. */
+  private readonly userCountsRead = rxResource({
+    stream: () =>
+      this.rolesApi.userCounts().pipe(
+        map((counts) => counts || {}),
+        catchError(() => of(null)),
+      ),
+  });
+  readonly roleUserCounts = lastLoaded<Record<number, number>>(() => this.userCountsRead.value(), {});
+
   constructor() {
     this.destroyRef.onDestroy(() => this.panelLeaveSubscription?.unsubscribe());
   }
 
   ngOnInit() {
-    this.loadForms();
     this.loadRoles();
   }
 
@@ -146,24 +163,7 @@ export class RolesComponent implements OnInit {
   }
 
   loadRoleUserCounts() {
-    this.rolesApi
-      .userCounts()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (counts) => this.roleUserCounts.set(counts || {}),
-        error: () => {},
-      });
-  }
-
-  loadForms() {
-    this.rolesApi
-      .forms()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((res) => {
-        const items = res || [];
-        this.forms.set(items);
-        this.buildModuleGroups(items);
-      });
+    this.userCountsRead.reload();
   }
 
   buildModuleGroups(items: FormTreeItem[]) {

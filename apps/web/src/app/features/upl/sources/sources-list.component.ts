@@ -13,6 +13,7 @@ import {
 import { FormField, applyWhen, form, maxLength, validate } from '@angular/forms/signals';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { switchMap, tap } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
@@ -227,14 +228,16 @@ export class SourcesListComponent implements OnInit {
       return;
     }
     this.metaError.set(false);
+    // The saved views apply their sort over the metadata, so they load only once it is here.
     this.queryMeta
       .get('upl.sources')
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        tap((meta) => this.meta.set(meta)),
+        switchMap(() => this.views.load()),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe({
-        next: (meta) => {
-          this.meta.set(meta);
-          this.views.load().subscribe(() => this.pager.first());
-        },
+        next: () => this.pager.first(),
         error: () => this.metaError.set(true),
       });
   }

@@ -118,6 +118,22 @@ describe('TaskDetailModalComponent', () => {
     expect(groups).toEqual(['Ответственный', 'Соисполнители (2)']);
   });
 
+  it('groups observers and the author too, and offers the change history closed', () => {
+    const others = [
+      { taskId: 7, userId: 4, involveKind: 'O', userName: 'Глеб', userLogin: 'gleb' },
+      { taskId: 7, userId: 5, involveKind: 'A', userName: 'Дамир', userLogin: 'damir' },
+    ] as TaskMember[];
+    const { screen } = render({ taskMembers: [...MEMBERS, ...others] });
+    const groups = [...screen.querySelectorAll('.member-role-title')].map(text).join(' ');
+    const history = screen.querySelector('ui-record-history [data-testid="record-history-toggle"]') as HTMLElement;
+
+    expect(groups).toContain('Наблюдатели');
+    expect(groups).toContain('Автор');
+    expect([...screen.querySelectorAll('.member-name')].map(text)).toEqual(expect.arrayContaining(['Глеб', 'Дамир']));
+    expect(history.getAttribute('aria-expanded')).toBe('false');
+    expect(text(history)).toContain('История изменений');
+  });
+
   it('names custom attributes by their field and reads a yes/no field as words', () => {
     const { screen } = render({ taskCustomFields: [URGENT] });
     const attributes = [...screen.querySelectorAll('.attr-stack-item')].map((item: Element) =>

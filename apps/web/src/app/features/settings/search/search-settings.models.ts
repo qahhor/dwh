@@ -13,6 +13,9 @@ export type PendingMutation =
   | { kind: 'retry'; jobId: string; request: SearchRetryJobRequest }
   | { kind: 'cancel'; jobId: string };
 
+/** A read's answer or its failure, kept as one value. */
+export type Loaded<T> = { value: T; failure?: undefined } | { value?: undefined; failure: ProblemDetail };
+
 export interface MaintenanceConfirmation {
   action: Extract<SearchJobAction, 'REBUILD' | 'ROLLBACK'>;
   generationId?: string;

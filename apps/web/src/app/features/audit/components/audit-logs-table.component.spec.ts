@@ -121,6 +121,22 @@ describe('AuditLogsTableComponent', () => {
     expect(asked).toEqual(['apply', 'reset']);
   });
 
+  it('names every filter, the UTC period picker and the reset action', () => {
+    const { host } = render();
+
+    for (const id of ['audit-table-filter', 'audit-row-pk-filter', 'audit-user-filter']) {
+      expect(host.querySelector(`label[for="${id}"]`)).not.toBeNull();
+    }
+    expect(host.querySelector('#audit-table-filter')?.getAttribute('role')).toBe('combobox');
+    expect(host.querySelector('#audit-event-filter')?.getAttribute('role')).toBe('combobox');
+    expect(
+      host
+        .querySelector('[data-testid="audit-period-filter"] .smt-date-range-picker__trigger')
+        ?.getAttribute('aria-label'),
+    ).toMatch(/^Период \(UTC\): /);
+    expect(host.querySelector('#audit-reset-filters')).not.toBeNull();
+  });
+
   it('says no audit record was found when the page is empty', () => {
     const { host, rows } = render({ records: [] });
 

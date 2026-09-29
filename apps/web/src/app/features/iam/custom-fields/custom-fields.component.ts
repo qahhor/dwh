@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
 
 import { CustomFieldsApi } from '@core/services/custom-fields.api';
 import { ToastService } from '@core/services/toast.service';
@@ -10,7 +11,8 @@ import { CustomFieldsToolbarComponent } from './components/custom-fields-toolbar
 import { CustomFieldsTableComponent } from './components/custom-fields-table.component';
 import { CustomFieldsModalsComponent } from './components/custom-fields-modals.component';
 import { CustomFieldsFormService } from './services/custom-fields-form.service';
-import { finalize, tap } from 'rxjs';
+import { catchError, finalize, map, of, tap } from 'rxjs';
+import { lastLoaded } from '@features/iam/last-loaded';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
@@ -94,7 +96,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
   `,
   styleUrl: './custom-fields.component.css',
 })
-export class CustomFieldsComponent implements OnInit {
+export class CustomFieldsComponent {
   private readonly customFields = inject(CustomFieldsApi);
   private readonly toast = inject(ToastService);
   private readonly permService = inject(PermissionService);
@@ -103,19 +105,17 @@ export class CustomFieldsComponent implements OnInit {
 
   private readonly modal = inject(SMTModalService);
 
-  // --- Reactive state via signals ---
-  readonly fields = signal<CustomField[]>([]);
   readonly selectedEntity = signal('ALL');
   readonly searchQuery = signal('');
-
-  // --- Non-signal UI state ---
-  readonly isLoading = signal(false);
   readonly showModal = signal(false);
   readonly editingField = signal<CustomField | null>(null);
   readonly saving = signal(false);
   readonly isDeleting = signal(false);
   readonly formError = signal('');
   readonly formData = signal<CustomFieldFormData>(this.formService.createInitialFormData('USER', 0));
+
+  // --- Non-signal UI state ---
+  readonly isLoading = computed(() => this.fieldsRead.isLoading());
 
   readonly availableEntities = computed(() => {
     const base = ['ALL', 'USER', 'PROJECT', 'TASK', 'NOTE'];
@@ -160,12 +160,23 @@ export class CustomFieldsComponent implements OnInit {
     return result;
   });
 
+  /** The definitions; a failed load says so and keeps the table on screen. */
+  private readonly fieldsRead = rxResource({
+    stream: () =>
+      this.customFields.list().pipe(
+        map((data) => data || []),
+        catchError(() => {
+          this.toast.error(this.uiI18n.translate('iam.oshibka_zagruzki_dinamicheskih_poley'));
+          return of(null);
+        }),
+      ),
+  });
+
+  // --- Reactive state via signals ---
+  readonly fields = lastLoaded<CustomField[]>(() => this.fieldsRead.value(), []);
+
   sortColumn = 'orderNo';
   sortDirection: 'asc' | 'desc' = 'asc';
-
-  ngOnInit() {
-    this.loadFields();
-  }
 
   // --- Granular RBAC ---
   canCreate(): boolean {
@@ -202,17 +213,7 @@ export class CustomFieldsComponent implements OnInit {
   }
 
   loadFields() {
-    this.isLoading.set(true);
-    this.customFields.list().subscribe({
-      next: (data) => {
-        this.fields.set(data || []);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.isLoading.set(false);
-        this.toast.error(this.uiI18n.translate('iam.oshibka_zagruzki_dinamicheskih_poley'));
-      },
-    });
+    this.fieldsRead.reload();
   }
 
   filterByEntity(entity: string) {

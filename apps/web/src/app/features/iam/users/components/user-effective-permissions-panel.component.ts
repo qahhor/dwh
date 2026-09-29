@@ -1,14 +1,7 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  OnInit,
-  OnChanges,
-  SimpleChanges,
-  inject,
-  signal,
-  computed,
-  input,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal, computed, input, linkedSignal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { Observable, catchError, map, of } from 'rxjs';
+import { lastLoaded } from '@features/iam/last-loaded';
 
 import { UsersApi } from '../users.api';
 import { ToastService } from '@core/services/toast.service';
@@ -46,7 +39,7 @@ export interface GroupedPermissionModule {
   templateUrl: './user-effective-permissions-panel.component.html',
   styleUrl: './user-effective-permissions-panel.component.css',
 })
-export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges {
+export class UserEffectivePermissionsPanelComponent {
   /** Texts of the radio options below; translated again when the language changes. */
   private readonly optionText = inject(I18nService);
 
@@ -59,20 +52,18 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
   readonly canAssign = input<boolean>(false);
   readonly userRoleNames = input<string[]>([]);
 
-  readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
-  readonly loadError = signal<boolean>(false);
-  readonly hasUnsavedChanges = signal<boolean>(false);
-
-  readonly effectiveItems = signal<EffectivePermissionItem[]>([]);
-  readonly personalGrants = signal<PersonalGrant[]>([]);
-  readonly formCatalog = signal<FormTreeItem[]>([]);
+  /** Another user drops the draft of the previous one. */
+  readonly hasUnsavedChanges = linkedSignal({ source: this.userId, computation: () => false });
 
   readonly searchQuery = signal<string>('');
   readonly sourceFilter = signal<'all' | 'role' | 'personal'>('all');
 
   readonly selectedFormCode = signal<string>('');
   readonly selectedAction = signal<string>('');
+
+  readonly isLoading = computed(() => this.effectiveRead.isLoading());
+  readonly loadError = computed(() => this.effectiveRead.value() === null);
 
   readonly roleCount = computed(() => this.effectiveItems().filter((i) => i.source === 'role').length);
   readonly personalCount = computed(() => this.effectiveItems().filter((i) => i.source === 'personal').length);
@@ -174,55 +165,38 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       { value: 'personal', label: this.optionText.translate('iam.istochnik_personal'), count: this.personalCount() },
     ];
   });
+  /** Its own computed, so that another user (still some user) does not ask for the catalog again. */
+  private readonly hasUser = computed(() => !!this.userId());
 
-  ngOnInit(): void {
-    this.loadAll();
-  }
+  /* The server's answers; the panel edits the effective list and the grants as a draft
+     until the next answer replaces them. */
+  private readonly effectiveRead = rxResource({
+    params: () => this.userId() || undefined,
+    stream: ({ params }) =>
+      orNull(this.usersApi.effectivePermissions(params).pipe(map((res) => [...(res?.items || [])]))),
+  });
+  private readonly personalRead = rxResource({
+    params: () => this.userId() || undefined,
+    stream: ({ params }) =>
+      orNull(this.usersApi.personalPermissions(params).pipe(map((res) => [...(res?.grants || [])]))),
+  });
+  /** The same for every user: asked once, and again by a retry while still empty. */
+  private readonly catalogRead = rxResource({
+    params: () => this.hasUser() || undefined,
+    stream: () =>
+      orNull(this.usersApi.permissionForms().pipe(map((catalog) => (Array.isArray(catalog) ? catalog : null)))),
+  });
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['userId'] && !changes['userId'].isFirstChange()) {
-      this.hasUnsavedChanges.set(false);
-      this.loadAll();
-    }
-  }
+  readonly effectiveItems = lastLoaded<EffectivePermissionItem[]>(() => this.effectiveRead.value(), []);
+  readonly personalGrants = lastLoaded<PersonalGrant[]>(() => this.personalRead.value(), []);
+  readonly formCatalog = lastLoaded<FormTreeItem[]>(() => this.catalogRead.value(), []);
 
+  /** Asks the server again: the rights, the grants and, while it is still empty, the catalog. */
   loadAll(): void {
-    const userId = this.userId();
-    if (!userId) return;
-    this.isLoading.set(true);
-    this.loadError.set(false);
-
-    // 1. Effective permissions
-    this.usersApi.effectivePermissions(userId).subscribe({
-      next: (res) => {
-        this.effectiveItems.set(res?.items || []);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.loadError.set(true);
-        this.isLoading.set(false);
-      },
-    });
-
-    // 2. Personal grants
-    this.usersApi.personalPermissions(userId).subscribe({
-      next: (res) => {
-        this.personalGrants.set(res?.grants || []);
-      },
-      error: () => {},
-    });
-
-    // 3. Form catalog (if empty)
-    if (this.formCatalog().length === 0) {
-      this.usersApi.permissionForms().subscribe({
-        next: (catalog) => {
-          if (Array.isArray(catalog)) {
-            this.formCatalog.set(catalog);
-          }
-        },
-        error: () => {},
-      });
-    }
+    if (!this.userId()) return;
+    this.effectiveRead.reload();
+    this.personalRead.reload();
+    if (this.formCatalog().length === 0) this.catalogRead.reload();
   }
 
   onFormSelect(formCode: string): void {
@@ -280,4 +254,9 @@ export class UserEffectivePermissionsPanelComponent implements OnInit, OnChanges
       },
     });
   }
+}
+
+/** A failed read gives null: the panel keeps what it shows. */
+function orNull<T>(request: Observable<T | null>): Observable<T | null> {
+  return request.pipe(catchError(() => of(null)));
 }

@@ -1,0 +1,138 @@
+import { ApplicationRef } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { Observable, Subject, of, throwError } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Project } from '@core/models/task.models';
+import { ApiService } from '@core/services/api.service';
+import { ToastService } from '@core/services/toast.service';
+import { SMTModalConfirmConfig, SMTModalService } from '@shared/ui-kit/components/modal';
+import { ProjectMember } from '../projects.models';
+import { ProjectMembersService } from './project-members.service';
+
+const PROJECT: Project = { id: 42, name: 'Project 42', state: 'A', createdAt: '2026-09-06T00:00:00Z' };
+const member = (userId: number, userName: string): ProjectMember => ({
+  projectId: 42,
+  userId,
+  userName,
+  userEmail: `${userName}@example.com`,
+  accessKind: 'MANAGER',
+});
+
+describe('ProjectMembersService', () => {
+  let memberReads: Observable<unknown>[];
+  let api: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
+  let toast: { success: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
+  let confirmed: SMTModalConfirmConfig | undefined;
+  let members: ProjectMembersService;
+  /** Starts the resource's read and waits until its answer is in. */
+  const settle = async () => {
+    TestBed.tick();
+    await TestBed.inject(ApplicationRef).whenStable();
+  };
+  const reads = () => api.get.mock.calls.filter(([url]) => url === '/tasks/projects/42/members').length;
+
+  beforeEach(() => {
+    memberReads = [];
+    confirmed = undefined;
+    api = {
+      get: vi.fn(() => memberReads.shift() ?? of([member(10, 'Alice')])),
+      post: vi.fn(() => of({})),
+      delete: vi.fn(() => of({})),
+    };
+    toast = { success: vi.fn(), error: vi.fn() };
+    TestBed.configureTestingModule({
+      providers: [
+        ProjectMembersService,
+        { provide: ApiService, useValue: api },
+        { provide: ToastService, useValue: toast },
+        {
+          provide: SMTModalService,
+          useValue: {
+            confirm: (options: SMTModalConfirmConfig) => {
+              confirmed = options;
+              return of(true);
+            },
+          },
+        },
+      ],
+    });
+    members = TestBed.inject(ProjectMembersService);
+  });
+
+  it('reads the members of the project whose dialog opens, and shows none once it closes', async () => {
+    const pending = new Subject<unknown>();
+    memberReads = [pending];
+
+    members.openMembersModal(PROJECT);
+    TestBed.tick();
+    expect(members.selectedProjectForMembers()).toEqual(PROJECT);
+    expect(api.get).toHaveBeenCalledWith('/tasks/projects/42/members');
+    expect(members.isLoadingMembers()).toBe(true);
+    pending.next([member(10, 'Alice')]);
+    await settle();
+    expect(members.projectMembers()).toEqual([member(10, 'Alice')]);
+    expect(members.isLoadingMembers()).toBe(false);
+
+    members.closeMembersModal();
+    await settle();
+    expect(members.selectedProjectForMembers()).toBeNull();
+    expect(members.projectMembers()).toEqual([]);
+  });
+
+  it('adds a member, then reads the members again; a refusal is shown with its reason', async () => {
+    members.openMembersModal(PROJECT);
+    await settle();
+    memberReads = [of([member(10, 'Alice'), member(20, 'Bob')])];
+
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    await settle();
+    expect(api.post).toHaveBeenCalledWith(
+      '/tasks/projects/42/members',
+      { userId: 20, accessKind: 'MEMBER' },
+      { notifyError: false },
+    );
+    expect(toast.success).toHaveBeenCalled();
+    expect(members.projectMembers().map((m) => m.userId)).toEqual([10, 20]);
+    expect(members.isAddingMember()).toBe(false);
+
+    api.post.mockReturnValue(throwError(() => ({ status: 409, detail: 'Already a member' })));
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    expect(toast.error).toHaveBeenCalledWith('Already a member');
+    expect(members.isAddingMember()).toBe(false);
+  });
+
+  it('keeps the members on screen when reading them again fails', async () => {
+    members.openMembersModal(PROJECT);
+    await settle();
+    memberReads = [throwError(() => ({ status: 503 }))];
+
+    members.onAddProjectMember({ projectId: 42, userId: 20, accessKind: 'MEMBER' });
+    await settle();
+
+    expect(toast.error).toHaveBeenCalledWith('Ошибка загрузки участников проекта');
+    expect(members.projectMembers()).toEqual([member(10, 'Alice')]);
+  });
+
+  it('removes a member from the confirmation, marks the row meanwhile and reads the members again', async () => {
+    members.openMembersModal(PROJECT);
+    await settle();
+    const removal = new Subject<unknown>();
+    api.delete.mockReturnValue(removal);
+
+    members.onRemoveProjectMember({ projectId: 42, userId: 10, userName: 'Иван' });
+    expect(confirmed?.message).toContain('Иван');
+    expect(api.delete).not.toHaveBeenCalled();
+    confirmed!.action!().subscribe();
+    expect(members.removingMemberId()).toBe(10);
+    expect(api.delete).toHaveBeenCalledWith('/tasks/projects/42/members/10', { notifyError: false });
+
+    const before = reads();
+    removal.next({});
+    removal.complete();
+    await settle();
+    expect(members.removingMemberId()).toBeNull();
+    expect(toast.success).toHaveBeenCalled();
+    expect(reads()).toBe(before + 1);
+    expect(confirmed!.actionError!({ detail: 'Owner stays' })).toBe('Owner stays');
+  });
+});

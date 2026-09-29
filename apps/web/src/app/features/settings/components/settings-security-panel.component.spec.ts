@@ -34,6 +34,9 @@ describe('SettingsSecurityPanelComponent', () => {
     const { host, field } = render();
 
     expect(host.textContent).toContain(`От ${PASSWORD_POLICY.min} до ${PASSWORD_POLICY.max} символов`);
+    // The length is the password policy: shown, not edited.
+    expect(host.querySelector('#settings-password-length')?.tagName).toBe('SPAN');
+    expect(host.querySelector('input[name="settingsPasswordLength"]')).toBeNull();
     expect(host.querySelector('label[for="settings-session-lifetime"] .unit-badge')?.textContent?.trim()).toBe(
       '720 ч. (30 дн.)',
     );
@@ -65,6 +68,8 @@ describe('SettingsSecurityPanelComponent', () => {
     const { asked, twoFactor } = render();
 
     expect(twoFactor().getAttribute('role')).toBe('switch');
+    expect(twoFactor().getAttribute('aria-labelledby')).toBe('settings-require-2fa-label');
+    expect(twoFactor().getAttribute('aria-describedby')).toBe('settings-require-2fa-desc');
     expect(twoFactor().getAttribute('aria-checked')).toBe('true');
     twoFactor().click();
 

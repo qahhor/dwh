@@ -1,8 +1,17 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  DestroyRef,
+  inject,
+  linkedSignal,
+  OnInit,
+  signal,
+} from '@angular/core';
 
 import { TranslatePipe } from '@core/services/i18n.service';
 import { KeysetPager } from '@shared/paging/keyset-pager';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { QueryMetaService, parseSort } from '@core/services/query-meta.service';
 import { ListViewState, ListViewsApi } from '@shared/list-views/list-views';
@@ -158,16 +167,25 @@ export class AuditComponent implements OnInit {
   readonly auditMeta = signal<QueryListMeta | null>(null);
   readonly securityMeta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
-
-  readonly stats = signal<AuditStats | null>(null);
-  readonly statsError = signal<boolean>(false);
+  /** A failed read keeps the last summary on screen next to its error. */
+  readonly stats = linkedSignal<AuditStats | undefined, AuditStats | null>({
+    source: () => (this.statsResource.hasValue() ? this.statsResource.value() : undefined),
+    computation: (stats, previous) => stats ?? previous?.value ?? null,
+  });
 
   /** A signal, so a tab chosen from code (not only by a click) redraws the screen. */
   readonly activeTab = signal<'audit' | 'security'>('audit');
 
+  /** Bumped to read the summary again; a new value cancels a read still in flight. */
+  private readonly statsRevision = signal(0);
+
+  readonly statsError = computed(() => this.statsResource.error() !== undefined);
+
   readonly auditLogs = computed(() => this.auditPager.items() as AuditRecord[]);
 
   readonly securityEvents = computed(() => this.securityPager.items() as SecurityEventRecord[]);
+
+  private readonly statsResource = rxResource({ params: this.statsRevision, stream: () => this.audit.stats() });
 
   /** Sort, filter and columns of each list; saved views keep them under a name. */
   readonly auditViews = new ListViewState('audit.logs', inject(ListViewsApi), {
@@ -222,8 +240,9 @@ export class AuditComponent implements OnInit {
 
   private readonly tabsMemo = optionsMemo<SMTTabItem<'audit' | 'security'>[]>();
 
+  /** The summary loads by itself; the list waits for its metadata. */
   ngOnInit() {
-    this.refreshAll();
+    this.loadAuditLogs(true);
   }
 
   refreshAll() {
@@ -245,14 +264,7 @@ export class AuditComponent implements OnInit {
   }
 
   loadStats() {
-    this.statsError.set(false);
-    this.audit.stats().subscribe({
-      next: (res) => {
-        this.stats.set(res);
-        this.statsError.set(false);
-      },
-      error: () => this.statsError.set(true),
-    });
+    this.statsRevision.update((revision) => revision + 1);
   }
 
   /** The first page of the audit log; its metadata comes first, once. */

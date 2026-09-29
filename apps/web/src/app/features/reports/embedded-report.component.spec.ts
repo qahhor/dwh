@@ -101,4 +101,49 @@ describe('EmbeddedReportComponent', () => {
     const errorAlert = fixture.nativeElement.querySelector('.report-error');
     expect(errorAlert).not.toBeNull();
   });
+
+  it('retries a failed read from the error alert and then shows the report', async () => {
+    const { fixture, navService } = setup();
+    navService.getItemByCode.mockReturnValueOnce(throwError(() => new Error('Unavailable')));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.report-error')).not.toBeNull();
+
+    (fixture.nativeElement.querySelector('.report-error button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(navService.getItemByCode).toHaveBeenCalledTimes(2);
+    expect(fixture.componentInstance.errorMessage()).toBeNull();
+    expect(fixture.nativeElement.querySelector('iframe.report-iframe')).not.toBeNull();
+  });
+
+  it('stays busy until the frame loads, and again while the frame is created anew', () => {
+    vi.useFakeTimers();
+    try {
+      const { fixture } = setup();
+      fixture.detectChanges();
+      const component = fixture.componentInstance;
+      expect(component.isLoading()).toBe(true);
+
+      fixture.nativeElement.querySelector('iframe.report-iframe').dispatchEvent(new Event('load'));
+      expect(component.isLoading()).toBe(false);
+
+      (fixture.nativeElement.querySelector('button[aria-label="Обновить"]') as HTMLButtonElement).click();
+      expect(component.isLoading()).toBe(true);
+      expect(component.safeUrl()).toBeNull();
+      vi.advanceTimersByTime(100);
+      expect(component.safeUrl()).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows no host for an address it cannot read', () => {
+    const { fixture } = setup('broken', of({ ...sampleReport, url: 'http://[' }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.report()?.code).toBe('superset-sales');
+    expect(fixture.componentInstance.urlHost()).toBe('');
+  });
 });

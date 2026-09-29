@@ -92,11 +92,35 @@ describe('TaskCreateModalComponent', () => {
     expect(closed).toHaveBeenCalledTimes(1);
   });
 
-  it('locks the form and the cancel button while the task is being created', () => {
+  it('locks every control and the cancel button while the task is being created', () => {
     const { screen } = render({ isSubmitting: true });
+    const form = screen.querySelector('fieldset.task-create-form') as HTMLFieldSetElement;
+    const controls = [...form.querySelectorAll('input, select, textarea, button')] as HTMLElement[];
 
-    expect((screen.querySelector('fieldset.task-create-form') as HTMLFieldSetElement).disabled).toBe(true);
+    expect(form.disabled).toBe(true);
+    expect(controls.length).toBeGreaterThan(5);
+    expect(controls.every((control) => control.matches(':disabled'))).toBe(true);
     expect(footerButton(screen, 'Отмена').disabled).toBe(true);
+  });
+
+  it('names each field by its label for assistive technology', () => {
+    const { screen } = render({ isCreateSubmitted: true });
+    TestBed.tick(); // smt-control wires label, error and aria state after render
+    const title = screen.querySelector('#task-create-title') as HTMLInputElement;
+    const description = screen.querySelector('ui-markdown-editor textarea') as HTMLTextAreaElement;
+    const project = screen.querySelector('#task-create-project') as HTMLElement;
+
+    expect(screen.querySelector(`label[for="${title.id}"]`)).not.toBeNull();
+    expect(title.required).toBe(true);
+    expect(title.getAttribute('aria-required')).toBe('true');
+    expect(title.getAttribute('aria-invalid')).toBe('true');
+    expect(text(screen.querySelector(`label[for="${description.id}"]`))).toBe('Описание');
+    expect(project.getAttribute('role')).toBe('combobox');
+    expect(text(screen.querySelector('label[for="task-create-project"]'))).toContain('Проект');
+    for (const name of ['Ответственный', 'Родительская задача']) {
+      expect(screen.querySelector(`smt-select button[aria-label="${name}"]`)).not.toBeNull();
+    }
+    expect(screen.querySelector('smt-multi-select button[aria-label="Наблюдатели"]')).not.toBeNull();
   });
 
   it('points to the custom fields menu when the tasks have none, and shows the fields when they do', () => {

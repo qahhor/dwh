@@ -201,6 +201,8 @@ describe('NavigationSettingsComponent', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.store.toggleItem(sampleItems[0]);
+    // The list reloads on the next change detection.
+    fixture.detectChanges();
 
     expect(navService.toggleItem).toHaveBeenCalledWith(1);
     expect(navService.loadAllItems).toHaveBeenCalledTimes(2);

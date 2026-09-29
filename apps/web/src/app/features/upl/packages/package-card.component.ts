@@ -5,13 +5,14 @@ import {
   TemplateRef,
   computed,
   viewChild,
-  OnChanges,
-  SimpleChanges,
   inject,
+  linkedSignal,
   signal,
   input,
   output,
 } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
@@ -31,6 +32,9 @@ import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 
 /** Подкод ответа, при котором показываем «Загрузка не найдена», а не общий текст сбоя. */
 const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
+
+/** The stored errors of an upload or the refusal to give them, so a failure never throws out of the resource. */
+type ErrorsLoad = { errors: UplPackageErrors | null } | { problem: ProblemDetail };
 
 @Component({
   selector: 'app-upl-package-card',
@@ -172,7 +176,7 @@ const NOT_FOUND = 'UPL_PKG_NOT_FOUND';
   `,
   styleUrl: './package-card.component.css',
 })
-export class PackageCardComponent implements OnChanges {
+export class PackageCardComponent {
   private readonly api = inject(UplPackagesApiService);
   private readonly i18n = inject(I18nService);
 
@@ -187,11 +191,23 @@ export class PackageCardComponent implements OnChanges {
   private readonly errorValueCell = viewChild.required<TemplateRef<unknown>>('errorValueCell');
   private readonly errorWhatCell = viewChild.required<TemplateRef<unknown>>('errorWhatCell');
 
-  readonly errors = signal<UplPackageErrors | null>(null);
-  readonly isLoading = signal(false);
-  readonly loadError = signal<string | null>(null);
   readonly applying = signal(false);
-  readonly applyError = signal<string | null>(null);
+  /** Another upload in the card starts without the refusal of the previous one. */
+  readonly applyError = linkedSignal<UplPackageItem, string | null>({
+    source: () => this.item(),
+    computation: () => null,
+  });
+
+  readonly isLoading = computed(() => this.errorsLoad.isLoading());
+  /** Nothing while they load again, so a retry never shows the old rows. */
+  readonly errors = computed(() => {
+    const load = this.errorsLoad.value();
+    return !this.isLoading() && load && 'errors' in load ? load.errors : null;
+  });
+  readonly loadError = computed(() => {
+    const load = this.errorsLoad.value();
+    return !this.isLoading() && load && 'problem' in load ? this.loadErrorText(load.problem) : null;
+  });
 
   readonly errorsConfig = computed<TableConfig<UplPackageErrorItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -236,19 +252,18 @@ export class PackageCardComponent implements OnChanges {
 
   private readonly translate: UplTranslate = (key, params) => this.i18n.translate(key, params);
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (!changes['item']) {
-      return;
-    }
-    this.errors.set(null);
-    this.loadError.set(null);
-    this.applyError.set(null);
-    this.isLoading.set(false);
-    if (this.item().status === 'received') {
-      return;
-    }
-    this.reloadErrors();
-  }
+  /** Each upload shown asks for its errors, except one still being checked, which has none yet. */
+  private readonly errorsLoad = rxResource({
+    params: () => {
+      const item = this.item();
+      return item.status === 'received' ? undefined : item;
+    },
+    stream: ({ params: item }) =>
+      this.api.errors(item.id).pipe(
+        map((loaded): ErrorsLoad => ({ errors: loaded ?? null })),
+        catchError((problem: ProblemDetail) => of<ErrorsLoad>({ problem })),
+      ),
+  });
 
   /** Every stored error as an xlsx the supplier fixes the data from, in the reader's language. */
   errorsFileUrl(): string {
@@ -320,19 +335,7 @@ export class PackageCardComponent implements OnChanges {
   }
 
   reloadErrors(): void {
-    this.isLoading.set(true);
-    this.loadError.set(null);
-    this.errors.set(null);
-    this.api.errors(this.item().id).subscribe({
-      next: (loaded) => {
-        this.errors.set(loaded ?? null);
-        this.isLoading.set(false);
-      },
-      error: (problem: ProblemDetail) => {
-        this.loadError.set(this.loadErrorText(problem));
-        this.isLoading.set(false);
-      },
-    });
+    this.errorsLoad.reload();
   }
 
   /** Отказ сервера: код загрузки — текстом словаря, прочее (нет права, сбой сети) — общим текстом. */

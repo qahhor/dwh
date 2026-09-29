@@ -1,5 +1,7 @@
-import { Injectable, inject, signal } from '@angular/core';
-import { Observable, finalize, tap } from 'rxjs';
+import { Injectable, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { Observable, catchError, finalize, of, tap } from 'rxjs';
+import { lastLoaded } from '@features/iam/last-loaded';
 import { ApiService } from '@core/services/api.service';
 import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -16,21 +18,23 @@ export class UserSecurityService {
   private readonly uiI18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
-  readonly userSecurity = signal<UserSecuritySummary | null>(null);
-  readonly isLoadingSecurity = signal<boolean>(false);
   readonly isSecurityActionPending = signal<boolean>(false);
+  /** Whose summary is asked; a new object asks again for the same user. */
+  private readonly summaryOf = signal<{ userId: number } | undefined>(undefined);
+  readonly isLoadingSecurity = computed(() => this.summaryRead.isLoading());
+
+  /* A read only: reloading after a security action asks for the summary again and never
+     repeats the action. Asking for another user drops the answer still due for the previous one. */
+  private readonly summaryRead = rxResource({
+    params: () => this.summaryOf(),
+    stream: ({ params }) =>
+      this.api.get<UserSecuritySummary>(`/iam/users/${params.userId}/security`).pipe(catchError(() => of(null))),
+  });
+  /** The screen clears it when it shows another user; a failed load keeps the one on screen. */
+  readonly userSecurity = lastLoaded<UserSecuritySummary | null>(() => this.summaryRead.value(), null);
 
   loadUserSecurity(userId: number): void {
-    this.isLoadingSecurity.set(true);
-    this.api.get<UserSecuritySummary>(`/iam/users/${userId}/security`).subscribe({
-      next: (res) => {
-        this.userSecurity.set(res);
-        this.isLoadingSecurity.set(false);
-      },
-      error: () => {
-        this.isLoadingSecurity.set(false);
-      },
-    });
+    this.summaryOf.set({ userId });
   }
 
   terminateUserSessions(userId: number): void {

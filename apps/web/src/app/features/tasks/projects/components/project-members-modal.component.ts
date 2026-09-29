@@ -11,8 +11,8 @@ import {
   signal,
 } from '@angular/core';
 
-import { of, Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { catchError, debounceTime, distinctUntilChanged, map, of, skip, switchMap } from 'rxjs';
 import { ProjectsApi } from '../projects.api';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
@@ -87,6 +87,9 @@ export class ProjectMembersModalComponent {
   readonly selectedUser = signal<User | null>(null);
   readonly selectedAccessKind = signal('MEMBER');
 
+  /** What was typed into the search box; choosing or clearing a user does not search again. */
+  private readonly searchTerm = signal('');
+
   readonly rows = computed<ProjectMember[]>(() => this.members() ?? []);
 
   /** The remove column is there only for someone who may change the project. */
@@ -118,29 +121,27 @@ export class ProjectMembersModalComponent {
 
   private readonly accessKindMemo = optionsMemo<SMTSelectOption<string>[]>();
 
-  private searchSubject = new Subject<string>();
-
   constructor() {
-    this.searchSubject
+    toObservable(this.searchTerm)
       .pipe(
+        // The first value is the empty box, not something typed.
+        skip(1),
         debounceTime(250),
         distinctUntilChanged(),
         switchMap((query) => {
           const trimmed = query.trim();
-          if (!trimmed) {
-            return of({ items: [] });
-          }
-          return this.projectsApi.searchActiveUsers(trimmed);
+          if (!trimmed) return of<User[] | null>([]);
+          // A failed search empties the list but keeps the box searching.
+          return this.projectsApi.searchActiveUsers(trimmed).pipe(
+            map((res) => res.items || []),
+            catchError(() => of(null)),
+          );
         }),
+        takeUntilDestroyed(),
       )
-      .subscribe({
-        next: (res) => {
-          this.foundUsers.set(res.items || []);
-          this.isUserDropdownOpen.set(true);
-        },
-        error: () => {
-          this.foundUsers.set([]);
-        },
+      .subscribe((users) => {
+        this.foundUsers.set(users ?? []);
+        if (users) this.isUserDropdownOpen.set(true);
       });
   }
 
@@ -160,7 +161,7 @@ export class ProjectMembersModalComponent {
     if (selected && query !== selected.name) {
       this.selectedUser.set(null);
     }
-    this.searchSubject.next(query);
+    this.searchTerm.set(query);
   }
 
   selectUser(user: User): void {

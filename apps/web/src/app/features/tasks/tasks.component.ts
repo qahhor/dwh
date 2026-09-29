@@ -148,8 +148,6 @@ export class TasksComponent implements OnInit, OnDestroy {
     });
     this.dictService.loadStatuses();
     this.dictService.loadTypes();
-    this.list.loadProjects();
-    this.list.loadCustomFields();
     this.list.loadTasks(true);
 
     this.recordRouteSubscription = this.route.paramMap?.subscribe((params) => {

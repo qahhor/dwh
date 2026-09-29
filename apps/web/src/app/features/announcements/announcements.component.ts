@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { TranslatePipe } from '@core/services/i18n.service';
@@ -42,11 +42,7 @@ export type {
   templateUrl: './announcements.component.html',
   styleUrl: './announcements.component.css',
 })
-export class AnnouncementsComponent implements OnInit {
-  /** State and flows of the screen; the template reads it directly. */
+export class AnnouncementsComponent {
+  /** State and flows of the screen; the template reads it directly. The store loads the list itself. */
   readonly store = inject(AnnouncementsStore);
-
-  ngOnInit(): void {
-    this.store.loadAnnouncements();
-  }
 }

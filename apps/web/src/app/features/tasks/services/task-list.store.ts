@@ -1,5 +1,6 @@
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, map, of } from 'rxjs';
 import { CustomField } from '@core/models/custom-field.models';
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { Project, Task } from '@core/models/task.models';
@@ -26,12 +27,29 @@ export class TaskListStore {
   private readonly queryMeta = inject(QueryMetaService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly projects = signal<Project[]>([]);
-  readonly customFields = signal<CustomField[]>([]);
-
   /** Field metadata of the list (`query-meta/ms.tasks`), roadmap item 49. */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
+
+  readonly projects = computed(() => this.projectsResource.value() ?? []);
+  readonly customFields = computed(() => this.customFieldsResource.value() ?? []);
+
+  /** Names the rows' projects; a failed read leaves them unnamed, as before the answer. */
+  private readonly projectsResource = rxResource({
+    stream: () =>
+      this.tasksApi.projects().pipe(
+        map((res) => res || []),
+        catchError(() => of<Project[]>([])),
+      ),
+  });
+
+  private readonly customFieldsResource = rxResource({
+    stream: () =>
+      this.customFieldsApi.list('TASK').pipe(
+        map((res) => res || []),
+        catchError(() => of<CustomField[]>([])),
+      ),
+  });
 
   private exportFilters: Record<string, string> = {};
 
@@ -65,14 +83,6 @@ export class TaskListStore {
   readonly isLoading = this.taskPager.loading;
   readonly listLoadError = this.taskPager.failed;
   readonly hasMore = this.taskPager.canGoForward;
-
-  loadProjects() {
-    this.tasksApi.projects().subscribe({ next: (res) => this.projects.set(res || []), error: () => {} });
-  }
-
-  loadCustomFields() {
-    this.customFieldsApi.list('TASK').subscribe({ next: (res) => this.customFields.set(res || []), error: () => {} });
-  }
 
   /** The first page for the current filters; without `reset`, the page on screen again. The metadata comes first, once. */
   loadTasks(reset: boolean = false) {
