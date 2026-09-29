@@ -554,7 +554,7 @@ class AuthenticationGenerationHttpTest {
                 return mvc.perform(request).andReturn().getResponse().getStatus();
             });
             assertThat(captured.await(10, TimeUnit.SECONDS)).isTrue();
-            f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+            f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
             release.countDown();
             assertThat(pending.get(20, TimeUnit.SECONDS)).isEqualTo(401);
         } finally {

@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.kauth.api.SessionView;
 import com.smartup24.cms.instance.kauth.api.UserSecuritySummary;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -20,10 +21,13 @@ public class KauthSessionController {
 
     private final KauthSessionService sessionService;
     private final MdUserService userService;
+    private final MdUserSecurityService userSecurityService;
 
-    public KauthSessionController(KauthSessionService sessionService, MdUserService userService) {
+    public KauthSessionController(
+            KauthSessionService sessionService, MdUserService userService, MdUserSecurityService userSecurityService) {
         this.sessionService = sessionService;
         this.userService = userService;
+        this.userSecurityService = userSecurityService;
     }
 
     @GetMapping({"/profile/sessions", "/sessions"})
@@ -94,7 +98,7 @@ public class KauthSessionController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     public ResponseEntity<Void> forcePasswordChange(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.setForcePasswordChange(userId, true, currentUserId);
+        userSecurityService.setForcePasswordChange(userId, true, currentUserId);
         return ResponseEntity.noContent().build();
     }
 
@@ -102,7 +106,7 @@ public class KauthSessionController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     public ResponseEntity<Void> reset2fa(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.reset2fa(userId, currentUserId);
+        userSecurityService.reset2fa(userId, currentUserId);
         return ResponseEntity.noContent().build();
     }
 }

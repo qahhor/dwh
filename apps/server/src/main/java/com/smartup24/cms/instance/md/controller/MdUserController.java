@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.md.api.MdUserDtos.UpdateUserDto;
 import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdUserListService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
 import jakarta.validation.Valid;
@@ -20,10 +21,13 @@ import org.springframework.web.bind.annotation.*;
 public class MdUserController {
 
     private final MdUserService userService;
+    private final MdUserSecurityService userSecurityService;
     private final MdUserListService userListService;
 
-    public MdUserController(MdUserService userService, MdUserListService userListService) {
+    public MdUserController(
+            MdUserService userService, MdUserSecurityService userSecurityService, MdUserListService userListService) {
         this.userService = userService;
+        this.userSecurityService = userSecurityService;
         this.userListService = userListService;
     }
 
@@ -90,7 +94,7 @@ public class MdUserController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     public ResponseEntity<Void> blockUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.setUserState(id, MdPref.STATE_PASSIVE, currentUserId);
+        userSecurityService.setUserState(id, MdPref.STATE_PASSIVE, currentUserId);
         return ResponseEntity.noContent().build();
     }
 
@@ -98,7 +102,7 @@ public class MdUserController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "unblock")
     public ResponseEntity<Void> unblockUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.setUserState(id, MdPref.STATE_ACTIVE, currentUserId);
+        userSecurityService.setUserState(id, MdPref.STATE_ACTIVE, currentUserId);
         return ResponseEntity.noContent().build();
     }
 
@@ -106,7 +110,7 @@ public class MdUserController {
     @RequiresPermission(form = MdPref.FORM_USERS, action = "delete")
     public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
-        userService.anonymizeUser(id, currentUserId);
+        userSecurityService.anonymizeUser(id, currentUserId);
         return ResponseEntity.noContent().build();
     }
 }

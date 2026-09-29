@@ -240,8 +240,8 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         failures.set(1);
         worker.runOnce();
         assertThat(delivered("USER", id)).isZero();
-        if (anonymize) users.anonymizeUser(id, id);
-        else users.setUserState(id, "P", id);
+        if (anonymize) userSecurity.anonymizeUser(id, id);
+        else userSecurity.setUserState(id, "P", id);
         recreateWorker();
         worker.runOnce();
         assertThat(delivered("USER", id)).isEqualTo(2);

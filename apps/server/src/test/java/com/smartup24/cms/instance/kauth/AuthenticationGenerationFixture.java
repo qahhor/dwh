@@ -44,7 +44,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
     final KauthChannelRepository channels;
     final Map<Long, String> deliveredCodes = new ConcurrentHashMap<>();
     final AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-    final MdUserService userService;
+    final MdUserSecurityService userSecurityService;
     final KauthAuthService auth;
     final KauthApiTokenService api;
     final KauthChannelService channel;
@@ -99,10 +99,18 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
                         new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
                         hasher,
                         new PasswordValidator(),
-                        context.getBean(UserSessionInvalidator.class),
                         mock(SearchChangePublisher.class),
                         audit,
                         scopes));
+        context.registerBean(
+                MdUserSecurityService.class,
+                () -> new MdUserSecurityService(
+                        users,
+                        hasher,
+                        new PasswordValidator(),
+                        context.getBean(UserSessionInvalidator.class),
+                        mock(SearchChangePublisher.class),
+                        audit));
         var guard = new KauthCredentialGuard(sessions, tokens);
         context.registerBean(KauthApiTokenService.class, () -> new KauthApiTokenService(tokens, guard));
         context.registerBean(
@@ -120,7 +128,7 @@ final class AuthenticationGenerationFixture implements AutoCloseable {
                         context.getBean(KauthChannelService.class),
                         sender));
         context.refresh();
-        userService = context.getBean(MdUserService.class);
+        userSecurityService = context.getBean(MdUserSecurityService.class);
         invalidator = context.getBean(UserSessionInvalidator.class);
         auth = context.getBean(KauthAuthService.class);
         api = context.getBean(KauthApiTokenService.class);

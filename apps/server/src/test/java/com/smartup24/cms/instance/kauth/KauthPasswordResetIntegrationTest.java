@@ -36,6 +36,7 @@ import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdSettingService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
@@ -116,10 +117,16 @@ class KauthPasswordResetIntegrationTest {
                 new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
-                new KauthUserSessionInvalidator(sessionRepository, new KauthApiTokenRepository(jdbc)),
                 Mockito.mock(SearchChangePublisher.class),
                 auditLogService,
                 scopes);
+        var userSecurityService = new MdUserSecurityService(
+                new MdUserRepository(jdbc, mapper),
+                new KauthPasswordHasher(),
+                new PasswordValidator(),
+                new KauthUserSessionInvalidator(sessionRepository, new KauthApiTokenRepository(jdbc)),
+                Mockito.mock(SearchChangePublisher.class),
+                auditLogService);
         var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), auditLogService);
         var texts = new KauthChannelTexts(
                 i18n,
@@ -131,6 +138,7 @@ class KauthPasswordResetIntegrationTest {
 
         resetService = new KauthPasswordResetService(
                 userService,
+                userSecurityService,
                 channelRepository,
                 new KauthPasswordResetRepository(jdbc),
                 new KauthLoginAttemptRepository(jdbc),

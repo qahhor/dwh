@@ -97,7 +97,7 @@ class AuthenticationGenerationConcurrencyTest {
             var cookie = f.principal(id, false);
             var bearer = f.principal(id, true);
             f.failAfterAudit = true;
-            assertThatThrownBy(() -> f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD))
+            assertThatThrownBy(() -> f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("synthetic audit failure");
             var user = f.users.findById(id).orElseThrow();
@@ -135,8 +135,8 @@ class AuthenticationGenerationConcurrencyTest {
     void oldPrincipalCannotChangePasswordEvenKnowingTheNewPassword() {
         try (var f = new AuthenticationGenerationFixture(ds)) {
             Long id = f.user(false, false);
-            f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
-            assertThatThrownBy(() -> f.userService.changePassword(id, 0, NEW_PASSWORD, OTHER_PASSWORD))
+            f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+            assertThatThrownBy(() -> f.userSecurityService.changePassword(id, 0, NEW_PASSWORD, OTHER_PASSWORD))
                     .isInstanceOfSatisfying(
                             ApiException.class,
                             e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.INVALID_CREDENTIALS));
@@ -271,7 +271,7 @@ class AuthenticationGenerationConcurrencyTest {
                     }
                 });
                 assertThat(captured.await(10, TimeUnit.SECONDS)).isTrue();
-                f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+                f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
                 release.countDown();
                 var result = pending.get(20, TimeUnit.SECONDS);
                 assertThat(result.success()).isFalse();
@@ -320,7 +320,7 @@ class AuthenticationGenerationConcurrencyTest {
             try {
                 var pending = executor.submit(operation::get);
                 assertThat(captured.await(10, TimeUnit.SECONDS)).isTrue();
-                f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+                f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
                 release.countDown();
                 var result = pending.get(20, TimeUnit.SECONDS);
                 assertThat(result.code)
@@ -359,7 +359,7 @@ class AuthenticationGenerationConcurrencyTest {
             try {
                 var pending = executor.submit(operation::get);
                 assertThat(inserted.await(10, TimeUnit.SECONDS)).isTrue();
-                f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+                f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
                 assertThat(f.users.findById(id).orElseThrow().authenticationVersion())
                         .isEqualTo(1);
                 release.countDown();
@@ -390,7 +390,7 @@ class AuthenticationGenerationConcurrencyTest {
             var issued = prepare(f, id, OLD_PASSWORD, issuance).get();
             assertThat(issued.code).isNull();
             assertThat(active(f, issued, issuance)).isTrue();
-            f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+            f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
             assertThat(active(f, issued, issuance)).isFalse();
             var fresh = prepare(f, id, NEW_PASSWORD, issuance).get();
             assertThat(fresh.code).isNull();
@@ -475,14 +475,14 @@ class AuthenticationGenerationConcurrencyTest {
                     };
                     revocation = executor.submit(() -> {
                         Thread.currentThread().setName("anonymizer");
-                        f.userService.anonymizeUser(id, other);
+                        f.userSecurityService.anonymizeUser(id, other);
                     });
                     assertThat(revokerRead.await(10, TimeUnit.SECONDS)).isTrue();
                     assertBlockedBy(f, revokerPid.get(), issuerPid.get());
-                } else if (anonymize) f.userService.anonymizeUser(id, other);
+                } else if (anonymize) f.userSecurityService.anonymizeUser(id, other);
                 else {
-                    f.userService.setUserState(id, "P", other);
-                    f.userService.setUserState(id, "A", other);
+                    f.userSecurityService.setUserState(id, "P", other);
+                    f.userSecurityService.setUserState(id, "A", other);
                 }
                 release.countDown();
                 var result = pending.get(20, TimeUnit.SECONDS);
@@ -535,7 +535,7 @@ class AuthenticationGenerationConcurrencyTest {
             var oldProof = f.principal(id, bearer);
             String oldToken = f.channel.bindChannel(oldProof, "telegram", "synthetic-old-address");
             String oldCode = f.deliveredCodes.get(id);
-            f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
+            f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD);
             var fresh = f.principal(id, bearer);
             assertOtpInvalid(() -> f.channel.confirmChannel(fresh, oldToken, oldCode));
             var otherProof = f.principal(other, bearer);
@@ -574,7 +574,7 @@ class AuthenticationGenerationConcurrencyTest {
             var cookie = f.principal(id, false);
             var bearer = f.principal(id, true);
             f.tokens.failAfterRevoke = true;
-            assertThatThrownBy(() -> f.userService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD))
+            assertThatThrownBy(() -> f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, NEW_PASSWORD))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("synthetic revocation failure");
             var user = f.users.findById(id).orElseThrow();
@@ -593,7 +593,7 @@ class AuthenticationGenerationConcurrencyTest {
     @Test
     void missingUserAndVersionOverflowCannotPartiallyRevokeAccess() {
         try (var f = new AuthenticationGenerationFixture(ds)) {
-            assertThatThrownBy(() -> f.userService.incrementAuthenticationVersion(Long.MAX_VALUE))
+            assertThatThrownBy(() -> f.userSecurityService.incrementAuthenticationVersion(Long.MAX_VALUE))
                     .isInstanceOf(ApiException.class);
             Long id = f.user(false, false);
             f.jdbc.sql("update md_users set auth_version=9223372036854775807 where id=:id")
@@ -601,7 +601,7 @@ class AuthenticationGenerationConcurrencyTest {
                     .update();
             var cookie = f.principal(id, false);
             var bearer = f.principal(id, true);
-            assertThatThrownBy(() -> f.userService.incrementAuthenticationVersion(id))
+            assertThatThrownBy(() -> f.userSecurityService.incrementAuthenticationVersion(id))
                     .isInstanceOf(DataAccessException.class);
             assertThat(f.users.findById(id).orElseThrow().authenticationVersion())
                     .isEqualTo(Long.MAX_VALUE);
@@ -711,7 +711,7 @@ class AuthenticationGenerationConcurrencyTest {
 
     private static Outcome change(AuthenticationGenerationFixture f, Long id, String replacement) {
         try {
-            f.userService.changePassword(id, 0, OLD_PASSWORD, replacement);
+            f.userSecurityService.changePassword(id, 0, OLD_PASSWORD, replacement);
             return new Outcome(true, null);
         } catch (ApiException e) {
             return new Outcome(false, e.getErrorCode());
