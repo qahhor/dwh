@@ -32,7 +32,7 @@ class AuditWireFormatTest extends EmbeddedPostgresTest {
 
     private static final String PASSWORD = "StrongPassword2026!";
 
-    private static final Set<String> PAGE = Set.of("items", "hasMore", "totalEstimated");
+    private static final Set<String> PAGE = Set.of("items", "hasMore", "totalEstimated", "totalExact");
 
     @Autowired
     private WebApplicationContext wac;

@@ -18,7 +18,8 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               {{ 'ui.pagination.pokazano' | t }}
               <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
               @if (!cursorMode() || !cursorItemsArePageLength()) {
-                {{ 'files.iz' | t }} <strong class="highlight font-mono">{{ totalItems() }}</strong>
+                {{ 'files.iz' | t }}
+                <strong class="highlight font-mono">{{ totalApproximate() ? '≈ ' : '' }}{{ totalItems() }}</strong>
               }
             </span>
           </div>
@@ -141,6 +142,8 @@ export class UiPaginationComponent implements OnChanges {
   readonly disabled = input<boolean>(false);
 
   readonly totalItems = input<number>(0);
+  /** The total is an estimate (a large table, plan item 3.5): it reads "≈ N". */
+  readonly totalApproximate = input(false);
   readonly cursorMode = input<boolean>(false);
   readonly hasNextPage = input<boolean>(false);
 

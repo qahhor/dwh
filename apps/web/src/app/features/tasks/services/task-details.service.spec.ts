@@ -22,6 +22,9 @@ const FILE = { fileId: 'file-1', fileName: 'one.txt', sizeBytes: 3, mimeType: 't
 /** Opened from the list: no record in the address and no edit dialog in the way. */
 const onList = () => null;
 
+/** A server page holding every row (plan item 3.5: growing collections answer KeysetPage). */
+const page = <T>(items: T[]) => ({ items, hasMore: false, totalEstimated: items.length, totalExact: true });
+
 describe('TaskDetailsService', () => {
   let responses: Record<string, Observable<unknown>>;
   let api: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; delete: ReturnType<typeof vi.fn> };
@@ -46,7 +49,7 @@ describe('TaskDetailsService', () => {
 
   it('shows the fresh card and its comments, and keeps only comments of that task', () => {
     responses['/tasks/2'] = of(detail(task(2, 'Fresh'), [task(21)]));
-    responses['/tasks/2/comments'] = of([comment(1, 2), comment(2, 9)]);
+    responses['/tasks/2/comments'] = of(page([comment(1, 2), comment(2, 9)]));
 
     open(task(2));
 
@@ -57,6 +60,22 @@ describe('TaskDetailsService', () => {
     expect(details.detailLoading()).toBe(false);
     // Reading does not change the task: the card marks it viewed by its own command (plan 10/10, item 3.10).
     expect(api.post).toHaveBeenCalledWith('/tasks/2/view', null, { notifyError: false });
+  });
+
+  it('reads a long thread a page at a time and appends the next page below the first', () => {
+    responses['/tasks/2'] = of(detail(task(2, 'Long')));
+    responses['/tasks/2/comments'] = of({ items: [comment(1, 2)], nextCursor: 'c2', hasMore: true });
+
+    open(task(2));
+    expect(details.commentsNextCursor()).toBe('c2');
+
+    responses['/tasks/2/comments'] = of(page([comment(2, 2)]));
+    details.loadMoreComments(onList);
+
+    expect(api.get).toHaveBeenLastCalledWith('/tasks/2/comments', { cursor: 'c2' }, { notifyError: false });
+    expect(details.comments().map((c) => c.id)).toEqual([1, 2]);
+    expect(details.commentsNextCursor()).toBeNull();
+    expect(details.commentsLoading()).toBe(false);
   });
 
   it('ignores out-of-order detail and comment responses for a previously selected task', () => {
@@ -71,9 +90,9 @@ describe('TaskDetailsService', () => {
     open(task(1));
     open(task(2));
     detail2.next(detail(task(2, 'Fresh 2')));
-    comments2.next([comment(20, 2)]);
+    comments2.next(page([comment(20, 2)]));
     detail1.next(detail(task(1, 'Late 1'), [task(11)]));
-    comments1.next([comment(10, 1)]);
+    comments1.next(page([comment(10, 1)]));
 
     expect(details.selectedTask()?.title).toBe('Fresh 2');
     expect(details.taskSubtasks()).toEqual([]);
@@ -87,7 +106,7 @@ describe('TaskDetailsService', () => {
     open(task(3));
     details.closeTaskDetails(true, onList, vi.fn());
     late.next(detail(task(3, 'Late'), [task(30)]));
-    lateComments.next([comment(30, 3)]);
+    lateComments.next(page([comment(30, 3)]));
 
     expect(details.selectedTask()).toBeNull();
     expect(details.taskSubtasks()).toEqual([]);

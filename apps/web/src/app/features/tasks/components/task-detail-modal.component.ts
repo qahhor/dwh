@@ -58,6 +58,9 @@ export class TaskDetailModalComponent {
   readonly taskFiles = input<TaskFile[]>([]);
   readonly comments = input<TaskComment[]>([]);
   readonly commentsLoading = input(false);
+  /** More comments follow the ones on screen (plan item 3.5). */
+  readonly commentsHasMore = input(false);
+  readonly commentsLoadingMore = input(false);
   readonly commentsLoadError = input(false);
   readonly taskMembers = input<TaskMember[]>([]);
   readonly taskCustomFields = input<CustomField[]>([]);
@@ -84,6 +87,7 @@ export class TaskDetailModalComponent {
   readonly fileAttached = output<TaskFile>();
   readonly fileRemoved = output<TaskFile>();
   readonly retryComments = output<void>();
+  readonly loadMoreComments = output<void>();
   readonly commentDraftChange = output<string>();
   readonly submitComment = output<void>();
 

@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Paging without costly counts (plan 10/10, item 3.5). The notification
+  inbox (1–100 a page), the comments of a task and the announcements an
+  administrator manages (1–200 a page) answer `KeysetPage` with a cursor; a
+  limit above the maximum or a foreign cursor is 422, as on the registry
+  lists. The audit log and the security events report the planner's estimate
+  of their rows instead of `count(*)` (`totalExact: false`, shown as "≈ N"),
+  and the audit screen's totals come from the PostgreSQL statistics once a
+  table passes 100,000 rows. `CollectionsArePagedTest` allows a whole list
+  only for a bounded reference list, each named with its bound; the project
+  list, project members and project statistics are the listed debt. The
+  acceptance test on fifty million audit rows runs with `-Paudit-large`.
 - Uniform REST (plan 10/10, item 3.4, ADR-0023). One path per operation:
   `/api/v1/tasks`, `/api/v1/iam`, `/api/v1/notifications`,
   `/api/v1/iam/profile/sessions`, `/api/v1/iam/users/{userId}/sessions`,
@@ -715,6 +726,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (plan item 3.5):** `GET /api/v1/notifications/inbox`,
+  `GET /api/v1/tasks/{taskId}/comments` and `GET /api/v1/announcements/manage`
+  answer a page (`items`, `nextCursor`, `hasMore`, `totalEstimated`,
+  `totalExact`) instead of an array. Every page gains `totalExact`.
 - **API-breaking (plan item 3.4):** `POST /api/v1/notes` answers 201 instead
   of 200, and `POST /api/v1/iam/profile/channels` answers 202 instead of 200
   (the binding waits for its code). The API description now states 201, 202

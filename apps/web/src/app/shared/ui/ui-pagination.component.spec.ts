@@ -159,4 +159,17 @@ describe('UiPaginationComponent', () => {
     expect(fixture.componentInstance.currentPage()).toBe(3);
     expect(fixture.nativeElement.querySelector('.page-btn.active').textContent.trim()).toBe('3');
   });
+
+  it('marks an estimated total as approximate', async () => {
+    await TestBed.configureTestingModule({ imports: [UiPaginationComponent] }).compileComponents();
+    const fixture = TestBed.createComponent(UiPaginationComponent);
+    fixture.componentRef.setInput('totalItems', 50000000);
+    fixture.componentRef.setInput('pageSize', 50);
+    fixture.componentRef.setInput('totalApproximate', true);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).querySelector('.pagination-info')?.textContent).toContain(
+      '≈ 50000000',
+    );
+  });
 });

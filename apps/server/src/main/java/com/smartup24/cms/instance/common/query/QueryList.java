@@ -20,6 +20,8 @@ import org.jspecify.annotations.Nullable;
  * @param defaultSort  ключ поля сортировки по умолчанию
  * @param customEntity сущность дополнительных полей ({@code TASK}); null — у списка их нет (ADR-0019, 2.3)
  * @param attributesSql выражение колонки {@code attributes} строки ({@code t.attributes})
+ * @param estimatedTotal the first page reports the planner's estimate of the rows instead of counting them: for a
+ *                       table that grows without bound, such as the audit log (plan 10/10, item 3.5)
  */
 public record QueryList(
         String code,
@@ -34,7 +36,8 @@ public record QueryList(
         int defaultLimit,
         int maxLimit,
         @Nullable String customEntity,
-        @Nullable String attributesSql) {
+        @Nullable String attributesSql,
+        boolean estimatedTotal) {
 
     public static final int DEFAULT_LIMIT = 50;
     public static final int MAX_LIMIT = 200;
@@ -85,7 +88,8 @@ public record QueryList(
                 defaultLimit,
                 maxLimit,
                 null,
-                null);
+                null,
+                false);
     }
 
     /** The same list with the custom fields of {@code entity}, read from {@code attributesSql}. */
@@ -103,7 +107,8 @@ public record QueryList(
                 defaultLimit,
                 maxLimit,
                 entity,
-                attributesSql);
+                attributesSql,
+                estimatedTotal);
     }
 
     /** The same list with more fields after its own, e.g. the custom fields read at request time. */
@@ -124,7 +129,27 @@ public record QueryList(
                 defaultLimit,
                 maxLimit,
                 customEntity,
-                attributesSql);
+                attributesSql,
+                estimatedTotal);
+    }
+
+    /** The same list reporting an estimate of its rows instead of a count (plan 10/10, item 3.5). */
+    public QueryList withEstimatedTotal() {
+        return new QueryList(
+                code,
+                form,
+                action,
+                select,
+                from,
+                idSql,
+                fields,
+                defaultSort,
+                defaultDescending,
+                defaultLimit,
+                maxLimit,
+                customEntity,
+                attributesSql,
+                true);
     }
 
     public QueryList(

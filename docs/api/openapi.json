@@ -368,15 +368,28 @@
     "/api/v1/announcements/manage" : {
       "get" : {
         "operationId" : "manage",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
         "responses" : {
           "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/ManagedAnnouncementView"
-                  }
+                  "$ref" : "#/components/schemas/KeysetPageManagedAnnouncementView"
                 }
               }
             },
@@ -5290,8 +5303,14 @@
           "required" : false,
           "schema" : {
             "type" : "integer",
-            "format" : "int32",
-            "default" : 50
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -5299,10 +5318,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/NotificationView"
-                  }
+                  "$ref" : "#/components/schemas/KeysetPageNotificationView"
                 }
               }
             },
@@ -5478,8 +5494,14 @@
           "required" : false,
           "schema" : {
             "type" : "integer",
-            "format" : "int32",
-            "default" : 50
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -5487,10 +5509,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/NotificationView"
-                  }
+                  "$ref" : "#/components/schemas/KeysetPageNotificationView"
                 }
               }
             },
@@ -7961,16 +7980,28 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/TaskCommentView"
-                  }
+                  "$ref" : "#/components/schemas/KeysetPageTaskCommentView"
                 }
               }
             },
@@ -9093,16 +9124,28 @@
             "type" : "integer",
             "format" : "int64"
           }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
         } ],
         "responses" : {
           "200" : {
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "type" : "array",
-                  "items" : {
-                    "$ref" : "#/components/schemas/TaskCommentView"
-                  }
+                  "$ref" : "#/components/schemas/KeysetPageTaskCommentView"
                 }
               }
             },
@@ -12113,6 +12156,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12134,6 +12180,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12155,6 +12204,33 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "KeysetPageManagedAnnouncementView" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ManagedAnnouncementView"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12176,6 +12252,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12197,6 +12276,33 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "KeysetPageNotificationView" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NotificationView"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12218,6 +12324,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12239,6 +12348,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12260,6 +12372,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12281,6 +12396,33 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "KeysetPageTaskCommentView" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TaskCommentView"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },
@@ -12302,6 +12444,9 @@
           "totalEstimated" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
           }
         }
       },

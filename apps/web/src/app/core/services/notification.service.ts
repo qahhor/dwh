@@ -50,28 +50,31 @@ export class NotificationService {
     );
   }
 
-  fetchNotifications(limit: number = 20, _cursor?: string): Observable<KeysetPage<NotificationItem>> {
-    return this.api.get<BackendNotification[]>('/notifications/inbox', { limit }).pipe(
-      takeUntil(this.sessionEnded),
-      map((records) => {
-        const items = records.map((record) => ({
-          id: record.id,
-          userId: record.userId,
-          title: record.title,
-          bodyMarkdown: record.body,
-          sourceModule: record.sourceCode,
-          targetUrl: record.formLink,
-          isRead: record.isRead,
-          createdAt: record.createdAt,
-        }));
-        return {
-          items,
-          nextCursor: null,
-          hasMore: false,
-          totalReturned: items.length,
-        };
-      }),
-    );
+  /** A page of the inbox, newest first (plan item 3.5): the server answers at most 100 and a cursor for the rest. */
+  fetchNotifications(limit: number = 20, cursor?: string): Observable<KeysetPage<NotificationItem>> {
+    return this.api
+      .get<KeysetPage<BackendNotification>>('/notifications/inbox', cursor ? { limit, cursor } : { limit })
+      .pipe(
+        takeUntil(this.sessionEnded),
+        map((page) => {
+          const items = (page.items ?? []).map((record) => ({
+            id: record.id,
+            userId: record.userId,
+            title: record.title,
+            bodyMarkdown: record.body,
+            sourceModule: record.sourceCode,
+            targetUrl: record.formLink,
+            isRead: record.isRead,
+            createdAt: record.createdAt,
+          }));
+          return {
+            items,
+            nextCursor: page.nextCursor ?? null,
+            hasMore: page.hasMore,
+            totalReturned: items.length,
+          };
+        }),
+      );
   }
 
   markAsRead(id: number): Observable<void> {

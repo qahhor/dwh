@@ -1,8 +1,10 @@
 package com.smartup24.cms.instance.ms.notify.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.ms.notify.api.AnnouncementDraftRequest;
 import com.smartup24.cms.instance.ms.notify.api.ManagedAnnouncementView;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
@@ -66,8 +68,10 @@ public class MsAnnouncementService {
     }
 
     @Transactional(readOnly = true)
-    public List<ManagedAnnouncementView> listAll() {
-        return repository.findAll().stream().map(MsNotifyViews::managed).toList();
+    public KeysetPage<ManagedAnnouncementView> listPage(TimePage page) {
+        return page.page(
+                repository.findPage(page).stream().map(MsNotifyViews::managed).toList(),
+                view -> new TimePage.Position(view.modifiedAt(), view.id()));
     }
 
     @Transactional

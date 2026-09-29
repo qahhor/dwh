@@ -3678,6 +3678,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageFileListItem: {
             hasMore?: boolean;
@@ -3685,6 +3686,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageHistoryEntry: {
             hasMore?: boolean;
@@ -3692,6 +3694,15 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageManagedAnnouncementView: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ManagedAnnouncementView"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageMdUserView: {
             hasMore?: boolean;
@@ -3699,6 +3710,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageNoteView: {
             hasMore?: boolean;
@@ -3706,6 +3718,15 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageNotificationView: {
+            hasMore?: boolean;
+            items?: components["schemas"]["NotificationView"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPagePackageItem: {
             hasMore?: boolean;
@@ -3713,6 +3734,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageProjectListItem: {
             hasMore?: boolean;
@@ -3720,6 +3742,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageSecurityEventView: {
             hasMore?: boolean;
@@ -3727,6 +3750,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageSourceItem: {
             hasMore?: boolean;
@@ -3734,6 +3758,15 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
+        };
+        KeysetPageTaskCommentView: {
+            hasMore?: boolean;
+            items?: components["schemas"]["TaskCommentView"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
         };
         KeysetPageTaskView: {
             hasMore?: boolean;
@@ -3741,6 +3774,7 @@ export interface components {
             nextCursor?: string;
             /** Format: int64 */
             totalEstimated?: number;
+            totalExact?: boolean;
         };
         LanguageSummary: {
             active?: boolean;
@@ -4934,7 +4968,10 @@ export interface operations {
     };
     manage: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4947,7 +4984,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ManagedAnnouncementView"][];
+                    "application/json": components["schemas"]["KeysetPageManagedAnnouncementView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -8934,6 +8971,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -8947,7 +8985,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotificationView"][];
+                    "application/json": components["schemas"]["KeysetPageNotificationView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -9112,6 +9150,7 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -9125,7 +9164,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NotificationView"][];
+                    "application/json": components["schemas"]["KeysetPageNotificationView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -11014,7 +11053,10 @@ export interface operations {
     };
     listComments: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
             header?: never;
             path: {
                 taskId: number;
@@ -11029,7 +11071,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskCommentView"][];
+                    "application/json": components["schemas"]["KeysetPageTaskCommentView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -11936,7 +11978,10 @@ export interface operations {
     };
     listComments_1: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
             header?: never;
             path: {
                 taskId: number;
@@ -11951,7 +11996,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskCommentView"][];
+                    "application/json": components["schemas"]["KeysetPageTaskCommentView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */

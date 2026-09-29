@@ -1,3 +1,4 @@
+import type { KeysetPage } from '@core/models/common.models';
 import { Injectable, inject, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ApiService } from '@core/services/api.service';
@@ -26,6 +27,9 @@ export class TaskDetailsService {
   readonly detailNotFound = signal<boolean>(false);
   readonly commentsLoading = signal<boolean>(false);
   readonly commentsLoadError = signal<boolean>(false);
+  /** The cursor of the next page of the thread (plan item 3.5), null when every comment is on screen. */
+  readonly commentsNextCursor = signal<string | null>(null);
+  readonly commentsLoadingMore = signal<boolean>(false);
   readonly isCommentSubmitting = signal<boolean>(false);
 
   private readonly commentDrafts = new Map<number, string>();
@@ -149,6 +153,8 @@ export class TaskDetailsService {
     this.detailNotFound.set(false);
     this.commentsLoading.set(false);
     this.commentsLoadError.set(false);
+    this.commentsNextCursor.set(null);
+    this.commentsLoadingMore.set(false);
   }
 
   cancelDetailRequests(): void {
@@ -192,25 +198,43 @@ export class TaskDetailsService {
     });
   }
 
-  loadComments(taskId: number | string, routeRecordId: () => string | null): void {
+  /**
+   * Reads the thread oldest first, a page at a time (plan item 3.5): without a cursor the first page replaces the
+   * list, with one the next page is appended below what is on screen.
+   */
+  loadComments(taskId: number | string, routeRecordId: () => string | null, cursor: string | null = null): void {
     const requestId = ++this.commentsRequestId;
     this.commentsRequest?.unsubscribe();
-    this.commentsLoading.set(true);
+    const more = cursor !== null;
+    (more ? this.commentsLoadingMore : this.commentsLoading).set(true);
     this.commentsLoadError.set(false);
     this.commentsRequest = this.api
-      .get<TaskComment[]>(`/tasks/${taskId}/comments`, undefined, { notifyError: false })
+      .get<KeysetPage<TaskComment>>(`/tasks/${taskId}/comments`, cursor ? { cursor } : undefined, {
+        notifyError: false,
+      })
       .subscribe({
-        next: (res) => {
+        next: (page) => {
           if (requestId !== this.commentsRequestId || this.detailRecordId(routeRecordId) !== String(taskId)) return;
           this.commentsLoading.set(false);
-          this.comments.set((res || []).filter((comment) => recordResponseMatches(comment.taskId, String(taskId))));
+          this.commentsLoadingMore.set(false);
+          const fresh = (page?.items ?? []).filter((comment) => recordResponseMatches(comment.taskId, String(taskId)));
+          this.comments.set(more ? [...this.comments(), ...fresh] : fresh);
+          this.commentsNextCursor.set(page?.hasMore ? (page.nextCursor ?? null) : null);
         },
         error: () => {
           if (requestId !== this.commentsRequestId || this.detailRecordId(routeRecordId) !== String(taskId)) return;
           this.commentsLoading.set(false);
+          this.commentsLoadingMore.set(false);
           this.commentsLoadError.set(true);
         },
       });
+  }
+
+  loadMoreComments(routeRecordId: () => string | null): void {
+    const taskId = this.detailRecordId(routeRecordId);
+    const cursor = this.commentsNextCursor();
+    if (taskId != null && cursor !== null && !this.commentsLoadingMore())
+      this.loadComments(taskId, routeRecordId, cursor);
   }
 
   retryComments(routeRecordId: () => string | null): void {

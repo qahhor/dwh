@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.ms.task.service;
 
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
@@ -75,14 +77,12 @@ public class MsTaskCommentService {
         return MsTaskViews.comment(comment);
     }
 
+    /** The comments of a task the viewer may read, oldest first, a page at a time (plan 10/10, item 3.5). */
     @Transactional(readOnly = true)
-    public List<MsTaskCommentRepository.CommentRecord> listComments(Long taskId) {
-        return commentRepository.listComments(taskId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TaskCommentView> listComments(Long taskId, Long currentUserId) {
+    public KeysetPage<TaskCommentView> listComments(Long taskId, Long currentUserId, TimePage page) {
         taskService.getTaskById(taskId, currentUserId);
-        return MsTaskViews.all(commentRepository.listComments(taskId), MsTaskViews::comment);
+        return page.page(
+                MsTaskViews.all(commentRepository.listComments(taskId, page), MsTaskViews::comment),
+                view -> new TimePage.Position(view.createdAt(), view.id()));
     }
 }

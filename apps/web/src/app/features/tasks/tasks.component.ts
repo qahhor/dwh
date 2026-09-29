@@ -261,6 +261,10 @@ export class TasksComponent implements OnInit, OnDestroy {
   onTaskFileRemoved(file: TaskFile) {
     this.detailsService.onTaskFileRemoved(file);
   }
+  loadMoreComments() {
+    this.detailsService.loadMoreComments(() => this.routeRecordId());
+  }
+
   retryComments() {
     this.detailsService.retryComments(() => this.routeRecordId());
   }

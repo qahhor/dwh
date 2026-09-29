@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.security;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,7 +96,7 @@ class TaskFileDataScopeControllerTest {
     void commentEndpointReturnsNotFoundForOutOfScopeTaskIdentifier() throws Exception {
         MsTaskCommentService service = mock(MsTaskCommentService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.comments.view")));
-        when(service.listComments(42L, 10L))
+        when(service.listComments(eq(42L), eq(10L), any()))
                 .thenThrow(ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
 
         commentMvc(service)

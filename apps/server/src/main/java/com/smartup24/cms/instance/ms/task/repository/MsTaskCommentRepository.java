@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
+import com.smartup24.cms.instance.common.query.TimePage;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -58,7 +60,9 @@ public class MsTaskCommentRepository {
         return comment;
     }
 
-    public List<CommentRecord> listComments(Long taskId) {
+    /** Oldest first, {@code limit + 1} comments after the position of the page (plan 10/10, item 3.5). */
+    public List<CommentRecord> listComments(Long taskId, TimePage page) {
+        TimePage.Position after = page.after();
         return jdbcClient
                 .sql("""
                 select c.id, c.task_id, c.user_id, c.text_markdown, c.created_at,
@@ -68,10 +72,15 @@ public class MsTaskCommentRepository {
                 left join md_users u on u.id = c.user_id
                 left join ms_task_comment_files cf on cf.comment_id = c.id
                 where c.task_id = :taskId
-                group by c.id, c.task_id, c.user_id, c.text_markdown, c.created_at, u.name, u.login
-                order by c.created_at asc
+                """ + (after == null ? "" : " and (c.created_at, c.id) > (:afterAt, :afterId)") + """
+                 group by c.id, c.task_id, c.user_id, c.text_markdown, c.created_at, u.name, u.login
+                order by c.created_at asc, c.id asc
+                limit :limit
                 """)
                 .param("taskId", taskId)
+                .param("afterAt", after == null ? null : Timestamp.from(after.at()))
+                .param("afterId", after == null ? null : after.id())
+                .param("limit", page.limit() + 1)
                 .query((rs, rowNum) -> {
                     UUID[] arr = (UUID[]) rs.getArray("file_ids_arr").getArray();
                     List<UUID> fileIds = arr != null ? List.of(arr) : List.of();
