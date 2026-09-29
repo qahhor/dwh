@@ -237,6 +237,8 @@
   [comments]="comments()"
   [commentsLoading]="detailsService.commentsLoading()"
   [commentsLoadError]="detailsService.commentsLoadError()"
+  [commentsHasMore]="detailsService.commentsNextCursor() !== null"
+  [commentsLoadingMore]="detailsService.commentsLoadingMore()"
   [taskMembers]="taskMembers()"
   [taskCustomFields]="list.customFields()"
   [statuses]="statuses()"
@@ -265,6 +267,7 @@
   (fileAttached)="onTaskFileAttached($event)"
   (fileRemoved)="onTaskFileRemoved($event)"
   (retryComments)="retryComments()"
+  (loadMoreComments)="loadMoreComments()"
   (commentDraftChange)="commentDraft = $event"
   (submitComment)="submitComment()"
 ></app-task-detail-modal>

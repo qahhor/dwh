@@ -7,6 +7,9 @@ import { ToastService } from '@core/services/toast.service';
 import { AnnouncementAdminRecord, AnnouncementsComponent } from './announcements.component';
 import { inScreen } from '@testing/in-screen';
 
+/** A server page holding every row (plan item 3.5: growing collections answer KeysetPage). */
+const page = <T>(items: T[]) => ({ items, hasMore: false, totalEstimated: items.length, totalExact: true });
+
 describe('AnnouncementsComponent', () => {
   const draft: AnnouncementAdminRecord = {
     id: 7,
@@ -58,7 +61,7 @@ describe('AnnouncementsComponent', () => {
     } = {},
   ) {
     const api = {
-      get: vi.fn(() => (options.getError ? throwError(() => ({ status: 503 })) : of(options.records ?? [draft]))),
+      get: vi.fn(() => (options.getError ? throwError(() => ({ status: 503 })) : of(page(options.records ?? [draft])))),
       post: vi.fn(() => of(draft)),
       put: vi.fn(() =>
         options.putError
@@ -172,7 +175,7 @@ describe('AnnouncementsComponent', () => {
     ) as HTMLButtonElement;
     expect(retry).not.toBeNull();
 
-    failed.api.get.mockReturnValue(of([draft]));
+    failed.api.get.mockReturnValue(of(page([draft])));
     retry.click();
     failed.fixture.detectChanges();
     await failed.fixture.whenStable();

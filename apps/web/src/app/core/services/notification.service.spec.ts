@@ -13,19 +13,22 @@ describe('NotificationService API contract', () => {
         .fn()
         .mockReturnValueOnce(of({ unread_count: 3 }))
         .mockReturnValueOnce(
-          of([
-            {
-              id: 7,
-              userId: 2,
-              type: 'info',
-              title: 'Task assigned',
-              body: 'Open the task',
-              formLink: '/tasks/42',
-              sourceCode: 'tasks',
-              isRead: false,
-              createdAt: '2026-09-02T00:00:00Z',
-            },
-          ]),
+          of({
+            hasMore: false,
+            items: [
+              {
+                id: 7,
+                userId: 2,
+                type: 'info',
+                title: 'Task assigned',
+                body: 'Open the task',
+                formLink: '/tasks/42',
+                sourceCode: 'tasks',
+                isRead: false,
+                createdAt: '2026-09-02T00:00:00Z',
+              },
+            ],
+          }),
         ),
       post: vi.fn(() => of(undefined)),
     };

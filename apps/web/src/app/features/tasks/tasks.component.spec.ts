@@ -130,6 +130,9 @@ async function pick(fixture: ComponentFixture<TasksComponent>, trigger: HTMLElem
     .click();
 }
 
+/** A server page of comments holding the whole thread (plan item 3.5). */
+const thread = <T>(items: T[]) => ({ items, hasMore: false, totalEstimated: items.length, totalExact: true });
+
 describe('TasksComponent', () => {
   afterEach(() => vi.useRealTimers());
 
@@ -271,7 +274,7 @@ describe('TasksComponent', () => {
     const { fixture, component, api, screen } = await setup({
       canComment: false,
       get: (path) =>
-        path === '/tasks/14' ? of(detail) : path === '/tasks/14/comments' ? of([removedAuthor]) : undefined,
+        path === '/tasks/14' ? of(detail) : path === '/tasks/14/comments' ? of(thread([removedAuthor])) : undefined,
     });
 
     component.openTaskDetails(task(14));

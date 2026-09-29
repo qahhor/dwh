@@ -5,6 +5,8 @@ export interface KeysetPage<T> {
   totalReturned: number;
   /** The whole list's size, counted on the first page by registry lists (ADR-0016). */
   totalEstimated?: number;
+  /** False when `totalEstimated` is an estimate of a large table, not a count (plan item 3.5). */
+  totalExact?: boolean;
 }
 
 export interface ProblemDetail {

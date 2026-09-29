@@ -7,6 +7,8 @@ export interface KeysetResponse<T> {
   nextCursor?: string | null;
   hasMore?: boolean;
   totalEstimated?: number;
+  /** False when `totalEstimated` is the server's estimate, not a count (plan item 3.5). */
+  totalExact?: boolean;
 }
 
 /** Fetches one page. `cursor` is null for the first page. */
@@ -61,6 +63,8 @@ export class KeysetPager<T> {
   readonly pageSize = signal(20);
   /** The server's estimate, 0 when it gives none. */
   readonly total = signal(0);
+  /** The total is a count; false for an estimate over a large table, shown as "≈ N". */
+  readonly totalExact = signal(true);
   readonly hasMore = signal(false);
   readonly loading = signal(false);
   /** A first answer (rows or a failure) has arrived; before it an empty list means nothing yet, not no rows. */
@@ -123,6 +127,7 @@ export class KeysetPager<T> {
         this.nextCursor.set(response.nextCursor ?? null);
         this.hasMore.set(Boolean(response.hasMore));
         this.total.set(response.totalEstimated ?? 0);
+        this.totalExact.set(response.totalExact ?? true);
         options.onLoaded?.(rows, attempt.append);
         // A page that emptied since it was shown (its last row deleted or
         // filtered away) steps back to the page before it. A page moved to

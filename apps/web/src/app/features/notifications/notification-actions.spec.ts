@@ -6,6 +6,9 @@ import { NotificationService } from '@core/services/notification.service';
 import { ToastService } from '@core/services/toast.service';
 import { NotificationsComponent } from './notifications.component';
 
+/** A server page holding every row (plan item 3.5: growing collections answer KeysetPage). */
+const page = <T>(items: T[]) => ({ items, hasMore: false, totalEstimated: items.length, totalExact: true });
+
 describe('Notification action lifecycle', () => {
   let fixture: ComponentFixture<NotificationsComponent>;
   let http: HttpTestingController;
@@ -29,7 +32,7 @@ describe('Notification action lifecycle', () => {
     service = TestBed.inject(NotificationService);
     fixture = TestBed.createComponent(NotificationsComponent);
     fixture.detectChanges();
-    http.expectOne('/api/v1/notifications/inbox?limit=50').flush([record]);
+    http.expectOne('/api/v1/notifications/inbox?limit=50').flush(page([record]));
     await fixture.whenStable();
     service.unreadCount.set(1);
     fixture.detectChanges();
@@ -87,7 +90,7 @@ describe('Notification action lifecycle', () => {
     expect(service.unreadCount()).toBe(2);
     http.expectOne('/api/v1/notifications/unread-count').flush({ unread_count: 1 });
     fixture.detectChanges();
-    http.expectOne('/api/v1/notifications/inbox?limit=50').flush([{ ...record, isRead: true }]);
+    http.expectOne('/api/v1/notifications/inbox?limit=50').flush(page([{ ...record, isRead: true }]));
     expect(service.unreadCount()).toBe(1);
     http.verify();
   });
@@ -100,7 +103,7 @@ describe('Notification action lifecycle', () => {
     fixture.componentInstance.loadNotifications();
     fixture.detectChanges();
     expect(old.cancelled).toBe(true);
-    http.expectOne('/api/v1/notifications/inbox?limit=50').flush([record]);
+    http.expectOne('/api/v1/notifications/inbox?limit=50').flush(page([record]));
     await fixture.whenStable();
     expect(fixture.componentInstance.currentPage()).toBe(1);
     expect(fixture.componentInstance.paginatedItems()).toHaveLength(1);
@@ -122,7 +125,7 @@ describe('Notification action lifecycle', () => {
     fixture.componentInstance.markAllAsRead();
     http.expectOne('/api/v1/notifications/inbox/read-all').flush(null);
     fixture.detectChanges();
-    http.expectOne('/api/v1/notifications/inbox?limit=50').flush([{ ...record, isRead: true }]);
+    http.expectOne('/api/v1/notifications/inbox?limit=50').flush(page([{ ...record, isRead: true }]));
     const staleCount = http.expectOne('/api/v1/notifications/unread-count');
     notify(new MessageEvent('notification', { data: JSON.stringify({ id: 8, title: 'Later notification' }) }));
     expect(staleCount.cancelled).toBe(true);

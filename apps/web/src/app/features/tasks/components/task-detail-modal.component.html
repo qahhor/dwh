@@ -192,6 +192,19 @@
                       {{ 'tasks.kommentariev_poka_net' | t }}
                     </div>
                   }
+                  @if (commentsHasMore()) {
+                    <button
+                      smt-button
+                      type="button"
+                      smtVariant="secondary"
+                      smtSize="sm"
+                      [smtLoading]="commentsLoadingMore()"
+                      (click)="loadMoreComments.emit()"
+                      data-testid="task-comments-more"
+                    >
+                      {{ 'common.load_more' | t }}
+                    </button>
+                  }
                 </div>
               }
 

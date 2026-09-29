@@ -148,6 +148,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
       <ui-pagination
         [totalItems]="countsPage() ? pager().items().length : pager().total()"
         [cursorItemsArePageLength]="countsPage()"
+        [totalApproximate]="!pager().totalExact()"
         [pageSize]="pager().pageSize()"
         [pageSizeOptions]="pageSizeOptions()"
         [currentPage]="pager().page()"
