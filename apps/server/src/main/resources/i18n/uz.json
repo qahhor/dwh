@@ -2611,5 +2611,10 @@
   "iam.users.loading": "Foydalanuvchilar yuklanmoqda…",
   "iam.users.load_error": "Foydalanuvchilarni yuklab bo'lmadi.",
   "common.requirement_met": "Bajarildi",
-  "common.requirement_not_met": "Bajarilmadi"
+  "common.requirement_not_met": "Bajarilmadi",
+  "error.precondition_required": "Saqlash rad etildi: yozuv versiyasi ko‘rsatilmagan. Yozuvni qayta oching va takrorlang",
+  "error.revision_conflict": "Bu yozuvni boshqa foydalanuvchi o‘zgartirgan. Yangilang va qayta saqlang",
+  "error.common.precondition_required": "Saqlash rad etildi: yozuv versiyasi ko‘rsatilmagan. Yozuvni qayta oching va takrorlang",
+  "error.common.revision_conflict": "Bu yozuvni boshqa foydalanuvchi o‘zgartirgan. Yangilang va qayta saqlang",
+  "error.common.if_match_invalid": "If-Match sarlavhasida yozuv versiyasi bo‘lishi kerak"
 }

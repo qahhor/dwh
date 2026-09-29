@@ -63,6 +63,8 @@ public enum ErrorCode {
     I18N_LANGUAGE_EXISTS("i18n_language_exists", 409),
     I18N_REVISION_CONFLICT("i18n_revision_conflict", 409),
     TASK_REVISION_CONFLICT("task_revision_conflict", 409),
+    /** The record changed since the client read it (plan 10/10, item 3.6). */
+    REVISION_CONFLICT("revision_conflict", 409),
 
     // 413 Payload Too Large & 415 Unsupported Media Type
     PAYLOAD_TOO_LARGE("payload_too_large", 413),
@@ -76,6 +78,9 @@ public enum ErrorCode {
     PASSWORD_POLICY("password_policy", 422),
     EMPTY_QUERY("empty_query", 422),
     FILE_MALWARE_DETECTED("file_malware_detected", 422),
+
+    // 428 Precondition Required: a change of a record names the revision it was made from (plan 10/10, item 3.6)
+    PRECONDITION_REQUIRED("precondition_required", 428),
 
     // 423 Locked
     LOGIN_LOCKED("login_locked", 423),

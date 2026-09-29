@@ -875,10 +875,8 @@
   "tasks.redaktirovanie_zadachi": "Редактирование задачи",
   "tasks.nastroyka_spravochnikov_zadach": "Настройка справочников задач",
   "tasks.spravochniki_zadach": "Справочники задач",
-
   "tasks.naprimer_doc": "Например: doc",
   "tasks.naprimer_dokument": "Например: Документ",
-
   "tasks.nazvanie_statusa": "Название статуса...",
   "tasks.udalenie_elementa_spravochnika": "Удаление элемента справочника",
   "tasks.kanban": "Канбан",
@@ -950,7 +948,6 @@
   "layout.command_palette.poisk_zadach_proektov_i_polzovateley": "Поиск задач, проектов и пользователей",
   "layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk": "Введите минимум 2 символа для мгновенного поиска...",
   "ui.button.vypolnyaetsya": "Выполняется…",
-
   "ui.custom_fields.vyberite_znachenie": "Выберите значение",
   "ui.entity_toolbar.delete_selected": "Удалить выбранные ({n})",
   "ui.entity_toolbar.clear_selection": "Снять выбор",
@@ -965,9 +962,7 @@
   "entity.section.main": "Основное",
   "entity.section.settings": "Настройки",
   "entity.section.custom": "Дополнительные поля",
-
   "ui.file_upload.prikreplennye_fayly": "Прикреплённые файлы",
-
   "ui.file_upload.peretaschite_fayly_syuda_ili": "Перетащите файлы сюда или",
   "ui.file_upload.nazhmite_dlya_vybora": "нажмите для выбора",
   "ui.file_upload.do_50_mb_na_fayl_pdf_png_jpg_docx_zip_i_dr": "До 50 МБ на файл (PDF, PNG, JPG, DOCX, ZIP и др.)",
@@ -1187,8 +1182,6 @@
   "ui.user_multi_select.remove_user": "Удалить {name}",
   "ui.user_multi_select.add_more": "+ Добавить",
   "ui.file_upload.upload_progress": "Загрузка… {progress}%",
-
-
   "ui.file_upload.uploaded_named": "Файл {name} успешно загружен",
   "ui.file_upload.cancel_named": "Отменить загрузку {name}",
   "ui.file_upload.retry_named": "Повторить загрузку {name}",
@@ -1379,11 +1372,7 @@
   "tasks.without_parent": "Без родителя (корневая задача)",
   "tasks.task_types_count": "Типы задач ({count})",
   "tasks.task_statuses_count": "Статусы задач ({count})",
-
-
   "tasks.delete_task_type": "Удалить тип задачи {name}",
-
-
   "tasks.delete_status": "Удалить статус {name}",
   "tasks.task_type_accusative": "тип задачи",
   "tasks.status_accusative": "статус",
@@ -1489,9 +1478,6 @@
   "iam.view_user_named": "Просмотреть пользователя {name}",
   "iam.edit_user_named": "Редактировать пользователя {name}",
   "iam.more_actions_named": "Ещё действия: {name}",
-
-
-
   "notifications.mark_named_read": "Отметить уведомление «{title}» как прочитанное",
   "tasks.list_load_error": "Не удалось загрузить задачи.",
   "tasks.list_loading": "Загрузка задач…",
@@ -2625,5 +2611,10 @@
   "iam.users.loading": "Загрузка пользователей…",
   "iam.users.load_error": "Не удалось загрузить пользователей.",
   "common.requirement_met": "Выполнено",
-  "common.requirement_not_met": "Не выполнено"
+  "common.requirement_not_met": "Не выполнено",
+  "error.precondition_required": "Сохранение отклонено: не указана версия записи. Откройте запись заново и повторите",
+  "error.revision_conflict": "Запись уже изменил другой пользователь. Обновите её и повторите сохранение",
+  "error.common.precondition_required": "Сохранение отклонено: не указана версия записи. Откройте запись заново и повторите",
+  "error.common.revision_conflict": "Запись уже изменил другой пользователь. Обновите её и повторите сохранение",
+  "error.common.if_match_invalid": "Заголовок If-Match должен содержать версию записи"
 }
