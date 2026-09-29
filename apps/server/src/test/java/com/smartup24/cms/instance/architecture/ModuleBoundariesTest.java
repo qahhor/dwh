@@ -90,8 +90,9 @@ class ModuleBoundariesTest {
     }
 
     @Test
-    @DisplayName("1.3: a controller sees no repository package, nested records included")
+    @DisplayName("3.2: a controller sees no repository package, nested records included")
     void controllersSeeNoRepositoryPackage() {
+        // Strict since item 3.2: responses and requests are DTOs of the module's api package, built by services.
         ArchRule rule = noClasses()
                 .that()
                 .resideInAPackage("..controller..")
@@ -99,7 +100,7 @@ class ModuleBoundariesTest {
                 .dependOnClassesThat()
                 .resideInAPackage("..repository..")
                 .as("controllers see no repository package");
-        FreezingArchRule.freeze(rule).check(classes);
+        rule.check(classes);
     }
 
     @Test
@@ -183,8 +184,8 @@ class ModuleBoundariesTest {
         Files.createDirectories(REPORT.getParent());
         Files.writeString(REPORT, report.toString(), StandardCharsets.UTF_8);
         assertThat(rules.stringPropertyNames())
-                .as("every frozen rule has its store")
-                .hasSize(3);
+                .as("every frozen rule has its store (controllers see no repository is strict since 3.2)")
+                .hasSize(2);
     }
 
     /** Violations in a store file; comments and blank lines do not count. */
