@@ -3,8 +3,9 @@ package com.smartup24.cms.instance.search.service;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.VerificationSummary;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.Generation;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream;
+import com.smartup24.cms.instance.search.typesense.TypesenseDocuments;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -19,16 +20,22 @@ import org.springframework.stereotype.Service;
 public class SearchReconciliationService {
     private final DataSource source;
     private final SearchProjectionReader reader;
-    private final TypesenseClient client;
+    private final TypesenseCollections collections;
+    private final TypesenseDocuments documents;
 
-    public SearchReconciliationService(DataSource source, SearchProjectionReader reader, TypesenseClient client) {
+    public SearchReconciliationService(
+            DataSource source,
+            SearchProjectionReader reader,
+            TypesenseCollections collections,
+            TypesenseDocuments documents) {
         this.source = source;
         this.reader = reader;
-        this.client = client;
+        this.collections = collections;
+        this.documents = documents;
     }
 
     public Proof begin(Generation generation) {
-        return new Proof(source, reader, client, generation);
+        return new Proof(source, reader, collections, documents, generation);
     }
 
     /** Session-owned TEMP objects are dropped before returning this dedicated connection to its pool. */
@@ -37,7 +44,8 @@ public class SearchReconciliationService {
         private final Connection connection;
         private final JdbcClient jdbc;
         private final SearchProjectionReader reader;
-        private final TypesenseClient client;
+        private final TypesenseCollections collections;
+        private final TypesenseDocuments documents;
         private final Generation generation;
         private final Set<String> absent = new HashSet<>();
         private TypesenseDocumentStream stream;
@@ -46,9 +54,15 @@ public class SearchReconciliationService {
         private boolean schemasMatch = true, closed, indexCreated, sourceCreated;
         private VerificationSummary summary;
 
-        private Proof(DataSource source, SearchProjectionReader reader, TypesenseClient client, Generation generation) {
+        private Proof(
+                DataSource source,
+                SearchProjectionReader reader,
+                TypesenseCollections collections,
+                TypesenseDocuments documents,
+                Generation generation) {
             this.reader = reader;
-            this.client = client;
+            this.collections = collections;
+            this.documents = documents;
             this.generation = generation;
             Connection acquired = null;
             try {
@@ -86,8 +100,8 @@ public class SearchReconciliationService {
             if (summary != null) return true;
             if (schemaStep < TYPES.size()) {
                 String type = TYPES.get(schemaStep++);
-                var observed =
-                        client.observeCollection(generation.collections().get(type), type, generation.schemaProfile());
+                var observed = collections.observeCollection(
+                        generation.collections().get(type), type, generation.schemaProfile());
                 if ("COLLECTION_MISSING".equals(observed.errorCode())) absent.add(type);
                 else if (observed.schemaMatches() == null) throw TypesenseException.unavailable();
                 schemasMatch &= Boolean.TRUE.equals(observed.schemaMatches());
@@ -95,55 +109,12 @@ public class SearchReconciliationService {
             }
             if (exportStep < TYPES.size()) {
                 String type = TYPES.get(exportStep);
-                if (absent.contains(type)) {
-                    exportStep++;
-                    return false;
-                }
-                if (stream == null)
-                    stream =
-                            client.openDocumentMetadata(generation.collections().get(type));
-                var page = stream.readPage(100, 1_048_576);
-                for (var document : page) {
-                    jdbc.sql("insert into search_reconcile_index values(:type,:id,:revision,:fingerprint,:content)")
-                            .param("type", type)
-                            .param("id", document.id())
-                            .param("revision", document.revision())
-                            .param("fingerprint", document.fingerprint())
-                            .param("content", document.contentFingerprint())
-                            .update();
-                }
-                processed += page.size();
-                if (stream.exhausted()) {
-                    stream.close();
-                    stream = null;
-                    exportStep++;
-                }
+                if (absent.contains(type)) exportStep++;
+                else exportPage(type);
                 return false;
             }
             if (sourceStep < TYPES.size()) {
-                String type = TYPES.get(sourceStep);
-                var ids = reader.reconciliationIds(type, after, 100);
-                for (long id : ids) {
-                    var value = reader.readForReconciliation(type, id).orElseThrow();
-                    jdbc.sql("""
-                            insert into search_reconcile_source values(:type,:id,:revision,:fingerprint,:live,
-                                :revision=0 or :revision>coalesce((select delivered_revision from search_generation_delivery
-                                    where generation_id=:generation and entity_type=:type and entity_id=:id),0))
-                            """)
-                            .param("type", type)
-                            .param("id", id)
-                            .param("revision", value.revision())
-                            .param("fingerprint", value.fingerprint())
-                            .param("live", value.document() != null)
-                            .param("generation", generation.id())
-                            .update();
-                    after = id;
-                }
-                processed += ids.size();
-                if (ids.size() < 100) {
-                    sourceStep++;
-                    after = 0;
-                }
+                sourcePage(TYPES.get(sourceStep));
                 return false;
             }
             summary = jdbc.sql("""
@@ -164,6 +135,52 @@ public class SearchReconciliationService {
                             schemasMatch))
                     .single();
             return true;
+        }
+
+        private void exportPage(String type) {
+            if (stream == null)
+                stream = documents.openDocumentMetadata(generation.collections().get(type));
+            var page = stream.readPage(100, 1_048_576);
+            for (var document : page) {
+                jdbc.sql("insert into search_reconcile_index values(:type,:id,:revision,:fingerprint,:content)")
+                        .param("type", type)
+                        .param("id", document.id())
+                        .param("revision", document.revision())
+                        .param("fingerprint", document.fingerprint())
+                        .param("content", document.contentFingerprint())
+                        .update();
+            }
+            processed += page.size();
+            if (stream.exhausted()) {
+                stream.close();
+                stream = null;
+                exportStep++;
+            }
+        }
+
+        private void sourcePage(String type) {
+            var ids = reader.reconciliationIds(type, after, 100);
+            for (long id : ids) {
+                var value = reader.readForReconciliation(type, id).orElseThrow();
+                jdbc.sql("""
+                        insert into search_reconcile_source values(:type,:id,:revision,:fingerprint,:live,
+                            :revision=0 or :revision>coalesce((select delivered_revision from search_generation_delivery
+                                where generation_id=:generation and entity_type=:type and entity_id=:id),0))
+                        """)
+                        .param("type", type)
+                        .param("id", id)
+                        .param("revision", value.revision())
+                        .param("fingerprint", value.fingerprint())
+                        .param("live", value.document() != null)
+                        .param("generation", generation.id())
+                        .update();
+                after = id;
+            }
+            processed += ids.size();
+            if (ids.size() < 100) {
+                sourceStep++;
+                after = 0;
+            }
         }
 
         public long processed() {

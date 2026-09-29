@@ -92,24 +92,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         var principal = SecurityContext.getPrincipal();
-        String key;
-        int limit;
-        if (principal == null) {
-            if (isPublicI18nRead(request)) {
-                key = "ip:" + clientIp(request) + ":public-read";
-                limit = props.publicReadPerMinute();
-            } else {
-                key = "ip:" + clientIp(request);
-                limit = props.ipPerMinute();
-            }
-        } else if (principal.isApi()) {
-            // Лимит на владельца токена: сервисная учётка = одна интеграция (разд. 4.4.1 ТЗ-01)
-            key = "api:" + principal.userId();
-            limit = props.tokenPerMinute();
-        } else {
-            key = "user:" + principal.userId();
-            limit = props.userPerMinute();
-        }
+        Quota quota = baseQuota(principal, request);
+        String key = quota.key();
+        int limit = quota.limit();
 
         SearchRateBudget searchBudget = null;
         if (isInteractiveSearch(request)) {
@@ -144,7 +129,34 @@ public class RateLimitFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+        reject(request, response, principal, key, limit, probe);
+    }
 
+    private record Quota(String key, int limit) {}
+
+    /** The bucket of the caller before path rules: IP, token owner or user. */
+    private Quota baseQuota(SecurityContext.KauthPrincipal principal, HttpServletRequest request) {
+        if (principal == null) {
+            if (isPublicI18nRead(request)) {
+                return new Quota("ip:" + clientIp(request) + ":public-read", props.publicReadPerMinute());
+            }
+            return new Quota("ip:" + clientIp(request), props.ipPerMinute());
+        }
+        if (principal.isApi()) {
+            // Лимит на владельца токена: сервисная учётка = одна интеграция (разд. 4.4.1 ТЗ-01)
+            return new Quota("api:" + principal.userId(), props.tokenPerMinute());
+        }
+        return new Quota("user:" + principal.userId(), props.userPerMinute());
+    }
+
+    private void reject(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            SecurityContext.KauthPrincipal principal,
+            String key,
+            int limit,
+            ConsumptionProbe probe)
+            throws IOException {
         long retryAfterSec = Math.max(1, Math.ceilDiv(probe.getNanosToWaitForRefill(), 1_000_000_000L));
         if (isInteractiveSearch(request)) searchMetrics.rejected();
         if (rateLimitService.shouldLogRejection(key)) {

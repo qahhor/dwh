@@ -273,7 +273,7 @@ abstract class SearchSettingsIntegrationTestSupport {
                     @ComponentScan.Filter(
                             type = FilterType.REGEX,
                             pattern =
-                                    ".*(SearchGenerationService|SearchGenerationRepository|SearchStoragePreflight|SearchProjectionReader|SearchJobService|SearchJobRepository|SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient)$"))
+                                    ".*(SearchGenerationService|SearchGenerationRepository|SearchStoragePreflight|SearchProjectionReader|SearchJobService|SearchJobRepository|SearchController|SearchManagementController|SearchSettingsService|SearchStatusService|SearchExecutionSnapshotReader|SearchSettingsRepository|SearchPolicyProvider|SearchService|SearchAccessPolicy|SearchResultBudget|SearchIndexStateRepository|SearchFallbackRepository|TypesenseClient|TypesenseCollections|TypesenseHealth|TypesenseSearch)$"))
     @Import({AuditLogService.class, AuditLogRepository.class, AuditDataRedactor.class, LegacyController.class})
     static class Fixture {
         @Bean

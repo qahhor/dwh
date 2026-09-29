@@ -5,9 +5,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
+import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.ObservedGeneration;
 import com.smartup24.cms.instance.search.repository.SearchJobRepository;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.DependencyMetadata;
+import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
+import com.smartup24.cms.instance.search.typesense.TypesenseHealth;
+import com.smartup24.cms.instance.search.typesense.TypesenseHealth.DependencyMetadata;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,19 +22,22 @@ public class SearchStatusService {
     private final SearchAccessPolicy access;
     private final SearchIndexStateRepository repository;
     private final SearchPolicyProvider policies;
-    private final TypesenseClient client;
+    private final TypesenseHealth health;
+    private final TypesenseCollections collections;
     private final SearchJobRepository jobs;
 
     public SearchStatusService(
             SearchAccessPolicy access,
             SearchIndexStateRepository repository,
             SearchPolicyProvider policies,
-            TypesenseClient client,
+            TypesenseHealth health,
+            TypesenseCollections collections,
             SearchJobRepository jobs) {
         this.access = access;
         this.repository = repository;
         this.policies = policies;
-        this.client = client;
+        this.health = health;
+        this.collections = collections;
         this.jobs = jobs;
     }
 
@@ -48,73 +53,28 @@ public class SearchStatusService {
         } catch (ApiException unavailable) {
             /* No valid settings have been observed yet. */
         }
-        var dependency = client.observeDependency();
+        var dependency = health.observeDependency();
         var generations = new ArrayList<GenerationStatus>();
         var rollbackTargets = new ArrayList<RollbackTarget>();
         boolean mismatch = index.legacy();
         Instant reconciled = null;
         for (var generation : observations) {
-            Long documents = dependency.healthy() ? 0L : null;
-            Long taskDocuments = null, projectDocuments = null, userDocuments = null;
-            Boolean schemaMatches = dependency.healthy() ? Boolean.TRUE : null;
-            String errorCode = dependency.healthy() ? null : "DEPENDENCY_UNAVAILABLE";
-            for (var entry : generation.collections().entrySet()) {
-                if (!dependency.healthy()) break;
-                var collection = client.observeCollection(entry.getValue(), entry.getKey(), generation.schemaProfile());
-                switch (entry.getKey()) {
-                    case "TASK" -> taskDocuments = collection.documentCount();
-                    case "PROJECT" -> projectDocuments = collection.documentCount();
-                    case "USER" -> userDocuments = collection.documentCount();
-                }
-                if (errorCode == null || "COLLECTION_MISSING".equals(collection.errorCode()))
-                    errorCode = collection.errorCode();
-                if (documents != null) {
-                    try {
-                        documents = collection.documentCount() == null
-                                ? null
-                                : Math.addExact(documents, collection.documentCount());
-                    } catch (ArithmeticException overflow) {
-                        documents = null;
-                    }
-                }
-                if (Boolean.FALSE.equals(collection.schemaMatches())) schemaMatches = false;
-                else if (collection.schemaMatches() == null && !Boolean.FALSE.equals(schemaMatches))
-                    schemaMatches = null;
-            }
+            var status = generationStatus(generation, dependency.healthy());
             if (generation.active()) {
                 reconciled = generation.verifiedAt();
-                mismatch |= Boolean.FALSE.equals(schemaMatches);
+                mismatch |= Boolean.FALSE.equals(status.schemaMatches());
             }
-            Long lag = generation.oldestPending() == null
-                    ? 0L
-                    : Math.max(
-                            0,
-                            Duration.between(generation.oldestPending(), Instant.now())
-                                    .getSeconds());
             if (generation.state().equals("RETAINED")
                     && generation.schemaVersion() == 1
-                    && Boolean.TRUE.equals(schemaMatches))
+                    && Boolean.TRUE.equals(status.schemaMatches()))
                 rollbackTargets.add(
                         new RollbackTarget(generation.id(), generation.schemaProfile(), generation.verifiedAt()));
-            generations.add(new GenerationStatus(
-                    generation.id(),
-                    generation.state(),
-                    generation.active(),
-                    generation.schemaProfile(),
-                    documents,
-                    new EntityDocumentCounts(taskDocuments, projectDocuments, userDocuments),
-                    null,
-                    schemaMatches,
-                    errorCode,
-                    generation.pending(),
-                    generation.failed(),
-                    lag,
-                    generation.createdAt()));
+            generations.add(status);
         }
         Boolean rebuild = policy == null
                 ? null
                 : !index.initialized() || mismatch || !policy.schemaProfile().equals(index.schemaProfile());
-        var transport = client.transportBudgets();
+        var transport = health.transportBudgets();
         return new Status(
                 dependency,
                 index.initialized(),
@@ -127,6 +87,57 @@ public class SearchStatusService {
                 new Budgets(transport.connectTimeoutMs(), transport.readTimeoutMs(), 2000, rate),
                 jobs.page(20, null, null),
                 List.copyOf(rollbackTargets));
+    }
+
+    /** Observes every collection of one generation; without a healthy dependency nothing is asked. */
+    private GenerationStatus generationStatus(ObservedGeneration generation, boolean healthy) {
+        Long documents = healthy ? 0L : null;
+        Long taskDocuments = null, projectDocuments = null, userDocuments = null;
+        Boolean schemaMatches = healthy ? Boolean.TRUE : null;
+        String errorCode = healthy ? null : "DEPENDENCY_UNAVAILABLE";
+        for (var entry : generation.collections().entrySet()) {
+            if (!healthy) break;
+            var collection =
+                    collections.observeCollection(entry.getValue(), entry.getKey(), generation.schemaProfile());
+            switch (entry.getKey()) {
+                case "TASK" -> taskDocuments = collection.documentCount();
+                case "PROJECT" -> projectDocuments = collection.documentCount();
+                case "USER" -> userDocuments = collection.documentCount();
+            }
+            if (errorCode == null || "COLLECTION_MISSING".equals(collection.errorCode()))
+                errorCode = collection.errorCode();
+            if (documents != null) {
+                try {
+                    documents = collection.documentCount() == null
+                            ? null
+                            : Math.addExact(documents, collection.documentCount());
+                } catch (ArithmeticException overflow) {
+                    documents = null;
+                }
+            }
+            if (Boolean.FALSE.equals(collection.schemaMatches())) schemaMatches = false;
+            else if (collection.schemaMatches() == null && !Boolean.FALSE.equals(schemaMatches)) schemaMatches = null;
+        }
+        Long lag = generation.oldestPending() == null
+                ? 0L
+                : Math.max(
+                        0,
+                        Duration.between(generation.oldestPending(), Instant.now())
+                                .getSeconds());
+        return new GenerationStatus(
+                generation.id(),
+                generation.state(),
+                generation.active(),
+                generation.schemaProfile(),
+                documents,
+                new EntityDocumentCounts(taskDocuments, projectDocuments, userDocuments),
+                null,
+                schemaMatches,
+                errorCode,
+                generation.pending(),
+                generation.failed(),
+                lag,
+                generation.createdAt());
     }
 
     public record Status(

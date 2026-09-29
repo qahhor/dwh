@@ -23,7 +23,7 @@ class SearchRollbackIntegrationTest extends SearchDeliveryTestSupport {
 
     @BeforeEach
     void realEngine() {
-        client = new TypesenseClient(
+        client = TypesenseFixture.of(
                 new TypesenseProperties(
                         "http://" + engine.getHost() + ":" + engine.getMappedPort(8108), KEY, true, false),
                 mapper);
@@ -66,9 +66,11 @@ class SearchRollbackIntegrationTest extends SearchDeliveryTestSupport {
         complete(rollback);
         assertThat(state.snapshot().generationId()).isEqualTo(original);
         var rows = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
-        client.forEachDocumentMetadata(state.snapshot().collections().get("TASK"), rows::add);
+        client.documents()
+                .forEachDocumentMetadata(state.snapshot().collections().get("TASK"), rows::add);
         assertThat(rows).isEmpty();
-        client.forEachDocumentMetadata(state.snapshot().collections().get("USER"), rows::add);
+        client.documents()
+                .forEachDocumentMetadata(state.snapshot().collections().get("USER"), rows::add);
         assertThat(rows)
                 .extracting(TypesenseDocumentStream.DocumentMetadata::id)
                 .containsExactly(Long.toString(reporter));

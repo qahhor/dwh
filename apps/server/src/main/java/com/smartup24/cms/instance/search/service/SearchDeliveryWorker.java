@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.search.service;
 import com.smartup24.cms.instance.search.repository.SearchDeliveryRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseDocuments;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.*;
@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Component
 public class SearchDeliveryWorker {
     private static final Logger log = LoggerFactory.getLogger(SearchDeliveryWorker.class);
-    private final TypesenseClient client;
+    private final TypesenseDocuments documents;
     private final SearchProjectionReader reader;
     private final SearchDeliveryRepository delivery;
     private final SearchIndexStateRepository state;
@@ -32,22 +32,22 @@ public class SearchDeliveryWorker {
 
     @Autowired
     public SearchDeliveryWorker(
-            TypesenseClient client,
+            TypesenseDocuments documents,
             SearchProjectionReader reader,
             SearchDeliveryRepository delivery,
             SearchIndexStateRepository state,
             Optional<SearchMetrics> metrics) {
-        this(client, reader, delivery, state);
+        this(documents, reader, delivery, state);
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
     public SearchDeliveryWorker(
-            TypesenseClient client,
+            TypesenseDocuments documents,
             SearchProjectionReader reader,
             SearchDeliveryRepository delivery,
             SearchIndexStateRepository state) {
         this(
-                client,
+                documents,
                 reader,
                 delivery,
                 state,
@@ -56,13 +56,13 @@ public class SearchDeliveryWorker {
     }
 
     public SearchDeliveryWorker(
-            TypesenseClient client,
+            TypesenseDocuments documents,
             SearchProjectionReader reader,
             SearchDeliveryRepository delivery,
             SearchIndexStateRepository state,
             Clock clock,
             DoubleSupplier jitter) {
-        this.client = client;
+        this.documents = documents;
         this.reader = reader;
         this.delivery = delivery;
         this.state = state;
@@ -71,14 +71,14 @@ public class SearchDeliveryWorker {
     }
 
     public SearchDeliveryWorker(
-            TypesenseClient client,
+            TypesenseDocuments documents,
             SearchProjectionReader reader,
             SearchDeliveryRepository delivery,
             SearchIndexStateRepository state,
             Clock clock,
             DoubleSupplier jitter,
             SearchMetrics metrics) {
-        this(client, reader, delivery, state, clock, jitter);
+        this(documents, reader, delivery, state, clock, jitter);
         this.metrics = metrics;
     }
 
@@ -92,7 +92,7 @@ public class SearchDeliveryWorker {
         if (TransactionSynchronizationManager.isActualTransactionActive()) {
             throw new IllegalTransactionStateException("Search delivery cannot run in a business transaction");
         }
-        if (owner == null || !client.isEnabled()) return;
+        if (owner == null || !documents.isEnabled()) return;
         delivery.releaseUnfinishedCycle(owner);
         var generation = state.deliveryGeneration(owner);
         if (generation.isEmpty()) return;
@@ -117,7 +117,7 @@ public class SearchDeliveryWorker {
                     var value = projection.get();
                     String collection = target.collections().get(claim.entityType());
                     if (value.document() == null) {
-                        client.deleteDocument(collection, Long.toString(value.entityId()));
+                        documents.deleteDocument(collection, Long.toString(value.entityId()));
                         delivery.acknowledge(claim, value.fingerprint());
                     } else
                         batches.computeIfAbsent(collection, key -> new ArrayList<>())
@@ -134,30 +134,7 @@ public class SearchDeliveryWorker {
             }
             for (var batch : batches.entrySet()) {
                 if (Thread.currentThread().isInterrupted()) break;
-                try {
-                    var acks = client.importDocuments(
-                            batch.getKey(),
-                            batch.getValue().stream()
-                                    .map(value -> value.projection().document())
-                                    .toList());
-                    for (int i = 0; i < batch.getValue().size(); i++) {
-                        var value = batch.getValue().get(i);
-                        if (acks.get(i).success())
-                            delivery.acknowledge(
-                                    value.claim(), value.projection().fingerprint());
-                        else
-                            delivery.failed(
-                                    value.claim(),
-                                    clock.instant()
-                                            .plus(retryDelay(value.claim().attempts() + 1)),
-                                    acks.get(i).errorCode());
-                    }
-                } catch (RuntimeException failure) {
-                    for (var value : batch.getValue())
-                        delivery.failed(
-                                value.claim(),
-                                clock.instant().plus(retryDelay(value.claim().attempts() + 1)));
-                }
+                importBatch(batch.getKey(), batch.getValue());
             }
         } finally {
             for (var claim : claims) delivery.release(claim);
@@ -166,6 +143,30 @@ public class SearchDeliveryWorker {
                     target.id().equals(state.snapshot().generationId()),
                     observation.pending(),
                     observation.lagSeconds());
+        }
+    }
+
+    /** Acknowledges or schedules a retry for every document of one collection batch. */
+    private void importBatch(String collection, List<PendingDocument> values) {
+        try {
+            var acks = documents.importDocuments(
+                    collection,
+                    values.stream().map(value -> value.projection().document()).toList());
+            for (int i = 0; i < values.size(); i++) {
+                var value = values.get(i);
+                if (acks.get(i).success())
+                    delivery.acknowledge(value.claim(), value.projection().fingerprint());
+                else
+                    delivery.failed(
+                            value.claim(),
+                            clock.instant().plus(retryDelay(value.claim().attempts() + 1)),
+                            acks.get(i).errorCode());
+            }
+        } catch (RuntimeException failure) {
+            for (var value : values)
+                delivery.failed(
+                        value.claim(),
+                        clock.instant().plus(retryDelay(value.claim().attempts() + 1)));
         }
     }
 
