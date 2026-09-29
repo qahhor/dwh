@@ -38,7 +38,7 @@ describe('ModulesComponent', () => {
   async function createFixture(canManage = true) {
     const apiMock = {
       get: vi.fn(() => of(mockModules)),
-      post: vi.fn((_url: string, _body: any) => of({ ...mockModules[1], status: 'DISABLED', isActive: false })),
+      put: vi.fn((_url: string, _body: any) => of({ ...mockModules[1], status: 'DISABLED', isActive: false })),
     };
 
     await TestBed.configureTestingModule({
@@ -125,7 +125,7 @@ describe('ModulesComponent', () => {
 
   it('takes a toggle back when the server refuses it', async () => {
     const { fixture, apiMock } = await createFixture();
-    apiMock.post.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+    apiMock.put.mockReturnValueOnce(throwError(() => ({ status: 500 })));
 
     fixture.componentInstance.toggleModule(mockModules[1], false);
 
@@ -140,6 +140,6 @@ describe('ModulesComponent', () => {
 
     fixture.componentInstance.toggleModule(appModule, false);
 
-    expect(apiMock.post).toHaveBeenCalledWith('/modules/notes/toggle', { enabled: false });
+    expect(apiMock.put).toHaveBeenCalledWith('/modules/notes/enabled', { enabled: false });
   });
 });

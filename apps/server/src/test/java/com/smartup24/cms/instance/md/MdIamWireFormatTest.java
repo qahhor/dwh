@@ -130,7 +130,7 @@ class MdIamWireFormatTest {
         MockMvc mvc = mvc(new MdRoleController(roleService, permissionService));
 
         assertThat(keys(json(mvc, get("/api/v1/iam/roles"), 200).get(0))).isEqualTo(ROLE);
-        assertThat(keys(json(mvc, post("/api/v1/rbac/roles").content("{\"name\":\"Новая\",\"orderNo\":5}"), 201)))
+        assertThat(keys(json(mvc, post("/api/v1/iam/roles").content("{\"name\":\"Новая\",\"orderNo\":5}"), 201)))
                 .isEqualTo(ROLE);
         assertThat(keys(json(mvc, get("/api/v1/iam/forms"), 200).get(0)))
                 .isEqualTo(Set.of("formCode", "module", "formName", "action", "actionName", "isDeprecated"));
@@ -244,7 +244,7 @@ class MdIamWireFormatTest {
                 .thenReturn(record);
         MockMvc mvc = mvc(new MdCustomFieldController(new MdCustomFieldService(repository, audit)));
 
-        JsonNode list = json(mvc, get("/api/v1/custom-fields").param("entity_type", "USER"), 200);
+        JsonNode list = json(mvc, get("/api/v1/custom-fields").param("entityType", "USER"), 200);
         assertThat(keys(list.get(0))).isEqualTo(CUSTOM_FIELD);
         assertThat(list.get(0).get("optionsJson").isString()).isTrue();
         assertThat(keys(json(
@@ -299,9 +299,9 @@ class MdIamWireFormatTest {
                         .param("limit", "20")
                         .param("search", "ann")
                         .param("state", "A")
-                        .param("role_id", "3")
-                        .param("manager_id", "9")
-                        .param("is_2fa_enabled", "true"),
+                        .param("roleId", "3")
+                        .param("managerId", "9")
+                        .param("is2faEnabled", "true"),
                 200);
         assertThat(keys(page)).isEqualTo(Set.of("items", "nextCursor", "hasMore", "totalEstimated"));
         assertThat(keys(page.get("items").get(0))).isEqualTo(USER);

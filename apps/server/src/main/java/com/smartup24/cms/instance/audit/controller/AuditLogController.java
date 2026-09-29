@@ -38,10 +38,10 @@ public class AuditLogController {
     @GetMapping("/logs")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<KeysetPage<AuditLogView>> listLogs(
-            @RequestParam(name = "table_name", required = false) String tableName,
-            @RequestParam(name = "row_pk", required = false) String rowPk,
+            @RequestParam(name = "tableName", required = false) String tableName,
+            @RequestParam(name = "rowPk", required = false) String rowPk,
             @RequestParam(name = "event", required = false) String event,
-            @RequestParam(name = "user_id", required = false) Long userId,
+            @RequestParam(name = "userId", required = false) Long userId,
             @RequestParam(name = "from", required = false) Instant from,
             @RequestParam(name = "to", required = false) Instant to,
             @RequestParam(name = "limit", required = false) Integer limit,
@@ -58,8 +58,8 @@ public class AuditLogController {
     @GetMapping("/security-events")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<KeysetPage<SecurityEventView>> listSecurityEvents(
-            @RequestParam(name = "event_type", required = false) String eventType,
-            @RequestParam(name = "user_id", required = false) Long userId,
+            @RequestParam(name = "eventType", required = false) String eventType,
+            @RequestParam(name = "userId", required = false) Long userId,
             @RequestParam(name = "ip", required = false) String ip,
             @RequestParam(name = "from", required = false) Instant from,
             @RequestParam(name = "to", required = false) Instant to,

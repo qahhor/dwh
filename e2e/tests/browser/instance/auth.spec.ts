@@ -96,7 +96,7 @@ test('administrator can create and remove a custom role', async ({ page }) => {
   const createDialog = page.getByRole('dialog', { name: 'Создание новой роли' });
   await createDialog.getByLabel('Название роли').fill(roleName);
   const createResponse = page.waitForResponse(response =>
-    response.request().method() === 'POST' && response.url().endsWith('/api/v1/rbac/roles')
+    response.request().method() === 'POST' && response.url().endsWith('/api/v1/iam/roles')
   );
   await createDialog.getByRole('button', { name: 'Создать', exact: true }).click();
   const createdRole = await createResponse;
@@ -107,7 +107,7 @@ test('administrator can create and remove a custom role', async ({ page }) => {
   await page.getByRole('button', { name: `Удалить роль ${roleName}` }).click();
   const deleteDialog = page.getByRole('dialog', { name: 'Удаление роли' });
   const deleteResponse = page.waitForResponse(response =>
-    response.request().method() === 'DELETE' && /\/api\/v1\/rbac\/roles\/\d+$/u.test(response.url())
+    response.request().method() === 'DELETE' && /\/api\/v1\/iam\/roles\/\d+$/u.test(response.url())
   );
   await deleteDialog.getByRole('button', { name: 'Удалить', exact: true }).click();
   expect((await deleteResponse).ok()).toBe(true);

@@ -12,7 +12,8 @@ export class ModulesApi {
     return this.api.get<InstalledModule[]>('/modules');
   }
 
-  toggle(code: string, enabled: boolean): Observable<InstalledModule> {
-    return this.api.post<InstalledModule>(`/modules/${code}/toggle`, { enabled });
+  /** The request states the result, so a repeated switch changes nothing twice. */
+  setEnabled(code: string, enabled: boolean): Observable<InstalledModule> {
+    return this.api.put<InstalledModule>(`/modules/${code}/enabled`, { enabled });
   }
 }

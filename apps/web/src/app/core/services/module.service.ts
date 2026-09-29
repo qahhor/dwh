@@ -103,7 +103,7 @@ export class ModuleService {
 
   toggleModule(code: string, enabled: boolean): Observable<InstalledModule> {
     const normalizedCode = code.toLowerCase().trim();
-    return this.api.post<RawModule | null>(`/modules/${encodeURIComponent(normalizedCode)}/toggle`, { enabled }).pipe(
+    return this.api.put<RawModule | null>(`/modules/${encodeURIComponent(normalizedCode)}/enabled`, { enabled }).pipe(
       map((updated) => this.normalizeSingle(updated, normalizedCode, enabled)),
       tap((normalized) => {
         this.modules.update((list) => {

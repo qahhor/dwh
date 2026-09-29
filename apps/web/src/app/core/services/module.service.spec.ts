@@ -9,6 +9,7 @@ describe('ModuleService', () => {
     const api = {
       get: vi.fn(),
       post: vi.fn(),
+      put: vi.fn(),
     };
 
     TestBed.configureTestingModule({
@@ -169,7 +170,7 @@ describe('ModuleService', () => {
     expect(service.isModuleActive('notes')).toBe(true);
 
     // Toggle notes to DISABLED
-    api.post.mockReturnValue(
+    api.put.mockReturnValue(
       of({
         code: 'notes',
         name: 'Notes',
@@ -182,11 +183,11 @@ describe('ModuleService', () => {
 
     await firstValueFrom(service.toggleModule('notes', false));
 
-    expect(api.post).toHaveBeenCalledWith('/modules/notes/toggle', { enabled: false });
+    expect(api.put).toHaveBeenCalledWith('/modules/notes/enabled', { enabled: false });
     expect(service.isModuleActive('notes')).toBe(false);
 
     // Toggle notes back to ACTIVE
-    api.post.mockReturnValue(
+    api.put.mockReturnValue(
       of({
         code: 'notes',
         name: 'Notes',
@@ -199,7 +200,7 @@ describe('ModuleService', () => {
 
     await firstValueFrom(service.toggleModule('notes', true));
 
-    expect(api.post).toHaveBeenCalledWith('/modules/notes/toggle', { enabled: true });
+    expect(api.put).toHaveBeenCalledWith('/modules/notes/enabled', { enabled: true });
     expect(service.isModuleActive('notes')).toBe(true);
   });
 });

@@ -497,7 +497,7 @@ describe('TasksComponent list', () => {
         path === '/tasks/statuses'
           ? of(STATUSES)
           : path === '/tasks'
-            ? of(page(params['hide_terminal'] === false ? [active, done] : [active]))
+            ? of(page(params['hideTerminal'] === false ? [active, done] : [active]))
             : undefined,
     });
     const statusRadio = (label: string) =>
@@ -606,7 +606,7 @@ describe('TasksComponent pickers', () => {
     expect(
       listCalls(
         api,
-        (p) => p['search'] === 'Outside' && p['project_id'] === undefined && p['hide_terminal'] === undefined,
+        (p) => p['search'] === 'Outside' && p['projectId'] === undefined && p['hideTerminal'] === undefined,
       ),
     ).toHaveLength(1);
     redraw(fixture);

@@ -1,4 +1,59 @@
-# Lint of the API description (plan 10/10, item 3.3): docs/api/openapi.json, generated from the controllers.
+# Lint of the API description (plan 10/10, items 3.3 and 3.4): docs/api/openapi.json, generated from the controllers.
 # Run: docker run --rm -v "$PWD:/work" -w /work stoplight/spectral:6 lint docs/api/openapi.json
+# The style rules (ADR-0023) hold for current operations; a deprecated one keeps its old form until its x-sunset.
 extends:
   - spectral:oas
+
+rules:
+  smc-path-kebab-case:
+    description: A path segment is lower-case kebab-case; a variable is camelCase.
+    severity: error
+    given: $.paths
+    then:
+      field: '@key'
+      function: pattern
+      functionOptions:
+        match: '^(/([a-z0-9]+(-[a-z0-9]+)*|\{[a-z][a-zA-Z0-9]*\}))+$'
+
+  smc-query-camel-case:
+    description: A query parameter is camelCase; its snake_case name stays only as a deprecated alias.
+    severity: error
+    given: $.paths[*][*].parameters[?(@.in == 'query' && @.deprecated != true)]
+    then:
+      field: name
+      function: pattern
+      functionOptions:
+        match: '^[a-z][a-zA-Z0-9]*$'
+
+  smc-post-states-its-status:
+    description: >-
+      A POST that creates answers 201, one that starts work answers 202 and one without a body answers 204; 200 is
+      left to actions and queries, whose path ends with the action.
+    severity: error
+    given: >-
+      $.paths[?(!@property.match(/\/(login|logout|otp|password|confirm|request|archive|publish|read|read-all|bulk|block|unblock|force-password-change|reset-2fa|reorder|status|view|apply|cancel|retry|preview)$/))][?(@property === 'post' && @.deprecated != true)].responses
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          anyOf:
+            - required: ['201']
+            - required: ['202']
+            - required: ['204']
+
+  smc-no-toggle:
+    description: A switch takes the state it sets (PUT …/pin {pinned}); a toggle is not idempotent.
+    severity: error
+    given: $.paths[?(@property.match(/\/toggle$/))][?(@property !== 'parameters' && @.deprecated != true)]
+    then:
+      function: falsy
+
+  smc-deprecated-has-sunset:
+    description: A deprecated operation names the day it stops answering and its successor.
+    severity: error
+    given: $.paths[*][?(@.deprecated == true)]
+    then:
+      - field: x-sunset
+        function: truthy
+      - field: x-successor
+        function: truthy

@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.i18n.I18nModels.CreateLanguageRequest;
 import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageSummary;
 import com.smartup24.cms.instance.md.i18n.I18nModels.TranslationEditor;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,9 +44,10 @@ public class MdI18nAdminController {
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<LanguageSummary> createLanguage(@Valid @RequestBody CreateLanguageRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(i18nService.createLanguage(request, SecurityContext.getCurrentUserId()));
+        LanguageSummary created = i18nService.createLanguage(request, SecurityContext.getCurrentUserId());
+        return Created.at("/api/v1/i18n/admin/languages/{code}/translations", created.code(), created);
     }
 
     @PutMapping("/{code}/translations")

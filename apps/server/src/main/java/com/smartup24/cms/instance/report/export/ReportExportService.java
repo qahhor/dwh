@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.ApiDeprecations;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.report.api.ExportItem;
@@ -125,7 +126,7 @@ public class ReportExportService {
         QueryListExporter exporter = exporters.get(list.code());
         // The same checks the list endpoint makes: a bad filter is refused now, not in the job.
         QueryCompiler.compile(list, request.filter(), request.sort(), 1, null, request.q());
-        Map<String, String> options = request.options() == null ? Map.of() : request.options();
+        Map<String, String> options = currentOptions(request.options());
         List<FieldErrorItem> errors = new ArrayList<>();
         options.keySet().stream()
                 .filter(key -> !exporter.options().contains(key))
@@ -273,10 +274,11 @@ public class ReportExportService {
                             text,
                             ExportWorkbookWriter.APPLICATION,
                             ExportWorkbookWriter.APP_VERSION)) {
+                Map<String, String> options = currentOptions(request.options());
                 String cursor = null;
                 do {
-                    KeysetPage<?> page = exporter.page(
-                            PAGE_SIZE, cursor, request.filter(), request.sort(), request.q(), request.options());
+                    KeysetPage<?> page =
+                            exporter.page(PAGE_SIZE, cursor, request.filter(), request.sort(), request.q(), options);
                     for (Object item : page.items()) {
                         if (writer.rows() >= maxRows) {
                             truncated = true;
@@ -371,5 +373,13 @@ public class ReportExportService {
 
     private static void putIfPresent(Map<String, Object> map, String key, String value) {
         if (value != null && !value.isBlank()) map.put(key, value);
+    }
+
+    /**
+     * The options by their current names (plan item 3.4): a request, or a job queued before the release, may still
+     * use the snake_case names of the list filters.
+     */
+    private static Map<String, String> currentOptions(Map<String, String> options) {
+        return options == null ? Map.of() : ApiDeprecations.currentNames(options);
     }
 }

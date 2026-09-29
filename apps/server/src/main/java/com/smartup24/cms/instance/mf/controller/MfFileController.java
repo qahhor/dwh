@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.mf.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.mf.api.FileListItem;
 import com.smartup24.cms.instance.mf.api.FileView;
 import com.smartup24.cms.instance.mf.api.StorageStats;
@@ -32,6 +33,7 @@ public class MfFileController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequiresPermission(form = MfPref.FORM_FILES, action = "upload")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<FileView> uploadFile(@RequestParam("file") MultipartFile file) throws IOException {
         Long currentUserId = SecurityContext.getCurrentUserId();
 
@@ -42,7 +44,7 @@ public class MfFileController {
                 file.getSize(),
                 currentUserId);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(record);
+        return Created.at("/api/v1/files/{id}", record.id(), record);
     }
 
     @GetMapping("/storage/stats")
@@ -68,6 +70,7 @@ public class MfFileController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MfPref.FORM_FILES, action = "delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteFile(@PathVariable("id") UUID id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         boolean canDeleteAny = SecurityContext.hasPermission(MfPref.FORM_FILES, "manage_quotas");

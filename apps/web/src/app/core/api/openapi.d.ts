@@ -75,6 +75,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getAnnouncements"];
         put?: never;
         post: operations["create_3"];
@@ -859,9 +860,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listUserSessions_1"];
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["closeAllUserSessions_1"];
         options?: never;
         head?: never;
@@ -877,6 +880,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["forcePasswordChange_1"];
         delete?: never;
         options?: never;
@@ -893,6 +897,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["reset2fa_1"];
         delete?: never;
         options?: never;
@@ -907,6 +912,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getUserSecuritySummary"];
         put?: never;
         post?: never;
@@ -926,6 +932,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["closeUserSession_1"];
         options?: never;
         head?: never;
@@ -1051,6 +1058,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listActiveSessions"];
         put?: never;
         post?: never;
@@ -1070,6 +1078,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["closeOtherSessions"];
         options?: never;
         head?: never;
@@ -1086,6 +1095,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["closeSession"];
         options?: never;
         head?: never;
@@ -1117,6 +1127,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["changeMyPassword_1"];
         delete?: never;
         options?: never;
@@ -1341,6 +1352,7 @@ export interface paths {
         };
         get: operations["getAllModules"];
         put?: never;
+        /** @deprecated */
         post: operations["registerModule"];
         delete?: never;
         options?: never;
@@ -1372,7 +1384,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getModule"];
-        put?: never;
+        put: operations["putModule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/modules/{code}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setEnabled"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1389,6 +1417,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["toggleModule"];
         delete?: never;
         options?: never;
@@ -1476,6 +1505,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/navigation/items/{id}/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["setActive"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/navigation/items/{id}/toggle": {
         parameters: {
             query?: never;
@@ -1485,6 +1530,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["toggleItem"];
         delete?: never;
         options?: never;
@@ -1532,7 +1578,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        put: operations["setPin"];
+        /** @deprecated */
         post: operations["togglePin"];
         delete?: never;
         options?: never;
@@ -1627,6 +1674,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getInbox"];
         put?: never;
         post?: never;
@@ -1645,6 +1693,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["markAllAsRead_1"];
         delete?: never;
         options?: never;
@@ -1661,6 +1710,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["markAsRead"];
         delete?: never;
         options?: never;
@@ -1675,7 +1725,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getPreferences_1"];
+        /** @deprecated */
         put: operations["updatePreferences_1"];
         post?: never;
         delete?: never;
@@ -1691,6 +1743,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getUnreadCount"];
         put?: never;
         post?: never;
@@ -1723,6 +1776,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getFormCatalog"];
         put?: never;
         post?: never;
@@ -1739,8 +1793,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listRoles_1"];
         put?: never;
+        /** @deprecated */
         post: operations["createRole_1"];
         delete?: never;
         options?: never;
@@ -1755,6 +1811,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getRoleUserCounts_1"];
         put?: never;
         post?: never;
@@ -1774,9 +1831,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["deleteRole_1"];
         options?: never;
         head?: never;
+        /** @deprecated */
         patch: operations["updateRole_1"];
         trace?: never;
     };
@@ -1787,7 +1846,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getRolePermissions_1"];
+        /** @deprecated */
         put: operations["setRolePermissions_1"];
         post?: never;
         delete?: never;
@@ -2059,8 +2120,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listTasks_1"];
         put?: never;
+        /** @deprecated */
         post: operations["createTask_1"];
         delete?: never;
         options?: never;
@@ -2077,6 +2140,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["bulk"];
         delete?: never;
         options?: never;
@@ -2091,6 +2155,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getProjectStats_1"];
         put?: never;
         post?: never;
@@ -2107,8 +2172,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listStatuses_1"];
         put?: never;
+        /** @deprecated */
         post: operations["createStatus_1"];
         delete?: never;
         options?: never;
@@ -2125,6 +2192,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["reorderStatuses"];
         delete?: never;
         options?: never;
@@ -2142,9 +2210,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["deleteStatus_1"];
         options?: never;
         head?: never;
+        /** @deprecated */
         patch: operations["updateStatus_1"];
         trace?: never;
     };
@@ -2155,8 +2225,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listTypes"];
         put?: never;
+        /** @deprecated */
         post: operations["createType"];
         delete?: never;
         options?: never;
@@ -2173,6 +2245,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["reorderTypes"];
         delete?: never;
         options?: never;
@@ -2190,9 +2263,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["deleteType_1"];
         options?: never;
         head?: never;
+        /** @deprecated */
         patch: operations["updateType_1"];
         trace?: never;
     };
@@ -2203,12 +2278,14 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getTask"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
+        /** @deprecated */
         patch: operations["updateTask"];
         trace?: never;
     };
@@ -2219,8 +2296,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getTaskFiles"];
         put?: never;
+        /** @deprecated */
         post: operations["attachFile"];
         delete?: never;
         options?: never;
@@ -2238,6 +2317,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** @deprecated */
         delete: operations["detachFile"];
         options?: never;
         head?: never;
@@ -2253,6 +2333,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["changeStatus"];
         delete?: never;
         options?: never;
@@ -2267,6 +2348,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getSubtasks_1"];
         put?: never;
         post?: never;
@@ -2285,6 +2367,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @deprecated */
         post: operations["markViewed"];
         delete?: never;
         options?: never;
@@ -2299,8 +2382,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["listComments"];
         put?: never;
+        /** @deprecated */
         post: operations["addComment"];
         delete?: never;
         options?: never;
@@ -2856,6 +2941,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ActiveRequest: {
+            active?: boolean;
+        };
         ActiveSessionView: {
             /** Format: date-time */
             closedAt?: string;
@@ -3922,6 +4010,9 @@ export interface components {
             /** Format: int64 */
             permissionsVersion?: number;
         };
+        PinRequest: {
+            pinned?: boolean;
+        };
         PreviewResult: {
             activeProfile?: string;
             result?: components["schemas"]["SearchResult"];
@@ -4788,9 +4879,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -4984,8 +5077,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5005,10 +5098,10 @@ export interface operations {
     listLogs: {
         parameters: {
             query?: {
-                table_name?: string;
-                row_pk?: string;
+                tableName?: string;
+                rowPk?: string;
                 event?: string;
-                user_id?: number;
+                userId?: number;
                 from?: string;
                 to?: string;
                 limit?: number;
@@ -5016,6 +5109,21 @@ export interface operations {
                 filter?: string;
                 sort?: string;
                 q?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of tableName; answers until 2026-12-31
+                 */
+                table_name?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of rowPk; answers until 2026-12-31
+                 */
+                row_pk?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of userId; answers until 2026-12-31
+                 */
+                user_id?: number;
             };
             header?: never;
             path?: never;
@@ -5046,8 +5154,8 @@ export interface operations {
     listSecurityEvents: {
         parameters: {
             query?: {
-                event_type?: string;
-                user_id?: number;
+                eventType?: string;
+                userId?: number;
                 ip?: string;
                 from?: string;
                 to?: string;
@@ -5056,6 +5164,16 @@ export interface operations {
                 filter?: string;
                 sort?: string;
                 q?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of eventType; answers until 2026-12-31
+                 */
+                event_type?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of userId; answers until 2026-12-31
+                 */
+                user_id?: number;
             };
             header?: never;
             path?: never;
@@ -5154,8 +5272,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5276,8 +5394,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5307,8 +5425,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5338,8 +5456,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5359,6 +5477,11 @@ export interface operations {
     getFields: {
         parameters: {
             query?: {
+                entityType?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of entityType; answers until 2026-12-31
+                 */
                 entity_type?: string;
             };
             header?: never;
@@ -5400,9 +5523,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5431,8 +5556,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5464,8 +5589,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5617,8 +5742,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5749,9 +5874,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -5811,8 +5938,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5968,9 +6095,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6220,9 +6349,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6286,8 +6417,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6350,8 +6481,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6441,8 +6572,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6474,8 +6605,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6534,8 +6665,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6567,8 +6698,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6596,8 +6727,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6652,8 +6783,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6712,8 +6843,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6741,8 +6872,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6770,8 +6901,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6831,8 +6962,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6860,8 +6991,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -6920,9 +7051,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -6951,8 +7084,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7011,9 +7144,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7073,8 +7208,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7106,8 +7241,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7170,8 +7305,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7226,8 +7361,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7255,8 +7390,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7283,8 +7418,23 @@ export interface operations {
                 q?: string;
                 search?: string;
                 state?: string;
+                roleId?: number;
+                managerId?: number;
+                is2faEnabled?: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of roleId; answers until 2026-12-31
+                 */
                 role_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of managerId; answers until 2026-12-31
+                 */
                 manager_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of is2faEnabled; answers until 2026-12-31
+                 */
                 is_2fa_enabled?: boolean;
             };
             header?: never;
@@ -7326,9 +7476,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7359,8 +7511,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7419,8 +7571,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7452,8 +7604,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7481,8 +7633,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7510,8 +7662,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7570,8 +7722,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7665,8 +7817,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7822,8 +7974,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7852,8 +8004,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7916,9 +8068,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -7984,8 +8138,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8124,6 +8278,76 @@ export interface operations {
             };
         };
     };
+    putModule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterModuleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledModuleView"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    setEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ToggleStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledModuleView"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
     toggleModule: {
         parameters: {
             query?: {
@@ -8203,9 +8427,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8389,12 +8615,47 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    setActive: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActiveRequest"];
+            };
+        };
+        responses: {
             /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NavigationItemView"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -8486,9 +8747,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -8583,12 +8846,47 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    setPin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinRequest"];
+            };
+        };
+        responses: {
             /** @description OK */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NoteView"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -8672,8 +8970,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8701,8 +8999,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8761,8 +9059,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8850,8 +9148,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8879,8 +9177,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -8939,8 +9237,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9090,9 +9388,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9152,8 +9452,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9185,8 +9485,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9249,8 +9549,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9723,8 +10023,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9787,8 +10087,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -9842,15 +10142,45 @@ export interface operations {
                 filter?: string;
                 sort?: string;
                 q?: string;
-                project_id?: number;
-                status_id?: number;
+                projectId?: number;
+                statusId?: number;
                 priority?: string;
                 search?: string;
-                hide_terminal?: boolean;
-                assigned_user_id?: number;
-                member_role?: string;
-                reporter_id?: number;
+                hideTerminal?: boolean;
+                assignedUserId?: number;
+                memberRole?: string;
+                reporterId?: number;
                 overdue?: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of projectId; answers until 2026-12-31
+                 */
+                project_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of statusId; answers until 2026-12-31
+                 */
+                status_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of hideTerminal; answers until 2026-12-31
+                 */
+                hide_terminal?: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of assignedUserId; answers until 2026-12-31
+                 */
+                assigned_user_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of memberRole; answers until 2026-12-31
+                 */
+                member_role?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of reporterId; answers until 2026-12-31
+                 */
+                reporter_id?: number;
             };
             header?: never;
             path?: never;
@@ -9891,9 +10221,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -9952,15 +10284,45 @@ export interface operations {
                 filter?: string;
                 sort?: string;
                 q?: string;
-                project_id?: number;
-                status_id?: number;
+                projectId?: number;
+                statusId?: number;
                 priority?: string;
                 search?: string;
-                hide_terminal?: boolean;
-                assigned_user_id?: number;
-                member_role?: string;
-                reporter_id?: number;
+                hideTerminal?: boolean;
+                assignedUserId?: number;
+                memberRole?: string;
+                reporterId?: number;
                 overdue?: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of projectId; answers until 2026-12-31
+                 */
+                project_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of statusId; answers until 2026-12-31
+                 */
+                status_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of hideTerminal; answers until 2026-12-31
+                 */
+                hide_terminal?: boolean;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of assignedUserId; answers until 2026-12-31
+                 */
+                assigned_user_id?: number;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of memberRole; answers until 2026-12-31
+                 */
+                member_role?: string;
+                /**
+                 * @deprecated
+                 * @description Deprecated name of reporterId; answers until 2026-12-31
+                 */
+                reporter_id?: number;
             };
             header?: never;
             path?: never;
@@ -10001,9 +10363,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10125,9 +10489,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10158,8 +10524,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10187,8 +10553,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10220,8 +10586,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10280,9 +10646,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10313,8 +10681,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10342,8 +10710,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10375,8 +10743,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10439,8 +10807,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10503,8 +10871,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10533,8 +10901,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10566,8 +10934,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10626,8 +10994,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10690,9 +11058,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10754,9 +11124,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -10885,8 +11257,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10949,8 +11321,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -10979,8 +11351,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11039,9 +11411,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11072,8 +11446,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11101,8 +11475,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11134,8 +11508,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11194,9 +11568,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11227,8 +11603,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11256,8 +11632,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11289,8 +11665,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11353,8 +11729,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11417,8 +11793,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11447,8 +11823,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11480,8 +11856,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11540,8 +11916,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11604,9 +11980,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -11710,8 +12088,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11772,8 +12150,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -11904,9 +12282,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12038,9 +12418,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12142,8 +12524,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12265,9 +12647,11 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
@@ -12296,8 +12680,8 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12329,8 +12713,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

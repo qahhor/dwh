@@ -90,7 +90,7 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await page.route('**/api/v1/audit/logs*', route => {
     const url = new URL(route.request().url());
     requestedLogUrls.push(url);
-    const body = url.searchParams.get('row_pk')
+    const body = url.searchParams.get('rowPk')
       ? { ...firstPage, items: [firstPage.items[0]], nextCursor: null, hasMore: false, totalEstimated: 1 }
       : url.searchParams.get('cursor') === 'audit-next'
         ? secondPage
@@ -137,8 +137,8 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await page.getByRole('button', { name: 'Применить' }).click();
 
   const filteredRequest = requestedLogUrls.at(-1);
-  expect(filteredRequest?.searchParams.get('row_pk')).toBe('42');
-  expect(filteredRequest?.searchParams.get('user_id')).toBe('7');
+  expect(filteredRequest?.searchParams.get('rowPk')).toBe('42');
+  expect(filteredRequest?.searchParams.get('userId')).toBe('7');
   expect(filteredRequest?.searchParams.get('event')).toBe('U');
   expect(filteredRequest?.searchParams.get('from')).toBe('2026-09-01T00:00:00.000Z');
   expect(filteredRequest?.searchParams.get('to')).toBe('2026-09-04T23:59:59.999Z');
@@ -151,7 +151,7 @@ test('audit pagination is stable, secrets stay redacted, and filter reset drops 
   await expect(page.getByLabel('Фильтр журнала по действию')).not.toHaveAttribute('data-value');
 
   const resetRequest = requestedLogUrls.at(-1);
-  for (const parameter of ['row_pk', 'user_id', 'event', 'from', 'to', 'cursor']) {
+  for (const parameter of ['rowPk', 'userId', 'event', 'from', 'to', 'cursor']) {
     expect(resetRequest?.searchParams.has(parameter)).toBe(false);
   }
 });

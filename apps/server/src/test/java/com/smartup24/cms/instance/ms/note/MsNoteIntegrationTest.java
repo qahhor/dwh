@@ -71,6 +71,10 @@ class MsNoteIntegrationTest {
         // Закрепление
         var pinned = noteService.togglePinned(note.id(), user1Id);
         assertThat(pinned.isPinned()).isTrue();
+        // PUT /notes/{id}/pin (plan item 3.4): the state is set, a repeat leaves it.
+        assertThat(noteService.setPinned(note.id(), user1Id, true).isPinned()).isTrue();
+        assertThat(noteService.setPinned(note.id(), user1Id, false).isPinned()).isFalse();
+        assertThat(noteService.setPinned(note.id(), user1Id, false).isPinned()).isFalse();
 
         // Поиск по ключевому слову
         var found = noteService

@@ -159,6 +159,25 @@ class NavigationItemVisibilityIntegrationTest {
         });
     }
 
+    @Test
+    @DisplayName("3.4: PUT …/active sets the state; a repeat changes and audits nothing")
+    void settingTheStateIsIdempotent() {
+        NavigationItemView item = create("vis-set", null, null);
+
+        assertThat(service.setActive(item.id(), null, true).state()).isEqualTo("A");
+        assertThat(service.setActive(item.id(), null, false).state()).isEqualTo("P");
+        assertThat(service.setActive(item.id(), null, false).state()).isEqualTo("P");
+
+        Integer audited = jdbc.sql("""
+                        select count(*) from audit_log
+                        where table_name = 'md_navigation_items' and row_pk = :id and event = 'U'
+                        """)
+                .param("id", String.valueOf(item.id()))
+                .query(Integer.class)
+                .single();
+        assertThat(audited).isEqualTo(1);
+    }
+
     private static NavigationItemView create(String code, String permission, Long parentId) {
         return service.createItem(
                 new CreateNavigationItemCommand(

@@ -52,6 +52,15 @@ public class ModuleRegistryController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /** Switches the module on or off (plan item 3.4): the body states the result, so a repeat changes nothing. */
+    @PutMapping("/{code}/enabled")
+    @RequiresPermission(form = "platform.modules", action = "manage")
+    public ResponseEntity<InstalledModuleView> setEnabled(
+            @PathVariable String code, @RequestBody ToggleStatusRequest body) {
+        return ResponseEntity.ok(moduleService.toggleModuleStatus(code, body.enabled()));
+    }
+
+    /** Deprecated for PUT /{code}/enabled; answers until its sunset (ADR-0023). */
     @PostMapping("/{code}/toggle")
     @RequiresPermission(form = "platform.modules", action = "manage")
     public ResponseEntity<InstalledModuleView> toggleModule(
@@ -62,11 +71,24 @@ public class ModuleRegistryController {
         return ResponseEntity.ok(moduleService.toggleModuleStatus(code, enabled));
     }
 
+    /** Registers the module or replaces its registration: the same call twice leaves the same module. */
+    @PutMapping("/{code}")
+    @RequiresPermission(form = "platform.modules", action = "manage")
+    public ResponseEntity<InstalledModuleView> putModule(
+            @PathVariable String code, @RequestBody RegisterModuleRequest body) {
+        return register(code, body);
+    }
+
+    /** Deprecated for PUT /{code} (it always replaced an existing registration); answers until its sunset. */
     @PostMapping
     @RequiresPermission(form = "platform.modules", action = "manage")
     public ResponseEntity<InstalledModuleView> registerModule(@RequestBody RegisterModuleRequest body) {
+        return register(body.code(), body);
+    }
+
+    private ResponseEntity<InstalledModuleView> register(String code, RegisterModuleRequest body) {
         return ResponseEntity.ok(moduleService.registerModule(
-                body.code(),
+                code,
                 body.name(),
                 body.description(),
                 body.version(),

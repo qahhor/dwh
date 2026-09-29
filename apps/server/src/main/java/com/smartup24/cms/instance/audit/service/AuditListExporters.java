@@ -29,7 +29,7 @@ public class AuditListExporters {
             }
 
             public Set<String> options() {
-                return Set.of("table_name", "row_pk", "event", "user_id", "from", "to");
+                return Set.of("tableName", "rowPk", "event", "userId", "from", "to");
             }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
@@ -50,10 +50,10 @@ public class AuditListExporters {
                         sort,
                         search,
                         new AuditLogFilter(
-                                options.get("table_name"),
-                                options.get("row_pk"),
+                                options.get("tableName"),
+                                options.get("rowPk"),
                                 options.get("event"),
-                                number(options.get("user_id")),
+                                number(options.get("userId")),
                                 instant(options.get("from")),
                                 instant(options.get("to"))));
             }
@@ -68,7 +68,7 @@ public class AuditListExporters {
             }
 
             public Set<String> options() {
-                return Set.of("event_type", "user_id", "ip", "from", "to");
+                return Set.of("eventType", "userId", "ip", "from", "to");
             }
 
             public List<FieldErrorItem> checkOptions(Map<String, String> options) {
@@ -84,8 +84,8 @@ public class AuditListExporters {
                         sort,
                         search,
                         new SecurityEventFilter(
-                                options.get("event_type"),
-                                number(options.get("user_id")),
+                                options.get("eventType"),
+                                number(options.get("userId")),
                                 options.get("ip"),
                                 instant(options.get("from")),
                                 instant(options.get("to"))));
@@ -96,9 +96,9 @@ public class AuditListExporters {
     /** The user id and the time bounds both lists take. */
     private static List<FieldErrorItem> common(Map<String, String> options) {
         List<FieldErrorItem> errors = new ArrayList<>();
-        String user = options.get("user_id");
+        String user = options.get("userId");
         if (user != null && !user.isBlank() && !user.strip().matches("\\d{1,18}")) {
-            errors.add(new FieldErrorItem("user_id", "EXPORT_INVALID", "not a number: " + user));
+            errors.add(new FieldErrorItem("userId", "EXPORT_INVALID", "not a number: " + user));
         }
         for (String key : List.of("from", "to")) {
             String value = options.get(key);

@@ -44,7 +44,7 @@ export class ProfileApi {
   }
 
   changePassword(oldPassword: string, newPassword: string): Observable<unknown> {
-    return this.api.post('/iam/users/me/password', { oldPassword, newPassword });
+    return this.api.post('/auth/password', { oldPassword, newPassword });
   }
 
   tokens(): Observable<ApiToken[]> {

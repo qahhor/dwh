@@ -183,7 +183,7 @@ export class ModulesComponent {
       );
     setActive(targetActive);
     this.togglingCode.set(code);
-    this.modulesApi.toggle(code, targetActive).subscribe({
+    this.modulesApi.setEnabled(code, targetActive).subscribe({
       next: (updated) => {
         this.togglingCode.set(null);
         this.modules.update((list) =>

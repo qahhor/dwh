@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.ms.task.api.ChangeStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateTaskRequest;
 import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Tasks: the list, the card and the commands on a task. Statuses and files have their own controllers. */
@@ -67,14 +69,14 @@ public class MsTaskController {
             @RequestParam(name = "filter", required = false) String filter,
             @RequestParam(name = "sort", required = false) String sort,
             @RequestParam(name = "q", required = false) String query,
-            @RequestParam(name = "project_id", required = false) Long projectId,
-            @RequestParam(name = "status_id", required = false) Long statusId,
+            @RequestParam(name = "projectId", required = false) Long projectId,
+            @RequestParam(name = "statusId", required = false) Long statusId,
             @RequestParam(name = "priority", required = false) String priority,
             @RequestParam(name = "search", required = false) String search,
-            @RequestParam(name = "hide_terminal", required = false) Boolean hideTerminal,
-            @RequestParam(name = "assigned_user_id", required = false) Long assignedUserId,
-            @RequestParam(name = "member_role", required = false) String memberRole,
-            @RequestParam(name = "reporter_id", required = false) Long reporterId,
+            @RequestParam(name = "hideTerminal", required = false) Boolean hideTerminal,
+            @RequestParam(name = "assignedUserId", required = false) Long assignedUserId,
+            @RequestParam(name = "memberRole", required = false) String memberRole,
+            @RequestParam(name = "reporterId", required = false) Long reporterId,
             @RequestParam(name = "overdue", required = false) Boolean overdue) {
 
         // Registry list ms.tasks (ADR-0016); `search` and the flat filters are kept for existing callers.
@@ -105,6 +107,7 @@ public class MsTaskController {
     /** The current user has seen the task: clears its "new" mark for this user. */
     @PostMapping("/{id}/view")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> markViewed(@PathVariable("id") Long id) {
         memberService.markViewed(id, SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
@@ -118,6 +121,7 @@ public class MsTaskController {
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<TaskView> createTask(@Valid @RequestBody CreateTaskRequest body) {
         var task = taskService.createTask(
                 body.projectId(),
@@ -132,11 +136,12 @@ public class MsTaskController {
                 body.beginTime(),
                 body.endTime(),
                 SecurityContext.getCurrentUserId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(task);
+        return Created.at("/api/v1/tasks/{id}", task.id(), task);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskRequest body) {
         taskService.updateTask(id, body, SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
@@ -151,6 +156,7 @@ public class MsTaskController {
 
     @PostMapping("/{id}/status")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> changeStatus(
             @PathVariable("id") Long id, @Valid @RequestBody ChangeStatusRequest body) {
         workflowService.changeStatus(id, body.statusId(), body.expectedRevision(), SecurityContext.getCurrentUserId());

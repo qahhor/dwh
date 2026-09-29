@@ -240,6 +240,7 @@
     },
     "/api/v1/announcements" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getAnnouncements",
         "parameters" : [ {
           "in" : "query",
@@ -275,7 +276,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-announcement-controller" ]
+        "tags" : [ "ms-announcement-controller" ],
+        "x-successor" : "GET /api/v1/announcements/active",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
         "operationId" : "create_3",
@@ -290,7 +293,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -298,7 +301,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -539,8 +550,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -561,14 +572,14 @@
         "operationId" : "listLogs",
         "parameters" : [ {
           "in" : "query",
-          "name" : "table_name",
+          "name" : "tableName",
           "required" : false,
           "schema" : {
             "type" : "string"
           }
         }, {
           "in" : "query",
-          "name" : "row_pk",
+          "name" : "rowPk",
           "required" : false,
           "schema" : {
             "type" : "string"
@@ -582,7 +593,7 @@
           }
         }, {
           "in" : "query",
-          "name" : "user_id",
+          "name" : "userId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -640,6 +651,34 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of tableName; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "table_name",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of rowPk; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "row_pk",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of userId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "user_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -671,14 +710,14 @@
         "operationId" : "listSecurityEvents",
         "parameters" : [ {
           "in" : "query",
-          "name" : "event_type",
+          "name" : "eventType",
           "required" : false,
           "schema" : {
             "type" : "string"
           }
         }, {
           "in" : "query",
-          "name" : "user_id",
+          "name" : "userId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -742,6 +781,25 @@
           "required" : false,
           "schema" : {
             "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of eventType; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "event_type",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of userId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "user_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         } ],
         "responses" : {
@@ -839,8 +897,8 @@
       "post" : {
         "operationId" : "logout",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -967,8 +1025,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -998,8 +1056,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -1029,8 +1087,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -1050,6 +1108,15 @@
       "get" : {
         "operationId" : "getFields",
         "parameters" : [ {
+          "in" : "query",
+          "name" : "entityType",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of entityType; answers until 2026-12-31",
           "in" : "query",
           "name" : "entity_type",
           "required" : false,
@@ -1097,7 +1164,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1105,7 +1172,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -1134,8 +1209,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -1172,8 +1247,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -1337,7 +1412,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1345,7 +1420,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted"
           },
           "default" : {
             "content" : {
@@ -1519,7 +1594,7 @@
           }
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1527,7 +1602,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -1556,8 +1639,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -1786,7 +1869,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -1794,7 +1877,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -2073,7 +2164,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2081,7 +2172,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -2155,8 +2254,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2230,8 +2329,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2297,8 +2396,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2370,8 +2469,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2430,7 +2529,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2438,7 +2537,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted"
           },
           "default" : {
             "content" : {
@@ -2468,8 +2567,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2497,8 +2596,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2549,8 +2648,8 @@
       "delete" : {
         "operationId" : "closeOtherSessions_1",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2568,6 +2667,7 @@
     },
     "/api/v1/iam/profile/sessions/users/{userId}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "closeAllUserSessions_1",
         "parameters" : [ {
           "in" : "path",
@@ -2579,8 +2679,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2593,9 +2693,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "DELETE /api/v1/iam/users/{userId}/sessions",
+        "x-sunset" : "2026-12-31"
       },
       "get" : {
+        "deprecated" : true,
         "operationId" : "listUserSessions_1",
         "parameters" : [ {
           "in" : "path",
@@ -2631,11 +2734,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "GET /api/v1/iam/users/{userId}/sessions",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/profile/sessions/users/{userId}/force-password-change" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "forcePasswordChange_1",
         "parameters" : [ {
           "in" : "path",
@@ -2647,8 +2753,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2661,11 +2767,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "POST /api/v1/iam/users/{userId}/force-password-change",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/profile/sessions/users/{userId}/reset-2fa" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "reset2fa_1",
         "parameters" : [ {
           "in" : "path",
@@ -2677,8 +2786,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2691,11 +2800,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "POST /api/v1/iam/users/{userId}/reset-2fa",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/profile/sessions/users/{userId}/security" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getUserSecuritySummary",
         "parameters" : [ {
           "in" : "path",
@@ -2728,11 +2840,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "GET /api/v1/iam/users/{userId}/security",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/profile/sessions/users/{userId}/{id}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "closeUserSession_1",
         "parameters" : [ {
           "in" : "path",
@@ -2752,8 +2867,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2766,7 +2881,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "DELETE /api/v1/iam/users/{userId}/sessions/{id}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/profile/sessions/{id}" : {
@@ -2782,8 +2899,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2842,7 +2959,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2850,7 +2967,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -2879,8 +3004,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -2939,7 +3064,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -2947,7 +3072,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -3008,8 +3141,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3046,8 +3179,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3128,8 +3261,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3147,6 +3280,7 @@
     },
     "/api/v1/iam/sessions" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listActiveSessions",
         "responses" : {
           "200" : {
@@ -3173,15 +3307,18 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "GET /api/v1/iam/profile/sessions",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/sessions/others" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "closeOtherSessions",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3194,11 +3331,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "DELETE /api/v1/iam/profile/sessions/others",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/sessions/{id}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "closeSession",
         "parameters" : [ {
           "in" : "path",
@@ -3210,8 +3350,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3224,7 +3364,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-session-controller" ]
+        "tags" : [ "kauth-session-controller" ],
+        "x-successor" : "DELETE /api/v1/iam/profile/sessions/{id}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/users" : {
@@ -3282,6 +3424,31 @@
           }
         }, {
           "in" : "query",
+          "name" : "roleId",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "query",
+          "name" : "managerId",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "query",
+          "name" : "is2faEnabled",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of roleId; answers until 2026-12-31",
+          "in" : "query",
           "name" : "role_id",
           "required" : false,
           "schema" : {
@@ -3289,6 +3456,8 @@
             "format" : "int64"
           }
         }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of managerId; answers until 2026-12-31",
           "in" : "query",
           "name" : "manager_id",
           "required" : false,
@@ -3297,6 +3466,8 @@
             "format" : "int64"
           }
         }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of is2faEnabled; answers until 2026-12-31",
           "in" : "query",
           "name" : "is_2fa_enabled",
           "required" : false,
@@ -3341,7 +3512,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -3349,7 +3520,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -3367,6 +3546,7 @@
     },
     "/api/v1/iam/users/me/password" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "changeMyPassword_1",
         "requestBody" : {
           "content" : {
@@ -3379,8 +3559,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3393,7 +3573,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "kauth-password-controller" ]
+        "tags" : [ "kauth-password-controller" ],
+        "x-successor" : "POST /api/v1/auth/password",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/iam/users/{id}" : {
@@ -3409,8 +3591,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3482,8 +3664,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3512,8 +3694,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3542,8 +3724,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3609,8 +3791,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3721,8 +3903,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3870,8 +4052,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -3946,8 +4128,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -4022,7 +4204,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -4030,7 +4212,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -4066,8 +4256,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -4166,6 +4356,7 @@
         "tags" : [ "module-registry-controller" ]
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "registerModule",
         "requestBody" : {
           "content" : {
@@ -4199,7 +4390,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "module-registry-controller" ]
+        "tags" : [ "module-registry-controller" ],
+        "x-successor" : "PUT /api/v1/modules/{code}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/modules/active" : {
@@ -4267,10 +4460,101 @@
           }
         },
         "tags" : [ "module-registry-controller" ]
+      },
+      "put" : {
+        "operationId" : "putModule",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RegisterModuleRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstalledModuleView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "tags" : [ "module-registry-controller" ]
+      }
+    },
+    "/api/v1/modules/{code}/enabled" : {
+      "put" : {
+        "operationId" : "setEnabled",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ToggleStatusRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/InstalledModuleView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "tags" : [ "module-registry-controller" ]
       }
     },
     "/api/v1/modules/{code}/toggle" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "toggleModule",
         "parameters" : [ {
           "in" : "path",
@@ -4318,7 +4602,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "module-registry-controller" ]
+        "tags" : [ "module-registry-controller" ],
+        "x-successor" : "PUT /api/v1/modules/{code}/enabled",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/navigation/items" : {
@@ -4364,7 +4650,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -4372,7 +4658,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -4499,8 +4793,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -4596,8 +4890,56 @@
         "tags" : [ "navigation-item-controller" ]
       }
     },
+    "/api/v1/navigation/items/{id}/active" : {
+      "put" : {
+        "operationId" : "setActive",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ActiveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NavigationItemView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "tags" : [ "navigation-item-controller" ]
+      }
+    },
     "/api/v1/navigation/items/{id}/toggle" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "toggleItem",
         "parameters" : [ {
           "in" : "path",
@@ -4630,7 +4972,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "navigation-item-controller" ]
+        "tags" : [ "navigation-item-controller" ],
+        "x-successor" : "PUT /api/v1/navigation/items/{id}/active",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/notes" : {
@@ -4710,7 +5054,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -4718,7 +5062,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -4747,8 +5099,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -4846,6 +5198,7 @@
     },
     "/api/v1/notes/{id}/pin" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "togglePin",
         "parameters" : [ {
           "in" : "path",
@@ -4856,6 +5209,53 @@
             "format" : "int64"
           }
         } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NoteView"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "tags" : [ "ms-note-controller" ],
+        "x-successor" : "PUT /api/v1/notes/{id}/pin",
+        "x-sunset" : "2026-12-31"
+      },
+      "put" : {
+        "operationId" : "setPin",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PinRequest"
+              }
+            }
+          },
+          "required" : true
+        },
         "responses" : {
           "200" : {
             "content" : {
@@ -4926,8 +5326,8 @@
       "post" : {
         "operationId" : "markAllAsRead",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -4956,8 +5356,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5019,8 +5419,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5070,6 +5470,7 @@
     },
     "/api/v1/notify/inbox" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getInbox",
         "parameters" : [ {
           "in" : "query",
@@ -5106,15 +5507,18 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-notification-controller" ]
+        "tags" : [ "ms-notification-controller" ],
+        "x-successor" : "GET /api/v1/notifications/inbox",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/notify/inbox/read-all" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "markAllAsRead_1",
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5127,11 +5531,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-notification-controller" ]
+        "tags" : [ "ms-notification-controller" ],
+        "x-successor" : "POST /api/v1/notifications/inbox/read-all",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/notify/inbox/{id}/read" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "markAsRead",
         "parameters" : [ {
           "in" : "path",
@@ -5143,8 +5550,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5157,11 +5564,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-notification-controller" ]
+        "tags" : [ "ms-notification-controller" ],
+        "x-successor" : "POST /api/v1/notifications/inbox/{id}/read",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/notify/preferences" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getPreferences_1",
         "responses" : {
           "200" : {
@@ -5188,9 +5598,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-notification-controller" ]
+        "tags" : [ "ms-notification-controller" ],
+        "x-successor" : "GET /api/v1/notifications/preferences",
+        "x-sunset" : "2026-12-31"
       },
       "put" : {
+        "deprecated" : true,
         "operationId" : "updatePreferences_1",
         "requestBody" : {
           "content" : {
@@ -5206,8 +5619,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5220,11 +5633,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-notification-controller" ]
+        "tags" : [ "ms-notification-controller" ],
+        "x-successor" : "PUT /api/v1/notifications/preferences",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/notify/unread-count" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getUnreadCount",
         "responses" : {
           "200" : {
@@ -5252,7 +5668,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-notification-controller" ]
+        "tags" : [ "ms-notification-controller" ],
+        "x-successor" : "GET /api/v1/notifications/unread-count",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/query-meta/{code}" : {
@@ -5293,6 +5711,7 @@
     },
     "/api/v1/rbac/forms" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getFormCatalog",
         "responses" : {
           "200" : {
@@ -5319,11 +5738,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "GET /api/v1/iam/forms",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/rbac/roles" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listRoles_1",
         "responses" : {
           "200" : {
@@ -5350,9 +5772,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "GET /api/v1/iam/roles",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "createRole_1",
         "requestBody" : {
           "content" : {
@@ -5365,7 +5790,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -5373,7 +5798,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -5386,11 +5819,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "POST /api/v1/iam/roles",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/rbac/roles/user-counts" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getRoleUserCounts_1",
         "responses" : {
           "200" : {
@@ -5418,11 +5854,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "GET /api/v1/iam/roles/user-counts",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/rbac/roles/{id}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "deleteRole_1",
         "parameters" : [ {
           "in" : "path",
@@ -5434,8 +5873,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5448,9 +5887,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "DELETE /api/v1/iam/roles/{id}",
+        "x-sunset" : "2026-12-31"
       },
       "patch" : {
+        "deprecated" : true,
         "operationId" : "updateRole_1",
         "parameters" : [ {
           "in" : "path",
@@ -5472,8 +5914,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5486,11 +5928,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "PATCH /api/v1/iam/roles/{id}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/rbac/roles/{id}/permissions" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getRolePermissions_1",
         "parameters" : [ {
           "in" : "path",
@@ -5527,9 +5972,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "GET /api/v1/iam/roles/{id}/permissions",
+        "x-sunset" : "2026-12-31"
       },
       "put" : {
+        "deprecated" : true,
         "operationId" : "setRolePermissions_1",
         "parameters" : [ {
           "in" : "path",
@@ -5554,8 +6002,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -5568,7 +6016,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "md-role-controller" ]
+        "tags" : [ "md-role-controller" ],
+        "x-successor" : "PUT /api/v1/iam/roles/{id}/permissions",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/reports/tasks/export" : {
@@ -6093,8 +6543,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6156,8 +6606,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6242,7 +6692,7 @@
           }
         }, {
           "in" : "query",
-          "name" : "project_id",
+          "name" : "projectId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6250,7 +6700,7 @@
           }
         }, {
           "in" : "query",
-          "name" : "status_id",
+          "name" : "statusId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6272,14 +6722,14 @@
           }
         }, {
           "in" : "query",
-          "name" : "hide_terminal",
+          "name" : "hideTerminal",
           "required" : false,
           "schema" : {
             "type" : "boolean"
           }
         }, {
           "in" : "query",
-          "name" : "assigned_user_id",
+          "name" : "assignedUserId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6287,14 +6737,14 @@
           }
         }, {
           "in" : "query",
-          "name" : "member_role",
+          "name" : "memberRole",
           "required" : false,
           "schema" : {
             "type" : "string"
           }
         }, {
           "in" : "query",
-          "name" : "reporter_id",
+          "name" : "reporterId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6306,6 +6756,64 @@
           "required" : false,
           "schema" : {
             "type" : "boolean"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of projectId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "project_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of statusId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "status_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of hideTerminal; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "hide_terminal",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of assignedUserId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "assigned_user_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of memberRole; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "member_role",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of reporterId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "reporter_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         } ],
         "responses" : {
@@ -6345,7 +6853,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -6353,7 +6861,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -6409,6 +6925,7 @@
     },
     "/api/v1/tasks/items" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listTasks_1",
         "parameters" : [ {
           "in" : "query",
@@ -6448,7 +6965,7 @@
           }
         }, {
           "in" : "query",
-          "name" : "project_id",
+          "name" : "projectId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6456,7 +6973,7 @@
           }
         }, {
           "in" : "query",
-          "name" : "status_id",
+          "name" : "statusId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6478,14 +6995,14 @@
           }
         }, {
           "in" : "query",
-          "name" : "hide_terminal",
+          "name" : "hideTerminal",
           "required" : false,
           "schema" : {
             "type" : "boolean"
           }
         }, {
           "in" : "query",
-          "name" : "assigned_user_id",
+          "name" : "assignedUserId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6493,14 +7010,14 @@
           }
         }, {
           "in" : "query",
-          "name" : "member_role",
+          "name" : "memberRole",
           "required" : false,
           "schema" : {
             "type" : "string"
           }
         }, {
           "in" : "query",
-          "name" : "reporter_id",
+          "name" : "reporterId",
           "required" : false,
           "schema" : {
             "type" : "integer",
@@ -6512,6 +7029,64 @@
           "required" : false,
           "schema" : {
             "type" : "boolean"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of projectId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "project_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of statusId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "status_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of hideTerminal; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "hide_terminal",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of assignedUserId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "assigned_user_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of memberRole; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "member_role",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "deprecated" : true,
+          "description" : "Deprecated name of reporterId; answers until 2026-12-31",
+          "in" : "query",
+          "name" : "reporter_id",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
           }
         } ],
         "responses" : {
@@ -6536,9 +7111,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "GET /api/v1/tasks",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "createTask_1",
         "requestBody" : {
           "content" : {
@@ -6551,7 +7129,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -6559,7 +7137,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -6572,11 +7158,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "POST /api/v1/tasks",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/bulk" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "bulk",
         "requestBody" : {
           "content" : {
@@ -6610,11 +7199,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "POST /api/v1/tasks/bulk",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/projects/stats" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getProjectStats_1",
         "responses" : {
           "200" : {
@@ -6641,11 +7233,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "GET /api/v1/tasks/projects/stats",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/statuses" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listStatuses_1",
         "responses" : {
           "200" : {
@@ -6672,9 +7267,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "GET /api/v1/tasks/statuses",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "createStatus_1",
         "requestBody" : {
           "content" : {
@@ -6687,7 +7285,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -6695,7 +7293,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -6708,11 +7314,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "POST /api/v1/tasks/statuses",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/statuses/reorder" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "reorderStatuses",
         "requestBody" : {
           "content" : {
@@ -6729,8 +7338,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6743,11 +7352,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "POST /api/v1/tasks/statuses/reorder",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/statuses/{id}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "deleteStatus_1",
         "parameters" : [ {
           "in" : "path",
@@ -6759,8 +7371,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6773,9 +7385,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "DELETE /api/v1/tasks/statuses/{id}",
+        "x-sunset" : "2026-12-31"
       },
       "patch" : {
+        "deprecated" : true,
         "operationId" : "updateStatus_1",
         "parameters" : [ {
           "in" : "path",
@@ -6797,8 +7412,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6811,11 +7426,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "PATCH /api/v1/tasks/statuses/{id}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/types" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listTypes",
         "responses" : {
           "200" : {
@@ -6842,9 +7460,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "GET /api/v1/tasks/types",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "createType",
         "requestBody" : {
           "content" : {
@@ -6857,7 +7478,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -6865,7 +7486,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -6878,11 +7507,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "POST /api/v1/tasks/types",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/types/reorder" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "reorderTypes",
         "requestBody" : {
           "content" : {
@@ -6899,8 +7531,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6913,11 +7545,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "POST /api/v1/tasks/types/reorder",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/types/{id}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "deleteType_1",
         "parameters" : [ {
           "in" : "path",
@@ -6929,8 +7564,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6943,9 +7578,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "DELETE /api/v1/tasks/types/{id}",
+        "x-sunset" : "2026-12-31"
       },
       "patch" : {
+        "deprecated" : true,
         "operationId" : "updateType_1",
         "parameters" : [ {
           "in" : "path",
@@ -6967,8 +7605,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -6981,11 +7619,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-status-controller" ]
+        "tags" : [ "ms-task-status-controller" ],
+        "x-successor" : "PATCH /api/v1/tasks/types/{id}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{id}" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getTask",
         "parameters" : [ {
           "in" : "path",
@@ -7018,9 +7659,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "GET /api/v1/tasks/{id}",
+        "x-sunset" : "2026-12-31"
       },
       "patch" : {
+        "deprecated" : true,
         "operationId" : "updateTask",
         "parameters" : [ {
           "in" : "path",
@@ -7042,8 +7686,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7056,11 +7700,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "PATCH /api/v1/tasks/{id}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{id}/files" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getTaskFiles",
         "parameters" : [ {
           "in" : "path",
@@ -7096,9 +7743,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-file-controller" ]
+        "tags" : [ "ms-task-file-controller" ],
+        "x-successor" : "GET /api/v1/tasks/{id}/files",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "attachFile",
         "parameters" : [ {
           "in" : "path",
@@ -7120,8 +7770,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7134,11 +7784,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-file-controller" ]
+        "tags" : [ "ms-task-file-controller" ],
+        "x-successor" : "POST /api/v1/tasks/{id}/files",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{id}/files/{fileId}" : {
       "delete" : {
+        "deprecated" : true,
         "operationId" : "detachFile",
         "parameters" : [ {
           "in" : "path",
@@ -7158,8 +7811,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7172,11 +7825,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-file-controller" ]
+        "tags" : [ "ms-task-file-controller" ],
+        "x-successor" : "DELETE /api/v1/tasks/{id}/files/{fileId}",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{id}/status" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "changeStatus",
         "parameters" : [ {
           "in" : "path",
@@ -7198,8 +7854,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7212,11 +7868,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "POST /api/v1/tasks/{id}/status",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{id}/subtasks" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getSubtasks_1",
         "parameters" : [ {
           "in" : "path",
@@ -7252,11 +7911,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "GET /api/v1/tasks/{id}/subtasks",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{id}/view" : {
       "post" : {
+        "deprecated" : true,
         "operationId" : "markViewed",
         "parameters" : [ {
           "in" : "path",
@@ -7268,8 +7930,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7282,11 +7944,14 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "POST /api/v1/tasks/{id}/view",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/items/{taskId}/comments" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "listComments",
         "parameters" : [ {
           "in" : "path",
@@ -7322,9 +7987,12 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-comment-controller" ]
+        "tags" : [ "ms-task-comment-controller" ],
+        "x-successor" : "GET /api/v1/tasks/{taskId}/comments",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
+        "deprecated" : true,
         "operationId" : "addComment",
         "parameters" : [ {
           "in" : "path",
@@ -7346,7 +8014,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -7354,7 +8022,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -7367,7 +8043,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-comment-controller" ]
+        "tags" : [ "ms-task-comment-controller" ],
+        "x-successor" : "POST /api/v1/tasks/{taskId}/comments",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/projects" : {
@@ -7421,7 +8099,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -7429,7 +8107,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -7606,8 +8292,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7684,8 +8370,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7722,8 +8408,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7782,7 +8468,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -7790,7 +8476,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -7824,8 +8518,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7854,8 +8548,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7892,8 +8586,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -7952,7 +8646,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -7960,7 +8654,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -7994,8 +8696,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8024,8 +8726,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8062,8 +8764,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8137,8 +8839,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8215,8 +8917,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8253,8 +8955,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8293,8 +8995,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8363,8 +9065,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -8441,7 +9143,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -8449,7 +9151,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -8607,7 +9317,7 @@
           }
         },
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -8615,7 +9325,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted"
           },
           "default" : {
             "content" : {
@@ -8679,7 +9389,7 @@
           }
         } ],
         "responses" : {
-          "200" : {
+          "202" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -8687,7 +9397,7 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Accepted"
           },
           "default" : {
             "content" : {
@@ -8860,7 +9570,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -8868,7 +9578,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -9031,7 +9749,7 @@
           }
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -9039,7 +9757,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -9184,8 +9910,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -9328,7 +10054,7 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
+          "201" : {
             "content" : {
               "application/json" : {
                 "schema" : {
@@ -9336,7 +10062,15 @@
                 }
               }
             },
-            "description" : "OK"
+            "description" : "Created",
+            "headers" : {
+              "Location" : {
+                "description" : "Path of the created resource, when it has one",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
           },
           "default" : {
             "content" : {
@@ -9365,8 +10099,8 @@
           }
         } ],
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -9403,8 +10137,8 @@
           "required" : true
         },
         "responses" : {
-          "200" : {
-            "description" : "OK"
+          "204" : {
+            "description" : "No Content"
           },
           "default" : {
             "content" : {
@@ -9423,6 +10157,14 @@
   },
   "components" : {
     "schemas" : {
+      "ActiveRequest" : {
+        "type" : "object",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "ActiveSessionView" : {
         "type" : "object",
         "properties" : {
@@ -12225,6 +12967,14 @@
           "permissionsVersion" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }
+      },
+      "PinRequest" : {
+        "type" : "object",
+        "properties" : {
+          "pinned" : {
+            "type" : "boolean"
           }
         }
       },

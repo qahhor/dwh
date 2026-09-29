@@ -44,9 +44,9 @@ export class NotesApi {
       : this.api.put<Note>(`/notes/${id}`, payload, { notifyError: false });
   }
 
-  /** Pins an unpinned note and unpins a pinned one. */
-  togglePin(id: number): Observable<Note> {
-    return this.api.post<Note>(`/notes/${id}/pin`, {}, { notifyError: false });
+  /** Pins or unpins the note: the request states the result, so a repeat leaves the same note. */
+  setPin(id: number, pinned: boolean): Observable<Note> {
+    return this.api.put<Note>(`/notes/${id}/pin`, { pinned }, { notifyError: false });
   }
 
   remove(id: number): Observable<void> {

@@ -54,7 +54,7 @@ describe('TaskListStore', () => {
 
     expect(store.meta()?.code).toBe('ms.tasks');
     expect(store.tasks().map((t) => t.id)).toEqual([1]);
-    expect(listCalls()[0]).toEqual(expect.objectContaining({ limit: 50, hide_terminal: true }));
+    expect(listCalls()[0]).toEqual(expect.objectContaining({ limit: 50, hideTerminal: true }));
     expect(store.projects()).toEqual([{ id: 5, name: 'Warehouse' }]);
     expect(api.get.mock.calls.filter(([path]) => path === '/tasks/projects')).toHaveLength(1);
   });
@@ -100,7 +100,7 @@ describe('TaskListStore', () => {
     oldPage.next(page([task(51, 'Old answer')]));
 
     expect(listCalls()[1]['cursor']).toBe('next');
-    expect(listCalls()[2]).toEqual(expect.objectContaining({ cursor: undefined, hide_terminal: false }));
+    expect(listCalls()[2]).toEqual(expect.objectContaining({ cursor: undefined, hideTerminal: false }));
     expect(store.taskPager.page()).toBe(1);
     expect(store.tasks().map((t) => t.id)).toEqual([700]);
   });
@@ -112,16 +112,16 @@ describe('TaskListStore', () => {
     store.setPreset('overdue');
     expect(listCalls().at(-1)).toEqual(expect.objectContaining({ overdue: true }));
     store.setPreset('executor');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ member_role: 'E' }));
+    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ memberRole: 'E' }));
     store.setPreset('observer');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ member_role: 'O' }));
+    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ memberRole: 'O' }));
     store.onProjectFilterChange(5);
     store.onPriorityFilterChange('high');
-    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ project_id: 5, priority: 'high' }));
+    expect(listCalls().at(-1)).toEqual(expect.objectContaining({ projectId: 5, priority: 'high' }));
 
     store.resetFilters();
     expect(listCalls().at(-1)).toEqual(
-      expect.objectContaining({ member_role: undefined, project_id: undefined, priority: undefined }),
+      expect.objectContaining({ memberRole: undefined, projectId: undefined, priority: undefined }),
     );
   });
 
@@ -164,9 +164,9 @@ describe('TaskListStore', () => {
     expect(listCalls().at(-1)).toEqual(expect.objectContaining({ sort: '-title' }));
 
     const options = store.exportOptions();
-    expect(options).toEqual({ hide_terminal: 'true' });
+    expect(options).toEqual({ hideTerminal: 'true' });
     expect(store.exportOptions()).toBe(options);
     store.setStatusFilterMode(3);
-    expect(store.exportOptions()).toEqual({ status_id: '3' });
+    expect(store.exportOptions()).toEqual({ statusId: '3' });
   });
 });

@@ -138,6 +138,11 @@ jobs:
           fi
           npm run i18n:audit
 
+      # Plan 10/10, item 3.4 (ADR-0023): the server answers deprecated forms until their sunset; the web uses none.
+      - name: Validate that the web calls no deprecated API form
+        working-directory: apps/web
+        run: npm run api:audit
+
       - name: Validate Angular class member order
         working-directory: apps/web
         run: npm run signals:audit

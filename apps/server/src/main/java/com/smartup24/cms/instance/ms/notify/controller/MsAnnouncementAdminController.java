@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.ms.notify.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.ms.notify.api.AnnouncementDraftRequest;
 import com.smartup24.cms.instance.ms.notify.api.AnnouncementVersionRequest;
 import com.smartup24.cms.instance.ms.notify.api.ManagedAnnouncementView;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -38,8 +40,10 @@ public class MsAnnouncementAdminController {
 
     @PostMapping
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<ManagedAnnouncementView> create(@Valid @RequestBody AnnouncementDraftRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(request, currentUserId()));
+        ManagedAnnouncementView created = service.create(request, currentUserId());
+        return Created.at("/api/v1/announcements/{id}", created.id(), created);
     }
 
     @PutMapping("/{id}")

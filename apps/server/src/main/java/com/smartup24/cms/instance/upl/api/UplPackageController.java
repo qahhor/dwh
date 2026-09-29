@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -70,6 +71,7 @@ public class UplPackageController {
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_UPLOAD)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<PackageItem> upload(
             @RequestParam(required = false) String sourceId,
             @RequestParam(required = false) String periodFrom,
@@ -152,6 +154,7 @@ public class UplPackageController {
      */
     @PostMapping("/{id}/apply")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_APPLY)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<PackageItem> apply(@PathVariable String id) {
         PackageItem item = PackageItem.of(applies.request(id, userId()));
         return ResponseEntity.accepted()

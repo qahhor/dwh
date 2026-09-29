@@ -62,7 +62,7 @@ describe('RolePermissionsEditor', () => {
     expect(editor.canEditPermissions()).toBe(false);
     await settle();
 
-    expect(api.get).toHaveBeenCalledWith('/rbac/roles/1/permissions', undefined, { notifyError: false });
+    expect(api.get).toHaveBeenCalledWith('/iam/roles/1/permissions', undefined, { notifyError: false });
     expect(editor.isLoading()).toBe(false);
     expect(editor.canEditPermissions()).toBe(true);
     expect(editor.isPermissionsDirty()).toBe(false);
@@ -140,7 +140,7 @@ describe('RolePermissionsEditor', () => {
     editor.savePermissions(saved);
 
     expect(api.put).toHaveBeenCalledTimes(1);
-    expect(api.put).toHaveBeenCalledWith('/rbac/roles/1/permissions', [
+    expect(api.put).toHaveBeenCalledWith('/iam/roles/1/permissions', [
       { formCode: 'audit.events', action: 'view' },
       { formCode: 'audit.events', action: 'edit' },
     ]);

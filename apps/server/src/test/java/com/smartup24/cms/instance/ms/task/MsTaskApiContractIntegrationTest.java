@@ -140,7 +140,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertKeys(first(array(ok(send(s, get("/api/v1/tasks/" + parentId + "/subtasks"), null)))), TASK);
 
         Map<String, Object> page =
-                object(ok(send(s, get("/api/v1/tasks?project_id=" + projectId + "&limit=1&sort=title"), null)));
+                object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId + "&limit=1&sort=title"), null)));
         assertKeys(page, Set.of("items", "nextCursor", "hasMore", "totalEstimated"));
         assertKeys(first(page.get("items")), TASK);
 

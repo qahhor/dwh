@@ -102,12 +102,12 @@ export class TaskFilterService {
       limit,
       cursor: cursor || undefined,
       priority: this.selectedPriority || undefined,
-      project_id: this.selectedProjectId || undefined,
-      status_id: statusIdParam,
-      hide_terminal: hideTerminalParam,
-      assigned_user_id: assignedUserIdParam,
-      member_role: memberRoleParam,
-      reporter_id: reporterIdParam,
+      projectId: this.selectedProjectId || undefined,
+      statusId: statusIdParam,
+      hideTerminal: hideTerminalParam,
+      assignedUserId: assignedUserIdParam,
+      memberRole: memberRoleParam,
+      reporterId: reporterIdParam,
       overdue: overdueParam,
     };
   }

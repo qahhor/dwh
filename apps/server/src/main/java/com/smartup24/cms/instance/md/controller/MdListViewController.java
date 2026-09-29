@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewRequest;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -47,8 +49,10 @@ public class MdListViewController {
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<ViewResponse> create(@PathVariable String listCode, @RequestBody ViewRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.create(userId(), listCode, request));
+        ViewResponse view = service.create(userId(), listCode, request);
+        return Created.at("/api/v1/list-views/{listCode}/{id}", new Object[] {listCode, view.id()}, view);
     }
 
     @PutMapping("/{id}")
@@ -66,6 +70,7 @@ public class MdListViewController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> delete(@PathVariable String listCode, @PathVariable long id) {
         service.delete(userId(), listCode, id);
         return ResponseEntity.noContent().build();

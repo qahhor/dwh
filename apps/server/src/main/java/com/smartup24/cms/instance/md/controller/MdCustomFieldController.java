@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CreateCustomFieldDto;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.UpdateCustomFieldDto;
@@ -25,13 +26,14 @@ public class MdCustomFieldController {
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "view")
     public ResponseEntity<List<CustomFieldView>> getFields(
-            @RequestParam(name = "entity_type", required = false) String entityType) {
+            @RequestParam(name = "entityType", required = false) String entityType) {
 
         return ResponseEntity.ok(customFieldService.listFields(entityType));
     }
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<CustomFieldView> createField(@Valid @RequestBody CreateCustomFieldDto body) {
 
         var field = customFieldService.createField(
@@ -44,11 +46,12 @@ public class MdCustomFieldController {
                 body.options(),
                 body.orderNo());
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(field);
+        return Created.at("/api/v1/custom-fields/{id}", field.id(), field);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateField(@PathVariable("id") Long id, @RequestBody UpdateCustomFieldDto body) {
 
         customFieldService.updateField(
@@ -58,6 +61,7 @@ public class MdCustomFieldController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteField(@PathVariable("id") Long id) {
         customFieldService.deleteField(id);
         return ResponseEntity.noContent().build();

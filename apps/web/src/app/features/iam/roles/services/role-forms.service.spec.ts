@@ -44,7 +44,7 @@ describe('RoleFormsService', () => {
 
     forms.newRoleForm = { name: '  Аналитик ', orderNo: 0 };
     forms.submitCreateRole(created);
-    expect(api.post).toHaveBeenCalledWith('/rbac/roles', { name: 'Аналитик', orderNo: 0 });
+    expect(api.post).toHaveBeenCalledWith('/iam/roles', { name: 'Аналитик', orderNo: 0 });
     expect(created).toHaveBeenCalledWith(role(9));
     expect(forms.isCreateModalOpen()).toBe(false);
     expect(forms.isSubmittingRole()).toBe(false);
@@ -65,7 +65,7 @@ describe('RoleFormsService', () => {
 
     forms.editRoleForm.name = 'Ревизор';
     forms.submitEditRole(saved);
-    expect(api.patch).toHaveBeenCalledWith('/rbac/roles/4', { name: 'Ревизор', state: 'A', orderNo: 3 });
+    expect(api.patch).toHaveBeenCalledWith('/iam/roles/4', { name: 'Ревизор', state: 'A', orderNo: 3 });
     expect(saved).toHaveBeenCalledTimes(1);
     expect(forms.isEditModalOpen()).toBe(false);
   });

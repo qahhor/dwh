@@ -59,8 +59,8 @@ describe('RolesComponent permission matrix lifecycle', () => {
     fixture = TestBed.createComponent(RolesComponent);
     host = fixture.nativeElement;
     await settle();
-    http.expectOne('/api/v1/rbac/forms').flush(forms);
-    http.expectOne('/api/v1/rbac/roles').flush(roles);
+    http.expectOne('/api/v1/iam/forms').flush(forms);
+    http.expectOne('/api/v1/iam/roles').flush(roles);
     http.expectOne('/api/v1/iam/roles/user-counts').flush({});
     await settle();
   });
@@ -79,7 +79,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   }
 
   async function loadRoleA() {
-    http.expectOne('/api/v1/rbac/roles/1/permissions').flush(['tasks.items.view']);
+    http.expectOne('/api/v1/iam/roles/1/permissions').flush(['tasks.items.view']);
     await settle();
   }
 
@@ -95,13 +95,13 @@ describe('RolesComponent permission matrix lifecycle', () => {
   }
 
   it('saves only role B permissions after a late role A response', async () => {
-    const slowA = http.expectOne('/api/v1/rbac/roles/1/permissions');
+    const slowA = http.expectOne('/api/v1/iam/roles/1/permissions');
     await selectRole(1);
-    http.expectOne('/api/v1/rbac/roles/2/permissions').flush(['tasks.items.update']);
+    http.expectOne('/api/v1/iam/roles/2/permissions').flush(['tasks.items.update']);
     if (!slowA.cancelled) slowA.flush(['tasks.items.view']);
     await settle();
     saveButton()!.click();
-    const write = http.expectOne('/api/v1/rbac/roles/2/permissions');
+    const write = http.expectOne('/api/v1/iam/roles/2/permissions');
 
     expect.soft(write.request.body).toEqual([{ formCode: 'tasks.items', action: 'update' }]);
     expect.soft(checkbox('view').checked).toBe(false);
@@ -112,7 +112,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   it('cannot save or edit the previous matrix before role B permissions arrive', async () => {
     await loadRoleA();
     await selectRole(1);
-    const pendingB = http.expectOne('/api/v1/rbac/roles/2/permissions');
+    const pendingB = http.expectOne('/api/v1/iam/roles/2/permissions');
 
     expect.soft(checkbox('view').checked).toBe(false);
     expect.soft(checkbox('view').disabled).toBe(true);
@@ -130,7 +130,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   });
 
   it('cannot submit an accidental empty permission set during initial loading', async () => {
-    const pendingA = http.expectOne('/api/v1/rbac/roles/1/permissions');
+    const pendingA = http.expectOne('/api/v1/iam/roles/1/permissions');
     saveButton()!.click();
     fixture.componentInstance.matrix.savePermissions();
     const writes = http.match((request) => request.method === 'PUT');
@@ -143,7 +143,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     await loadRoleA();
     await selectRole(1);
     http
-      .expectOne('/api/v1/rbac/roles/2/permissions')
+      .expectOne('/api/v1/iam/roles/2/permissions')
       .flush({ detail: 'Permission lookup unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     await settle();
 
@@ -161,7 +161,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect(retry).toBeDefined();
     retry!.click();
     await settle();
-    http.expectOne('/api/v1/rbac/roles/2/permissions').flush(['tasks.items.update']);
+    http.expectOne('/api/v1/iam/roles/2/permissions').flush(['tasks.items.update']);
     await settle();
     expect(host.querySelector('[role="alert"]')).toBeNull();
     expect(saveButton()?.disabled).toBe(false);
@@ -171,7 +171,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   it('freezes the saved matrix and role selection until its single PUT completes', async () => {
     await loadRoleA();
     saveButton()!.click();
-    const firstWrite = http.expectOne('/api/v1/rbac/roles/1/permissions');
+    const firstWrite = http.expectOne('/api/v1/iam/roles/1/permissions');
     await settle();
 
     expect.soft(checkbox('view').disabled).toBe(true);
@@ -193,7 +193,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     component.matrix.toggleAllForm(component.moduleGroups[0].forms[0], true);
     component.matrix.toggleAllModule(component.moduleGroups[0], false);
     component.selectRole(roles[1]);
-    for (const request of http.match('/api/v1/rbac/roles/2/permissions')) request.flush(['tasks.items.update']);
+    for (const request of http.match('/api/v1/iam/roles/2/permissions')) request.flush(['tasks.items.update']);
 
     expect.soft(component.matrix.selectedRole()?.id).toBe(1);
     expect.soft(Array.from(component.matrix.rolePermissions())).toEqual(['tasks.items.view']);
@@ -209,7 +209,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     await settle();
     saveButton()!.click();
     http
-      .expectOne('/api/v1/rbac/roles/1/permissions')
+      .expectOne('/api/v1/iam/roles/1/permissions')
       .flush({ detail: 'Save unavailable' }, { status: 503, statusText: 'Service Unavailable' });
     await settle();
 
@@ -217,7 +217,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
     expect(checkbox('view').checked).toBe(true);
     expect(checkbox('update').checked).toBe(true);
     saveButton()!.click();
-    const retry = http.expectOne('/api/v1/rbac/roles/1/permissions');
+    const retry = http.expectOne('/api/v1/iam/roles/1/permissions');
     expect(retry.request.body).toEqual([
       { formCode: 'tasks.items', action: 'view' },
       { formCode: 'tasks.items', action: 'update' },
@@ -244,7 +244,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   it('does not submit changes to the administrator matrix', async () => {
     await loadRoleA();
     await selectRole(2);
-    http.expectOne('/api/v1/rbac/roles/3/permissions').flush(['tasks.items.view']);
+    http.expectOne('/api/v1/iam/roles/3/permissions').flush(['tasks.items.view']);
     await settle();
     saveButton()?.click();
     fixture.componentInstance.matrix.savePermissions();
@@ -256,7 +256,7 @@ describe('RolesComponent permission matrix lifecycle', () => {
   });
 
   it('ignores a permission response after leaving the roles screen', async () => {
-    const pending = http.expectOne('/api/v1/rbac/roles/1/permissions');
+    const pending = http.expectOne('/api/v1/iam/roles/1/permissions');
     const component = fixture.componentInstance;
     fixture.destroy();
     if (!pending.cancelled) pending.flush(['tasks.items.view']);

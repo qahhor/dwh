@@ -5,10 +5,12 @@ import com.smartup24.cms.instance.kauth.service.KauthPasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -29,12 +31,14 @@ public class KauthPasswordResetController {
     }
 
     @PostMapping("/request")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> request(@Valid @RequestBody RequestDto body, HttpServletRequest request) {
         resetService.requestReset(body.email(), clientIpResolver.resolveClientIp(request), userAgent(request));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/confirm")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> confirm(@Valid @RequestBody ConfirmDto body, HttpServletRequest request) {
         resetService.confirmReset(
                 body.token(), body.newPassword(), clientIpResolver.resolveClientIp(request), userAgent(request));

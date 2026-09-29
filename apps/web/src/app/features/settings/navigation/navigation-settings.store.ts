@@ -71,7 +71,7 @@ export class NavigationSettingsStore {
   }
 
   toggleItem(item: CustomNavigationItem): void {
-    this.navService.toggleItem(item.id).subscribe({
+    this.navService.setActive(item.id, item.state !== 'A').subscribe({
       next: () => this.loadItems(),
       error: (err: unknown) => this.showError(err),
     });

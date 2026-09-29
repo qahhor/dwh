@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.AssignUnitsDto;
 import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.CreateOrgUnitDto;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -56,13 +58,15 @@ public class MdOrgUnitController {
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "create")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<OrgUnitView> create(@Valid @RequestBody CreateOrgUnitDto body) {
         var unit = orgUnitService.create(body.parentId(), body.code(), body.name(), body.kind(), body.orderNo());
-        return ResponseEntity.status(HttpStatus.CREATED).body(unit);
+        return Created.at("/api/v1/iam/org-units/{id}", unit.id(), unit);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> update(@PathVariable("id") Long id, @RequestBody UpdateOrgUnitDto body) {
         orgUnitService.update(
                 id, body.parentIdPresent(), body.parentId(), body.name(), body.kind(), body.state(), body.orderNo());
@@ -71,6 +75,7 @@ public class MdOrgUnitController {
 
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         orgUnitService.delete(id);
         return ResponseEntity.noContent().build();
@@ -93,6 +98,7 @@ public class MdOrgUnitController {
     /** Позиция сотрудника в дереве — полная замена набора узлов. */
     @PutMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> assignUser(
             @PathVariable("userId") Long userId, @Valid @RequestBody AssignUnitsDto body) {
         scopeService.assignUserOrgUnits(userId, body.orgUnitIds());
@@ -102,6 +108,7 @@ public class MdOrgUnitController {
     /** Правило видимости у роли: ALL, SUBTREE, UNITS или SELF. */
     @PutMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> setRoleRule(
             @PathVariable("roleId") Long roleId, @Valid @RequestBody ScopeRuleDto body) {
         scopeService.setRoleRule(roleId, body.rule());

@@ -61,7 +61,7 @@ export class RoleFormsService {
 
     this.isSubmittingRole.set(true);
     this.api
-      .post<Role>('/rbac/roles', {
+      .post<Role>('/iam/roles', {
         name: this.newRoleForm.name.trim(),
         orderNo: this.newRoleForm.orderNo || 0,
       })
@@ -98,7 +98,7 @@ export class RoleFormsService {
     }
 
     this.isSubmittingRole.set(true);
-    this.api.patch(`/rbac/roles/${this.editingRole.id}`, this.editRoleForm).subscribe({
+    this.api.patch(`/iam/roles/${this.editingRole.id}`, this.editRoleForm).subscribe({
       next: () => {
         this.isSubmittingRole.set(false);
         this.isEditModalOpen.set(false);
@@ -127,7 +127,7 @@ export class RoleFormsService {
   deleteRole(target: Role, onSuccess: () => void): void {
     if (this.isSubmittingRole() || !this.isDeleteModalOpen()) return;
     this.isSubmittingRole.set(true);
-    this.api.delete(`/rbac/roles/${target.id}`).subscribe({
+    this.api.delete(`/iam/roles/${target.id}`).subscribe({
       next: () => {
         this.isSubmittingRole.set(false);
         this.isDeleteModalOpen.set(false);

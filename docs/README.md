@@ -59,6 +59,9 @@ Current ADRs that are not superseded:
 - [ADR-0022 — the API description comes from the code](adr/ADR-0022-openapi-from-code.md)
   — `docs/api/openapi.json` is generated from the controllers; the web types
   and the breaking-change check read it.
+- [ADR-0023 — uniform REST](adr/ADR-0023-uniform-rest.md)
+  — one path per operation, camelCase parameters, statuses that say what
+  happened, switches that take their state; old forms answer for one release.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

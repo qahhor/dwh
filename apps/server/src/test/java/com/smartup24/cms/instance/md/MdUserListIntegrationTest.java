@@ -174,11 +174,11 @@ class MdUserListIntegrationTest {
     @DisplayName("The export refuses bad option values before the job starts")
     void exportChecksOptionValues() {
         var exporter = new MdListExporters().iamUsersExporter(users);
-        assertThat(exporter.checkOptions(Map.of("role_id", "12", "state", "A", "is_2fa_enabled", "true")))
+        assertThat(exporter.checkOptions(Map.of("roleId", "12", "state", "A", "is2faEnabled", "true")))
                 .isEmpty();
-        assertThat(exporter.checkOptions(Map.of("role_id", "x", "state", "Z", "is_2fa_enabled", "yes")))
+        assertThat(exporter.checkOptions(Map.of("roleId", "x", "state", "Z", "is2faEnabled", "yes")))
                 .extracting(FieldErrorItem::field)
-                .containsExactlyInAnyOrder("role_id", "state", "is_2fa_enabled");
+                .containsExactlyInAnyOrder("roleId", "state", "is2faEnabled");
     }
 
     private static List<String> names(List<?> items) {

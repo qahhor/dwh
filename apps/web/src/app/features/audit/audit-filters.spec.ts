@@ -12,10 +12,10 @@ describe('Audit filters', () => {
     filters.to = '2026-09-04';
 
     expect(filters.flat()).toEqual({
-      table_name: 'ms_tasks',
-      row_pk: '42',
+      tableName: 'ms_tasks',
+      rowPk: '42',
       event: 'U',
-      user_id: '7',
+      userId: '7',
       from: '2026-09-01T00:00:00.000Z',
       to: '2026-09-04T23:59:59.999Z',
     });
@@ -36,8 +36,8 @@ describe('Audit filters', () => {
     filters.to = '2026-08-31';
 
     expect(filters.flat()).toEqual({
-      event_type: 'LOGIN_FAILED',
-      user_id: '9',
+      eventType: 'LOGIN_FAILED',
+      userId: '9',
       ip: '10.0.0.1',
       from: '2026-08-01T00:00:00.000Z',
       to: '2026-08-31T23:59:59.999Z',
@@ -45,8 +45,8 @@ describe('Audit filters', () => {
 
     filters.reset();
     expect(filters.flat()).toEqual({
-      event_type: undefined,
-      user_id: undefined,
+      eventType: undefined,
+      userId: undefined,
       ip: undefined,
       from: undefined,
       to: undefined,
@@ -59,10 +59,10 @@ describe('Audit filters', () => {
     filters.table = 'ms_tasks';
     const first = filters.exportOptions();
 
-    expect(first).toEqual({ table_name: 'ms_tasks' });
+    expect(first).toEqual({ tableName: 'ms_tasks' });
     expect(filters.exportOptions()).toBe(first);
     filters.event = 'D';
-    expect(filters.exportOptions()).toEqual({ table_name: 'ms_tasks', event: 'D' });
+    expect(filters.exportOptions()).toEqual({ tableName: 'ms_tasks', event: 'D' });
 
     const security = new SecurityEventFilters();
     const empty = security.exportOptions();

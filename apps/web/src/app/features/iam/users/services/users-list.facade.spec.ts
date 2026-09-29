@@ -44,7 +44,7 @@ describe('UsersListFacade', () => {
   /** A started list: the metadata, the saved views and the first (empty) page have answered. */
   function setup() {
     const get = vi.fn((path: string, _params?: unknown, _options?: unknown): Observable<unknown> =>
-      path === '/iam/users' ? page([]) : path === '/rbac/roles' ? of([{ id: 10, name: 'Менеджер' }]) : of([]),
+      path === '/iam/users' ? page([]) : path === '/iam/roles' ? of([{ id: 10, name: 'Менеджер' }]) : of([]),
     );
     const post = vi.fn((_path: string) => of({}));
     TestBed.configureTestingModule({
@@ -70,8 +70,8 @@ describe('UsersListFacade', () => {
     const { facade, get, beforeInit } = setup();
 
     expect(beforeInit).toBe(0);
-    expect(get).toHaveBeenCalledWith('/rbac/roles');
-    expect(get).toHaveBeenCalledWith('/custom-fields', { entity_type: 'USER' });
+    expect(get).toHaveBeenCalledWith('/iam/roles');
+    expect(get).toHaveBeenCalledWith('/custom-fields', { entityType: 'USER' });
     expect(get).toHaveBeenCalledWith('/iam/users', expect.objectContaining({ sort: 'name', limit: 20 }));
     expect(facade.roles().map((role) => role.name)).toEqual(['Менеджер']);
     expect(facade.selectedRoleName()).toBe('');
@@ -150,10 +150,10 @@ describe('UsersListFacade', () => {
 
     expect(get).toHaveBeenLastCalledWith(
       '/iam/users',
-      expect.objectContaining({ sort: '-createdAt', state: 'A', is_2fa_enabled: true, cursor: undefined }),
+      expect.objectContaining({ sort: '-createdAt', state: 'A', is2faEnabled: true, cursor: undefined }),
     );
     const options = facade.exportOptions();
-    expect(options).toEqual({ state: 'A', is_2fa_enabled: 'true' });
+    expect(options).toEqual({ state: 'A', is2faEnabled: 'true' });
     expect(facade.exportOptions()).toBe(options);
   });
 
@@ -210,11 +210,11 @@ describe('UsersListFacade', () => {
     expect(facade.filters.selected2fa).toBeNull();
     facade.clearStateFilter();
     expect(facade.filters.selectedState).toBe('');
-    expect(get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ role_id: 10, cursor: undefined }));
+    expect(get).toHaveBeenLastCalledWith('/iam/users', expect.objectContaining({ roleId: 10, cursor: undefined }));
 
     facade.resetAllFilters();
     expect(facade.filters.selectedRoleId).toBeNull();
     expect(facade.filters.hasAnyActiveFilters()).toBe(false);
-    expect((get.mock.lastCall?.[1] as Record<string, unknown>)['role_id']).toBeUndefined();
+    expect((get.mock.lastCall?.[1] as Record<string, unknown>)['roleId']).toBeUndefined();
   });
 });

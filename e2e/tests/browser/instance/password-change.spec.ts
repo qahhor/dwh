@@ -343,7 +343,7 @@ test.describe.serial('authentication generation password-change acceptance', () 
         await fillProfilePasswordForm(fields, wrongCurrentPassword, nextPassword);
         const wrongCurrentResponse = subjectPage.waitForResponse(response =>
           response.request().method() === 'POST'
-            && response.url().endsWith('/api/v1/iam/users/me/password'),
+            && response.url().endsWith('/api/v1/auth/password'),
         { timeout: 10_000 });
         await subjectPage.getByRole('button', { name: 'Обновить пароль', exact: true }).click({ timeout: 10_000 });
         expect((await wrongCurrentResponse).status(), 'Wrong-current-password HTTP status').toBe(401);
@@ -358,7 +358,7 @@ test.describe.serial('authentication generation password-change acceptance', () 
         await fillProfilePasswordForm(fields, subject.password, policyRejectedPassword);
         const policyResponse = subjectPage.waitForResponse(response =>
           response.request().method() === 'POST'
-            && response.url().endsWith('/api/v1/iam/users/me/password'),
+            && response.url().endsWith('/api/v1/auth/password'),
         { timeout: 10_000 });
         await subjectPage.getByRole('button', { name: 'Обновить пароль', exact: true }).click({ timeout: 10_000 });
         expect((await policyResponse).status(), 'Password-policy HTTP status').toBe(422);
@@ -373,7 +373,7 @@ test.describe.serial('authentication generation password-change acceptance', () 
         await fillProfilePasswordForm(fields, subject.password, nextPassword);
         const successResponse = subjectPage.waitForResponse(response =>
           response.request().method() === 'POST'
-            && response.url().endsWith('/api/v1/iam/users/me/password'),
+            && response.url().endsWith('/api/v1/auth/password'),
         { timeout: 10_000 });
         await subjectPage.getByRole('button', { name: 'Обновить пароль', exact: true }).click({ timeout: 10_000 });
         expect((await successResponse).status(), 'Successful profile password-change HTTP status').toBe(204);

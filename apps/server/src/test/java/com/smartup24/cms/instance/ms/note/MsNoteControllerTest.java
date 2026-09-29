@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.note.controller.MsNoteController;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +41,7 @@ class MsNoteControllerTest {
                 () -> controller.createNote(create),
                 () -> controller.updateNote(1L, update),
                 () -> controller.togglePin(1L),
+                () -> controller.setPin(1L, new MsNoteController.PinRequest(true)),
                 () -> controller.deleteNote(1L));
 
         for (Runnable call : calls) {
@@ -58,8 +61,14 @@ class MsNoteControllerTest {
 
         controller.getNotes("q", 20, "c", "[]", "-title");
         controller.getNote(3L);
-        controller.createNote(create);
+        when(service.createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L))
+                .thenReturn(new MsNoteService.NoteView(
+                        11L, "Title", "Body", "blue", true, Map.of("x", 1), 7L, Instant.EPOCH, Instant.EPOCH));
+        var created = controller.createNote(create);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(created.getHeaders().getLocation()).hasToString("/api/v1/notes/11");
         controller.updateNote(3L, update);
+        controller.setPin(3L, new MsNoteController.PinRequest(false));
         controller.togglePin(3L);
         assertThat(controller.deleteNote(3L).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
@@ -67,6 +76,7 @@ class MsNoteControllerTest {
         verify(service).getNote(3L, 7L);
         verify(service).createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L);
         verify(service).updateNote(3L, "New", "Text", "red", false, Map.of(), 7L);
+        verify(service).setPinned(3L, 7L, false);
         verify(service).togglePinned(3L, 7L);
         verify(service).deleteNote(3L, 7L);
     }

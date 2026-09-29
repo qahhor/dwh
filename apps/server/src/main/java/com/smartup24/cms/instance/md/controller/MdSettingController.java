@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdSettingService;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,6 +44,7 @@ public class MdSettingController {
 
     @PatchMapping("/system")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateSystemSettings(@RequestBody Map<String, String> body) {
         settingService.updateInstanceSettings(body);
         return ResponseEntity.noContent().build();
@@ -57,6 +59,7 @@ public class MdSettingController {
 
     @PatchMapping("/user")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> updateUserSettings(@RequestBody Map<String, String> body) {
         Long userId = SecurityContext.getCurrentUserId();
         settingService.updateUserSettings(userId, body);
