@@ -9,6 +9,22 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Uniform REST (plan 10/10, item 3.4, ADR-0023). One path per operation:
+  `/api/v1/tasks`, `/api/v1/iam`, `/api/v1/notifications`,
+  `/api/v1/iam/profile/sessions`, `/api/v1/iam/users/{userId}/sessions`,
+  `/api/v1/auth/password`, `GET /api/v1/announcements/active`. Query
+  parameters and export options are camelCase (`projectId`, `tableName`, …).
+  Switches take their state: `PUT /notes/{id}/pin`, `PUT /modules/{code}/enabled`,
+  `PUT /navigation/items/{id}/active`, and `PUT /modules/{code}` registers a
+  module. A create answers 201 with `Location` (replayed with the same
+  `Idempotency-Key`), started work 202, a success without a body 204.
+  **Deprecated, answering until 2026-12-31:** the old paths (`/tasks/items`,
+  `/rbac`, `/notify`, `/iam/sessions`, `/iam/profile/sessions/users/…`,
+  `/iam/users/me/password`, `GET /announcements`), `POST …/toggle`,
+  `POST /notes/{id}/pin`, `POST /modules` and the snake_case parameters; they
+  answer with `Deprecation`, `Sunset` and `Link`, and
+  `dwh_api_deprecated_calls_total` counts them. Spectral rules keep the style,
+  `npm run api:audit` keeps the web off deprecated forms.
 - The API description comes from the code (plan 10/10, item 3.3, ADR-0022).
   springdoc-openapi generates `/api/v1/openapi.json` (OpenAPI 3.1) from the
   controllers and DTOs; the hand-written `OpenApiController` is gone, and with
@@ -699,6 +715,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (plan item 3.4):** `POST /api/v1/notes` answers 201 instead
+  of 200, and `POST /api/v1/iam/profile/channels` answers 202 instead of 200
+  (the binding waits for its code). The API description now states 201, 202
+  and 204 for the 74 handlers that already answered them at run time.
 - No server class over 400 lines and no method over 60 (plan 10/10, item
   3.10), enforced by Checkstyle on main code. MsTaskService (972 lines)
   is split into task, read, member, file, workflow and status view

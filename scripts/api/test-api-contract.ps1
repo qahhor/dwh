@@ -1,7 +1,8 @@
 param(
     # The branch the pull request merges into: its docs/api/openapi.json is the contract clients rely on today.
     [string]$BaseRef = 'origin/main',
-    # A deliberate breaking change (the pull request carries the api-breaking label): report it, do not fail.
+    # A deliberate breaking change (the pull request carries the api-breaking label): report it, do not fail. A commit
+    # trailer "Api-Breaking:" between the base and HEAD declares it too.
     [switch]$AllowBreaking
 )
 
@@ -58,11 +59,18 @@ if (-not $baseFound) {
 Copy-Item -LiteralPath (Join-Path $repoRoot $spec) -Destination (Join-Path $work 'openapi.json') -Force
 $diff = Invoke-Docker @('run', '--rm', '-v', "${work}:/specs", 'openapitools/openapi-diff:2.1.2',
     '/specs/base-openapi.json', '/specs/openapi.json', '--fail-on-incompatible')
+# A commit of the change may declare the break with a trailer "Api-Breaking: <what and why>": it stays in the history
+# (a push to main has no label to carry it), and CHANGELOG.md says the same to the clients.
+$trailers = @(& git -C $repoRoot log --format='%(trailers:key=Api-Breaking,valueonly)' "$BaseRef..HEAD" |
+        Where-Object { $_.Trim() })
 if ($diff -ne 0) {
     if ($AllowBreaking) {
         Write-Warning 'The API breaks clients of the base branch; allowed by the api-breaking label.'
+    } elseif ($trailers.Count -gt 0) {
+        Write-Warning ("The API breaks clients of the base branch; declared by Api-Breaking: " + ($trailers -join '; '))
     } else {
-        throw ('The API breaks clients of the base branch. Keep the old shape (deprecate, add an alias), or label ' +
-            'the pull request api-breaking and record the change in CHANGELOG.md.')
+        throw ('The API breaks clients of the base branch. Keep the old shape (deprecate, add an alias), or declare ' +
+            'the break (pull request label api-breaking, or a commit trailer Api-Breaking:) and record it in ' +
+            'CHANGELOG.md.')
     }
 }
