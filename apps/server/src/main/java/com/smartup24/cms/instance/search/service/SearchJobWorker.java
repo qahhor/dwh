@@ -208,10 +208,12 @@ public class SearchJobWorker implements AutoCloseable {
 
     private static String safeFailure(RuntimeException failure) {
         if (failure instanceof SearchProjectionReader.DocumentTooLargeException) return "DOCUMENT_TOO_LARGE";
-        if (failure instanceof ApiException
-                && failure.getMessage() != null
-                && List.of("INSUFFICIENT_SEARCH_STORAGE", "SEARCH_STORAGE_UNAVAILABLE")
-                        .contains(failure.getMessage())) return failure.getMessage();
+        // The storage preflight's refusals keep their fixed job codes (ops runbook); the key is the text.
+        if (failure instanceof ApiException refused) {
+            if (refused.getMessageKey().equals("error.search.storage_insufficient"))
+                return "INSUFFICIENT_SEARCH_STORAGE";
+            if (refused.getMessageKey().equals("error.search.storage_unavailable")) return "SEARCH_STORAGE_UNAVAILABLE";
+        }
         return failure instanceof TypesenseException ? "SEARCH_DEPENDENCY_FAILED" : "SEARCH_JOB_FAILED";
     }
 

@@ -18,7 +18,7 @@ public class SearchAccessPolicy {
 
     public void requireSearchAccess() {
         var principal = SecurityContext.getPrincipal();
-        if (principal == null) throw ApiException.unauthorized("Требуется авторизация для поиска");
+        if (principal == null) throw ApiException.unauthorized("error.search.auth_required");
         if (!SecurityContext.hasPermission(SearchPref.FORM_SEARCH, "view")) {
             throw ApiException.permissionDenied(SearchPref.FORM_SEARCH, "view");
         }
@@ -26,8 +26,7 @@ public class SearchAccessPolicy {
         boolean hasAdministratorRole =
                 !hasLegacyWildcard && roleMembershipAuthorizer.hasActiveRole(principal.userId(), ADMINISTRATOR_ROLE);
         if (!hasLegacyWildcard && !hasAdministratorRole) {
-            throw ApiException.forbidden(
-                    "Глобальный поиск доступен только администраторам до внедрения scope-фильтрации");
+            throw ApiException.forbidden("error.search.admin_only");
         }
     }
 

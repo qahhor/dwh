@@ -69,11 +69,8 @@ public class ReportExportService {
     private static final DateTimeFormatter STAMP =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmm").withZone(ZoneOffset.UTC);
 
-    public static final String EXPORT_LIST_UNKNOWN = "EXPORT_LIST_UNKNOWN";
+    /** The code of a refused option or column and of a job that failed on its stored request. */
     public static final String EXPORT_INVALID = "EXPORT_INVALID";
-    public static final String EXPORT_BUSY = "EXPORT_BUSY";
-    public static final String EXPORT_NOT_FOUND = "EXPORT_NOT_FOUND";
-    public static final String EXPORT_NOT_READY = "EXPORT_NOT_READY";
     static final String EXPORT_FORBIDDEN = "EXPORT_FORBIDDEN";
     static final String EXPORT_FAILED = "EXPORT_FAILED";
 
@@ -131,7 +128,7 @@ public class ReportExportService {
         QueryList list = registry.find(request.list())
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
                 .filter(found -> exporters.containsKey(found.code()))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, EXPORT_LIST_UNKNOWN));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
         QueryListExporter exporter = exporters.get(list.code());
         // The same checks the list endpoint makes: a bad filter is refused now, not in the job.
         QueryCompiler.compile(list, request.filter(), request.sort(), 1, null, request.q());
@@ -155,10 +152,10 @@ public class ReportExportService {
             }
         }
         if (!errors.isEmpty()) {
-            throw ApiException.validation(EXPORT_INVALID, errors);
+            throw ApiException.validation("error.report.export_invalid", errors);
         }
         if (repo.countActive(userId) >= MAX_ACTIVE) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, EXPORT_BUSY);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.report.export_busy", Map.of("max", MAX_ACTIVE));
         }
         Map<String, Object> stored = new LinkedHashMap<>();
         putIfPresent(stored, "filter", request.filter());
@@ -189,7 +186,7 @@ public class ReportExportService {
     public ExportFile file(String publicId) {
         ExportRow row = own(publicId);
         if (!"done".equals(row.state()) || row.expiresAt().isBefore(Instant.now())) {
-            throw ApiException.conflict(ErrorCode.CONFLICT, EXPORT_NOT_READY);
+            throw ApiException.conflict(ErrorCode.CONFLICT, "error.report.export_not_ready");
         }
         return new ExportFile(
                 row.fileName(),
@@ -247,7 +244,7 @@ public class ReportExportService {
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
                 .orElseThrow(() -> ApiException.permissionDenied(row.listCode(), "view"));
         QueryListExporter exporter = Optional.ofNullable(exporters.get(list.code()))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, EXPORT_LIST_UNKNOWN));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_list_unknown"));
         List<QueryField> fields = columns(list, request.columns());
         Map<String, String> dictionary = i18n.effectiveDictionary(request.lang());
         Function<String, String> text = key -> dictionary.getOrDefault(key, key);
@@ -319,12 +316,12 @@ public class ReportExportService {
         try {
             id = UUID.fromString(publicId);
         } catch (IllegalArgumentException e) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, EXPORT_NOT_FOUND);
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_not_found");
         }
         long userId = SecurityContext.getCurrentUserId();
         return repo.find(id)
                 .filter(row -> row.userId() == userId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, EXPORT_NOT_FOUND));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.report.export_not_found"));
     }
 
     private static String fileName(ExportRow row) {

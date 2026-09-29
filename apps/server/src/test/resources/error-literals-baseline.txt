@@ -47,13 +47,3 @@ com/smartup24/cms/instance/ms/task/service/MsProjectService.java
 com/smartup24/cms/instance/ms/task/service/MsTaskHistorySources.java
 com/smartup24/cms/instance/ms/task/service/MsTaskService.java
 com/smartup24/cms/instance/ms/task/service/MsTaskStatusService.java
-com/smartup24/cms/instance/report/service/ReportService.java
-com/smartup24/cms/instance/search/SearchChangePublisher.java
-com/smartup24/cms/instance/search/dto/SearchManagementDtos.java
-com/smartup24/cms/instance/search/repository/SearchSettingsRepository.java
-com/smartup24/cms/instance/search/service/SearchAccessPolicy.java
-com/smartup24/cms/instance/search/service/SearchGenerationService.java
-com/smartup24/cms/instance/search/service/SearchJobService.java
-com/smartup24/cms/instance/search/service/SearchPolicyProvider.java
-com/smartup24/cms/instance/search/service/SearchService.java
-com/smartup24/cms/instance/search/service/SearchStoragePreflight.java

@@ -368,7 +368,7 @@ public class SearchService {
 
     private static void validateLimit(Integer requestedLimit) {
         if (requestedLimit != null && (requestedLimit < 1 || requestedLimit > 50)) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Лимит поиска должен быть от 1 до 50");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.limit_range");
         }
     }
 
@@ -381,7 +381,7 @@ public class SearchService {
     }
 
     private static ApiException invalidQuery() {
-        return ApiException.badRequest(ErrorCode.EMPTY_QUERY, "Поисковый запрос должен содержать от 2 до 200 символов");
+        return ApiException.badRequest(ErrorCode.EMPTY_QUERY, "error.search.query_length");
     }
 
     private static String normalizeEntityType(String entityType) {
@@ -389,7 +389,7 @@ public class SearchService {
         String normalized = entityType.trim().toUpperCase(Locale.ROOT);
         return switch (normalized) {
             case "ALL", "TASK", "PROJECT", "USER", "NOTE" -> normalized;
-            default -> throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Неизвестная категория поиска");
+            default -> throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.category_unknown");
         };
     }
 
@@ -397,10 +397,10 @@ public class SearchService {
         if (!query.matches("#[0-9]+")) return null;
         try {
             long id = Long.parseLong(query.substring(1));
-            if (id <= 0) throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "ID должен быть положительным числом");
+            if (id <= 0) throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.id_not_positive");
             return id;
         } catch (NumberFormatException overflow) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "Некорректный ID поиска");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.id_invalid");
         }
     }
 
@@ -422,7 +422,7 @@ public class SearchService {
     }
 
     private static ApiException unavailable() {
-        return new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "Поиск временно недоступен");
+        return new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "error.search.unavailable");
     }
 
     public record SearchHit(String entityType, String id, String title, String description, String targetUrl) {}

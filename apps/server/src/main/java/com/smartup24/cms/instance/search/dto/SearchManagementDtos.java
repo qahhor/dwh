@@ -37,7 +37,7 @@ public final class SearchManagementDtos {
 
     public record SaveSettingsRequest(long version, SearchQueryPolicy policy) {
         public SaveSettingsRequest {
-            if (version < 1 || policy == null) throw new IllegalArgumentException("Invalid settings request");
+            if (version < 1 || policy == null) throw invalidRequest();
         }
     }
 
@@ -112,7 +112,7 @@ public final class SearchManagementDtos {
             if (request == null) throw invalidRequest();
             return request;
         } catch (RuntimeException invalid) {
-            throw invalidRequest();
+            throw specificOrInvalid(invalid);
         }
     }
 
@@ -131,7 +131,7 @@ public final class SearchManagementDtos {
                     node.has("entity") ? node.get("entity").asString() : null,
                     node.has("policy") ? STRICT.treeToValue(node.get("policy"), SearchQueryPolicy.class) : null);
         } catch (RuntimeException invalid) {
-            throw invalidRequest();
+            throw specificOrInvalid(invalid);
         }
     }
 
@@ -142,7 +142,7 @@ public final class SearchManagementDtos {
             if (version == 1 && node != null && node.isObject() && node.isEmpty()) return SearchQueryPolicy.defaults();
             return STRICT.treeToValue(node, SearchQueryPolicy.class);
         } catch (RuntimeException invalid) {
-            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "Search configuration is invalid");
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "error.search.config_invalid");
         }
     }
 
@@ -151,6 +151,14 @@ public final class SearchManagementDtos {
     }
 
     private static ApiException invalidRequest() {
-        return ApiException.badRequest(ErrorCode.BAD_REQUEST, "Invalid search settings request");
+        return ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.settings_request_invalid");
+    }
+
+    /** A policy rule the request broke names itself (Jackson wraps it); anything else is a malformed request. */
+    private static ApiException specificOrInvalid(RuntimeException failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ApiException specific) return specific;
+        }
+        return invalidRequest();
     }
 }

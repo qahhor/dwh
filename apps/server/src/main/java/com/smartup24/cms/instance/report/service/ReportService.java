@@ -46,7 +46,7 @@ public class ReportService {
 
     public void exportTasksCsv(OutputStream outputStream, Long currentUserId) throws IOException {
         if (currentUserId == null) {
-            throw ApiException.unauthorized("Требуется авторизация для экспорта задач");
+            throw ApiException.unauthorized("error.report.auth_required");
         }
         var scope = scopeService.filterForTasks(currentUserId);
         // UTF-8 BOM so Microsoft Excel automatically recognizes Russian UTF-8
@@ -82,7 +82,7 @@ public class ReportService {
 
     public void exportTasksExcelXml(OutputStream outputStream, Long currentUserId) throws IOException {
         if (currentUserId == null) {
-            throw ApiException.unauthorized("Требуется авторизация для экспорта задач");
+            throw ApiException.unauthorized("error.report.auth_required");
         }
         var scope = scopeService.filterForTasks(currentUserId);
         java.io.BufferedWriter writer =
