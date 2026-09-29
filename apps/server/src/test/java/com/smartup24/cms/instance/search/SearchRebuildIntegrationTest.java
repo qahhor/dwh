@@ -26,8 +26,8 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
             .withCommand("--data-dir=/data", "--api-key=" + FIXTURE_KEY)
             .waitingFor(Wait.forHttp("/health").forStatusCode(200));
 
-    private TypesenseClient client() {
-        return new TypesenseClient(
+    private TypesenseFixture client() {
+        return TypesenseFixture.of(
                 new TypesenseProperties(
                         "http://" + engine.getHost() + ":" + engine.getMappedPort(8108), FIXTURE_KEY, true, false),
                 new ObjectMapper());
@@ -56,25 +56,26 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
                 .param("id", old)
                 .update();
         for (String type : List.of("TASK", "PROJECT", "USER"))
-            client.ensureCollection(state.snapshot().collections().get(type), type);
+            client.collections().ensureCollection(state.snapshot().collections().get(type), type);
         long reporter = user("Reporter"),
                 missing = task(reporter, "Before"),
                 deleted = task(reporter, "Delete during catchup");
         worker.runOnce();
-        client.deleteDocument(prefix + "tasks", Long.toString(missing));
-        client.importDocuments(
-                prefix + "tasks",
-                List.of(Map.of(
-                        "id",
-                        "999999",
-                        "task_id",
-                        999999,
-                        "title",
-                        "Stale extra",
-                        "_projection_revision",
-                        1,
-                        "_projection_fingerprint",
-                        "stale")));
+        client.documents().deleteDocument(prefix + "tasks", Long.toString(missing));
+        client.documents()
+                .importDocuments(
+                        prefix + "tasks",
+                        List.of(Map.of(
+                                "id",
+                                "999999",
+                                "task_id",
+                                999999,
+                                "title",
+                                "Stale extra",
+                                "_projection_revision",
+                                1,
+                                "_projection_fingerprint",
+                                "stale")));
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 reporter, "fixture", "fixture@example.invalid", 1L, false, Set.of("*.*"), 1L, false, 0, null));
         UUID job = jobService
@@ -120,7 +121,8 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(removed).isTrue();
         assertThat(state.snapshot().generationId()).isEqualTo(candidate);
         var exported = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
-        client.forEachDocumentMetadata(state.snapshot().collections().get("TASK"), exported::add);
+        client.documents()
+                .forEachDocumentMetadata(state.snapshot().collections().get("TASK"), exported::add);
         assertThat(exported)
                 .extracting(TypesenseDocumentStream.DocumentMetadata::id)
                 .containsExactly(Long.toString(missing));
@@ -128,14 +130,15 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
         assertThat(exported.getFirst().revision()).isEqualTo(authoritative.revision());
         assertThat(exported.getFirst().fingerprint()).isEqualTo(authoritative.fingerprint());
         assertThat(exported.getFirst().contentFingerprint()).isEqualTo(authoritative.fingerprint());
-        assertThat(client.multiSearch(
+        assertThat(client.search()
+                        .multiSearch(
                                 "Changed", "TASK", 10, state.snapshot().collections(), SearchQueryPolicy.defaults())
                         .getFirst()
                         .hits())
                 .extracting(SearchService.SearchHit::id)
                 .containsExactly(Long.toString(missing));
         for (String type : List.of("tasks", "projects", "users"))
-            assertThat(client.collectionExists(prefix + type)).isTrue();
+            assertThat(client.collections().collectionExists(prefix + type)).isTrue();
         assertThat(jdbc.sql("select state from search_generations where id=:id")
                         .param("id", old)
                         .query(String.class)
@@ -153,13 +156,17 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
     @Test
     void ruGenerationSchemaRoundtripsThroughRealTypesense271() {
         var client = client();
-        assertThat(client.observeDependency().version()).isEqualTo("27.1");
+        assertThat(client.health().observeDependency().version()).isEqualTo("27.1");
         for (String type : List.of("TASK", "PROJECT", "USER")) {
             String collection = "ru_" + UUID.randomUUID().toString().replace("-", "");
-            client.ensureCollection(collection, type, "RU");
-            assertThat(client.observeCollection(collection, type, "RU").schemaMatches())
+            client.collections().ensureCollection(collection, type, "RU");
+            assertThat(client.collections()
+                            .observeCollection(collection, type, "RU")
+                            .schemaMatches())
                     .isTrue();
-            assertThat(client.observeCollection(collection, type, "MIXED").schemaMatches())
+            assertThat(client.collections()
+                            .observeCollection(collection, type, "MIXED")
+                            .schemaMatches())
                     .isFalse();
             Map<String, Object> document = switch (type) {
                 case "TASK" ->
@@ -207,11 +214,11 @@ class SearchRebuildIntegrationTest extends SearchDeliveryTestSupport {
                             "_projection_fingerprint",
                             "fixture");
             };
-            assertThat(client.importDocuments(collection, List.of(document)))
+            assertThat(client.documents().importDocuments(collection, List.of(document)))
                     .singleElement()
                     .satisfies(ack -> assertThat(ack.success()).isTrue());
             var exported = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
-            client.forEachDocumentMetadata(collection, exported::add);
+            client.documents().forEachDocumentMetadata(collection, exported::add);
             assertThat(exported).singleElement().satisfies(row -> {
                 assertThat(row.id()).isEqualTo("7");
                 assertThat(row.revision()).isOne();

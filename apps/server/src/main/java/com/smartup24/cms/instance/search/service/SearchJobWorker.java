@@ -4,7 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.repository.SearchGenerationRepository.FrozenGeneration;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import java.time.Duration;
 import java.util.List;
@@ -17,7 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Component
 public class SearchJobWorker implements AutoCloseable {
-    private final TypesenseClient client;
+    private final TypesenseCollections collections;
     private final SearchDeliveryWorker delivery;
     private final SearchIndexStateRepository state;
     private final SearchJobRepository jobs;
@@ -35,7 +35,7 @@ public class SearchJobWorker implements AutoCloseable {
 
     @Autowired
     public SearchJobWorker(
-            TypesenseClient client,
+            TypesenseCollections collections,
             SearchDeliveryWorker delivery,
             SearchIndexStateRepository state,
             SearchJobRepository jobs,
@@ -45,12 +45,12 @@ public class SearchJobWorker implements AutoCloseable {
             SearchReconciliationService reconciliation,
             SearchStoragePreflight storage,
             Optional<SearchMetrics> metrics) {
-        this(client, delivery, state, jobs, generations, generationService, service, reconciliation, storage);
+        this(collections, delivery, state, jobs, generations, generationService, service, reconciliation, storage);
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
     public SearchJobWorker(
-            TypesenseClient client,
+            TypesenseCollections collections,
             SearchDeliveryWorker delivery,
             SearchIndexStateRepository state,
             SearchJobRepository jobs,
@@ -59,7 +59,7 @@ public class SearchJobWorker implements AutoCloseable {
             SearchJobService service,
             SearchReconciliationService reconciliation,
             SearchStoragePreflight storage) {
-        this.client = client;
+        this.collections = collections;
         this.delivery = delivery;
         this.state = state;
         this.jobs = jobs;
@@ -80,7 +80,7 @@ public class SearchJobWorker implements AutoCloseable {
             throw new IllegalTransactionStateException("Search jobs cannot run in a business transaction");
         if (closed
                 || owner == null
-                || !client.isEnabled()
+                || !collections.isEnabled()
                 || Thread.currentThread().isInterrupted()) return;
         if (!state.owns(owner)) {
             discardProof();
@@ -91,9 +91,9 @@ public class SearchJobWorker implements AutoCloseable {
                         .map(job -> !List.of("VERIFYING", "ACTIVATING").contains(job.state()))
                         .orElse(true)) discardProof();
         if (!state.snapshot().initialized() && !jobs.anyJobExists()) {
-            boolean legacy = client.collectionExists(TypesenseClient.COL_TASKS)
-                    && client.collectionExists(TypesenseClient.COL_PROJECTS)
-                    && client.collectionExists(TypesenseClient.COL_USERS);
+            boolean legacy = collections.collectionExists(TypesenseCollections.COL_TASKS)
+                    && collections.collectionExists(TypesenseCollections.COL_PROJECTS)
+                    && collections.collectionExists(TypesenseCollections.COL_USERS);
             service.initialize(owner, legacy);
         }
         var claimed = jobs.claim(owner);
@@ -118,7 +118,8 @@ public class SearchJobWorker implements AutoCloseable {
                 if (!check) {
                     storage.requireSpace();
                     for (String type : List.of("TASK", "PROJECT", "USER"))
-                        client.ensureCollection(generation.collections().get(type), type, generation.schemaProfile());
+                        collections.ensureCollection(
+                                generation.collections().get(type), type, generation.schemaProfile());
                     if (!generation.discoveryEntity().equals("DONE")) {
                         state.discoverPage(generation.delivery(state.snapshot().version()), owner, 100);
                         jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);

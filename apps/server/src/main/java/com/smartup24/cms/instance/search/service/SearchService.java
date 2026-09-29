@@ -6,9 +6,9 @@ import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.IndexSnapshot;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SearchService {
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
-    private final TypesenseClient typesenseClient;
+    private final TypesenseSearch typesense;
     private final SearchFallbackRepository fallbackRepository;
     private final SearchAccessPolicy accessPolicy;
     private final SearchResultBudget resultBudget;
@@ -38,7 +38,7 @@ public class SearchService {
 
     @Autowired
     public SearchService(
-            TypesenseClient typesenseClient,
+            TypesenseSearch typesense,
             SearchFallbackRepository fallbackRepository,
             SearchAccessPolicy accessPolicy,
             SearchResultBudget resultBudget,
@@ -47,7 +47,7 @@ public class SearchService {
             Optional<QueryLanguageConverter> queryConverter,
             Optional<SearchMetrics> metrics) {
         this(
-                typesenseClient,
+                typesense,
                 fallbackRepository,
                 accessPolicy,
                 resultBudget,
@@ -58,7 +58,7 @@ public class SearchService {
     }
 
     public SearchService(
-            TypesenseClient typesenseClient,
+            TypesenseSearch typesense,
             SearchFallbackRepository fallbackRepository,
             SearchAccessPolicy accessPolicy,
             SearchResultBudget resultBudget,
@@ -66,7 +66,7 @@ public class SearchService {
             SearchExecutionSnapshotReader snapshotReader,
             Optional<SearchMetrics> metrics) {
         this(
-                typesenseClient,
+                typesense,
                 fallbackRepository,
                 accessPolicy,
                 resultBudget,
@@ -77,14 +77,14 @@ public class SearchService {
     }
 
     public SearchService(
-            TypesenseClient typesenseClient,
+            TypesenseSearch typesense,
             SearchFallbackRepository fallbackRepository,
             SearchAccessPolicy accessPolicy,
             SearchResultBudget resultBudget,
             SearchPolicyProvider policyProvider,
             SearchExecutionSnapshotReader snapshotReader) {
         this(
-                typesenseClient,
+                typesense,
                 fallbackRepository,
                 accessPolicy,
                 resultBudget,
@@ -94,7 +94,7 @@ public class SearchService {
     }
 
     public SearchService(
-            TypesenseClient typesenseClient,
+            TypesenseSearch typesense,
             SearchFallbackRepository fallbackRepository,
             SearchAccessPolicy accessPolicy,
             SearchResultBudget resultBudget,
@@ -102,7 +102,7 @@ public class SearchService {
             SearchExecutionSnapshotReader snapshotReader,
             QueryLanguageConverter queryConverter) {
         this(
-                typesenseClient,
+                typesense,
                 fallbackRepository,
                 accessPolicy,
                 resultBudget,
@@ -113,14 +113,14 @@ public class SearchService {
 
     /** Policy/snapshot boundary shared with the later saved-settings provider. */
     protected SearchService(
-            TypesenseClient typesenseClient,
+            TypesenseSearch typesense,
             SearchFallbackRepository fallbackRepository,
             SearchAccessPolicy accessPolicy,
             SearchResultBudget resultBudget,
             SearchQueryPolicy queryPolicy,
             Supplier<IndexSnapshot> indexSnapshot) {
         this(
-                typesenseClient,
+                typesense,
                 fallbackRepository,
                 accessPolicy,
                 resultBudget,
@@ -130,14 +130,14 @@ public class SearchService {
     }
 
     private SearchService(
-            TypesenseClient typesenseClient,
+            TypesenseSearch typesense,
             SearchFallbackRepository fallbackRepository,
             SearchAccessPolicy accessPolicy,
             SearchResultBudget resultBudget,
             Supplier<SearchExecutionSnapshot> executionSnapshot,
             Supplier<SettingsSnapshot> fallbackPolicy,
             QueryLanguageConverter queryConverter) {
-        this.typesenseClient = typesenseClient;
+        this.typesense = typesense;
         this.fallbackRepository = fallbackRepository;
         this.accessPolicy = accessPolicy;
         this.resultBudget = resultBudget;
@@ -237,12 +237,12 @@ public class SearchService {
         List<String> queryVariants = expansion.variants();
         String suggestedQuery = expansion.suggestedCorrection();
 
-        if (typesenseClient.isEnabled()) {
+        if (typesense.isEnabled()) {
             try {
                 if (!snapshot.initialized() || !hasCollections(cleanEntityType, snapshot.collections())) {
                     throw TypesenseException.uninitialized();
                 }
-                List<CollectionSearch> groups = typesenseClient.multiSearch(
+                List<CollectionSearch> groups = typesense.multiSearch(
                         cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
 
                 int initialHits = groups.stream().mapToInt(g -> g.hits().size()).sum();
@@ -250,7 +250,7 @@ public class SearchService {
                     for (int i = 1; i < queryVariants.size(); i++) {
                         String variant = queryVariants.get(i);
                         try {
-                            List<CollectionSearch> variantGroups = typesenseClient.multiSearch(
+                            List<CollectionSearch> variantGroups = typesense.multiSearch(
                                     variant, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
                             groups = mergeGroups(groups, variantGroups);
                         } catch (Exception ignored) {

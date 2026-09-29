@@ -18,9 +18,9 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
             session.sql("create temporary table search_reconcile_index(id integer)")
                     .update();
             session.sql("insert into search_reconcile_index values(7)").update();
-            org.assertj.core.api.Assertions.assertThatThrownBy(
-                            () -> new SearchReconciliationService(existing, reader, client)
-                                    .begin(state.deliveryGeneration(owner).orElseThrow()))
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> new SearchReconciliationService(
+                                    existing, reader, client.collections(), client.documents())
+                            .begin(state.deliveryGeneration(owner).orElseThrow()))
                     .isInstanceOf(RuntimeException.class);
             assertThat(session.sql("select to_regclass('pg_temp.search_reconcile_index') is not null")
                             .query(Boolean.class)
@@ -39,7 +39,7 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         jdbc.sql(
                         "insert into md_users(name,login,email) values('Unversioned','unversioned','unversioned@example.invalid')")
                 .update();
-        try (var proof = new SearchReconciliationService(database, reader, client)
+        try (var proof = new SearchReconciliationService(database, reader, client.collections(), client.documents())
                 .begin(state.deliveryGeneration(owner).orElseThrow())) {
             finish(proof);
             assertThat(proof.summary().missing()).isOne();
@@ -62,7 +62,8 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         documents.put("users/" + tampered, changed);
         documents.put("users/999999", Map.of("id", "999999", "user_id", 999999, "name", "Extra"));
         var before = List.copyOf(writes);
-        var reconciliation = new SearchReconciliationService(database, reader, client);
+        var reconciliation =
+                new SearchReconciliationService(database, reader, client.collections(), client.documents());
         try (var proof = reconciliation.begin(state.deliveryGeneration(owner).orElseThrow())) {
             finish(proof);
             assertThat(proof.summary().missing()).isOne();
@@ -79,7 +80,8 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         activeGeneration();
         long id = user("Before");
         worker.runOnce();
-        var reconciliation = new SearchReconciliationService(database, reader, client);
+        var reconciliation =
+                new SearchReconciliationService(database, reader, client.collections(), client.documents());
         try (var proof = reconciliation.begin(state.deliveryGeneration(owner).orElseThrow())) {
             finish(proof);
             assertThat(proof.summary().successful()).isTrue();
@@ -101,7 +103,7 @@ class SearchReconciliationTest extends SearchDeliveryTestSupport {
         changed.remove("_projection_revision");
         changed.remove("_projection_fingerprint");
         documents.put("users/" + id, changed);
-        try (var proof = new SearchReconciliationService(database, reader, client)
+        try (var proof = new SearchReconciliationService(database, reader, client.collections(), client.documents())
                 .begin(state.deliveryGeneration(owner).orElseThrow())) {
             finish(proof);
             assertThat(proof.summary().pending()).isOne();

@@ -17,7 +17,7 @@ import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -159,7 +159,7 @@ class SearchFallbackIntegrationTest {
         project("budget-token project 1", "A");
         project("budget-token project 2", "A");
         user("budget-token user", "A", null);
-        TypesenseClient typesense = mock(TypesenseClient.class);
+        TypesenseSearch typesense = mock(TypesenseSearch.class);
         when(typesense.isEnabled()).thenReturn(false);
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 999L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1, false, 0, null));

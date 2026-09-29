@@ -76,7 +76,7 @@ abstract class SearchDeliveryTestSupport {
     volatile Consumer<HttpExchange> beforeRequest = exchange -> {};
     HttpServer http;
     ExecutorService httpThreads;
-    TypesenseClient client;
+    TypesenseFixture client;
     SearchChangePublisher publisher;
     SearchProjectionReader reader;
     SearchDeliveryRepository delivery;
@@ -170,7 +170,7 @@ abstract class SearchDeliveryTestSupport {
         http.setExecutor(httpThreads);
         http.createContext("/", this::respond);
         http.start();
-        client = new TypesenseClient(
+        client = TypesenseFixture.of(
                 new TypesenseProperties("http://127.0.0.1:" + http.getAddress().getPort(), "test-key", true, false),
                 mapper,
                 Optional.of(metrics));
@@ -188,13 +188,13 @@ abstract class SearchDeliveryTestSupport {
     void recreateWorker() {
         if (jobWorker != null) jobWorker.close();
         owner = UUID.randomUUID();
-        worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5, metrics);
+        worker = new SearchDeliveryWorker(client.documents(), reader, delivery, state, clock, () -> 0.5, metrics);
         worker.startLifecycle(owner);
         jobRepository = SearchRevisionIntegrationTest.proxied(new SearchJobRepository(jdbc, mapper), manager);
         generationRepository = new SearchGenerationRepository(jdbc);
         generationService = new SearchGenerationService(generationRepository, new SearchSettingsRepository(jdbc), 4);
-        storage = new SearchStoragePreflight(client, reader);
-        reconciliation = new SearchReconciliationService(database, reader, client);
+        storage = new SearchStoragePreflight(client.health(), reader);
+        reconciliation = new SearchReconciliationService(database, reader, client.collections(), client.documents());
         jobService = SearchRevisionIntegrationTest.proxied(
                 new SearchJobService(
                         new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
@@ -206,7 +206,7 @@ abstract class SearchDeliveryTestSupport {
                         Optional.of(metrics)),
                 manager);
         jobWorker = new SearchJobWorker(
-                client,
+                client.collections(),
                 worker,
                 state,
                 jobRepository,

@@ -28,7 +28,7 @@ class SearchMetricsTest {
 
     @Test
     void actualQueryFallbackAndFailurePathsRecordOnlyFiniteLabels() {
-        var client = mock(TypesenseClient.class);
+        var client = mock(TypesenseSearch.class);
         var fallback = mock(SearchFallbackRepository.class);
         var access = mock(SearchAccessPolicy.class);
         var policies = mock(SearchPolicyProvider.class);
@@ -47,7 +47,7 @@ class SearchMetricsTest {
                 client, fallback, access, new SearchResultBudget(), policies, snapshots, Optional.of(metrics));
         when(client.isEnabled()).thenReturn(true);
         when(client.multiSearch(anyString(), anyString(), anyInt(), anyMap(), any()))
-                .thenReturn(List.of(new TypesenseClient.CollectionSearch("TASK", List.of(), 0, 7)));
+                .thenReturn(List.of(new TypesenseSearch.CollectionSearch("TASK", List.of(), 0, 7)));
         assertThat(service.search("private-query-marker", "TASK", 10).source()).isEqualTo("TYPESENSE");
         when(client.multiSearch(anyString(), anyString(), anyInt(), anyMap(), any()))
                 .thenThrow(TypesenseException.unavailable());

@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.search.service.SearchMetrics;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream;
+import com.smartup24.cms.instance.search.typesense.TypesenseDocuments;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
 import com.sun.net.httpserver.HttpServer;
@@ -52,11 +52,11 @@ class SearchImportHttpTest {
             }
         });
         server.start();
-        var client = new TypesenseClient(
+        var client = TypesenseFixture.of(
                 new TypesenseProperties(
                         "http://127.0.0.1:" + server.getAddress().getPort(), "fixture-key", true, false),
                 new ObjectMapper());
-        try (var stream = client.openDocumentMetadata("candidate_users")) {
+        try (var stream = client.documents().openDocumentMetadata("candidate_users")) {
             long started = System.nanoTime();
             var page = stream.readPage(100, 1_048_576);
             assertThat(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started))
@@ -75,7 +75,7 @@ class SearchImportHttpTest {
                 "{\"id\":\"7\",\"title\":\"changed\",\"_projection_revision\":2,\"_projection_fingerprint\":\"old\"}\n",
                 (client, captured) -> {
                     var metadata = new ArrayList<TypesenseDocumentStream.DocumentMetadata>();
-                    client.forEachDocumentMetadata("candidate_tasks", metadata::add);
+                    client.documents().forEachDocumentMetadata("candidate_tasks", metadata::add);
                     assertThat(metadata).singleElement().satisfies(value -> {
                         assertThat(value.id()).isEqualTo("7");
                         assertThat(value.revision()).isEqualTo(2);
@@ -90,7 +90,7 @@ class SearchImportHttpTest {
     @Test
     void metadataCursorYieldsAtRowBoundAndReportsEofSeparately() throws Exception {
         withServer("{\"id\":\"7\",\"title\":\"first\"}\n{\"id\":\"8\",\"title\":\"second\"}\n", (client, captured) -> {
-            try (var stream = client.openDocumentMetadata("candidate_tasks")) {
+            try (var stream = client.documents().openDocumentMetadata("candidate_tasks")) {
                 assertThat(stream.readPage(1, 1_048_576))
                         .extracting(TypesenseDocumentStream.DocumentMetadata::id)
                         .containsExactly("7");
@@ -109,7 +109,7 @@ class SearchImportHttpTest {
         withServer(
                 "{\"id\":\"7\",\"title\":\"" + "x".repeat(1_048_577),
                 (client, captured) -> assertThatThrownBy(
-                                () -> client.forEachDocumentMetadata("candidate_tasks", ignored -> {}))
+                                () -> client.documents().forEachDocumentMetadata("candidate_tasks", ignored -> {}))
                         .isInstanceOf(TypesenseException.class));
     }
 
@@ -118,14 +118,15 @@ class SearchImportHttpTest {
         withServer(
                 "{\"success\":true}\n{\"success\":false,\"code\":400,\"error\":\"private-body\"}",
                 (client, captured) -> {
-                    var acknowledgements = client.importDocuments(
-                            "candidate_tasks",
-                            List.of(Map.of("id", "7", "title", "first"), Map.of("id", "8", "title", "second")));
+                    var acknowledgements = client.documents()
+                            .importDocuments(
+                                    "candidate_tasks",
+                                    List.of(Map.of("id", "7", "title", "first"), Map.of("id", "8", "title", "second")));
                     assertThat(acknowledgements)
-                            .extracting(TypesenseClient.ImportAck::id)
+                            .extracting(TypesenseDocuments.ImportAck::id)
                             .containsExactly("7", "8");
                     assertThat(acknowledgements)
-                            .extracting(TypesenseClient.ImportAck::success)
+                            .extracting(TypesenseDocuments.ImportAck::success)
                             .containsExactly(true, false);
                     assertThat(acknowledgements.get(1).errorCode()).isEqualTo("IMPORT_REJECTED");
                     assertThat(registry.find("dwh.search.import.rows")
@@ -171,8 +172,8 @@ class SearchImportHttpTest {
     void incompleteExtraOrMalformedAcknowledgementsNeverAcknowledgeBatch(String response) throws Exception {
         withServer(
                 response,
-                (client, captured) -> assertThatThrownBy(() -> client.importDocuments(
-                                "candidate_tasks", List.of(Map.of("id", "7"), Map.of("id", "8"))))
+                (client, captured) -> assertThatThrownBy(() -> client.documents()
+                                .importDocuments("candidate_tasks", List.of(Map.of("id", "7"), Map.of("id", "8"))))
                         .isInstanceOf(TypesenseException.class)
                         .hasMessageNotContaining("private-body"));
     }
@@ -180,8 +181,8 @@ class SearchImportHttpTest {
     @Test
     void oversizedDocumentHasVisibleFailureWithoutAnHttpRequest() throws Exception {
         withServer("{\"success\":true}", (client, captured) -> {
-            var result = client.importDocuments(
-                    "candidate_tasks", List.of(Map.of("id", "7", "title", "x".repeat(1_048_577))));
+            var result = client.documents()
+                    .importDocuments("candidate_tasks", List.of(Map.of("id", "7", "title", "x".repeat(1_048_577))));
             assertThat(result).singleElement().satisfies(ack -> {
                 assertThat(ack.success()).isFalse();
                 assertThat(ack.errorCode()).isEqualTo("DOCUMENT_TOO_LARGE");
@@ -193,7 +194,7 @@ class SearchImportHttpTest {
     private record Captured(String path, String body) {}
 
     private interface Exercise {
-        void run(TypesenseClient client, AtomicReference<Captured> captured) throws Exception;
+        void run(TypesenseFixture client, AtomicReference<Captured> captured) throws Exception;
     }
 
     private void withServer(String response, Exercise exercise) throws Exception {
@@ -212,7 +213,7 @@ class SearchImportHttpTest {
         server.start();
         try {
             exercise.run(
-                    new TypesenseClient(
+                    TypesenseFixture.of(
                             new TypesenseProperties(
                                     "http://127.0.0.1:" + server.getAddress().getPort(), "fixture-key", true, false),
                             new ObjectMapper(),
@@ -248,11 +249,13 @@ class SearchImportHttpTest {
         });
         server.start();
         try {
-            var client = new TypesenseClient(
+            var client = TypesenseFixture.of(
                     new TypesenseProperties(
                             "http://127.0.0.1:" + server.getAddress().getPort(), "fixture-key", true, false),
                     new ObjectMapper());
-            assertThat(client.observeCollection("ru_users", "USER", "RU").schemaMatches())
+            assertThat(client.collections()
+                            .observeCollection("ru_users", "USER", "RU")
+                            .schemaMatches())
                     .isTrue();
         } finally {
             server.stop(0);

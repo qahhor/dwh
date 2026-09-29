@@ -205,14 +205,16 @@ class ModularArchitectureTest {
     }
 
     @Test
-    @DisplayName("12. Внешние модули не должны напрямую обращаться к TypesenseClient (только через поисковый модуль)")
+    @DisplayName("12. Внешние модули не должны напрямую обращаться к клиенту Typesense (только через поисковый модуль)")
     void externalModulesShouldNotDependOnTypesenseClientDirectly() {
+        // The client is split by concern; TypesenseProperties stays readable for the health probes.
         noClasses()
                 .that()
                 .resideOutsideOfPackage("com.smartup24.cms.instance.search..")
                 .should()
                 .dependOnClassesThat()
-                .haveFullyQualifiedName("com.smartup24.cms.instance.search.typesense.TypesenseClient")
+                .haveNameMatching("com\\.smartup24\\.cms\\.instance\\.search\\.typesense\\."
+                        + "Typesense(Client|Collections|Documents|Search|Health)(\\$.*)?")
                 .check(importedClasses);
     }
 

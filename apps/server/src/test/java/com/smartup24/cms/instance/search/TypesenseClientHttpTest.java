@@ -5,10 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.search.service.SearchQueryPolicy;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseProperties;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
@@ -52,7 +51,7 @@ class TypesenseClientHttpTest {
     @Test
     void missingDocumentDeleteSucceedsOnlyAfterConfirmingItsCollection() {
         responseByRequest = request -> new Response(request.method().equals("DELETE") ? 404 : 200, "{}");
-        client().deleteDocument("tasks", "7");
+        client().documents().deleteDocument("tasks", "7");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("DELETE", "GET");
         assertThat(requests)
                 .extracting(CapturedRequest::path)
@@ -62,7 +61,7 @@ class TypesenseClientHttpTest {
     @Test
     void collectionAuthorizationFailureDoesNotAttemptToCreateAReplacement() {
         configuredResponse.set(new Response(401, "secret-downstream-body"));
-        assertThatThrownBy(() -> client().ensureCollection("generated_tasks", "TASK"))
+        assertThatThrownBy(() -> client().collections().ensureCollection("generated_tasks", "TASK"))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET");
@@ -72,7 +71,7 @@ class TypesenseClientHttpTest {
     void failedCollectionCreationIsNotReportedAsInitializationSuccess() {
         responseByRequest =
                 request -> new Response(request.method().equals("GET") ? 404 : 503, "secret-downstream-body");
-        assertThatThrownBy(() -> client().ensureCollection("generated_tasks", "TASK"))
+        assertThatThrownBy(() -> client().collections().ensureCollection("generated_tasks", "TASK"))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body");
         assertThat(requests).extracting(CapturedRequest::method).containsExactly("GET", "POST");
@@ -81,7 +80,7 @@ class TypesenseClientHttpTest {
     @Test
     void failedUpsertIsReportedSoDeliveryCanRetry() {
         configuredResponse.set(new Response(503, "secret-downstream-body"));
-        assertThatThrownBy(() -> client().upsertDocument("tasks", Map.of("id", "7", "title", "Task")))
+        assertThatThrownBy(() -> client().documents().upsertDocument("tasks", Map.of("id", "7", "title", "Task")))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body");
     }
@@ -89,17 +88,17 @@ class TypesenseClientHttpTest {
     @Test
     void missingCollectionDeleteIsNotAcknowledged() {
         configuredResponse.set(new Response(404, "secret-downstream-body"));
-        assertThatThrownBy(() -> client().deleteDocument("tasks", "7"))
+        assertThatThrownBy(() -> client().documents().deleteDocument("tasks", "7"))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body");
     }
 
     @Test
     void allSearchUsesOnePostAndPreservesQueryInTypedMultiSearchBody() {
-        TypesenseClient client = client();
+        TypesenseFixture client = client();
 
-        List<CollectionSearch> result =
-                client.multiSearch("Проект 100%_ready & +", "ALL", 4, collections(), SearchQueryPolicy.defaults());
+        List<CollectionSearch> result = client.search()
+                .multiSearch("Проект 100%_ready & +", "ALL", 4, collections(), SearchQueryPolicy.defaults());
 
         assertThat(requests).hasSize(1);
         CapturedRequest request = requests.getFirst();
@@ -147,7 +146,7 @@ class TypesenseClientHttpTest {
         configuredResponse.set(new Response(200, "{\"results\":[{\"found\":0,\"search_time_ms\":1,\"hits\":[]}]}"));
 
         List<CollectionSearch> result =
-                client().multiSearch("none", "TASK", 10, collections(), SearchQueryPolicy.defaults());
+                client().search().multiSearch("none", "TASK", 10, collections(), SearchQueryPolicy.defaults());
 
         assertThat(result).singleElement().satisfies(group -> {
             assertThat(group.entityType()).isEqualTo("TASK");
@@ -161,8 +160,8 @@ class TypesenseClientHttpTest {
     void malformedOrPartialResponsesFailTheWholeOperation(String ignoredName, Response response) {
         configuredResponse.set(response);
 
-        assertThatThrownBy(() ->
-                        client().multiSearch("safe-query", "ALL", 10, collections(), SearchQueryPolicy.defaults()))
+        assertThatThrownBy(() -> client().search()
+                        .multiSearch("safe-query", "ALL", 10, collections(), SearchQueryPolicy.defaults()))
                 .isInstanceOf(TypesenseException.class)
                 .hasMessageNotContaining("secret-downstream-body")
                 .hasMessageNotContaining("safe-query");
@@ -252,7 +251,8 @@ class TypesenseClientHttpTest {
     void absentNullOrEmptyHighlightDataUsesTheDocumentFallback(String ignoredName, String highlightFields) {
         configuredResponse.set(new Response(200, "{\"results\":[" + taskResultWithHighlight(highlightFields) + "]}"));
 
-        SearchHit hit = client().multiSearch("task", "TASK", 10, collections(), SearchQueryPolicy.defaults())
+        SearchHit hit = client().search()
+                .multiSearch("task", "TASK", 10, collections(), SearchQueryPolicy.defaults())
                 .getFirst()
                 .hits()
                 .getFirst();
@@ -277,7 +277,8 @@ class TypesenseClientHttpTest {
                 }]}]}
                 """.formatted(oversized)));
 
-        SearchHit hit = client().multiSearch("project", "PROJECT", 10, collections(), SearchQueryPolicy.defaults())
+        SearchHit hit = client().search()
+                .multiSearch("project", "PROJECT", 10, collections(), SearchQueryPolicy.defaults())
                 .getFirst()
                 .hits()
                 .getFirst();
@@ -287,9 +288,9 @@ class TypesenseClientHttpTest {
                 .isEqualTo(240);
     }
 
-    private TypesenseClient client() {
+    private TypesenseFixture client() {
         String url = "http://127.0.0.1:" + server.getAddress().getPort();
-        return new TypesenseClient(new TypesenseProperties(url, "test-key", true, false), new ObjectMapper());
+        return TypesenseFixture.of(new TypesenseProperties(url, "test-key", true, false), new ObjectMapper());
     }
 
     private void respond(HttpExchange exchange) throws IOException {

@@ -6,8 +6,9 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchJobRepository;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.DependencyMetadata;
+import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
+import com.smartup24.cms.instance.search.typesense.TypesenseHealth;
+import com.smartup24.cms.instance.search.typesense.TypesenseHealth.DependencyMetadata;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,19 +21,22 @@ public class SearchStatusService {
     private final SearchAccessPolicy access;
     private final SearchIndexStateRepository repository;
     private final SearchPolicyProvider policies;
-    private final TypesenseClient client;
+    private final TypesenseHealth health;
+    private final TypesenseCollections collections;
     private final SearchJobRepository jobs;
 
     public SearchStatusService(
             SearchAccessPolicy access,
             SearchIndexStateRepository repository,
             SearchPolicyProvider policies,
-            TypesenseClient client,
+            TypesenseHealth health,
+            TypesenseCollections collections,
             SearchJobRepository jobs) {
         this.access = access;
         this.repository = repository;
         this.policies = policies;
-        this.client = client;
+        this.health = health;
+        this.collections = collections;
         this.jobs = jobs;
     }
 
@@ -48,7 +52,7 @@ public class SearchStatusService {
         } catch (ApiException unavailable) {
             /* No valid settings have been observed yet. */
         }
-        var dependency = client.observeDependency();
+        var dependency = health.observeDependency();
         var generations = new ArrayList<GenerationStatus>();
         var rollbackTargets = new ArrayList<RollbackTarget>();
         boolean mismatch = index.legacy();
@@ -60,7 +64,8 @@ public class SearchStatusService {
             String errorCode = dependency.healthy() ? null : "DEPENDENCY_UNAVAILABLE";
             for (var entry : generation.collections().entrySet()) {
                 if (!dependency.healthy()) break;
-                var collection = client.observeCollection(entry.getValue(), entry.getKey(), generation.schemaProfile());
+                var collection =
+                        collections.observeCollection(entry.getValue(), entry.getKey(), generation.schemaProfile());
                 switch (entry.getKey()) {
                     case "TASK" -> taskDocuments = collection.documentCount();
                     case "PROJECT" -> projectDocuments = collection.documentCount();
@@ -114,7 +119,7 @@ public class SearchStatusService {
         Boolean rebuild = policy == null
                 ? null
                 : !index.initialized() || mismatch || !policy.schemaProfile().equals(index.schemaProfile());
-        var transport = client.transportBudgets();
+        var transport = health.transportBudgets();
         return new Status(
                 dependency,
                 index.initialized(),
