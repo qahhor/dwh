@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 
 import { RouterModule } from '@angular/router';
 import {
@@ -30,8 +30,8 @@ import { NavigationSettingsStore } from './navigation-settings.store';
   templateUrl: './navigation-settings.component.html',
   styleUrl: './navigation-settings.component.css',
 })
-export class NavigationSettingsComponent implements OnInit {
-  /** The menu items and their requests; the template reads it directly. */
+export class NavigationSettingsComponent {
+  /** The menu items, loaded as the screen opens, and their requests; the template reads it directly. */
   readonly store = inject(NavigationSettingsStore);
 
   readonly isModalOpen = signal<boolean>(false);
@@ -61,11 +61,6 @@ export class NavigationSettingsComponent implements OnInit {
   /** Null while the person has emptied the order field. */
   formSortOrder: number | null = 100;
   formRequiredPermission: string | null = null;
-
-  ngOnInit(): void {
-    this.store.loadItems();
-    this.store.loadPermissionChoices();
-  }
 
   filteredItems(): CustomNavigationItem[] {
     const q = this.searchQuery.trim().toLowerCase();

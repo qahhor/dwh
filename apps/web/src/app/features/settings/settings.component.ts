@@ -71,7 +71,6 @@ export class SettingsComponent implements OnInit {
       this.activeTab.set('preferences');
     }
     this.languageStore.countLegacyLanguages();
-    this.store.loadAllSettings();
   }
 
   openAddLangModal() {

@@ -57,6 +57,7 @@ describe('SettingsGeneralPanelComponent', () => {
       'Название компании / экземпляра',
     );
     expect((screen.querySelector('#settings-company-name') as HTMLInputElement).value).toBe('Smartup');
+    expect(screen.querySelector('label[for="settings-default-language"]')).not.toBeNull();
     expect(screen.querySelector('#settings-default-language').textContent).toContain('Русский (RU)');
     expect(screen.querySelector('#settings-default-timezone').textContent).toContain('Asia/Tashkent (UTC+5)');
     expect(screen.querySelector('#settings-default-language').getAttribute('role')).toBe('combobox');

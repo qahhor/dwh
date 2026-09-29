@@ -2,14 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   HostListener,
-  OnInit,
   computed,
   signal,
   inject,
   input,
+  linkedSignal,
   output,
 } from '@angular/core';
-import { finalize } from 'rxjs';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { finalize, tap } from 'rxjs';
 import { LanguageInfo, TranslationDictionary, TranslationEditor, TranslationEntry } from '@core/models/i18n.models';
 import { SettingsApi } from './settings.api';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -26,7 +27,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
   templateUrl: './language-editor.component.html',
   styleUrl: './language-editor.component.css',
 })
-export class LanguageEditorComponent implements OnInit {
+export class LanguageEditorComponent {
   private readonly settingsApi = inject(SettingsApi);
   private readonly i18n = inject(I18nService);
   private readonly permissionService = inject(PermissionService);
@@ -40,15 +41,24 @@ export class LanguageEditorComponent implements OnInit {
   readonly closed = output<void>();
   readonly saved = output<string>();
 
-  readonly editor = signal<TranslationEditor | null>(null);
-  readonly isLoading = signal(false);
+  /** The loaded editor; a save puts the saved package here without asking the server again. */
+  readonly editor = linkedSignal<TranslationEditor | null>(() =>
+    this.editorResource.hasValue() ? (this.editorResource.value() ?? null) : null,
+  );
   readonly isSaving = signal(false);
-  readonly loadError = signal<string | null>(null);
   readonly saveError = signal<string | null>(null);
   readonly missingOnly = signal(false);
   readonly draft = signal<TranslationDictionary>({});
   readonly initialDraft = signal<TranslationDictionary>({});
   readonly search = signal('');
+
+  readonly isLoading = computed(() => this.editorResource.isLoading());
+  /** Hidden while a retry runs. */
+  readonly loadError = computed(() =>
+    this.editorResource.error() !== undefined && !this.editorResource.isLoading()
+      ? this.uiI18n.translate('settings.ne_udalos_zagruzit_redaktor_perevodov')
+      : null,
+  );
 
   readonly dirtyCount = computed(() => {
     const before = this.initialDraft();
@@ -71,6 +81,12 @@ export class LanguageEditorComponent implements OnInit {
     });
   });
 
+  /** Every arrival starts a clean draft. */
+  private readonly editorResource = rxResource({
+    params: this.languageCode,
+    stream: ({ params }) => this.settingsApi.translations(params).pipe(tap((model) => this.resetDraft(model))),
+  });
+
   readonly canEdit: boolean;
 
   constructor() {
@@ -81,27 +97,11 @@ export class LanguageEditorComponent implements OnInit {
       permissionService.hasPermission('settings', 'update');
   }
 
-  ngOnInit(): void {
-    this.load();
-  }
-
   load(): void {
-    this.isLoading.set(true);
-    this.loadError.set(null);
-    this.settingsApi
-      .translations(this.languageCode())
-      .pipe(finalize(() => this.isLoading.set(false)))
-      .subscribe({
-        next: (model) => {
-          this.editor.set(model);
-          this.resetDraft();
-        },
-        error: () => this.loadError.set(this.uiI18n.translate('settings.ne_udalos_zagruzit_redaktor_perevodov')),
-      });
+    this.editorResource.reload();
   }
 
-  resetDraft(): void {
-    const model = this.editor();
+  resetDraft(model = this.editor()): void {
     if (!model) return;
     const values: TranslationDictionary = {};
     for (const entry of model.entries) {

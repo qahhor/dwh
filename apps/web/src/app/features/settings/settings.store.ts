@@ -1,9 +1,11 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, Resource, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { tap } from 'rxjs';
 import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ThemeService } from '@core/services/theme.service';
 import { ToastService } from '@core/services/toast.service';
-import { SettingsApi } from './settings.api';
+import { SettingsApi, SettingsValues } from './settings.api';
 
 /**
  * System and personal settings of the settings screen: what the viewer may
@@ -18,11 +20,34 @@ export class SettingsStore {
   private readonly permService = inject(PermissionService);
   private readonly themeService = inject(ThemeService);
 
-  readonly isLoading = signal<boolean>(false);
-  readonly loadError = signal<string | null>(null);
-  readonly systemSettings = signal<Record<string, string>>({});
-  readonly userSettings = signal<Record<string, string>>({});
+  /** Edited by the panels and saved as a whole; a reload replaces the edits, a failed one keeps them. */
+  readonly systemSettings = linkedSignal<SettingsValues | undefined, SettingsValues>({
+    source: () => loadedValue(this.systemResource),
+    computation: (loaded, previous) => (loaded ? { ...loaded } : (previous?.value ?? {})),
+  });
+  readonly userSettings = linkedSignal<SettingsValues | undefined, SettingsValues>({
+    source: () => loadedValue(this.userResource),
+    computation: (loaded, previous) => (loaded ? { ...loaded } : (previous?.value ?? {})),
+  });
   readonly isSaving = signal<boolean>(false);
+
+  readonly isLoading = computed(() => this.systemResource.isLoading() || this.userResource.isLoading());
+  /** Hidden while a retry runs, so the banner only reports a finished load. */
+  readonly loadError = computed(() =>
+    loadFailed(this.systemResource) || loadFailed(this.userResource)
+      ? this.i18n.translate('settings.oshibka_zagruzki_nastroek')
+      : null,
+  );
+
+  /** Only a viewer who may see system settings asks for them. */
+  private readonly systemResource = rxResource({
+    params: () => (this.canManageSystemSettings() ? true : undefined),
+    stream: () => this.settingsApi.systemSettings(),
+  });
+  /** The stored theme applies as soon as it arrives. */
+  private readonly userResource = rxResource({
+    stream: () => this.settingsApi.userSettings().pipe(tap((values) => this.applyTheme(values['user.theme']))),
+  });
 
   canManageSystemSettings(): boolean {
     return (
@@ -62,53 +87,13 @@ export class SettingsStore {
   /** Applies the theme at once, so the viewer sees it before saving. */
   onThemeChange(newTheme: string): void {
     this.userSettings.update((settings) => ({ ...settings, 'user.theme': newTheme }));
-    if (newTheme === 'light' || newTheme === 'dark' || newTheme === 'system') {
-      this.themeService.setTheme(newTheme);
-    }
+    this.applyTheme(newTheme);
   }
 
+  /** Both loads start with the screen; this asks the server again. */
   loadAllSettings(): void {
-    this.isLoading.set(true);
-    this.loadError.set(null);
-    let sysLoaded = !this.canManageSystemSettings();
-    let userLoaded = false;
-    const checkDone = () => {
-      if (sysLoaded && userLoaded) {
-        this.isLoading.set(false);
-      }
-    };
-
-    if (this.canManageSystemSettings()) {
-      this.settingsApi.systemSettings().subscribe({
-        next: (res) => {
-          this.systemSettings.set({ ...res });
-          sysLoaded = true;
-          checkDone();
-        },
-        error: () => {
-          this.loadError.set(this.i18n.translate('settings.oshibka_zagruzki_nastroek'));
-          sysLoaded = true;
-          checkDone();
-        },
-      });
-    }
-
-    this.settingsApi.userSettings().subscribe({
-      next: (res) => {
-        this.userSettings.set({ ...res });
-        const theme = res['user.theme'];
-        if (theme === 'light' || theme === 'dark' || theme === 'system') {
-          this.themeService.setTheme(theme);
-        }
-        userLoaded = true;
-        checkDone();
-      },
-      error: () => {
-        this.loadError.set(this.i18n.translate('settings.oshibka_zagruzki_nastroek'));
-        userLoaded = true;
-        checkDone();
-      },
-    });
+    this.systemResource.reload();
+    this.userResource.reload();
   }
 
   saveSystemSettings(): void {
@@ -149,10 +134,7 @@ export class SettingsStore {
     this.settingsApi.saveUserSettings(this.userSettings()).subscribe({
       next: () => {
         this.isSaving.set(false);
-        const theme = this.userSettings()['user.theme'];
-        if (theme === 'light' || theme === 'dark' || theme === 'system') {
-          this.themeService.setTheme(theme);
-        }
+        this.applyTheme(this.userSettings()['user.theme']);
         this.toast.success(this.i18n.translate('common.saved'));
       },
       error: () => this.isSaving.set(false),
@@ -183,4 +165,19 @@ export class SettingsStore {
       'user.notifications_sound': enabled ? 'true' : 'false',
     }));
   }
+
+  private applyTheme(theme: string | undefined): void {
+    if (theme === 'light' || theme === 'dark' || theme === 'system') {
+      this.themeService.setTheme(theme);
+    }
+  }
+}
+
+/** The loaded answer, or undefined while loading, idle or failed. */
+function loadedValue<T>(resource: Resource<T | undefined>): T | undefined {
+  return resource.hasValue() ? resource.value() : undefined;
+}
+
+function loadFailed(resource: Resource<unknown>): boolean {
+  return resource.error() !== undefined && !resource.isLoading();
 }

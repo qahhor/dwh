@@ -1,5 +1,6 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { Subscription, exhaustMap, timer } from 'rxjs';
+import { DestroyRef, Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { Observable, Subscription, catchError, exhaustMap, map, of, tap, timer } from 'rxjs';
 import { ProblemDetail } from '@core/models/common.models';
 import {
   SEARCH_ENTITIES,
@@ -16,6 +17,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { SearchManagementService } from '@core/services/search-management.service';
 import {
+  Loaded,
   MaintenanceConfirmation,
   PendingMutation,
   cloneSearchPolicy,
@@ -36,14 +38,26 @@ export class SearchSettingsStore {
   private readonly permissions = inject(PermissionService);
   private readonly i18n = inject(I18nService);
 
-  readonly status = signal<SearchManagementStatus | null>(null);
-  readonly statusLoading = signal(false);
-  readonly statusError = signal<ProblemDetail | null>(null);
-  readonly statusAuthorized = signal(false);
-  readonly settingsLoading = signal(false);
-  readonly settingsError = signal<ProblemDetail | null>(null);
-  readonly savedSettings = signal<SearchSettingsSnapshot | null>(null);
-  readonly draft = signal<SearchQueryPolicy | null>(null);
+  /** The last status the server returned; a failed refresh keeps it on screen. */
+  readonly status = linkedSignal<Loaded<SearchManagementStatus> | undefined, SearchManagementStatus | null>({
+    source: () => this.statusResource.value(),
+    computation: (loaded, previous) => loaded?.value ?? previous?.value ?? null,
+  });
+  /** The last answer decides: a refresh in flight keeps the gate as it was. */
+  readonly statusAuthorized = linkedSignal<Loaded<SearchManagementStatus> | undefined, boolean>({
+    source: () => this.statusResource.value(),
+    computation: (loaded, previous) => (loaded ? loaded.failure === undefined : (previous?.value ?? false)),
+  });
+  /** The clean baseline: every load and every successful save replace it; a failed load invents none. */
+  readonly savedSettings = linkedSignal<Loaded<SearchSettingsSnapshot> | undefined, SearchSettingsSnapshot | null>({
+    source: () => this.settingsResource.value(),
+    computation: (loaded, previous) => (loaded?.value ? cloneSearchSnapshot(loaded.value) : (previous?.value ?? null)),
+  });
+  readonly draft = linkedSignal<Loaded<SearchSettingsSnapshot> | undefined, SearchQueryPolicy | null>({
+    source: () => this.settingsResource.value(),
+    computation: (loaded, previous) =>
+      loaded?.value ? cloneSearchPolicy(loaded.value.policy) : (previous?.value ?? null),
+  });
   readonly savePending = signal(false);
   readonly saveError = signal<ProblemDetail | null>(null);
   readonly saveAttempted = signal(false);
@@ -65,6 +79,17 @@ export class SearchSettingsStore {
   readonly confirmation = signal<MaintenanceConfirmation | null>(null);
   readonly historyRetryNextPage = signal(false);
 
+  /**
+   * Each refresh is a new request rather than a reload: a reload is ignored while one
+   * is in flight, and a refresh must replace an older answer, as the job end needs.
+   */
+  private readonly statusRequests = signal(0);
+  private readonly settingsRequests = signal(0);
+
+  readonly statusLoading = computed(() => this.statusResource.isLoading());
+  readonly statusError = computed(() => this.statusResource.value()?.failure ?? null);
+  readonly settingsLoading = computed(() => this.settingsResource.isLoading());
+  readonly settingsError = computed(() => this.settingsResource.value()?.failure ?? null);
   readonly activeOperation = computed(() => this.activeJobId() !== null);
   readonly policyErrors = computed(() => validateSearchPolicy(this.draft(), SEARCH_ENTITIES));
   readonly dirty = computed(() => {
@@ -83,8 +108,28 @@ export class SearchSettingsStore {
   readonly atCapacity = computed(() => (this.status()?.generations.length ?? 0) >= 4);
   readonly displayedJobs = computed(() => (this.history().length ? this.history() : (this.status()?.jobs ?? [])));
 
-  private statusRequest?: Subscription;
-  private settingsRequest?: Subscription;
+  /** Status also reopens the maintenance gate for a job still running. */
+  private readonly statusResource = rxResource({
+    params: () => (this.canSearch() ? this.statusRequests() : undefined),
+    stream: () =>
+      this.loaded(this.management.status()).pipe(
+        tap((loaded) => {
+          if (loaded.value) this.restoreActiveOperation(loaded.value);
+        }),
+      ),
+  });
+  private readonly settingsResource = rxResource({
+    params: () => (this.canSearch() && this.canReadSettings() ? this.settingsRequests() : undefined),
+    stream: () =>
+      this.loaded(this.management.settings()).pipe(
+        tap((loaded) => {
+          if (!loaded.value) return;
+          this.saveError.set(null);
+          this.saveAttempted.set(false);
+        }),
+      ),
+  });
+
   private historyRequest?: Subscription;
   private saveRequest?: Subscription;
   private previewRequest?: Subscription;
@@ -94,9 +139,8 @@ export class SearchSettingsStore {
 
   constructor() {
     // Leaving the screen stops polling locally; it never asks the server to cancel a job.
+    // The resources stop with the screen by themselves.
     inject(DestroyRef).onDestroy(() => {
-      this.statusRequest?.unsubscribe();
-      this.settingsRequest?.unsubscribe();
       this.historyRequest?.unsubscribe();
       this.saveRequest?.unsubscribe();
       this.previewRequest?.unsubscribe();
@@ -106,11 +150,9 @@ export class SearchSettingsStore {
     });
   }
 
+  /** Status and settings load by themselves once the screen is drawn; history is paged by hand. */
   init(): void {
-    if (!this.canSearch()) return;
-    this.refreshStatus();
     this.refreshHistory();
-    if (this.canReadSettings()) this.loadSettings();
   }
 
   canSearch(): boolean {
@@ -148,23 +190,7 @@ export class SearchSettingsStore {
   }
 
   refreshStatus(): void {
-    if (!this.canSearch()) return;
-    this.statusRequest?.unsubscribe();
-    this.statusLoading.set(true);
-    this.statusError.set(null);
-    this.statusRequest = this.management.status().subscribe({
-      next: (value) => {
-        this.status.set(value);
-        this.statusAuthorized.set(true);
-        this.statusLoading.set(false);
-        this.restoreActiveOperation(value);
-      },
-      error: (error) => {
-        this.statusError.set(this.problem(error));
-        this.statusAuthorized.set(false);
-        this.statusLoading.set(false);
-      },
-    });
+    this.statusRequests.update((count) => count + 1);
   }
 
   refreshHistory(): void {
@@ -215,24 +241,9 @@ export class SearchSettingsStore {
     else this.refreshHistory();
   }
 
+  /** Asks the server for the policy again; the answer replaces the draft. */
   loadSettings(): void {
-    if (!this.canReadSettings()) return;
-    this.settingsRequest?.unsubscribe();
-    this.settingsLoading.set(true);
-    this.settingsError.set(null);
-    this.settingsRequest = this.management.settings().subscribe({
-      next: (snapshot) => {
-        this.savedSettings.set(cloneSearchSnapshot(snapshot));
-        this.draft.set(cloneSearchPolicy(snapshot.policy));
-        this.saveError.set(null);
-        this.saveAttempted.set(false);
-        this.settingsLoading.set(false);
-      },
-      error: (error) => {
-        this.settingsError.set(this.problem(error));
-        this.settingsLoading.set(false);
-      },
-    });
+    this.settingsRequests.update((count) => count + 1);
   }
 
   updatePolicyNumber(key: 'globalLimit' | 'requestsPerMinute' | 'burst', value: string | number | null): void {
@@ -485,6 +496,14 @@ export class SearchSettingsStore {
 
   private newRequestId(): string {
     return globalThis.crypto.randomUUID();
+  }
+
+  /** The answer or the failure as a value, so the resource never holds the API's problem wrapped in its own error. */
+  private loaded<T>(request: Observable<T>): Observable<Loaded<T>> {
+    return request.pipe(
+      map((value): Loaded<T> => ({ value })),
+      catchError((error: unknown) => of<Loaded<T>>({ failure: this.problem(error) })),
+    );
   }
 
   private problem(error: unknown): ProblemDetail {
