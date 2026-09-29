@@ -5,6 +5,9 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.mf.api.FileListItem;
+import com.smartup24.cms.instance.mf.api.FileView;
+import com.smartup24.cms.instance.mf.api.StorageStats;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
@@ -75,6 +78,13 @@ public class MfFileService {
                 DEFAULT_MAX_CONCURRENT_UPLOADS);
     }
 
+    /** An upload from the API: the stored file as the client may see it, without the storage fields. */
+    public FileView upload(
+            String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
+        return view(uploadFile(originalName, mimeType, contentStream, sizeBytes, createdBy));
+    }
+
+    /** The full ownership record, for modules that keep a reference to the stored content (e.g. its hash). */
     public MfFileRepository.FileRecord uploadFile(
             String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
         if (!uploadLimiter.tryAcquire()) {
@@ -185,10 +195,15 @@ public class MfFileService {
     }
 
     /** The file list through the registry ({@code mf.files}): filter, sort, search {@code q} and the viewer's data scope. */
-    public KeysetPage<MfFileRepository.FileDetailRecord> listFiles(
+    public KeysetPage<FileListItem> listFiles(
             Long userId, boolean onlyMine, Integer limit, String cursor, String filter, String sort, String query) {
         var plan = QueryCompiler.compile(MfFileQuery.LIST, filter, sort, limit, cursor, query);
-        return metadataService.pageFiles(plan, scopeService.filterForFiles(userId), onlyMine ? userId : null);
+        var page = metadataService.pageFiles(plan, scopeService.filterForFiles(userId), onlyMine ? userId : null);
+        return KeysetPage.of(
+                page.items().stream().map(MfFileService::listItem).toList(),
+                page.nextCursor(),
+                page.hasMore(),
+                page.totalEstimated());
     }
 
     public void deleteFile(UUID id, Long currentUserId, boolean canDeleteAny) {
@@ -207,7 +222,12 @@ public class MfFileService {
         return metadataService.requireFile(id);
     }
 
-    public MfFileRepository.FileRecord getFileMetadata(UUID id, Long currentUserId) {
+    /** The file the viewer may see, as the API returns it; a file outside the viewer's scope reads as not found. */
+    public FileView getFileMetadata(UUID id, Long currentUserId) {
+        return view(requireVisible(id, currentUserId));
+    }
+
+    private MfFileRepository.FileRecord requireVisible(UUID id, Long currentUserId) {
         return metadataService.requireFile(id, scopeService.filterForFiles(currentUserId));
     }
 
@@ -221,7 +241,7 @@ public class MfFileService {
     }
 
     public FileDownloadStream downloadFile(UUID id, Long currentUserId) {
-        var metadata = getFileMetadata(id, currentUserId);
+        var metadata = requireVisible(id, currentUserId);
         var stream = storageProvider.download(metadata.storageBucket(), metadata.storageKey());
         if (stream == null) {
             throw ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "error.file.object_missing");
@@ -293,13 +313,20 @@ public class MfFileService {
         }
     }
 
-    public record StorageStats(
-            long companyQuotaBytes,
-            long companyUsedBytes,
-            long companyAvailableBytes,
-            long userQuotaBytes,
-            long userUsedBytes,
-            long userAvailableBytes,
-            int totalFilesCount,
-            int userFilesCount) {}
+    private static FileView view(MfFileRepository.FileRecord file) {
+        return new FileView(
+                file.id(), file.originalName(), file.sizeBytes(), file.mimeType(), file.createdAt(), file.createdBy());
+    }
+
+    private static FileListItem listItem(MfFileRepository.FileDetailRecord file) {
+        return new FileListItem(
+                file.id(),
+                file.originalName(),
+                file.sizeBytes(),
+                file.mimeType(),
+                file.createdAt(),
+                file.createdBy(),
+                file.creatorName(),
+                file.creatorLogin());
+    }
 }

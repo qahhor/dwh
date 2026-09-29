@@ -2,13 +2,14 @@ package com.smartup24.cms.instance.kauth.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
+import com.smartup24.cms.instance.kauth.api.BindChannelRequest;
+import com.smartup24.cms.instance.kauth.api.ChannelVerification;
+import com.smartup24.cms.instance.kauth.api.ChannelView;
+import com.smartup24.cms.instance.kauth.api.ConfirmChannelRequest;
 import com.smartup24.cms.instance.kauth.service.KauthChannelService;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,20 +41,20 @@ public class KauthChannelController {
 
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
-    public ResponseEntity<List<KauthChannelRepository.ChannelRecord>> listChannels() {
+    public ResponseEntity<List<ChannelView>> listChannels() {
         return ResponseEntity.ok(channelService.listChannels(SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
-    public ResponseEntity<Map<String, String>> bindChannel(@Valid @RequestBody BindChannelDto body) {
+    public ResponseEntity<ChannelVerification> bindChannel(@Valid @RequestBody BindChannelRequest body) {
         String verifyToken = channelService.bindChannel(SecurityContext.getPrincipal(), body.channel(), body.address());
-        return ResponseEntity.ok(Map.of("verifyToken", verifyToken));
+        return ResponseEntity.ok(new ChannelVerification(verifyToken));
     }
 
     @PostMapping("/confirm")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "manage_channels")
-    public ResponseEntity<Void> confirmChannel(@Valid @RequestBody ConfirmChannelDto body) {
+    public ResponseEntity<Void> confirmChannel(@Valid @RequestBody ConfirmChannelRequest body) {
         channelService.confirmChannel(SecurityContext.getPrincipal(), body.verifyToken(), body.code());
         return ResponseEntity.noContent().build();
     }
@@ -64,10 +65,4 @@ public class KauthChannelController {
         channelService.unbindChannel(SecurityContext.getCurrentUserId(), channel);
         return ResponseEntity.noContent().build();
     }
-
-    public record BindChannelDto(
-            @NotBlank String channel, @NotBlank String address) {}
-
-    public record ConfirmChannelDto(
-            @NotBlank String verifyToken, @NotBlank String code) {}
 }

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.ReturnsSecret;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
+import com.smartup24.cms.instance.kauth.api.CreateTokenRequest;
 import com.smartup24.cms.instance.kauth.controller.KauthApiTokenController;
 import com.smartup24.cms.instance.kwh.controller.KwhSubscriptionController;
 import jakarta.servlet.FilterChain;
@@ -128,7 +129,7 @@ class IdempotencyFilterTest {
     @DisplayName("Создание API-токена и вебхука помечено @ReturnsSecret")
     void secretHandlersAreMarked() throws Exception {
         assertThat(KauthApiTokenController.class
-                        .getMethod("createToken", KauthApiTokenController.CreateTokenDto.class)
+                        .getMethod("createToken", CreateTokenRequest.class)
                         .isAnnotationPresent(ReturnsSecret.class))
                 .isTrue();
         assertThat(KwhSubscriptionController.class

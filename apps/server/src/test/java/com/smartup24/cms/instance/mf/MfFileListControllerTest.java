@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.mf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.jayway.jsonpath.JsonPath;
@@ -14,8 +15,10 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,10 +26,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /** The file list through the field registry: {@code GET /api/v1/files} (keyset over UUID keys, scope, search). */
@@ -90,7 +95,63 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
         assertThat((String) read(meta, "$.defaultSort")).isEqualTo("-createdAt");
     }
 
-    private void insertFile(String name, long size, long ownerId) {
+    @Test
+    @DisplayName("the file JSON (list, detail, upload) carries no storage bucket, key or content hash")
+    void fileJsonCarriesNoStorageFields() throws Exception {
+        Session admin = login(user("chief_admin"));
+        String tag = "wire-" + UUID.randomUUID().toString().substring(0, 6);
+        UUID id = insertFile(tag + ".txt", 10L, admin.userId());
+        Set<String> file = Set.of("id", "originalName", "sizeBytes", "mimeType", "createdAt", "createdBy");
+
+        var list = json(fetch(admin, "/api/v1/files?q=" + tag));
+        assertThat(keys(list)).isEqualTo(Set.of("items", "hasMore", "totalEstimated"));
+        assertThat(keys(list.get("items").get(0))).isEqualTo(union(file, Set.of("creatorName", "creatorLogin")));
+
+        var detail = json(fetch(admin, "/api/v1/files/" + id));
+        assertThat(keys(detail)).isEqualTo(file);
+
+        var upload = mvc.perform(multipart("/api/v1/files/upload")
+                        .file(new MockMultipartFile(
+                                "file",
+                                tag + "-upload.txt",
+                                "text/plain",
+                                (tag + " uploaded").getBytes(StandardCharsets.UTF_8)))
+                        .cookie(admin.session(), admin.csrf())
+                        .header("X-XSRF-TOKEN", admin.csrf().getValue()))
+                .andReturn()
+                .getResponse();
+        assertThat(upload.getStatus()).as(upload.getContentAsString()).isEqualTo(201);
+        assertThat(keys(json(upload))).isEqualTo(file);
+
+        var stats = json(fetch(admin, "/api/v1/files/storage/stats"));
+        assertThat(keys(stats))
+                .isEqualTo(Set.of(
+                        "companyQuotaBytes",
+                        "companyUsedBytes",
+                        "companyAvailableBytes",
+                        "userQuotaBytes",
+                        "userUsedBytes",
+                        "userAvailableBytes",
+                        "totalFilesCount",
+                        "userFilesCount"));
+    }
+
+    private static JsonNode json(MockHttpServletResponse response) throws Exception {
+        return new ObjectMapper().readTree(response.getContentAsString());
+    }
+
+    private static Set<String> keys(JsonNode node) {
+        assertThat(node).as("a JSON object").isNotNull();
+        return Set.copyOf(node.propertyNames());
+    }
+
+    private static Set<String> union(Set<String> a, Set<String> b) {
+        var all = new HashSet<>(a);
+        all.addAll(b);
+        return all;
+    }
+
+    private UUID insertFile(String name, long size, long ownerId) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
                         insert into mf_files (id, sha256, original_name, size_bytes, mime_type,
@@ -104,6 +165,7 @@ class MfFileListControllerTest extends EmbeddedPostgresTest {
                 .param("key", "test/" + id)
                 .param("ownerId", ownerId)
                 .update();
+        return id;
     }
 
     private String user(String role) {

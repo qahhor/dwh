@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
+import com.smartup24.cms.instance.mf.api.StorageStats;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import java.util.List;
 import java.util.Map;
@@ -148,13 +149,13 @@ public class MfFileMetadataService {
     }
 
     @Transactional(readOnly = true)
-    public MfFileService.StorageStats getStorageStats(Long userId) {
+    public StorageStats getStorageStats(Long userId) {
         long companyQuota = fileRepository.getCompanyQuotaBytes();
         long companyUsed = fileRepository.getTotalCompanyUsedBytes();
         long userQuota = fileRepository.getUserEffectiveQuotaBytes(userId);
         long userUsed = fileRepository.getUserUsedBytes(userId);
 
-        return new MfFileService.StorageStats(
+        return new StorageStats(
                 companyQuota,
                 companyUsed,
                 Math.max(0, companyQuota - companyUsed),

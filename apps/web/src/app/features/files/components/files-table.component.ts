@@ -76,7 +76,6 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
           [title]="'files.skachat_fayl' | t"
         >
           <span class="primary-name">{{ file.originalName }}</span>
-          <span class="sha-sub text-muted text-xs font-mono">{{ file.sha256.substring(0, 12) }}...</span>
         </button>
       </div>
     </ng-template>

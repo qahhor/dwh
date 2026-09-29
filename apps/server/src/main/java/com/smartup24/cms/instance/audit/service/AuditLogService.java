@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.audit.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.CursorUtils;
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.api.AuditStatsView;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.metrics.PlatformMetrics;
@@ -107,16 +108,22 @@ public class AuditLogService {
 
     private final AtomicReference<CachedStats> cachedStats = new AtomicReference<>();
 
-    private record CachedStats(AuditLogRepository.AuditStats stats, Instant expiresAt) {}
+    private record CachedStats(AuditStatsView stats, Instant expiresAt) {}
 
     @Transactional(readOnly = true)
-    public AuditLogRepository.AuditStats getAuditStats() {
+    public AuditStatsView getAuditStats() {
         var now = Instant.now();
         var current = cachedStats.get();
         if (current != null && now.isBefore(current.expiresAt())) {
             return current.stats();
         }
-        var fresh = auditLogRepository.getAuditStats();
+        var counted = auditLogRepository.getAuditStats();
+        var fresh = new AuditStatsView(
+                counted.totalAuditLogs(),
+                counted.totalSecurityEvents(),
+                counted.securityEventsLast24h(),
+                counted.failedLoginsLast24h(),
+                counted.computedAt());
         cachedStats.set(new CachedStats(fresh, now.plusSeconds(15)));
         return fresh;
     }
