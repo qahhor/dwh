@@ -18,7 +18,8 @@
     "aria:audit": "node scripts/aria-audit.mjs",
     "lint": "eslint . && stylelint \"src/**/*.{css,scss}\" && prettier --check \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\"",
     "lint:prune": "eslint . --prune-suppressions",
-    "format": "prettier --write \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\""
+    "format": "prettier --write \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\"",
+    "api:types": "npm --prefix ../../tools/api-types run -s generate"
   },
   "engines": {
     "node": "24.21.0"

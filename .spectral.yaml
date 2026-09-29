@@ -1,0 +1,4 @@
+# Lint of the API description (plan 10/10, item 3.3): docs/api/openapi.json, generated from the controllers.
+# Run: docker run --rm -v "$PWD:/work" -w /work stoplight/spectral:6 lint docs/api/openapi.json
+extends:
+  - spectral:oas
