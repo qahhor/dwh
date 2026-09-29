@@ -6,7 +6,11 @@ spring:
     web-application-type: none
   flyway:
     enabled: true
-# One-off repair of the migration history before migrating: docs/ops/migration-repair.md. Never left on.
 smc:
+  # One-off repair of the migration history before migrating: docs/ops/migration-repair.md. Never left on.
   migrate:
     repair: ${SMC_MIGRATE_REPAIR:false}
+  # Every migration file sets its own limits in its header (a concurrent index build lifts them); the pool adds none.
+  database:
+    statement-timeout: 0
+    idle-in-transaction-timeout: 0

@@ -300,8 +300,8 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName(
-            "AC-7: исключение обработчика — запуск failed с текстом ошибки и args; ошибка SQL внутри обработчика не ломает фиксацию")
+    @DisplayName("AC-7: исключение обработчика — запуск failed с текстом ошибки и args, задание ждёт повтора;"
+            + " незнакомый обработчик воркер не берёт")
     void handlerFailureIsRecorded() {
         FndJobRunner runner = testRunner(
                 handler("test.fail", args -> {
@@ -314,21 +314,28 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
                                 .listOfRows()));
         enqueueRaw("test.fail", "{\"k\": \"v\"}");
         enqueueRaw("test.sqlfail", "{}");
-        enqueueRaw("test.unknown", "{}");
+        long unknown = enqueueRaw("test.unknown", "{}");
 
         assertThat(runner.runQueued()).isZero();
 
-        List<Map<String, Object>> runs = jdbc.sql("select handler, status, error, args::text as args from fnd_job_runs"
-                        + " where handler like 'test.%' order by id")
+        List<Map<String, Object>> runs = jdbc.sql("select handler, status, error, args::text as args, attempt"
+                        + " from fnd_job_runs where handler like 'test.%' order by id")
                 .query()
                 .listOfRows();
-        assertThat(runs).extracting(r -> r.get("status")).containsExactly("failed", "failed", "failed");
+        assertThat(runs).extracting(r -> r.get("status")).containsExactly("failed", "failed");
+        assertThat(runs).extracting(r -> r.get("attempt")).containsExactly(1, 1);
         assertThat((String) runs.get(0).get("error")).contains("boom TEST v");
         assertThat((String) runs.get(0).get("args")).contains("\"k\"").contains("\"v\"");
         assertThat((String) runs.get(1).get("error")).contains("fnd_no_such_table_test");
-        assertThat((String) runs.get(2).get("error")).contains("test.unknown");
-        assertThat(jdbc.sql("select count(*) from fnd_job_queue")
+        // Plan 10/10, item 3.8: the failed jobs wait for their retry; the unknown one is left for a node that knows it
+        assertThat(jdbc.sql("select count(*) from fnd_job_queue where attempts = 1 and next_run_at > now()"
+                                + " and locked_by is null and failed_at is null")
                         .query(Long.class)
+                        .single())
+                .isEqualTo(2L);
+        assertThat(jdbc.sql("select attempts from fnd_job_queue where id = :id")
+                        .param("id", unknown)
+                        .query(Integer.class)
                         .single())
                 .isZero();
     }

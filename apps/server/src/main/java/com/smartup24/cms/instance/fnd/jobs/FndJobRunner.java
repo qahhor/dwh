@@ -1,15 +1,18 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
+import java.lang.management.ManagementFactory;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
@@ -19,16 +22,18 @@ import tools.jackson.databind.ObjectMapper;
  * (02 п.15; AC-7, AC-31). Планировщика здесь нет намеренно: момент запуска выбирает экземпляр,
  * а порядок «поставить в очередь → выполнить» одинаков и в бою, и в тестах.
  *
- * <p>Каждое задание — одна транзакция OLTP: строка очереди берётся {@code for update skip locked},
- * поэтому два воркера не выполнят одно задание дважды, а незанятые строки не ждут чужой коммит.
- * Падение процесса посреди задания откатывает всё разом — запуск {@code running}, инкремент
- * {@code attempts} и снятие с очереди: задание остаётся в очереди без изменений и будет взято снова.
- * Лимита попыток нет; счётчик {@code attempts} растёт в той же транзакции, в которой строка очереди
- * удаляется, поэтому его значение никто не читает (см. open-questions: лимит попыток). Обработчик
- * исполняется во вложенной транзакции (savepoint): его ошибка БД не портит внешнюю, запуск
- * фиксируется как {@code failed}, и задание снимается с очереди.
- * Выключатель {@code jobs_enabled=false} в {@code md_settings} каркаса ({@code user_id is null})
- * останавливает выборку.
+ * <p>Plan 10/10, item 3.8: a job is leased, not held in a transaction. A short transaction takes one due row
+ * ({@code for update skip locked}), stamps the claim and the end of the lease on it and records the run; the handler
+ * then works with no transaction of the runner open (parsing a 50 MB file used to keep one open for minutes), and
+ * another short transaction records the outcome. While the handler works, a virtual thread renews the lease; a node
+ * that dies stops renewing, and once the lease runs out another runner takes the job again. A failed attempt is
+ * retried after a doubling pause until {@link FndJobProperties#maxAttempts()}, then the row is marked failed and
+ * stays for the operator. Handlers open their own transactions where they need atomicity.
+ *
+ * <p>Scheduling takes a transaction-scoped advisory lock, so two nodes that tick together enqueue a due scheduled
+ * job once. A runner takes only the jobs whose handler it knows: during a rolling upgrade an old node leaves a new
+ * kind of job to the new one instead of failing it. Выключатель {@code jobs_enabled=false} в {@code md_settings}
+ * каркаса ({@code user_id is null}) останавливает выборку.
  */
 @Component
 public class FndJobRunner {
@@ -37,49 +42,69 @@ public class FndJobRunner {
     public static final String JOBS_ENABLED_KEY = "jobs_enabled";
 
     private static final Logger log = LoggerFactory.getLogger(FndJobRunner.class);
+    /** This process, as the claims name it: an operator reads which node holds a job. */
+    private static final String NODE = ManagementFactory.getRuntimeMXBean().getName();
 
     private final JdbcClient jdbc;
     private final ObjectMapper json;
-    private final TransactionTemplate jobTx;
-    private final TransactionTemplate handlerTx;
+    private final TransactionTemplate tx;
+    private final FndJobProperties settings;
     private final Map<String, FndJobHandler> handlers = new HashMap<>();
+    private final String[] handlerCodes;
 
+    @Autowired
     public FndJobRunner(
-            JdbcClient jdbc, ObjectMapper json, PlatformTransactionManager transactions, List<FndJobHandler> handlers) {
+            JdbcClient jdbc,
+            ObjectMapper json,
+            PlatformTransactionManager transactions,
+            List<FndJobHandler> handlers,
+            FndJobProperties settings) {
         this.jdbc = jdbc;
         this.json = json;
-        this.jobTx = new TransactionTemplate(transactions);
-        this.jobTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        this.handlerTx = new TransactionTemplate(transactions);
-        this.handlerTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_NESTED);
+        this.tx = new TransactionTemplate(transactions);
+        this.settings = settings;
         handlers.forEach(handler -> this.handlers.put(handler.code(), handler));
+        this.handlerCodes = this.handlers.keySet().toArray(String[]::new);
     }
 
-    /** Ставит в очередь задания, у которых подошёл срок по расписанию. */
-    @Transactional
-    public int enqueueDue() {
-        List<String> due = jdbc.sql("""
-                        select code from fnd_job_schedule
-                         where enabled
-                           and (last_enqueued is null
-                                or last_enqueued + make_interval(secs => interval_sec) <= now())
-                        """).query(String.class).list();
-        for (String code : due) {
-            jdbc.sql("""
-                            insert into fnd_job_queue (handler, args, schedule_code)
-                            select handler, args, code from fnd_job_schedule where code = :code
-                            """).param("code", code).update();
-            jdbc.sql("update fnd_job_schedule set last_enqueued = now() where code = :code")
-                    .param("code", code)
-                    .update();
-        }
-        return due.size();
+    /** A runner with the default retry and lease, for tests and tools that build one by hand. */
+    public FndJobRunner(
+            JdbcClient jdbc, ObjectMapper json, PlatformTransactionManager transactions, List<FndJobHandler> handlers) {
+        this(jdbc, json, transactions, handlers, FndJobProperties.defaults());
     }
 
     /**
-     * Выполняет задания, чей срок наступил, по одному до пустой очереди. Каждое снимается из очереди,
-     * а его результат остаётся в {@code fnd_job_runs}: успешные — {@code done}, упавшие — {@code failed}
-     * с текстом ошибки и {@code args}.
+     * Ставит в очередь задания, у которых подошёл срок по расписанию. Two nodes ticking together: the one that gets
+     * the advisory lock enqueues, the other returns 0 at once; the conditional update would stop a duplicate even
+     * without the lock, which only spares the second node the wait on the schedule rows.
+     */
+    public int enqueueDue() {
+        Integer queued = tx.execute(status -> {
+            boolean mine = jdbc.sql("select pg_try_advisory_xact_lock(hashtext('fnd.jobs.enqueue_due'))")
+                    .query(Boolean.class)
+                    .single();
+            if (!mine) {
+                return 0;
+            }
+            return jdbc.sql("""
+                            with due as (
+                                update fnd_job_schedule set last_enqueued = now()
+                                 where enabled
+                                   and handler = any (cast(:handlers as text[]))
+                                   and (last_enqueued is null
+                                        or last_enqueued + make_interval(secs => interval_sec) <= now())
+                                returning code, handler, args)
+                            insert into fnd_job_queue (handler, args, schedule_code)
+                            select handler, args, code from due
+                            """).param("handlers", handlerCodes).update();
+        });
+        return queued == null ? 0 : queued;
+    }
+
+    /**
+     * Выполняет задания, чей срок наступил, по одному до пустой очереди. Успешное снимается из очереди, упавшее ждёт
+     * следующей попытки или, исчерпав попытки, остаётся помеченным {@code failed_at}; каждая попытка остаётся в
+     * {@code fnd_job_runs}: успешные — {@code done}, упавшие — {@code failed} с текстом ошибки и {@code args}.
      *
      * @return число успешно выполненных заданий
      */
@@ -97,63 +122,174 @@ public class FndJobRunner {
     }
 
     /**
-     * Берёт одно задание и выполняет его в собственной транзакции.
+     * Берёт одно задание и выполняет его вне транзакции очереди.
      *
      * @return пусто — очередь пуста или задания выключены; иначе {@code true} при успехе, {@code false} при сбое
      */
     public Optional<Boolean> runNext() {
-        return Optional.ofNullable(jobTx.execute(status -> {
-            if (!jobsEnabled()) {
-                return null;
-            }
-            List<Map<String, Object>> jobs = jdbc.sql("""
-                            select id, handler, args::text as args from fnd_job_queue
-                             where run_at <= now()
-                             order by id
-                               for update skip locked
-                             limit 1
-                            """).query().listOfRows();
-            if (jobs.isEmpty()) {
-                return null;
-            }
-            return execute(jobs.get(0));
-        }));
+        Claim claim = tx.execute(status -> claim());
+        if (claim == null) {
+            return Optional.empty();
+        }
+        if (claim.runId() == null) {
+            // Taken again after its lease ran out, with no attempt left: the node died on the last one
+            return Optional.of(false);
+        }
+        return Optional.of(execute(claim));
     }
 
-    private boolean execute(Map<String, Object> job) {
-        long queueId = ((Number) job.get("id")).longValue();
-        String handlerCode = (String) job.get("handler");
-        String rawArgs = (String) job.get("args");
-        jdbc.sql("update fnd_job_queue set attempts = attempts + 1 where id = :id")
+    /** One claimed job: the row, the claim that holds it, its attempt and the run recorded for it. */
+    private record Claim(long queueId, String handler, String rawArgs, int attempt, String token, Long runId) {}
+
+    private Claim claim() {
+        if (!jobsEnabled()) {
+            return null;
+        }
+        String token = NODE + "/" + UUID.randomUUID();
+        List<Map<String, Object>> rows = jdbc.sql("""
+                        with next as (
+                            select id from fnd_job_queue
+                             where failed_at is null
+                               and next_run_at <= now()
+                               and (locked_until is null or locked_until < now())
+                               and handler = any (cast(:handlers as text[]))
+                             order by next_run_at, id
+                               for update skip locked
+                             limit 1)
+                        update fnd_job_queue q
+                           set locked_by = :token,
+                               locked_until = now() + :lease * interval '1 millisecond',
+                               attempts = q.attempts + 1
+                          from next
+                         where q.id = next.id
+                        returning q.id, q.handler, q.args::text as args, q.attempts
+                        """)
+                .param("handlers", handlerCodes)
+                .param("token", token)
+                .param("lease", millis(settings.lease()))
+                .query()
+                .listOfRows();
+        if (rows.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> row = rows.get(0);
+        long queueId = ((Number) row.get("id")).longValue();
+        String handlerCode = (String) row.get("handler");
+        String rawArgs = (String) row.get("args");
+        int attempt = ((Number) row.get("attempts")).intValue();
+        // A run still 'running' belongs to an attempt whose node died: its lease ran out
+        jdbc.sql("update fnd_job_runs set status = 'failed', finished_at = now(), error = 'lease expired'"
+                        + " where queue_id = :id and status = 'running'")
                 .param("id", queueId)
                 .update();
-        long runId = jdbc.sql("insert into fnd_job_runs (queue_id, handler, args, status)"
-                        + " values (:queue, :handler, cast(:args as jsonb), 'running') returning id")
+        if (attempt > settings.maxAttempts()) {
+            markFailed(queueId, token);
+            log.error("job_failed_for_good handler={} queue_id={} attempts={}", handlerCode, queueId, attempt - 1);
+            return new Claim(queueId, handlerCode, rawArgs, attempt, token, null);
+        }
+        long runId = jdbc.sql("insert into fnd_job_runs (queue_id, handler, args, status, attempt)"
+                        + " values (:queue, :handler, cast(:args as jsonb), 'running', :attempt) returning id")
                 .param("queue", queueId)
                 .param("handler", handlerCode)
                 .param("args", rawArgs)
+                .param("attempt", attempt)
                 .query(Long.class)
                 .single();
-        boolean success;
+        return new Claim(queueId, handlerCode, rawArgs, attempt, token, runId);
+    }
+
+    private boolean execute(Claim claim) {
+        RuntimeException failure = null;
+        Thread heartbeat =
+                Thread.ofVirtual().name("job-lease-" + claim.queueId()).start(() -> renew(claim));
         try {
-            handlerTx.executeWithoutResult(nested -> handler(handlerCode).run(args(rawArgs)));
-            jdbc.sql("update fnd_job_runs set status = 'done', finished_at = now() where id = :id")
-                    .param("id", runId)
-                    .update();
-            success = true;
-        } catch (RuntimeException failure) {
-            log.error("job_failed handler={} queue_id={}", handlerCode, queueId, failure);
-            jdbc.sql("update fnd_job_runs set status = 'failed', finished_at = now(), error = :error"
-                            + " where id = :id")
-                    .param("error", describe(failure))
-                    .param("id", runId)
-                    .update();
-            success = false;
+            handler(claim.handler()).run(args(claim.rawArgs()));
+        } catch (RuntimeException e) {
+            failure = e;
+        } finally {
+            heartbeat.interrupt();
         }
-        jdbc.sql("delete from fnd_job_queue where id = :id")
-                .param("id", queueId)
+        RuntimeException outcome = failure;
+        tx.executeWithoutResult(status -> finish(claim, outcome));
+        return failure == null;
+    }
+
+    /** Renews the lease every third of it until interrupted; a lost lease is only logged, the handler finishes. */
+    private void renew(Claim claim) {
+        long pauseMs = Math.max(1, settings.lease().toMillis() / 3);
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                Thread.sleep(pauseMs);
+                int renewed = jdbc.sql(
+                                "update fnd_job_queue set locked_until = now() + :lease * interval '1 millisecond'"
+                                        + " where id = :id and locked_by = :token")
+                        .param("lease", millis(settings.lease()))
+                        .param("id", claim.queueId())
+                        .param("token", claim.token())
+                        .update();
+                if (renewed == 0) {
+                    log.warn("job_lease_lost handler={} queue_id={}", claim.handler(), claim.queueId());
+                    return;
+                }
+            }
+        } catch (InterruptedException stopped) {
+            Thread.currentThread().interrupt();
+        } catch (RuntimeException renewalFailure) {
+            // The database is away: the lease may run out and the job be taken again, which retries allow
+            log.warn(
+                    "job_lease_renewal_failed handler={} queue_id={}",
+                    claim.handler(),
+                    claim.queueId(),
+                    renewalFailure);
+        }
+    }
+
+    private void finish(Claim claim, RuntimeException failure) {
+        if (failure == null) {
+            jdbc.sql("update fnd_job_runs set status = 'done', finished_at = now() where id = :id")
+                    .param("id", claim.runId())
+                    .update();
+            jdbc.sql("delete from fnd_job_queue where id = :id and locked_by = :token")
+                    .param("id", claim.queueId())
+                    .param("token", claim.token())
+                    .update();
+            return;
+        }
+        log.error(
+                "job_failed handler={} queue_id={} attempt={}",
+                claim.handler(),
+                claim.queueId(),
+                claim.attempt(),
+                failure);
+        jdbc.sql("update fnd_job_runs set status = 'failed', finished_at = now(), error = :error where id = :id")
+                .param("error", describe(failure))
+                .param("id", claim.runId())
                 .update();
-        return success;
+        if (claim.attempt() >= settings.maxAttempts()) {
+            markFailed(claim.queueId(), claim.token());
+            return;
+        }
+        jdbc.sql("""
+                        update fnd_job_queue
+                           set next_run_at = now() + :pause * interval '1 millisecond', locked_by = null, locked_until = null
+                         where id = :id and locked_by = :token
+                        """)
+                .param("pause", millis(settings.backoffAfter(claim.attempt())))
+                .param("id", claim.queueId())
+                .param("token", claim.token())
+                .update();
+    }
+
+    private void markFailed(long queueId, String token) {
+        jdbc.sql("update fnd_job_queue set failed_at = now(), locked_by = null, locked_until = null"
+                        + " where id = :id and locked_by = :token")
+                .param("id", queueId)
+                .param("token", token)
+                .update();
+    }
+
+    private static long millis(Duration duration) {
+        return duration.toMillis();
     }
 
     private FndJobHandler handler(String code) {
