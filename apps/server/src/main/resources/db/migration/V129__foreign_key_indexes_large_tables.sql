@@ -3,7 +3,6 @@ set statement_timeout = '0';
 -- Plan 10/10, item 3.7: indexes of the foreign keys of large tables, built concurrently so writes go on meanwhile
 -- (ADR-0020, rule 8). Flyway runs this file outside a transaction. If a build is interrupted, PostgreSQL leaves an
 -- invalid index behind: remove that index by hand and run the migration again (docs/ops/migration-repair.md).
-create index concurrently if not exists fnd_load_log_load_id_idx on fnd_load_log (load_id);
 create index concurrently if not exists idempotency_keys_user_id_idx on idempotency_keys (user_id);
 create index concurrently if not exists kwh_logs_subscription_id_idx on kwh_logs (subscription_id);
 create index concurrently if not exists kwh_outbox_subscription_id_idx on kwh_outbox (subscription_id);
