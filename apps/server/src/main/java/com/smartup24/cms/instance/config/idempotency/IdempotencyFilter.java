@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -22,6 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerExecutionChain;
@@ -47,14 +51,38 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private final ProblemMessages messages;
     /** Finds the handler of a request, to honour {@link ReturnsSecret}; absent in slice tests. */
     private final ObjectProvider<RequestMappingHandlerMapping> handlerMapping;
+    /**
+     * Runs an accepted request and records its answer in one transaction (plan 10/10, item 3.12); absent in slice
+     * tests, where the answer is recorded after the request as before.
+     */
+    private final @Nullable PlatformTransactionManager transactions;
 
     @Autowired
     public IdempotencyFilter(
             IdempotencyService idempotencyService,
             ObjectMapper objectMapper,
             ObjectProvider<ProblemMessages> messages,
+            ObjectProvider<PlatformTransactionManager> transactions,
             @Qualifier("requestMappingHandlerMapping") ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
-        this(idempotencyService, objectMapper, messages.getIfAvailable(PackagedProblemMessages::new), handlerMapping);
+        this(
+                idempotencyService,
+                objectMapper,
+                messages.getIfAvailable(PackagedProblemMessages::new),
+                transactions.getIfUnique(),
+                handlerMapping);
+    }
+
+    public IdempotencyFilter(
+            IdempotencyService idempotencyService,
+            ObjectMapper objectMapper,
+            ProblemMessages messages,
+            @Nullable PlatformTransactionManager transactions,
+            ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
+        this.idempotencyService = idempotencyService;
+        this.objectMapper = objectMapper;
+        this.messages = messages;
+        this.transactions = transactions;
+        this.handlerMapping = handlerMapping;
     }
 
     public IdempotencyFilter(
@@ -62,15 +90,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             ObjectMapper objectMapper,
             ProblemMessages messages,
             ObjectProvider<RequestMappingHandlerMapping> handlerMapping) {
-        this.idempotencyService = idempotencyService;
-        this.objectMapper = objectMapper;
-        this.messages = messages;
-        this.handlerMapping = handlerMapping;
+        this(idempotencyService, objectMapper, messages, null, handlerMapping);
     }
 
     public IdempotencyFilter(
             IdempotencyService idempotencyService, ObjectMapper objectMapper, ProblemMessages messages) {
-        this(idempotencyService, objectMapper, messages, null);
+        this(idempotencyService, objectMapper, messages, null, null);
     }
 
     private boolean isUnsupportedPath(String uri) {
@@ -205,7 +230,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                         response,
                         HttpServletResponse.SC_CONFLICT,
                         ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH,
-                        "Тело или параметры запроса не совпадают с исходным запросом для данного Idempotency-Key.",
+                        "error.idempotency_key_payload_mismatch",
                         request.getRequestURI());
                 return;
             }
@@ -215,7 +240,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                         response,
                         HttpServletResponse.SC_CONFLICT,
                         ErrorCode.IDEMPOTENCY_REQUEST_IN_PROGRESS,
-                        "Запрос с данным Idempotency-Key уже выполняется. Повторите запрос позднее.",
+                        "error.idempotency_request_in_progress",
                         request.getRequestURI());
                 return;
             }
@@ -225,27 +250,105 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
 
         ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(response);
+        if (transactions == null) {
+            runAndRecordAfter(wrappedRequest, responseWrapper, filterChain, idempotencyKey, claim.reservationToken());
+        } else {
+            runAndRecordAtomically(
+                    transactions,
+                    wrappedRequest,
+                    responseWrapper,
+                    filterChain,
+                    idempotencyKey,
+                    claim.reservationToken());
+        }
+    }
+
+    /**
+     * Plan 10/10, item 3.12: the request and the record of its answer commit together. The business writes join the
+     * transaction opened here (propagation REQUIRED), and the answer is stored in it before the commit, so a process
+     * that dies after the commit leaves a stored answer for the retry instead of running the operation twice.
+     * A 5xx rolls the request back and frees the key, so a corrected retry runs again. When the business code has
+     * rolled back (a refusal thrown from a transactional method), nothing of the request is committed and only the
+     * answer is recorded. The answer reaches the client only after the commit.
+     */
+    private void runAndRecordAtomically(
+            PlatformTransactionManager transactionManager,
+            HttpServletRequest request,
+            ContentCachingResponseWrapper responseWrapper,
+            FilterChain filterChain,
+            UUID key,
+            UUID reservationToken)
+            throws ServletException, IOException {
+        var definition = new DefaultTransactionDefinition();
+        definition.setName("idempotent-request");
+        TransactionStatus tx = transactionManager.getTransaction(definition);
+        try {
+            filterChain.doFilter(request, responseWrapper);
+        } catch (IOException | ServletException | RuntimeException e) {
+            transactionManager.rollback(tx);
+            idempotencyService.release(key, reservationToken);
+            responseWrapper.copyBodyToResponse();
+            throw e;
+        }
+        int status = responseWrapper.getStatus();
+        byte[] body = responseWrapper.getContentAsByteArray();
+        boolean storable = status >= 200 && status < 500 && body.length <= MAX_RESPONSE_BODY_BYTES;
+        if (storable && !tx.isRollbackOnly()) {
+            try {
+                idempotencyService.complete(key, reservationToken, status, new String(body, StandardCharsets.UTF_8));
+                transactionManager.commit(tx);
+            } catch (RuntimeException e) {
+                // The commit failed after the handler answered: the operation did not happen, so the buffered
+                // success must not reach the client.
+                log.error("idempotent_commit_failed key={} uri={}", key, request.getRequestURI(), e);
+                if (!tx.isCompleted()) {
+                    transactionManager.rollback(tx);
+                }
+                idempotencyService.release(key, reservationToken);
+                responseWrapper.resetBuffer();
+                writeProblemDetail(
+                        request,
+                        responseWrapper,
+                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        ErrorCode.INTERNAL_ERROR,
+                        "error.internal_error",
+                        request.getRequestURI());
+            }
+        } else {
+            transactionManager.rollback(tx);
+            if (storable) {
+                idempotencyService.complete(key, reservationToken, status, new String(body, StandardCharsets.UTF_8));
+            } else {
+                idempotencyService.release(key, reservationToken);
+            }
+        }
+        responseWrapper.copyBodyToResponse();
+    }
+
+    /** Without a transaction manager (web slices): the answer is recorded after the request, as before 3.12. */
+    private void runAndRecordAfter(
+            HttpServletRequest request,
+            ContentCachingResponseWrapper responseWrapper,
+            FilterChain filterChain,
+            UUID key,
+            UUID reservationToken)
+            throws ServletException, IOException {
         boolean chainCompleted = false;
         try {
-            filterChain.doFilter(wrappedRequest, responseWrapper);
+            filterChain.doFilter(request, responseWrapper);
             chainCompleted = true;
         } finally {
             int status = responseWrapper.getStatus();
             byte[] responseBytes = responseWrapper.getContentAsByteArray();
-
             try {
-                // Cache successful and client-side responses if within safe body size. Exceptions and 5xx
-                // release the reservation so a corrected retry can execute.
-                if (chainCompleted && status >= 200 && status < 500) {
-                    if (responseBytes.length <= MAX_RESPONSE_BODY_BYTES) {
-                        String responseBodyStr = new String(responseBytes, StandardCharsets.UTF_8);
-                        idempotencyService.complete(idempotencyKey, claim.reservationToken(), status, responseBodyStr);
-                    } else {
-                        // Oversized response: release reservation so huge payload is not stored in DB
-                        idempotencyService.release(idempotencyKey, claim.reservationToken());
-                    }
+                if (chainCompleted
+                        && status >= 200
+                        && status < 500
+                        && responseBytes.length <= MAX_RESPONSE_BODY_BYTES) {
+                    idempotencyService.complete(
+                            key, reservationToken, status, new String(responseBytes, StandardCharsets.UTF_8));
                 } else {
-                    idempotencyService.release(idempotencyKey, claim.reservationToken());
+                    idempotencyService.release(key, reservationToken);
                 }
             } finally {
                 responseWrapper.copyBodyToResponse();
