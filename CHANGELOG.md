@@ -686,6 +686,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Web screens read through resources and their specs test one thing each
+  (plan 10/10, item 2.4). Loads that were subscribed by hand only to fill
+  signals are `rxResource`/`toSignal` in tasks, projects, settings, UPL,
+  IAM, notifications, files, audit, announcements, analytics, exports and
+  reports (239 manual subscribes before, 196 now; what is left are
+  mutations, polling, KeysetPager lists and guarded state machines such as
+  the organisation panels). A failed reload keeps the last data on screen;
+  reloads after a change cancel the request in flight. The largest
+  container specs are halved (tasks 1,810 -> 725 lines, search settings
+  1,140 -> 568, format editor 1,018 -> 498, users 896 -> 434, projects 811
+  -> 404, app shell 733 -> 324, packages 709 -> 274): logic moved to specs
+  of the stores and services that own it. Web coverage floors rise to
+  88/85/77/78 (lines/statements/functions/branches; measured 90.1/87.7/
+  79.2/80.0).
 - Every web component has its own spec (plan 10/10, item 2.9): 74 new spec
   files (1,417 -> 1,801 unit tests) pin what each component shows, what it
   emits and how it reads to a screen reader; one presentational component
@@ -908,6 +922,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Found while moving loads to resources (plan 10/10, item 2.4): deleting
+  the selected role left phantom unsaved changes that blocked leaving the
+  page; a slow security summary could show the previous user; the project
+  members search stopped working after one failed request; audit summary
+  answers could land out of order; the embedded report kept its route
+  subscription; the analytics range and the package upload form changed
+  plain fields in callbacks and redrew only by chance under OnPush; a wrong
+  `?open=` package link raised an unhandled error; the language editor did
+  not reload when its language changed.
 - Found by the component specs (plan 10/10, item 2.9): the notification
   settings showed raw catalog keys as row names, offered an observer row
   that switched nothing and no row for task comments, which the server
