@@ -687,7 +687,9 @@ public class OpenApiController {
                                                                         "200",
                                                                         Map.of("description", "The upload"),
                                                                         "404",
-                                                                        Map.of("description", "error.upl.pkg_not_found"))))),
+                                                                        Map.of(
+                                                                                "description",
+                                                                                "error.upl.pkg_not_found"))))),
                                 Map.entry(
                                         "/api/v1/upl/packages/{id}/errors/file",
                                         Map.of(
