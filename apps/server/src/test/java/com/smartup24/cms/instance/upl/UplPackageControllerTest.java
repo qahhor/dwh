@@ -308,7 +308,8 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("AC-10, 12: администратор применяет проверенную загрузку; повтор и неразобранная — 409")
+    @DisplayName(
+            "AC-10, 12, 3.9: применение — 202 и пакет «применяется», задание применяет; повтор и неразобранная — 409")
     void adminAppliesVerifiedPackage() throws Exception {
         Session admin = login(adminLogin);
         var accepted =
@@ -322,14 +323,34 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         assertThat(jobs.runQueued()).isEqualTo(1);
 
-        var applied = send(admin, post(BASE + "/" + id + "/apply"));
-        assertThat(applied.getStatus()).as(applied.getContentAsString()).isEqualTo(200);
+        var queued = send(admin, post(BASE + "/" + id + "/apply"));
+        assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
+        assertThat(queued.getHeader("Location")).isEqualTo(BASE + "/" + id);
+        assertThat((String) read(queued, "$.status")).isEqualTo(UplPackageModel.APPLYING);
+        assertThat((Object) read(queued, "$.rawRows")).isNull();
+        assertThat((Object) read(queued, "$.loadId")).isNotNull();
+        assertThat(jdbc.sql("select handler from fnd_job_queue")
+                        .query(String.class)
+                        .list())
+                .containsExactly(UplPref.JOB_APPLY);
+        // While the job waits, the list and a second press see the apply in progress
+        assertThat((String) read(sendGet(admin, BASE + "/" + id, 200), "$.status"))
+                .isEqualTo(UplPackageModel.APPLYING);
+        var pressedAgain = send(admin, post(BASE + "/" + id + "/apply"));
+        assertThat(pressedAgain.getStatus())
+                .as(pressedAgain.getContentAsString())
+                .isEqualTo(409);
+        assertThat((String) read(pressedAgain, "$.messageKey")).isEqualTo("error.upl.pkg_not_verified");
+
+        assertThat(jobs.runQueued()).isEqualTo(1);
+
+        var applied = sendGet(admin, queued.getHeader("Location"), 200);
         assertThat((String) read(applied, "$.status")).isEqualTo("applied");
         assertThat((Integer) read(applied, "$.rawRows")).isEqualTo(10);
         assertThat((Integer) read(applied, "$.rowsTotal")).isEqualTo(10);
         Object loadId = read(applied, "$.loadId");
         assertThat(loadId).isNotNull();
-        assertThat(String.valueOf(loadId)).isNotBlank();
+        assertThat(loadId).isEqualTo(read(queued, "$.loadId"));
 
         var repeated = send(admin, post(BASE + "/" + id + "/apply"));
         assertThat(repeated.getStatus()).as(repeated.getContentAsString()).isEqualTo(409);
@@ -337,6 +358,34 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
 
         var unknown = send(admin, post(BASE + "/00000000-0000-0000-0000-000000000000/apply"));
         assertThat(unknown.getStatus()).as(unknown.getContentAsString()).isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("3.9, 3.12: повтор применения с тем же Idempotency-Key отдаёт тот же 202, задание одно")
+    void applyWithIdempotencyKeyIsQueuedOnce() throws Exception {
+        Session admin = login(adminLogin);
+        var accepted =
+                upload(admin, String.valueOf(sourceId), PERIOD_FROM, PERIOD_TO, UplPackageTestData.workbook(3, 0));
+        String id = read(accepted, "$.id");
+        assertThat(jobs.runQueued()).isEqualTo(1);
+        String key = UUID.randomUUID().toString();
+
+        var first = send(admin, post(BASE + "/" + id + "/apply").header(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, key));
+        var replay =
+                send(admin, post(BASE + "/" + id + "/apply").header(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, key));
+
+        assertThat(first.getStatus()).as(first.getContentAsString()).isEqualTo(202);
+        assertThat(replay.getStatus()).as(replay.getContentAsString()).isEqualTo(202);
+        assertThat(replay.getHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY)).isEqualTo("true");
+        assertThat((String) read(replay, "$.status")).isEqualTo(UplPackageModel.APPLYING);
+        assertThat(jdbc.sql("select count(*) from fnd_job_queue where handler = :handler")
+                        .param("handler", UplPref.JOB_APPLY)
+                        .query(Long.class)
+                        .single())
+                .isEqualTo(1);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+        assertThat((String) read(sendGet(admin, BASE + "/" + id, 200), "$.status"))
+                .isEqualTo(UplPackageModel.APPLIED);
     }
 
     @Test

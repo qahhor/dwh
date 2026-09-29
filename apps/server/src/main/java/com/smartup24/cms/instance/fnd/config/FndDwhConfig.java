@@ -52,8 +52,11 @@ public class FndDwhConfig {
                 "-c statement_timeout=" + statementMs + " -c idle_in_transaction_session_timeout=" + statementMs);
         // ...а socketTimeout (в секундах) — последняя страховка от мёртвой сети: он длиннее любого
         // серверного предела, включая задания обслуживания, и срабатывает, только если сервер молчит.
-        long longestMs =
-                Math.max(statementMs, props.maintenanceStatementTimeout().toMillis());
+        long longestMs = Math.max(
+                statementMs,
+                Math.max(
+                        props.maintenanceStatementTimeout().toMillis(),
+                        props.rawWriteTimeout().toMillis()));
         ds.addDataSourceProperty("socketTimeout", String.valueOf((longestMs + 999) / 1000 + 60));
         return ds;
     }

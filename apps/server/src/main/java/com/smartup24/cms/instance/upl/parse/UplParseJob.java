@@ -64,9 +64,10 @@ public class UplParseJob implements FndJobHandler {
      * закрывает пакет внутренней ошибкой.
      */
     private UplParseResult parse(PackageRow row) {
-        try (FileDownloadStream file = files.downloadFile(row.fileId())) {
+        try (FileDownloadStream file = files.downloadFile(row.fileId());
+                UplSpooledFile spooled = UplSpooledFile.of(file.inputStream())) {
             FormatVersion format = sources.getVersion(row.sourceId(), row.formatVersion());
-            return parser.parse(file.inputStream(), format);
+            return parser.parse(spooled.path(), format);
         } catch (IOException failure) {
             packages.rejectInNewTransaction(row.id(), UPL_PKG_INTERNAL);
             throw new UncheckedIOException("Файл пакета " + row.publicId() + " не читается из хранилища", failure);

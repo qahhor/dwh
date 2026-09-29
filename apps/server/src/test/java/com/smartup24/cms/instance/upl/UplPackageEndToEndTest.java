@@ -281,9 +281,13 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         return read(accepted, "$.id");
     }
 
+    /** Plan 10/10, item 3.9: 202 and a package «применяется»; the job applies it, the client reads the outcome. */
     private long applyPackage(Session session, String packageId, Sample sample) throws Exception {
-        var applied = send(session, post(BASE + "/" + packageId + "/apply"));
-        assertThat(applied.getStatus()).as(applied.getContentAsString()).isEqualTo(200);
+        var queued = send(session, post(BASE + "/" + packageId + "/apply"));
+        assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
+        assertThat((String) read(queued, "$.status")).isEqualTo(UplPackageModel.APPLYING);
+        assertThat(jobs.runQueued()).isEqualTo(1);
+        var applied = sendGet(session, queued.getHeader("Location"), 200);
         assertThat((String) read(applied, "$.status")).isEqualTo(UplPackageModel.APPLIED);
         assertThat(((Number) read(applied, "$.rawRows")).intValue()).isEqualTo(sample.total());
         return ((Number) read(applied, "$.loadId")).longValue();

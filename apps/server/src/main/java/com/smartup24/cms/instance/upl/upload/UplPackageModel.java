@@ -15,6 +15,13 @@ public final class UplPackageModel {
     public static final String REJECTED = "rejected";
     /** Файл разобран: счётчики строк заполнены, ошибки ячеек сохранены. */
     public static final String VERIFIED = "verified";
+    /**
+     * Apply requested (plan 10/10, item 3.9): the load of the foundation is open and the job that streams the rows into
+     * raw is queued or running; the job turns the package applied or rejected, the recovery job does if the job died.
+     * Not a value of the column: it is a verified package with a load number, read as {@link
+     * UplPackageRepository#STATUS_SQL}, so the table and its check stay as V114 made them.
+     */
+    public static final String APPLYING = "applying";
     /** Проверенный пакет применён загрузкой основы (следующий инкремент). */
     public static final String APPLIED = "applied";
 

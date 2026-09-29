@@ -32,6 +32,7 @@ class FndDwhTimeoutsTest {
                 "",
                 Duration.ofSeconds(2),
                 Duration.ofSeconds(1),
+                Duration.ofSeconds(5),
                 Duration.ofSeconds(5));
         dwh = (HikariDataSource) new FndDwhConfig().dwhDataSource(props);
         // Одно соединение: задание обслуживания и следующий запрос получают одно и то же

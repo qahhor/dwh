@@ -21,7 +21,7 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -229,7 +229,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     private static UplXlsxParser failingParser() {
         return new UplXlsxParser() {
             @Override
-            public UplParseResult parse(InputStream content, FormatVersion format) {
+            public UplParseResult parse(Path file, FormatVersion format) {
                 throw new IllegalStateException("TEST сбой разбора");
             }
         };

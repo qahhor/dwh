@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
 import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
+import com.smartup24.cms.instance.fnd.dwh.FndRawSource;
 import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
@@ -503,7 +504,12 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     /** Фасад, который всегда сообщает о недоступности pg-dwh (AC-26). */
     private static final class BrokenRawWriter implements FndRawWriter {
         @Override
-        public void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
+        public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            throw new DwhUnavailableException(new java.sql.SQLException("pg-dwh недоступен TEST"));
+        }
+
+        @Override
+        public long count(long loadId) {
             throw new DwhUnavailableException(new java.sql.SQLException("pg-dwh недоступен TEST"));
         }
 

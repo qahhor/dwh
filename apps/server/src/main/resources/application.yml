@@ -277,3 +277,5 @@ app:
     # P0 DWH: предел запроса и простоя в транзакции для пула; задания обслуживания — свой, длиннее.
     statement-timeout: ${APP_DWH_STATEMENT_TIMEOUT:60s}
     maintenance-statement-timeout: ${APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT:30m}
+    # Plan 10/10, item 3.9: one streamed write of a load into raw (a UPL apply) lasts while its file is parsed.
+    raw-write-timeout: ${APP_DWH_RAW_WRITE_TIMEOUT:30m}

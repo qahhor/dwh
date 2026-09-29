@@ -118,10 +118,10 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         assertThat(codeOf(() -> rawWriter.write(-1, fileId, List.of(new FndRawRow(1, null, null, Map.of())))))
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
 
-        // Фасад умеет только писать и читать: правки и удаления в контракте нет
+        // Фасад умеет только писать, считать и читать: правки и удаления в контракте нет
         assertThat(FndRawWriter.class.getDeclaredMethods())
                 .extracting(java.lang.reflect.Method::getName)
-                .containsExactlyInAnyOrder("write", "read");
+                .containsExactlyInAnyOrder("write", "copy", "count", "read");
     }
 
     @Test

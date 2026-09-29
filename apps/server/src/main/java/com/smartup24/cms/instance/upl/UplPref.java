@@ -16,5 +16,8 @@ public final class UplPref {
     /** Код обработчика задания «разобрать файл пакета» в очереди основы. */
     public static final String JOB_PARSE = "upl.parse";
 
+    /** Код обработчика задания «применить пакет» (план 10/10, п. 3.9): строки файла потоком в raw. */
+    public static final String JOB_APPLY = "upl.apply";
+
     private UplPref() {}
 }
