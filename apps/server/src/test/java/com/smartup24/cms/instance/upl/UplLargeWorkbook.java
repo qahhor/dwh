@@ -20,7 +20,7 @@ import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
 
 /**
- * A large synthetic package file written straight to disk (plan 10/10, item 3.9): a sales-like sheet of eight columns
+ * A large synthetic package file written straight to disk (plan 10/10, item 3.9): a sales-like sheet of seven columns
  * — numbers with many digits, a few repeated names — so a million rows weigh about the product limit of 50 MB. The
  * writer flushes every few thousand rows: the generator itself holds no rows either.
  */
@@ -28,12 +28,11 @@ final class UplLargeWorkbook {
 
     static final String SHEET = "TEST продажи";
     /** Every cell of a data row is filled: cells per row, for the cell limit. */
-    static final int COLUMNS = 8;
+    static final int COLUMNS = 7;
 
     private static final int FLUSH_EVERY = 5_000;
     private static final int NAMES = 2_000;
-    private static final List<String> HEADER =
-            List.of("№", "Ключ", "Название", "Сумма", "Дата", "Количество", "Цена", "Скидка");
+    private static final List<String> HEADER = List.of("№", "Ключ", "Название", "Сумма", "Дата", "Количество", "Цена");
 
     private UplLargeWorkbook() {}
 
@@ -77,8 +76,7 @@ final class UplLargeWorkbook {
                 column(4, "Сумма", "amount", DataType.NUMBER, false),
                 column(5, "Дата", "doc_date", DataType.DATE, false),
                 column(6, "Количество", "quantity", DataType.NUMBER, false),
-                column(7, "Цена", "price", DataType.NUMBER, false),
-                column(8, "Скидка", "discount", DataType.NUMBER, false));
+                column(7, "Цена", "price", DataType.NUMBER, false));
         return new DraftData(null, null, null, null, List.of(new Sheet(null, 0, SHEET, 1, null, columns)));
     }
 
@@ -95,12 +93,11 @@ final class UplLargeWorkbook {
                 sheet.value(row, 0, row);
                 sheet.value(row, 1, 100_000_000 + random.nextInt(900_000_000));
                 sheet.value(row, 2, "TEST орг " + random.nextInt(NAMES));
-                sheet.value(row, 3, random.nextDouble() * 1_000_000);
+                sheet.value(row, 3, cents(random.nextDouble() * 100_000));
                 sheet.value(
                         row, 4, LocalDate.of(2026, 3, 1 + random.nextInt(31)).toString());
-                sheet.value(row, 5, random.nextDouble() * 1_000);
-                sheet.value(row, 6, random.nextDouble() * 10_000);
-                sheet.value(row, 7, random.nextDouble());
+                sheet.value(row, 5, random.nextInt(1_000));
+                sheet.value(row, 6, cents(random.nextDouble() * 1_000));
                 if (row % FLUSH_EVERY == 0) {
                     sheet.flush();
                 }
@@ -110,6 +107,11 @@ final class UplLargeWorkbook {
             throw new UncheckedIOException("Не удалось записать большой тестовый xlsx", failure);
         }
         return file;
+    }
+
+    /** Money and shares with two decimals, as in the files people send: full-precision doubles do not compress. */
+    private static double cents(double value) {
+        return Math.round(value * 100) / 100.0;
     }
 
     private static Column column(int position, String nameInFile, String targetField, DataType type, boolean required) {
