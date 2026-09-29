@@ -686,6 +686,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Jobs run on a lease outside the queue transaction (plan 10/10, item
+  3.8). A runner takes a job in a short transaction and works outside it,
+  renewing its lease; a failed job is retried with a doubling backoff up
+  to `dwh.fnd.jobs.max-attempts` and then marked failed; an advisory lock
+  lets two nodes enqueue a scheduled job exactly once; the OLTP pool has
+  a statement and an idle-in-transaction timeout (V132, settings in the
+  operations runbook).
+- Applying a UPL package is asynchronous and streamed (plan 10/10, item
+  3.9). `POST .../apply` answers 202 with the package applying and queues
+  a job; the rows stream from the parser into one `COPY` into pg-dwh
+  without being held in memory. A 50 MB file of a million rows applies in
+  a 512 MB heap (peak 143 MB, answer in 18 ms; `-Pupl-large`). The upload
+  limit is 50 MB. The web card follows the apply until it ends.
+
 - The API speaks DTOs (plan 10/10, item 3.2). The 18 controllers that
   returned or took repository records (tasks, projects, comments,
   notifications, announcements, users, roles, assignments, org units,
