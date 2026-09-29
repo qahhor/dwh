@@ -96,7 +96,7 @@ test('administrator can create and remove a custom role', async ({ page }) => {
   const createDialog = page.getByRole('dialog', { name: 'Создание новой роли' });
   await createDialog.getByLabel('Название роли').fill(roleName);
   const createResponse = page.waitForResponse(response =>
-    response.request().method() === 'POST' && response.url().endsWith('/api/v1/rbac/roles')
+    response.request().method() === 'POST' && response.url().endsWith('/api/v1/iam/roles')
   );
   await createDialog.getByRole('button', { name: 'Создать', exact: true }).click();
   const createdRole = await createResponse;

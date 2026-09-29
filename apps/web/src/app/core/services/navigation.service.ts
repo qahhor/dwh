@@ -70,9 +70,10 @@ export class NavigationService {
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 
-  toggleItem(id: number): Observable<CustomNavigationItem> {
+  /** Shows or hides the item: the request states the result, so a repeated click changes nothing twice. */
+  setActive(id: number, active: boolean): Observable<CustomNavigationItem> {
     return this.api
-      .post<CustomNavigationItem>(`/navigation/items/${id}/toggle`, {}, { notifyError: false })
+      .put<CustomNavigationItem>(`/navigation/items/${id}/active`, { active }, { notifyError: false })
       .pipe(tap(() => this.loadActiveItems().subscribe({ error: () => {} })));
   }
 

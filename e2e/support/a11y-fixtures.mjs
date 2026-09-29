@@ -104,7 +104,7 @@ export const fixtures = {
   '/iam/users': page(range(1, 50).map(user), 'u2', 60),
   '/iam/users#u2': page(range(51, 60).map(user), null, 60),
   '/iam/users/80': { ...user(80), managerId: 1 },
-  '/rbac/roles': [],
+  '/iam/roles': [],
   '/custom-fields': [],
   '/audit/stats': { totalAuditLogs: 30, totalSecurityEvents: 12, securityEventsLast24h: 3, failedLoginsLast24h: 1 },
   // Both audit lists are registry lists (roadmap item 50).

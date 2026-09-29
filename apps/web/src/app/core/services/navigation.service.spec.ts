@@ -111,15 +111,15 @@ describe('NavigationService', () => {
     expect(updated.title).toBe('Обновленное название');
   });
 
-  it('toggles item active state', async () => {
+  it('sets the item active state it asks for', async () => {
     const { service, api } = setup();
-    api.post.mockReturnValue(of({ ...sampleItem, state: 'P' }));
+    api.put.mockReturnValue(of({ ...sampleItem, state: 'P' }));
     api.get.mockReturnValue(of([]));
 
-    const toggled = await firstValueFrom(service.toggleItem(1));
+    const updated = await firstValueFrom(service.setActive(1, false));
 
-    expect(api.post).toHaveBeenCalledWith('/navigation/items/1/toggle', {}, { notifyError: false });
-    expect(toggled.state).toBe('P');
+    expect(api.put).toHaveBeenCalledWith('/navigation/items/1/active', { active: false }, { notifyError: false });
+    expect(updated.state).toBe('P');
   });
 
   it('deletes an item', async () => {

@@ -91,7 +91,7 @@ describe('RolesComponent', () => {
 
     page.matrix.rolePermissions.set(new Set(['audit.log.view']));
     page.matrix.savePermissions();
-    expect(api().put).toHaveBeenCalledWith('/rbac/roles/1/permissions', [{ formCode: 'audit.log', action: 'view' }]);
+    expect(api().put).toHaveBeenCalledWith('/iam/roles/1/permissions', [{ formCode: 'audit.log', action: 'view' }]);
 
     scopeWrite.error({ status: 409, detail: 'retry' });
     expect(panel.pending()).toBe(false);
@@ -165,7 +165,7 @@ describe('RolesComponent', () => {
     page.confirmDeleteRole();
     fixture.detectChanges();
 
-    expect(api().delete).toHaveBeenCalledWith('/rbac/roles/2');
+    expect(api().delete).toHaveBeenCalledWith('/iam/roles/2');
     expect(page.matrix.selectedRole()?.id).toBe(first.id);
     expect(panel.hasUnsavedWork()).toBe(true);
   });
@@ -185,7 +185,7 @@ describe('RolesComponent', () => {
     expect(panel.discard.open()).toBe(true);
 
     panel.discard.confirm();
-    expect(api().delete).toHaveBeenCalledWith('/rbac/roles/1');
+    expect(api().delete).toHaveBeenCalledWith('/iam/roles/1');
     expect(page.matrix.selectedRole()?.id).toBe(first.id);
     api().get.mockImplementation((path: string) => roleResponse(path, [second]));
     deletion.next();
@@ -281,7 +281,7 @@ describe('RolesComponent', () => {
     page.saveAndSwitch();
 
     expect(api().put).toHaveBeenCalledTimes(1);
-    expect(api().put).toHaveBeenCalledWith(`/rbac/roles/${first.id}/permissions`, [
+    expect(api().put).toHaveBeenCalledWith(`/iam/roles/${first.id}/permissions`, [
       { formCode: 'audit.events', action: 'edit' },
     ]);
     expect(page.isDiscardPermissionsModalOpen()).toBe(false);
@@ -303,7 +303,7 @@ describe('RolesComponent', () => {
   }
 
   function roleResponse(path: string, roles: Role[]) {
-    if (path === '/rbac/roles') return of(roles);
+    if (path === '/iam/roles') return of(roles);
     const rule = path.match(/^\/iam\/org-units\/roles\/(\d+)\/rule$/);
     if (rule) return of({ roleId: Number(rule[1]), rule: 'ALL' });
     return of([]);

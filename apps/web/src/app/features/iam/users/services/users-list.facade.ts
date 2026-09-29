@@ -246,8 +246,8 @@ export class UsersListFacade implements OnDestroy {
   private flatFilters() {
     return {
       state: this.filters.selectedState || undefined,
-      role_id: this.filters.selectedRoleId || undefined,
-      is_2fa_enabled: this.filters.selected2fa !== null ? this.filters.selected2fa : undefined,
+      roleId: this.filters.selectedRoleId || undefined,
+      is2faEnabled: this.filters.selected2fa !== null ? this.filters.selected2fa : undefined,
     };
   }
 

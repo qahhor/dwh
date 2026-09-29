@@ -47,7 +47,7 @@ describe('NavigationSettingsComponent', () => {
       loadAllItems: vi.fn().mockReturnValue(of([...items])),
       createItem: vi.fn().mockReturnValue(of({ ...items[0], id: 3 })),
       updateItem: vi.fn().mockReturnValue(of({ ...items[0], title: 'Updated' })),
-      toggleItem: vi.fn().mockReturnValue(of({ ...items[0], state: 'P' })),
+      setActive: vi.fn().mockReturnValue(of({ ...items[0], state: 'P' })),
       deleteItem: vi.fn().mockReturnValue(of(undefined)),
       loadPermissionChoices: vi.fn().mockReturnValue(
         of([
@@ -204,7 +204,8 @@ describe('NavigationSettingsComponent', () => {
     // The list reloads on the next change detection.
     fixture.detectChanges();
 
-    expect(navService.toggleItem).toHaveBeenCalledWith(1);
+    // The first item is active: the store asks to hide it, not to flip whatever the server holds.
+    expect(navService.setActive).toHaveBeenCalledWith(1, false);
     expect(navService.loadAllItems).toHaveBeenCalledTimes(2);
   });
 

@@ -186,13 +186,13 @@ describe('NotesComponent', () => {
     (screen.querySelector('.card-actions button') as HTMLButtonElement).click();
     await settle();
 
-    expect(api.post).toHaveBeenCalledWith('/notes/1/pin', {}, { notifyError: false });
+    expect(api.put).toHaveBeenCalledWith('/notes/1/pin', { pinned: !note.isPinned }, { notifyError: false });
     expect(noteCalls()).toHaveLength(2);
   });
 
   it('reports a pin that failed', async () => {
     const { api, toast, component } = await setup();
-    api.post.mockReturnValueOnce(throwError(() => ({ status: 409 })));
+    api.put.mockReturnValueOnce(throwError(() => ({ status: 409 })));
 
     component.togglePin(note);
 

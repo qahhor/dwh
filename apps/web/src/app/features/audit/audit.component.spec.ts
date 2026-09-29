@@ -175,7 +175,7 @@ describe('AuditComponent', () => {
     component.loadAuditLogs(true);
 
     expect(lastParams(get, '/audit/logs')).toEqual(
-      expect.objectContaining({ ...component.auditFilters.flat(), table_name: 'ms_tasks', cursor: undefined }),
+      expect.objectContaining({ ...component.auditFilters.flat(), tableName: 'ms_tasks', cursor: undefined }),
     );
     expect(component.auditPager.page()).toBe(1);
   });

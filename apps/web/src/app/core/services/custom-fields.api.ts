@@ -25,7 +25,7 @@ export class CustomFieldsApi {
 
   /** Every definition, or those of one entity. */
   list(entityType?: CustomFieldEntityType): Observable<CustomField[]> {
-    return this.api.get<CustomField[]>('/custom-fields', entityType ? { entity_type: entityType } : undefined);
+    return this.api.get<CustomField[]>('/custom-fields', entityType ? { entityType } : undefined);
   }
 
   create(field: NewCustomField): Observable<CustomField> {

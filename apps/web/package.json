@@ -19,7 +19,8 @@
     "lint": "eslint . && stylelint \"src/**/*.{css,scss}\" && prettier --check \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\"",
     "lint:prune": "eslint . --prune-suppressions",
     "format": "prettier --write \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\"",
-    "api:types": "npm --prefix ../../tools/api-types run -s generate"
+    "api:types": "npm --prefix ../../tools/api-types run -s generate",
+    "api:audit": "node scripts/api-deprecation-audit.mjs"
   },
   "engines": {
     "node": "24.21.0"

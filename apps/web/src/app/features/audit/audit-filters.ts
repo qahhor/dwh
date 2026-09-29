@@ -25,10 +25,10 @@ export class AuditLogFilters {
   /** The filters as request parameters; an empty filter is left out. */
   flat(): Record<string, string | undefined> {
     return {
-      table_name: this.table || undefined,
-      row_pk: this.rowPk.trim() || undefined,
+      tableName: this.table || undefined,
+      rowPk: this.rowPk.trim() || undefined,
       event: this.event || undefined,
-      user_id: this.user.trim() || undefined,
+      userId: this.user.trim() || undefined,
       from: startOfUtcDay(this.from),
       to: endOfUtcDay(this.to),
     };
@@ -60,8 +60,8 @@ export class SecurityEventFilters {
 
   flat(): Record<string, string | undefined> {
     return {
-      event_type: this.eventType || undefined,
-      user_id: this.user.trim() || undefined,
+      eventType: this.eventType || undefined,
+      userId: this.user.trim() || undefined,
       ip: this.ip || undefined,
       from: startOfUtcDay(this.from),
       to: endOfUtcDay(this.to),
