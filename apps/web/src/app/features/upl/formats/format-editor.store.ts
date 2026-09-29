@@ -7,7 +7,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl-api';
-import { UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
+import { UPL_ERROR, UPL_VERSION_STATUS_KEY, uplErrorKey, uplProblemText } from '../upl-labels';
 import { UplFieldError, localFormatErrors, parseUplProblem } from './upl-format-errors';
 import { UplFormatStep, buildDraftRequest, emptyModel, uplErrorStep } from './upl-format-model';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
@@ -234,8 +234,8 @@ export class FormatEditorStore {
       },
       error: (problem: ProblemDetail) => {
         this.isPublishing.set(false);
-        if (problem?.detail === 'FND_VERSION_NOT_AFTER_PREVIOUS') {
-          this.publishDateError.set(uplErrorKey('FND_VERSION_NOT_AFTER_PREVIOUS'));
+        if (problem?.messageKey === UPL_ERROR.notAfterPrevious) {
+          this.publishDateError.set(UPL_ERROR.notAfterPrevious);
           return;
         }
         this.handleProblem(problem);
@@ -274,16 +274,20 @@ export class FormatEditorStore {
       }
       return;
     }
-    if (problem?.detail === 'STALE_VERSION') {
+    if (problem?.messageKey === UPL_ERROR.staleVersion) {
       this.conflict.set(true);
       return;
     }
-    if (problem?.detail === 'UPL_FORMAT_NOT_DRAFT') {
-      this.toast.info(this.i18n.translate('upl.err.UPL_FORMAT_NOT_DRAFT'));
+    if (problem?.messageKey === UPL_ERROR.formatNotDraft) {
+      this.toast.info(this.problemText(problem));
       this.reload();
       return;
     }
-    this.actionError.set(uplProblemText(problem, (key) => this.i18n.translate(key)));
+    this.actionError.set(this.problemText(problem));
+  }
+
+  private problemText(problem: ProblemDetail): string {
+    return uplProblemText(problem, (key, params) => this.i18n.translate(key, params));
   }
 }
 

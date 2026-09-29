@@ -20,4 +20,21 @@ describe('uplProblemText', () => {
   it('does not fail without a problem', () => {
     expect(uplProblemText(undefined, translate)).toBe(' ()');
   });
+
+  it('shows the text of the message key with its parameters', () => {
+    const texts: Record<string, string> = { 'error.upl.pkg_file_too_large': 'TEST {megabytes} MB' };
+    const withParams = (key: string, params?: Record<string, string | number>): string =>
+      (texts[key] ?? key).replace('{megabytes}', String(params?.['megabytes'] ?? ''));
+    const refused: ProblemDetail = {
+      ...problem('TEST detail', 'file_size_exceeded'),
+      messageKey: 'error.upl.pkg_file_too_large',
+      params: { megabytes: 20 },
+    };
+    expect(uplProblemText(refused, withParams)).toBe('TEST 20 MB');
+  });
+
+  it('falls back to the subcode when the message key has no text', () => {
+    const refused: ProblemDetail = { ...problem('UPL_NO_SHEETS', 'VALIDATION_FAILED'), messageKey: 'error.upl.none' };
+    expect(uplProblemText(refused, translate)).toBe('TEST-TEXT');
+  });
 });

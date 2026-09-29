@@ -438,17 +438,18 @@ describe('SourcesListComponent', () => {
   });
 
   it('показывает занятый код под полем «Код», окно остаётся открытым; узнаёт его и по коду каркаса', async () => {
-    const taken = (detail: string): ProblemDetail => ({
+    const taken = (code: string, messageKey?: string): ProblemDetail => ({
       title: 'Bad Request',
       status: 400,
-      code: 'code_already_exists',
-      detail,
+      code,
+      detail: 'Такой код уже есть',
+      ...(messageKey ? { messageKey } : {}),
     });
-    // The second refusal carries a translated detail: the framework code alone tells it.
+    // The first refusal is told by the key of its text, the second by the framework code alone.
     const { fixture } = await createFixture({
       createResults: [
-        throwError(() => taken('UPL_SOURCE_CODE_TAKEN')),
-        throwError(() => taken('Такой код уже существует')),
+        throwError(() => taken('bad_request', 'error.upl.source_code_taken')),
+        throwError(() => taken('code_already_exists')),
       ],
     });
 

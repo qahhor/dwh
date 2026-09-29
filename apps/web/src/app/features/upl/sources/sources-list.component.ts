@@ -40,7 +40,7 @@ import {
   UplStrictness,
 } from '../upl-api';
 import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors';
-import { UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
+import { UPL_ERROR, UPL_PERIODICITY_KEY, UPL_STRICTNESS_KEY, uplProblemText } from '../upl-labels';
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
@@ -322,7 +322,10 @@ export class SourcesListComponent implements OnInit {
       this.createError.set('upl.err.VALIDATION_FAILED');
       return;
     }
-    if ((problem?.code ?? '').toLowerCase() === 'code_already_exists' || problem?.detail === 'UPL_SOURCE_CODE_TAKEN') {
+    if (
+      (problem?.code ?? '').toLowerCase() === 'code_already_exists' ||
+      problem?.messageKey === UPL_ERROR.sourceCodeTaken
+    ) {
       this.fieldErrors.set({ code: 'upl.err.UPL_SOURCE_CODE_TAKEN' });
       return;
     }
@@ -331,6 +334,6 @@ export class SourcesListComponent implements OnInit {
 
   /** Неизвестный код ошибки не прячем: показываем подкод и код каркаса. */
   private problemText(problem: ProblemDetail): string {
-    return uplProblemText(problem, (key) => this.i18n.translate(key));
+    return uplProblemText(problem, (key, params) => this.i18n.translate(key, params));
   }
 }

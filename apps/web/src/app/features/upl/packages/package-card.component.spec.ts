@@ -97,8 +97,8 @@ function click(fixture: ComponentFixture<PackageCardComponent>, id: string): voi
   fixture.detectChanges();
 }
 
-function problem(status: number, detail: string, code = 'not_found'): ProblemDetail {
-  return { title: 'error', status, code, detail };
+function problem(status: number, detail: string, code = 'not_found', messageKey?: string): ProblemDetail {
+  return { title: 'error', status, code, detail, ...(messageKey ? { messageKey } : {}) };
 }
 
 /** Rows of the cell error table (the kit table renders rows as role="row"). */
@@ -288,11 +288,11 @@ describe('PackageCardComponent', () => {
   });
 
   it('пакет не найден: в полосе «Загрузка не найдена»', async () => {
-    const { fixture } = await createFixture(item(), [throwError(() => problem(404, 'UPL_PKG_NOT_FOUND'))]);
+    const { fixture } = await createFixture(item(), [
+      throwError(() => problem(404, 'Загрузка не найдена', 'not_found', 'error.upl.pkg_not_found')),
+    ]);
 
-    expect(testId(fixture, 'upl-pkg-errors-load-error')[0].textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_NOT_FOUND'],
-    );
+    expect(testId(fixture, 'upl-pkg-errors-load-error')[0].textContent).toContain('Загрузка не найдена');
   });
 
   it('смена загрузки перечитывает ошибки', async () => {
@@ -364,7 +364,11 @@ describe('PackageCardComponent', () => {
 
   it('AC-13: отказ сервера с кодом загрузки — красная полоса текстом словаря', async () => {
     const { fixture, api } = await createFixture(item(), [of(errorsPage([]))], true);
-    api.apply.mockReturnValue(throwError(() => problem(409, 'UPL_PKG_NOT_VERIFIED', 'conflict')));
+    api.apply.mockReturnValue(
+      throwError(() =>
+        problem(409, 'Применить можно только проверенную загрузку', 'conflict', 'error.upl.pkg_not_verified'),
+      ),
+    );
 
     click(fixture, 'upl-pkg-apply');
 
@@ -375,13 +379,12 @@ describe('PackageCardComponent', () => {
 
   it('AC-12: отказ «нечего применять» — красная полоса текстом словаря', async () => {
     const { fixture, api } = await createFixture(item(), [of(errorsPage([]))], true);
-    api.apply.mockReturnValue(throwError(() => problem(409, 'UPL_PKG_NOTHING_TO_APPLY', 'conflict')));
+    const nothing = 'Применять нечего: в загрузке нет принятых строк';
+    api.apply.mockReturnValue(throwError(() => problem(409, nothing, 'conflict', 'error.upl.pkg_nothing_to_apply')));
 
     click(fixture, 'upl-pkg-apply');
 
-    expect(testId(fixture, 'upl-pkg-apply-error')[0].textContent).toContain(
-      PACKAGED_RUSSIAN['upl.err.UPL_PKG_NOTHING_TO_APPLY'],
-    );
+    expect(testId(fixture, 'upl-pkg-apply-error')[0].textContent).toContain(nothing);
   });
 
   it('AC-13: отказ без кода загрузки — общий текст «Не удалось применить загрузку»', async () => {

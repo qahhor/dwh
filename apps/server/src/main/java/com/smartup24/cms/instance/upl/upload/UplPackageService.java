@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
@@ -27,8 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 public class UplPackageService {
-
-    public static final String UPL_PKG_NOT_FOUND = "UPL_PKG_NOT_FOUND";
 
     private static final int MAX_LIMIT = 200;
 
@@ -56,7 +53,8 @@ public class UplPackageService {
     /** Пакет по идентификатору из API; строка не uuid или пакета нет — 404. */
     @Transactional(readOnly = true)
     public PackageRow get(String publicId) {
-        return find(toUuid(publicId)).orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, UPL_PKG_NOT_FOUND));
+        return find(toUuid(publicId))
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found"));
     }
 
     @Transactional(readOnly = true)
@@ -126,16 +124,12 @@ public class UplPackageService {
 
     private static UUID toUuid(String publicId) {
         if (publicId == null || publicId.isBlank()) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, UPL_PKG_NOT_FOUND);
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found");
         }
         try {
             return UUID.fromString(publicId);
         } catch (IllegalArgumentException notUuid) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, UPL_PKG_NOT_FOUND);
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found");
         }
-    }
-
-    private static ApiException invalidField(String field, String code) {
-        return ApiException.validation(code, List.of(new FieldErrorItem(field, code, code)));
     }
 }

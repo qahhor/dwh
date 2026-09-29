@@ -84,7 +84,8 @@ function invalid(...errors: Array<[field: string, code: string, message?: string
   return {
     status: 422,
     code: 'validation_failed',
-    detail: 'UPL_FORMAT_INVALID',
+    detail: 'Анкета не прошла проверку',
+    messageKey: 'error.upl.format_invalid',
     errors: errors.map(([field, code, message = 'x']) => ({ field, code, message })),
   };
 }
@@ -201,7 +202,12 @@ describe('FormatEditorComponent', () => {
 
   it('shows not found with a link to the list on 404 and a load error on a failure', async () => {
     const missing = await createFixture({
-      loadError: { status: 404, code: 'not_found', detail: 'UPL_FORMAT_NOT_FOUND' },
+      loadError: {
+        status: 404,
+        code: 'not_found',
+        detail: 'Источник или версия не найдены',
+        messageKey: 'error.upl.fnd_version_unknown',
+      },
     });
     const notFound = one(missing.fixture, 'upl-not-found');
     expect(notFound!.querySelector('a')!.getAttribute('href')).toBe('/upl/sources');
@@ -344,7 +350,12 @@ describe('FormatEditorComponent', () => {
 
   it('keeps unsaved edits on a stale version and drops them when the reload is confirmed', async () => {
     const { fixture, api, component, settle } = await createFixture({
-      saveError: { status: 409, code: 'CONFLICT', detail: 'STALE_VERSION' },
+      saveError: {
+        status: 409,
+        code: 'CONFLICT',
+        detail: 'Запись изменена другим пользователем. Обновите',
+        messageKey: 'error.upl.stale_version',
+      },
     });
 
     addValidColumn(fixture);
@@ -385,7 +396,12 @@ describe('FormatEditorComponent', () => {
 
   it('reports a date that does not fit under the field and a validation refusal in the summary', async () => {
     const late = await createFixture({
-      publishError: { status: 409, code: 'CONFLICT', detail: 'FND_VERSION_NOT_AFTER_PREVIOUS' },
+      publishError: {
+        status: 409,
+        code: 'CONFLICT',
+        detail: 'Дата должна быть позже даты прежней версии',
+        messageKey: 'error.upl.fnd_version_not_after_previous',
+      },
     });
     press(late.fixture, one(late.fixture, 'upl-publish'));
     press(late.fixture, one(late.fixture, 'upl-publish-confirm'));

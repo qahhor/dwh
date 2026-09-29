@@ -18,7 +18,7 @@ class UplErrorsTest {
     @Test
     @DisplayName("устаревший lockVersion — CONFLICT / STALE_VERSION")
     void staleVersion() {
-        assertApi(new StaleVersionException(), ErrorCode.CONFLICT, "STALE_VERSION");
+        assertApi(new StaleVersionException(), ErrorCode.CONFLICT, "error.upl.stale_version");
     }
 
     @Test
@@ -27,11 +27,11 @@ class UplErrorsTest {
         assertApi(
                 new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS),
                 ErrorCode.CONFLICT,
-                "FND_VERSION_DRAFT_EXISTS");
+                "error.upl.fnd_version_draft_exists");
         assertApi(
                 new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_CONFLICT),
                 ErrorCode.CONFLICT,
-                "FND_VERSION_DRAFT_EXISTS");
+                "error.upl.fnd_version_draft_exists");
     }
 
     @Test
@@ -40,7 +40,7 @@ class UplErrorsTest {
         assertApi(
                 new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_NOT_AFTER_PREVIOUS),
                 ErrorCode.CONFLICT,
-                "FND_VERSION_NOT_AFTER_PREVIOUS");
+                "error.upl.fnd_version_not_after_previous");
     }
 
     @Test
@@ -49,7 +49,7 @@ class UplErrorsTest {
         assertApi(
                 new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_UNKNOWN),
                 ErrorCode.NOT_FOUND,
-                "FND_VERSION_UNKNOWN");
+                "error.upl.fnd_version_unknown");
     }
 
     @Test
@@ -58,7 +58,7 @@ class UplErrorsTest {
         assertApi(
                 new DataIntegrityViolationException("x", new RuntimeException("ERROR: upl_format_not_draft")),
                 ErrorCode.CONFLICT,
-                "UPL_FORMAT_NOT_DRAFT");
+                "error.upl.format_not_draft");
     }
 
     @Test
@@ -73,7 +73,7 @@ class UplErrorsTest {
     private static void assertApi(RuntimeException source, ErrorCode code, String message) {
         assertThat(UplErrors.toApi(source)).isInstanceOfSatisfying(ApiException.class, e -> {
             assertThat(e.getErrorCode()).isEqualTo(code);
-            assertThat(e.getMessage()).isEqualTo(message);
+            assertThat(e.getMessageKey()).isEqualTo(message);
         });
     }
 }
