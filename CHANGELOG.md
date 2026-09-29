@@ -686,6 +686,29 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- One error model on the server (plan 10/10, item 3.1, ADR-0021). Every
+  error a request can end with is an `ApiException` (the fnd constraint
+  and coefficient errors joined it) carrying an `ErrorCode`, the catalog
+  key of its text (`error.<module>.<name>`) and the text's parameters;
+  the code that throws writes no sentence (about 330 texts moved to
+  ru/en/uz catalogs). The response `detail` is rendered in the request's
+  language (`Accept-Language`, then the system language, then Russian;
+  the packaged catalogs when the database cannot answer), and every
+  4xx/5xx, including the security, rate limit and idempotency answers, is
+  `application/problem+json` with `messageKey` and `params` and a status
+  that matches the response. Screens compare `messageKey` instead of the
+  text (exports, list views, UPL). `ErrorModelTest` and `ErrorTextsTest`
+  hold the rule. Bulk action results carry the key and text of each
+  failure.
+- Every foreign key has an index and custom field filters use the GIN
+  index (plan 10/10, item 3.7). 38 foreign keys had none (task parent,
+  user roles, user manager and authors, webhook logs and outbox, ...):
+  V128 indexes the small tables, V129 the large ones concurrently, and
+  `ForeignKeyIndexTest` keeps it so. Equality on a text or choice custom
+  field is written as `attributes @> {"code": value}`, which the GIN
+  index serves (projects and notes get theirs). Flyway runs a concurrent
+  index file outside a transaction and takes its lock at session level.
+
 - Web screens read through resources and their specs test one thing each
   (plan 10/10, item 2.4). Loads that were subscribed by hand only to fill
   signals are `rxResource`/`toSignal` in tasks, projects, settings, UPL,
@@ -922,6 +945,11 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Found while moving errors to catalog keys (plan 10/10, item 3.1): the
+  fnd constraint and coefficient errors answered 500; four notification
+  errors went out in double-encoded Russian; a duplicate key answered 409
+  with `status: 400` in the body; saved search settings rules were
+  reported as a generic 400 instead of the rule broken.
 - Found while moving loads to resources (plan 10/10, item 2.4): deleting
   the selected role left phantom unsaved changes that blocked leaving the
   page; a slow security summary could show the previous user; the project
