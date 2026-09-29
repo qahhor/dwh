@@ -1,7 +1,6 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  OnInit,
   Signal,
   TemplateRef,
   inject,
@@ -10,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { rxResource } from '@angular/core/rxjs-interop';
 import { FormField, form, maxLength, required } from '@angular/forms/signals';
 import { WebhooksApi } from './webhooks.api';
 import { ToastService } from '@core/services/toast.service';
@@ -58,7 +58,7 @@ const EMPTY_CREATE: WebhookCreateModel = { name: '', targetUrl: '' };
   templateUrl: './webhooks-settings.component.html',
   styleUrl: './webhooks-settings.component.css',
 })
-export class WebhooksSettingsComponent implements OnInit {
+export class WebhooksSettingsComponent {
   private readonly webhooks = inject(WebhooksApi);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
@@ -72,10 +72,7 @@ export class WebhooksSettingsComponent implements OnInit {
   private readonly statusCell = viewChild.required<TemplateRef<unknown>>('statusCell');
   private readonly actionsCell = viewChild.required<TemplateRef<unknown>>('actionsCell');
 
-  readonly subscriptions = signal<WebhookSubscription[]>([]);
-  readonly isLoading = signal<boolean>(false);
   readonly isSaving = signal<boolean>(false);
-  readonly loadError = signal<boolean>(false);
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly createdSecretModalOpen = signal<boolean>(false);
@@ -117,6 +114,14 @@ export class WebhooksSettingsComponent implements OnInit {
     };
   });
 
+  /** After a failed load the error banner replaces the list, so no stale rows are kept. */
+  readonly subscriptions = computed(() => {
+    const subs = this.subscriptionsResource.hasValue() ? this.subscriptionsResource.value() : [];
+    return Array.isArray(subs) ? subs : [];
+  });
+  readonly isLoading = computed(() => this.subscriptionsResource.isLoading());
+  readonly loadError = computed(() => this.subscriptionsResource.error() !== undefined);
+
   readonly canManageWebhooks = computed(() => this.permService.hasPermission('platform.webhooks', 'manage'));
 
   /** Every subscription is loaded, so a header click sorts the whole list. */
@@ -135,27 +140,14 @@ export class WebhooksSettingsComponent implements OnInit {
     maxLength(path.targetUrl, 500);
   });
 
+  private readonly subscriptionsResource = rxResource({ stream: () => this.webhooks.list() });
+
   selectedEvents = new Set<string>(['*']);
 
   readonly availableEvents: WebhookEventOption[] = AVAILABLE_WEBHOOK_EVENTS;
 
-  ngOnInit(): void {
-    this.loadSubscriptions();
-  }
-
   loadSubscriptions(): void {
-    this.isLoading.set(true);
-    this.loadError.set(false);
-    this.webhooks.list().subscribe({
-      next: (subs) => {
-        this.subscriptions.set(Array.isArray(subs) ? subs : []);
-        this.isLoading.set(false);
-      },
-      error: () => {
-        this.loadError.set(true);
-        this.isLoading.set(false);
-      },
-    });
+    this.subscriptionsResource.reload();
   }
 
   openCreateModal(): void {

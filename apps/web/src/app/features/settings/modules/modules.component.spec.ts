@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -106,6 +106,32 @@ describe('ModulesComponent', () => {
     fixture.componentInstance.toggleModule(systemModule, false);
 
     expect(toast.error).toHaveBeenCalled();
+  });
+
+  it('reloads on refresh and keeps the list on screen when the reload fails', async () => {
+    const { fixture, apiMock } = await createFixture();
+    const toast = TestBed.inject(ToastService);
+    apiMock.get.mockReturnValueOnce(throwError(() => ({ status: 503 })));
+
+    (fixture.nativeElement.querySelector('ui-page-header button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(apiMock.get).toHaveBeenCalledTimes(2);
+    expect(toast.error).toHaveBeenCalled();
+    expect(fixture.componentInstance.modules().length).toBe(2);
+    expect(fixture.componentInstance.isLoading()).toBe(false);
+  });
+
+  it('takes a toggle back when the server refuses it', async () => {
+    const { fixture, apiMock } = await createFixture();
+    apiMock.post.mockReturnValueOnce(throwError(() => ({ status: 500 })));
+
+    fixture.componentInstance.toggleModule(mockModules[1], false);
+
+    expect(fixture.componentInstance.modules()[1].isActive).toBe(true);
+    expect(fixture.componentInstance.togglingCode()).toBeNull();
+    expect(TestBed.inject(ToastService).error).toHaveBeenCalled();
   });
 
   it('toggles application module successfully with correct API payload', async () => {

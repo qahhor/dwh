@@ -1,5 +1,6 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Injectable, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { Observable, catchError, map, of, tap } from 'rxjs';
 import {
   CreateNavigationItemPayload,
   CustomNavigationItem,
@@ -23,35 +24,40 @@ export class NavigationSettingsStore {
   private readonly i18n = inject(I18nService);
   private readonly modal = inject(SMTModalService);
 
-  readonly items = signal<CustomNavigationItem[]>([]);
-  readonly isLoading = signal<boolean>(false);
+  /** A failed reload keeps the list on screen. */
+  readonly items = linkedSignal<CustomNavigationItem[] | undefined, CustomNavigationItem[]>({
+    source: () => this.itemsResource.value(),
+    computation: (loaded, previous) => loaded ?? previous?.value ?? [],
+  });
   readonly isSubmitting = signal<boolean>(false);
-  readonly permissionChoices = signal<NavigationPermissionChoice[]>([]);
 
+  readonly isLoading = computed(() => this.itemsResource.isLoading());
   readonly activeCount = computed(() => this.items().filter((i) => i.state === 'A').length);
   readonly embeddedCount = computed(() => this.items().filter((i) => i.targetType === 'EMBEDDED_IFRAME').length);
   readonly externalCount = computed(() => this.items().filter((i) => i.targetType === 'EXTERNAL_LINK').length);
 
   /** Without the list the item keeps its right: the select shows the stored pair only. */
-  loadPermissionChoices(): void {
-    this.navService.loadPermissionChoices().subscribe({
-      next: (choices) => this.permissionChoices.set(choices || []),
-      error: () => this.permissionChoices.set([]),
-    });
-  }
+  readonly permissionChoices = toSignal(
+    this.navService.loadPermissionChoices().pipe(
+      map((choices) => choices || []),
+      catchError(() => of<NavigationPermissionChoice[]>([])),
+    ),
+    { initialValue: [] },
+  );
+
+  private readonly itemsResource = rxResource({
+    stream: () =>
+      this.navService.loadAllItems().pipe(
+        map((data) => data || []),
+        catchError((err: unknown) => {
+          this.showError(err);
+          return of(undefined);
+        }),
+      ),
+  });
 
   loadItems(): void {
-    this.isLoading.set(true);
-    this.navService.loadAllItems().subscribe({
-      next: (data) => {
-        this.items.set(data || []);
-        this.isLoading.set(false);
-      },
-      error: (err: unknown) => {
-        this.showError(err);
-        this.isLoading.set(false);
-      },
-    });
+    this.itemsResource.reload();
   }
 
   /** `onSaved` runs before the list reloads. */

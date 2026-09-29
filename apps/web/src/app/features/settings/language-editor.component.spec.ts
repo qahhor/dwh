@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -43,9 +43,12 @@ describe('LanguageEditorComponent', () => {
     ],
   };
 
-  async function createFixture(putResult: object = { ...editor.language, revision: 5 }) {
+  async function createFixture(
+    putResult: object = { ...editor.language, revision: 5 },
+    loaded: Observable<TranslationEditor> = of(editor),
+  ) {
     const api = {
-      get: vi.fn(() => of(editor)),
+      get: vi.fn(() => loaded),
       put: vi.fn(() => (putResult instanceof Error ? throwError(() => putResult) : of(putResult))),
     };
     const i18n = {
@@ -79,6 +82,26 @@ describe('LanguageEditorComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Сохранить');
     expect(fixture.nativeElement.querySelector('[data-translation-key="feature.empty"]')).not.toBeNull();
     expect(fixture.nativeElement.querySelector('[data-status="missing"]')).not.toBeNull();
+  });
+
+  it('reports a failed load and loads again on retry', async () => {
+    const { fixture, api } = await createFixture(
+      undefined,
+      throwError(() => ({ status: 503 })),
+    );
+    expect(fixture.componentInstance.editor()).toBeNull();
+    const alert = fixture.nativeElement.querySelector('.editor-error') as HTMLElement;
+    expect(alert.textContent).toContain('Не удалось загрузить редактор переводов');
+
+    api.get.mockReturnValueOnce(of(editor));
+    (alert.querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.querySelector('.editor-error')).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Deutsch');
   });
 
   it('filters missing entries and tracks edited rows', async () => {
