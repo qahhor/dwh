@@ -4,7 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.JobStatus;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.repository.SearchGenerationRepository.FrozenGeneration;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import java.time.Duration;
 import java.util.List;
@@ -17,7 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Component
 public class SearchJobWorker implements AutoCloseable {
-    private final TypesenseClient client;
+    private final TypesenseCollections collections;
     private final SearchDeliveryWorker delivery;
     private final SearchIndexStateRepository state;
     private final SearchJobRepository jobs;
@@ -35,7 +35,7 @@ public class SearchJobWorker implements AutoCloseable {
 
     @Autowired
     public SearchJobWorker(
-            TypesenseClient client,
+            TypesenseCollections collections,
             SearchDeliveryWorker delivery,
             SearchIndexStateRepository state,
             SearchJobRepository jobs,
@@ -45,12 +45,12 @@ public class SearchJobWorker implements AutoCloseable {
             SearchReconciliationService reconciliation,
             SearchStoragePreflight storage,
             Optional<SearchMetrics> metrics) {
-        this(client, delivery, state, jobs, generations, generationService, service, reconciliation, storage);
+        this(collections, delivery, state, jobs, generations, generationService, service, reconciliation, storage);
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
     public SearchJobWorker(
-            TypesenseClient client,
+            TypesenseCollections collections,
             SearchDeliveryWorker delivery,
             SearchIndexStateRepository state,
             SearchJobRepository jobs,
@@ -59,7 +59,7 @@ public class SearchJobWorker implements AutoCloseable {
             SearchJobService service,
             SearchReconciliationService reconciliation,
             SearchStoragePreflight storage) {
-        this.client = client;
+        this.collections = collections;
         this.delivery = delivery;
         this.state = state;
         this.jobs = jobs;
@@ -80,7 +80,7 @@ public class SearchJobWorker implements AutoCloseable {
             throw new IllegalTransactionStateException("Search jobs cannot run in a business transaction");
         if (closed
                 || owner == null
-                || !client.isEnabled()
+                || !collections.isEnabled()
                 || Thread.currentThread().isInterrupted()) return;
         if (!state.owns(owner)) {
             discardProof();
@@ -91,9 +91,9 @@ public class SearchJobWorker implements AutoCloseable {
                         .map(job -> !List.of("VERIFYING", "ACTIVATING").contains(job.state()))
                         .orElse(true)) discardProof();
         if (!state.snapshot().initialized() && !jobs.anyJobExists()) {
-            boolean legacy = client.collectionExists(TypesenseClient.COL_TASKS)
-                    && client.collectionExists(TypesenseClient.COL_PROJECTS)
-                    && client.collectionExists(TypesenseClient.COL_USERS);
+            boolean legacy = collections.collectionExists(TypesenseCollections.COL_TASKS)
+                    && collections.collectionExists(TypesenseCollections.COL_PROJECTS)
+                    && collections.collectionExists(TypesenseCollections.COL_USERS);
             service.initialize(owner, legacy);
         }
         var claimed = jobs.claim(owner);
@@ -103,85 +103,7 @@ public class SearchJobWorker implements AutoCloseable {
         }
         JobStatus job = claimed.get();
         try {
-            if (proofJob != null && !proofJob.equals(job.id())) discardProof();
-            var generation = generations.find(job.generationId()).orElseThrow();
-            boolean check = job.action().equals("CHECK");
-            if (!check && generation.schemaVersion() != 1) {
-                service.failOwned(job, owner, "GENERATION_REQUIRES_REBUILD");
-                return;
-            }
-            if (job.action().equals("ROLLBACK") && !generation.state().equals("RETAINED")) {
-                service.failOwned(job, owner, "GENERATION_NOT_RETAINED");
-                return;
-            }
-            if (job.state().equals("RUNNING")) {
-                if (!check) {
-                    storage.requireSpace();
-                    for (String type : List.of("TASK", "PROJECT", "USER"))
-                        client.ensureCollection(generation.collections().get(type), type, generation.schemaProfile());
-                    if (!generation.discoveryEntity().equals("DONE")) {
-                        state.discoverPage(generation.delivery(state.snapshot().version()), owner, 100);
-                        jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
-                        return;
-                    }
-                    delivery.runGeneration(generation.delivery(state.snapshot().version()));
-                    if (generations.exhausted(generation.id()) > 0) {
-                        service.failOwned(job, owner, "DELIVERY_RETRIES_EXHAUSTED");
-                        return;
-                    }
-                    if (generations.pending(generation.id()) > 0) {
-                        jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
-                        return;
-                    }
-                }
-                frozen = generation;
-                expectedVersion = state.snapshot().version();
-                proof = reconciliation.begin(generation.delivery(expectedVersion));
-                proofJob = job.id();
-                if (!jobs.checkpoint(job.id(), owner, "VERIFYING", generations.processed(generation.id()), 0, null))
-                    discardProof();
-                return;
-            }
-            if (proof == null) {
-                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
-                return;
-            }
-            if (job.state().equals("ACTIVATING")) {
-                if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
-                    jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
-                discardProof();
-                return;
-            }
-            boolean complete = proof.advance();
-            if (!jobs.checkpoint(
-                    job.id(),
-                    owner,
-                    "VERIFYING",
-                    Math.max(job.processedCount(), proof.processed()),
-                    0,
-                    complete ? proof.summary() : null)) {
-                discardProof();
-                return;
-            }
-            if (!complete) return;
-            if (check) {
-                if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
-                    jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
-                discardProof();
-                return;
-            }
-            if (!proof.revisionsUnchanged() || proof.summary().pending() > 0) {
-                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, proof.summary());
-                discardProof();
-                return;
-            }
-            if (!proof.summary().successful()) {
-                service.failOwned(job, owner, "RECONCILIATION_MISMATCH");
-                discardProof();
-                return;
-            }
-            if (!jobs.checkpoint(job.id(), owner, "ACTIVATING", job.processedCount(), 0, proof.summary()))
-                discardProof();
+            advance(job);
         } catch (RuntimeException failure) {
             try {
                 if (!Thread.currentThread().isInterrupted()) service.failOwned(job, owner, safeFailure(failure));
@@ -189,21 +111,115 @@ public class SearchJobWorker implements AutoCloseable {
                 discardProof();
             }
         } finally {
-            if (state.owns(owner))
-                jobs.find(job.id())
-                        .filter(updated -> !updated.state().equals(job.state()))
-                        .ifPresent(updated -> {
-                            if (List.of("SUCCEEDED", "FAILED", "CANCELLED").contains(updated.state())) discardProof();
-                            metrics.job(
-                                    updated.action(),
-                                    updated.state(),
-                                    updated.finishedAt() == null
-                                            ? null
-                                            : Duration.between(updated.createdAt(), updated.finishedAt()));
-                            if (updated.state().equals("SUCCEEDED")
-                                    && !updated.action().equals("CHECK")) metrics.switched(updated.action());
-                        });
+            recordTransition(job);
         }
+    }
+
+    /** One step of the claimed job: deliver, begin the proof, verify one page, or activate. */
+    private void advance(JobStatus job) {
+        if (proofJob != null && !proofJob.equals(job.id())) discardProof();
+        var generation = generations.find(job.generationId()).orElseThrow();
+        boolean check = job.action().equals("CHECK");
+        if (!check && generation.schemaVersion() != 1) {
+            service.failOwned(job, owner, "GENERATION_REQUIRES_REBUILD");
+            return;
+        }
+        if (job.action().equals("ROLLBACK") && !generation.state().equals("RETAINED")) {
+            service.failOwned(job, owner, "GENERATION_NOT_RETAINED");
+            return;
+        }
+        if (job.state().equals("RUNNING")) {
+            if (!check && !delivered(job, generation)) return;
+            frozen = generation;
+            expectedVersion = state.snapshot().version();
+            proof = reconciliation.begin(generation.delivery(expectedVersion));
+            proofJob = job.id();
+            if (!jobs.checkpoint(job.id(), owner, "VERIFYING", generations.processed(generation.id()), 0, null))
+                discardProof();
+            return;
+        }
+        if (proof == null) {
+            jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
+            return;
+        }
+        if (job.state().equals("ACTIVATING")) {
+            if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
+                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
+            discardProof();
+            return;
+        }
+        verify(job, check);
+    }
+
+    /** True once every document of the generation is delivered; otherwise this cycle's step is done. */
+    private boolean delivered(JobStatus job, FrozenGeneration generation) {
+        storage.requireSpace();
+        for (String type : List.of("TASK", "PROJECT", "USER"))
+            collections.ensureCollection(generation.collections().get(type), type, generation.schemaProfile());
+        if (!generation.discoveryEntity().equals("DONE")) {
+            state.discoverPage(generation.delivery(state.snapshot().version()), owner, 100);
+            jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
+            return false;
+        }
+        delivery.runGeneration(generation.delivery(state.snapshot().version()));
+        if (generations.exhausted(generation.id()) > 0) {
+            service.failOwned(job, owner, "DELIVERY_RETRIES_EXHAUSTED");
+            return false;
+        }
+        if (generations.pending(generation.id()) > 0) {
+            jobs.checkpoint(job.id(), owner, "RUNNING", generations.processed(generation.id()), 0, null);
+            return false;
+        }
+        return true;
+    }
+
+    private void verify(JobStatus job, boolean check) {
+        boolean complete = proof.advance();
+        if (!jobs.checkpoint(
+                job.id(),
+                owner,
+                "VERIFYING",
+                Math.max(job.processedCount(), proof.processed()),
+                0,
+                complete ? proof.summary() : null)) {
+            discardProof();
+            return;
+        }
+        if (!complete) return;
+        if (check) {
+            if (!generationService.finish(proof, frozen, job, owner, expectedVersion))
+                jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, null);
+            discardProof();
+            return;
+        }
+        if (!proof.revisionsUnchanged() || proof.summary().pending() > 0) {
+            jobs.checkpoint(job.id(), owner, "RUNNING", job.processedCount(), 0, proof.summary());
+            discardProof();
+            return;
+        }
+        if (!proof.summary().successful()) {
+            service.failOwned(job, owner, "RECONCILIATION_MISMATCH");
+            discardProof();
+            return;
+        }
+        if (!jobs.checkpoint(job.id(), owner, "ACTIVATING", job.processedCount(), 0, proof.summary())) discardProof();
+    }
+
+    private void recordTransition(JobStatus job) {
+        if (state.owns(owner))
+            jobs.find(job.id())
+                    .filter(updated -> !updated.state().equals(job.state()))
+                    .ifPresent(updated -> {
+                        if (List.of("SUCCEEDED", "FAILED", "CANCELLED").contains(updated.state())) discardProof();
+                        metrics.job(
+                                updated.action(),
+                                updated.state(),
+                                updated.finishedAt() == null
+                                        ? null
+                                        : Duration.between(updated.createdAt(), updated.finishedAt()));
+                        if (updated.state().equals("SUCCEEDED")
+                                && !updated.action().equals("CHECK")) metrics.switched(updated.action());
+                    });
     }
 
     private static String safeFailure(RuntimeException failure) {

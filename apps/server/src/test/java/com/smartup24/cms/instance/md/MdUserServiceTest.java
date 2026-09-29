@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordHasher;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
@@ -42,10 +43,17 @@ class MdUserServiceTest {
             customFieldService,
             passwordHasher,
             passwordValidator,
-            sessionInvalidator,
             searchChangePublisher,
             auditLogService,
             scopeService);
+
+    private final MdUserSecurityService userSecurityService = new MdUserSecurityService(
+            userRepository,
+            passwordHasher,
+            passwordValidator,
+            sessionInvalidator,
+            searchChangePublisher,
+            auditLogService);
 
     @Test
     @DisplayName("Блокировка суперпользователя admin должна отклоняться инвариантом I-IAM-1")
@@ -74,7 +82,7 @@ class MdUserServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
 
-        assertThatThrownBy(() -> userService.setUserState(1L, MdPref.STATE_PASSIVE, 1L))
+        assertThatThrownBy(() -> userSecurityService.setUserState(1L, MdPref.STATE_PASSIVE, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.admin_block_forbidden");
     }
@@ -106,7 +114,7 @@ class MdUserServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(adminUser));
 
-        assertThatThrownBy(() -> userService.anonymizeUser(1L, 1L))
+        assertThatThrownBy(() -> userSecurityService.anonymizeUser(1L, 1L))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.admin_delete_forbidden");
     }
@@ -227,7 +235,7 @@ class MdUserServiceTest {
         when(passwordHasher.verifyPassword("WrongOldPassword!", "$argon2id$hashed"))
                 .thenReturn(false);
 
-        assertThatThrownBy(() -> userService.changePassword(2L, 0, "WrongOldPassword!", "NewValidPass2026!"))
+        assertThatThrownBy(() -> userSecurityService.changePassword(2L, 0, "WrongOldPassword!", "NewValidPass2026!"))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.current_password_invalid");
     }
@@ -259,7 +267,7 @@ class MdUserServiceTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
 
-        userService.anonymizeUser(2L, 1L);
+        userSecurityService.anonymizeUser(2L, 1L);
 
         Mockito.verify(userRepository).anonymizeUser(2L, 1L);
         Mockito.verify(sessionInvalidator).invalidateAllAccess(2L);

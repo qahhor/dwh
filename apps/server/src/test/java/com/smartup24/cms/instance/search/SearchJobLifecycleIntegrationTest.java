@@ -98,13 +98,14 @@ class SearchJobLifecycleIntegrationTest extends SearchDeliveryTestSupport {
                 .param("id", retained)
                 .update();
         for (String type : List.of("TASK", "PROJECT", "USER"))
-            client.ensureCollection(
-                    generationRepository
-                            .find(retained)
-                            .orElseThrow()
-                            .collections()
-                            .get(type),
-                    type);
+            client.collections()
+                    .ensureCollection(
+                            generationRepository
+                                    .find(retained)
+                                    .orElseThrow()
+                                    .collections()
+                                    .get(type),
+                            type);
         activeGeneration();
         long id = user("Rollback retry");
         jdbc.sql(

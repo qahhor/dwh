@@ -34,6 +34,7 @@ import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
@@ -113,6 +114,9 @@ class SecurityConfigTest {
 
     @MockitoBean
     MdUserService userService;
+
+    @MockitoBean
+    MdUserSecurityService userSecurityService;
 
     @MockitoBean
     MdPermissionService permissionService;
@@ -216,7 +220,7 @@ class SecurityConfigTest {
         mvc.perform(request)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("csrf_token_invalid"));
-        verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+        verify(userSecurityService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
     }
 
     @ParameterizedTest(name = "cookie fallback with {0} Bearer accepts the matching CSRF pair")
@@ -267,7 +271,7 @@ class SecurityConfigTest {
         }
         mvc.perform(request).andExpect(status().is(expectedStatus));
         if (expectedStatus == 403) {
-            verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+            verify(userSecurityService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
         }
     }
 
@@ -281,7 +285,7 @@ class SecurityConfigTest {
         mvc.perform(request)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("csrf_token_invalid"));
-        verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+        verify(userSecurityService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
     }
 
     @Test
@@ -289,7 +293,7 @@ class SecurityConfigTest {
         mvc.perform(passwordMutation())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("unauthorized"));
-        verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+        verify(userSecurityService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
     }
 
     @ParameterizedTest
@@ -328,9 +332,9 @@ class SecurityConfigTest {
         if (matchingCsrf) request.header("X-XSRF-TOKEN", "existing-csrf");
         mvc.perform(request).andExpect(status().is(matchingCsrf ? 204 : 403));
         if (matchingCsrf) {
-            verify(userService).changePassword(7L, 0, "OldPass-2026", "NewPass-2026!");
+            verify(userSecurityService).changePassword(7L, 0, "OldPass-2026", "NewPass-2026!");
         } else {
-            verify(userService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
+            verify(userSecurityService, never()).changePassword(anyLong(), anyLong(), anyString(), anyString());
         }
     }
 

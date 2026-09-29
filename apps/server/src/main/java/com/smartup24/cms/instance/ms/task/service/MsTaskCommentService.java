@@ -17,6 +17,7 @@ public class MsTaskCommentService {
 
     private final MsTaskCommentRepository commentRepository;
     private final MsTaskService taskService;
+    private final MsTaskMemberService memberService;
     private final MfFileService fileService;
 
     private final ApplicationEventPublisher eventPublisher;
@@ -25,11 +26,13 @@ public class MsTaskCommentService {
     public MsTaskCommentService(
             MsTaskCommentRepository commentRepository,
             MsTaskService taskService,
+            MsTaskMemberService memberService,
             MfFileService fileService,
             ApplicationEventPublisher eventPublisher,
             AuditLogService auditLogService) {
         this.commentRepository = commentRepository;
         this.taskService = taskService;
+        this.memberService = memberService;
         this.fileService = fileService;
         this.eventPublisher = eventPublisher;
         this.auditLogService = auditLogService;
@@ -44,10 +47,10 @@ public class MsTaskCommentService {
             }
         }
         var comment = commentRepository.create(taskId, userId, textMarkdown, fileIds);
-        taskService.markViewed(taskId, userId);
+        memberService.markViewed(taskId, userId);
 
         // FR-TASK-8: участники узнают о комментарии; автор себя не уведомляет
-        var recipients = taskService.getTaskMembers(taskId).stream()
+        var recipients = memberService.getTaskMembers(taskId).stream()
                 .map(m -> m.userId())
                 .distinct()
                 .toList();

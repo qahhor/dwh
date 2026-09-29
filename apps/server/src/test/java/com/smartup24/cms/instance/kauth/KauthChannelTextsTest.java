@@ -5,11 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
-import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.service.KauthChannelTexts;
 import com.smartup24.cms.instance.kauth.service.KauthPasswordHasher;
-import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdI18nRepository;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
@@ -67,7 +64,6 @@ class KauthChannelTextsTest {
                 new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
-                new KauthUserSessionInvalidator(new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
                 Mockito.mock(SearchChangePublisher.class),
                 audit,
                 scopes);

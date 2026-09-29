@@ -38,11 +38,11 @@ import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserListService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
 import com.smartup24.cms.instance.md.service.PasswordHasher;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
-import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
@@ -269,7 +269,6 @@ class MdIamWireFormatTest {
                 mock(MdCustomFieldService.class),
                 mock(PasswordHasher.class),
                 mock(PasswordValidator.class),
-                mock(UserSessionInvalidator.class),
                 mock(SearchChangePublisher.class),
                 audit,
                 scope);
@@ -284,7 +283,7 @@ class MdIamWireFormatTest {
                         eq("ann"),
                         eq(new UserListFilters("A", 3L, 9L, true))))
                 .thenReturn(new KeysetPage<>(List.of(view), "next", true, 1));
-        MockMvc mvc = mvc(new MdUserController(userService, listService));
+        MockMvc mvc = mvc(new MdUserController(userService, mock(MdUserSecurityService.class), listService));
 
         assertThat(keys(json(mvc, get("/api/v1/iam/users/42"), 200))).isEqualTo(USER);
         assertThat(keys(json(

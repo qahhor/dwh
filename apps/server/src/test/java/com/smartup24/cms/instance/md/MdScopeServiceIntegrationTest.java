@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.instance.md.repository.MdUserListSql;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
@@ -20,6 +21,7 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.MfFileQuery;
+import com.smartup24.cms.instance.ms.task.repository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
 import com.smartup24.cms.instance.support.TestDatabases;
@@ -213,7 +215,7 @@ class MdScopeServiceIntegrationTest {
 
         var visible =
                 userList
-                        .page(viewer, 100, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                        .page(viewer, 100, null, null, null, null, MdUserListSql.LegacyUserFilters.none())
                         .items()
                         .stream()
                         .map(MdUserRepository.UserRecord::id)
@@ -237,7 +239,7 @@ class MdScopeServiceIntegrationTest {
 
         var visible =
                 userList
-                        .page(admin, 200, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                        .page(admin, 200, null, null, null, null, MdUserListSql.LegacyUserFilters.none())
                         .items()
                         .stream()
                         .map(MdUserRepository.UserRecord::id)
@@ -352,7 +354,7 @@ class MdScopeServiceIntegrationTest {
 
         var taskScope = scopeService.filterForTasks(viewer);
         var taskIds = new MsTaskListService(new QueryListRepository(jdbc), taskRepository, scopeService)
-                .page(viewer, 100, null, null, null, null, MsTaskRepository.LegacyTaskFilters.none()).items().stream()
+                .page(viewer, 100, null, null, null, null, LegacyTaskFilters.none()).items().stream()
                         .map(MsTaskRepository.TaskRecord::id)
                         .toList();
         assertThat(taskIds).contains(visibleTask).doesNotContain(hiddenTask);

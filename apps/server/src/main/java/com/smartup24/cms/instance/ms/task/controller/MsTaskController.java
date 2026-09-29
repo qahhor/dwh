@@ -2,63 +2,61 @@ package com.smartup24.cms.instance.ms.task.controller;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.common.bulk.BulkItemScope;
-import com.smartup24.cms.instance.common.bulk.BulkRunner;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.ms.task.api.AttachFileRequest;
 import com.smartup24.cms.instance.ms.task.api.ChangeStatusRequest;
-import com.smartup24.cms.instance.ms.task.api.CreateStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.CreateTaskRequest;
-import com.smartup24.cms.instance.ms.task.api.CreateTypeRequest;
 import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
 import com.smartup24.cms.instance.ms.task.api.TaskDetail;
-import com.smartup24.cms.instance.ms.task.api.TaskFileView;
 import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
-import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
-import com.smartup24.cms.instance.ms.task.api.TaskTypeView;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
-import com.smartup24.cms.instance.ms.task.api.UpdateStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.UpdateTaskRequest;
-import com.smartup24.cms.instance.ms.task.api.UpdateTypeRequest;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
+import com.smartup24.cms.instance.ms.task.service.MsTaskBulkService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskListService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskMemberService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskReadService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskWorkflowService;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
-import org.jspecify.annotations.Nullable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+/** Tasks: the list, the card and the commands on a task. Statuses and files have their own controllers. */
 @RestController
 @RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
 public class MsTaskController {
 
-    private static final List<String> PRIORITIES = List.of(
-            MsTaskPref.PRIORITY_LOW,
-            MsTaskPref.PRIORITY_MEDIUM,
-            MsTaskPref.PRIORITY_HIGH,
-            MsTaskPref.PRIORITY_CRITICAL);
-
     private final MsTaskService taskService;
+    private final MsTaskReadService readService;
     private final MsTaskListService taskListService;
+    private final MsTaskMemberService memberService;
+    private final MsTaskWorkflowService workflowService;
+    private final MsTaskBulkService bulkService;
 
-    private final @Nullable BulkItemScope bulkItems;
-
-    public MsTaskController(MsTaskService taskService, MsTaskListService taskListService) {
-        this(taskService, taskListService, null);
-    }
-
-    @Autowired
     public MsTaskController(
-            MsTaskService taskService, MsTaskListService taskListService, @Nullable BulkItemScope bulkItems) {
+            MsTaskService taskService,
+            MsTaskReadService readService,
+            MsTaskListService taskListService,
+            MsTaskMemberService memberService,
+            MsTaskWorkflowService workflowService,
+            MsTaskBulkService bulkService) {
         this.taskService = taskService;
+        this.readService = readService;
         this.taskListService = taskListService;
-        this.bulkItems = bulkItems;
+        this.memberService = memberService;
+        this.workflowService = workflowService;
+        this.bulkService = bulkService;
     }
 
     @GetMapping
@@ -91,131 +89,36 @@ public class MsTaskController {
                         projectId, statusId, priority, hideTerminal, assignedUserId, memberRole, reporterId, overdue)));
     }
 
-    // =========================================================================
-    // Statuses API
-    @GetMapping("/statuses")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<TaskStatusView>> listStatuses() {
-        return ResponseEntity.ok(taskService.listStatuses());
-    }
-
-    @PostMapping("/statuses")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
-    public ResponseEntity<TaskStatusView> createStatus(@Valid @RequestBody CreateStatusRequest body) {
-        var status =
-                taskService.createStatus(body.pcode(), body.name(), body.color(), body.orderNo(), body.isTerminal());
-        return ResponseEntity.status(HttpStatus.CREATED).body(status);
-    }
-
-    @PatchMapping("/statuses/{id}")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> updateStatus(@PathVariable("id") Long id, @RequestBody UpdateStatusRequest body) {
-        taskService.updateStatusRecord(id, body.name(), body.color(), body.orderNo(), body.isTerminal());
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/statuses/{id}")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> deleteStatus(@PathVariable("id") Long id) {
-        taskService.deleteStatus(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/statuses/reorder")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> reorderStatuses(@RequestBody List<Long> orderedIds) {
-        taskService.reorderStatuses(orderedIds);
-        return ResponseEntity.noContent().build();
-    }
-
-    // =========================================================================
-    // Types API
-    // =========================================================================
-    @GetMapping("/types")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<TaskTypeView>> listTypes() {
-        return ResponseEntity.ok(taskService.listTypes());
-    }
-
-    @PostMapping("/types")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
-    public ResponseEntity<TaskTypeView> createType(@Valid @RequestBody CreateTypeRequest body) {
-        var type = taskService.createType(body.code(), body.name(), body.icon(), body.color(), body.orderNo());
-        return ResponseEntity.status(HttpStatus.CREATED).body(type);
-    }
-
-    @PatchMapping("/types/{id}")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> updateType(@PathVariable("id") Long id, @RequestBody UpdateTypeRequest body) {
-        taskService.updateType(id, body.name(), body.icon(), body.color(), body.orderNo());
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/types/{id}")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> deleteType(@PathVariable("id") Long id) {
-        taskService.deleteType(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/types/reorder")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> reorderTypes(@RequestBody List<Long> orderedIds) {
-        taskService.reorderTypes(orderedIds);
-        return ResponseEntity.noContent().build();
-    }
-
-    // =========================================================================
-    // Project Stats API
-    // =========================================================================
     @GetMapping("/projects/stats")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<ProjectTaskStatsView>> getProjectStats() {
-        return ResponseEntity.ok(taskService.getProjectTaskStats(SecurityContext.getCurrentUserId()));
+        return ResponseEntity.ok(readService.getProjectTaskStats(SecurityContext.getCurrentUserId()));
     }
 
-    // =========================================================================
-    // Task Details & Subtasks
-    // =========================================================================
+    /** The card; reading it changes nothing (the client reports the view with {@code POST /{id}/view}). */
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<TaskDetail> getTask(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(taskService.getTaskDetail(id, SecurityContext.getCurrentUserId()));
+        return ResponseEntity.ok(readService.getTaskDetail(id, SecurityContext.getCurrentUserId()));
     }
 
-    @GetMapping("/{id}/files")
+    /** The current user has seen the task: clears its "new" mark for this user. */
+    @PostMapping("/{id}/view")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
-    public ResponseEntity<List<TaskFileView>> getTaskFiles(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(taskService.listTaskFiles(id, SecurityContext.getCurrentUserId()));
-    }
-
-    @PostMapping("/{id}/files")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> attachFile(@PathVariable("id") Long id, @RequestBody AttachFileRequest body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        taskService.attachFile(id, body.fileId(), currentUserId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @DeleteMapping("/{id}/files/{fileId}")
-    @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
-    public ResponseEntity<Void> detachFile(@PathVariable("id") Long id, @PathVariable("fileId") UUID fileId) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        taskService.detachFile(id, fileId, currentUserId);
+    public ResponseEntity<Void> markViewed(@PathVariable("id") Long id) {
+        memberService.markViewed(id, SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/subtasks")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<TaskView>> getSubtasks(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(taskService.getSubtasks(id, SecurityContext.getCurrentUserId()));
+        return ResponseEntity.ok(readService.getSubtasks(id, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
     public ResponseEntity<TaskView> createTask(@Valid @RequestBody CreateTaskRequest body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-
         var task = taskService.createTask(
                 body.projectId(),
                 body.parentTaskId(),
@@ -228,67 +131,29 @@ public class MsTaskController {
                 body.attributes(),
                 body.beginTime(),
                 body.endTime(),
-                currentUserId);
-
+                SecurityContext.getCurrentUserId());
         return ResponseEntity.status(HttpStatus.CREATED).body(task);
     }
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     public ResponseEntity<Void> updateTask(@PathVariable("id") Long id, @RequestBody UpdateTaskRequest body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-
-        taskService.updateTask(id, body, currentUserId);
-
+        taskService.updateTask(id, body, SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Массовое действие над выбранными задачами. Каждая задача меняется той же одиночной операцией, что
-     * и из карточки, в своей транзакции: скоуп, проверка статуса и аудит — её; ответ — итог по каждой задаче.
-     * <ul>
-     *   <li>{@code status}, {@code params.statusId} — сменить статус;</li>
-     *   <li>{@code priority}, {@code params.priority} — сменить приоритет.</li>
-     * </ul>
-     */
+    /** A bulk action over the selected tasks; the service checks the action and its parameters. */
     @PostMapping("/bulk")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     public ResponseEntity<BulkResult> bulk(@RequestBody BulkRequest body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        List<Long> ids = BulkRunner.checkedIds(body);
-        String action = body.action() == null ? "" : body.action();
-        return switch (action) {
-            case "status" -> {
-                long statusId = body.params() == null
-                        ? 0
-                        : body.params().path("statusId").asLong(0);
-                if (taskService.listStatuses().stream()
-                        .noneMatch(status -> Long.valueOf(statusId).equals(status.id()))) {
-                    throw BulkRunner.invalidParam("statusId", "unknown status");
-                }
-                yield ResponseEntity.ok(BulkRunner.run(
-                        action, ids, id -> taskService.changeStatus(id, statusId, currentUserId), bulkItems));
-            }
-            case "priority" -> {
-                String priority = body.params() == null
-                        ? ""
-                        : body.params().path("priority").asString("");
-                if (!PRIORITIES.contains(priority)) {
-                    throw BulkRunner.invalidParam("priority", "one of " + PRIORITIES);
-                }
-                yield ResponseEntity.ok(BulkRunner.run(
-                        action, ids, id -> taskService.changePriority(id, priority, currentUserId), bulkItems));
-            }
-            default -> throw BulkRunner.unknownAction(action);
-        };
+        return ResponseEntity.ok(bulkService.run(body, SecurityContext.getCurrentUserId()));
     }
 
     @PostMapping("/{id}/status")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     public ResponseEntity<Void> changeStatus(
             @PathVariable("id") Long id, @Valid @RequestBody ChangeStatusRequest body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-        taskService.changeStatus(id, body.statusId(), body.expectedRevision(), currentUserId);
+        workflowService.changeStatus(id, body.statusId(), body.expectedRevision(), SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 }

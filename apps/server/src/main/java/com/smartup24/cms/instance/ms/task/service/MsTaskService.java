@@ -1,111 +1,63 @@
 package com.smartup24.cms.instance.ms.task.service;
 
+import static com.smartup24.cms.instance.ms.task.service.MsTaskPatchRules.normalizePriority;
+
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
-import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.MsTaskPatch;
-import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
-import com.smartup24.cms.instance.ms.task.api.TaskDetail;
-import com.smartup24.cms.instance.ms.task.api.TaskFileView;
-import com.smartup24.cms.instance.ms.task.api.TaskMemberView;
-import com.smartup24.cms.instance.ms.task.api.TaskStatusView;
-import com.smartup24.cms.instance.ms.task.api.TaskTypeView;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.api.UpdateTaskRequest;
 import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
-import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
+import com.smartup24.cms.instance.ms.task.repository.MsTaskTreeRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * The task itself: create it, change its fields, read it in the user's scope. Participants, files, statuses and the
+ * card live in their own services ({@link MsTaskMemberService}, {@link MsTaskFileService},
+ * {@link MsTaskWorkflowService}, {@link MsTaskReadService}).
+ */
 @Service
 public class MsTaskService {
 
     private final MsTaskRepository taskRepository;
-    private final MsTaskStatusRepository statusRepository;
-    private final MsTaskTypeRepository typeRepository;
-    private final MsTaskMemberRepository memberRepository;
-    private final MsProjectRepository projectRepository;
+    private final MsTaskTreeRepository treeRepository;
     private final MdCustomFieldService customFieldService;
-    private final MdScopeService scopeService;
-    private final MfFileService fileService;
+    private final MsTaskAccess access;
+    private final MsTaskMemberService memberService;
+    private final MsTaskStatusService statusService;
     private final ApplicationEventPublisher eventPublisher;
     private final SearchChangePublisher searchChangePublisher;
-    private final AuditLogService auditLogService;
-    private final MsTaskStatusService statusService;
+    private final MsTaskAuditTrail auditTrail;
 
-    @Autowired
     public MsTaskService(
             MsTaskRepository taskRepository,
-            MsTaskStatusRepository statusRepository,
-            MsTaskTypeRepository typeRepository,
-            MsTaskMemberRepository memberRepository,
-            MsProjectRepository projectRepository,
+            MsTaskTreeRepository treeRepository,
             MdCustomFieldService customFieldService,
-            MdScopeService scopeService,
-            MfFileService fileService,
+            MsTaskAccess access,
+            MsTaskMemberService memberService,
+            MsTaskStatusService statusService,
             ApplicationEventPublisher eventPublisher,
             SearchChangePublisher searchChangePublisher,
-            AuditLogService auditLogService,
-            MsTaskStatusService statusService) {
+            MsTaskAuditTrail auditTrail) {
         this.taskRepository = taskRepository;
-        this.statusRepository = statusRepository;
-        this.typeRepository = typeRepository;
-        this.memberRepository = memberRepository;
-        this.projectRepository = projectRepository;
+        this.treeRepository = treeRepository;
         this.customFieldService = customFieldService;
-        this.scopeService = scopeService;
-        this.fileService = fileService;
+        this.access = access;
+        this.memberService = memberService;
+        this.statusService = statusService;
         this.eventPublisher = eventPublisher;
         this.searchChangePublisher = searchChangePublisher;
-        this.auditLogService = auditLogService;
-        this.statusService = statusService;
-    }
-
-    public MsTaskService(
-            MsTaskRepository taskRepository,
-            MsTaskStatusRepository statusRepository,
-            MsTaskTypeRepository typeRepository,
-            MsTaskMemberRepository memberRepository,
-            MsProjectRepository projectRepository,
-            MdCustomFieldService customFieldService,
-            MdScopeService scopeService,
-            MfFileService fileService,
-            ApplicationEventPublisher eventPublisher,
-            SearchChangePublisher searchChangePublisher,
-            AuditLogService auditLogService) {
-        this(
-                taskRepository,
-                statusRepository,
-                typeRepository,
-                memberRepository,
-                projectRepository,
-                customFieldService,
-                scopeService,
-                fileService,
-                eventPublisher,
-                searchChangePublisher,
-                auditLogService,
-                new MsTaskStatusService(statusRepository, typeRepository, searchChangePublisher, auditLogService));
+        this.auditTrail = auditTrail;
     }
 
     @Transactional
@@ -122,34 +74,18 @@ public class MsTaskService {
             Instant beginTime,
             Instant endTime,
             Long reporterId) {
-
-        if (projectId != null) {
-            ApiException.requirePresent(
-                    projectRepository.findById(projectId), () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
-        }
-
+        access.requireProject(projectId);
         if (parentTaskId != null) {
-            getTaskById(parentTaskId, reporterId);
+            access.find(parentTaskId, reporterId);
         }
-
-        validateParticipant(reporterId, responsibleUserId);
-        validateParticipants(reporterId, executorUserIds);
-        validateParticipants(reporterId, observerUserIds);
-
+        access.requireParticipant(reporterId, responsibleUserId);
+        access.requireParticipants(reporterId, executorUserIds);
+        access.requireParticipants(reporterId, observerUserIds);
         if (attributes != null) {
             customFieldService.validateAttributes("TASK", attributes);
         }
 
-        statusRepository.initDefaultStatusesIfEmpty();
-        typeRepository.initDefaultTypesIfEmpty();
-
-        var defaultStatus = statusRepository
-                .findByPcode(MsTaskPref.STATUS_NEW)
-                .orElseGet(() -> statusRepository.listStatuses().stream()
-                        .findFirst()
-                        .orElseThrow(
-                                () -> new ApiException(ErrorCode.INTERNAL_ERROR, "error.task.default_status_missing")));
-
+        var defaultStatus = statusService.defaultStatus();
         String safePriority = normalizePriority(priority);
 
         searchChangePublisher.lockStatusMembership(defaultStatus.id());
@@ -167,97 +103,10 @@ public class MsTaskService {
                         endTime),
                 reporterId);
 
-        // Assign Author
-        memberRepository.addOrUpdateMember(task.id(), reporterId, MsTaskPref.INVOLVE_AUTHOR, true);
-
-        // Assign Responsible (I-T1)
-        if (responsibleUserId != null) {
-            memberRepository.addOrUpdateMember(task.id(), responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
-        }
-
-        // Assign Executors
-        if (executorUserIds != null) {
-            for (Long execId : executorUserIds) {
-                if (execId != null) {
-                    memberRepository.addOrUpdateMember(task.id(), execId, MsTaskPref.INVOLVE_EXECUTOR, false);
-                }
-            }
-        }
-
-        // Assign Observers
-        if (observerUserIds != null) {
-            for (Long obsId : observerUserIds) {
-                if (obsId != null) {
-                    memberRepository.addOrUpdateMember(task.id(), obsId, MsTaskPref.INVOLVE_OBSERVER, false);
-                }
-            }
-        }
-
-        // FR-TASK-8: назначенные узнают о задаче с учётом роли; автор себя не уведомляет
-        if (responsibleUserId != null) {
-            eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                    task.id(), task.title(), List.of(responsibleUserId), MsTaskPref.INVOLVE_RESPONSIBLE, reporterId));
-        }
-        if (executorUserIds != null && !executorUserIds.isEmpty()) {
-            List<Long> execs =
-                    executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
-            if (!execs.isEmpty()) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        task.id(), task.title(), execs, MsTaskPref.INVOLVE_EXECUTOR, reporterId));
-            }
-        }
-        if (observerUserIds != null && !observerUserIds.isEmpty()) {
-            List<Long> obs =
-                    observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
-            if (!obs.isEmpty()) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        task.id(), task.title(), obs, MsTaskPref.INVOLVE_OBSERVER, reporterId));
-            }
-        }
-
+        memberService.assignNewTask(task, reporterId, responsibleUserId, executorUserIds, observerUserIds);
         searchChangePublisher.changed("TASK", task.id());
-
-        auditLogService.logChange(
-                "ms_tasks",
-                String.valueOf(task.id()),
-                "I",
-                List.of("title", "project_id", "priority", "status_id"),
-                null,
-                Map.of(
-                        "id",
-                        task.id(),
-                        "title",
-                        title,
-                        "projectId",
-                        projectId != null ? projectId : 0,
-                        "priority",
-                        safePriority));
-
+        auditTrail.created(task, title, projectId, safePriority);
         return MsTaskViews.task(task);
-    }
-
-    @Transactional
-    public void attachFile(Long taskId, UUID fileId, Long currentUserId) {
-        getTaskById(taskId, currentUserId);
-        fileService.getFileMetadata(fileId, currentUserId);
-        taskRepository.attachFile(taskId, fileId);
-    }
-
-    @Transactional
-    public void detachFile(Long taskId, UUID fileId, Long currentUserId) {
-        getTaskById(taskId, currentUserId);
-        taskRepository.detachFile(taskId, fileId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MsTaskRepository.TaskFileRecord> listTaskFiles(Long taskId) {
-        return taskRepository.listTaskFiles(taskId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TaskFileView> listTaskFiles(Long taskId, Long currentUserId) {
-        getTaskById(taskId, currentUserId);
-        return MsTaskViews.all(taskRepository.listTaskFiles(taskId), MsTaskViews::file);
     }
 
     // Overload for backwards compatibility
@@ -290,31 +139,13 @@ public class MsTaskService {
     }
 
     @Transactional(readOnly = true)
-    public MsTaskRepository.TaskRecord getTaskById(Long taskId) {
-        return taskRepository.findById(taskId).orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
+    public TaskRecord getTaskById(Long taskId) {
+        return access.find(taskId);
     }
 
     @Transactional(readOnly = true)
-    public MsTaskRepository.TaskRecord getTaskById(Long taskId, Long currentUserId) {
-        return taskRepository
-                .findById(taskId, scopeService.filterForTasks(currentUserId))
-                .orElseThrow(() -> new ApiException(ErrorCode.TASK_NOT_FOUND));
-    }
-
-    /**
-     * The task card: every part read in the viewer's data scope, then the task is marked viewed for the viewer.
-     */
-    @Transactional
-    public TaskDetail getTaskDetail(Long taskId, Long currentUserId) {
-        var task = MsTaskViews.task(getTaskById(taskId, currentUserId));
-        var members = getTaskMembers(taskId, currentUserId);
-        var subtasks = getSubtasks(taskId, currentUserId);
-        var ancestors = getAncestorChain(taskId, currentUserId);
-        var files = listTaskFiles(taskId, currentUserId);
-        if (currentUserId != null) {
-            markViewed(taskId, currentUserId);
-        }
-        return new TaskDetail(task, members, subtasks, ancestors, files);
+    public TaskRecord getTaskById(Long taskId, Long currentUserId) {
+        return access.find(taskId, currentUserId);
     }
 
     /** The PATCH body: only the properties the client sent change. */
@@ -326,128 +157,34 @@ public class MsTaskService {
     /** The priority alone, as the bulk action sets it. */
     @Transactional
     public void changePriority(Long taskId, String priority, Long currentUserId) {
-        updateTask(
-                taskId,
-                new MsTaskPatch(
-                        false, null, false, null, false, null, false, null, true, priority, false, null, false, null,
-                        false, null, false, null, false, null, false, null),
-                currentUserId);
+        updateTask(taskId, MsTaskPatch.builder().priority(priority).build(), currentUserId);
     }
 
     @Transactional
     public void updateTask(Long taskId, MsTaskPatch requested, Long currentUserId) {
-        var existing = getTaskById(taskId, currentUserId);
+        var existing = access.find(taskId, currentUserId);
+        checkPatch(taskId, requested, currentUserId);
 
-        if (requested.projectIdPresent() && requested.projectId() != null) {
-            ApiException.requirePresent(
-                    projectRepository.findById(requested.projectId()),
-                    () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
-        }
-
-        if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
-            getTaskById(requested.parentTaskId(), currentUserId);
-            if (requested.parentTaskId().equals(taskId)
-                    || taskRepository.isDescendantOf(requested.parentTaskId(), taskId)) {
-                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE, "error.task.parent_cycle");
-            }
-        }
-
-        if (requested.attributesPresent() && requested.attributes() != null) {
-            customFieldService.validateAttributes("TASK", requested.attributes());
-        }
-        if (requested.responsibleUserIdPresent()) {
-            validateParticipant(currentUserId, requested.responsibleUserId());
-        }
-        if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
-            validateParticipants(currentUserId, requested.executorUserIds());
-        }
-        if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
-            validateParticipants(currentUserId, requested.observerUserIds());
-        }
-
-        MsTaskPatch rowPatch = rowPatch(requested);
-        validateDeadline(existing, rowPatch);
-        List<MsTaskMemberRepository.TaskMemberRecord> oldMembers = memberRepository.getTaskMembers(taskId);
+        MsTaskPatch rowPatch = MsTaskPatchRules.rowPatch(requested);
+        MsTaskPatchRules.validateDeadline(existing, rowPatch);
+        var oldMembers = memberService.getTaskMembers(taskId);
 
         taskRepository.patch(taskId, rowPatch, currentUserId);
-        if (requested.responsibleUserIdPresent()) {
-            replaceResponsible(taskId, requested.responsibleUserId());
-        }
-        if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
-            replaceMembers(taskId, MsTaskPref.INVOLVE_EXECUTOR, requested.executorUserIds());
-        }
-        if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
-            replaceMembers(taskId, MsTaskPref.INVOLVE_OBSERVER, requested.observerUserIds());
-        }
-
         String taskTitle = rowPatch.titlePresent() ? rowPatch.title() : existing.title();
-
-        if (requested.responsibleUserIdPresent()) {
-            Long oldResp = oldMembers.stream()
-                    .filter(m -> MsTaskPref.INVOLVE_RESPONSIBLE.equals(m.involveKind()))
-                    .map(MsTaskMemberRepository.TaskMemberRecord::userId)
-                    .findFirst()
-                    .orElse(null);
-            Long newResp = requested.responsibleUserId();
-            if (newResp != null && !newResp.equals(oldResp)) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        taskId, taskTitle, List.of(newResp), MsTaskPref.INVOLVE_RESPONSIBLE, currentUserId));
-            }
-            if (oldResp != null && !oldResp.equals(newResp)) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskMemberRemoved(
-                        taskId, taskTitle, List.of(oldResp), MsTaskPref.INVOLVE_RESPONSIBLE, currentUserId));
-            }
-        }
-        if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
-            Set<Long> oldExecs = oldMembers.stream()
-                    .filter(m -> MsTaskPref.INVOLVE_EXECUTOR.equals(m.involveKind()))
-                    .map(MsTaskMemberRepository.TaskMemberRecord::userId)
-                    .collect(Collectors.toSet());
-            Set<Long> newExecs = requested.executorUserIds().stream()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-            List<Long> addedExecs =
-                    newExecs.stream().filter(uid -> !oldExecs.contains(uid)).toList();
-            List<Long> removedExecs =
-                    oldExecs.stream().filter(uid -> !newExecs.contains(uid)).toList();
-            if (!addedExecs.isEmpty()) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        taskId, taskTitle, addedExecs, MsTaskPref.INVOLVE_EXECUTOR, currentUserId));
-            }
-            if (!removedExecs.isEmpty()) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskMemberRemoved(
-                        taskId, taskTitle, removedExecs, MsTaskPref.INVOLVE_EXECUTOR, currentUserId));
-            }
-        }
-        if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
-            Set<Long> oldObs = oldMembers.stream()
-                    .filter(m -> MsTaskPref.INVOLVE_OBSERVER.equals(m.involveKind()))
-                    .map(MsTaskMemberRepository.TaskMemberRecord::userId)
-                    .collect(Collectors.toSet());
-            Set<Long> newObs = requested.observerUserIds().stream()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-            List<Long> addedObs =
-                    newObs.stream().filter(uid -> !oldObs.contains(uid)).toList();
-            List<Long> removedObs =
-                    oldObs.stream().filter(uid -> !newObs.contains(uid)).toList();
-            if (!addedObs.isEmpty()) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        taskId, taskTitle, addedObs, MsTaskPref.INVOLVE_OBSERVER, currentUserId));
-            }
-            if (!removedObs.isEmpty()) {
-                eventPublisher.publishEvent(new MsTaskEvents.TaskMemberRemoved(
-                        taskId, taskTitle, removedObs, MsTaskPref.INVOLVE_OBSERVER, currentUserId));
-            }
-        }
+        memberService.applyPatch(taskId, taskTitle, requested, oldMembers, currentUserId);
 
         if (rowPatch.endTimePresent() && !Objects.equals(existing.endTime(), rowPatch.endTime())) {
             eventPublisher.publishEvent(new MsTaskEvents.TaskDeadlineChanged(
-                    taskId, taskTitle, existing.endTime(), rowPatch.endTime(), memberUserIds(taskId), currentUserId));
+                    taskId,
+                    taskTitle,
+                    existing.endTime(),
+                    rowPatch.endTime(),
+                    memberService.memberUserIds(taskId),
+                    currentUserId));
         }
 
         searchChangePublisher.changed("TASK", taskId);
-        logTaskPatch(taskId, existing, oldMembers, requested, rowPatch);
+        auditTrail.patched(taskId, existing, oldMembers, requested, rowPatch);
     }
 
     @Transactional
@@ -462,27 +199,16 @@ public class MsTaskService {
             Instant beginTime,
             Instant endTime,
             Long currentUserId) {
-
-        getTaskById(taskId, currentUserId);
-
-        if (projectId != null) {
-            ApiException.requirePresent(
-                    projectRepository.findById(projectId), () -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
-        }
-
-        // Cycle check
+        access.find(taskId, currentUserId);
+        access.requireProject(projectId);
         if (parentTaskId != null) {
-            getTaskById(parentTaskId, currentUserId);
-            if (parentTaskId.equals(taskId) || taskRepository.isDescendantOf(parentTaskId, taskId)) {
-                throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE, "error.task.parent_cycle");
-            }
+            requireParent(taskId, parentTaskId, currentUserId);
         }
-
         if (attributes != null) {
             customFieldService.validateAttributes("TASK", attributes);
         }
 
-        var existing = getTaskById(taskId, currentUserId);
+        var existing = access.find(taskId, currentUserId);
         String safePriority = normalizePriority(priority != null ? priority : existing.priority());
 
         taskRepository.update(
@@ -501,14 +227,7 @@ public class MsTaskService {
                 currentUserId);
 
         searchChangePublisher.changed("TASK", taskId);
-
-        auditLogService.logChange(
-                "ms_tasks",
-                String.valueOf(taskId),
-                "U",
-                List.of("title", "priority", "project_id"),
-                Map.of("title", existing.title(), "priority", existing.priority()),
-                Map.of("title", title != null ? title : existing.title(), "priority", safePriority));
+        auditTrail.legacyUpdated(taskId, existing, title, safePriority);
     }
 
     @Transactional
@@ -535,438 +254,32 @@ public class MsTaskService {
                 currentUserId);
     }
 
-    @Transactional
-    public void changeStatus(Long taskId, Long newStatusId, Long currentUserId) {
-        changeStatus(taskId, newStatusId, null, currentUserId);
-    }
-
-    @Transactional
-    public void changeStatus(Long taskId, Long newStatusId, Long expectedRevision, Long currentUserId) {
-        var existing = getTaskById(taskId, currentUserId);
-        searchChangePublisher.lockStatusMembership(newStatusId);
-        var newStatus = statusRepository
-                .findById(newStatusId)
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.status_not_found"));
-
-        Instant resolvedTime = newStatus.isTerminal() ? Instant.now() : null;
-        taskRepository.updateStatus(taskId, newStatusId, resolvedTime, expectedRevision, currentUserId);
-
-        var task = getTaskById(taskId, currentUserId);
-        eventPublisher.publishEvent(new MsTaskEvents.TaskStatusChanged(
-                taskId, task.title(), newStatus.name(), newStatus.isTerminal(), memberUserIds(taskId), currentUserId));
-
-        searchChangePublisher.changed("TASK", taskId);
-
-        auditLogService.logChange(
-                "ms_tasks",
-                String.valueOf(taskId),
-                "U",
-                List.of("status_id"),
-                Map.of("statusId", existing.statusId()),
-                Map.of("statusId", newStatusId, "statusName", newStatus.name()));
-    }
-
-    @Transactional
-    public void setResponsible(Long taskId, Long responsibleUserId) {
-        getTaskById(taskId);
-        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
-        if (responsibleUserId != null) {
-            memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
-            var task = getTaskById(taskId);
-            eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                    taskId, task.title(), List.of(responsibleUserId), MsTaskPref.INVOLVE_RESPONSIBLE, null));
+    /** What a PATCH refers to must exist and be visible, and the new parent must not close a cycle. */
+    private void checkPatch(Long taskId, MsTaskPatch requested, Long currentUserId) {
+        if (requested.projectIdPresent()) {
+            access.requireProject(requested.projectId());
         }
-    }
-
-    @Transactional
-    public void setResponsible(Long taskId, Long responsibleUserId, Long currentUserId) {
-        getTaskById(taskId, currentUserId);
-        validateParticipant(currentUserId, responsibleUserId);
-        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
-        if (responsibleUserId != null) {
-            memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
-            var task = getTaskById(taskId, currentUserId);
-            eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                    taskId, task.title(), List.of(responsibleUserId), MsTaskPref.INVOLVE_RESPONSIBLE, currentUserId));
+        if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
+            requireParent(taskId, requested.parentTaskId(), currentUserId);
         }
-    }
-
-    @Transactional
-    public void setExecutors(Long taskId, List<Long> executorUserIds) {
-        setExecutors(taskId, executorUserIds, null);
-    }
-
-    @Transactional
-    public void setExecutors(Long taskId, List<Long> executorUserIds, Long currentUserId) {
-        if (currentUserId != null) {
-            getTaskById(taskId, currentUserId);
-            validateParticipants(currentUserId, executorUserIds);
-        } else {
-            getTaskById(taskId);
-        }
-        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_EXECUTOR);
-        if (executorUserIds != null) {
-            for (Long uid : executorUserIds) {
-                if (uid != null) {
-                    memberRepository.addOrUpdateMember(taskId, uid, MsTaskPref.INVOLVE_EXECUTOR, false);
-                }
-            }
-            List<Long> execs =
-                    executorUserIds.stream().filter(Objects::nonNull).distinct().toList();
-            if (!execs.isEmpty()) {
-                var task = currentUserId != null ? getTaskById(taskId, currentUserId) : getTaskById(taskId);
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        taskId, task.title(), execs, MsTaskPref.INVOLVE_EXECUTOR, currentUserId));
-            }
-        }
-    }
-
-    @Transactional
-    public void setObservers(Long taskId, List<Long> observerUserIds) {
-        setObservers(taskId, observerUserIds, null);
-    }
-
-    @Transactional
-    public void setObservers(Long taskId, List<Long> observerUserIds, Long currentUserId) {
-        if (currentUserId != null) {
-            getTaskById(taskId, currentUserId);
-            validateParticipants(currentUserId, observerUserIds);
-        } else {
-            getTaskById(taskId);
-        }
-        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_OBSERVER);
-        if (observerUserIds != null) {
-            for (Long uid : observerUserIds) {
-                if (uid != null) {
-                    memberRepository.addOrUpdateMember(taskId, uid, MsTaskPref.INVOLVE_OBSERVER, false);
-                }
-            }
-            List<Long> obs =
-                    observerUserIds.stream().filter(Objects::nonNull).distinct().toList();
-            if (!obs.isEmpty()) {
-                var task = currentUserId != null ? getTaskById(taskId, currentUserId) : getTaskById(taskId);
-                eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
-                        taskId, task.title(), obs, MsTaskPref.INVOLVE_OBSERVER, currentUserId));
-            }
-        }
-    }
-
-    /** Все участники задачи — получатели уведомлений о ней (FR-TASK-4). */
-    private List<Long> memberUserIds(Long taskId) {
-        return memberRepository.getTaskMembers(taskId).stream()
-                .map(MsTaskMemberRepository.TaskMemberRecord::userId)
-                .distinct()
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<MsTaskMemberRepository.TaskMemberRecord> getTaskMembers(Long taskId) {
-        return memberRepository.getTaskMembers(taskId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TaskMemberView> getTaskMembers(Long taskId, Long currentUserId) {
-        getTaskById(taskId, currentUserId);
-        return MsTaskViews.all(memberRepository.getTaskMembers(taskId), MsTaskViews::member);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MsTaskRepository.TaskRecord> getSubtasks(Long parentTaskId) {
-        return taskRepository.findSubtasks(parentTaskId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TaskView> getSubtasks(Long parentTaskId, Long currentUserId) {
-        getTaskById(parentTaskId, currentUserId);
-        return MsTaskViews.all(
-                taskRepository.findSubtasks(parentTaskId, scopeService.filterForTasks(currentUserId)),
-                MsTaskViews::task);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MsTaskRepository.TaskRecord> getAncestorChain(Long taskId) {
-        return taskRepository.findAncestorChain(taskId);
-    }
-
-    @Transactional(readOnly = true)
-    public List<TaskView> getAncestorChain(Long taskId, Long currentUserId) {
-        getTaskById(taskId, currentUserId);
-        return MsTaskViews.all(
-                taskRepository.findAncestorChain(taskId, scopeService.filterForTasks(currentUserId)),
-                MsTaskViews::task);
-    }
-
-    @Transactional(readOnly = true)
-    public List<MsTaskRepository.ProjectTaskStats> getProjectTaskStats() {
-        return taskRepository.getProjectTaskStats();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProjectTaskStatsView> getProjectTaskStats(Long currentUserId) {
-        return MsTaskViews.all(
-                taskRepository.getProjectTaskStats(scopeService.filterForTasks(currentUserId)), MsTaskViews::stats);
-    }
-
-    @Transactional
-    public void markViewed(Long taskId, Long userId) {
-        getTaskById(taskId, userId);
-        memberRepository.markViewed(taskId, userId);
-    }
-
-    // =========================================================================
-    // Dynamic Statuses & Types (Delegated to MsTaskStatusService)
-    // =========================================================================
-    @Transactional
-    public List<TaskStatusView> listStatuses() {
-        return MsTaskViews.all(statusService.listStatuses(), MsTaskViews::status);
-    }
-
-    @Transactional
-    public TaskStatusView createStatus(String pcode, String name, String color, int orderNo, boolean isTerminal) {
-        return MsTaskViews.status(statusService.createStatus(pcode, name, color, orderNo, isTerminal));
-    }
-
-    @Transactional
-    public void updateStatusRecord(Long id, String name, String color, Integer orderNo, Boolean isTerminal) {
-        statusService.updateStatusRecord(id, name, color, orderNo, isTerminal);
-    }
-
-    @Transactional
-    public void deleteStatus(Long id) {
-        statusService.deleteStatus(id);
-    }
-
-    @Transactional
-    public List<TaskTypeView> listTypes() {
-        return MsTaskViews.all(statusService.listTypes(), MsTaskViews::type);
-    }
-
-    @Transactional
-    public TaskTypeView createType(String code, String name, String icon, String color, int orderNo) {
-        return MsTaskViews.type(statusService.createType(code, name, icon, color, orderNo));
-    }
-
-    @Transactional
-    public void updateType(Long id, String name, String icon, String color, Integer orderNo) {
-        statusService.updateType(id, name, icon, color, orderNo);
-    }
-
-    @Transactional
-    public void deleteType(Long id) {
-        statusService.deleteType(id);
-    }
-
-    @Transactional
-    public void reorderStatuses(List<Long> orderedIds) {
-        statusService.reorderStatuses(orderedIds);
-    }
-
-    @Transactional
-    public void reorderTypes(List<Long> orderedIds) {
-        statusService.reorderTypes(orderedIds);
-    }
-
-    private String normalizePriority(String priority) {
-        if (priority == null || priority.isBlank()) {
-            return "medium";
-        }
-        String p = priority.trim().toLowerCase();
-        return switch (p) {
-            case "low" -> "low";
-            case "high" -> "high";
-            case "critical", "urgent" -> "critical";
-            case "medium", "normal" -> "medium";
-            default -> "medium";
-        };
-    }
-
-    private MsTaskPatch rowPatch(MsTaskPatch requested) {
-        if (requested.titlePresent()
-                && requested.title() != null
-                && requested.title().isBlank()) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.task.title_blank");
-        }
-
-        boolean titlePresent = requested.titlePresent() && requested.title() != null;
-        boolean descriptionPresent = requested.descriptionMarkdownPresent() && requested.descriptionMarkdown() != null;
-        boolean priorityPresent = requested.priorityPresent() && requested.priority() != null;
-        boolean attributesPresent = requested.attributesPresent() && requested.attributes() != null;
-        return new MsTaskPatch(
-                requested.projectIdPresent(),
-                requested.projectId(),
-                titlePresent,
-                requested.title(),
-                descriptionPresent,
-                requested.descriptionMarkdown(),
-                requested.parentTaskIdPresent(),
-                requested.parentTaskId(),
-                priorityPresent,
-                priorityPresent ? normalizePriority(requested.priority()) : requested.priority(),
-                requested.responsibleUserIdPresent(),
-                requested.responsibleUserId(),
-                requested.executorUserIdsPresent(),
-                requested.executorUserIds(),
-                requested.observerUserIdsPresent(),
-                requested.observerUserIds(),
-                attributesPresent,
-                requested.attributes(),
-                requested.beginTimePresent(),
-                requested.beginTime(),
-                requested.endTimePresent(),
-                requested.endTime(),
-                requested.expectedRevisionPresent(),
-                requested.expectedRevision());
-    }
-
-    private void validateDeadline(MsTaskRepository.TaskRecord existing, MsTaskPatch patch) {
-        Instant begin = patch.beginTimePresent() ? patch.beginTime() : existing.beginTime();
-        Instant end = patch.endTimePresent() ? patch.endTime() : existing.endTime();
-        if (begin != null && end != null && begin.isAfter(end)) {
-            throw ApiException.badRequest(ErrorCode.VALIDATION_FAILED, "error.task.begin_after_end");
-        }
-    }
-
-    private void replaceResponsible(Long taskId, Long responsibleUserId) {
-        memberRepository.removeMembersByKind(taskId, MsTaskPref.INVOLVE_RESPONSIBLE);
-        if (responsibleUserId != null) {
-            memberRepository.addOrUpdateMember(taskId, responsibleUserId, MsTaskPref.INVOLVE_RESPONSIBLE, false);
-        }
-    }
-
-    private void replaceMembers(Long taskId, String involveKind, List<Long> userIds) {
-        memberRepository.removeMembersByKind(taskId, involveKind);
-        userIds.stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .forEach(userId -> memberRepository.addOrUpdateMember(taskId, userId, involveKind, false));
-    }
-
-    private void logTaskPatch(
-            Long taskId,
-            MsTaskRepository.TaskRecord existing,
-            List<MsTaskMemberRepository.TaskMemberRecord> oldMembers,
-            MsTaskPatch requested,
-            MsTaskPatch rowPatch) {
-        List<String> changedColumns = new ArrayList<>();
-        Map<String, Object> oldRow = new LinkedHashMap<>();
-        Map<String, Object> newRow = new LinkedHashMap<>();
-
-        if (rowPatch.titlePresent()) {
-            addAuditChange(changedColumns, oldRow, newRow, "title", existing.title(), rowPatch.title());
-        }
-        if (rowPatch.descriptionMarkdownPresent()) {
-            addAuditChange(
-                    changedColumns,
-                    oldRow,
-                    newRow,
-                    "description_markdown",
-                    existing.descriptionMarkdown(),
-                    rowPatch.descriptionMarkdown());
-        }
-        if (rowPatch.priorityPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow, "priority", existing.priority(), rowPatch.priority());
-        }
-        if (rowPatch.projectIdPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow, "project_id", existing.projectId(), rowPatch.projectId());
-        }
-        if (rowPatch.parentTaskIdPresent()) {
-            addAuditChange(
-                    changedColumns, oldRow, newRow, "parent_task_id", existing.parentTaskId(), rowPatch.parentTaskId());
-        }
-        if (rowPatch.attributesPresent()) {
-            addAuditChange(changedColumns, oldRow, newRow, "attributes", existing.attributes(), rowPatch.attributes());
-        }
-        if (rowPatch.beginTimePresent()) {
-            addAuditChange(
-                    changedColumns,
-                    oldRow,
-                    newRow,
-                    "begin_time",
-                    auditTime(existing.beginTime()),
-                    auditTime(rowPatch.beginTime()));
-        }
-        if (rowPatch.endTimePresent()) {
-            addAuditChange(
-                    changedColumns,
-                    oldRow,
-                    newRow,
-                    "end_time",
-                    auditTime(existing.endTime()),
-                    auditTime(rowPatch.endTime()));
+        if (requested.attributesPresent() && requested.attributes() != null) {
+            customFieldService.validateAttributes("TASK", requested.attributes());
         }
         if (requested.responsibleUserIdPresent()) {
-            addAuditChange(
-                    changedColumns,
-                    oldRow,
-                    newRow,
-                    "responsible_user_id",
-                    memberIds(oldMembers, MsTaskPref.INVOLVE_RESPONSIBLE).stream()
-                            .findFirst()
-                            .orElse(null),
-                    requested.responsibleUserId());
+            access.requireParticipant(currentUserId, requested.responsibleUserId());
         }
         if (requested.executorUserIdsPresent() && requested.executorUserIds() != null) {
-            addAuditChange(
-                    changedColumns,
-                    oldRow,
-                    newRow,
-                    "executor_user_ids",
-                    memberIds(oldMembers, MsTaskPref.INVOLVE_EXECUTOR),
-                    normalizedIds(requested.executorUserIds()));
+            access.requireParticipants(currentUserId, requested.executorUserIds());
         }
         if (requested.observerUserIdsPresent() && requested.observerUserIds() != null) {
-            addAuditChange(
-                    changedColumns,
-                    oldRow,
-                    newRow,
-                    "observer_user_ids",
-                    memberIds(oldMembers, MsTaskPref.INVOLVE_OBSERVER),
-                    normalizedIds(requested.observerUserIds()));
-        }
-
-        if (!changedColumns.isEmpty()) {
-            auditLogService.logChange("ms_tasks", String.valueOf(taskId), "U", changedColumns, oldRow, newRow);
+            access.requireParticipants(currentUserId, requested.observerUserIds());
         }
     }
 
-    private static void addAuditChange(
-            List<String> columns,
-            Map<String, Object> oldRow,
-            Map<String, Object> newRow,
-            String column,
-            Object oldValue,
-            Object newValue) {
-        columns.add(column);
-        oldRow.put(column, oldValue);
-        newRow.put(column, newValue);
-    }
-
-    private static List<Long> memberIds(List<MsTaskMemberRepository.TaskMemberRecord> members, String involveKind) {
-        return members.stream()
-                .filter(member -> involveKind.equals(member.involveKind()))
-                .map(MsTaskMemberRepository.TaskMemberRecord::userId)
-                .distinct()
-                .toList();
-    }
-
-    private static List<Long> normalizedIds(List<Long> userIds) {
-        return userIds.stream().filter(Objects::nonNull).distinct().toList();
-    }
-
-    private static String auditTime(Instant time) {
-        return time != null ? time.toString() : null;
-    }
-
-    private void validateParticipants(Long actorId, List<Long> userIds) {
-        if (userIds == null) return;
-        for (Long userId : userIds) {
-            validateParticipant(actorId, userId);
-        }
-    }
-
-    private void validateParticipant(Long actorId, Long userId) {
-        if (userId != null && !scopeService.canAccessUser(actorId, userId)) {
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.task.assignee_unavailable");
+    private void requireParent(Long taskId, Long parentTaskId, Long currentUserId) {
+        access.find(parentTaskId, currentUserId);
+        if (parentTaskId.equals(taskId) || treeRepository.isDescendantOf(parentTaskId, taskId)) {
+            throw ApiException.conflict(ErrorCode.TASK_PARENT_CYCLE, "error.task.parent_cycle");
         }
     }
 }

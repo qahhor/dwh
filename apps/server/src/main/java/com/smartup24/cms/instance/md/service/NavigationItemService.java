@@ -223,7 +223,7 @@ public class NavigationItemService {
     @CacheEvict(value = "navigationItems", allEntries = true)
     public NavigationItemView createItem(CreateNavigationItemCommand cmd, Long userId) {
         validateUrl(cmd.url());
-        String code = cmd.code().trim().toLowerCase().replaceAll("[^a-z0-9_-]", "-");
+        String code = normalizeCode(cmd.code());
         if (code.isBlank()) {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.md.navigation_code_required");
         }
@@ -236,17 +236,11 @@ public class NavigationItemService {
                 null,
                 code,
                 cmd.title().trim(),
-                cmd.titleKey() != null && !cmd.titleKey().isBlank()
-                        ? cmd.titleKey().trim()
-                        : null,
-                cmd.sectionId() != null && !cmd.sectionId().isBlank()
-                        ? cmd.sectionId().trim()
-                        : "custom",
+                trimmedOr(cmd.titleKey(), null),
+                trimmedOr(cmd.sectionId(), "custom"),
                 cmd.parentId(),
-                cmd.icon() != null && !cmd.icon().isBlank() ? cmd.icon().trim() : "bar_chart",
-                cmd.targetType() != null && !cmd.targetType().isBlank()
-                        ? cmd.targetType().trim()
-                        : "EMBEDDED_IFRAME",
+                trimmedOr(cmd.icon(), "bar_chart"),
+                trimmedOr(cmd.targetType(), "EMBEDDED_IFRAME"),
                 cmd.url().trim(),
                 cmd.openInIframe(),
                 requiredPermission(cmd.requiredPermission()),
@@ -285,7 +279,7 @@ public class NavigationItemService {
         NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
 
         validateUrl(cmd.url());
-        String code = cmd.code().trim().toLowerCase().replaceAll("[^a-z0-9_-]", "-");
+        String code = normalizeCode(cmd.code());
 
         Optional<NavigationItemRecord> withSameCode = navigationRepository.findByCode(code);
         if (withSameCode.isPresent() && !withSameCode.get().id().equals(id)) {
@@ -296,17 +290,11 @@ public class NavigationItemService {
                 id,
                 code,
                 cmd.title().trim(),
-                cmd.titleKey() != null && !cmd.titleKey().isBlank()
-                        ? cmd.titleKey().trim()
-                        : null,
-                cmd.sectionId() != null && !cmd.sectionId().isBlank()
-                        ? cmd.sectionId().trim()
-                        : "custom",
+                trimmedOr(cmd.titleKey(), null),
+                trimmedOr(cmd.sectionId(), "custom"),
                 cmd.parentId(),
-                cmd.icon() != null && !cmd.icon().isBlank() ? cmd.icon().trim() : "bar_chart",
-                cmd.targetType() != null && !cmd.targetType().isBlank()
-                        ? cmd.targetType().trim()
-                        : "EMBEDDED_IFRAME",
+                trimmedOr(cmd.icon(), "bar_chart"),
+                trimmedOr(cmd.targetType(), "EMBEDDED_IFRAME"),
                 cmd.url().trim(),
                 cmd.openInIframe(),
                 requiredPermission(cmd.requiredPermission()),
@@ -323,34 +311,35 @@ public class NavigationItemService {
                 String.valueOf(id),
                 "U",
                 List.of("code", "title", "url", "target_type", "state", "required_permission"),
-                Map.of(
-                        "code",
-                        existing.code(),
-                        "title",
-                        existing.title(),
-                        "url",
-                        existing.url(),
-                        "target_type",
-                        existing.targetType(),
-                        "state",
-                        existing.state(),
-                        "required_permission",
-                        Objects.toString(existing.requiredPermission(), "")),
-                Map.of(
-                        "code",
-                        updated.code(),
-                        "title",
-                        updated.title(),
-                        "url",
-                        updated.url(),
-                        "target_type",
-                        updated.targetType(),
-                        "state",
-                        updated.state(),
-                        "required_permission",
-                        Objects.toString(updated.requiredPermission(), "")));
+                auditState(existing),
+                auditState(updated));
 
         return getItemById(id).orElseThrow();
+    }
+
+    private static String normalizeCode(String code) {
+        return code.trim().toLowerCase().replaceAll("[^a-z0-9_-]", "-");
+    }
+
+    private static String trimmedOr(String value, String fallback) {
+        return value != null && !value.isBlank() ? value.trim() : fallback;
+    }
+
+    /** The audited columns of an update, as the journal shows them before and after. */
+    private static Map<String, Object> auditState(NavigationItemRecord item) {
+        return Map.of(
+                "code",
+                item.code(),
+                "title",
+                item.title(),
+                "url",
+                item.url(),
+                "target_type",
+                item.targetType(),
+                "state",
+                item.state(),
+                "required_permission",
+                Objects.toString(item.requiredPermission(), ""));
     }
 
     @Transactional

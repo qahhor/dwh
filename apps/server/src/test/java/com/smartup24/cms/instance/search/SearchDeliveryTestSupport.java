@@ -13,8 +13,7 @@ import com.smartup24.cms.instance.kauth.service.KauthUserSessionInvalidator;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.*;
-import com.smartup24.cms.instance.mf.service.MfFileService;
-import com.smartup24.cms.instance.ms.task.repository.*;
+import com.smartup24.cms.instance.ms.task.MsTaskFixture;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.repository.*;
 import com.smartup24.cms.instance.search.service.*;
@@ -37,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.*;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -76,7 +74,7 @@ abstract class SearchDeliveryTestSupport {
     volatile Consumer<HttpExchange> beforeRequest = exchange -> {};
     HttpServer http;
     ExecutorService httpThreads;
-    TypesenseClient client;
+    TypesenseFixture client;
     SearchChangePublisher publisher;
     SearchProjectionReader reader;
     SearchDeliveryRepository delivery;
@@ -91,6 +89,7 @@ abstract class SearchDeliveryTestSupport {
     SearchStoragePreflight storage;
     MsTaskService tasks;
     MdUserService users;
+    MdUserSecurityService userSecurity;
     UUID owner;
 
     @BeforeAll
@@ -138,20 +137,16 @@ abstract class SearchDeliveryTestSupport {
         var scopes = mock(MdScopeService.class);
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
         var audit = mock(AuditLogService.class);
-        tasks = SearchRevisionIntegrationTest.proxied(
-                new MsTaskService(
-                        new MsTaskRepository(jdbc, mapper),
-                        new MsTaskStatusRepository(jdbc),
-                        new MsTaskTypeRepository(jdbc),
-                        new MsTaskMemberRepository(jdbc),
-                        new MsProjectRepository(jdbc, mapper),
-                        mock(MdCustomFieldService.class),
-                        scopes,
-                        mock(MfFileService.class),
-                        mock(ApplicationEventPublisher.class),
-                        publisher,
-                        audit),
-                manager);
+        tasks = MsTaskFixture.wire(
+                        MsTaskFixture.Repositories.jdbc(jdbc, mapper),
+                        MsTaskFixture.Collaborators.with(scopes, publisher, audit),
+                        new MsTaskFixture.Proxy() {
+                            @Override
+                            public <T> T wrap(T target) {
+                                return SearchRevisionIntegrationTest.proxied(target, manager);
+                            }
+                        })
+                .tasks();
         users = SearchRevisionIntegrationTest.proxied(
                 new MdUserService(
                         new MdUserRepository(jdbc, mapper),
@@ -159,18 +154,26 @@ abstract class SearchDeliveryTestSupport {
                         mock(MdCustomFieldService.class),
                         mock(PasswordHasher.class),
                         mock(PasswordValidator.class),
-                        new KauthUserSessionInvalidator(
-                                new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
                         publisher,
                         audit,
                         scopes),
+                manager);
+        userSecurity = SearchRevisionIntegrationTest.proxied(
+                new MdUserSecurityService(
+                        new MdUserRepository(jdbc, mapper),
+                        mock(PasswordHasher.class),
+                        mock(PasswordValidator.class),
+                        new KauthUserSessionInvalidator(
+                                new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
+                        publisher,
+                        audit),
                 manager);
         http = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         httpThreads = Executors.newCachedThreadPool();
         http.setExecutor(httpThreads);
         http.createContext("/", this::respond);
         http.start();
-        client = new TypesenseClient(
+        client = TypesenseFixture.of(
                 new TypesenseProperties("http://127.0.0.1:" + http.getAddress().getPort(), "test-key", true, false),
                 mapper,
                 Optional.of(metrics));
@@ -188,13 +191,13 @@ abstract class SearchDeliveryTestSupport {
     void recreateWorker() {
         if (jobWorker != null) jobWorker.close();
         owner = UUID.randomUUID();
-        worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5, metrics);
+        worker = new SearchDeliveryWorker(client.documents(), reader, delivery, state, clock, () -> 0.5, metrics);
         worker.startLifecycle(owner);
         jobRepository = SearchRevisionIntegrationTest.proxied(new SearchJobRepository(jdbc, mapper), manager);
         generationRepository = new SearchGenerationRepository(jdbc);
         generationService = new SearchGenerationService(generationRepository, new SearchSettingsRepository(jdbc), 4);
-        storage = new SearchStoragePreflight(client, reader);
-        reconciliation = new SearchReconciliationService(database, reader, client);
+        storage = new SearchStoragePreflight(client.health(), reader);
+        reconciliation = new SearchReconciliationService(database, reader, client.collections(), client.documents());
         jobService = SearchRevisionIntegrationTest.proxied(
                 new SearchJobService(
                         new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
@@ -206,7 +209,7 @@ abstract class SearchDeliveryTestSupport {
                         Optional.of(metrics)),
                 manager);
         jobWorker = new SearchJobWorker(
-                client,
+                client.collections(),
                 worker,
                 state,
                 jobRepository,

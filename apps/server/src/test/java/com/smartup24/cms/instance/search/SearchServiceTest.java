@@ -32,9 +32,9 @@ import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
 import com.smartup24.cms.instance.search.service.SearchService.SearchResult;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +48,7 @@ import org.springframework.dao.DataAccessResourceFailureException;
 
 class SearchServiceTest {
 
-    private final TypesenseClient typesenseClient = mock(TypesenseClient.class);
+    private final TypesenseSearch typesenseClient = mock(TypesenseSearch.class);
     private final SearchFallbackRepository fallbackRepository = mock(SearchFallbackRepository.class);
     private final RoleMembershipAuthorizer roleMembershipAuthorizer = mock(RoleMembershipAuthorizer.class);
     private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
@@ -365,7 +365,7 @@ class SearchServiceTest {
 
     private static final class SearchServiceWithSeams extends SearchService {
         private SearchServiceWithSeams(
-                TypesenseClient typesenseClient,
+                TypesenseSearch typesenseClient,
                 SearchFallbackRepository fallbackRepository,
                 SearchAccessPolicy accessPolicy,
                 SearchResultBudget resultBudget,

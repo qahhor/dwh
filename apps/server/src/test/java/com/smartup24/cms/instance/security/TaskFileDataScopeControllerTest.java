@@ -21,7 +21,7 @@ import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskCommentController;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
+import com.smartup24.cms.instance.ms.task.service.MsTaskReadService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,7 @@ class TaskFileDataScopeControllerTest {
 
     @Test
     void taskEndpointRejectsMissingActionPermissionBeforeService() throws Exception {
-        MsTaskService service = mock(MsTaskService.class);
+        MsTaskReadService service = mock(MsTaskReadService.class);
         SecurityContext.setPrincipal(principal(Set.of()));
 
         taskMvc(service)
@@ -52,7 +52,7 @@ class TaskFileDataScopeControllerTest {
 
     @Test
     void taskEndpointReturnsNotFoundForOutOfScopeIdentifier() throws Exception {
-        MsTaskService service = mock(MsTaskService.class);
+        MsTaskReadService service = mock(MsTaskReadService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
         when(service.getTaskDetail(42L, 10L))
                 .thenThrow(ApiException.notFound(ErrorCode.TASK_NOT_FOUND, "Задача не найдена"));
@@ -65,7 +65,7 @@ class TaskFileDataScopeControllerTest {
 
     @Test
     void taskEndpointPassesAuthenticatedUserToEveryScopedRead() throws Exception {
-        MsTaskService service = mock(MsTaskService.class);
+        MsTaskReadService service = mock(MsTaskReadService.class);
         SecurityContext.setPrincipal(principal(Set.of("tasks.items.view")));
         // Each part of the card is read in this user's scope: MsTaskServiceTest checks the service side.
         when(service.getTaskDetail(42L, 10L))
@@ -143,8 +143,8 @@ class TaskFileDataScopeControllerTest {
         verify(service).getFileMetadata(id, 10L);
     }
 
-    private static MockMvc taskMvc(MsTaskService service) {
-        return MockMvcBuilders.standaloneSetup(new MsTaskController(service, null))
+    private static MockMvc taskMvc(MsTaskReadService service) {
+        return MockMvcBuilders.standaloneSetup(new MsTaskController(null, service, null, null, null, null))
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();

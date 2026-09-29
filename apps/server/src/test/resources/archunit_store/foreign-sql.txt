@@ -15,8 +15,8 @@ mf MfFileRepository -> md_user_roles
 mf MfFileRepository -> md_users
 ms.task MsProjectRepository -> md_users
 ms.task MsTaskCommentRepository -> md_users
+ms.task MsTaskFileRepository -> mf_files
 ms.task MsTaskMemberRepository -> md_users
-ms.task MsTaskRepository -> mf_files
 report ReportRepository -> md_users
 report ReportRepository -> ms_task_projects
 report ReportRepository -> ms_task_statuses

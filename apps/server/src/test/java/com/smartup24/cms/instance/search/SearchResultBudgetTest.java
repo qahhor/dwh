@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;

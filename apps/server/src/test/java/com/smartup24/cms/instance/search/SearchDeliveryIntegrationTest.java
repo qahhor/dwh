@@ -38,7 +38,7 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         var failedManager = new DataSourceTransactionManager(failedDatabase);
         delivery = SearchRevisionIntegrationTest.proxied(
                 new SearchDeliveryRepository(JdbcClient.create(failedDatabase)), failedManager);
-        worker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5);
+        worker = new SearchDeliveryWorker(client.documents(), reader, delivery, state, clock, () -> 0.5);
         worker.startLifecycle(owner);
         // Restore the foreign claim after lifecycle recovery; no next-cycle cleanup may release it.
         jdbc.sql("update search_generation_delivery set owner_token=:owner where entity_id=:id and entity_type='USER'")
@@ -240,8 +240,8 @@ class SearchDeliveryIntegrationTest extends SearchDeliveryTestSupport {
         failures.set(1);
         worker.runOnce();
         assertThat(delivered("USER", id)).isZero();
-        if (anonymize) users.anonymizeUser(id, id);
-        else users.setUserState(id, "P", id);
+        if (anonymize) userSecurity.anonymizeUser(id, id);
+        else userSecurity.setUserState(id, "P", id);
         recreateWorker();
         worker.runOnce();
         assertThat(delivered("USER", id)).isEqualTo(2);

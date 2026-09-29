@@ -11,7 +11,7 @@ import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
 import com.smartup24.cms.instance.search.service.SearchService;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,7 @@ class SearchServiceWiringTest {
     @Test
     void springSelectsTheProductionConstructorWhenTheExtensionSeamIsPresent() {
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-            context.registerBean(TypesenseClient.class, () -> mock(TypesenseClient.class));
+            context.registerBean(TypesenseSearch.class, () -> mock(TypesenseSearch.class));
             context.registerBean(SearchFallbackRepository.class, () -> mock(SearchFallbackRepository.class));
             context.registerBean(SearchIndexStateRepository.class, () -> mock(SearchIndexStateRepository.class));
             context.registerBean(SearchSettingsRepository.class, () -> mock(SearchSettingsRepository.class));

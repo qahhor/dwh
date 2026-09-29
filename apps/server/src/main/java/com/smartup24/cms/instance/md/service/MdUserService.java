@@ -16,6 +16,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * User accounts: creation, profile and role changes, and the reads that authentication and the API use. The
+ * security actions on an account (password, state, 2FA, anonymisation) live in {@link MdUserSecurityService}.
+ */
 @Service
 public class MdUserService {
 
@@ -24,7 +28,6 @@ public class MdUserService {
     private final MdCustomFieldService customFieldService;
     private final PasswordHasher passwordHasher;
     private final PasswordValidator passwordValidator;
-    private final UserSessionInvalidator sessionInvalidator;
     private final SearchChangePublisher searchChangePublisher;
     private final AuditLogService auditLogService;
     private final MdScopeService scopeService;
@@ -35,11 +38,9 @@ public class MdUserService {
             MdCustomFieldService customFieldService,
             PasswordHasher passwordHasher,
             PasswordValidator passwordValidator,
-            UserSessionInvalidator sessionInvalidator,
             SearchChangePublisher searchChangePublisher,
             AuditLogService auditLogService,
             MdScopeService scopeService) {
-        this.sessionInvalidator = sessionInvalidator;
         this.scopeService = scopeService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -265,120 +266,6 @@ public class MdUserService {
                 Map.of("name", name != null ? name : existingUser.name(), "phone", phone != null ? phone : ""));
     }
 
-    @Transactional
-    public void changePassword(Long userId, long authenticatedVersion, String oldPassword, String newPassword) {
-        var user = getUserById(userId);
-
-        if (!MdPref.STATE_ACTIVE.equals(user.state()) || user.authenticationVersion() != authenticatedVersion) {
-            throw ApiException.invalidCredentials();
-        }
-
-        if (user.passwordHash() != null && !passwordHasher.verifyPassword(oldPassword, user.passwordHash())) {
-            throw ApiException.badRequest(ErrorCode.INVALID_CREDENTIALS, "error.md.current_password_invalid");
-        }
-
-        passwordValidator.validate(newPassword, user.login());
-
-        String newHash = passwordHasher.hashPassword(newPassword);
-        if (!userRepository.compareAndSetPassword(userId, authenticatedVersion, user.passwordHash(), newHash)) {
-            throw ApiException.invalidCredentials();
-        }
-        userRepository.incrementAuthenticationVersion(userId);
-        sessionInvalidator.invalidateAllAccess(userId);
-
-        auditLogService.logSecurityEvent("PASSWORD_CHANGED", userId, null, null, Map.of("login", user.login()));
-    }
-
-    @Transactional
-    public void setUserState(Long targetUserId, String newState, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-
-        // Immutable Superadmin Protection: Admin user cannot be blocked (TRD-01 / I-IAM-1)
-        if (targetUser.login().equalsIgnoreCase("admin") && MdPref.STATE_PASSIVE.equals(newState)) {
-            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_block_forbidden");
-        }
-
-        userRepository.setState(targetUserId, newState, currentUserId);
-
-        // I-U1 (FR-USR-4): блокировка атомарно закрывает сессии и отзывает токены —
-        // в ТОЙ ЖЕ транзакции, никаких «окон», когда state=P, а сессия жива.
-        if (MdPref.STATE_PASSIVE.equals(newState)) {
-            userRepository.incrementAuthenticationVersion(targetUserId);
-            sessionInvalidator.invalidateAllAccess(targetUserId);
-        }
-
-        searchChangePublisher.changed("USER", targetUserId);
-
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "U",
-                List.of("state"),
-                Map.of("state", targetUser.state()),
-                Map.of("state", newState));
-    }
-
-    @Transactional
-    public void setForcePasswordChange(Long targetUserId, boolean force, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-        userRepository.setForcePasswordChange(targetUserId, force, currentUserId);
-        if (force) {
-            userRepository.incrementAuthenticationVersion(targetUserId);
-            sessionInvalidator.invalidateAllAccess(targetUserId);
-        }
-        searchChangePublisher.changed("USER", targetUserId);
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "U",
-                List.of("force_password_change"),
-                Map.of("force_password_change", targetUser.forcePasswordChange()),
-                Map.of("force_password_change", force));
-    }
-
-    @Transactional
-    public void reset2fa(Long targetUserId, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-        userRepository.set2faEnabled(targetUserId, false, currentUserId);
-        userRepository.incrementAuthenticationVersion(targetUserId);
-        sessionInvalidator.invalidateAllAccess(targetUserId);
-        searchChangePublisher.changed("USER", targetUserId);
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "U",
-                List.of("is_2fa_enabled"),
-                Map.of("is_2fa_enabled", targetUser.is2faEnabled()),
-                Map.of("is_2fa_enabled", false));
-    }
-
-    @Transactional
-    public void anonymizeUser(Long targetUserId, Long currentUserId) {
-        var targetUser = getUserById(targetUserId);
-
-        // I-IAM-1: Системный администратор не может быть удалён или анонимизирован
-        if (targetUser.login().equalsIgnoreCase("admin")) {
-            throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_delete_forbidden");
-        }
-
-        // FR-USR-8: Анонимизация ПДн с сохранением реляционной целостности для аудита
-        userRepository.anonymizeUser(targetUserId, currentUserId);
-
-        // Закрытие всех сессий и отзыв токенов
-        userRepository.incrementAuthenticationVersion(targetUserId);
-        sessionInvalidator.invalidateAllAccess(targetUserId);
-
-        searchChangePublisher.changed("USER", targetUserId);
-
-        auditLogService.logChange(
-                "md_users",
-                String.valueOf(targetUserId),
-                "D",
-                List.of("state", "name", "email", "phone"),
-                Map.of("name", targetUser.name(), "login", targetUser.login()),
-                Map.of("name", "Deleted User " + targetUserId, "state", "P"));
-    }
-
     public record AuthUser(
             Long id,
             String name,
@@ -456,27 +343,5 @@ public class MdUserService {
     @Transactional(readOnly = true)
     public Optional<AuthUser> findAuthUserByEmail(String email) {
         return userRepository.findByEmail(email).map(AuthUser::from);
-    }
-
-    /**
-     * Sets a password by a reset link: the effects of a change (a new authentication generation, every session and
-     * API token closed) without the old password.
-     *
-     * @return {@code false} when the user changed in the meantime: password, generation or state
-     */
-    @Transactional
-    public boolean resetPassword(
-            Long userId, long expectedAuthVersion, String expectedPasswordHash, String newPasswordHash) {
-        if (!userRepository.compareAndSetPassword(userId, expectedAuthVersion, expectedPasswordHash, newPasswordHash)) {
-            return false;
-        }
-        userRepository.incrementAuthenticationVersion(userId);
-        sessionInvalidator.invalidateAllAccess(userId);
-        return true;
-    }
-
-    @Transactional
-    public void incrementAuthenticationVersion(Long userId) {
-        userRepository.incrementAuthenticationVersion(userId);
     }
 }

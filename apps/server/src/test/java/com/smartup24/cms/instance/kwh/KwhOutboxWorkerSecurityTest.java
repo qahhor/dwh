@@ -33,6 +33,20 @@ class KwhOutboxWorkerSecurityTest {
     }
 
     @Test
+    void anEmptyOutboxEndsTheRoundWithoutFurtherWork() {
+        var repository = Mockito.mock(KwhOutboxRepository.class);
+        var properties = properties(true, Set.of("127.0.0.1"), false);
+        Mockito.when(repository.fetchPending(20)).thenReturn(java.util.List.of());
+        var worker =
+                new KwhOutboxWorker(repository, new ObjectMapper(), properties, new WebhookTargetPolicy(properties));
+
+        worker.processWebhooks();
+
+        Mockito.verify(repository).fetchPending(20);
+        Mockito.verifyNoMoreInteractions(repository);
+    }
+
+    @Test
     void revalidatesTheStoredTargetImmediatelyBeforeDispatch() {
         var repository = Mockito.mock(KwhOutboxRepository.class);
         var properties = properties(true, Set.of("127.0.0.1"), false);

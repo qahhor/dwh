@@ -55,6 +55,8 @@ describe('TaskDetailsService', () => {
     expect(details.taskSubtasks().map((t) => t.id)).toEqual([21]);
     expect(details.comments().map((c) => c.id)).toEqual([1]);
     expect(details.detailLoading()).toBe(false);
+    // Reading does not change the task: the card marks it viewed by its own command (plan 10/10, item 3.10).
+    expect(api.post).toHaveBeenCalledWith('/tasks/2/view', null, { notifyError: false });
   });
 
   it('ignores out-of-order detail and comment responses for a previously selected task', () => {

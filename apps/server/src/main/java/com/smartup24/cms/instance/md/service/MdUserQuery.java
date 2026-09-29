@@ -4,7 +4,7 @@ import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdUserRepository;
+import com.smartup24.cms.instance.md.repository.MdUserListSql;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,7 +21,7 @@ public class MdUserQuery {
                     "iam.users",
                     MdPref.FORM_USERS,
                     "view",
-                    MdUserRepository.LIST_COLUMNS,
+                    MdUserListSql.LIST_COLUMNS,
                     "md_users",
                     "md_users.id",
                     List.of(

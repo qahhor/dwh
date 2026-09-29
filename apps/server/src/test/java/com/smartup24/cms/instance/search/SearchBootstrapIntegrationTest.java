@@ -51,7 +51,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                 """).param("id", generation).update();
         var claim = delivery.claim(generation, owner, clock.instant(), 100).getFirst();
         var projection = reader.read("USER", id).orElseThrow();
-        client.upsertDocument("users", projection.document());
+        client.documents().upsertDocument("users", projection.document());
         delivery.acknowledge(claim, projection.fingerprint());
         var receipt = jobRepository.insert(
                 new SearchManagementDtos.StartJobRequest(UUID.randomUUID(), "REBUILD", null), generation, null);
@@ -114,7 +114,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
                 99L, "admin", "admin@example.invalid", 1L, false, Set.of("*.*"), 1L, false, 0, null));
         try {
             var service = new SearchService(
-                    client,
+                    client.search(),
                     new SearchFallbackRepository(jdbc),
                     new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
                     new SearchResultBudget(),
@@ -266,7 +266,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
     @Test
     void backgroundNetworkStartsOnlyAfterCommittedBootstrapAndDoesNotBlockApplicationRunner() throws Exception {
         lifecycleFixture = this;
-        lifecycleWorker = new SearchDeliveryWorker(client, reader, delivery, state, clock, () -> 0.5);
+        lifecycleWorker = new SearchDeliveryWorker(client.documents(), reader, delivery, state, clock, () -> 0.5);
         var httpEntered = new CountDownLatch(1);
         var releaseHttp = new CountDownLatch(1);
         beforeRequest = exchange -> {
@@ -324,7 +324,7 @@ class SearchBootstrapIntegrationTest extends SearchDeliveryTestSupport {
         SearchJobWorker searchJobWorker() {
             var f = lifecycleFixture;
             return new SearchJobWorker(
-                    f.client,
+                    f.client.collections(),
                     lifecycleWorker,
                     f.state,
                     f.jobRepository,

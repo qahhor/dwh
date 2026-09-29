@@ -220,33 +220,38 @@ public class AuditArchiveService {
                 throw new IllegalStateException("Archive record " + key + " vanished before it was verified");
             }
 
-            auditLogService.logSecurityEvent(
-                    "AUDIT_ARCHIVED",
-                    null,
-                    null,
-                    ACTOR,
-                    Map.of(
-                            "file",
-                            key,
-                            "storage",
-                            store.storage(),
-                            "rows",
-                            rows,
-                            "bytes",
-                            bytes,
-                            "partitions",
-                            String.join(",", rowsByPartition.keySet())));
-            log.info(
-                    "audit_archived file={} storage={} partitions={} rows={} bytes={}",
-                    key,
-                    store.storage(),
-                    rowsByPartition.size(),
-                    rows,
-                    bytes);
+            recordArchived(key, rowsByPartition, rows, bytes);
             return key;
         } finally {
             Files.deleteIfExists(file);
         }
+    }
+
+    /** The security journal and the log say which file now holds which partitions. */
+    private void recordArchived(String key, Map<String, Long> rowsByPartition, long rows, long bytes) {
+        auditLogService.logSecurityEvent(
+                "AUDIT_ARCHIVED",
+                null,
+                null,
+                ACTOR,
+                Map.of(
+                        "file",
+                        key,
+                        "storage",
+                        store.storage(),
+                        "rows",
+                        rows,
+                        "bytes",
+                        bytes,
+                        "partitions",
+                        String.join(",", rowsByPartition.keySet())));
+        log.info(
+                "audit_archived file={} storage={} partitions={} rows={} bytes={}",
+                key,
+                store.storage(),
+                rowsByPartition.size(),
+                rows,
+                bytes);
     }
 
     /** One partition, row by row through a cursor (the pool's fetch size), in key order. */

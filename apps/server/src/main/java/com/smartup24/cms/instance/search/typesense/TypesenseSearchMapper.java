@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.search.typesense;
 
 import com.smartup24.cms.instance.search.service.SearchService.SearchHit;
-import com.smartup24.cms.instance.search.typesense.TypesenseClient.CollectionSearch;
+import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.web.util.HtmlUtils;

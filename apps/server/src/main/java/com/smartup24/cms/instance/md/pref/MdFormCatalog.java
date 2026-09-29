@@ -64,7 +64,16 @@ public final class MdFormCatalog {
 
     private static Map<String, FormMeta> buildForms() {
         Map<String, FormMeta> forms = new LinkedHashMap<>();
+        putIdentityForms(forms);
+        putAdministrationForms(forms);
+        putUploadAndTaskForms(forms);
+        putCommunicationForms(forms);
+        putPlatformForms(forms);
+        return Map.copyOf(forms);
+    }
 
+    /** Profile, users, roles and assignments: who the user is and what they may do. */
+    private static void putIdentityForms(Map<String, FormMeta> forms) {
         forms.put(
                 MdPref.FORM_PROFILE,
                 new FormMeta(
@@ -109,7 +118,9 @@ public final class MdFormCatalog {
                         ordered(
                                 "view", "Просмотр назначений",
                                 "assign", "Назначение ролей и прав")));
+    }
 
+    private static void putAdministrationForms(Map<String, FormMeta> forms) {
         forms.put(
                 MdPref.FORM_CUSTOM_FIELDS,
                 new FormMeta(
@@ -143,7 +154,9 @@ public final class MdFormCatalog {
                                 "update", "Изменение настроек")));
 
         forms.put("audit.log", new FormMeta("audit", "Аудит и security-журнал", ordered("view", "Просмотр журналов")));
+    }
 
+    private static void putUploadAndTaskForms(Map<String, FormMeta> forms) {
         forms.put(
                 "upl.sources",
                 new FormMeta(
@@ -193,7 +206,10 @@ public final class MdFormCatalog {
                         ordered(
                                 "view", "Просмотр комментариев",
                                 "create", "Создание комментария")));
+    }
 
+    /** Notifications, announcements, files and search. */
+    private static void putCommunicationForms(Map<String, FormMeta> forms) {
         forms.put(
                 "notify.inbox", new FormMeta("ms.notify", "Входящие оповещения", ordered("view", "Просмотр входящих")));
 
@@ -220,7 +236,10 @@ public final class MdFormCatalog {
                                 "delete", "Удаление файлов")));
 
         forms.put("platform.search", new FormMeta("search", "Поиск", ordered("view", "Полнотекстовый поиск")));
+    }
 
+    /** Webhooks, analytics, modules and navigation. */
+    private static void putPlatformForms(Map<String, FormMeta> forms) {
         forms.put(
                 "platform.webhooks",
                 new FormMeta(
@@ -256,8 +275,6 @@ public final class MdFormCatalog {
                         ordered(
                                 "view", "Просмотр меню и отчетов",
                                 "manage", "Управление пунктами меню и отчетами")));
-
-        return Map.copyOf(forms);
     }
 
     private static Map<String, String> ordered(String... keyValues) {

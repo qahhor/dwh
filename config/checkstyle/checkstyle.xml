@@ -24,7 +24,34 @@
         <property name="checks" value="ConstantName"/>
     </module>
 
+    <!-- Size limits (plan 10/10, item 3.10) hold for main code only: a test class groups the cases of one unit,
+         and a long test method is a scenario read top to bottom. -->
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[\\/]src[\\/]test[\\/]"/>
+        <property name="checks" value="FileLength|MethodLength"/>
+    </module>
+    <!-- Temporary waivers, each removed by the item named:
+         OpenApiController is deleted by item 3.3 (the springdoc-based contract replaces it);
+         UplXlsxParser streams rows since item 3.9; splitting its reading from its checks is the next step. -->
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[\\/]config[\\/]openapi[\\/]OpenApiController\.java$|[\\/]upl[\\/]parse[\\/]UplXlsxParser\.java$"/>
+        <property name="checks" value="FileLength|MethodLength"/>
+    </module>
+
+    <!-- A class over 400 lines holds more than one responsibility; split it rather than raise the limit. -->
+    <module name="FileLength">
+        <property name="max" value="400"/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+
     <module name="TreeWalker">
+        <!-- A method over 60 lines mixes levels of abstraction; extract the steps. -->
+        <module name="MethodLength">
+            <property name="max" value="60"/>
+            <property name="countEmpty" value="false"/>
+            <property name="tokens" value="METHOD_DEF, CTOR_DEF, COMPACT_CTOR_DEF"/>
+        </module>
+
         <!-- Naming -->
         <module name="PackageName">
             <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>

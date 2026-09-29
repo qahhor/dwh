@@ -304,7 +304,6 @@ class MdOrgUnitWriteIntegrationTest {
                 mock(MdCustomFieldService.class),
                 mock(PasswordHasher.class),
                 mock(PasswordValidator.class),
-                mock(UserSessionInvalidator.class),
                 mock(SearchChangePublisher.class),
                 audit,
                 scopeService));

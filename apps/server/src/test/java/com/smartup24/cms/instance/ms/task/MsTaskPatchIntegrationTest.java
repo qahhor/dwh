@@ -21,39 +21,33 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
-import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.controller.MsTaskCommentController;
-import com.smartup24.cms.instance.ms.task.controller.MsTaskController;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
-import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.interceptor.TransactionProxyFactoryBean;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import org.springframework.transaction.interceptor.TransactionInterceptor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -103,31 +97,29 @@ class MsTaskPatchIntegrationTest {
                 new MdPermissionService(new MdPermissionRepository(jdbc)),
                 audit);
 
-        var taskServiceTarget = new MsTaskService(
-                new MsTaskRepository(jdbc, objectMapper),
-                new MsTaskStatusRepository(jdbc),
-                new MsTaskTypeRepository(jdbc),
-                new MsTaskMemberRepository(jdbc),
-                new MsProjectRepository(jdbc, objectMapper),
-                mock(MdCustomFieldService.class),
-                scopes,
-                mock(MfFileService.class),
-                mock(ApplicationEventPublisher.class),
-                mock(SearchChangePublisher.class),
-                audit);
-        MsTaskService taskService = transactional(taskServiceTarget, transactions, MsTaskService.class);
+        // Transactions as the annotations declare them, read-only included: a GET that wrote would fail here.
+        MsTaskFixture.Proxy proxy = new MsTaskFixture.Proxy() {
+            @Override
+            public <T> T wrap(T target) {
+                return transactional(target, transactions);
+            }
+        };
+        var tasks = MsTaskFixture.wire(
+                MsTaskFixture.Repositories.jdbc(jdbc, objectMapper),
+                MsTaskFixture.Collaborators.with(scopes, mock(SearchChangePublisher.class), audit),
+                proxy);
 
-        var commentServiceTarget = new MsTaskCommentService(
+        var commentService = proxy.wrap(new MsTaskCommentService(
                 new MsTaskCommentRepository(jdbc),
-                taskService,
+                tasks.tasks(),
+                tasks.members(),
                 mock(MfFileService.class),
                 mock(ApplicationEventPublisher.class),
-                audit);
-        MsTaskCommentService commentService =
-                transactional(commentServiceTarget, transactions, MsTaskCommentService.class);
+                audit));
 
-        mvc = MockMvcBuilders.standaloneSetup(
-                        new MsTaskController(taskService, null), new MsTaskCommentController(commentService))
+        List<Object> controllers = new ArrayList<>(List.of(tasks.controllers(null)));
+        controllers.add(new MsTaskCommentController(commentService));
+        mvc = MockMvcBuilders.standaloneSetup(controllers.toArray())
                 .addInterceptors(new RequiresPermissionInterceptor())
                 .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
@@ -252,6 +244,45 @@ class MsTaskPatchIntegrationTest {
     }
 
     @Test
+    void openingTheCardWritesNothingAndTheViewCommandMarksTheTaskViewed() throws Exception {
+        Long actor = user("Card viewer", null);
+        assignScope(actor, "ALL", List.of());
+        Long author = user("Card author", null);
+        Long task = task("Unseen", author, author, null, null);
+        addMember(task, actor, MsTaskPref.INVOLVE_RESPONSIBLE);
+        signIn(actor);
+        String before = rowState(task);
+
+        mvc.perform(get("/api/v1/tasks/{id}", task))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.task.id").value(task))
+                .andExpect(jsonPath("$.members[0].userId").value(actor));
+
+        assertThat(rowState(task)).as("GET /tasks/{id} writes nothing").isEqualTo(before);
+        assertThat(viewed(task, actor)).isFalse();
+
+        mvc.perform(post("/api/v1/tasks/{id}/view", task)).andExpect(status().isNoContent());
+
+        assertThat(viewed(task, actor)).isTrue();
+        assertThat(rowState(task)).isNotEqualTo(before);
+    }
+
+    @Test
+    void theViewCommandOnAnInvisibleTaskIsNotFoundAndWritesNothing() throws Exception {
+        Long owner = user("Hidden owner", null);
+        Long outsider = user("Hidden outsider", null);
+        assignScope(outsider, "SELF", List.of());
+        Long task = task("Hidden card", owner, owner, null, null);
+        addMember(task, owner, MsTaskPref.INVOLVE_RESPONSIBLE);
+        signIn(outsider);
+        String before = rowState(task);
+
+        mvc.perform(post("/api/v1/tasks/{id}/view", task)).andExpect(status().isNotFound());
+
+        assertThat(rowState(task)).isEqualTo(before);
+    }
+
+    @Test
     void commentCreateAndListExposeOnlyPublicAuthorDisplayFields() throws Exception {
         Long actor = user("Public Author", null);
         assignScope(actor, "ALL", List.of());
@@ -314,16 +345,32 @@ class MsTaskPatchIntegrationTest {
         assertThat(taskValues(task).get("title")).isEqualTo(before);
     }
 
-    private static <T> T transactional(T target, DataSourceTransactionManager transactions, Class<T> type) {
-        var factory = new TransactionProxyFactoryBean();
-        factory.setTarget(target);
+    @SuppressWarnings("unchecked")
+    private static <T> T transactional(T target, DataSourceTransactionManager transactions) {
+        var factory = new ProxyFactory(target);
         factory.setProxyTargetClass(true);
-        factory.setTransactionManager(transactions);
-        var attributes = new Properties();
-        attributes.setProperty("*", "PROPAGATION_REQUIRED");
-        factory.setTransactionAttributes(attributes);
-        factory.afterPropertiesSet();
-        return type.cast(factory.getObject());
+        factory.addAdvice(new TransactionInterceptor(transactions, new AnnotationTransactionAttributeSource()));
+        return (T) factory.getProxy();
+    }
+
+    private static String rowState(Long task) {
+        return jdbc.sql("""
+                select t.modified_at || '|' || t.revision
+                       || '|' || coalesce((select string_agg(m.user_id || m.involve_kind || m.is_viewed, ','
+                                                             order by m.user_id, m.involve_kind)
+                                           from ms_task_members m where m.task_id = t.id), '')
+                       || '|' || (select count(*) from audit_log a
+                                  where a.table_name = 'ms_tasks' and a.row_pk = t.id::text)
+                from ms_tasks t where t.id = :id
+                """).param("id", task).query(String.class).single();
+    }
+
+    private static boolean viewed(Long task, Long user) {
+        return jdbc.sql("select bool_and(is_viewed) from ms_task_members where task_id = :task and user_id = :user")
+                .param("task", task)
+                .param("user", user)
+                .query(Boolean.class)
+                .single();
     }
 
     private static Long user(String name, Long orgUnitId) {

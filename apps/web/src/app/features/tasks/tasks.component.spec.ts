@@ -282,7 +282,9 @@ describe('TasksComponent', () => {
 
     component.commentDraft = 'not allowed';
     component.submitComment();
-    expect(api.post).not.toHaveBeenCalled();
+    // The only change sent is the viewed mark of the opened card, never the comment.
+    expect(api.post.mock.calls.map((call: unknown[]) => call[0])).not.toContain('/tasks/14/comments');
+    expect(api.post.mock.calls.every((call: unknown[]) => String(call[0]).endsWith('/view'))).toBe(true);
   });
 
   it('uses one detail or edit dialog at a time and returns to the card after cancel', async () => {

@@ -392,7 +392,8 @@ describe('Record routes with the actual router and actual templates', () => {
     page.onTaskDrop({ item: { data: record } } as any, 2);
     page.retryTaskDetails();
     page.retryComments();
-    expect(api.post).not.toHaveBeenCalled();
+    // The only change sent is the viewed mark, by the exact key of the route.
+    expect(api.post.mock.calls.map((call: unknown[]) => call[0])).toEqual(['/tasks/9223372036854775807/view']);
     expect(api.patch).not.toHaveBeenCalled();
     expect(api.delete).not.toHaveBeenCalled();
     expect(api.get.mock.calls.some(([path]) => path.includes('9223372036854776000'))).toBe(false);

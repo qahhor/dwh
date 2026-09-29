@@ -37,7 +37,6 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.md.service.MdSettingService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
-import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.smartup24.cms.spi.common.ProviderHealth;
@@ -119,7 +118,6 @@ class KauthOtpLoginIntegrationTest {
                 new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), auditLogService),
                 new KauthPasswordHasher(),
                 new PasswordValidator(),
-                Mockito.mock(UserSessionInvalidator.class),
                 Mockito.mock(SearchChangePublisher.class),
                 auditLogService,
                 scopes);
