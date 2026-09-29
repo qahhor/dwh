@@ -152,6 +152,15 @@ export function serverLiteralKeys(prefix: string): string[] {
  * code (`error.i18n_language_invalid` → `I18N_LANGUAGE_INVALID`); `file` limits the
  * search to one class under com/smartup24/cms, for codes as short as a field name.
  */
+/**
+ * Catalog keys the server names itself (plan 10/10, item 3.1: an error carries the key of its text), found as string
+ * literals in the server sources.
+ */
+export function serverKeyLiterals(prefix: string): string[] {
+  const sources = [...serverSources().values()];
+  return catalogKeys(prefix).filter((key) => sources.some((source) => source.includes(`"${key}"`)));
+}
+
 export function serverCodeKeys(
   prefix: string,
   options: { toCode?: (suffix: string) => string; file?: string } = {},

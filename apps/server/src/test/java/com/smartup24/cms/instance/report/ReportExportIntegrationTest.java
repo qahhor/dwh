@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
@@ -79,7 +80,7 @@ class ReportExportIntegrationTest {
         reports = new ReportService(jdbc, scopes);
         mvc = MockMvcBuilders.standaloneSetup(new ReportController(reports))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }
 

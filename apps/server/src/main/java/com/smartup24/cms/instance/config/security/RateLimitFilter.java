@@ -120,10 +120,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 } catch (ApiException unavailable) {
                     if (unavailable.getErrorCode() != ErrorCode.SERVICE_UNAVAILABLE) throw unavailable;
                     problemWriter.writeProblem(
+                            request,
                             response,
                             ErrorCode.SERVICE_UNAVAILABLE,
-                            "Search configuration is unavailable",
-                            request.getRequestURI());
+                            "error.search_config_unavailable",
+                            Map.of());
                     return;
                 }
                 limit = searchBudget.perMinute();
@@ -156,10 +157,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
         response.setHeader("Retry-After", String.valueOf(retryAfterSec));
         problemWriter.writeProblem(
+                request,
                 response,
                 ErrorCode.RATE_LIMITED,
-                "Превышен лимит запросов, повторите через " + retryAfterSec + " с",
-                request.getRequestURI());
+                "error.rate_limited_retry",
+                Map.of("seconds", retryAfterSec));
     }
 
     private String findExpensivePathFamily(String uri) {

@@ -11,6 +11,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.mf.controller.MfFileController;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
@@ -150,21 +151,21 @@ class TaskFileDataScopeControllerTest {
     private static MockMvc taskMvc(MsTaskService service) {
         return MockMvcBuilders.standaloneSetup(new MsTaskController(service, null))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }
 
     private static MockMvc fileMvc(MfFileService service) {
         return MockMvcBuilders.standaloneSetup(new MfFileController(service))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }
 
     private static MockMvc commentMvc(MsTaskCommentService service) {
         return MockMvcBuilders.standaloneSetup(new MsTaskCommentController(service))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }
 

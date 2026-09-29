@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.dto.MdOrgUnitDtos;
@@ -45,7 +46,7 @@ class MdOrgUnitControllerTest {
                         2L, null, "ROOT", "Root", "company", "A", 0, Instant.EPOCH, Instant.EPOCH)));
         var mvc = MockMvcBuilders.standaloneSetup(
                         new MdOrgUnitController(new MdOrgUnitService(repository, scope, audit), scope))
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
 
         mvc.perform(patch("/api/v1/iam/org-units/3")
@@ -152,7 +153,7 @@ class MdOrgUnitControllerTest {
     private static MockMvc mvc(MdScopeService scopeService) {
         return MockMvcBuilders.standaloneSetup(new MdOrgUnitController(mock(MdOrgUnitService.class), scopeService))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
     }
 

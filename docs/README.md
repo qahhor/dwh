@@ -53,6 +53,7 @@ Current ADRs that are not superseded:
 
 - [ADR-0019 — low-code entity model](adr/ADR-0019-low-code-entity-model.md)
 - [ADR-0020 — database naming and types](adr/ADR-0020-database-naming.md)
+- [ADR-0021 — one error model](adr/ADR-0021-error-model.md)
   — an entity is one server declaration from which lists, forms, cards,
   permissions and menus are built.
 

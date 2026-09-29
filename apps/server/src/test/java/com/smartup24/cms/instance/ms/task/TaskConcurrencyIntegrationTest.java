@@ -16,6 +16,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
+import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.RequiresPermissionInterceptor;
@@ -124,7 +125,7 @@ class TaskConcurrencyIntegrationTest {
 
         mvc = MockMvcBuilders.standaloneSetup(new MsTaskController(taskService, null))
                 .addInterceptors(new RequiresPermissionInterceptor())
-                .setControllerAdvice(new GlobalExceptionHandler())
+                .setControllerAdvice(new GlobalExceptionHandler(PackagedProblemMessages.russian()))
                 .build();
 
         rootUnit = orgUnit(null, "root");
