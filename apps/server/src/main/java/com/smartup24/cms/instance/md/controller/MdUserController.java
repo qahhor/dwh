@@ -3,19 +3,14 @@ package com.smartup24.cms.instance.md.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
+import com.smartup24.cms.instance.md.api.MdUserDtos.UpdateUserDto;
+import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
-import com.smartup24.cms.instance.md.service.PasswordValidator;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -54,40 +49,20 @@ public class MdUserController {
                 filter,
                 sort,
                 query != null && !query.isBlank() ? query : search,
-                new MdUserRepository.LegacyUserFilters(state, roleId, managerId, is2faEnabled)));
+                new UserListFilters(state, roleId, managerId, is2faEnabled)));
     }
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<MdUserView> getUser(@PathVariable("id") Long id) {
-        var user = userService.getUserById(id);
-        var roleIds = userService.getUserRoleIds(id);
-        return ResponseEntity.ok(MdUserView.from(user, roleIds));
+        return ResponseEntity.ok(userService.getUserView(id));
     }
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "create")
     public ResponseEntity<MdUserView> createUser(@Valid @RequestBody CreateUserDto body) {
-        Long currentUserId = SecurityContext.getCurrentUserId();
-
-        var user = userService.createUser(
-                body.name(),
-                body.login(),
-                body.email(),
-                body.phone(),
-                body.password(),
-                body.managerId(),
-                body.language(),
-                body.timezone(),
-                body.avatarFileId(),
-                body.attributes(),
-                body.is2faEnabled(),
-                Boolean.TRUE.equals(body.forcePasswordChange()),
-                body.roleIds(),
-                currentUserId);
-
-        var roleIds = userService.getUserRoleIds(user.id());
-        return ResponseEntity.status(HttpStatus.CREATED).body(MdUserView.from(user, roleIds));
+        var user = userService.createUser(body, SecurityContext.getCurrentUserId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
     @PatchMapping("/{id}")
@@ -134,33 +109,4 @@ public class MdUserController {
         userService.anonymizeUser(id, currentUserId);
         return ResponseEntity.noContent().build();
     }
-
-    public record CreateUserDto(
-            @NotBlank String name,
-            @NotBlank @Size(min = 3, max = 50) String login,
-            @NotBlank @Email String email,
-            String phone,
-
-            @NotBlank @Size(min = PasswordValidator.MIN_PASSWORD_LENGTH, max = PasswordValidator.MAX_PASSWORD_LENGTH)
-            String password,
-
-            Long managerId,
-            String language,
-            String timezone,
-            UUID avatarFileId,
-            Map<String, Object> attributes,
-            boolean is2faEnabled,
-            Boolean forcePasswordChange,
-            List<Long> roleIds) {}
-
-    public record UpdateUserDto(
-            String name,
-            String phone,
-            Long managerId,
-            String language,
-            String timezone,
-            UUID avatarFileId,
-            Map<String, Object> attributes,
-            Boolean is2faEnabled,
-            List<Long> roleIds) {}
 }

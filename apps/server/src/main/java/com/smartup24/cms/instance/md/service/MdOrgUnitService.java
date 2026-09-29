@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.OrgUnitView;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +33,16 @@ public class MdOrgUnitService {
     }
 
     @Transactional(readOnly = true)
-    public List<MdOrgUnitRepository.OrgUnitRecord> listAll() {
-        return orgUnitRepository.listAll();
+    public List<OrgUnitView> listAll() {
+        return orgUnitRepository.listAll().stream().map(MdOrgUnitService::view).toList();
     }
 
     @Transactional(readOnly = true)
-    public MdOrgUnitRepository.OrgUnitRecord getById(Long id) {
+    public OrgUnitView getById(Long id) {
+        return view(requireUnit(id));
+    }
+
+    private MdOrgUnitRepository.OrgUnitRecord requireUnit(Long id) {
         requirePositiveId(id);
         return orgUnitRepository
                 .findById(id)
@@ -45,13 +50,13 @@ public class MdOrgUnitService {
     }
 
     @Transactional
-    public MdOrgUnitRepository.OrgUnitRecord create(Long parentId, String code, String name, String kind, int orderNo) {
+    public OrgUnitView create(Long parentId, String code, String name, String kind, int orderNo) {
         scopeService.acquireMutationLock();
         code = requiredText(code, "error.md.org_unit_code_required");
         name = requiredText(name, "error.md.org_unit_name_required");
         kind = kind == null ? "department" : requiredText(kind, "error.md.org_unit_kind_required");
         if (parentId != null) {
-            getById(parentId);
+            requireUnit(parentId);
         } else if (orgUnitRepository.hasRoot()) {
             // Экземпляр принадлежит одному клиенту (ADR-0004), поэтому дерево одно.
             // Без этой проверки ограничение БД срабатывало бы конфликтом без объяснения.
@@ -79,7 +84,20 @@ public class MdOrgUnitService {
                         "parent_id",
                         parentId != null ? parentId : "null"));
 
-        return unit;
+        return view(unit);
+    }
+
+    private static OrgUnitView view(MdOrgUnitRepository.OrgUnitRecord unit) {
+        return new OrgUnitView(
+                unit.id(),
+                unit.parentId(),
+                unit.code(),
+                unit.name(),
+                unit.kind(),
+                unit.state(),
+                unit.orderNo(),
+                unit.createdAt(),
+                unit.modifiedAt());
     }
 
     @Transactional
@@ -91,7 +109,7 @@ public class MdOrgUnitService {
     public void update(
             Long id, boolean parentIdPresent, Long parentId, String name, String kind, String state, Integer orderNo) {
         scopeService.acquireMutationLock();
-        var unit = getById(id);
+        var unit = requireUnit(id);
         Long finalParentId = parentIdPresent ? parentId : unit.parentId();
 
         String newName = name != null ? requiredText(name, "error.md.org_unit_name_required") : unit.name();
@@ -106,7 +124,7 @@ public class MdOrgUnitService {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_parent_required");
         }
         if (finalParentId != null) {
-            getById(finalParentId);
+            requireUnit(finalParentId);
             if (unit.parentId() == null) {
                 throw ApiException.conflict(ErrorCode.CONFLICT, "error.md.org_unit_root_move_forbidden");
             }
@@ -152,7 +170,7 @@ public class MdOrgUnitService {
     @Transactional
     public void delete(Long id) {
         scopeService.acquireMutationLock();
-        var unit = getById(id);
+        var unit = requireUnit(id);
 
         // I-ORG-2: у узла есть дети или сотрудники — удаление здесь означало бы
         // либо каскад по дереву, либо потерю привязок. И то и другое молча.

@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.RolePermission;
+import com.smartup24.cms.instance.md.api.MdRoleDtos.RoleView;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import java.util.List;
@@ -39,8 +41,8 @@ public class MdRoleService {
     }
 
     @Transactional(readOnly = true)
-    public List<MdRoleRepository.RoleRecord> listRoles() {
-        return roleRepository.listRoles();
+    public List<RoleView> listRoles() {
+        return roleRepository.listRoles().stream().map(MdRoleService::view).toList();
     }
 
     @Transactional(readOnly = true)
@@ -49,7 +51,7 @@ public class MdRoleService {
     }
 
     @Transactional
-    public MdRoleRepository.RoleRecord createRole(String name, int orderNo) {
+    public RoleView createRole(String name, int orderNo) {
         scopeRepository.lockScopeMutation();
         var role = roleRepository.create(name, null, "A", orderNo);
 
@@ -66,7 +68,18 @@ public class MdRoleService {
                 null,
                 Map.of("id", role.id(), "name", name, "state", "A", "order_no", orderNo));
 
-        return role;
+        return view(role);
+    }
+
+    private static RoleView view(MdRoleRepository.RoleRecord role) {
+        return new RoleView(
+                role.id(),
+                role.name(),
+                role.pcode(),
+                role.state(),
+                role.orderNo(),
+                role.createdAt(),
+                role.modifiedAt());
     }
 
     @Transactional(readOnly = true)
@@ -133,8 +146,13 @@ public class MdRoleService {
     }
 
     @Transactional
-    public void setRolePermissions(Long roleId, List<MdRoleRepository.PermissionPair> permissions) {
+    public void setRolePermissions(Long roleId, List<RolePermission> requested) {
         var role = getRoleById(roleId);
+        List<MdRoleRepository.PermissionPair> permissions = requested == null
+                ? null
+                : requested.stream()
+                        .map(p -> new MdRoleRepository.PermissionPair(p.formCode(), p.action()))
+                        .toList();
 
         // Матрица роли раньше не проверялась вовсе: в md_role_permissions можно
         // было записать любую пару, и она попадала в эффективные права (FR-PERM-1).

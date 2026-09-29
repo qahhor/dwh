@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.EffectivePermission;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -94,9 +96,13 @@ public class MdAssignmentService {
 
     /** Полная замена персональных прав поверх ролей (FR-PERM-5). */
     @Transactional
-    public long replacePersonalPermissions(Long userId, List<MdRoleRepository.PermissionPair> permissions) {
+    public long replacePersonalPermissions(Long userId, List<GrantDto> grants) {
         requireUser(userId);
-        List<MdRoleRepository.PermissionPair> requested = permissions != null ? permissions : List.of();
+        List<MdRoleRepository.PermissionPair> requested = grants == null
+                ? List.of()
+                : grants.stream()
+                        .map(g -> new MdRoleRepository.PermissionPair(g.form(), g.action()))
+                        .toList();
 
         // Права выдаются только на живые пары каталога (FR-PERM-1): устаревшая
         // пара ничего не открывает, и выданное по ней право неотличимо от
@@ -135,9 +141,21 @@ public class MdAssignmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<MdPermissionRepository.EffectivePermissionItem> getEffectivePermissions(Long userId) {
+    public List<EffectivePermission> getEffectivePermissions(Long userId) {
         requireUser(userId);
-        return permissionRepository.getEffectivePermissionsWithSource(userId);
+        return permissionRepository.getEffectivePermissionsWithSource(userId).stream()
+                .map(i -> new EffectivePermission(i.formCode(), i.action(), i.source()))
+                .toList();
+    }
+
+    /** Only what was granted to the user personally, on top of the roles. */
+    @Transactional(readOnly = true)
+    public List<GrantDto> getPersonalGrants(Long userId) {
+        requireUser(userId);
+        return permissionRepository.getEffectivePermissionsWithSource(userId).stream()
+                .filter(i -> "personal".equals(i.source()))
+                .map(i -> new GrantDto(i.formCode(), i.action()))
+                .toList();
     }
 
     /**

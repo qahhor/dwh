@@ -1,15 +1,16 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.md.dto.MdOrgUnitDtos;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.AssignUnitsDto;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.CreateOrgUnitDto;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.OrgUnitView;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.ScopeRuleDto;
+import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UpdateOrgUnitDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,19 +44,19 @@ public class MdOrgUnitController {
 
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
-    public ResponseEntity<List<MdOrgUnitRepository.OrgUnitRecord>> list() {
+    public ResponseEntity<List<OrgUnitView>> list() {
         return ResponseEntity.ok(orgUnitService.listAll());
     }
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
-    public ResponseEntity<MdOrgUnitRepository.OrgUnitRecord> getById(@PathVariable("id") Long id) {
+    public ResponseEntity<OrgUnitView> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(orgUnitService.getById(id));
     }
 
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "create")
-    public ResponseEntity<MdOrgUnitRepository.OrgUnitRecord> create(@Valid @RequestBody CreateOrgUnitDto body) {
+    public ResponseEntity<OrgUnitView> create(@Valid @RequestBody CreateOrgUnitDto body) {
         var unit = orgUnitService.create(body.parentId(), body.code(), body.name(), body.kind(), body.orderNo());
         return ResponseEntity.status(HttpStatus.CREATED).body(unit);
     }
@@ -63,7 +64,8 @@ public class MdOrgUnitController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "update")
     public ResponseEntity<Void> update(@PathVariable("id") Long id, @RequestBody UpdateOrgUnitDto body) {
-        orgUnitService.update(id, body.parentIdPresent, body.parentId, body.name, body.kind, body.state, body.orderNo);
+        orgUnitService.update(
+                id, body.parentIdPresent(), body.parentId(), body.name(), body.kind(), body.state(), body.orderNo());
         return ResponseEntity.noContent().build();
     }
 
@@ -112,41 +114,4 @@ public class MdOrgUnitController {
     public ResponseEntity<MdScopeService.UserScope> getUserScope(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok(scopeService.getUserScope(userId));
     }
-
-    public record CreateOrgUnitDto(
-            Long parentId, @NotBlank String code, @NotBlank String name, String kind, int orderNo) {}
-
-    public static class UpdateOrgUnitDto {
-        private boolean parentIdPresent;
-        private Long parentId;
-        private String name;
-        private String kind;
-        private String state;
-        private Integer orderNo;
-
-        public void setParentId(Long parentId) {
-            this.parentIdPresent = true;
-            this.parentId = parentId;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public void setKind(String kind) {
-            this.kind = kind;
-        }
-
-        public void setState(String state) {
-            this.state = state;
-        }
-
-        public void setOrderNo(Integer orderNo) {
-            this.orderNo = orderNo;
-        }
-    }
-
-    public record AssignUnitsDto(@NotNull List<@NotNull @Positive Long> orgUnitIds) {}
-
-    public record ScopeRuleDto(@NotBlank String rule) {}
 }
