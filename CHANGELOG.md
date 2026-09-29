@@ -686,6 +686,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- No server class over 400 lines and no method over 60 (plan 10/10, item
+  3.10), enforced by Checkstyle on main code. MsTaskService (972 lines)
+  is split into task, read, member, file, workflow and status view
+  services with its audit in MsTaskAuditTrail; MsTaskRepository,
+  TypesenseClient, SearchService and MdUserService are split by concern,
+  and the long worker, filter and export methods into their steps.
+  Reading a task no longer writes: the web card marks it viewed with
+  `POST /tasks/{id}/view`. OpenApiController (item 3.3) and UplXlsxParser
+  are the only waivers.
+
 - Jobs run on a lease outside the queue transaction (plan 10/10, item
   3.8). A runner takes a job in a short transaction and works outside it,
   renewing its lease; a failed job is retried with a doubling backoff up
@@ -975,6 +985,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Task participant assignments (responsible, executors, observers through
+  the older endpoints) and file attach/detach were never written to the
+  audit log; they are now (found by the 3.10 split).
 
 - A session could be closed by anyone with the profile right: `DELETE
   /profile/sessions/{id}` closed any session by its id and the
