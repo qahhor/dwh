@@ -477,7 +477,7 @@ public class OpenApiController {
                                                                         "404",
                                                                                 Map.of(
                                                                                         "description",
-                                                                                        "QUERY_LIST_NOT_FOUND: unknown list or no right to view it"))))),
+                                                                                        "error.common.query_list_not_found: unknown list or no right to view it"))))),
                                 Map.entry(
                                         "/api/v1/tasks/bulk",
                                         Map.of(
@@ -517,7 +517,7 @@ public class OpenApiController {
                                                                                 "404",
                                                                                         Map.of(
                                                                                                 "description",
-                                                                                                "QUERY_LIST_NOT_FOUND"))),
+                                                                                                "error.md.query_list_not_found"))),
                                                 "post",
                                                         Map.of(
                                                                 "summary",
@@ -532,7 +532,7 @@ public class OpenApiController {
                                                                                 "422",
                                                                                         Map.of(
                                                                                                 "description",
-                                                                                                "LIST_VIEW_INVALID, LIST_VIEW_NAME_TAKEN or LIST_VIEW_LIMIT"))))),
+                                                                                                "error.md.list_view_invalid, error.md.list_view_name_taken or error.md.list_view_limit"))))),
                                 Map.entry(
                                         "/api/v1/history",
                                         Map.of(
@@ -584,11 +584,11 @@ public class OpenApiController {
                                                                                 "404",
                                                                                         Map.of(
                                                                                                 "description",
-                                                                                                "LIST_VIEW_NOT_FOUND"),
+                                                                                                "error.md.list_view_not_found"),
                                                                                 "409",
                                                                                         Map.of(
                                                                                                 "description",
-                                                                                                "STALE_VERSION"))),
+                                                                                                "error.md.list_view_stale"))),
                                                 "delete",
                                                         Map.of(
                                                                 "summary", "Delete an own view",
@@ -600,7 +600,7 @@ public class OpenApiController {
                                                                                 "404",
                                                                                 Map.of(
                                                                                         "description",
-                                                                                        "LIST_VIEW_NOT_FOUND"))))),
+                                                                                        "error.md.list_view_not_found"))))),
                                 Map.entry(
                                         "/api/v1/exports",
                                         Map.of(
@@ -674,7 +674,7 @@ public class OpenApiController {
                                                                         "422",
                                                                                 Map.of(
                                                                                         "description",
-                                                                                        "UPL_OVERVIEW_PERIOD_INVALID"))))),
+                                                                                        "error.upl.overview_period_invalid"))))),
                                 Map.entry(
                                         "/api/v1/upl/packages/{id}",
                                         Map.of(
@@ -687,7 +687,7 @@ public class OpenApiController {
                                                                         "200",
                                                                         Map.of("description", "The upload"),
                                                                         "404",
-                                                                        Map.of("description", "UPL_PKG_NOT_FOUND"))))),
+                                                                        Map.of("description", "error.upl.pkg_not_found"))))),
                                 Map.entry(
                                         "/api/v1/upl/packages/{id}/errors/file",
                                         Map.of(
@@ -717,7 +717,7 @@ public class OpenApiController {
                                                                         "404",
                                                                                 Map.of(
                                                                                         "description",
-                                                                                        "UPL_PKG_NOT_FOUND"))))),
+                                                                                        "error.upl.pkg_not_found"))))),
                                 Map.entry(
                                         "/api/v1/upl/sources/{id}/format-versions/{v}/template",
                                         Map.of(
@@ -813,7 +813,7 @@ public class OpenApiController {
                                                                         "422",
                                                                                 Map.of(
                                                                                         "description",
-                                                                                        "QUERY_INVALID, INVALID_LIMIT or INVALID_CURSOR with addressed errors"))))),
+                                                                                        "error.common.query_invalid with addressed errors (INVALID_LIMIT, INVALID_CURSOR)"))))),
                                 Map.entry(
                                         "/api/v1/audit/stats",
                                         Map.of(
