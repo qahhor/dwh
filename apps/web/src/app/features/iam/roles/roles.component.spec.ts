@@ -91,7 +91,11 @@ describe('RolesComponent', () => {
 
     page.matrix.rolePermissions.set(new Set(['audit.log.view']));
     page.matrix.savePermissions();
-    expect(api().put).toHaveBeenCalledWith('/iam/roles/1/permissions', [{ formCode: 'audit.log', action: 'view' }]);
+    expect(api().put).toHaveBeenCalledWith(
+      '/iam/roles/1/permissions',
+      [{ formCode: 'audit.log', action: 'view' }],
+      expect.any(Object),
+    );
 
     scopeWrite.error({ status: 409, detail: 'retry' });
     expect(panel.pending()).toBe(false);
@@ -281,9 +285,11 @@ describe('RolesComponent', () => {
     page.saveAndSwitch();
 
     expect(api().put).toHaveBeenCalledTimes(1);
-    expect(api().put).toHaveBeenCalledWith(`/iam/roles/${first.id}/permissions`, [
-      { formCode: 'audit.events', action: 'edit' },
-    ]);
+    expect(api().put).toHaveBeenCalledWith(
+      `/iam/roles/${first.id}/permissions`,
+      [{ formCode: 'audit.events', action: 'edit' }],
+      expect.any(Object),
+    );
     expect(page.isDiscardPermissionsModalOpen()).toBe(false);
     expect(page.matrix.selectedRole()?.id).toBe(2);
   });

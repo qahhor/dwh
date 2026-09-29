@@ -3363,6 +3363,8 @@ export interface components {
             optionsJson?: string;
             /** Format: int32 */
             orderNo?: number;
+            /** Format: int64 */
+            revision?: number;
         };
         DayRow: {
             /** Format: int64 */
@@ -3864,6 +3866,8 @@ export interface components {
             modifiedAt?: string;
             name?: string;
             phone?: string;
+            /** Format: int64 */
+            revision?: number;
             roleIds?: number[];
             state?: string;
             timezone?: string;
@@ -3902,6 +3906,8 @@ export interface components {
             /** Format: int64 */
             parentId?: number;
             requiredPermission?: string;
+            /** Format: int64 */
+            revision?: number;
             sectionId?: string;
             /** Format: int32 */
             sortOrder?: number;
@@ -3926,6 +3932,8 @@ export interface components {
             isPinned?: boolean;
             /** Format: date-time */
             modifiedAt?: string;
+            /** Format: int64 */
+            revision?: number;
             title?: string;
         };
         NotificationPrefUpdate: {
@@ -3968,6 +3976,8 @@ export interface components {
             orderNo?: number;
             /** Format: int64 */
             parentId?: number;
+            /** Format: int64 */
+            revision?: number;
             state?: string;
         };
         Organization: {
@@ -4131,6 +4141,8 @@ export interface components {
             /** Format: int64 */
             id?: number;
             name?: string;
+            /** Format: int64 */
+            revision?: number;
             state?: string;
         };
         PublishRequest: {
@@ -4185,6 +4197,8 @@ export interface components {
             /** Format: int32 */
             orderNo?: number;
             pcode?: string;
+            /** Format: int64 */
+            revision?: number;
             state?: string;
         };
         RollbackTarget: {
@@ -4399,6 +4413,8 @@ export interface components {
             /** Format: int64 */
             id?: number;
             name?: string;
+            /** Format: int64 */
+            revision?: number;
             state?: string;
             subscribedEvents?: string[];
             targetUrl?: string;
@@ -4466,6 +4482,8 @@ export interface components {
             /** Format: int32 */
             orderNo?: number;
             pcode?: string;
+            /** Format: int64 */
+            revision?: number;
         };
         TaskTypeView: {
             code?: string;
@@ -4479,6 +4497,8 @@ export interface components {
             name?: string;
             /** Format: int32 */
             orderNo?: number;
+            /** Format: int64 */
+            revision?: number;
         };
         TaskView: {
             attributes?: {
@@ -5614,7 +5634,9 @@ export interface operations {
     updateField: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -6630,7 +6652,9 @@ export interface operations {
     update_3: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7266,7 +7290,9 @@ export interface operations {
     updateRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7330,7 +7356,9 @@ export interface operations {
     setRolePermissions: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -7629,7 +7657,9 @@ export interface operations {
     updateUser: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8609,7 +8639,9 @@ export interface operations {
     updateItem: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -8840,7 +8872,9 @@ export interface operations {
     updateNote: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -9512,7 +9546,9 @@ export interface operations {
     updateRole_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -9576,7 +9612,9 @@ export interface operations {
     setRolePermissions_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10613,7 +10651,9 @@ export interface operations {
     updateStatus_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10770,7 +10810,9 @@ export interface operations {
     updateType_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10834,7 +10876,9 @@ export interface operations {
     updateTask: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -10961,7 +11005,9 @@ export interface operations {
     changeStatus: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11287,7 +11333,9 @@ export interface operations {
     updateProject: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11538,7 +11586,9 @@ export interface operations {
     updateStatus: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11695,7 +11745,9 @@ export interface operations {
     updateType: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11759,7 +11811,9 @@ export interface operations {
     updateTask_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -11886,7 +11940,9 @@ export interface operations {
     changeStatus_1: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };
@@ -12746,7 +12802,9 @@ export interface operations {
     updateSubscription: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: number;
             };

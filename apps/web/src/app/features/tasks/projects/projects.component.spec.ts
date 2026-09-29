@@ -207,7 +207,7 @@ describe('ProjectsComponent', () => {
     form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     redraw(fixture);
     expect(api.patch).toHaveBeenCalledTimes(1);
-    expect(api.patch).toHaveBeenCalledWith('/tasks/projects/5', { name: 'Native rename' });
+    expect(api.patch).toHaveBeenCalledWith('/tasks/projects/5', { name: 'Native rename' }, expect.any(Object));
     expect(screen.querySelector('.project-edit-form')?.disabled).toBe(true);
     pendingPatch.error({ status: 409, detail: 'Normalized edit detail' });
     redraw(fixture);

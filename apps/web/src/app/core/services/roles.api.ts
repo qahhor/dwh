@@ -28,7 +28,8 @@ export class RolesApi {
     return this.api.get<string[]>(`/iam/roles/${roleId}/permissions`, undefined, { notifyError: false });
   }
 
-  savePermissions(roleId: number, pairs: PermissionPair[]): Observable<unknown> {
-    return this.api.put(`/iam/roles/${roleId}/permissions`, pairs);
+  /** The matrix is part of the role: it is saved from the role's revision (plan item 3.6). */
+  savePermissions(roleId: number, pairs: PermissionPair[], revision: number | undefined): Observable<unknown> {
+    return this.api.put(`/iam/roles/${roleId}/permissions`, pairs, { ifMatch: revision });
   }
 }

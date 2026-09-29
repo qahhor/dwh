@@ -251,32 +251,34 @@ export class ProjectFormsService {
     const requestId = ++this.editSaveRequestId;
     this.editSaveError.set(null);
     this.isSubmitting.set(true);
-    this.editSaveRequest = this.api.patch<void>(`/tasks/projects/${editedProjectId}`, payload).subscribe({
-      next: () => {
-        if (
-          this.destroyed ||
-          requestId !== this.editSaveRequestId ||
-          !this.isEditModalOpen() ||
-          this.editingProject?.id !== editedProjectId
-        )
-          return;
-        this.isSubmitting.set(false);
-        this.closeEditModal();
-        this.toast.success(this.uiI18n.translate('projects.proekt_obnovlen'));
-        this.onProjectUpdated?.();
-      },
-      error: (err) => {
-        if (
-          this.destroyed ||
-          requestId !== this.editSaveRequestId ||
-          !this.isEditModalOpen() ||
-          this.editingProject?.id !== editedProjectId
-        )
-          return;
-        this.isSubmitting.set(false);
-        this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
-      },
-    });
+    this.editSaveRequest = this.api
+      .patch<void>(`/tasks/projects/${editedProjectId}`, payload, { ifMatch: this.editingProject.revision })
+      .subscribe({
+        next: () => {
+          if (
+            this.destroyed ||
+            requestId !== this.editSaveRequestId ||
+            !this.isEditModalOpen() ||
+            this.editingProject?.id !== editedProjectId
+          )
+            return;
+          this.isSubmitting.set(false);
+          this.closeEditModal();
+          this.toast.success(this.uiI18n.translate('projects.proekt_obnovlen'));
+          this.onProjectUpdated?.();
+        },
+        error: (err) => {
+          if (
+            this.destroyed ||
+            requestId !== this.editSaveRequestId ||
+            !this.isEditModalOpen() ||
+            this.editingProject?.id !== editedProjectId
+          )
+            return;
+          this.isSubmitting.set(false);
+          this.editSaveError.set(err?.detail || this.uiI18n.translate('projects.edit_save_error'));
+        },
+      });
   }
 
   isCreateDraftDirty(): boolean {

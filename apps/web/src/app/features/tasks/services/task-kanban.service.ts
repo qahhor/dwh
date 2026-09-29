@@ -110,9 +110,10 @@ export class TaskKanbanService {
     }
   }
 
-  updatePriority(taskId: number, newPriority: string, onLocalUpdate: () => void): void {
+  /** Each change names the revision it was made from (plan item 3.6); a stale one is refused with 409. */
+  updatePriority(taskId: number, newPriority: string, revision: number | undefined, onLocalUpdate: () => void): void {
     if (!safeNumericRecordId(taskId) || !newPriority) return;
-    this.api.patch(`/tasks/${taskId}`, { priority: newPriority }).subscribe({
+    this.api.patch(`/tasks/${taskId}`, { priority: newPriority, expectedRevision: revision }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.priority_updated'));
         onLocalUpdate();
@@ -123,9 +124,15 @@ export class TaskKanbanService {
     });
   }
 
-  updateStatus(taskId: number, newStatusId: number, onApplyVisible: () => void, onUpdateSelected: () => void): void {
+  updateStatus(
+    taskId: number,
+    newStatusId: number,
+    revision: number | undefined,
+    onApplyVisible: () => void,
+    onUpdateSelected: () => void,
+  ): void {
     if (!safeNumericRecordId(taskId) || !safeNumericRecordId(newStatusId)) return;
-    this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId }).subscribe({
+    this.api.post(`/tasks/${taskId}/status`, { statusId: newStatusId, expectedRevision: revision }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
         onApplyVisible();
@@ -144,14 +151,16 @@ export class TaskKanbanService {
     onApplyVisible: () => void,
     onUpdateSelected: () => void,
     onErrorReload: () => void,
+    onSaved: () => void = () => {},
   ): void {
     if (!safeNumericRecordId(task.id) || !safeNumericRecordId(targetStatusId)) return;
     onApplyVisible();
     onUpdateSelected();
 
-    this.api.post(`/tasks/${task.id}/status`, { statusId: targetStatusId }).subscribe({
+    this.api.post(`/tasks/${task.id}/status`, { statusId: targetStatusId, expectedRevision: task.revision }).subscribe({
       next: () => {
         this.toast.success(this.uiI18n.translate('tasks.task_moved_to_status', { id: task.id, status: statusName }));
+        onSaved();
       },
       error: (err) => {
         this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_izmenit_status_zadachi'));

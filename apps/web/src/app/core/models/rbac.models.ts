@@ -7,6 +7,8 @@ export interface Role {
   createdAt: string;
   modifiedAt: string;
   usersCount?: number;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 export interface FormTreeItem {

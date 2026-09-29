@@ -176,11 +176,13 @@ export class RolePermissionsEditor {
 
     this.isSaving.set(true);
     this.rolesApi
-      .savePermissions(role.id, toPermissionPairs(this.rolePermissions()))
+      .savePermissions(role.id, toPermissionPairs(this.rolePermissions()), role.revision)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.isSaving.set(false);
+          // The save raised the role's revision by one: the next save of it names the new one (plan item 3.6).
+          if (role.revision !== undefined) this.selectedRole.set({ ...role, revision: role.revision + 1 });
           this.originalRolePermissions.set(new Set(this.rolePermissions()));
           this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
           onSaved?.();

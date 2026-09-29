@@ -6,6 +6,8 @@ export interface WebhookSubscription {
   state: 'A' | 'P';
   createdAt: string;
   createdBy: number;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 export interface CreatedWebhookSubscription extends WebhookSubscription {

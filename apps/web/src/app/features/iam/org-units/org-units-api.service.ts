@@ -32,10 +32,10 @@ export class OrgUnitsApiService {
       ? this.api.post<OrgUnit>(this.base, body, this.inline).pipe(map(normalizeUnit))
       : this.invalidId();
   }
-  update(id: number, patch: OrgUnitPatch): Observable<void> {
+  update(id: number, patch: OrgUnitPatch, revision: number | undefined): Observable<void> {
     return safeNumericRecordId(id) &&
       (patch.parentId === undefined || patch.parentId === null || safeNumericRecordId(patch.parentId))
-      ? this.api.patch<void>(`${this.base}/${id}`, patch, this.inline)
+      ? this.api.patch<void>(`${this.base}/${id}`, patch, { ...this.inline, ifMatch: revision })
       : this.invalidId();
   }
   remove(id: number): Observable<void> {

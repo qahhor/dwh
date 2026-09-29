@@ -140,10 +140,14 @@ describe('RolePermissionsEditor', () => {
     editor.savePermissions(saved);
 
     expect(api.put).toHaveBeenCalledTimes(1);
-    expect(api.put).toHaveBeenCalledWith('/iam/roles/1/permissions', [
-      { formCode: 'audit.events', action: 'view' },
-      { formCode: 'audit.events', action: 'edit' },
-    ]);
+    expect(api.put).toHaveBeenCalledWith(
+      '/iam/roles/1/permissions',
+      [
+        { formCode: 'audit.events', action: 'view' },
+        { formCode: 'audit.events', action: 'edit' },
+      ],
+      expect.any(Object),
+    );
     expect(saved).toHaveBeenCalledTimes(1);
     expect(editor.isPermissionsDirty()).toBe(false);
   });

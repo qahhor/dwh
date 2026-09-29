@@ -16,6 +16,8 @@ export interface CustomNavigationItem {
   state: 'A' | 'P';
   createdAt?: string;
   modifiedAt?: string;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 /** A catalog pair a menu item can be limited to, with its names. */

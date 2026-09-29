@@ -9,6 +9,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Mandatory optimistic locking (plan 10/10, item 3.6, ADR-0024). Notes,
+  projects, users, roles and their rights, custom fields, org units, menu
+  items, task statuses and types and webhooks carry a `revision` (V135),
+  answered in the body and as `ETag`; tasks, announcements, list views,
+  language packs and UPL formats had one. A change names the revision it
+  was made from (`If-Match`, or `expectedRevision` where the body had it):
+  none is 428, a stale one 409, and the second of two concurrent saves never
+  overwrites the first. Switches (`PUT …/pin`, `…/active`) write and audit
+  only a real change. The web sends the revision from every form and the
+  kanban. `ChangesNameTheirRevisionTest` keeps it so; system and search
+  settings and the role and right assignments of a user are the listed debt.
 - Paging without costly counts (plan 10/10, item 3.5). The notification
   inbox (1–100 a page), the comments of a task and the announcements an
   administrator manages (1–200 a page) answer `KeysetPage` with a cursor; a
@@ -726,6 +737,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (plan item 3.6):** `PUT`/`PATCH` of the records above,
+  `PUT /iam/roles/{id}/permissions`, `PATCH /tasks/{id}` and
+  `POST /tasks/{id}/status` answer 428 without the revision they were made
+  from.
 - **API-breaking (plan item 3.5):** `GET /api/v1/notifications/inbox`,
   `GET /api/v1/tasks/{taskId}/comments` and `GET /api/v1/announcements/manage`
   answer a page (`items`, `nextCursor`, `hasMore`, `totalEstimated`,

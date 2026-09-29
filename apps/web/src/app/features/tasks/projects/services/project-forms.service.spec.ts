@@ -182,14 +182,18 @@ describe('ProjectFormsService', () => {
     forms.openEditModal(project(1));
     forms.editForm.name = ' Renamed ';
     forms.submitEditProject();
-    expect(api.patch).toHaveBeenLastCalledWith('/tasks/projects/1', { name: 'Renamed' });
+    expect(api.patch).toHaveBeenLastCalledWith('/tasks/projects/1', { name: 'Renamed' }, expect.any(Object));
     expect(updated).toHaveBeenCalledTimes(1);
 
     forms.openEditModal(project(2));
     forms.editForm.description = '   ';
     forms.editForm.state = 'P';
     forms.submitEditProject();
-    expect(api.patch).toHaveBeenLastCalledWith('/tasks/projects/2', { description: '', state: 'P' });
+    expect(api.patch).toHaveBeenLastCalledWith(
+      '/tasks/projects/2',
+      { description: '', state: 'P' },
+      expect.any(Object),
+    );
 
     forms.openEditModal(project(3));
     forms.submitEditProject();

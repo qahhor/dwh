@@ -117,7 +117,7 @@ describe('WebhooksSettingsComponent', () => {
 
     component.toggleState(sub);
 
-    expect(api.patch).toHaveBeenCalledWith('/webhooks/subscriptions/1', { state: 'P' });
+    expect(api.patch).toHaveBeenCalledWith('/webhooks/subscriptions/1', { state: 'P' }, expect.any(Object));
     expect(toast.success).toHaveBeenCalled();
   });
 

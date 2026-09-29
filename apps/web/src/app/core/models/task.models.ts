@@ -10,6 +10,8 @@ export interface Project {
   totalTasks?: number;
   activeTasks?: number;
   doneTasks?: number;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 export interface ProjectTaskStats {
@@ -36,6 +38,8 @@ export interface TaskStatus {
   colorHex?: string;
   isTerminal: boolean;
   orderNo: number;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 export interface TaskType {
@@ -46,6 +50,8 @@ export interface TaskType {
   color: string;
   orderNo: number;
   isSystem: boolean;
+  /** What a change of the record names in If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 export interface Task {
@@ -65,6 +71,8 @@ export interface Task {
   modifiedAt?: string;
   createdBy?: number;
   modifiedBy?: number;
+  /** What a change of the task names: `expectedRevision` or If-Match (plan item 3.6). */
+  revision?: number;
 }
 
 export interface TaskMember {

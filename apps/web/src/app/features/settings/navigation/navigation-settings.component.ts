@@ -172,7 +172,7 @@ export class NavigationSettingsComponent {
         titleKey: editing.titleKey ?? null,
         state: editing.state,
       };
-      this.store.updateItem(editing.id, update, () => this.closeModal());
+      this.store.updateItem(editing.id, update, editing.revision, () => this.closeModal());
     } else {
       this.store.createItem(payload, () => this.closeModal());
     }

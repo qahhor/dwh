@@ -240,7 +240,7 @@ export class OrgUnitsComponent implements OnInit {
         !safeNumericRecordId(submission.id)
       )
         return;
-      request = this.api.update(submission.id, submission.patch);
+      request = this.api.update(submission.id, submission.patch, 'revision' in initial ? initial.revision : undefined);
     } else {
       if (!this.can('create') || 'id' in initial || submission.body.parentId !== initial.parentId) return;
       request = this.api.create(submission.body);
