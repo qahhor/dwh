@@ -46,7 +46,8 @@
               name="sourceId"
               data-testid="upl-pkg-source"
               [disabled]="isSending()"
-              [(value)]="form.sourceId"
+              [value]="form().sourceId"
+              (valueChange)="patchForm({ sourceId: $event })"
               [options]="sourceOptions()"
               [placeholder]="'upl.pkg.form.source_placeholder' | t"
               [searchPlaceholder]="'upl.pkg.form.source_search' | t"
@@ -76,8 +77,8 @@
               name="periodFrom"
               data-testid="upl-pkg-period-from"
               [disabled]="isSending()"
-              [value]="form.periodFrom"
-              (valueChange)="form.periodFrom = $event ?? ''"
+              [value]="form().periodFrom"
+              (valueChange)="patchForm({ periodFrom: $event ?? '' })"
             />
           </smt-control>
 
@@ -91,8 +92,8 @@
               name="periodTo"
               data-testid="upl-pkg-period-to"
               [disabled]="isSending()"
-              [value]="form.periodTo"
-              (valueChange)="form.periodTo = $event ?? ''"
+              [value]="form().periodTo"
+              (valueChange)="patchForm({ periodTo: $event ?? '' })"
             />
           </smt-control>
 

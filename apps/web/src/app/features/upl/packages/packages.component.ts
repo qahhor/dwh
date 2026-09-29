@@ -47,7 +47,7 @@ import {
 import { SMTAlertComponent } from '@shared/ui-kit/components/alert';
 import { TBadgeVariant } from '@shared/ui-kit/components/badge/badge.component';
 
-/** Fields of the "new upload" form: a plain object the kit controls write into through `[(value)]`. */
+/** Fields of the "new upload" form; the form signal holds them and is replaced on every change. */
 interface PackageUploadForm {
   sourceId: number | null;
   periodFrom: string;
@@ -114,6 +114,9 @@ export class PackagesComponent implements OnInit {
   readonly sourceOptions = signal<SMTSelectOption<number>[]>([]);
   readonly isSending = signal(false);
   readonly formErrors = signal<UplPackageFormErrors>(emptyFormErrors());
+  /* A signal, so that a change made in a callback (a source chosen from a link, the file cleared after an
+     upload) redraws this OnPush screen by itself. */
+  readonly form = signal<PackageUploadForm>(emptyForm());
 
   readonly tableConfig = computed<TableConfig<UplPackageItem> | null>(() => {
     const meta = this.meta();
@@ -155,7 +158,7 @@ export class PackagesComponent implements OnInit {
     { pageSize: PAGE_SIZE, destroyRef: this.destroyRef, onLoaded: (rows) => this.syncSelected(rows) },
   );
   readonly items = this.pager.items;
-  readonly selectedSource = () => this.form.sourceId;
+  readonly selectedSource = () => this.form().sourceId;
   readonly sourceLookup = new LookupChannel<UplSourceItem, number | null>(
     (query, cursor, pageSize) => this.api.searchSources(query, cursor, pageSize),
     (rows, append, selected) => {
@@ -172,8 +175,6 @@ export class PackagesComponent implements OnInit {
 
   readonly statusKey = UPL_PACKAGE_STATUS_KEY;
   readonly statusVariant = UPL_PACKAGE_STATUS_VARIANT;
-
-  form: PackageUploadForm = emptyForm();
 
   private readonly translate: UplTranslate = (key, params) => this.i18n.translate(key, params);
 
@@ -236,7 +237,7 @@ export class PackagesComponent implements OnInit {
    * so a supplier starts from the right headers. None until a source with a published version is chosen.
    */
   templateLink(): { href: string; version: number } | null {
-    const id = this.form.sourceId;
+    const id = this.form().sourceId;
     const version = id === null || id === undefined ? null : (this.publishedVersions.get(id) ?? null);
     if (id === null || id === undefined || version === null) return null;
     const lang = encodeURIComponent(this.i18n.currentLang());
@@ -273,17 +274,22 @@ export class PackagesComponent implements OnInit {
 
   pickFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.form.file = input.files && input.files.length > 0 ? input.files[0] : null;
+    this.patchForm({ file: input.files && input.files.length > 0 ? input.files[0] : null });
+  }
+
+  patchForm(patch: Partial<PackageUploadForm>): void {
+    this.form.update((form) => ({ ...form, ...patch }));
   }
 
   /** Кнопка «Загрузить» оживает, только когда заполнены все четыре поля. */
   isReady(): boolean {
+    const form = this.form();
     return (
       !this.isSending() &&
-      this.form.sourceId !== null &&
-      this.form.periodFrom.length > 0 &&
-      this.form.periodTo.length > 0 &&
-      this.form.file !== null
+      form.sourceId !== null &&
+      form.periodFrom.length > 0 &&
+      form.periodTo.length > 0 &&
+      form.file !== null
     );
   }
 
@@ -291,14 +297,15 @@ export class PackagesComponent implements OnInit {
     if (!this.isReady()) {
       return;
     }
-    const file = this.form.file as File;
+    const form = this.form();
+    const file = form.file as File;
     this.isSending.set(true);
     this.formErrors.set(emptyFormErrors());
     this.api
       .upload({
-        sourceId: Number(this.form.sourceId),
-        periodFrom: this.form.periodFrom,
-        periodTo: this.form.periodTo,
+        sourceId: Number(form.sourceId),
+        periodFrom: form.periodFrom,
+        periodTo: form.periodTo,
         file,
       })
       .subscribe({
@@ -334,7 +341,7 @@ export class PackagesComponent implements OnInit {
   private chooseSource(source: UplSource | UplSourceItem): void {
     const option = this.sourceOption(source);
     this.sourceOptions.update((current) => [option, ...current.filter((item) => item.id !== option.id)]);
-    this.form = { ...this.form, sourceId: source.id };
+    this.patchForm({ sourceId: source.id });
   }
 
   private sourceOption(source: UplSource | UplSourceItem): SMTSelectOption<number> {
@@ -354,7 +361,7 @@ export class PackagesComponent implements OnInit {
 
   /** После успеха чистим только файл: источник и период нужны для следующего файла. */
   private clearFile(): void {
-    this.form.file = null;
+    this.patchForm({ file: null });
     const fileInput = this.fileInput();
     if (fileInput) {
       fileInput.nativeElement.value = '';
