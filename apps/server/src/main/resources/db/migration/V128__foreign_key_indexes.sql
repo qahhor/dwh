@@ -2,7 +2,10 @@ set lock_timeout = '2s';
 set statement_timeout = '60s';
 -- Plan 10/10, item 3.7: every foreign key gets an index that starts with its columns, so deleting or updating a
 -- referenced row does not scan the referencing table under a lock (ForeignKeyIndexTest). These tables stay small;
--- the large ones are indexed concurrently in V129.
+-- the large ones are indexed concurrently in V129. Custom field equality reads attributes with @> (QueryPlan), which a
+-- GIN index serves: users and tasks have one since V001, projects and notes get theirs here.
+create index if not exists ms_task_projects_attributes_gin_idx on ms_task_projects using gin (attributes jsonb_path_ops);
+create index if not exists ms_notes_attributes_gin_idx on ms_notes using gin (attributes jsonb_path_ops);
 create index if not exists fnd_job_queue_schedule_code_idx on fnd_job_queue (schedule_code);
 create index if not exists fnd_loads_superseded_by_idx on fnd_loads (superseded_by);
 create index if not exists fnd_unit_coefficients_to_unit_idx on fnd_unit_coefficients (to_unit);
