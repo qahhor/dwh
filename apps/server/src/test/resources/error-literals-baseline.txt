@@ -33,13 +33,3 @@ com/smartup24/cms/instance/md/service/PasswordValidator.java
 com/smartup24/cms/instance/mf/service/FileContentInspector.java
 com/smartup24/cms/instance/mf/service/MfFileMetadataService.java
 com/smartup24/cms/instance/mf/service/MfFileService.java
-com/smartup24/cms/instance/report/service/ReportService.java
-com/smartup24/cms/instance/search/SearchChangePublisher.java
-com/smartup24/cms/instance/search/dto/SearchManagementDtos.java
-com/smartup24/cms/instance/search/repository/SearchSettingsRepository.java
-com/smartup24/cms/instance/search/service/SearchAccessPolicy.java
-com/smartup24/cms/instance/search/service/SearchGenerationService.java
-com/smartup24/cms/instance/search/service/SearchJobService.java
-com/smartup24/cms/instance/search/service/SearchPolicyProvider.java
-com/smartup24/cms/instance/search/service/SearchService.java
-com/smartup24/cms/instance/search/service/SearchStoragePreflight.java

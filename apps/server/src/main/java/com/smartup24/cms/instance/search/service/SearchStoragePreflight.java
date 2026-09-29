@@ -21,13 +21,13 @@ public class SearchStoragePreflight {
         var metadata = client.observeDependency();
         Long total = metadata.installationDiskTotalBytes(), used = metadata.installationDiskUsedBytes();
         if (!metadata.healthy() || total == null || used == null || total <= 0 || used > total)
-            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "SEARCH_STORAGE_UNAVAILABLE");
+            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "error.search.storage_unavailable");
         long reserve;
         try {
             reserve = Math.max(64L * 1024 * 1024, Math.multiplyExact(2, reader.estimateSerializedBytes()));
         } catch (ArithmeticException overflow) {
-            throw new ApiException(ErrorCode.CONFLICT, "INSUFFICIENT_SEARCH_STORAGE");
+            throw new ApiException(ErrorCode.CONFLICT, "error.search.storage_insufficient");
         }
-        if (total - used < reserve) throw new ApiException(ErrorCode.CONFLICT, "INSUFFICIENT_SEARCH_STORAGE");
+        if (total - used < reserve) throw new ApiException(ErrorCode.CONFLICT, "error.search.storage_insufficient");
     }
 }

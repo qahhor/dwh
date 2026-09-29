@@ -109,7 +109,9 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
                 .isEqualTo(4);
         mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(UUID.randomUUID(), "REBUILD", null)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("GENERATION_LIMIT_REACHED"));
+                .andExpect(jsonPath("$.messageKey").value("error.search.generation_limit_reached"))
+                .andExpect(jsonPath("$.params.maximum").value(4))
+                .andExpect(jsonPath("$.detail").value("Достигнут предел числа поколений поискового индекса: 4"));
         UUID generation = jdbc.sql("select generation_id from search_jobs where id=:id")
                 .param("id", first)
                 .query(UUID.class)
@@ -139,11 +141,11 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
         responses.put("/metrics.json", "{\"system_disk_used_bytes\":\"1\",\"system_disk_total_bytes\":\"100\"}");
         mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(UUID.randomUUID(), "REBUILD", null)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("INSUFFICIENT_SEARCH_STORAGE"));
+                .andExpect(jsonPath("$.messageKey").value("error.search.storage_insufficient"));
         responses.put("/metrics.json", "{}");
         mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(UUID.randomUUID(), "REBUILD", null)))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.detail").value("SEARCH_STORAGE_UNAVAILABLE"));
+                .andExpect(jsonPath("$.messageKey").value("error.search.storage_unavailable"));
         ampleStorage();
         healthStatus = 503;
         mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(UUID.randomUUID(), "REBUILD", null)))
@@ -216,7 +218,7 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
                 .update();
         mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(request, "CHECK", null)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("REQUEST_HISTORY_UNAVAILABLE"));
+                .andExpect(jsonPath("$.messageKey").value("error.search.request_history_unavailable"));
         mvc.perform(auth(get("/api/v1/search/jobs/" + job)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(job.toString()));

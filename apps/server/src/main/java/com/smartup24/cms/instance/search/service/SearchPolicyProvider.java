@@ -28,8 +28,7 @@ public class SearchPolicyProvider {
 
     public SettingsSnapshot snapshot() {
         SettingsSnapshot current = snapshot;
-        if (current == null)
-            throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "Search configuration is unavailable");
+        if (current == null) throw new ApiException(ErrorCode.SERVICE_UNAVAILABLE, "error.search_config_unavailable");
         return current;
     }
 

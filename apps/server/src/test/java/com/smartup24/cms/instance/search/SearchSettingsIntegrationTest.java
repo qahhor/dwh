@@ -85,6 +85,35 @@ class SearchSettingsIntegrationTest extends SearchSettingsIntegrationTestSupport
     }
 
     @Test
+    void brokenPolicyRuleNamesItselfInTheProblem() throws Exception {
+        authenticate(Set.of("*.*"), false);
+        long version = readSettings().path("version").asLong();
+        var limit = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
+        limit.put("globalLimit", 51);
+        mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version, limit)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("bad_request"))
+                .andExpect(jsonPath("$.messageKey").value("error.search.global_limit_range"))
+                .andExpect(jsonPath("$.detail").value("Лимит глобального поиска должен быть от 1 до 50"));
+        var weight = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
+        ((ObjectNode) weight.path("fields").path("TASK").get(0)).put("weight", 200);
+        mvc.perform(auth(put("/api/v1/search/settings")).content(saveJson(version, weight)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messageKey").value("error.search.field_weight_range"));
+        var profile = (ObjectNode) mapper.valueToTree(SearchQueryPolicy.defaults());
+        profile.put("schemaProfile", "EN");
+        mvc.perform(auth(post("/api/v1/search/preview"))
+                        .content(mapper.writeValueAsString(Map.of("q", "delivery", "policy", profile))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messageKey").value("error.search.schema_profile_invalid"));
+        mvc.perform(auth(put("/api/v1/search/settings")).content("{\"version\":1}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.messageKey").value("error.search.settings_request_invalid"));
+        assertThat(readSettings().path("version").asLong()).isEqualTo(version);
+        assertThat(requests).isEmpty();
+    }
+
+    @Test
     void zeroWeightsAreOmittedWhileLiveWeightTypoAndPrefixChangesReachTheEngine() throws Exception {
         authenticate(Set.of("*.*"), false);
         var current = readSettings();

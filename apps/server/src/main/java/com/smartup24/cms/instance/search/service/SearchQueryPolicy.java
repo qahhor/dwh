@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.search.service;
 
+import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.error.ApiException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -16,17 +18,19 @@ public record SearchQueryPolicy(
         String schemaProfile,
         Map<String, List<FieldPolicy>> fields) {
 
+    // A settings save or preview request builds this record: a broken rule is the administrator's 400, not a 500.
+    // A stored policy that fails the same rules is turned into a 503 by SearchManagementDtos.decodeStored.
     public SearchQueryPolicy {
         if (globalLimit < 1 || globalLimit > 50)
-            throw new IllegalArgumentException("Global search limit must be between 1 and 50");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.global_limit_range");
         if (requestsPerMinute < 30 || requestsPerMinute > 600 || burst < 10 || burst > 60 || burst > requestsPerMinute)
-            throw new IllegalArgumentException("Invalid search rate budget");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.rate_budget_invalid");
         if (!"MIXED".equals(schemaProfile) && !"RU".equals(schemaProfile))
-            throw new IllegalArgumentException("Invalid search schema profile");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.schema_profile_invalid");
         if (fields == null
                 || !fields.keySet().containsAll(Set.of("TASK", "PROJECT", "USER"))
                 || !Set.of("TASK", "PROJECT", "USER", "NOTE").containsAll(fields.keySet()))
-            throw new IllegalArgumentException("Search entities must include TASK, PROJECT, USER and optionally NOTE");
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.entities_invalid");
         var copy = new LinkedHashMap<String, List<FieldPolicy>>();
         fields.forEach((entityType, policies) -> {
             Set<String> permitted = switch (entityType) {
@@ -34,7 +38,7 @@ public record SearchQueryPolicy(
                 case "PROJECT" -> Set.of("name", "description");
                 case "USER" -> Set.of("name", "login", "email", "phone");
                 case "NOTE" -> Set.of("title", "content_md", "color");
-                default -> throw new IllegalArgumentException("Unknown search entity");
+                default -> throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.entities_invalid");
             };
             if (policies == null
                     || policies.size() != permitted.size()
@@ -44,8 +48,8 @@ public record SearchQueryPolicy(
                             .collect(Collectors.toSet())
                             .equals(permitted)
                     || policies.stream().noneMatch(field -> field.weight() > 0))
-                throw new IllegalArgumentException(
-                        "Each searchable field is required exactly once with at least one positive weight");
+                throw ApiException.badRequest(
+                        ErrorCode.BAD_REQUEST, "error.search.fields_invalid", Map.of("entity", entityType));
             copy.put(entityType, List.copyOf(policies));
         });
         fields = Collections.unmodifiableMap(copy);

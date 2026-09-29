@@ -34,8 +34,7 @@ public class SearchSettingsRepository {
                 .param("policy", SearchManagementDtos.encodePolicy(request.policy()))
                 .query(Long.class)
                 .optional()
-                .orElseThrow(
-                        () -> ApiException.conflict(ErrorCode.CONFLICT, "Search settings changed; refresh and retry"));
+                .orElseThrow(() -> ApiException.conflict(ErrorCode.CONFLICT, "error.search.settings_changed"));
         return new SettingsSnapshot(version, request.policy());
     }
 }
