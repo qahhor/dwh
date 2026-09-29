@@ -132,6 +132,8 @@ export class ApiService {
         status: error.status || 400,
         code: p.code || 'API_ERROR',
         detail: detail || p.title || this.i18n.translate('common.operation_failed'),
+        messageKey: p.messageKey,
+        params: p.params,
         errors: Array.isArray(p.errors) ? p.errors : undefined,
         invalid_params: p.invalid_params,
       };

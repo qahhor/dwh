@@ -633,7 +633,7 @@ public class OpenApiController {
                                                                                 "409",
                                                                                         Map.of(
                                                                                                 "description",
-                                                                                                "EXPORT_BUSY: three exports already waiting or running"),
+                                                                                                "error.report.export_busy: three exports already waiting or running"),
                                                                                 "422",
                                                                                         Map.of(
                                                                                                 "description",
@@ -655,7 +655,7 @@ public class OpenApiController {
                                                                         "404",
                                                                                 Map.of(
                                                                                         "description",
-                                                                                        "EXPORT_NOT_FOUND"),
+                                                                                        "error.report.export_not_found"),
                                                                         "409",
                                                                                 Map.of(
                                                                                         "description",

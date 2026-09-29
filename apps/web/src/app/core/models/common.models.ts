@@ -14,6 +14,9 @@ export interface ProblemDetail {
   retryAfterSeconds?: number;
   code: string;
   detail: string;
+  /** Catalog key of the text and its parameters (plan 10/10, item 3.1): what a screen compares, not the text. */
+  messageKey?: string;
+  params?: Record<string, string | number>;
   instance?: string;
   timestamp?: string;
   errors?: FieldErrorItem[];

@@ -115,7 +115,13 @@ describe('ui-export-button', () => {
   it('says so when three exports are already being prepared, and shows other refusals by their words', async () => {
     const request = vi
       .fn()
-      .mockReturnValueOnce(throwError(() => ({ status: 409, detail: 'EXPORT_BUSY' })))
+      .mockReturnValueOnce(
+        throwError(() => ({
+          status: 409,
+          detail: 'Уже ожидают или выполняются выгрузки: 3',
+          messageKey: 'error.report.export_busy',
+        })),
+      )
       .mockReturnValueOnce(throwError(() => ({ status: 422, detail: 'Filter does not fit' })));
     const { fixture, toast, button } = await render(request);
 

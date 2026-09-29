@@ -33,7 +33,7 @@ export interface ExportRequest {
 export class ExportsService {
   private readonly api = inject(ApiService);
 
-  /** Queues an export; failures are the caller's to show (409 EXPORT_BUSY, 422 for a bad request). */
+  /** Queues an export; failures are the caller's to show (409 error.report.export_busy, 422 for a bad request). */
   request(request: ExportRequest): Observable<ExportItem> {
     return this.api.post<ExportItem>('/exports', request, { notifyError: false });
   }

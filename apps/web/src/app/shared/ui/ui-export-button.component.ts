@@ -72,7 +72,7 @@ export class UiExportButtonComponent {
         },
         error: (problem) => {
           this.busy.set(false);
-          if ((problem as { detail?: string })?.detail === 'EXPORT_BUSY') {
+          if ((problem as { messageKey?: string })?.messageKey === 'error.report.export_busy') {
             this.toast.warning(this.i18n.translate('exports.busy'));
           } else {
             this.toast.error(problemText(problem) || this.i18n.translate('exports.request_failed'));
