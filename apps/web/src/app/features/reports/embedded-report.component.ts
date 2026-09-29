@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -153,52 +155,47 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
   `,
   styleUrl: './embedded-report.component.css',
 })
-export class EmbeddedReportComponent implements OnInit {
+export class EmbeddedReportComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly navService = inject(NavigationService);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly i18n = inject(I18nService);
 
-  readonly report = signal<CustomNavigationItem | null>(null);
-  readonly safeUrl = signal<SafeResourceUrl | null>(null);
-  readonly isLoading = signal<boolean>(true);
-  readonly errorMessage = signal<string | null>(null);
+  /** A failed read keeps the report that was on screen. */
+  readonly report = linkedSignal<CustomNavigationItem | undefined, CustomNavigationItem | null>({
+    source: () => (this.item.hasValue() ? this.item.value() : undefined),
+    computation: (item, previous) => item ?? previous?.value ?? null,
+  });
+  /** Emptied for a moment by reloadIframe, so the frame is created again. */
+  readonly safeUrl = linkedSignal<CustomNavigationItem | null, SafeResourceUrl | null>({
+    source: () => this.report(),
+    computation: (item) => (item ? this.sanitizer.bypassSecurityTrustResourceUrl(item.url) : null),
+  });
+  /** Busy while the report is read and then while its frame loads; a failed read is not busy. */
+  readonly isLoading = linkedSignal(() => this.item.status() !== 'error');
   readonly isFullscreen = signal<boolean>(false);
-  readonly urlHost = signal<string>('');
   readonly showTip = signal<boolean>(true);
 
-  ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => {
-      const code = params.get('code');
-      if (code) {
-        this.loadReport(code);
-      }
-    });
-  }
+  readonly errorMessage = computed(() => (this.item.error() ? this.i18n.translate('reports.load_error') : null));
+  readonly urlHost = computed(() => {
+    const item = this.report();
+    if (!item) return '';
+    try {
+      return new URL(item.url, window.location.origin).hostname;
+    } catch {
+      return '';
+    }
+  });
 
-  loadReport(code?: string): void {
-    const reportCode = code || this.route.snapshot.paramMap.get('code');
-    if (!reportCode) return;
+  /** The report code of the route; another code loads another report. */
+  private readonly code = toSignal(this.route.paramMap.pipe(map((params) => params.get('code') || undefined)));
+  private readonly item = rxResource({
+    params: this.code,
+    stream: ({ params }) => this.navService.getItemByCode(params),
+  });
 
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-
-    this.navService.getItemByCode(reportCode).subscribe({
-      next: (item) => {
-        this.report.set(item);
-        try {
-          const parsed = new URL(item.url, window.location.origin);
-          this.urlHost.set(parsed.hostname);
-        } catch {
-          this.urlHost.set('');
-        }
-        this.safeUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(item.url));
-      },
-      error: () => {
-        this.errorMessage.set(this.i18n.translate('reports.load_error'));
-        this.isLoading.set(false);
-      },
-    });
+  loadReport(): void {
+    this.item.reload();
   }
 
   onIframeLoaded(): void {

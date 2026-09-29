@@ -3,16 +3,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  OnInit,
   Signal,
   TemplateRef,
   computed,
   inject,
+  linkedSignal,
   signal,
   viewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription, timer } from 'rxjs';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription, catchError, of, tap, timer } from 'rxjs';
 import { ExportItem, ExportsService } from '@core/services/exports.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { SMTBadgeComponent } from '@shared/ui-kit/components/badge/badge.component';
@@ -134,7 +134,7 @@ const POLL_MS = 3000;
   `,
   styleUrl: './exports.component.css',
 })
-export class ExportsComponent implements OnInit {
+export class ExportsComponent {
   private readonly exports = inject(ExportsService);
   private readonly i18n = inject(I18nService);
   private readonly destroyRef = inject(DestroyRef);
@@ -146,9 +146,21 @@ export class ExportsComponent implements OnInit {
   private readonly expiresCell = viewChild.required<TemplateRef<unknown>>('expiresCell');
   private readonly fileCell = viewChild.required<TemplateRef<unknown>>('fileCell');
 
-  readonly items = signal<ExportItem[]>([]);
-  readonly loading = signal(true);
-  readonly failed = signal(false);
+  /** A failed read keeps the journal on screen. */
+  readonly items = linkedSignal<ExportItem[] | null | undefined, ExportItem[]>({
+    source: () => this.journal.value(),
+    computation: (items, previous) => items ?? previous?.value ?? [],
+  });
+  /** Only the first read shows the table as loading; a refresh or a poll keeps the rows in place. */
+  readonly loading = linkedSignal<ExportItem[] | null | undefined, boolean>({
+    source: () => this.journal.value(),
+    computation: (items, previous) => (items === undefined ? (previous?.value ?? true) : false),
+  });
+
+  /** Bumped to read the journal again, by hand or by the poll; a new value cancels a read in flight. */
+  private readonly revision = signal(0);
+
+  readonly failed = computed(() => this.journal.value() === null);
 
   readonly config = computed<TableConfig<ExportItem>>(() => {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
@@ -169,8 +181,17 @@ export class ExportsComponent implements OnInit {
     };
   });
 
+  /** The journal; null when the read failed. */
+  private readonly journal = rxResource({
+    params: this.revision,
+    stream: () =>
+      this.exports.journal().pipe(
+        tap((items) => this.schedule(items)),
+        catchError(() => of(null)),
+      ),
+  });
+
   private poll?: Subscription;
-  private request?: Subscription;
 
   /** The journal holds a person's last exports whole, so a header click sorts them all. */
   readonly sortValues = {
@@ -181,27 +202,8 @@ export class ExportsComponent implements OnInit {
     expires: (e: ExportItem) => new Date(e.expiresAt),
   };
 
-  ngOnInit(): void {
-    this.load();
-  }
-
   load(): void {
-    this.request?.unsubscribe();
-    this.failed.set(false);
-    this.request = this.exports
-      .journal()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (items) => {
-          this.items.set(items);
-          this.loading.set(false);
-          this.schedule(items);
-        },
-        error: () => {
-          this.loading.set(false);
-          this.failed.set(true);
-        },
-      });
+    this.revision.update((revision) => revision + 1);
   }
 
   listTitle(e: ExportItem): string {

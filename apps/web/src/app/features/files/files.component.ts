@@ -1,7 +1,16 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnDestroy, OnInit, signal, inject } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  OnDestroy,
+  OnInit,
+  inject,
+  linkedSignal,
+  signal,
+} from '@angular/core';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-import { finalize, Observable, Subscription, tap, throwError } from 'rxjs';
+import { catchError, finalize, Observable, of, tap, throwError } from 'rxjs';
 import { FilesApi } from './files.api';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -141,12 +150,23 @@ export class FilesComponent implements OnInit, OnDestroy {
   /** Field metadata of the list (`query-meta/mf.files`). */
   readonly meta = signal<QueryListMeta | null>(null);
   readonly metaError = signal(false);
-  readonly stats = signal<StorageStats | null>(null);
   readonly isUploadModalOpen = signal<boolean>(false);
   readonly uploadedBatch = signal<TaskFile[]>([]);
   readonly isDeleting = signal(false);
+  /** A failed read keeps the quotas on screen. */
+  readonly stats = linkedSignal<StorageStats | undefined, StorageStats | null>({
+    source: () => this.statsResource.value(),
+    computation: (stats, previous) => stats ?? previous?.value ?? null,
+  });
 
-  private statsRequest?: Subscription;
+  /** Bumped to read the quotas again; a new value cancels a read still in flight. */
+  private readonly statsRevision = signal(0);
+
+  private readonly statsResource = rxResource({
+    params: this.statsRevision,
+    stream: () => this.filesApi.storageStats().pipe(catchError(() => of(undefined))),
+  });
+
   private destroyed = false;
   readonly views = new ListViewState('mf.files', inject(ListViewsApi), {
     defaultSort: () => {
@@ -187,14 +207,14 @@ export class FilesComponent implements OnInit, OnDestroy {
     return this.exportScope;
   }
 
+  /** The quotas load by themselves; the list waits for its metadata. */
   ngOnInit() {
-    this.refreshAll();
+    this.loadFiles();
   }
 
   ngOnDestroy() {
     this.destroyed = true;
     this.pager.cancel();
-    this.statsRequest?.unsubscribe();
   }
 
   refreshAll() {
@@ -203,12 +223,7 @@ export class FilesComponent implements OnInit, OnDestroy {
   }
 
   loadStats() {
-    if (this.destroyed) return;
-    this.statsRequest?.unsubscribe();
-    this.statsRequest = this.filesApi.storageStats().subscribe({
-      next: (res) => this.stats.set(res),
-      error: () => {},
-    });
+    this.statsRevision.update((revision) => revision + 1);
   }
 
   /** The list's metadata once, then the first page with the current scope, search, sort and filter. */

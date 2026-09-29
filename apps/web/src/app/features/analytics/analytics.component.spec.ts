@@ -77,10 +77,9 @@ describe('AnalyticsComponent request and rendering contracts', () => {
   }
 
   async function renderResponses() {
-    // Drain the existing promise-based loader as well as synchronous HTTP observers.
-    await Promise.resolve();
-    await Promise.resolve();
-    await Promise.resolve();
+    // The resource publishes an answer a few microtasks after the HTTP observer; a macrotask drains them
+    // even while other requests stay pending.
+    await new Promise((resolve) => setTimeout(resolve));
     fixture.detectChanges();
   }
 

@@ -133,6 +133,21 @@ describe('AuditSecurityTableComponent', () => {
     expect(asked.slice(4)).toEqual(['from:', 'to:', 'apply']);
   });
 
+  it('names every filter, the UTC period picker and the reset action', () => {
+    const { host } = render();
+
+    for (const id of ['security-event-filter', 'security-ip-search', 'security-user-filter']) {
+      expect(host.querySelector(`label[for="${id}"]`)).not.toBeNull();
+    }
+    expect(host.querySelector('#security-event-filter')?.getAttribute('role')).toBe('combobox');
+    expect(
+      host
+        .querySelector('[data-testid="security-period-filter"] .smt-date-range-picker__trigger')
+        ?.getAttribute('aria-label'),
+    ).toMatch(/^Период \(UTC\): /);
+    expect(host.querySelector('#security-reset-filters')).not.toBeNull();
+  });
+
   it('says no security event was found when the page is empty', () => {
     const { host, rows } = render({ events: [] });
 

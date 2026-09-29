@@ -57,6 +57,7 @@ describe('AppSidebarComponent', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(element.querySelector('app-sidebar-nav-sections')).not.toBeNull();
     expect(element.querySelector('.rail-category-list')).toBeNull();
+    expect(element.querySelectorAll('.nav-tooltip')).toHaveLength(0);
 
     toggle.click();
     expect(toggles).toHaveLength(1);
@@ -80,6 +81,10 @@ describe('AppSidebarComponent', () => {
     ]);
     expect(rail[0].querySelector('.rail-category-badge')?.textContent?.trim()).toBe('3');
     expect(rail[1].querySelector('.rail-category-badge')).toBeNull();
+    expect(rail[1].querySelector('.nav-tooltip[role="tooltip"]')?.textContent?.trim()).toBe(
+      PACKAGED_RUSSIAN['nav.section.iam'],
+    );
+    expect(element.querySelector('.user-profile-btn .nav-tooltip')?.textContent?.trim()).toBe('Иван Иванов');
 
     rail[1].dispatchEvent(new MouseEvent('mouseenter'));
     rail[1].click();
@@ -88,7 +93,13 @@ describe('AppSidebarComponent', () => {
   });
 
   it('is a modal dialog on a phone while open, closed by its button or the backdrop', () => {
-    const { fixture, element, aside } = render({ isMobile: true, isMobileMenuOpen: true, sidebarId: 'shell-nav' });
+    // A rail folded on the desktop still opens as the full drawer on a phone.
+    const { fixture, element, aside } = render({
+      isMobile: true,
+      isMobileMenuOpen: true,
+      isCollapsed: true,
+      sidebarId: 'shell-nav',
+    });
     const closes: boolean[] = [];
     fixture.componentInstance.closeMobileMenu.subscribe((restoreFocus) => closes.push(restoreFocus));
 
@@ -96,6 +107,7 @@ describe('AppSidebarComponent', () => {
     expect(aside().getAttribute('role')).toBe('dialog');
     expect(aside().getAttribute('aria-modal')).toBe('true');
     expect(element.querySelector('.toggle-btn')).toBeNull();
+    expect(element.querySelector('app-sidebar-nav-sections')).not.toBeNull();
 
     (element.querySelector(`button[aria-label="${PACKAGED_RUSSIAN['common.close']}"]`) as HTMLButtonElement).click();
     (element.querySelector('.mobile-drawer-backdrop') as HTMLElement).click();

@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription, finalize } from 'rxjs';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, linkedSignal, signal } from '@angular/core';
+import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Subscription, catchError, finalize, map, of, tap } from 'rxjs';
 
 import { Router } from '@angular/router';
 import { NotificationService } from '@core/services/notification.service';
@@ -98,16 +98,18 @@ export { resolveNotificationIcon };
     `,
   ],
 })
-export class NotificationsComponent implements OnInit {
+export class NotificationsComponent {
   readonly notifService = inject(NotificationService);
   private readonly router = inject(Router, { optional: true });
   private readonly destroyRef = inject(DestroyRef);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
 
-  readonly items = signal<NotificationItem[]>([]);
-  readonly isLoading = signal(false);
-  readonly loadError = signal<string | null>(null);
+  /** A failed read keeps the notifications on screen; a read marks them here without a new request. */
+  readonly items = linkedSignal<NotificationItem[] | null | undefined, NotificationItem[]>({
+    source: () => this.inbox.value(),
+    computation: (items, previous) => items ?? previous?.value ?? [],
+  });
   readonly filterTab = signal<NotificationFilterTab>('all');
   readonly isMarkingAll = signal(false);
   readonly pendingReads = signal<Set<number>>(new Set());
@@ -116,6 +118,13 @@ export class NotificationsComponent implements OnInit {
   readonly preferences = signal<NotificationPrefItem[]>([]);
 
   readonly currentPage = signal(1);
+
+  /** Bumped to read the inbox again; a new value cancels a read still in flight. */
+  private readonly inboxRevision = signal(0);
+
+  readonly loadError = computed(() =>
+    !this.isLoading() && this.inbox.value() === null ? this.uiI18n.translate('notifications.oshibka_zagruzki') : null,
+  );
 
   readonly unreadItemsCount = computed(() => {
     return this.items().filter((item) => !item.isRead).length;
@@ -129,7 +138,18 @@ export class NotificationsComponent implements OnInit {
     return this.items();
   });
 
-  private listRequest?: Subscription;
+  /** The inbox; null when the read failed. */
+  private readonly inbox = rxResource({
+    params: this.inboxRevision,
+    stream: () =>
+      this.notifService.fetchNotifications(50).pipe(
+        map((res) => (Array.isArray(res) ? (res as NotificationItem[]) : res?.items || [])),
+        tap((items) => this.clampPage(items)),
+        catchError(() => of(null)),
+      ),
+  });
+  readonly isLoading = this.inbox.isLoading;
+
   private countRequest?: Subscription;
   pageSize = 10;
 
@@ -139,31 +159,8 @@ export class NotificationsComponent implements OnInit {
     return list.slice(start, start + this.pageSize);
   }
 
-  ngOnInit(): void {
-    this.loadNotifications();
-  }
-
   loadNotifications(): void {
-    this.isLoading.set(true);
-    this.loadError.set(null);
-    this.listRequest?.unsubscribe();
-    this.listRequest = this.notifService
-      .fetchNotifications(50)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isLoading.set(false)),
-      )
-      .subscribe({
-        next: (res) => {
-          this.items.set(Array.isArray(res) ? res : res?.items || []);
-          const total = this.filteredItems().length;
-          const maxPage = Math.max(1, Math.ceil(total / this.pageSize));
-          this.currentPage.set(Math.min(this.currentPage(), maxPage));
-        },
-        error: () => {
-          this.loadError.set(this.uiI18n.translate('notifications.oshibka_zagruzki'));
-        },
-      });
+    this.inboxRevision.update((revision) => revision + 1);
   }
 
   setFilter(tab: NotificationFilterTab): void {
@@ -233,10 +230,6 @@ export class NotificationsComponent implements OnInit {
       });
   }
 
-  getNotificationIcon(item: NotificationItem): string {
-    return resolveNotificationIcon(item);
-  }
-
   openPreferencesModal(): void {
     this.notifService
       .fetchPreferences()
@@ -270,6 +263,13 @@ export class NotificationsComponent implements OnInit {
           this.toast.error(this.uiI18n.translate('notifications.preferences_error'));
         },
       });
+  }
+
+  /** A shorter inbox must not leave the pager past its last page. */
+  private clampPage(items: NotificationItem[]): void {
+    const total = this.filterTab() === 'unread' ? items.filter((item) => !item.isRead).length : items.length;
+    const maxPage = Math.max(1, Math.ceil(total / this.pageSize));
+    this.currentPage.set(Math.min(this.currentPage(), maxPage));
   }
 
   private refreshUnreadCount(): void {

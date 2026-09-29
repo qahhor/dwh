@@ -5,7 +5,6 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { User } from '@core/models/auth.models';
-import { ApiService } from '@core/services/api.service';
 import { AuthService } from '@core/services/auth.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
@@ -59,75 +58,10 @@ function keyset<T>(items: T[], nextCursor: string | null = null) {
   return { items, nextCursor, hasMore: nextCursor !== null, totalEstimated: items.length };
 }
 
-describe('FilesComponent UI contracts', () => {
-  async function createFixture() {
-    await TestBed.configureTestingModule({
-      imports: [FilesComponent],
-      providers: [
-        provideRouter([]),
-        ...REGISTRY_PROVIDERS,
-        { provide: ApiService, useValue: { get: vi.fn(() => of(keyset([]))), delete: vi.fn(() => of({})) } },
-        { provide: PermissionService, useValue: { hasPermission: () => true } },
-        { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn() } },
-      ],
-    }).compileComponents();
-    const fixture = TestBed.createComponent(FilesComponent);
-    fixture.detectChanges();
-    return fixture;
-  }
-
-  it('labels file scope, search, table and row actions', async () => {
-    const fixture = await createFixture();
-    const file: FileDetail = {
-      id: 'abc',
-      sha256: '0123456789abcdef',
-      originalName: 'report.pdf',
-      sizeBytes: 1024,
-      mimeType: 'application/pdf',
-      storageBucket: 'files',
-      storageKey: 'abc',
-      createdAt: '2026-08-30T00:00:00Z',
-    };
-    fixture.componentInstance.files.set([file]);
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('.scope-filter [role="radiogroup"]')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('label[for="file-search"]')).not.toBeNull();
-    const region = fixture.nativeElement.querySelector('.table-container[role="region"]') as HTMLElement;
-    expect(region.tabIndex).toBe(0);
-    expect(region.querySelector('[role="table"]')?.getAttribute('aria-label')).toBe('Список файлов');
-    expect(fixture.nativeElement.querySelector('.file-name-cell')?.tagName).toBe('BUTTON');
-    expect(fixture.nativeElement.querySelector('button[aria-label="Удалить файл report.pdf"]')).not.toBeNull();
-  });
-
-  it('exposes storage quotas as progress bars', async () => {
-    const fixture = await createFixture();
-    const stats: StorageStats = {
-      companyQuotaBytes: 100,
-      companyUsedBytes: 75,
-      companyAvailableBytes: 25,
-      userQuotaBytes: 100,
-      userUsedBytes: 40,
-      userAvailableBytes: 60,
-      totalFilesCount: 2,
-      userFilesCount: 1,
-    };
-    fixture.componentInstance.stats.set(stats);
-    fixture.detectChanges();
-
-    expect(
-      fixture.nativeElement
-        .querySelector('[role="progressbar"][aria-label="Использование хранилища компании"]')
-        ?.getAttribute('aria-valuenow'),
-    ).toBe('75');
-    expect(
-      fixture.nativeElement
-        .querySelector('[role="progressbar"][aria-label="Использование персональной квоты"]')
-        ?.getAttribute('aria-valuenow'),
-    ).toBe('40');
-  });
-});
-
+/*
+ * The screen's own contract: which requests it sends and keeps, and the delete flow.
+ * The toolbar, the table, the quota cards and the upload dialog have their own specs.
+ */
 describe('FilesComponent request and deletion mechanics', () => {
   const user: User = {
     id: 17,
@@ -229,11 +163,13 @@ describe('FilesComponent request and deletion mechanics', () => {
   });
 
   it('keeps the newest quota response when refresh requests overlap', async () => {
-    const { component, initialList, initialStats } = await createFixture();
+    const { component, fixture, initialList, initialStats } = await createFixture();
     initialList.flush(keyset([]));
     component.loadStats();
+    fixture.detectChanges();
     http.expectOne('/api/v1/files/storage/stats').flush({ ...stats, totalFilesCount: 3 });
     if (!initialStats.cancelled) initialStats.flush(stats);
+    await fixture.whenStable();
 
     expect(component.stats()?.totalFilesCount).toBe(3);
   });
@@ -371,9 +307,9 @@ describe('FilesComponent request and deletion mechanics', () => {
 
     yes().click();
     http.expectOne({ method: 'DELETE', url: '/api/v1/files/1' }).flush(null, { status: 204, statusText: 'No Content' });
-    http.expectOne('/api/v1/files/storage/stats').flush({ ...stats, totalFilesCount: 0 });
     http.expectOne((request) => request.url === '/api/v1/files').flush(keyset([]));
     fixture.detectChanges();
+    http.expectOne('/api/v1/files/storage/stats').flush({ ...stats, totalFilesCount: 0 });
     await fixture.whenStable();
 
     expect(document.querySelector('.smt-modal-confirm')).toBeNull();
