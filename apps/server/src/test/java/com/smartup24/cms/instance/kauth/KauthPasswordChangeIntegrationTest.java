@@ -35,6 +35,7 @@ import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import com.smartup24.cms.instance.md.service.UserSessionInvalidator;
@@ -116,7 +117,7 @@ class KauthPasswordChangeIntegrationTest {
         var tokenService = new KauthApiTokenService(tokens, new KauthCredentialGuard(sessions, tokens));
         var permissions = new MdPermissionService(new MdPermissionRepository(jdbc));
         mvc = MockMvcBuilders.standaloneSetup(
-                        new KauthPasswordController(userService),
+                        new KauthPasswordController(context.getBean(MdUserSecurityService.class)),
                         // Only /me is exercised here; login/OTP delivery has its own integration suite.
                         new KauthAuthController(
                                 mock(KauthAuthService.class),
@@ -253,7 +254,7 @@ class KauthPasswordChangeIntegrationTest {
 
         try (var failingContext = serviceContext(failingInvalidator)) {
             assertThatThrownBy(() -> failingContext
-                            .getBean(MdUserService.class)
+                            .getBean(MdUserSecurityService.class)
                             .changePassword(target.userId(), 0, OLD_PASSWORD, NEW_PASSWORD))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("synthetic revocation failure");
@@ -278,10 +279,18 @@ class KauthPasswordChangeIntegrationTest {
                         new MdCustomFieldService(new MdCustomFieldRepository(jdbc, mapper), audit),
                         hasher,
                         new PasswordValidator(),
-                        credentialInvalidator,
                         mock(SearchChangePublisher.class),
                         audit,
                         scopes));
+        testContext.registerBean(
+                MdUserSecurityService.class,
+                () -> new MdUserSecurityService(
+                        users,
+                        hasher,
+                        new PasswordValidator(),
+                        credentialInvalidator,
+                        mock(SearchChangePublisher.class),
+                        audit));
         testContext.refresh();
         return testContext;
     }

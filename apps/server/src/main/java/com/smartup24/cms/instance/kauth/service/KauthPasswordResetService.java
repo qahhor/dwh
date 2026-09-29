@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.kauth.repository.KauthChannelRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthLoginAttemptRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthPasswordResetRepository;
 import com.smartup24.cms.instance.md.pref.MdPref;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import java.security.SecureRandom;
@@ -52,6 +53,7 @@ public class KauthPasswordResetService {
     private static final List<String> CHANNEL_PRIORITY = List.of(KauthPref.CHANNEL_EMAIL, KauthPref.CHANNEL_TELEGRAM);
 
     private final MdUserService userService;
+    private final MdUserSecurityService userSecurityService;
     private final KauthChannelRepository channelRepository;
     private final KauthPasswordResetRepository resetRepository;
     private final KauthLoginAttemptRepository attemptRepository;
@@ -64,6 +66,7 @@ public class KauthPasswordResetService {
 
     public KauthPasswordResetService(
             MdUserService userService,
+            MdUserSecurityService userSecurityService,
             KauthChannelRepository channelRepository,
             KauthPasswordResetRepository resetRepository,
             KauthLoginAttemptRepository attemptRepository,
@@ -73,6 +76,7 @@ public class KauthPasswordResetService {
             ApplicationEventPublisher events,
             PlatformTransactionManager transactionManager) {
         this.userService = userService;
+        this.userSecurityService = userSecurityService;
         this.channelRepository = channelRepository;
         this.resetRepository = resetRepository;
         this.attemptRepository = attemptRepository;
@@ -156,7 +160,7 @@ public class KauthPasswordResetService {
 
         transaction.executeWithoutResult(status -> {
             if (!resetRepository.consume(reset.get().id())
-                    || !userService.resetPassword(
+                    || !userSecurityService.resetPassword(
                             user.get().id(),
                             user.get().authenticationVersion(),
                             user.get().passwordHash(),

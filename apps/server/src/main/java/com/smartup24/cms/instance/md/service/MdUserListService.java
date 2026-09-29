@@ -6,8 +6,9 @@ import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.md.api.MdUserDtos.UserListFilters;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
+import com.smartup24.cms.instance.md.repository.MdUserListSql;
+import com.smartup24.cms.instance.md.repository.MdUserListSql.LegacyUserFilters;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import com.smartup24.cms.instance.md.repository.MdUserRepository.LegacyUserFilters;
 import com.smartup24.cms.instance.md.repository.MdUserRepository.UserRecord;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,6 +109,6 @@ public class MdUserListService {
         var list = registry == null ? MdUserQuery.LIST : registry.resolve(MdUserQuery.LIST);
         var plan = QueryCompiler.compile(list, filter, sort, limit, cursor, search, legacy.canonical());
         var scope = scopeService.filterFor(viewerId, "md_users.org_unit_id", "md_users.id");
-        return lists.page(plan, userRepository::mapUser, MdUserRepository.listPredicate(scope, legacy));
+        return lists.page(plan, userRepository::mapUser, MdUserListSql.listPredicate(scope, legacy));
     }
 }

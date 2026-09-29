@@ -2,7 +2,7 @@ package com.smartup24.cms.instance.kauth.controller;
 
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.md.service.MdUserService;
+import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * Аутентификация обязательна: путь не входит в {@code PUBLIC_PATHS}, поэтому
  * его закрывает общее правило {@code anyRequest().authenticated()}, а старый
- * пароль проверяется отдельно в {@link MdUserService#changePassword}.
+ * пароль проверяется отдельно в {@link MdUserSecurityService#changePassword}.
  *
  * Старый путь сохранён как псевдоним: удаление эндпоинта — ломающее изменение
  * и требует {@code /api/v2} (ТЗ-04 разд. 9).
@@ -38,17 +38,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping({"/api/v1/auth", "/api/v1/iam/users/me"})
 public class KauthPasswordController {
 
-    private final MdUserService userService;
+    private final MdUserSecurityService userSecurityService;
 
-    public KauthPasswordController(MdUserService userService) {
-        this.userService = userService;
+    public KauthPasswordController(MdUserSecurityService userSecurityService) {
+        this.userSecurityService = userSecurityService;
     }
 
     @PostMapping("/password")
     public ResponseEntity<Void> changeMyPassword(@Valid @RequestBody ChangePasswordDto body) {
         var principal = SecurityContext.getPrincipal();
         if (principal == null) throw ApiException.invalidCredentials();
-        userService.changePassword(
+        userSecurityService.changePassword(
                 principal.userId(), principal.authenticationVersion(), body.oldPassword(), body.newPassword());
         return ResponseEntity.noContent().build();
     }

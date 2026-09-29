@@ -89,6 +89,7 @@ abstract class SearchDeliveryTestSupport {
     SearchStoragePreflight storage;
     MsTaskService tasks;
     MdUserService users;
+    MdUserSecurityService userSecurity;
     UUID owner;
 
     @BeforeAll
@@ -153,11 +154,19 @@ abstract class SearchDeliveryTestSupport {
                         mock(MdCustomFieldService.class),
                         mock(PasswordHasher.class),
                         mock(PasswordValidator.class),
-                        new KauthUserSessionInvalidator(
-                                new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
                         publisher,
                         audit,
                         scopes),
+                manager);
+        userSecurity = SearchRevisionIntegrationTest.proxied(
+                new MdUserSecurityService(
+                        new MdUserRepository(jdbc, mapper),
+                        mock(PasswordHasher.class),
+                        mock(PasswordValidator.class),
+                        new KauthUserSessionInvalidator(
+                                new KauthSessionRepository(jdbc), new KauthApiTokenRepository(jdbc)),
+                        publisher,
+                        audit),
                 manager);
         http = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         httpThreads = Executors.newCachedThreadPool();

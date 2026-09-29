@@ -4,7 +4,7 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import com.smartup24.cms.instance.md.repository.MdUserRepository.LegacyUserFilters;
+import com.smartup24.cms.instance.md.repository.MdUserListSql.LegacyUserFilters;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

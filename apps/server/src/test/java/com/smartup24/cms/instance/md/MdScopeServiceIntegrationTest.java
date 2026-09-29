@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
+import com.smartup24.cms.instance.md.repository.MdUserListSql;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
@@ -214,7 +215,7 @@ class MdScopeServiceIntegrationTest {
 
         var visible =
                 userList
-                        .page(viewer, 100, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                        .page(viewer, 100, null, null, null, null, MdUserListSql.LegacyUserFilters.none())
                         .items()
                         .stream()
                         .map(MdUserRepository.UserRecord::id)
@@ -238,7 +239,7 @@ class MdScopeServiceIntegrationTest {
 
         var visible =
                 userList
-                        .page(admin, 200, null, null, null, null, MdUserRepository.LegacyUserFilters.none())
+                        .page(admin, 200, null, null, null, null, MdUserListSql.LegacyUserFilters.none())
                         .items()
                         .stream()
                         .map(MdUserRepository.UserRecord::id)
