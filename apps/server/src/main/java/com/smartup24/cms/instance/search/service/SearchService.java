@@ -9,15 +9,11 @@ import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.I
 import com.smartup24.cms.instance.search.typesense.TypesenseException;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch;
 import com.smartup24.cms.instance.search.typesense.TypesenseSearch.CollectionSearch;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +23,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SearchService {
     private static final Logger log = LoggerFactory.getLogger(SearchService.class);
-    private final TypesenseSearch typesense;
+    private final SearchEngineQuery engine;
     private final SearchFallbackRepository fallbackRepository;
     private final SearchAccessPolicy accessPolicy;
     private final SearchResultBudget resultBudget;
@@ -137,7 +133,7 @@ public class SearchService {
             Supplier<SearchExecutionSnapshot> executionSnapshot,
             Supplier<SettingsSnapshot> fallbackPolicy,
             QueryLanguageConverter queryConverter) {
-        this.typesense = typesense;
+        this.engine = new SearchEngineQuery(typesense, fallbackRepository);
         this.fallbackRepository = fallbackRepository;
         this.accessPolicy = accessPolicy;
         this.resultBudget = resultBudget;
@@ -155,9 +151,9 @@ public class SearchService {
         SearchResult result = null;
         try {
             accessPolicy.requireSearchAccess();
-            String cleanQuery = normalizeQuery(query);
-            String cleanEntityType = normalizeEntityType(entityType);
-            validateLimit(limit);
+            String cleanQuery = SearchRequestRules.normalizeQuery(query);
+            String cleanEntityType = SearchRequestRules.normalizeEntityType(entityType);
+            SearchRequestRules.validateLimit(limit);
             SearchExecutionSnapshot snapshot = readSnapshot();
             result = execute(
                     cleanQuery,
@@ -182,8 +178,8 @@ public class SearchService {
         try {
             accessPolicy.requireSearchAccess();
             if (request.policy() != null) accessPolicy.requireSettingsRead();
-            String query = normalizeQuery(request.q());
-            String entity = normalizeEntityType(request.entity());
+            String query = SearchRequestRules.normalizeQuery(request.q());
+            String entity = SearchRequestRules.normalizeEntityType(request.entity());
             SearchExecutionSnapshot snapshot = readSnapshot();
             SearchQueryPolicy policy =
                     request.policy() == null ? snapshot.settings().policy() : request.policy();
@@ -216,9 +212,10 @@ public class SearchService {
             Integer limit,
             IndexSnapshot snapshot,
             SearchQueryPolicy currentPolicy) {
-        int effectiveLimit = limit == null ? currentPolicy.globalLimit() : effectiveLimit(limit, currentPolicy);
+        int effectiveLimit =
+                limit == null ? currentPolicy.globalLimit() : SearchRequestRules.effectiveLimit(limit, currentPolicy);
 
-        Long exactId = exactId(cleanQuery);
+        Long exactId = SearchRequestRules.exactId(cleanQuery);
         if (exactId != null) {
             try {
                 return fallbackResult(
@@ -237,58 +234,13 @@ public class SearchService {
         List<String> queryVariants = expansion.variants();
         String suggestedQuery = expansion.suggestedCorrection();
 
-        if (typesense.isEnabled()) {
+        if (engine.enabled()) {
             try {
-                if (!snapshot.initialized() || !hasCollections(cleanEntityType, snapshot.collections())) {
-                    throw TypesenseException.uninitialized();
-                }
-                List<CollectionSearch> groups = typesense.multiSearch(
-                        cleanQuery, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
-
-                int initialHits = groups.stream().mapToInt(g -> g.hits().size()).sum();
-                if (initialHits < effectiveLimit && queryVariants.size() > 1) {
-                    for (int i = 1; i < queryVariants.size(); i++) {
-                        String variant = queryVariants.get(i);
-                        try {
-                            List<CollectionSearch> variantGroups = typesense.multiSearch(
-                                    variant, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
-                            groups = mergeGroups(groups, variantGroups);
-                        } catch (Exception ignored) {
-                        }
-                    }
-                }
-
-                if (cleanEntityType.equals("ALL")
-                        && (!snapshot.collections().containsKey("NOTE")
-                                || snapshot.collections().get("NOTE").isBlank())) {
-                    try {
-                        var noteSearch = fallbackRepository.search(cleanQuery, queryVariants, "NOTE", effectiveLimit);
-                        if (noteSearch != null && !noteSearch.groups().isEmpty()) {
-                            var noteGroup = noteSearch.groups().get(0);
-                            if (!noteGroup.hits().isEmpty()) {
-                                groups = new ArrayList<>(groups);
-                                groups.add(new CollectionSearch(
-                                        "NOTE",
-                                        noteGroup.hits().stream()
-                                                .map(hit -> new SearchHit(
-                                                        hit.entityType(),
-                                                        hit.id(),
-                                                        hit.title(),
-                                                        hit.description(),
-                                                        hit.targetUrl()))
-                                                .toList(),
-                                        noteGroup.hits().size(),
-                                        0));
-                            }
-                        }
-                    } catch (Exception ex) {
-                        log.debug("Note fallback query for ALL skipped: {}", ex.getMessage());
-                    }
-                }
-
+                List<CollectionSearch> groups = engine.groups(
+                        cleanQuery, cleanEntityType, effectiveLimit, snapshot, currentPolicy, queryVariants);
                 groups.forEach(group -> metrics.engine(group.entityType(), group.searchTimeMs()));
                 List<SearchHit> hits = resultBudget.allocate(groups, effectiveLimit);
-                long found = sumFound(groups);
+                long found = SearchEngineQuery.sumFound(groups);
                 return new SearchResult(
                         cleanQuery, hits.size(), hits, found, found > hits.size(), "TYPESENSE", false, suggestedQuery);
             } catch (TypesenseException | DataAccessException unavailableOrInvalid) {
@@ -305,36 +257,6 @@ public class SearchService {
         } catch (Exception fallbackFailure) {
             throw unavailable();
         }
-    }
-
-    private List<CollectionSearch> mergeGroups(List<CollectionSearch> primary, List<CollectionSearch> secondary) {
-        Map<String, CollectionSearch> map = new LinkedHashMap<>();
-        for (CollectionSearch group : primary) {
-            map.put(group.entityType(), group);
-        }
-        for (CollectionSearch sec : secondary) {
-            CollectionSearch prim = map.get(sec.entityType());
-            if (prim == null) {
-                map.put(sec.entityType(), sec);
-            } else {
-                Set<String> existingIds =
-                        prim.hits().stream().map(SearchHit::id).collect(Collectors.toSet());
-                List<SearchHit> mergedHits = new ArrayList<>(prim.hits());
-                for (SearchHit hit : sec.hits()) {
-                    if (existingIds.add(hit.id())) {
-                        mergedHits.add(hit);
-                    }
-                }
-                map.put(
-                        prim.entityType(),
-                        new CollectionSearch(
-                                prim.entityType(),
-                                mergedHits,
-                                Math.max(prim.found(), (long) mergedHits.size()),
-                                Math.max(prim.searchTimeMs(), sec.searchTimeMs())));
-            }
-        }
-        return List.copyOf(map.values());
     }
 
     private SearchResult fallbackResult(
@@ -359,66 +281,6 @@ public class SearchService {
         boolean hasMore = fallback.groups().stream().anyMatch(group -> group.hasMore()) || available > hits.size();
         Long foundHits = countKnown ? (long) available : null;
         return new SearchResult(query, hits.size(), hits, foundHits, hasMore, "POSTGRES", degraded, suggestedQuery);
-    }
-
-    private static int effectiveLimit(int requestedLimit, SearchQueryPolicy queryPolicy) {
-        validateLimit(requestedLimit);
-        return Math.min(requestedLimit, queryPolicy.globalLimit());
-    }
-
-    private static void validateLimit(Integer requestedLimit) {
-        if (requestedLimit != null && (requestedLimit < 1 || requestedLimit > 50)) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.limit_range");
-        }
-    }
-
-    private static String normalizeQuery(String query) {
-        if (query == null) throw invalidQuery();
-        String clean = query.trim();
-        int length = clean.codePointCount(0, clean.length());
-        if (length < 2 || length > 200) throw invalidQuery();
-        return clean;
-    }
-
-    private static ApiException invalidQuery() {
-        return ApiException.badRequest(ErrorCode.EMPTY_QUERY, "error.search.query_length");
-    }
-
-    private static String normalizeEntityType(String entityType) {
-        if (entityType == null) return "ALL";
-        String normalized = entityType.trim().toUpperCase(Locale.ROOT);
-        return switch (normalized) {
-            case "ALL", "TASK", "PROJECT", "USER", "NOTE" -> normalized;
-            default -> throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.category_unknown");
-        };
-    }
-
-    private static Long exactId(String query) {
-        if (!query.matches("#[0-9]+")) return null;
-        try {
-            long id = Long.parseLong(query.substring(1));
-            if (id <= 0) throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.id_not_positive");
-            return id;
-        } catch (NumberFormatException overflow) {
-            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.search.id_invalid");
-        }
-    }
-
-    private boolean hasCollections(String entityType, Map<String, String> collections) {
-        List<String> needed = entityType.equals("ALL") ? List.of("TASK", "PROJECT", "USER") : List.of(entityType);
-        return needed.stream()
-                .allMatch(type ->
-                        collections.containsKey(type) && !collections.get(type).isBlank());
-    }
-
-    private static long sumFound(List<CollectionSearch> groups) {
-        long total = 0;
-        try {
-            for (CollectionSearch group : groups) total = Math.addExact(total, group.found());
-            return total;
-        } catch (ArithmeticException overflow) {
-            throw TypesenseException.invalidResponse();
-        }
     }
 
     private static ApiException unavailable() {
