@@ -23,15 +23,12 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Plan 10/10, item 3.1: the code that throws never writes a sentence. Every text given to {@link ApiException} (its
- * constructors and factories) is a key of the i18n catalogs, present in Russian, English and Uzbek.
- *
- * <p>Files not yet moved are listed in {@code src/test/resources/error-literals-baseline.txt}: a new file with a
- * sentence fails, a listed file without one must leave the list, so the list only shrinks and ends empty.
+ * constructors and factories) is a key of the i18n catalogs, present in Russian, English and Uzbek. A text passed
+ * through a variable or a constant is not visible to this scan and is checked in review.
  */
 class ErrorTextsTest {
 
     private static final Path MAIN = Path.of("src/main/java");
-    private static final Path BASELINE = Path.of("src/test/resources/error-literals-baseline.txt");
     private static final Path CATALOGS = Path.of("src/main/resources/i18n");
     private static final List<String> LANGUAGES = List.of("ru", "en", "uz");
 
@@ -45,21 +42,10 @@ class ErrorTextsTest {
     record Scan(Map<String, List<String>> sentences, Map<String, Set<String>> keys) {}
 
     @Test
-    @DisplayName("3.1: texts given to ApiException are catalog keys, except in the files still listed")
-    void noSentencesOutsideTheBaseline() throws IOException {
-        Scan scan = scan();
-        Set<String> baseline = baseline();
-
-        Map<String, List<String>> unexpected = new TreeMap<>(scan.sentences());
-        unexpected.keySet().removeAll(baseline);
-        assertThat(unexpected)
+    @DisplayName("3.1: texts given to ApiException are catalog keys, never sentences")
+    void noSentences() throws IOException {
+        assertThat(scan().sentences())
                 .as("sentences instead of catalog keys (use error.<module>.<name>)")
-                .isEmpty();
-
-        Set<String> cleared = new TreeSet<>(baseline);
-        cleared.removeAll(scan.sentences().keySet());
-        assertThat(cleared)
-                .as("files without sentences: remove them from " + BASELINE)
                 .isEmpty();
     }
 
@@ -146,16 +132,5 @@ class ErrorTextsTest {
             i++;
         }
         return arguments;
-    }
-
-    static Set<String> baseline() throws IOException {
-        Set<String> files = new TreeSet<>();
-        for (String line : Files.readAllLines(BASELINE, StandardCharsets.UTF_8)) {
-            String entry = line.strip();
-            if (!entry.isEmpty() && !entry.startsWith("#")) {
-                files.add(entry);
-            }
-        }
-        return files;
     }
 }

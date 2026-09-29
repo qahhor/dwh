@@ -1,3 +1,0 @@
-# Plan 10/10, item 3.1: files that still give ApiException a sentence instead of a catalog key.
-# ErrorTextsTest fails on a file not listed here and on a listed file that no longer has one.
-
