@@ -11,8 +11,9 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
+import com.smartup24.cms.instance.ms.notify.api.AnnouncementDraftRequest;
+import com.smartup24.cms.instance.ms.notify.api.AnnouncementVersionRequest;
 import com.smartup24.cms.instance.ms.notify.controller.MsAnnouncementAdminController;
-import com.smartup24.cms.instance.ms.notify.model.AnnouncementDraftRequest;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.repository.MsAnnouncementRepository;
@@ -234,8 +235,8 @@ class MsAnnouncementServiceIntegrationTest {
         assertPermission("manage", "update");
         assertPermission("create", "create", AnnouncementDraftRequest.class);
         assertPermission("update", "update", Long.class, AnnouncementDraftRequest.class);
-        assertPermission("publish", "publish", Long.class, MsAnnouncementAdminController.VersionRequest.class);
-        assertPermission("archive", "archive", Long.class, MsAnnouncementAdminController.VersionRequest.class);
+        assertPermission("publish", "publish", Long.class, AnnouncementVersionRequest.class);
+        assertPermission("archive", "archive", Long.class, AnnouncementVersionRequest.class);
     }
 
     @Test

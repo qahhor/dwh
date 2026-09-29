@@ -3,14 +3,16 @@ package com.smartup24.cms.instance.ms.task.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.ms.task.api.AddProjectMemberRequest;
+import com.smartup24.cms.instance.ms.task.api.CreateProjectRequest;
+import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
+import com.smartup24.cms.instance.ms.task.api.ProjectView;
+import com.smartup24.cms.instance.ms.task.api.UpdateProjectRequest;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
-import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,7 +31,7 @@ public class MsProjectController {
 
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<List<MsProjectRepository.ProjectRecord>> listProjects(
+    public ResponseEntity<List<ProjectView>> listProjects(
             @RequestParam(name = "state", required = false) String state) {
         return ResponseEntity.ok(projectService.listProjects(state));
     }
@@ -53,13 +55,13 @@ public class MsProjectController {
 
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<MsProjectRepository.ProjectRecord> getProject(@PathVariable("id") Long id) {
+    public ResponseEntity<ProjectView> getProject(@PathVariable("id") Long id) {
         return ResponseEntity.ok(projectService.getProjectById(id));
     }
 
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "create")
-    public ResponseEntity<MsProjectRepository.ProjectRecord> createProject(@Valid @RequestBody CreateProjectDto body) {
+    public ResponseEntity<ProjectView> createProject(@Valid @RequestBody CreateProjectRequest body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
         var project = projectService.createProject(
                 body.name(), body.description(), body.state(), body.attributes(), currentUserId);
@@ -68,14 +70,15 @@ public class MsProjectController {
 
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
-    public ResponseEntity<Void> updateProject(@PathVariable("id") Long id, @RequestBody UpdateProjectDto body) {
+    public ResponseEntity<Void> updateProject(@PathVariable("id") Long id, @RequestBody UpdateProjectRequest body) {
         projectService.updateProject(id, body.name(), body.description(), body.state(), body.attributes());
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
-    public ResponseEntity<Void> addMember(@PathVariable("id") Long id, @Valid @RequestBody AddMemberDto body) {
+    public ResponseEntity<Void> addMember(
+            @PathVariable("id") Long id, @Valid @RequestBody AddProjectMemberRequest body) {
         projectService.addProjectMember(id, body.userId(), body.accessKind());
         return ResponseEntity.noContent().build();
     }
@@ -89,14 +92,7 @@ public class MsProjectController {
 
     @GetMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
-    public ResponseEntity<List<MsProjectRepository.ProjectMemberRecord>> getMembers(@PathVariable("id") Long id) {
+    public ResponseEntity<List<ProjectMemberView>> getMembers(@PathVariable("id") Long id) {
         return ResponseEntity.ok(projectService.getProjectMembers(id));
     }
-
-    public record CreateProjectDto(
-            @NotBlank String name, String description, String state, Map<String, Object> attributes) {}
-
-    public record UpdateProjectDto(String name, String description, String state, Map<String, Object> attributes) {}
-
-    public record AddMemberDto(Long userId, String accessKind) {}
 }

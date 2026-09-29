@@ -5,6 +5,8 @@ import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.ms.task.api.TaskListFilters;
+import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.LegacyTaskFilters;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
@@ -39,6 +41,24 @@ public class MsTaskListService {
     /** Without the registry: the declared fields only, no custom fields. */
     public MsTaskListService(QueryListRepository lists, MsTaskRepository taskRepository, MdScopeService scopeService) {
         this(lists, taskRepository, scopeService, null);
+    }
+
+    /** The page as the API answers it: {@link #page} with the rows as {@link TaskView}. */
+    @Transactional(readOnly = true)
+    public KeysetPage<TaskView> viewPage(
+            Long viewerId,
+            Integer limit,
+            String cursor,
+            String filter,
+            String sort,
+            String search,
+            TaskListFilters filters) {
+        var page = page(viewerId, limit, cursor, filter, sort, search, MsTaskViews.filters(filters));
+        return KeysetPage.of(
+                MsTaskViews.all(page.items(), MsTaskViews::task),
+                page.nextCursor(),
+                page.hasMore(),
+                page.totalEstimated());
     }
 
     /**

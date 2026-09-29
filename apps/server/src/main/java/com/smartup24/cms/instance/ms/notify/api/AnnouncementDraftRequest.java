@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.ms.notify.model;
+package com.smartup24.cms.instance.ms.notify.api;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

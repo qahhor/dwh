@@ -3,9 +3,10 @@ package com.smartup24.cms.instance.ms.notify.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.ms.notify.api.NotificationPrefUpdate;
+import com.smartup24.cms.instance.ms.notify.api.NotificationPrefView;
+import com.smartup24.cms.instance.ms.notify.api.NotificationView;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
-import com.smartup24.cms.instance.ms.notify.repository.MsNotificationPrefRepository;
-import com.smartup24.cms.instance.ms.notify.repository.MsNotificationRepository;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +25,7 @@ public class MsNotificationController {
 
     @GetMapping("/inbox")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
-    public ResponseEntity<List<MsNotificationRepository.NotificationRecord>> getInbox(
+    public ResponseEntity<List<NotificationView>> getInbox(
             @RequestParam(name = "limit", defaultValue = "50") int limit) {
 
         Long userId = SecurityContext.getCurrentUserId();
@@ -65,7 +66,7 @@ public class MsNotificationController {
 
     @GetMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
-    public ResponseEntity<List<MsNotificationPrefRepository.NotificationPrefRecord>> getPreferences() {
+    public ResponseEntity<List<NotificationPrefView>> getPreferences() {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 
@@ -74,7 +75,7 @@ public class MsNotificationController {
 
     @PutMapping("/preferences")
     @RequiresPermission(form = MsNotifyPref.FORM_INBOX, action = "view")
-    public ResponseEntity<Void> updatePreferences(@RequestBody List<MsNotificationService.PrefUpdateDto> updates) {
+    public ResponseEntity<Void> updatePreferences(@RequestBody List<NotificationPrefUpdate> updates) {
         Long userId = SecurityContext.getCurrentUserId();
         if (userId == null) throw ApiException.unauthorized("error.notify.not_authenticated");
 

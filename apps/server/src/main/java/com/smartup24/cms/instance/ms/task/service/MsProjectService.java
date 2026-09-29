@@ -5,6 +5,8 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
+import com.smartup24.cms.instance.ms.task.api.ProjectView;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.search.SearchChangePublisher;
 import java.util.List;
@@ -32,7 +34,7 @@ public class MsProjectService {
     }
 
     @Transactional
-    public MsProjectRepository.ProjectRecord createProject(
+    public ProjectView createProject(
             String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
 
         String normalizedName = validateAndNormalizeName(name, true);
@@ -52,22 +54,26 @@ public class MsProjectService {
                 null,
                 Map.of("name", normalizedName, "state", project.state()));
 
-        return project;
+        return MsTaskViews.project(project);
     }
 
     @Transactional(readOnly = true)
-    public MsProjectRepository.ProjectRecord getProjectById(Long id) {
+    public ProjectView getProjectById(Long id) {
+        return MsTaskViews.project(findProject(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjectView> listProjects(String state) {
+        return MsTaskViews.all(projectRepository.listProjects(state), MsTaskViews::project);
+    }
+
+    private MsProjectRepository.ProjectRecord findProject(Long id) {
         return projectRepository.findById(id).orElseThrow(() -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
-    }
-
-    @Transactional(readOnly = true)
-    public List<MsProjectRepository.ProjectRecord> listProjects(String state) {
-        return projectRepository.listProjects(state);
     }
 
     @Transactional
     public void updateProject(Long id, String name, String description, String state, Map<String, Object> attributes) {
-        var before = getProjectById(id);
+        var before = findProject(id);
         String normalizedName = validateAndNormalizeName(name, false);
         validateState(state);
         if (attributes != null) {
@@ -109,7 +115,7 @@ public class MsProjectService {
 
     @Transactional
     public void addProjectMember(Long projectId, Long userId, String accessKind) {
-        getProjectById(projectId);
+        findProject(projectId);
         projectRepository.addMember(projectId, userId, accessKind);
 
         // Состав участников проекта — это доступ к его задачам, а значит
@@ -137,7 +143,7 @@ public class MsProjectService {
     }
 
     @Transactional(readOnly = true)
-    public List<MsProjectRepository.ProjectMemberRecord> getProjectMembers(Long projectId) {
-        return projectRepository.getMembers(projectId);
+    public List<ProjectMemberView> getProjectMembers(Long projectId) {
+        return MsTaskViews.all(projectRepository.getMembers(projectId), MsTaskViews::projectMember);
     }
 }
