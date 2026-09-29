@@ -32,6 +32,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.FileSystemResource;
@@ -61,6 +63,8 @@ import tools.jackson.databind.ObjectMapper;
  */
 @Tag("large")
 class UplLargeApplyTest extends EmbeddedPostgresTest {
+
+    private static final Logger log = LoggerFactory.getLogger(UplLargeApplyTest.class);
 
     private static final String BASE = "/api/v1/upl/packages";
     private static final String PASSWORD = "StrongPassword2026!";
@@ -191,7 +195,7 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
     }
 
     private static void report(String step, String format, Object... args) {
-        System.out.println("[upl-large] " + step + ": " + String.format(format, args));
+        log.info("[upl-large] {}: {}", step, String.format(format, args));
     }
 
     private static String since(long startedNanos) {
