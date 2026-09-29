@@ -12,6 +12,8 @@ describe('i18n: core', () => {
         dynamic: [
           ...serverCodeKeys('error.', { toCode: (suffix) => suffix.toUpperCase() }),
           ...serverKeyLiterals('error.'),
+          // The fnd module builds its keys from its constraint codes: error.fnd.<code in lower case>.
+          ...serverCodeKeys('error.fnd.', { toCode: (suffix) => suffix.toUpperCase() }),
         ],
       }),
     ).toEqual([]);
