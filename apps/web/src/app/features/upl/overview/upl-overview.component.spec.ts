@@ -108,6 +108,25 @@ describe('UplOverviewComponent', () => {
     expect(host.querySelector('.kpi__value')?.textContent).toContain('40');
   });
 
+  it('keeps the figures of the period on screen while a refresh fails', async () => {
+    const get = vi
+      .fn()
+      .mockReturnValueOnce(of(overview(30)))
+      .mockReturnValueOnce(throwError(() => ({ status: 503 })));
+    const { fixture } = await render(get);
+    // The refresh timer keeps the zone busy, so the answers are awaited by a macrotask, not by whenStable.
+    const settle = () => new Promise((resolve) => setTimeout(resolve));
+    await settle();
+
+    fixture.componentInstance.load();
+    fixture.detectChanges();
+    await settle();
+
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(fixture.componentInstance.failed()).toBe(true);
+    expect(fixture.componentInstance.data()?.totals.uploads).toBe(12);
+  });
+
   it('keeps a failure inside its widget with a retry, and says when there were no uploads', async () => {
     const get = vi
       .fn()

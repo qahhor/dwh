@@ -1,15 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
 import { ActivatedRoute, Router, convertToParamMap, provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { PermissionService } from '@core/services/permission.service';
 import { ToastService } from '@core/services/toast.service';
 import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
-import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource, UplUnit, UplVersionItem } from '../upl-api';
+import { UplApiService, UplFormatDraftRequest, UplFormatVersion, UplSource } from '../upl-api';
 import { FormatEditorComponent } from './format-editor.component';
-import { FormatSheetsStepComponent } from './format-sheets-step.component';
+import { emptyColumn } from './upl-format-model';
 import { inScreen } from '@testing/in-screen';
+
+// What each step draws and edits is pinned by the step specs, the store's rules by its own spec.
 
 const SOURCE: UplSource = {
   id: 7,
@@ -28,16 +29,7 @@ const SOURCE: UplSource = {
   modifiedAt: '2026-09-01T00:00:00Z',
 };
 
-const UNITS: UplUnit[] = [
-  { code: 'ton', name: 'Tonna', baseUnitCode: 'kg' },
-  { code: 'kg', name: 'Kilogramm', baseUnitCode: 'kg' },
-  { code: 'liter', name: 'Litr', baseUnitCode: 'l' },
-  { code: 'l', name: 'Litr', baseUnitCode: 'l' },
-];
-
-const VERSION_ITEMS: UplVersionItem[] = [
-  { version: 1, status: 'draft', validFrom: null, validTo: null, publishedAt: null, publishedBy: null },
-];
+const COLUMN = { ...emptyColumn(), id: 21, required: true };
 
 function draftVersion(): UplFormatVersion {
   return {
@@ -62,38 +54,38 @@ function draftVersion(): UplFormatVersion {
         totalRowMarker: null,
         columns: [
           {
-            id: 21,
+            ...COLUMN,
             ordinal: 1,
-            filePosition: null,
             nameInFile: 'STIR',
             targetField: 'stir',
             dataType: 'object_key',
-            required: true,
-            sourceUnit: null,
-            baseUnit: null,
             keyMask: '^[0-9]{9}$',
-            keyPadLength: 9,
-            keyPadMax: 9,
-            refBookCode: null,
           },
           {
+            ...COLUMN,
             id: 22,
             ordinal: 2,
-            filePosition: null,
             nameInFile: 'Volume',
             targetField: 'volume',
             dataType: 'number',
             required: false,
-            sourceUnit: 'ton',
-            baseUnit: 'kg',
             keyMask: null,
-            keyPadLength: null,
-            keyPadMax: null,
-            refBookCode: null,
           },
         ],
       },
     ],
+  };
+}
+
+const PUBLISHED: UplFormatVersion = { ...draftVersion(), status: 'published', validFrom: '2026-01-01' };
+
+/** A refusal of the server's validation with the given addressed errors. */
+function invalid(...errors: Array<[field: string, code: string, message?: string]>) {
+  return {
+    status: 422,
+    code: 'validation_failed',
+    detail: 'UPL_FORMAT_INVALID',
+    errors: errors.map(([field, code, message = 'x']) => ({ field, code, message })),
   };
 }
 
@@ -114,13 +106,12 @@ function today(): string {
 
 async function createFixture(options: FixtureOptions = {}) {
   const version = options.version ?? draftVersion();
-  const source = options.source ?? SOURCE;
   const actions = options.actions ?? ['view', 'edit', 'publish'];
   const api = {
-    getSource: vi.fn(() => of(structuredClone(source))),
+    getSource: vi.fn(() => of(structuredClone(options.source ?? SOURCE))),
     getVersion: vi.fn(() => (options.loadError ? throwError(() => options.loadError) : of(structuredClone(version)))),
-    listVersions: vi.fn(() => of(structuredClone(VERSION_ITEMS))),
-    listUnits: vi.fn(() => of(structuredClone(UNITS))),
+    listVersions: vi.fn(() => of([])),
+    listUnits: vi.fn(() => of([{ code: 'ton', name: 'Tonna', baseUnitCode: 'kg' }])),
     saveDraft: vi.fn((_id: string, _v: string, body: UplFormatDraftRequest) =>
       options.saveError
         ? throwError(() => options.saveError)
@@ -147,11 +138,16 @@ async function createFixture(options: FixtureOptions = {}) {
     ],
   }).compileComponents();
 
-  const router = TestBed.inject(Router);
-  const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+  const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
   const fixture = TestBed.createComponent(FormatEditorComponent);
-  fixture.detectChanges();
-  return { fixture, api, toast, navigate, component: fixture.componentInstance };
+  /** Renders what the version resource brought after a load or a reload. */
+  const settle = async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
+  await settle();
+  return { fixture, api, toast, navigate, settle, component: fixture.componentInstance };
 }
 
 function one(fixture: ComponentFixture<FormatEditorComponent>, testId: string): HTMLElement | null {
@@ -162,42 +158,13 @@ function many(fixture: ComponentFixture<FormatEditorComponent>, testId: string):
   return Array.from(inScreen(fixture.nativeElement).querySelectorAll(`[data-testid="${testId}"]`));
 }
 
-function sheetsStep(fixture: ComponentFixture<FormatEditorComponent>): FormatSheetsStepComponent {
-  return fixture.debugElement.query(By.directive(FormatSheetsStepComponent)).componentInstance;
-}
-
-function click(element: HTMLElement | null): void {
+/** Clicks the element (or the button inside it) and redraws. */
+function press(fixture: ComponentFixture<FormatEditorComponent>, element: HTMLElement | null): void {
   if (!element) {
     throw new Error('element to click not found');
   }
-  const target = element.querySelector('button') ?? element;
-  target.click();
-}
-
-/** The trigger of an smt-select host: the button that opens the list and carries its state. */
-function trigger(element: HTMLElement | null): HTMLButtonElement {
-  const button = element?.querySelector<HTMLButtonElement>('[role="combobox"]');
-  if (!button) {
-    throw new Error('smt-select not found');
-  }
-  return button;
-}
-
-/** Opens an smt-select and picks the first option whose label matches. */
-function selectOption(
-  fixture: ComponentFixture<FormatEditorComponent>,
-  element: HTMLElement | null,
-  match: (label: string) => boolean,
-): void {
-  trigger(element).click();
+  (element.querySelector('button') ?? element).click();
   fixture.detectChanges();
-  const option = Array.from(document.querySelectorAll<HTMLElement>('.smt-select__option')).find((item) =>
-    match(item.querySelector('.smt-select__option-label')?.textContent?.trim() ?? ''),
-  );
-  if (!option) {
-    throw new Error('option not found');
-  }
-  option.click();
 }
 
 function setInputValue(input: HTMLInputElement, value: string): void {
@@ -205,519 +172,169 @@ function setInputValue(input: HTMLInputElement, value: string): void {
   input.dispatchEvent(new Event('input'));
 }
 
-/** Грязный черновик: новая колонка, заполненная так, чтобы локальная проверка её пропустила. */
+/** A dirty draft: a new column filled in so that the local check lets it through. */
 function addValidColumn(fixture: ComponentFixture<FormatEditorComponent>, name = 'Новая', target = 'new_col'): void {
-  click(one(fixture, 'upl-add-column'));
-  fixture.detectChanges();
-  const rows = many(fixture, 'upl-column-row');
-  const row = rows[rows.length - 1];
+  press(fixture, one(fixture, 'upl-add-column'));
+  const row = many(fixture, 'upl-column-row').at(-1)!;
   setInputValue(row.querySelector('[data-testid="upl-cell-name-in-file"]') as HTMLInputElement, name);
   setInputValue(row.querySelector('[data-testid="upl-cell-target-field"]') as HTMLInputElement, target);
   fixture.detectChanges();
 }
 
-function twoSheetVersion(): UplFormatVersion {
-  const base = draftVersion();
-  const second = structuredClone(base.sheets[0]);
-  second.id = 12;
-  second.ordinal = 2;
-  second.sheetName = 'Sheet2';
-  return { ...base, sheets: [base.sheets[0], second] };
-}
+const stepButton = (fixture: ComponentFixture<FormatEditorComponent>, id: string) =>
+  one(fixture, 'upl-steps')!.querySelector(`button[data-step="${id}"]`) as HTMLButtonElement;
+const visibleSteps = (fixture: ComponentFixture<FormatEditorComponent>) =>
+  ['file', 'sheets', 'publish'].filter((id) => !(one(fixture, `upl-step-${id}`) as HTMLElement).hidden);
 
 describe('FormatEditorComponent', () => {
-  it('asks before removing a sheet, names the columns lost and keeps the sheet on No', async () => {
-    const { fixture } = await createFixture({ version: twoSheetVersion() });
-    const confirmDialog = async () => {
-      click(many(fixture, 'upl-remove-sheet')[1]);
-      fixture.detectChanges();
-      await fixture.whenStable();
-      return document.querySelector('.smt-modal-confirm') as HTMLElement;
-    };
+  it('loads source, version, versions and units by the route and shows the sheets with their columns', async () => {
+    const { fixture, api } = await createFixture();
 
-    let dialog = await confirmDialog();
-    expect(dialog.textContent).toContain('Лист и его колонки будут удалены (2)');
-    dialog.querySelectorAll<HTMLButtonElement>('button')[0].click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(many(fixture, 'upl-sheet-tab').length).toBe(2);
-
-    dialog = await confirmDialog();
-    [...dialog.querySelectorAll<HTMLButtonElement>('button')].at(-1)!.click();
-    await fixture.whenStable();
-    fixture.detectChanges();
-    expect(many(fixture, 'upl-sheet-tab').length).toBe(1);
-    document.querySelectorAll('.cdk-overlay-container').forEach((node) => node.remove());
-  });
-
-  it('loads source, version, sheet tabs and columns', async () => {
-    const { fixture } = await createFixture();
-
+    expect(api.getSource).toHaveBeenCalledWith('7');
+    expect(api.getVersion).toHaveBeenCalledWith('7', '1');
+    expect(api.listVersions).toHaveBeenCalledWith('7');
+    expect(api.listUnits).toHaveBeenCalledTimes(1);
     expect(many(fixture, 'upl-sheet-tab').length).toBe(1);
     expect(many(fixture, 'upl-column-row').length).toBe(2);
     expect(one(fixture, 'upl-actions')).not.toBeNull();
   });
 
-  it('shows published version as read only', async () => {
-    const published: UplFormatVersion = { ...draftVersion(), status: 'published', validFrom: '2026-01-01' };
-    const { fixture } = await createFixture({ version: published, source: { ...SOURCE, hasDraft: false } });
+  it('shows not found with a link to the list on 404 and a load error on a failure', async () => {
+    const missing = await createFixture({
+      loadError: { status: 404, code: 'not_found', detail: 'UPL_FORMAT_NOT_FOUND' },
+    });
+    const notFound = one(missing.fixture, 'upl-not-found');
+    expect(notFound!.querySelector('a')!.getAttribute('href')).toBe('/upl/sources');
+    expect(one(missing.fixture, 'upl-load-error')).toBeNull();
+    expect(one(missing.fixture, 'upl-actions')).toBeNull();
 
-    expect(one(fixture, 'upl-readonly-note')).not.toBeNull();
-    expect(one(fixture, 'upl-actions')).toBeNull();
-    expect((many(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
-    const required = many(fixture, 'upl-cell-required')[0];
-    expect(required.querySelector<HTMLInputElement>('input[type="checkbox"]')!.disabled).toBe(true);
-    expect(required.querySelector('[role="checkbox"]')!.getAttribute('aria-disabled')).toBe('true');
+    const failed = await createFixture({ loadError: { status: 503 } });
+    expect(one(failed.fixture, 'upl-load-error')).not.toBeNull();
+    expect(one(failed.fixture, 'upl-not-found')).toBeNull();
   });
 
-  it('hides save without edit right and publish without publish right', async () => {
-    const readOnly = await createFixture({ actions: ['view', 'publish'] });
-    expect((many(readOnly.fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
-    expect(one(readOnly.fixture, 'upl-save')).toBeNull();
+  it('walks a published or superseded version through the steps read only', async () => {
+    const superseded = {
+      ...draftVersion(),
+      status: 'superseded' as const,
+      validFrom: '2026-01-01',
+      validTo: '2026-03-31',
+    };
+    for (const version of [PUBLISHED, superseded]) {
+      const { fixture } = await createFixture({ version, source: { ...SOURCE, hasDraft: false } });
+      expect(one(fixture, 'upl-readonly-note')).not.toBeNull();
+      expect(one(fixture, 'upl-actions')).toBeNull();
+      expect((many(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
+    }
+    const { fixture } = await createFixture({ version: PUBLISHED, source: { ...SOURCE, hasDraft: false } });
+
+    press(fixture, stepButton(fixture, 'file'));
+    expect(one(fixture, 'upl-file-kind')!.querySelector<HTMLButtonElement>('[role="combobox"]')!.disabled).toBe(true);
+    press(fixture, stepButton(fixture, 'publish'));
+    expect(stepButton(fixture, 'publish').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
+    expect(one(fixture, 'upl-review')!.textContent).toContain('01.01.2026');
+    expect(one(fixture, 'upl-review-state')!.textContent).toContain(PACKAGED_RUSSIAN['upl.format.review.not_draft']);
+  });
+
+  it('offers a new draft from a read only version only with edit right and without a draft', async () => {
+    const offered = async (hasDraft: boolean, actions?: string[]) => {
+      const { fixture } = await createFixture({ version: PUBLISHED, source: { ...SOURCE, hasDraft }, actions });
+      return one(fixture, 'upl-readonly-note')!.querySelector('a') !== null;
+    };
+
+    expect(await offered(false)).toBe(true);
+    expect(await offered(true)).toBe(false);
+    expect(await offered(false, ['view'])).toBe(false);
+  });
+
+  it('shows save with the edit right, publish with the publish right, and a viewer no edit controls', async () => {
+    const withoutEdit = await createFixture({ actions: ['view', 'publish'] });
+    expect((many(withoutEdit.fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
+    expect(one(withoutEdit.fixture, 'upl-save')).toBeNull();
 
     const withoutPublish = await createFixture({ actions: ['view', 'edit'] });
     expect(one(withoutPublish.fixture, 'upl-publish')).toBeNull();
     expect(one(withoutPublish.fixture, 'upl-save')).not.toBeNull();
+
+    const viewer = await createFixture({ actions: ['view'] });
+    for (const testId of ['upl-actions', 'upl-save', 'upl-publish', 'upl-revert', 'upl-add-column', 'upl-add-sheet']) {
+      expect(one(viewer.fixture, testId)).toBeNull();
+    }
+    expect(many(viewer.fixture, 'upl-column-row').length).toBe(2);
   });
 
-  it('adds a column and reverts unsaved changes', async () => {
-    const { fixture, component } = await createFixture();
-
-    click(one(fixture, 'upl-add-column'));
-    fixture.detectChanges();
-    expect(many(fixture, 'upl-column-row').length).toBe(3);
-    expect(component.store.isDirty()).toBe(true);
-
-    click(one(fixture, 'upl-revert'));
-    fixture.detectChanges();
-    expect(many(fixture, 'upl-column-row').length).toBe(2);
-    expect(component.store.isDirty()).toBe(false);
-  });
-
-  it('saves the whole draft with lock version and ordinals', async () => {
+  it('saves the whole draft with the lock version and ordinals', async () => {
     const { fixture, api, toast, component } = await createFixture();
 
     addValidColumn(fixture);
-    // The column flag is a named checkbox that shows the saved value and toggles the model.
-    const required = many(fixture, 'upl-cell-required');
-    expect(required[0].querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(true);
-    expect(required[1].querySelector<HTMLInputElement>('input[type="checkbox"]')!.checked).toBe(false);
-    const newRequired = required[2].querySelector<HTMLElement>('[role="checkbox"]')!;
-    expect(newRequired.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['upl.format.col.required']);
-    newRequired.click();
-    fixture.detectChanges();
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
+    press(fixture, one(fixture, 'upl-save'));
 
     expect(api.saveDraft).toHaveBeenCalledTimes(1);
     const [id, v, body] = api.saveDraft.mock.calls[0];
-    expect(body.sheets[0].columns.map((column) => column.required)).toEqual([true, false, true]);
-    expect(id).toBe('7');
-    expect(v).toBe('1');
+    expect([id, v]).toEqual(['7', '1']);
     expect(body.lockVersion).toBe(4);
     expect(body.encoding).toBeNull();
     expect(body.delimiter).toBeNull();
     expect(body.sheets.map((sheet) => sheet.ordinal)).toEqual([1]);
     expect(body.sheets[0].columns.map((column) => column.ordinal)).toEqual([1, 2, 3]);
+    expect(body.sheets[0].columns.map((column) => column.required)).toEqual([true, false, false]);
     expect(component.store.isDirty()).toBe(false);
     expect(toast.success).toHaveBeenCalled();
   });
 
-  it('takes header synonyms separated by semicolons and saves them with the column', async () => {
-    const { fixture, api } = await createFixture();
-    addValidColumn(fixture);
-    const rows = many(fixture, 'upl-column-row');
-    const input = rows[rows.length - 1].querySelector('[data-testid="upl-cell-header-synonyms"]') as HTMLInputElement;
-    expect(input.getAttribute('aria-label')).toBe('Также принимается заголовок');
-    input.value = 'Сумма, руб ;  ; Итого';
-    // A browser's change event bubbles; smt-input hears it on the host.
-    input.dispatchEvent(new Event('change', { bubbles: true }));
-    fixture.detectChanges();
-
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    const body = api.saveDraft.mock.calls[0][2];
-    expect(body.sheets[0].columns[2].headerSynonyms).toEqual(['Сумма, руб', 'Итого']);
-    expect(input.value).toBe('Сумма, руб; Итого');
-  });
-
-  it('moves a column down before saving', async () => {
+  it('does not send a column without names and marks its cells', async () => {
     const { fixture, api } = await createFixture();
 
-    click(many(fixture, 'upl-column-down')[0]);
-    fixture.detectChanges();
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
+    press(fixture, one(fixture, 'upl-add-column'));
+    press(fixture, one(fixture, 'upl-save'));
 
-    const body = api.saveDraft.mock.calls[0][2];
-    expect(body.sheets[0].columns.map((column) => column.nameInFile)).toEqual(['Volume', 'STIR']);
-    expect(body.sheets[0].columns.map((column) => column.ordinal)).toEqual([1, 2]);
-  });
-
-  it('clears fields that the new data type has not', async () => {
-    const { fixture, toast, component } = await createFixture();
-
-    selectOption(
-      fixture,
-      many(fixture, 'upl-cell-type')[0],
-      (label) => label === PACKAGED_RUSSIAN['upl.format.type.text'],
-    );
-    fixture.detectChanges();
-
-    expect(component.store.model().sheets[0].columns[0].keyMask).toBeNull();
-    expect(component.store.model().sheets[0].columns[0].keyPadLength).toBeNull();
-    expect(component.store.model().sheets[0].columns[0].keyPadMax).toBeNull();
-    expect(toast.info).toHaveBeenCalledTimes(1);
-
-    selectOption(
-      fixture,
-      many(fixture, 'upl-cell-type')[0],
-      (label) => label === PACKAGED_RUSSIAN['upl.format.type.date'],
-    );
-    fixture.detectChanges();
-    expect(toast.info).toHaveBeenCalledTimes(1);
-  });
-
-  it('fills base unit from the chosen source unit', async () => {
-    const { fixture, component } = await createFixture();
-
-    selectOption(fixture, one(fixture, 'upl-cell-source-unit'), (label) => label.includes('(liter)'));
-    fixture.detectChanges();
-
-    expect(component.store.model().sheets[0].columns[1].sourceUnit).toBe('liter');
-    expect(component.store.model().sheets[0].columns[1].baseUnit).toBe('l');
-    expect(one(fixture, 'upl-cell-base-unit')!.textContent).toContain('Litr (l)');
-  });
-
-  it('shows server field errors in the summary, on the tab and in the cell', async () => {
-    const { fixture } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[1].sourceUnit', code: 'UPL_UNIT_UNKNOWN', message: 'x' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
-    expect(one(fixture, 'upl-tab-error')).not.toBeNull();
-    const row = many(fixture, 'upl-column-row')[1];
-    expect(
-      row.querySelector('[data-testid="upl-cell-source-unit"]')!.closest('td')!.classList.contains('upl-cell-error'),
-    ).toBe(true);
-  });
-
-  it('drops the error summary when the addressed column is removed', async () => {
-    const { fixture } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[1].nameInFile', code: 'Size', message: 'x' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-    expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
-
-    click(many(fixture, 'upl-column-remove')[1]);
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-errors-summary')).toBeNull();
-    expect(one(fixture, 'upl-tab-error')).toBeNull();
-  });
-
-  it('drops the error summary when a column is moved', async () => {
-    const { fixture } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[1].nameInFile', code: 'Size', message: 'x' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-    expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
-
-    click(many(fixture, 'upl-column-up')[1]);
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-errors-summary')).toBeNull();
-    expect(one(fixture, 'upl-tab-error')).toBeNull();
-  });
-
-  it('drops the error summary when a column type change clears its fields', async () => {
-    const { fixture, component } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[0].targetField', code: 'Pattern', message: 'x' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-    expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
-
-    const column = component.store.model().sheets[0].columns[0];
-    column.dataType = 'text';
-    sheetsStep(fixture).onTypeChange(column);
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-errors-summary')).toBeNull();
-    expect(one(fixture, 'upl-tab-error')).toBeNull();
-  });
-
-  it('drops the error summary when a column type changes and nothing was filled', async () => {
-    const { fixture, component } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[0].keyMask', code: 'UPL_KEY_MASK_REQUIRED', message: 'x' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-    expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
-
-    const column = component.store.model().sheets[0].columns[0];
-    column.sourceUnit = null;
-    column.baseUnit = null;
-    column.keyMask = null;
-    column.keyPadLength = null;
-    column.keyPadMax = null;
-    column.refBookCode = null;
-    column.dataType = 'text';
-    sheetsStep(fixture).onTypeChange(column);
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-errors-summary')).toBeNull();
-    expect(one(fixture, 'upl-tab-error')).toBeNull();
-  });
-
-  it('names the field in the error summary address', async () => {
-    const { fixture } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[0].targetField', code: 'Pattern', message: 'x' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    const summary = one(fixture, 'upl-errors-summary')!.textContent!;
-    expect(summary).toContain(PACKAGED_RUSSIAN['upl.format.col.target_field']);
-    expect(summary).toContain('колонка 1');
-  });
-
-  it('does not publish with an empty date and shows the error under the field', async () => {
-    const { fixture, component, api } = await createFixture();
-    click(one(fixture, 'upl-publish'));
-    fixture.detectChanges();
-
-    component.store.validFrom.set('');
-    click(one(fixture, 'upl-publish-confirm'));
-    fixture.detectChanges();
-
-    expect(api.publish).not.toHaveBeenCalled();
-    expect(component.store.isPublishOpen()).toBe(true);
-    expect(one(fixture, 'upl-publish-date-error')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotNull']);
-  });
-
-  it('keeps unsaved edits when the version is stale', async () => {
-    const { fixture, component } = await createFixture({
-      saveError: { status: 409, code: 'CONFLICT', detail: 'STALE_VERSION' },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-conflict')).not.toBeNull();
-    expect(component.store.model().sheets[0].columns.length).toBe(3);
-  });
-
-  it('publishes a clean draft and saves a dirty one first', async () => {
-    const clean = await createFixture();
-    click(one(clean.fixture, 'upl-publish'));
-    clean.fixture.detectChanges();
-    expect(clean.component.store.isPublishOpen()).toBe(true);
-
-    click(one(clean.fixture, 'upl-publish-confirm'));
-    clean.fixture.detectChanges();
-    expect(clean.api.publish).toHaveBeenCalledWith('7', '1', today());
-    expect(clean.navigate).toHaveBeenCalledWith(['/upl/sources', '7']);
-    expect(clean.api.saveDraft).not.toHaveBeenCalled();
-
-    const dirty = await createFixture();
-    addValidColumn(dirty.fixture);
-    click(one(dirty.fixture, 'upl-publish'));
-    dirty.fixture.detectChanges();
-    expect(dirty.api.saveDraft).toHaveBeenCalledTimes(1);
-    expect(dirty.component.store.isPublishOpen()).toBe(true);
-  });
-
-  it('reports publish date and validation errors of publishing', async () => {
-    const dateError = await createFixture({
-      publishError: { status: 409, code: 'CONFLICT', detail: 'FND_VERSION_NOT_AFTER_PREVIOUS' },
-    });
-    click(one(dateError.fixture, 'upl-publish'));
-    dateError.fixture.detectChanges();
-    click(one(dateError.fixture, 'upl-publish-confirm'));
-    dateError.fixture.detectChanges();
-    expect(one(dateError.fixture, 'upl-publish-date-error')).not.toBeNull();
-    expect(dateError.component.store.isPublishOpen()).toBe(true);
-
-    const invalid = await createFixture({
-      publishError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[0].targetField', code: 'UPL_TARGET_FIELD_DUPLICATE', message: 'x' }],
-      },
-    });
-    click(one(invalid.fixture, 'upl-publish'));
-    invalid.fixture.detectChanges();
-    click(one(invalid.fixture, 'upl-publish-confirm'));
-    invalid.fixture.detectChanges();
-    expect(invalid.component.store.isPublishOpen()).toBe(false);
-    expect(one(invalid.fixture, 'upl-errors-summary')).not.toBeNull();
-  });
-
-  it('reloads the version when the draft is already published', async () => {
-    const { fixture, api, toast } = await createFixture({
-      saveError: { status: 409, code: 'CONFLICT', detail: 'UPL_FORMAT_NOT_DRAFT' },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(api.getVersion).toHaveBeenCalledTimes(2);
-    expect(toast.info).toHaveBeenCalled();
-  });
-
-  it('asks before leaving with unsaved changes', async () => {
-    const { fixture, component } = await createFixture();
-
-    expect(component.canLeaveRecordPage()).toBe(true);
-
-    click(one(fixture, 'upl-add-column'));
-    fixture.detectChanges();
-    const decision = component.canLeaveRecordPage();
-    expect(typeof decision).not.toBe('boolean');
-
-    let allowed: boolean | null = null;
-    (decision as Observable<boolean>).subscribe((value) => (allowed = value));
-    expect(component.isLeaveOpen()).toBe(true);
-    fixture.detectChanges();
-
-    click(one(fixture, 'upl-leave-confirm'));
-    expect(allowed).toBe(true);
-  });
-
-  it('shows not found with a link to the list on 404', async () => {
-    const { fixture } = await createFixture({
-      loadError: { status: 404, code: 'not_found', detail: 'UPL_FORMAT_NOT_FOUND' },
-    });
-
-    const notFound = one(fixture, 'upl-not-found');
-    expect(notFound).not.toBeNull();
-    expect(notFound!.querySelector('a')!.getAttribute('href')).toBe('/upl/sources');
-    expect(one(fixture, 'upl-load-error')).toBeNull();
-    expect(one(fixture, 'upl-actions')).toBeNull();
-  });
-
-  it('shows a load error instead of not found on a server failure', async () => {
-    const { fixture } = await createFixture({ loadError: { status: 503 } });
-
-    expect(one(fixture, 'upl-load-error')).not.toBeNull();
-    expect(one(fixture, 'upl-not-found')).toBeNull();
-  });
-
-  it('shows a superseded version as read only without edit controls', async () => {
-    const superseded: UplFormatVersion = {
-      ...draftVersion(),
-      status: 'superseded',
-      validFrom: '2026-01-01',
-      validTo: '2026-03-31',
-    };
-    const { fixture } = await createFixture({ version: superseded, source: { ...SOURCE, hasDraft: false } });
-
-    expect(one(fixture, 'upl-readonly-note')).not.toBeNull();
-    for (const testId of ['upl-actions', 'upl-add-column', 'upl-add-sheet', 'upl-remove-sheet', 'upl-column-remove']) {
-      expect(one(fixture, testId)).toBeNull();
+    expect(api.saveDraft).not.toHaveBeenCalled();
+    expect(one(fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotBlank']);
+    const added = many(fixture, 'upl-column-row')[2];
+    for (const cell of ['upl-cell-name-in-file', 'upl-cell-target-field']) {
+      expect(added.querySelector(`[data-testid="${cell}"]`)!.closest('td')!.classList.contains('upl-cell-error')).toBe(
+        true,
+      );
     }
-    expect((many(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
   });
 
-  it('offers a new draft from a read only version only with edit right and without a draft', async () => {
-    const published: UplFormatVersion = { ...draftVersion(), status: 'published', validFrom: '2026-01-01' };
-
-    const editor = await createFixture({ version: published, source: { ...SOURCE, hasDraft: false } });
-    expect(one(editor.fixture, 'upl-readonly-note')!.querySelector('a')).not.toBeNull();
-
-    const withDraft = await createFixture({ version: published, source: { ...SOURCE, hasDraft: true } });
-    expect(one(withDraft.fixture, 'upl-readonly-note')!.querySelector('a')).toBeNull();
-
-    const viewer = await createFixture({
-      version: published,
-      source: { ...SOURCE, hasDraft: false },
-      actions: ['view'],
+  it('shows every server error at once in the summary, on the tab, in the cell and at the sheet field', async () => {
+    const { fixture } = await createFixture({
+      saveError: invalid(
+        ['sheets[0].headerRow', 'UPL_HEADER_ROW_INVALID'],
+        ['sheets[0].columns[0].targetField', 'Size', 'size must be between 0 and 200'],
+        ['sheets[0].columns[1].sourceUnit', 'UPL_UNIT_UNKNOWN'],
+      ),
     });
-    expect(one(viewer.fixture, 'upl-readonly-note')!.querySelector('a')).toBeNull();
+
+    addValidColumn(fixture);
+    press(fixture, one(fixture, 'upl-save'));
+
+    const summary = one(fixture, 'upl-errors-summary')!;
+    expect(summary.querySelectorAll('li').length).toBe(3);
+    // The address names the field by the table header; a validator code gets its Russian text, not the server's.
+    expect(summary.textContent).toContain(PACKAGED_RUSSIAN['upl.format.col.target_field']);
+    expect(summary.textContent).toContain('колонка 1');
+    expect(summary.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
+    expect(summary.textContent).not.toContain('size must be');
+    expect(inScreen(fixture.nativeElement).querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
+    expect(many(fixture, 'upl-tab-error').length).toBe(1);
+    const unit = many(fixture, 'upl-column-row')[1].querySelector('[data-testid="upl-cell-source-unit"]')!;
+    expect(unit.closest('td')!.classList.contains('upl-cell-error')).toBe(true);
+
+    // A step that changes the columns drops the addresses, which no longer fit.
+    press(fixture, many(fixture, 'upl-column-remove')[1]);
+    expect(one(fixture, 'upl-errors-summary')).toBeNull();
+    expect(one(fixture, 'upl-tab-error')).toBeNull();
   });
 
-  it('shows a draft to a viewer without any edit controls', async () => {
-    const { fixture } = await createFixture({ actions: ['view'] });
-
-    const hidden = [
-      'upl-save',
-      'upl-publish',
-      'upl-revert',
-      'upl-add-column',
-      'upl-add-sheet',
-      'upl-remove-sheet',
-      'upl-column-remove',
-      'upl-column-up',
-    ];
-    for (const testId of hidden) {
-      expect(one(fixture, testId)).toBeNull();
-    }
-    expect((many(fixture, 'upl-cell-name-in-file')[0] as HTMLInputElement).disabled).toBe(true);
-    expect(trigger(many(fixture, 'upl-cell-type')[0]).disabled).toBe(true);
-    expect(trigger(one(fixture, 'upl-file-kind')).disabled).toBe(true);
-    expect(one(fixture, 'upl-actions')).toBeNull();
-    expect(many(fixture, 'upl-column-row').length).toBe(2);
-  });
-
-  it('shows permission denied of saving as text and keeps edits', async () => {
+  it('shows a refusal without an address as text and keeps the edits', async () => {
     const { fixture, component } = await createFixture({
       saveError: { status: 403, code: 'permission_denied', detail: 'PERMISSION_DENIED' },
     });
 
     addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
+    press(fixture, one(fixture, 'upl-save'));
 
     expect(one(fixture, 'upl-action-error')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.PERMISSION_DENIED']);
     expect(component.store.model().sheets[0].columns.length).toBe(3);
@@ -725,214 +342,100 @@ describe('FormatEditorComponent', () => {
     expect(one(fixture, 'upl-conflict')).toBeNull();
   });
 
-  it('does not hide an unknown server error', async () => {
-    const { fixture } = await createFixture({
-      saveError: { status: 400, code: 'bad_request', detail: 'UPL_SOMETHING_NEW' },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-action-error')!.textContent).toContain('UPL_SOMETHING_NEW (bad_request)');
-  });
-
-  it('shows all server errors at once including a sheet level address', async () => {
-    const { fixture } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [
-          { field: 'sheets[0].headerRow', code: 'UPL_HEADER_ROW_INVALID', message: 'x' },
-          { field: 'sheets[0].columns[0].keyMask', code: 'UPL_KEY_MASK_INVALID', message: 'x' },
-          { field: 'sheets[0].columns[1].sourceUnit', code: 'UPL_UNIT_UNKNOWN', message: 'x' },
-        ],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(one(fixture, 'upl-errors-summary')!.querySelectorAll('li').length).toBe(3);
-    expect(inScreen(fixture.nativeElement).querySelector('#upl-header-row').getAttribute('aria-invalid')).toBe('true');
-    expect(many(fixture, 'upl-tab-error').length).toBe(1);
-  });
-
-  it('opens the sheet that has the first addressed error', async () => {
-    const { fixture, component } = await createFixture({
-      version: twoSheetVersion(),
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[1].columns[0].targetField', code: 'UPL_TARGET_FIELD_DUPLICATE', message: 'x' }],
-      },
-    });
-
-    expect(component.store.activeSheet()).toBe(0);
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(component.store.activeSheet()).toBe(1);
-    expect(many(fixture, 'upl-sheet-tab').length).toBe(2);
-    expect(many(fixture, 'upl-tab-error').length).toBe(1);
-  });
-
-  it('reloads and drops edits when the stale version alert is confirmed', async () => {
-    const { fixture, api, component } = await createFixture({
+  it('keeps unsaved edits on a stale version and drops them when the reload is confirmed', async () => {
+    const { fixture, api, component, settle } = await createFixture({
       saveError: { status: 409, code: 'CONFLICT', detail: 'STALE_VERSION' },
     });
 
     addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
+    press(fixture, one(fixture, 'upl-save'));
     expect(one(fixture, 'upl-conflict')).not.toBeNull();
+    expect(component.store.model().sheets[0].columns.length).toBe(3);
 
-    click(one(fixture, 'upl-conflict'));
-    fixture.detectChanges();
+    press(fixture, one(fixture, 'upl-conflict'));
+    await settle();
 
     expect(api.getVersion).toHaveBeenCalledTimes(2);
     expect(one(fixture, 'upl-conflict')).toBeNull();
     expect(component.store.model().sheets[0].columns.length).toBe(2);
   });
 
-  it('shows csv fields and the file position column only when they apply', async () => {
-    const xlsx = await createFixture();
-    expect(one(xlsx.fixture, 'upl-encoding')).toBeNull();
-    expect(one(xlsx.fixture, 'upl-sheet-name')).not.toBeNull();
-    expect(many(xlsx.fixture, 'upl-cell-file-position').length).toBe(0);
+  it('publishes a clean draft from today, saves a dirty one first and needs a date', async () => {
+    const clean = await createFixture();
+    press(clean.fixture, one(clean.fixture, 'upl-publish'));
+    expect(clean.component.store.isPublishOpen()).toBe(true);
 
-    const csv = await createFixture({
-      version: {
-        ...draftVersion(),
-        fileKind: 'csv',
-        encoding: 'utf-8',
-        delimiter: ';',
-        matchColumnsBy: 'position',
-      },
-    });
-    expect(one(csv.fixture, 'upl-encoding')).not.toBeNull();
-    expect(one(csv.fixture, 'upl-sheet-name')).toBeNull();
-    expect(many(csv.fixture, 'upl-cell-file-position').length).toBe(2);
+    press(clean.fixture, one(clean.fixture, 'upl-publish-confirm'));
+    expect(clean.api.publish).toHaveBeenCalledWith('7', '1', today());
+    expect(clean.navigate).toHaveBeenCalledWith(['/upl/sources', '7']);
+    expect(clean.api.saveDraft).not.toHaveBeenCalled();
+
+    const dirty = await createFixture();
+    addValidColumn(dirty.fixture);
+    press(dirty.fixture, one(dirty.fixture, 'upl-publish'));
+    expect(dirty.api.saveDraft).toHaveBeenCalledTimes(1);
+    expect(dirty.component.store.isPublishOpen()).toBe(true);
+
+    dirty.component.store.validFrom.set('');
+    press(dirty.fixture, one(dirty.fixture, 'upl-publish-confirm'));
+    expect(dirty.api.publish).not.toHaveBeenCalled();
+    expect(dirty.component.store.isPublishOpen()).toBe(true);
+    expect(one(dirty.fixture, 'upl-publish-date-error')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotNull']);
   });
-  it('shows the publish rejection of a draft without sheets', async () => {
-    const { fixture, component } = await createFixture({
+
+  it('reports a date that does not fit under the field and a validation refusal in the summary', async () => {
+    const late = await createFixture({
+      publishError: { status: 409, code: 'CONFLICT', detail: 'FND_VERSION_NOT_AFTER_PREVIOUS' },
+    });
+    press(late.fixture, one(late.fixture, 'upl-publish'));
+    press(late.fixture, one(late.fixture, 'upl-publish-confirm'));
+    expect(one(late.fixture, 'upl-publish-date-error')).not.toBeNull();
+    expect(late.component.store.isPublishOpen()).toBe(true);
+
+    const empty = await createFixture({
       version: { ...draftVersion(), sheets: [] },
-      publishError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets', code: 'UPL_NO_SHEETS', message: '' }],
-      },
+      publishError: invalid(['sheets', 'UPL_NO_SHEETS']),
     });
-
-    click(one(fixture, 'upl-publish'));
-    fixture.detectChanges();
-    click(one(fixture, 'upl-publish-confirm'));
-    fixture.detectChanges();
-
-    expect(component.store.isPublishOpen()).toBe(false);
-    expect(one(fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_NO_SHEETS']);
-    expect(one(fixture, 'upl-no-sheets')).not.toBeNull();
+    press(empty.fixture, one(empty.fixture, 'upl-publish'));
+    press(empty.fixture, one(empty.fixture, 'upl-publish-confirm'));
+    expect(empty.component.store.isPublishOpen()).toBe(false);
+    expect(one(empty.fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.UPL_NO_SHEETS']);
+    expect(one(empty.fixture, 'upl-no-sheets')).not.toBeNull();
   });
 
-  it('does not send a column without names and shows Russian texts', async () => {
-    const { fixture, api } = await createFixture();
+  it('asks before leaving with unsaved changes, and not after a revert', async () => {
+    const { fixture, component } = await createFixture();
+    expect(component.canLeaveRecordPage()).toBe(true);
 
-    click(one(fixture, 'upl-add-column'));
+    press(fixture, one(fixture, 'upl-add-column'));
+    expect(many(fixture, 'upl-column-row').length).toBe(3);
+    const decision = component.canLeaveRecordPage();
+    let allowed: boolean | null = null;
+    (decision as Observable<boolean>).subscribe((value) => (allowed = value));
+    expect(component.isLeaveOpen()).toBe(true);
     fixture.detectChanges();
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
+    press(fixture, one(fixture, 'upl-leave-confirm'));
+    expect(allowed).toBe(true);
 
-    expect(api.saveDraft).not.toHaveBeenCalled();
-    expect(one(fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.NotBlank']);
-    const added = many(fixture, 'upl-column-row')[2];
-    expect(
-      added.querySelector('[data-testid="upl-cell-name-in-file"]')!.closest('td')!.classList.contains('upl-cell-error'),
-    ).toBe(true);
-    expect(
-      added.querySelector('[data-testid="upl-cell-target-field"]')!.closest('td')!.classList.contains('upl-cell-error'),
-    ).toBe(true);
+    press(fixture, one(fixture, 'upl-revert'));
+    expect(many(fixture, 'upl-column-row').length).toBe(2);
+    expect(component.canLeaveRecordPage()).toBe(true);
   });
 
-  it('rejects a target field that does not match the pattern before sending', async () => {
-    const { fixture, api } = await createFixture();
-
-    addValidColumn(fixture, 'A', 'Поле 1');
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(api.saveDraft).not.toHaveBeenCalled();
-    const summary = one(fixture, 'upl-errors-summary')!.textContent!;
-    expect(summary).toContain(PACKAGED_RUSSIAN['upl.err.Pattern']);
-    expect(summary).not.toContain('[a-z]');
-  });
-
-  it('shows a server validator code with a Russian text', async () => {
-    const { fixture, api } = await createFixture({
-      saveError: {
-        status: 422,
-        code: 'validation_failed',
-        detail: 'UPL_FORMAT_INVALID',
-        errors: [{ field: 'sheets[0].columns[0].nameInFile', code: 'Size', message: 'size must be between 0 and 200' }],
-      },
-    });
-
-    addValidColumn(fixture);
-    click(one(fixture, 'upl-save'));
-    fixture.detectChanges();
-
-    expect(api.saveDraft).toHaveBeenCalledTimes(1);
-    const summary = one(fixture, 'upl-errors-summary')!.textContent!;
-    expect(summary).toContain(PACKAGED_RUSSIAN['upl.err.Size']);
-    expect(summary).not.toContain('size must be');
-  });
   describe('steps', () => {
-    const stepButton = (fixture: ComponentFixture<FormatEditorComponent>, id: string) =>
-      one(fixture, 'upl-steps')!.querySelector(`button[data-step="${id}"]`) as HTMLButtonElement;
-    const visibleSteps = (fixture: ComponentFixture<FormatEditorComponent>) =>
-      ['file', 'sheets', 'publish'].filter((id) => !(one(fixture, `upl-step-${id}`) as HTMLElement).hidden);
-
     it('opens a draft with sheets on its sheets and shows one step at a time, in any order', async () => {
       const { fixture } = await createFixture();
 
       expect(visibleSteps(fixture)).toEqual(['sheets']);
       expect(stepButton(fixture, 'sheets').getAttribute('aria-current')).toBe('step');
 
-      click(stepButton(fixture, 'publish'));
-      fixture.detectChanges();
+      press(fixture, stepButton(fixture, 'publish'));
       expect(visibleSteps(fixture)).toEqual(['publish']);
 
-      click(stepButton(fixture, 'file'));
-      fixture.detectChanges();
+      press(fixture, stepButton(fixture, 'file'));
       expect(visibleSteps(fixture)).toEqual(['file']);
       expect(stepButton(fixture, 'file').getAttribute('aria-current')).toBe('step');
       expect(stepButton(fixture, 'sheets').hasAttribute('aria-current')).toBe(false);
-    });
-
-    it('shows on each step what another step changed in the shared draft', async () => {
-      const { fixture, component } = await createFixture();
-      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('1');
-      expect(one(fixture, 'upl-sheet-name')).not.toBeNull();
-
-      click(one(fixture, 'upl-add-sheet'));
-      fixture.detectChanges();
-      click(stepButton(fixture, 'publish'));
-      fixture.detectChanges();
-      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('2');
-
-      // The file step edits the draft in place; the sheets step shows it once it is on screen again.
-      click(stepButton(fixture, 'file'));
-      fixture.detectChanges();
-      component.store.model().fileKind = 'csv';
-      component.store.model().matchColumnsBy = 'position';
-      click(stepButton(fixture, 'sheets'));
-      fixture.detectChanges();
-      expect(one(fixture, 'upl-sheet-name')).toBeNull();
     });
 
     it('opens an empty draft on the file step', async () => {
@@ -942,77 +445,54 @@ describe('FormatEditorComponent', () => {
       expect(stepButton(fixture, 'sheets').textContent).not.toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
     });
 
+    it('shows on each step what another step changed in the shared draft', async () => {
+      const { fixture, component } = await createFixture();
+      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('1');
+      expect(one(fixture, 'upl-sheet-name')).not.toBeNull();
+
+      press(fixture, one(fixture, 'upl-add-sheet'));
+      press(fixture, stepButton(fixture, 'publish'));
+      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('2');
+      expect(one(fixture, 'upl-review-unsaved')).not.toBeNull();
+
+      // The file step edits the draft in place; the sheets step shows it once it is on screen again.
+      press(fixture, stepButton(fixture, 'file'));
+      component.store.model().fileKind = 'csv';
+      component.store.model().matchColumnsBy = 'position';
+      press(fixture, stepButton(fixture, 'sheets'));
+      expect(one(fixture, 'upl-sheet-name')).toBeNull();
+    });
+
     it('marks the step that holds errors and leads to it from the summary on any step', async () => {
       const { fixture } = await createFixture();
       addValidColumn(fixture, 'A', 'Поле 1');
-      click(stepButton(fixture, 'file'));
-      fixture.detectChanges();
+      press(fixture, stepButton(fixture, 'file'));
 
-      click(one(fixture, 'upl-save'));
-      fixture.detectChanges();
+      press(fixture, one(fixture, 'upl-save'));
       expect(visibleSteps(fixture)).toEqual(['sheets']);
+      expect(one(fixture, 'upl-errors-summary')!.textContent).toContain(PACKAGED_RUSSIAN['upl.err.Pattern']);
       const sheets = stepButton(fixture, 'sheets');
       expect(sheets.textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.error']);
       expect(sheets.textContent).toContain('Ошибок: 1');
       expect(stepButton(fixture, 'file').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
 
-      click(stepButton(fixture, 'publish'));
-      fixture.detectChanges();
-      expect(one(fixture, 'upl-errors-summary')).not.toBeNull();
+      press(fixture, stepButton(fixture, 'publish'));
       expect(one(fixture, 'upl-review-state')!.textContent).toContain(
         PACKAGED_RUSSIAN['upl.format.review.draft_errors'],
       );
 
-      click(one(fixture, 'upl-errors-summary')!.querySelector('button'));
-      fixture.detectChanges();
+      press(fixture, one(fixture, 'upl-errors-summary')!.querySelector('button'));
       expect(visibleSteps(fixture)).toEqual(['sheets']);
     });
 
     it('sends a file level error to the file step', async () => {
-      const { fixture } = await createFixture({
-        saveError: {
-          status: 422,
-          code: 'validation_failed',
-          detail: 'UPL_FORMAT_INVALID',
-          errors: [{ field: 'delimiter', code: 'NotBlank', message: 'x' }],
-        },
-      });
+      const { fixture } = await createFixture({ saveError: invalid(['delimiter', 'NotBlank']) });
       addValidColumn(fixture);
 
-      click(one(fixture, 'upl-save'));
-      fixture.detectChanges();
+      press(fixture, one(fixture, 'upl-save'));
 
       expect(visibleSteps(fixture)).toEqual(['file']);
       expect(stepButton(fixture, 'file').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.error']);
-    });
-
-    it('summarises the draft on the publish step, with its unsaved changes', async () => {
-      const { fixture } = await createFixture();
-      addValidColumn(fixture);
-      click(stepButton(fixture, 'publish'));
-      fixture.detectChanges();
-
-      expect(one(fixture, 'upl-review-sheets')!.textContent!.trim()).toBe('1');
-      expect(one(fixture, 'upl-review-columns')!.textContent!.trim()).toBe('3');
-      expect(one(fixture, 'upl-review-state')!.textContent).toContain(
-        PACKAGED_RUSSIAN['upl.format.review.draft_ready'],
-      );
-      expect(one(fixture, 'upl-review-unsaved')).not.toBeNull();
-    });
-
-    it('walks a published version through the same steps, read only', async () => {
-      const published: UplFormatVersion = { ...draftVersion(), status: 'published', validFrom: '2026-01-01' };
-      const { fixture } = await createFixture({ version: published, source: { ...SOURCE, hasDraft: false } });
-
-      click(stepButton(fixture, 'file'));
-      fixture.detectChanges();
-      expect(trigger(one(fixture, 'upl-file-kind')).disabled).toBe(true);
-
-      click(stepButton(fixture, 'publish'));
-      fixture.detectChanges();
-      expect(stepButton(fixture, 'publish').textContent).toContain(PACKAGED_RUSSIAN['ui.stepper.complete']);
-      expect(one(fixture, 'upl-review')!.textContent).toContain('01.01.2026');
-      expect(one(fixture, 'upl-review-state')!.textContent).toContain(PACKAGED_RUSSIAN['upl.format.review.not_draft']);
     });
   });
 });
