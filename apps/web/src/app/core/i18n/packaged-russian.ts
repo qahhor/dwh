@@ -1614,6 +1614,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "error.auth.otp_send_failed": "Не удалось отправить код в канал {channel}. Обратитесь к администратору",
   "error.auth.otp_token_invalid": "Некорректный OTP токен",
   "error.auth.reset_link_invalid": "Ссылка недействительна: она устарела или уже использована. Запросите новую",
+  "error.auth.session_not_found": "Сессия не найдена",
   "error.auth.sign_in_required": "Требуется авторизация для доступа к ресурсу",
   "error.auth.temporary_password_change_required": "Требуется обязательная смена временного пароля перед началом работы",
   "error.auth.too_many_failed_logins_from_ip": "Слишком много неудачных попыток входа с вашего IP",
