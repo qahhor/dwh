@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.fnd.error;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
@@ -129,7 +130,8 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
         ConstraintViolationException uk =
                 violation(() -> units.registerUnit("u_map_a", Map.of("uz", "Dubl TEST"), base, actor));
         assertThat(uk.code()).isEqualTo(ConstraintErrorCode.FND_UNITS_UK_CODE);
-        assertThat(uk.getMessage()).isEqualTo("fnd_units_uk_code");
+        assertThat(uk.getMessageKey()).isEqualTo("error.fnd.fnd_units_uk_code");
+        assertThat(uk.getErrorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
         assertThat(uk.getCause())
                 .as("SQL-текст остаётся причиной, код — контракт")
                 .isNotNull();

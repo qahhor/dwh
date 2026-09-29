@@ -157,8 +157,13 @@ class QueryCompilerTest {
     @DisplayName("размер страницы вне границ списка — INVALID_LIMIT")
     void rejectsLimitOutOfRange() {
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, 0, null))
-                .isInstanceOfSatisfying(
-                        ApiException.class, e -> assertThat(e.getMessage()).isEqualTo(QueryCompiler.INVALID_LIMIT));
+                .isInstanceOfSatisfying(ApiException.class, e -> {
+                    assertThat(e.getMessageKey()).isEqualTo("error.common.query_limit_invalid");
+                    assertThat(e.getParams()).containsEntry("max", QueryList.MAX_LIMIT);
+                    assertThat(e.getFieldErrors())
+                            .extracting(FieldErrorItem::code)
+                            .containsExactly(QueryCompiler.INVALID_LIMIT);
+                });
         assertThatThrownBy(() -> QueryCompiler.compile(LIST, null, null, QueryList.MAX_LIMIT + 1, null))
                 .isInstanceOf(ApiException.class);
     }
@@ -184,7 +189,9 @@ class QueryCompilerTest {
                             LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":true}]", otherSort, null, cursor))
                     .isInstanceOfSatisfying(
                             ApiException.class,
-                            e -> assertThat(e.getMessage()).isEqualTo(QueryCompiler.INVALID_CURSOR));
+                            e -> assertThat(e.getFieldErrors())
+                                    .extracting(FieldErrorItem::code)
+                                    .containsExactly(QueryCompiler.INVALID_CURSOR));
         }
         assertThatThrownBy(() -> QueryCompiler.compile(
                         LIST, "[{\"field\":\"active\",\"op\":\"eq\",\"value\":false}]", "-amount", null, cursor))

@@ -218,7 +218,7 @@ class CapacityGuardsIntegrationTest {
 
         assertThat(secondUploadError.get())
                 .isInstanceOf(ApiException.class)
-                .hasMessageContaining("Превышен лимит одновременных загрузок");
+                .hasMessageContaining("error.file.uploads_busy");
         var apiException = (ApiException) secondUploadError.get();
         assertThat(apiException.getErrorCode()).isEqualTo(ErrorCode.RATE_LIMITED);
         assertThat(apiException.getErrorCode().getDefaultStatus()).isEqualTo(429);

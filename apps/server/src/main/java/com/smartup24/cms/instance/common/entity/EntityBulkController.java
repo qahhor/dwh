@@ -39,7 +39,7 @@ public class EntityBulkController {
         EntityDefinition entity = registry.find(code)
                 .filter(found -> found.capabilities().contains(EntityCapability.BULK))
                 .filter(found -> SecurityContext.hasPermission(found.form(), "view"))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "ENTITY_NOT_FOUND"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
         List<Long> ids = BulkRunner.checkedIds(body);
         String action = body.action() == null ? "" : body.action();
         if (!EntityDefinition.DELETE.equals(action)) {

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.fnd.error;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -73,6 +74,60 @@ public enum ConstraintErrorCode {
     /** Код в нижнем регистре — как он попадает в исключение и лог ({@code fnd_loads_ck_status}, {@code stale_version}). */
     public String code() {
         return name().toLowerCase();
+    }
+
+    /**
+     * Код ответа API (план 10/10, п. 3.1): уникальность и исключение пересечений — конфликт с имеющимися данными,
+     * внешний ключ — ссылка на то, чего нет или что занято, проверка — неверные данные. Switch без default: новый
+     * элемент не соберётся, пока ему не выбран код.
+     */
+    public ErrorCode errorCode() {
+        return switch (this) {
+            case FND_UNITS_UK_CODE -> ErrorCode.CODE_ALREADY_EXISTS;
+            case FND_UNIT_COEFFICIENTS_UK_PAIR,
+                    FND_UNIT_COEFFICIENT_VERSIONS_EX_VALID,
+                    FND_LOADS_UK_PACKAGE_REF,
+                    FND_JOB_QUEUE_FK_SCHEDULE,
+                    FND_UNITS_FK_BASE_UNIT,
+                    FND_UNIT_COEFFICIENTS_FK_FROM,
+                    FND_UNIT_COEFFICIENTS_FK_TO,
+                    FND_UNIT_COEFFICIENT_VERSIONS_FK_COEFFICIENT,
+                    FND_LOADS_FK_SUPERSEDED_BY,
+                    FND_LOAD_LOG_FK_LOAD -> ErrorCode.CONFLICT;
+            case FND_JOB_SCHEDULE_CK_INTERVAL,
+                    FND_JOB_RUNS_CK_STATUS,
+                    FND_UNITS_CK_CODE,
+                    FND_UNITS_CK_NAME_UZ,
+                    FND_UNIT_COEFFICIENTS_CK_DISTINCT,
+                    FND_UNIT_COEFFICIENT_VERSIONS_CK_STATUS,
+                    FND_UNIT_COEFFICIENT_VERSIONS_CK_VALID_ORDER,
+                    FND_UNIT_COEFFICIENT_VERSIONS_CK_VERSION_POSITIVE,
+                    FND_UNIT_COEFFICIENT_VERSIONS_CK_FACTOR_POSITIVE,
+                    FND_LOADS_CK_STATUS,
+                    FND_LOADS_CK_ROWS,
+                    FND_LOADS_CK_PERIOD,
+                    FND_LOAD_LOG_CK_FILE_SHA,
+                    FND_LOAD_LOG_CK_ACTOR,
+                    FND_UNIT_BASE_REQUIRED -> ErrorCode.VALIDATION_FAILED;
+            case STALE_VERSION,
+                    FND_VERSION_DRAFT_EXISTS,
+                    FND_VERSION_NOT_AFTER_PREVIOUS,
+                    FND_VERSION_GAP,
+                    FND_VERSION_PUBLISHED_IMMUTABLE,
+                    FND_VERSION_CONFLICT,
+                    FND_LOAD_LOG_APPEND_ONLY -> ErrorCode.CONFLICT;
+            case FND_UNIT_UNKNOWN, FND_VERSION_UNKNOWN -> ErrorCode.NOT_FOUND;
+            case FND_LOAD_STATUS_TRANSITION -> ErrorCode.STATUS_TRANSITION_FORBIDDEN;
+            case DWH_READ_FORBIDDEN -> ErrorCode.FORBIDDEN;
+            // The actor is set by the calling code, never by the request: a missing one is a bug.
+            case AUDIT_ACTOR_MISSING -> ErrorCode.INTERNAL_ERROR;
+            case DWH_UNAVAILABLE -> ErrorCode.SERVICE_UNAVAILABLE;
+        };
+    }
+
+    /** Ключ текста в каталогах i18n: {@code error.fnd.<код>}. */
+    public String messageKey() {
+        return "error.fnd." + code();
     }
 
     public static Optional<ConstraintErrorCode> byConstraintName(String constraintName) {

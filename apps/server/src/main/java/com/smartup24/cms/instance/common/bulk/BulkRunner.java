@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.LongConsumer;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -32,14 +34,39 @@ public final class BulkRunner {
     /** Тело запроса: действие, записи и параметры действия. */
     public record BulkRequest(String action, List<Long> ids, JsonNode params) {}
 
-    /** Итог по одной записи; {@code code} и {@code message} — только у неудачи. */
+    /**
+     * Итог по одной записи; {@code code}, {@code message}, {@code messageKey} и {@code params} — только у неудачи.
+     * {@code message} — текст на языке запроса (его собирает обработчик ответа по {@code messageKey}); клиент
+     * может собрать его и сам, по ключу из своего каталога.
+     */
     public record BulkItemResult(
             long id,
             boolean ok,
             @Nullable String code,
-            @Nullable String message) {}
+            @Nullable String message,
+            @Nullable String messageKey,
+            @Nullable Map<String, Object> params) {}
 
-    public record BulkResult(String action, int succeeded, int failed, List<BulkItemResult> results) {}
+    public record BulkResult(String action, int succeeded, int failed, List<BulkItemResult> results) {
+
+        /** The same result with the text of each failure rendered from its key; {@code render} gets key and params. */
+        public BulkResult withMessages(BiFunction<String, Map<String, Object>, String> render) {
+            List<BulkItemResult> rendered =
+                    results.stream().map(item -> rendered(item, render)).toList();
+            return new BulkResult(action, succeeded, failed, rendered);
+        }
+
+        private static BulkItemResult rendered(
+                BulkItemResult item, BiFunction<String, Map<String, Object>, String> render) {
+            String key = item.messageKey();
+            if (key == null) {
+                return item;
+            }
+            Map<String, Object> params = item.params();
+            String message = render.apply(key, params == null ? Map.of() : params);
+            return new BulkItemResult(item.id(), item.ok(), item.code(), message, key, params);
+        }
+    }
 
     /**
      * Проверенный список записей: от одной до {@link #MAX_IDS}, без пустых, повторы убраны с сохранением порядка.
@@ -48,21 +75,26 @@ public final class BulkRunner {
         List<Long> ids = request == null ? null : request.ids();
         if (ids == null || ids.isEmpty() || ids.size() > MAX_IDS || ids.stream().anyMatch(id -> id == null || id < 1)) {
             throw ApiException.validation(
-                    BULK_INVALID,
+                    "error.common.bulk_ids_invalid",
+                    Map.of("max", MAX_IDS),
                     List.of(new FieldErrorItem("ids", BULK_INVALID, "from 1 to " + MAX_IDS + " positive ids")));
         }
         return List.copyOf(new LinkedHashSet<>(ids));
     }
 
-    public static ApiException unknownAction(String action) {
+    public static ApiException unknownAction(@Nullable String action) {
+        String name = action == null ? "" : action;
         return ApiException.validation(
-                BULK_ACTION_UNKNOWN,
-                List.of(new FieldErrorItem("action", BULK_ACTION_UNKNOWN, "unknown action: " + action)));
+                "error.common.bulk_action_unknown",
+                Map.of("action", name),
+                List.of(new FieldErrorItem("action", BULK_ACTION_UNKNOWN, "unknown action: " + name)));
     }
 
     public static ApiException invalidParam(String name, String message) {
         return ApiException.validation(
-                BULK_INVALID, List.of(new FieldErrorItem("params." + name, BULK_INVALID, message)));
+                "error.common.bulk_param_invalid",
+                Map.of("name", name),
+                List.of(new FieldErrorItem("params." + name, BULK_INVALID, message)));
     }
 
     /** Выполняет операцию для каждой записи и собирает итог; ожидаемые отказы — с кодом одиночной операции. */
@@ -72,17 +104,28 @@ public final class BulkRunner {
         for (long id : ids) {
             try {
                 operation.accept(id);
-                results.add(new BulkItemResult(id, true, null, null));
+                results.add(new BulkItemResult(id, true, null, null, null, null));
                 succeeded++;
             } catch (ApiException e) {
-                results.add(new BulkItemResult(
-                        id, false, e.getErrorCode().name().toLowerCase(Locale.ROOT), e.getMessage()));
+                results.add(failure(id, e));
             } catch (RuntimeException e) {
                 // Unexpected: the item is reported without internals, the log keeps the cause.
                 log.warn("Bulk {} failed for id {}", action, id, e);
-                results.add(new BulkItemResult(id, false, BULK_ITEM_FAILED.toLowerCase(Locale.ROOT), BULK_ITEM_FAILED));
+                results.add(new BulkItemResult(
+                        id, false, BULK_ITEM_FAILED.toLowerCase(Locale.ROOT), BULK_ITEM_FAILED, null, null));
             }
         }
         return new BulkResult(action, succeeded, ids.size() - succeeded, List.copyOf(results));
+    }
+
+    /**
+     * A refusal of the single operation. Its key goes out for the response handler to render; until then the message
+     * is the key itself. An older caller's sentence (not a key) is the message as it is.
+     */
+    private static BulkItemResult failure(long id, ApiException e) {
+        String code = e.getErrorCode().name().toLowerCase(Locale.ROOT);
+        return e.hasMessageKey()
+                ? new BulkItemResult(id, false, code, e.getMessageKey(), e.getMessageKey(), e.getParams())
+                : new BulkItemResult(id, false, code, e.getMessageKey(), null, null);
     }
 }

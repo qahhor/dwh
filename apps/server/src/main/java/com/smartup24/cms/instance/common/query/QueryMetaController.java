@@ -79,7 +79,7 @@ public class QueryMetaController {
     public ResponseEntity<ListMeta> get(@PathVariable String code) {
         QueryList list = registry.find(code)
                 .filter(found -> SecurityContext.hasPermission(found.form(), found.action()))
-                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "QUERY_LIST_NOT_FOUND"));
+                .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.query_list_not_found"));
         return ResponseEntity.ok(new ListMeta(
                 list.code(),
                 list.viewerFields().stream().map(FieldMeta::of).toList(),

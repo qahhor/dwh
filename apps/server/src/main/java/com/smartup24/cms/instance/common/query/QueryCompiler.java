@@ -8,6 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -85,7 +86,8 @@ public final class QueryCompiler {
         int pageSize = limit == null ? list.defaultLimit() : limit;
         if (pageSize < 1 || pageSize > list.maxLimit()) {
             throw ApiException.validation(
-                    INVALID_LIMIT,
+                    "error.common.query_limit_invalid",
+                    Map.of("max", list.maxLimit()),
                     List.of(new FieldErrorItem(
                             "limit", INVALID_LIMIT, "limit must be between 1 and " + list.maxLimit())));
         }
@@ -112,7 +114,7 @@ public final class QueryCompiler {
                     new FieldErrorItem("q", SEARCH_INVALID, "search is too long or the list has no searchable field"));
         }
         if (!errors.isEmpty()) {
-            throw ApiException.validation(QUERY_INVALID, errors);
+            throw ApiException.validation("error.common.query_invalid", errors);
         }
 
         String fingerprint = fingerprint(list, conditions, sortField, descending, term, narrowing);
@@ -121,7 +123,7 @@ public final class QueryCompiler {
             decoded = QueryCursor.decode(cursor, fingerprint, sortField);
             if (decoded == null) {
                 throw ApiException.validation(
-                        INVALID_CURSOR,
+                        "error.common.query_cursor_invalid",
                         List.of(new FieldErrorItem(
                                 "cursor", INVALID_CURSOR, "cursor is malformed or belongs to another filter or sort")));
             }
