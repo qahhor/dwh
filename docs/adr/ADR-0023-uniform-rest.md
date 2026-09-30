@@ -69,9 +69,11 @@
 ## 4. Последствия
 
 - После `Sunset` старые формы удаляются: пути из `@RequestMapping`, записи из
-  `ApiDeprecations`, методы `toggle*` сервисов. Удаление — ломающее изменение с
-  меткой `api-breaking`; перед ним `dwh_api_deprecated_calls_total` должен
-  стоять на месте.
+  `ApiDeprecations`, методы `toggle*` сервисов. Удаление — ломающее изменение:
+  метка `api-breaking` у pull request или трейлер `Api-Breaking:` у прямого
+  пуша, и запись в `CHANGELOG.md` — то же правило, что в
+  [ADR-0022](ADR-0022-openapi-from-code.md), §2.4. Перед удалением
+  `dwh_api_deprecated_calls_total` должен стоять на месте.
 - Адрес экрана веба `/tasks?project_id=…` — не API и не менялся.
 - Атомарность переключателей под конкурентной нагрузкой (`update … returning`)
   — пункт 3.6.
