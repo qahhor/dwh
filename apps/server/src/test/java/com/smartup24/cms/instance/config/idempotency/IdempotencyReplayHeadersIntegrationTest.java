@@ -71,7 +71,10 @@ class IdempotencyReplayHeadersIntegrationTest {
         assertThat(retry.getStatus()).isEqualTo(409);
         assertThat(retry.getHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY)).isEqualTo("true");
         assertThat(retry.getContentType()).isEqualTo("application/problem+json");
-        assertThat(new ObjectMapper().readTree(retry.getContentAsString()).path("code").asString())
+        assertThat(new ObjectMapper()
+                        .readTree(retry.getContentAsString())
+                        .path("code")
+                        .asString())
                 .isEqualTo("conflict");
     }
 
@@ -118,7 +121,9 @@ class IdempotencyReplayHeadersIntegrationTest {
         assertThat(first.getStatus()).isEqualTo(200);
         assertThat(first.getContentAsString()).isEqualTo("id\n1\n");
         assertThat(businessRows()).as("the operation committed").isEqualTo(1);
-        assertThat(jdbc.sql("select count(*) from idempotency_keys").query(Long.class).single())
+        assertThat(jdbc.sql("select count(*) from idempotency_keys")
+                        .query(Long.class)
+                        .single())
                 .as("the key is freed")
                 .isZero();
     }
@@ -144,7 +149,9 @@ class IdempotencyReplayHeadersIntegrationTest {
     }
 
     private static long businessRows() {
-        return jdbc.sql("select count(*) from idem_headers_business").query(Long.class).single();
+        return jdbc.sql("select count(*) from idem_headers_business")
+                .query(Long.class)
+                .single();
     }
 
     private static MockHttpServletRequest request(UUID key) {

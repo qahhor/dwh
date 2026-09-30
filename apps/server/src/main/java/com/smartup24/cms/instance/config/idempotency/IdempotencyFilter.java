@@ -389,7 +389,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     private static boolean isJson(String contentType) {
         try {
             MediaType type = MediaType.parseMediaType(contentType);
-            return MediaType.APPLICATION_JSON.includes(type) || type.getSubtype().endsWith("+json");
+            return MediaType.APPLICATION_JSON.includes(type)
+                    || type.getSubtype().endsWith("+json");
         } catch (InvalidMediaTypeException malformed) {
             log.warn("idempotency_content_type_unreadable type={}: {}", contentType, malformed.getMessage());
             return false;

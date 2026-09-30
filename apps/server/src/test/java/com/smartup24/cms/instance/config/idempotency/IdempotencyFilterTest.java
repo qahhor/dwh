@@ -216,8 +216,7 @@ class IdempotencyFilterTest {
                 .complete(
                         eq(key),
                         eq(token),
-                        eq(new IdempotencyRepository.StoredAnswer(
-                                201, "{\"id\":10}", "/api/v1/tasks/10", null, null)));
+                        eq(new IdempotencyRepository.StoredAnswer(201, "{\"id\":10}", "/api/v1/tasks/10", null, null)));
     }
 
     @Test
