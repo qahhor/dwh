@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
  * сбое записи raw: у загрузки уникальный {@code package_ref}, поэтому тот же пакет второй раз не
  * применить, файл загружают заново. Прерванным считается применение старше {@code staleMinutes}
  * (по умолчанию {@value #DEFAULT_STALE_MINUTES}): живое применение большого файла не трогается.
+ * An apply whose job is still queued, waiting for a retry or leased is never interrupted, whatever its age: only a job
+ * that left the queue without closing the package, or ran out of attempts, makes it one.
  */
 @Component
 public class UplApplyRecoveryJob implements FndJobHandler {
@@ -59,7 +62,7 @@ public class UplApplyRecoveryJob implements FndJobHandler {
                 : DEFAULT_STALE_MINUTES;
         FndActor actor = actors.system();
         actors.apply(actor);
-        List<PackageRow> stale = repo.lockStaleApplies(staleMinutes);
+        List<PackageRow> stale = repo.lockStaleApplies(staleMinutes, UplPref.JOB_APPLY);
         for (PackageRow row : stale) {
             // Третий шаг закрывает пакет и загрузку в одной транзакции: загрузка не pending — не прерывание
             if (loads.find(row.loadId())

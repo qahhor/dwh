@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 
 import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.fnd.jobs.FndJobProperties;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
@@ -21,7 +22,9 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -147,6 +150,52 @@ class UplParseJobTest extends EmbeddedPostgresTest {
                         .query(String.class)
                         .single())
                 .contains("TEST сбой разбора");
+        assertThat(jdbc.sql("select failed_at is not null from fnd_job_queue")
+                        .query(Boolean.class)
+                        .single())
+                .as("the package is closed: the job is failed at once, with no no-op retry")
+                .isTrue();
+    }
+
+    @Test
+    @DisplayName("3.8: storage away on one attempt — the package stays «получен» and the retry verifies it")
+    void transientStorageFailureIsRetried() {
+        PackageRow row = register(UplPackageTestData.workbook(2, 0));
+        enqueue(row.publicId());
+        MfFileService flaky = Mockito.mock(MfFileService.class);
+        Mockito.when(flaky.downloadFile(Mockito.any(UUID.class)))
+                .thenThrow(new RuntimeException("TEST storage away", new IOException("TEST connection reset")))
+                .thenAnswer(call -> files.downloadFile(call.<UUID>getArgument(0)));
+        FndJobRunner runner = runner(3, new UplParseJob(packages, sources, flaky, new UplXlsxParser()));
+
+        assertThat(runner.runNext()).contains(false);
+        assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.RECEIVED);
+
+        assertThat(runner.runQueued()).isEqualTo(1);
+
+        assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.VERIFIED);
+        assertThat(runStatuses()).containsExactly("failed", "done");
+    }
+
+    @Test
+    @DisplayName("3.8: storage away on every attempt — the last one closes the package with an internal error")
+    void transientStorageFailureOnTheLastAttemptRejects() {
+        PackageRow row = register(UplPackageTestData.workbook(2, 0));
+        enqueue(row.publicId());
+        MfFileService away = Mockito.mock(MfFileService.class);
+        Mockito.when(away.downloadFile(Mockito.any(UUID.class)))
+                .thenThrow(new RuntimeException("TEST storage away", new IOException("TEST connection reset")));
+        FndJobRunner runner = runner(2, new UplParseJob(packages, sources, away, new UplXlsxParser()));
+
+        assertThat(runner.runNext()).contains(false);
+        assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.RECEIVED);
+        assertThat(runner.runNext()).contains(false);
+
+        PackageRow saved = packages.get(row.publicId().toString());
+        assertThat(saved.status()).isEqualTo(UplPackageModel.REJECTED);
+        assertThat(saved.rejectCode()).isEqualTo(UplParseJob.UPL_PKG_INTERNAL);
+        assertThat(runStatuses()).containsExactly("failed", "failed");
+        assertThat(runner.runNext()).isEmpty();
     }
 
     @Test
@@ -205,6 +254,15 @@ class UplParseJobTest extends EmbeddedPostgresTest {
                 file.sha256(),
                 file.sizeBytes(),
                 userId));
+    }
+
+    private FndJobRunner runner(int maxAttempts, UplParseJob job) {
+        return new FndJobRunner(
+                jdbc,
+                json,
+                transactions,
+                List.of(job),
+                new FndJobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
     }
 
     private void enqueue(UUID publicId) {

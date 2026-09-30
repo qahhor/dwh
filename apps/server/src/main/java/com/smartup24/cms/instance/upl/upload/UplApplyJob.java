@@ -4,6 +4,8 @@ import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
 import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
+import com.smartup24.cms.instance.fnd.jobs.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.jobs.FndJobFailures;
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
@@ -17,6 +19,7 @@ import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -29,6 +32,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * from a temporary copy on disk and pushes each parsed row straight into one {@code COPY} of pg-dwh: no list of rows,
  * no reading raw back — the reconciliation takes the count {@code COPY} returns. Raw lives in the second database, so a
  * failed write becomes the package's reason, not a failed job: the job closes the package «отклонён системой» and ends.
+ * A transient failure (pg-dwh away, storage not readable) is first left to the runner's retries; only the last attempt
+ * closes the package with it.
  *
  * <p>The runner calls it with no transaction open (item 3.8); the job opens one short transaction to close the
  * package. It may run again after its node died. Raw is written in one pg-dwh transaction, so a load has all its rows
@@ -82,8 +87,19 @@ public class UplApplyJob implements FndJobHandler {
         return UplPref.JOB_APPLY;
     }
 
+    /** Outside the queue (tests, tools): the only attempt, so a failed write closes the package at once. */
     @Override
     public void run(Map<String, Object> args) {
+        run(args, FndJobAttempt.only());
+    }
+
+    /**
+     * A transient failure of the write (pg-dwh away, the stored file not readable for a moment) fails the attempt
+     * while attempts remain, so the runner retries it (plan 10/10, item 3.8); the last attempt, or a failure a retry
+     * would not fix, closes the package «отклонён системой».
+     */
+    @Override
+    public void run(Map<String, Object> args, FndJobAttempt attempt) {
         UUID publicId = packageId(args);
         long userId = userId(args);
         PackageRow row = repo.findByPublicId(publicId)
@@ -91,7 +107,7 @@ public class UplApplyJob implements FndJobHandler {
         if (!UplPackageModel.APPLYING.equals(row.status()) || !loadOpen(row)) {
             return;
         }
-        Long rawRows = writeRaw(row);
+        Long rawRows = writeRaw(row, attempt);
         FndActor actor = actors.user(userId);
         tx.executeWithoutResult(status -> finish(row.id(), rawRows, actor));
     }
@@ -102,8 +118,11 @@ public class UplApplyJob implements FndJobHandler {
                 .isPresent();
     }
 
-    /** Пишет строки файла в raw; {@code null} — запись упала, причина уйдёт в пакет. */
-    private Long writeRaw(PackageRow row) {
+    /**
+     * Writes the rows of the file into raw; {@code null} — the write failed for good and the reason goes to the
+     * package. A transient failure while attempts remain is rethrown for the runner's retry.
+     */
+    private Long writeRaw(PackageRow row, FndJobAttempt attempt) {
         try {
             long already = raw.count(row.loadId());
             if (already > 0) {
@@ -112,9 +131,22 @@ public class UplApplyJob implements FndJobHandler {
             }
             return copyRows(row);
         } catch (IOException | RuntimeException failure) {
+            if (!attempt.last() && FndJobFailures.isTransient(failure)) {
+                log.warn(
+                        "upl_apply_retry package={} attempt={} max_attempts={}",
+                        row.publicId(),
+                        attempt.number(),
+                        attempt.maxAttempts(),
+                        failure);
+                throw unchecked(failure);
+            }
             log.error("Пакет {}: строки не записаны в raw", row.publicId(), failure);
             return null;
         }
+    }
+
+    private static RuntimeException unchecked(Exception failure) {
+        return failure instanceof IOException io ? new UncheckedIOException(io) : (RuntimeException) failure;
     }
 
     /** Each parsed row goes into the copy as it is read; the parser's verdict must match the upload's. */

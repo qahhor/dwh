@@ -124,15 +124,23 @@ public class UplPackageRepository {
      * Пакеты «применяется» (проверен, получил номер загрузки) дольше {@code staleMinutes} минут — кандидаты
      * в прерванные применения (статус загрузки проверяет вызывающий через основу). Строки блокируются;
      * занятые другим воркером пропускаются.
+     *
+     * <p>A package whose apply job is still in the queue and not failed for good is not a candidate, however old the
+     * request: the job waits for its turn or a retry, or runs (a dead node's lease runs out and another runner takes
+     * it). Only an apply job that is gone or out of attempts leaves the package interrupted.
      */
-    public List<PackageRow> lockStaleApplies(int staleMinutes) {
+    public List<PackageRow> lockStaleApplies(int staleMinutes, String applyHandler) {
         return jdbc.sql(PACKAGE_SELECT + """
                          where p.status = 'verified' and p.load_id is not null
                            and p.modified_at < now() - make_interval(mins => :stale)
+                           and not exists (select 1 from fnd_job_queue q
+                                            where q.handler = :handler and q.failed_at is null
+                                              and q.args ->> 'packageId' = p.public_id::text)
                          order by p.id
                            for update of p skip locked
                         """)
                 .param("stale", staleMinutes)
+                .param("handler", applyHandler)
                 .query(this::mapPackage)
                 .list();
     }
