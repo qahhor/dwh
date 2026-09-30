@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -20,13 +21,27 @@ public class QueryListRepository {
 
     private static final String SORT_COLUMN = "q_sort_value";
     private static final String ID_COLUMN = "q_row_id";
+    /** Under this many estimated rows the first page counts them: the count is cheap and exact. */
+    private static final long EXACT_BELOW = 100_000;
     /** The first "Plan Rows" of EXPLAIN (FORMAT JSON) belongs to the top node: the rows of the whole query. */
     private static final Pattern PLAN_ROWS = Pattern.compile("\"Plan Rows\":\\s*([0-9.eE+]+)");
 
     private final JdbcClient jdbc;
+    private final long exactBelow;
 
+    @Autowired
     public QueryListRepository(JdbcClient jdbc) {
+        this(jdbc, EXACT_BELOW);
+    }
+
+    private QueryListRepository(JdbcClient jdbc, long exactBelow) {
         this.jdbc = jdbc;
+        this.exactBelow = exactBelow;
+    }
+
+    /** A repository that trusts the planner's estimate from {@code exactBelow} rows up: for tests on small tables. */
+    public static QueryListRepository estimatingFrom(JdbcClient jdbc, long exactBelow) {
+        return new QueryListRepository(jdbc, exactBelow);
     }
 
     public <T> KeysetPage<T> page(QueryPlan plan, RowMapper<T> mapper) {
@@ -66,10 +81,18 @@ public class QueryListRepository {
             total = plan.cursor().total();
         } else if (!hasMore) {
             total = page.size();
+        } else if (!list.estimatedTotal()) {
+            total = count(plan, extra, where);
         } else {
-            total = list.estimatedTotal()
-                    ? Math.max(estimate(plan, extra, where), rows.size())
-                    : count(plan, extra, where);
+            long estimated = estimate(plan, extra, where);
+            // Below the threshold a count is cheap, and an estimate from missing or stale statistics can be far off
+            // (thousands for a table that holds a hundred rows).
+            if (estimated < exactBelow) {
+                total = count(plan, extra, where);
+                exact = true;
+            } else {
+                total = Math.max(estimated, rows.size());
+            }
         }
         String next = null;
         if (hasMore && !page.isEmpty()) {

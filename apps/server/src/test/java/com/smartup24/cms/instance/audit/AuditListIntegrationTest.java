@@ -35,6 +35,7 @@ class AuditListIntegrationTest {
 
     static JdbcClient jdbc;
     static AuditListService audit;
+    static AuditListService counting;
 
     @BeforeAll
     static void setup() {
@@ -42,9 +43,28 @@ class AuditListIntegrationTest {
         jdbc = JdbcClient.create(ds);
         var repository = new AuditLogRepository(jdbc, new ObjectMapper());
         audit = new AuditListService(
+                QueryListRepository.estimatingFrom(jdbc, 0),
+                repository,
+                new AuditLogService(repository, null, new AuditDataRedactor()));
+        counting = new AuditListService(
                 new QueryListRepository(jdbc),
                 repository,
                 new AuditLogService(repository, null, new AuditDataRedactor()));
+    }
+
+    @Test
+    @DisplayName("Below the estimate threshold the first page counts the rows: a small log is never shown as ≈ N")
+    void smallLogIsCountedExactly() {
+        insertAudit("al_small", "1", "U", TIE, "{}");
+        insertAudit("al_small", "2", "U", TIE, "{}");
+        insertAudit("al_small", "3", "U", TIE, "{}");
+        var filters = new AuditLogFilter("al_small", null, null, null, null, null);
+
+        var first = counting.logs(2, null, null, null, null, filters);
+
+        assertThat(first.hasMore()).isTrue();
+        assertThat(first.totalExact()).isTrue();
+        assertThat(first.totalEstimated()).isEqualTo(3);
     }
 
     @Test
