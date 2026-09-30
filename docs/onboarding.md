@@ -40,7 +40,8 @@ model, field registry, bulk, history), `md` (users, roles, rights, settings,
 languages, menu), `kauth` (authentication), `ms` (tasks, projects, notes,
 notifications), `mf` (files), `audit`, `search`, `kwh` (webhooks), `fnd`
 (jobs and the data-upload foundation), `upl` (data uploads), `report`
-(exports).
+(exports), `analytics` (dashboard figures). `config` holds the infrastructure
+(security, web filters, cache, retention job, idempotency, OpenAPI).
 
 For a focused code question, build the local knowledge graph with
 `graphify update .` (see `AGENTS.md`); it is not committed.
@@ -62,6 +63,22 @@ Read these documents before changing their area:
 
 Treat superseded ADRs as historical evidence. Check current code and active operations docs before acting on them.
 
+Server code follows the phase 3 rules of plan 10/10, and each has a test that
+fails the build: errors are `ApiException` with a catalog key in ru/uz/en
+([ADR-0021](adr/ADR-0021-error-model.md); `ErrorModelTest`, `ErrorTextsTest`),
+the API description is generated from the code
+([ADR-0022](adr/ADR-0022-openapi-from-code.md); `OpenApiContractTest`),
+statuses and paths are uniform ([ADR-0023](adr/ADR-0023-uniform-rest.md);
+`ResponseStatusDeclaredTest`), changes name their revision
+([ADR-0024](adr/ADR-0024-optimistic-locking.md); `ChangesNameTheirRevisionTest`),
+growing collections are paged (`CollectionsArePagedTest`), no catch swallows an
+error (`NoSwallowedErrorsTest`), comments are in English
+(`CommentLanguageTest`), and every business module keeps its coverage floor
+(`scripts/quality/test-coverage-floors.ps1`). The short version is the
+[server rules](guidelines/module-development-guide.md#серверные-правила) table;
+the client view is [how the API behaves](api/README.md). The module generator
+`scripts/dev/create-module.ps1` produces code that already passes them.
+
 ## 4. Verify the workspace
 
 From the repository root:
@@ -73,8 +90,9 @@ mvn -B verify
 ```bash
 cd apps/web
 npm ci
-npm test
+npm run lint
 npm run typecheck
+npm test
 npm run build
 ```
 

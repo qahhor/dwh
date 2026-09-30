@@ -1,8 +1,8 @@
 # Стандарты разработки и стиль кодовой базы (CODE_STYLE)
 
-**Версия:** 1.0
-**Дата:** 2026-08-28
-**Основание:** ADR-0001 (логика в приложении), ADR-0002 (Java 25, Spring Boot 4.1, Angular 22), ADR-0006 (модульный монолит), ADR-0008 (безопасность), ADR-0009 (логирование), ADR-0011 (Provider SPI), ADR-0012 (UI)
+**Версия:** 1.1
+**Дата:** 2026-10-01
+**Основание:** ADR-0001 (логика в приложении), ADR-0002 (Java 25, Spring Boot 4.1, Angular 22), ADR-0006 (модульный монолит), ADR-0008 (безопасность), ADR-0009 (логирование), ADR-0011 (Provider SPI), ADR-0012 (UI), ADR-0020–ADR-0025 (схема БД, ошибки, API, блокировка, журналы и кэш)
 
 ---
 
@@ -56,7 +56,7 @@
 ### 2.1.1. Форматирование и статический анализ (план 10/10, пункт 1.2)
 - **Формат** задаёт Spotless с palantir-java-format (4 пробела, 120 колонок): `mvn spotless:apply` форматирует, `mvn verify` и CI проверяют. Разовое переформатирование записано в `.git-blame-ignore-revs`.
 - **Checkstyle** (`config/checkstyle/checkstyle.xml`) проверяет то, что форматтер не видит: имена, импорты, пустые блоки, `equals` без `hashCode`, `System.out` и `printStackTrace` в обход журнала. Исключение — только по месту: `// CHECKSTYLE.OFF: Правило` … `// CHECKSTYLE.ON: Правило` с причиной строкой выше.
-- **Error Prone** работает при каждой компиляции: его ошибки роняют сборку, предупреждения видны в выводе и разбираются в фазе 2.
+- **Error Prone** работает при каждой компиляции: его ошибки роняют сборку, предупреждения видны в выводе и сборку не роняют; новый код их не добавляет (проверяется на ревью).
 - **Null.** Пакет, помеченный `@NullMarked` в `package-info.java`, проверяет NullAway: всё, что может быть `null`, объявлено `@Nullable` (JSpecify), иначе сборка падает. Сейчас помечен `common`; модуль подключается, когда размечены его пакеты.
 
 ### 2.1.2. Комментарии в коде (план 10/10, пункт 3.14)
@@ -76,6 +76,15 @@
     именем таблицы в логе, а не пустой `{}`, который следующее сохранение запишет поверх настоящего
     (план 10/10, пункт 3.11).
 
+### 2.3. Контракт API, данные и размеры (фаза 3 плана 10/10)
+Подробно — [руководство по модулям](docs/guidelines/module-development-guide.md#серверные-правила) и [как ведёт себя API](docs/api/README.md); генератор `scripts/dev/create-module.ps1` уже следует этим правилам.
+- **Ошибки** ([ADR-0021](docs/adr/ADR-0021-error-model.md)): только `ApiException` с `ErrorCode`, ключом `error.<модуль>.<имя>` и параметрами; ключ — в каталогах ru, uz и en; предложений в коде нет. Ответ — `application/problem+json` с `code`, `messageKey`, `params`. Проверки: `ErrorModelTest`, `ErrorTextsTest`.
+- **API** ([ADR-0022](docs/adr/ADR-0022-openapi-from-code.md), [ADR-0023](docs/adr/ADR-0023-uniform-rest.md)): DTO — records в пакете `api` модуля; описание API генерирует springdoc, копия `docs/api/openapi.json` обновляется `-Dopenapi.update=true`, типы веба — `npm run api:types`. Один путь на операцию, параметры в camelCase, 201 + `Location` / 202 / 204 объявлены `@ResponseStatus`, переключатель принимает состояние. Ломающее изменение — метка `api-breaking` или трейлер `Api-Breaking:` и запись в `CHANGELOG.md`. Проверки: `OpenApiContractTest`, `ResponseStatusDeclaredTest`, `scripts/api/test-api-contract.ps1`, `npm run api:audit`.
+- **Страницы** (план 10/10, пункт 3.5): растущая коллекция отдаётся `KeysetPage` — через реестр полей (`QueryList`) или `TimePage`; `limit` выше максимума — 422; таблица без предела — `QueryList.withEstimatedTotal()`. Целиком — только ограниченные справочники из `CollectionsArePagedTest`.
+- **Оптимистическая блокировка** ([ADR-0024](docs/adr/ADR-0024-optimistic-locking.md)): запись с `revision`, ответ реализует `Revisioned` (`ETag`), `PUT`/`PATCH` принимает `If-Match` (`Revisions.required`), запись — `update … where revision = :expected`; без ревизии 428, устаревшая — 409. Проверка: `ChangesNameTheirRevisionTest`.
+- **Размер** (план 10/10, пункт 3.10): класс до 400 строк, метод до 60 (Checkstyle `FileLength`, `MethodLength`; тесты не ограничены). Больше — делится, а не получает исключение.
+- **Кэш и журналы** ([ADR-0025](docs/adr/ADR-0025-retention-and-cluster-cache.md)): имя кэша — в `CacheConfig`, очистка доходит до всех узлов после коммита; журнальная таблица объявляет бин `RetentionPolicy` со сроком по умолчанию (`smc.retention.days.<имя>`).
+
 ---
 
 ## 3. Транзакции и Transactional Outbox
@@ -87,8 +96,8 @@
    - Запрещено выполнять внешние HTTP-запросы, отправку писем через SMTP, вызовы Telegram Bot API или обращение к Garage S3 внутри активной транзакции базы данных.
    - Транзакции БД должны быть минимально короткими (миллисекунды).
 3. **Паттерн Transactional Outbox:**
-   - Для гарантированной доставки нотификаций задача на отправку пишется в таблицу `notification_outbox` **в той же транзакции БД**, где мутирует бизнес-сущность.
-   - Фоновый воркер асинхронно вычитывает `notification_outbox` пачками через `SELECT ... FOR UPDATE SKIP LOCKED` и отправляет сообщения.
+   - Для гарантированной доставки нотификаций задача на отправку пишется в таблицу `ms_notification_outbox` **в той же транзакции БД**, где мутирует бизнес-сущность (очередь вебхуков — `kwh_outbox`).
+   - Фоновый воркер асинхронно вычитывает `ms_notification_outbox` пачками через `SELECT ... FOR UPDATE SKIP LOCKED` и отправляет сообщения.
 4. **События `@TransactionalEventListener`:**
    - Слушатели доменных событий, выполняющие побочные эффекты после сохранения данных, обязаны использовать фазу `AFTER_COMMIT`:
    ```java
@@ -149,7 +158,7 @@
    - Все компоненты используют `ChangeDetectionStrategy.OnPush`.
    - Управление реактивным состоянием строится на **Angular Signals** (`signal()`, `computed()`, `effect()`).
    - Использование тяжелых сторонних сторов (NgRx) запрещено без отдельного ADR.
-2. **Дизайн-система и стили (ТЗ-02, ADR-0012):**
+2. **Дизайн-система и стили (AC-02, ADR-0012):**
    - Прямое использование hex-цветов, произвольных радиусов и отступов в CSS компонентов **запрещено**. Цвета проверяются в CI: stylelint (`color-no-hex`, `color-named`) в файлах `.css`/`.scss` и `npm run contrast:audit` во встроенных стилях компонентов; радиусы и отступы — на ревью.
    - Разрешено использовать исключительно CSS-переменные дизайн-токенов (`var(--ui-color-accent)`, `var(--ui-space-2)`).
    - Все экраны строятся из обёрток `ui-*` (`ui-grid`, `ui-button`, `ui-dialog`, `ui-form-field`).
@@ -159,5 +168,5 @@
    - Режим `strict: true` в `tsconfig.json`. Использование типа `any` запрещено (проверяется eslint).
 5. **Линтеры и форматирование (план 10/10, пункт 1.1):**
    - `npm run lint` в `apps/web` запускает ESLint (typescript-eslint, angular-eslint: OnPush, сигнальные input/output/query, `@if`/`@for` вместо `*ngIf`/`*ngFor`, доступность шаблонов), Stylelint и проверку Prettier; CI выполняет то же.
-   - Нарушения на 2026-09-28 зафиксированы в `apps/web/eslint-suppressions.json` (bulk suppressions ESLint). Новое нарушение роняет CI; исправленное нужно убрать из файла командой `npm run lint:prune`, иначе CI тоже упадёт. Так число нарушений только уменьшается; фаза 2 плана их устраняет.
+   - Файл bulk suppressions ESLint `apps/web/eslint-suppressions.json` пуст (`{}`): нарушений, зафиксированных 2026-09-28, не осталось, и любое нарушение роняет CI. Новую запись в файл не добавляют; если она всё же появилась и исправлена, её убирает `npm run lint:prune`.
    - Код форматирует Prettier (`npm run format`, конфигурация `apps/web/.prettierrc.json`). Разовое переформатирование записано в `.git-blame-ignore-revs`: `git config blame.ignoreRevsFile .git-blame-ignore-revs` возвращает авторство строк.
