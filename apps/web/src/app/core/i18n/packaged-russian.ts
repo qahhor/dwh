@@ -31,6 +31,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "common.priority": "Приоритет",
   "common.created_at": "Создано",
   "common.refresh": "Обновить",
+  "common.revision_conflict_title": "Данные устарели",
   "common.all": "Все",
   "common.saved": "Настройки успешно сохранены",
   "common.error": "Ошибка",
@@ -2613,5 +2614,10 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "iam.users.loading": "Загрузка пользователей…",
   "iam.users.load_error": "Не удалось загрузить пользователей.",
   "common.requirement_met": "Выполнено",
-  "common.requirement_not_met": "Не выполнено"
+  "common.requirement_not_met": "Не выполнено",
+  "error.precondition_required": "Сохранение отклонено: не указана версия записи. Откройте запись заново и повторите",
+  "error.revision_conflict": "Запись уже изменил другой пользователь. Обновите её и повторите сохранение",
+  "error.common.precondition_required": "Сохранение отклонено: не указана версия записи. Откройте запись заново и повторите",
+  "error.common.revision_conflict": "Запись уже изменил другой пользователь. Обновите её и повторите сохранение",
+  "error.common.if_match_invalid": "Заголовок If-Match должен содержать версию записи"
 });

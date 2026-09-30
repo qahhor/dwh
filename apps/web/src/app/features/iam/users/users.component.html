@@ -127,4 +127,6 @@
   (terminateAllSessions)="secService.terminateUserSessions($event)"
   (terminateSingleSession)="secService.terminateSingleSession($event.sessionId, $event.userId)"
   (orgPanelBusy)="orgPanelBusy.set($event)"
+  (userRevisionChange)="onUserRevision($event.userId, $event.revision)"
+  (refreshUser)="refreshViewingUser($event)"
 ></app-user-detail-modal>

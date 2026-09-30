@@ -2,12 +2,19 @@ import { Injectable, inject, signal } from '@angular/core';
 import { I18nService } from './i18n.service';
 import { LiveAnnouncerService } from './live-announcer.service';
 
+/** A button on a toast that does what the message suggests, such as reading a record again. */
+export interface ToastAction {
+  label: string;
+  run: () => void;
+}
+
 export interface ToastMessage {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info';
   title?: string;
   message: string;
   durationMs?: number;
+  action?: ToastAction;
 }
 
 /** More than this on screen at once only buries the newest; the oldest go first. */
@@ -38,14 +45,23 @@ export class ToastService {
    * its text, as the toast element is, is often not read at all. Showing the
    * same message again restarts the visible one instead of stacking a copy.
    */
-  show(type: ToastMessage['type'], message: string, title?: string, durationMs: number = 4000): string {
+  show(
+    type: ToastMessage['type'],
+    message: string,
+    title?: string,
+    durationMs: number = 4000,
+    action?: ToastAction,
+  ): string {
     const duplicate = this.toasts().find(
       (toast) => toast.type === type && toast.message === message && toast.title === title,
     );
     const id = duplicate?.id ?? Math.random().toString(36).substring(2, 9);
 
-    if (!duplicate) {
-      const toast: ToastMessage = { id, type, title, message, durationMs };
+    if (duplicate) {
+      // The repeated message keeps its place; its action is the latest one asked for.
+      this.toasts.update((current) => current.map((toast) => (toast.id === id ? { ...toast, action } : toast)));
+    } else {
+      const toast: ToastMessage = { id, type, title, message, durationMs, action };
       const next = [...this.toasts(), toast];
       for (const dropped of next.slice(0, Math.max(0, next.length - MAX_VISIBLE_TOASTS))) {
         this.clearTimer(dropped.id);
@@ -79,6 +95,13 @@ export class ToastService {
 
   info(message: string, title?: string) {
     this.show('info', message, title, 3500);
+  }
+
+  /** Runs the toast's action and closes the toast. */
+  runAction(id: string) {
+    const action = this.toasts().find((toast) => toast.id === id)?.action;
+    this.dismiss(id);
+    action?.run();
   }
 
   dismiss(id: string) {

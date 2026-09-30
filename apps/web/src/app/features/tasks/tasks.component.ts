@@ -195,13 +195,19 @@ export class TasksComponent implements OnInit, OnDestroy {
   }
 
   updatePriority(taskId: number, newPriority: string) {
-    this.kanbanService.updatePriority(taskId, newPriority, this.taskRevision(taskId), () => {
-      this.tasks.update((list) => list.map((t) => (t.id === taskId ? { ...t, priority: newPriority } : t)));
-      if (this.selectedTask()?.id === taskId) {
-        this.selectedTask.update((t) => (t ? { ...t, priority: newPriority } : null));
-      }
-      this.bumpRevision(taskId);
-    });
+    this.kanbanService.updatePriority(
+      taskId,
+      newPriority,
+      this.taskRevision(taskId),
+      () => {
+        this.tasks.update((list) => list.map((t) => (t.id === taskId ? { ...t, priority: newPriority } : t)));
+        if (this.selectedTask()?.id === taskId) {
+          this.selectedTask.update((t) => (t ? { ...t, priority: newPriority } : null));
+        }
+        this.bumpRevision(taskId);
+      },
+      () => this.reloadAfterConflict(taskId),
+    );
   }
 
   updateStatus(taskId: number, newStatusId: number) {
@@ -216,6 +222,7 @@ export class TasksComponent implements OnInit, OnDestroy {
         }
         this.bumpRevision(taskId);
       },
+      () => this.reloadAfterConflict(taskId),
     );
   }
 
@@ -362,6 +369,13 @@ export class TasksComponent implements OnInit, OnDestroy {
   private taskRevision(taskId: number): number | undefined {
     const selected = this.selectedTask();
     return selected?.id === taskId ? selected.revision : this.tasks().find((t) => t.id === taskId)?.revision;
+  }
+
+  /** A change was refused over a newer revision: the list, and the card of that task if open, are read again. */
+  private reloadAfterConflict(taskId: number): void {
+    this.list.loadTasks(true);
+    const selected = this.selectedTask();
+    if (selected?.id === taskId) this.openTaskDetails(selected);
   }
 
   /** A saved change raised the task's revision by one. */

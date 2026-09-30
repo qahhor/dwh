@@ -39,6 +39,11 @@ export class NotesApi {
     return this.api.get<KeysetPage<Note>>('/notes', params, { notifyError: false });
   }
 
+  /** One note as it is now, as when a save was refused over a newer revision; the caller shows a failure. */
+  get(id: number): Observable<Note> {
+    return this.api.get<Note>(`/notes/${id}`, undefined, { notifyError: false });
+  }
+
   /** Creates a note, or updates the one with `id`; a 422 names the fields it rejects. */
   save(id: number | null, payload: Record<string, unknown>, revision?: number): Observable<Note> {
     return id === null

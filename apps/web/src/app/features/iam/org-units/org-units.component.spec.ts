@@ -34,7 +34,7 @@ describe('OrgUnitsComponent lifecycle', () => {
       update: vi.fn(() => of(undefined)),
       remove: vi.fn(() => of(undefined)),
     };
-    const toast = { success: vi.fn() };
+    const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: OrgUnitsApiService, useValue: api },
@@ -175,6 +175,24 @@ describe('OrgUnitsComponent lifecycle', () => {
     expect(screen().textContent).toContain('Write failed');
     editor.submit();
     expect(api.update).toHaveBeenCalledTimes(2);
+  });
+  it('shows a save refused over a newer revision once and reads the tree again from its button', () => {
+    const { fixture, page, api, toast, edit } = setup();
+    const editor = edit();
+    editor.draft.name = 'Draft';
+    api.update.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+
+    editor.submit();
+    fixture.detectChanges();
+
+    expect(page.saveError()).toBeNull();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    const reads = api.list.mock.calls.length;
+    toast.show.mock.calls[0][4].run();
+    expect(page.editorOpen()).toBe(false);
+    expect(api.list.mock.calls.length).toBe(reads + 1);
   });
   it('reports successful write plus failed refresh without retrying the write', () => {
     const { fixture, page, api, toast, screen, edit } = setup();

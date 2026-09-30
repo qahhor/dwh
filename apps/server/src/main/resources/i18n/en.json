@@ -29,6 +29,7 @@
   "common.priority": "Priority",
   "common.created_at": "Created",
   "common.refresh": "Refresh",
+  "common.revision_conflict_title": "The data is out of date",
   "common.all": "All",
   "common.saved": "Settings saved successfully",
   "common.error": "Error",

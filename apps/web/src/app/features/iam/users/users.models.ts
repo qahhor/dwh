@@ -206,3 +206,9 @@ export interface EffectivePermissionsResponse {
 export interface PersonalPermissionsResponse {
   grants: PersonalGrant[];
 }
+
+/** The answer to a change of personal rights: the rights version and the user's new revision (plan item 3.6). */
+export interface PermissionsSaved {
+  permissionsVersion: number;
+  revision: number;
+}

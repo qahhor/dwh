@@ -16,6 +16,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { ToastService } from '@core/services/toast.service';
+import { SaveErrorNotifier, isRevisionConflict } from '@shared/ui/save-errors';
 import { ProblemDetail } from '@core/models/common.models';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
@@ -48,6 +49,7 @@ export class OrgUnitsComponent implements OnInit {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly editor = viewChild(OrgUnitEditorComponent);
 
@@ -259,7 +261,19 @@ export class OrgUnitsComponent implements OnInit {
           this.reload(true);
         },
         error: (error) => {
-          if (this.finishMutation(epoch)) this.saveError.set(error);
+          if (!this.finishMutation(epoch)) return;
+          if (!isRevisionConflict(error)) {
+            this.saveError.set(error);
+            return;
+          }
+          // Saved by someone else since it was opened: the tree is read again and the unit opened from it.
+          this.saveErrors.show(error, {
+            fallbackKey: 'common.error',
+            reload: () => {
+              this.clearEditor();
+              this.reload();
+            },
+          });
         },
       }),
     );

@@ -80,6 +80,22 @@ describe('ProjectMembersModalComponent', () => {
     fixture.destroy();
   });
 
+  it('offers the next page of members only while more follow, and asks the page for it', async () => {
+    const fixture = await createFixture(false);
+    const asked = vi.fn();
+    fixture.componentInstance.loadMore.subscribe(asked);
+    const loadMore = () =>
+      document.body.querySelector('[data-testid="project-members-load-more"]') as HTMLButtonElement | null;
+    expect(loadMore()).toBeNull();
+
+    fixture.componentRef.setInput('hasMore', true);
+    fixture.detectChanges();
+    loadMore()!.click();
+
+    expect(asked).toHaveBeenCalledTimes(1);
+    fixture.destroy();
+  });
+
   it('shows the empty state when the project has no members', async () => {
     const fixture = await createFixture(true, []);
 

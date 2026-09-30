@@ -294,6 +294,43 @@ describe('RolesComponent', () => {
     expect(page.matrix.selectedRole()?.id).toBe(2);
   });
 
+  it('keeps the listed role at the revision a matrix save gave it, so the next save names it (plan item 3.6)', async () => {
+    const roles = [{ ...role(1, 'Первая'), revision: 3 }, role(2, 'Вторая')];
+    const { fixture, page } = await withRole(roles);
+    page.loadRoles();
+    await fixture.whenStable();
+
+    page.matrix.togglePermission('audit.events', 'edit', true);
+    page.savePermissions();
+
+    expect(api().put.mock.calls[0][2]).toEqual(expect.objectContaining({ ifMatch: 3 }));
+    expect(page.matrix.selectedRole()?.revision).toBe(4);
+    expect(page.roles().find((r) => r.id === 1)?.revision).toBe(4);
+
+    page.matrix.togglePermission('audit.events', 'view', true);
+    page.savePermissions();
+    expect(api().put.mock.calls[1][2]).toEqual(expect.objectContaining({ ifMatch: 4 }));
+  });
+
+  it('takes the selected role from the list read after its edit, so the matrix saves from the new revision', async () => {
+    const roles = [{ ...role(1, 'Первая'), revision: 3 }, role(2, 'Вторая')];
+    const { fixture, page } = await withRole(roles);
+    page.loadRoles();
+    await fixture.whenStable();
+    const renamed = [{ ...roles[0], name: 'Переименована', revision: 4 }, roles[1]];
+    api().get.mockImplementation((path: string) => roleResponse(path, renamed));
+
+    page.roleForms.openEditRoleModal(page.matrix.selectedRole()!);
+    page.roleForms.editRoleForm.name = 'Переименована';
+    page.submitEditRole();
+
+    expect(api().patch.mock.calls[0][2]).toEqual(expect.objectContaining({ ifMatch: 3 }));
+    expect(page.matrix.selectedRole()).toEqual(expect.objectContaining({ name: 'Переименована', revision: 4 }));
+    page.matrix.togglePermission('audit.events', 'edit', true);
+    page.savePermissions();
+    expect(api().put.mock.calls.at(-1)?.[2]).toEqual(expect.objectContaining({ ifMatch: 4 }));
+  });
+
   it('navigates to users list with role filter when user count button is clicked', async () => {
     const fixture = await createFixture();
     const router = TestBed.inject(Router);

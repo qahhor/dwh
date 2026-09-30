@@ -6,6 +6,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { Task, TaskDetailResponse, TaskMember } from '@core/models/task.models';
 import { RecordNavigationDecision } from '@core/guards/record-navigation.guard';
 import { safeNumericRecordId } from '@core/services/search-target';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { toLocalDateTime, toTaskInstant } from '../task-form-value';
 import { TaskCreateFormValue, TaskEditFormValue, createDefaultTaskCreateForm, sameIdSet } from '../tasks.models';
 
@@ -16,6 +17,7 @@ export class TaskFormsService {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly isCreateModalOpen = signal<boolean>(false);
 
@@ -58,6 +60,11 @@ export class TaskFormsService {
   };
 
   private editRequestId = 0;
+  /** What the last load of the edited task keeps for the screen, so that reading it again does the same. */
+  private editRetain: {
+    member: (m: TaskMember) => void;
+    parent: (id: number, title: string) => void;
+  } | null = null;
   private editRequest?: Subscription;
   private editSaveRequest?: Subscription;
 
@@ -164,6 +171,7 @@ export class TaskFormsService {
     onRetainParent: (id: number, title: string) => void,
   ): void {
     const requestId = ++this.editRequestId;
+    this.editRetain = { member: onRetainMember, parent: onRetainParent };
     this.editRequest?.unsubscribe();
     this.editLoading.set(true);
     this.editLoadError.set(false);
@@ -224,6 +232,13 @@ export class TaskFormsService {
     if (this.editTargetId != null && !this.isSubmitting()) {
       this.loadEditDetails(this.editTargetId, onRetainMember, onRetainParent);
     }
+  }
+
+  /** Reads the edited task again after a save was refused over a newer revision; the edits made are dropped. */
+  reloadEdit(): void {
+    const retain = this.editRetain;
+    if (this.editTargetId == null || this.isSubmitting() || !this.isEditModalOpen() || !retain) return;
+    this.loadEditDetails(this.editTargetId, retain.member, retain.parent);
   }
 
   requestCloseEdit(onOpenDetails: (t: Task) => void): void {
@@ -342,7 +357,7 @@ export class TaskFormsService {
     const returnTask = this.editReturnTask;
     this.isSubmitting.set(true);
     this.editSaveRequest = this.api
-      .patch(`/tasks/${editedTask.id}`, payload, { ifMatch: editedTask.revision })
+      .patch(`/tasks/${editedTask.id}`, payload, { notifyError: false, ifMatch: editedTask.revision })
       .subscribe({
         next: () => {
           if (this.editingTask?.id !== editedTask.id) return;
@@ -351,10 +366,13 @@ export class TaskFormsService {
           this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
           onSuccess(returnTask, editedTask.id);
         },
-        error: (err) => {
+        error: (err: unknown) => {
           if (this.editingTask?.id !== editedTask.id) return;
           this.isSubmitting.set(false);
-          this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_obnovlenii_zadachi'));
+          this.saveErrors.show(err, {
+            fallbackKey: 'tasks.oshibka_pri_obnovlenii_zadachi',
+            reload: () => this.reloadEdit(),
+          });
         },
       });
   }

@@ -43,13 +43,13 @@ describe('UserEffectivePermissionsPanelComponent', () => {
         if (path === '/iam/roles/forms') return of(mockFormCatalog);
         return of([]);
       }),
-      put: vi.fn((path: string, body: any) => {
+      put: vi.fn((path: string, body: any, _options?: unknown) => {
         if (options.putHandler) return options.putHandler(path, body);
-        return of({});
+        return of({ permissionsVersion: 2, revision: 8 });
       }),
     };
 
-    const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() };
+    const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn(), show: vi.fn() };
     const i18n = { translate: vi.fn((key: string) => key), currentLang: signal('ru') };
 
     await TestBed.configureTestingModule({
@@ -177,6 +177,9 @@ describe('UserEffectivePermissionsPanelComponent', () => {
   it('saves personal grants via PUT /iam/users/{userId}/permissions and displays success toast', async () => {
     const { fixture, api, toast } = await createFixture({ canAssign: true });
     const component = fixture.componentInstance;
+    fixture.componentRef.setInput('revision', 7);
+    const revisions: number[] = [];
+    component.revisionChange.subscribe((revision) => revisions.push(revision));
 
     component.onFormSelect('iam.users');
     component.selectedAction.set('update');
@@ -184,13 +187,39 @@ describe('UserEffectivePermissionsPanelComponent', () => {
 
     component.savePersonalGrants();
 
-    expect(api.put).toHaveBeenCalledWith('/iam/users/10/permissions', {
-      grants: [
-        { form: 'iam.users', action: 'create' },
-        { form: 'iam.users', action: 'update' },
-      ],
-    });
+    expect(api.put).toHaveBeenCalledWith(
+      '/iam/users/10/permissions',
+      {
+        grants: [
+          { form: 'iam.users', action: 'create' },
+          { form: 'iam.users', action: 'update' },
+        ],
+      },
+      { notifyError: false, ifMatch: 7 },
+    );
     expect(toast.success).toHaveBeenCalled();
+    expect(component.hasUnsavedChanges()).toBe(false);
+    expect(revisions).toEqual([8]);
+  });
+
+  it('shows a save refused over a newer revision once and asks the screen to read the user again', async () => {
+    const conflict = { status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' };
+    const { fixture, toast } = await createFixture({ canAssign: true, putHandler: () => throwError(() => conflict) });
+    const component = fixture.componentInstance;
+    fixture.componentRef.setInput('revision', 7);
+    const stale = vi.fn();
+    component.staleUser.subscribe(stale);
+    component.onFormSelect('iam.users');
+    component.selectedAction.set('update');
+    component.addPersonalGrant();
+
+    component.savePersonalGrants();
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    expect(component.hasUnsavedChanges()).toBe(true);
+    toast.show.mock.calls[0][4].run();
+    expect(stale).toHaveBeenCalledTimes(1);
     expect(component.hasUnsavedChanges()).toBe(false);
   });
 

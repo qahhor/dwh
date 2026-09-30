@@ -15,6 +15,7 @@ import { catchError, finalize, map, of, tap } from 'rxjs';
 import { lastLoaded } from '@features/iam/last-loaded';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
 
 @Component({
@@ -104,6 +105,7 @@ export class CustomFieldsComponent {
   private readonly formService = inject(CustomFieldsFormService);
 
   private readonly modal = inject(SMTModalService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly selectedEntity = signal('ALL');
   readonly searchQuery = signal('');
@@ -309,9 +311,16 @@ export class CustomFieldsComponent {
             this.closeModal();
             this.loadFields();
           },
-          error: () => {
+          error: (err: unknown) => {
             this.saving.set(false);
-            this.toast.error(this.uiI18n.translate('iam.oshibka_sohraneniya_polya'));
+            // A newer revision: the list is read again and the field is opened from it.
+            this.saveErrors.show(err, {
+              fallbackKey: 'iam.oshibka_sohraneniya_polya',
+              reload: () => {
+                this.closeModal();
+                this.loadFields();
+              },
+            });
           },
         });
     } else {
@@ -333,9 +342,9 @@ export class CustomFieldsComponent {
             this.closeModal();
             this.loadFields();
           },
-          error: () => {
+          error: (err: unknown) => {
             this.saving.set(false);
-            this.toast.error(this.uiI18n.translate('iam.oshibka_sozdaniya_polya'));
+            this.saveErrors.show(err, { fallbackKey: 'iam.oshibka_sozdaniya_polya' });
           },
         });
     }

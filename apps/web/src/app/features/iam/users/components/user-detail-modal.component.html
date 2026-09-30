@@ -244,8 +244,11 @@
             @if (isOpen() && canViewAssignments() && safeRecordId()(u.id)) {
               <app-user-effective-permissions-panel
                 [userId]="u.id"
+                [revision]="u.revision"
                 [canAssign]="canAssignPermissions()"
                 [userRoleNames]="getUserRoleNames()(u)"
+                (revisionChange)="userRevisionChange.emit({ userId: u.id, revision: $event })"
+                (staleUser)="refreshUser.emit(u.id)"
               ></app-user-effective-permissions-panel>
             }
           </div>

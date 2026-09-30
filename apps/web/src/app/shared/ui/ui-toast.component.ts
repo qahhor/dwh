@@ -30,6 +30,11 @@ import { TranslatePipe } from '@core/services/i18n.service';
                 <div class="toast-title">{{ toast.title }}</div>
               }
               <div class="toast-message">{{ toast.message }}</div>
+              @if (toast.action; as action) {
+                <button type="button" class="toast-action" (click)="toastService.runAction(toast.id)">
+                  {{ action.label }}
+                </button>
+              }
             </div>
             <button
               type="button"

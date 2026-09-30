@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Observable, Subject, of } from 'rxjs';
+import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Project } from '@core/models/task.models';
 import { ApiService } from '@core/services/api.service';
@@ -18,7 +18,12 @@ const project = (id: number, name = `Project ${id}`, description = ''): Project 
 describe('ProjectFormsService', () => {
   let reads: Record<number, Observable<unknown> | Observable<unknown>[]>;
   let api: { get: ReturnType<typeof vi.fn>; post: ReturnType<typeof vi.fn>; patch: ReturnType<typeof vi.fn> };
-  let toast: { success: ReturnType<typeof vi.fn>; warning: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
+  let toast: {
+    success: ReturnType<typeof vi.fn>;
+    warning: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    show: ReturnType<typeof vi.fn>;
+  };
   let forms: ProjectFormsService;
 
   function setup(permissions = ['*.*']) {
@@ -30,7 +35,7 @@ describe('ProjectFormsService', () => {
       post: vi.fn(() => of(project(10))),
       patch: vi.fn(() => of(undefined)),
     };
-    toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn() };
+    toast = { success: vi.fn(), warning: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         ProjectFormsService,
@@ -232,6 +237,31 @@ describe('ProjectFormsService', () => {
     forms.destroy();
     lateCreate.next(project(99));
     expect(toast.success).not.toHaveBeenCalled();
+  });
+
+  it('shows an edit refused over a newer revision once; its button closes the dialog and reads the list again', () => {
+    reads[4] = of({ ...project(4, 'Current'), revision: 2 });
+    setup();
+    const updated = vi.fn();
+    forms.onProjectUpdated = updated;
+    api.patch.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+    forms.openEditModal(project(4));
+    forms.editForm.name = 'Changed';
+
+    forms.submitEditProject();
+
+    expect(api.patch).toHaveBeenCalledWith(
+      '/tasks/projects/4',
+      { name: 'Changed' },
+      { notifyError: false, ifMatch: 2 },
+    );
+    expect(forms.editSaveError()).toBeNull();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    toast.show.mock.calls[0][4].run();
+    expect(forms.isEditModalOpen()).toBe(false);
+    expect(updated).toHaveBeenCalledTimes(1);
   });
 
   it('does not let task create or update permissions grant project actions', () => {
