@@ -28,7 +28,7 @@ public class MsTaskRepository {
     }
 
     public TaskRecord create(TaskCreateData data, Long createdBy) {
-        String attrsJson = rows.toJson(data.attributes());
+        String attrsJson = rows.attributesJson(data.attributes());
 
         return jdbcClient
                 .sql("""
@@ -81,7 +81,7 @@ public class MsTaskRepository {
             t.revision""";
 
     public void update(Long id, TaskUpdateData data, Long modifiedBy) {
-        String attrsJson = data.attributes() != null ? rows.toJson(data.attributes()) : null;
+        String attrsJson = data.attributes() != null ? rows.attributesJson(data.attributes()) : null;
 
         var updated = jdbcClient
                 .sql("""
@@ -123,7 +123,7 @@ public class MsTaskRepository {
     }
 
     public void patch(Long id, MsTaskPatch patch, Long modifiedBy) {
-        String attrsJson = patch.attributes() != null ? rows.toJson(patch.attributes()) : null;
+        String attrsJson = patch.attributes() != null ? rows.attributesJson(patch.attributes()) : null;
 
         var updated = jdbcClient
                 .sql("""

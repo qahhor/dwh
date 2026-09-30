@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.ms.task.repository;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -9,16 +10,17 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 /** A task row as the task repositories read and write it: one mapping, so every query returns the same record. */
 final class MsTaskRows {
 
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     MsTaskRows(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "ms_tasks");
     }
 
     TaskRecord map(ResultSet rs, int rowNum) throws SQLException {
@@ -31,7 +33,7 @@ final class MsTaskRows {
                 rs.getLong("status_id"),
                 rs.getString("priority"),
                 rs.getLong("reporter_id"),
-                parseJson(rs.getString("attributes_str")),
+                jsonColumns.readObject(rs.getString("attributes_str")),
                 instant(rs.getTimestamp("begin_time")),
                 instant(rs.getTimestamp("end_time")),
                 instant(rs.getTimestamp("resolved_time")),
@@ -42,23 +44,9 @@ final class MsTaskRows {
                 rs.getObject("revision") != null ? rs.getLong("revision") : 1L);
     }
 
-    String toJson(Map<String, Object> map) {
-        if (map == null) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JacksonException e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
+    /** The attributes of a task as a JSON object, written by the shared JSON columns (plan item 3.11). */
+    String attributesJson(Map<String, Object> map) {
+        return jsonColumns.object(map);
     }
 
     static Timestamp timestamp(Instant time) {

@@ -11,6 +11,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.LinkedHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
@@ -20,9 +22,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class MdCustomFieldService {
+
+    private static final Logger log = LoggerFactory.getLogger(MdCustomFieldService.class);
 
     private static final Set<String> RESERVED_CODES = Set.of(
             "id",
@@ -63,7 +68,7 @@ public class MdCustomFieldService {
             @Lazy ObjectProvider<MdCustomFieldService> selfProvider) {
         this.customFieldRepository = customFieldRepository;
         this.auditLogService = auditLogService;
-        this.objectMapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        this.objectMapper = objectMapper != null ? objectMapper : JsonMapper.shared();
         this.userRepository = userRepository;
         this.selfProvider = selfProvider;
     }
@@ -77,7 +82,7 @@ public class MdCustomFieldService {
     }
 
     public MdCustomFieldService(MdCustomFieldRepository customFieldRepository, AuditLogService auditLogService) {
-        this(customFieldRepository, auditLogService, new ObjectMapper(), null, null);
+        this(customFieldRepository, auditLogService, JsonMapper.shared(), null, null);
     }
 
     private MdCustomFieldService getSelf() {
@@ -387,7 +392,8 @@ public class MdCustomFieldService {
                 }
             }
             return result;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            log.warn("custom_field_options_unreadable error={}", e.toString());
             return List.of();
         }
     }

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
@@ -7,7 +8,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -15,15 +15,17 @@ public class MsProjectRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public MsProjectRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "ms_task_projects");
     }
 
     public ProjectRecord create(
             String name, String description, String state, Map<String, Object> attributes, Long createdBy) {
-        String attrsJson = toJson(attributes);
+        String attrsJson = jsonColumns.object(attributes);
 
         return jdbcClient
                 .sql("""
@@ -74,7 +76,7 @@ public class MsProjectRepository {
             String state,
             Map<String, Object> attributes,
             long expectedRevision) {
-        String attrsJson = attributes != null ? toJson(attributes) : null;
+        String attrsJson = attributes != null ? jsonColumns.object(attributes) : null;
 
         return jdbcClient
                 .sql("""
@@ -145,29 +147,10 @@ public class MsProjectRepository {
                 rs.getString("name"),
                 rs.getString("description"),
                 rs.getString("state"),
-                parseJson(rs.getString("attributes_str")),
+                jsonColumns.readObject(rs.getString("attributes_str")),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getObject("created_by") != null ? rs.getLong("created_by") : null,
                 rs.getLong("revision"));
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JacksonException e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 
     public record ProjectRecord(

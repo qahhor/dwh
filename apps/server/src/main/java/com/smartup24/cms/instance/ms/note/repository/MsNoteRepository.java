@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.note.repository;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.web.Revisions;
@@ -19,10 +20,12 @@ public class MsNoteRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public MsNoteRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "ms_notes");
     }
 
     public record NoteRecord(
@@ -45,7 +48,7 @@ public class MsNoteRepository {
             boolean isPinned,
             Map<String, Object> attributes,
             Long userId) {
-        String attrsJson = toJson(attributes);
+        String attrsJson = jsonColumns.object(attributes);
         return jdbcClient
                 .sql("""
                 insert into ms_notes(title, content_md, color, is_pinned, attributes, created_by, modified_by, created_at, modified_at)
@@ -91,7 +94,7 @@ public class MsNoteRepository {
             Map<String, Object> attributes,
             Long userId,
             @Nullable Long expectedRevision) {
-        String attrsJson = attributes == null ? null : toJson(attributes);
+        String attrsJson = attributes == null ? null : jsonColumns.object(attributes);
         return jdbcClient
                 .sql("""
                 update ms_notes
@@ -153,7 +156,7 @@ public class MsNoteRepository {
                 rs.getString("content_md"),
                 rs.getString("color"),
                 rs.getBoolean("is_pinned"),
-                parseJson(rs.getString("attributes_str")),
+                jsonColumns.readObject(rs.getString("attributes_str")),
                 rs.getLong("created_by"),
                 rs.getLong("modified_by"),
                 rs.getTimestamp("created_at") != null
@@ -163,24 +166,5 @@ public class MsNoteRepository {
                         ? rs.getTimestamp("modified_at").toInstant()
                         : null,
                 rs.getLong("revision"));
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null || map.isEmpty()) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 }

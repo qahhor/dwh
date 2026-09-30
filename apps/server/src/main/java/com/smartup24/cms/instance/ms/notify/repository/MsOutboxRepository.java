@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import java.time.Instant;
 import java.util.List;
@@ -7,7 +8,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -15,15 +15,17 @@ public class MsOutboxRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public MsOutboxRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "ms_outbox");
     }
 
     public OutboxRecord enqueue(
             String channel, String recipient, String templateCode, Map<String, Object> payload, UUID idempotencyKey) {
-        String payloadJson = toJson(payload);
+        String payloadJson = jsonColumns.object(payload);
 
         return jdbcClient
                 .sql("""
@@ -129,7 +131,7 @@ public class MsOutboxRepository {
                 rs.getString("channel"),
                 rs.getString("recipient"),
                 rs.getString("template_code"),
-                parseJson(rs.getString("payload_str")),
+                jsonColumns.readObject(rs.getString("payload_str")),
                 rs.getString("status"),
                 rs.getInt("attempts"),
                 rs.getInt("max_attempts"),
@@ -144,25 +146,6 @@ public class MsOutboxRepository {
                 rs.getTimestamp("claimed_at") != null
                         ? rs.getTimestamp("claimed_at").toInstant()
                         : null);
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JacksonException e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 
     public record OutboxRecord(

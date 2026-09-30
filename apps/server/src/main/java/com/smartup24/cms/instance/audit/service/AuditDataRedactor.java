@@ -7,8 +7,11 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Removes credential material before audit data crosses either the persistence
@@ -17,11 +20,14 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class AuditDataRedactor {
 
+    private static final Logger log = LoggerFactory.getLogger(AuditDataRedactor.class);
+
     public static final String REDACTED = "[REDACTED]";
 
     private static final Set<String> SAFE_TOKEN_METADATA_KEYS = Set.of("tokenprefix");
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    /** Only turns unknown values into plain JSON trees to inspect them; the shared default mapper does that. */
+    private final ObjectMapper objectMapper = JsonMapper.shared();
 
     public Map<String, Object> redact(Map<String, Object> source) {
         if (source == null || source.isEmpty()) {
@@ -74,8 +80,9 @@ public class AuditDataRedactor {
         try {
             Object jsonValue = objectMapper.readValue(objectMapper.writeValueAsString(value), Object.class);
             return redactValue(jsonValue);
-        } catch (Exception ignored) {
+        } catch (RuntimeException unreadable) {
             // Unknown objects must never cross the audit boundary uninspected.
+            log.warn("audit_value_redacted type={} error={}", value.getClass().getName(), unreadable.toString());
             return REDACTED;
         }
     }
