@@ -21,7 +21,8 @@ import org.dhatim.fastexcel.Worksheet;
 
 /**
  * A large synthetic package file written straight to disk (plan 10/10, item 3.9): a sales-like sheet of seven columns
- * — numbers with many digits, a few repeated names — so a million rows weigh about the product limit of 50 MB. The
+ * — numbers with many digits, a few repeated names (or, as a variant, a name per row) — so a million rows weigh about
+ * the product limit of 50 MB. The
  * writer flushes every few thousand rows: the generator itself holds no rows either.
  */
 final class UplLargeWorkbook {
@@ -82,7 +83,18 @@ final class UplLargeWorkbook {
 
     /** Writes {@code rows} data rows under a header in the first row; the same seed gives the same file. */
     static Path write(Path file, int rows) {
+        return write(file, rows, false);
+    }
+
+    /**
+     * Writes {@code rows} data rows; with {@code uniqueNames} every row has a name of its own, so the shared strings
+     * table of the file holds a string per row — the case where a reader that keeps shared strings in memory grows
+     * with the file. Amounts then stay under ten thousand (one digit fewer), which keeps the file within the product
+     * limit of 50 MB despite the larger strings table.
+     */
+    static Path write(Path file, int rows, boolean uniqueNames) {
         SplittableRandom random = new SplittableRandom(rows);
+        double amountScale = uniqueNames ? 10_000 : 100_000;
         try (OutputStream out = Files.newOutputStream(file);
                 Workbook book = new Workbook(out, "TEST", "1.0")) {
             Worksheet sheet = book.newWorksheet(SHEET);
@@ -92,8 +104,9 @@ final class UplLargeWorkbook {
             for (int row = 1; row <= rows; row++) {
                 sheet.value(row, 0, row);
                 sheet.value(row, 1, 100_000_000 + random.nextInt(900_000_000));
-                sheet.value(row, 2, "TEST орг " + random.nextInt(NAMES));
-                sheet.value(row, 3, cents(random.nextDouble() * 100_000));
+                int name = random.nextInt(NAMES);
+                sheet.value(row, 2, "TEST орг " + (uniqueNames ? row : name));
+                sheet.value(row, 3, cents(random.nextDouble() * amountScale));
                 sheet.value(
                         row, 4, LocalDate.of(2026, 3, 1 + random.nextInt(31)).toString());
                 sheet.value(row, 5, random.nextInt(1_000));
