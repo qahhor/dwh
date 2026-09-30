@@ -289,6 +289,40 @@ A request that fails with SQL state `57014` (statement timeout) or a closed
 connection after `idle-in-transaction timeout` points at a query or code path
 to fix, not at a limit to raise.
 
+## Retention of journal tables
+
+Plan 10/10, item 3.13 (ADR-0025). Every night (`SMC_RETENTION_CRON`, default 03:30) the retention job deletes
+the rows of ten journal tables past their retention, in batches of `SMC_RETENTION_BATCH_SIZE` rows (5000), at
+most `SMC_RETENTION_MAX_BATCHES` batches (200) per table and run; a larger backlog continues the next night.
+Each batch is its own short transaction; two nodes may run the job at once.
+
+| Setting (days) | Table | Default | Rows kept however old |
+|---|---|---|---|
+| `SMC_RETENTION_SECURITY_EVENTS_DAYS` | `security_events` | 365 | — |
+| `SMC_RETENTION_LOGIN_ATTEMPTS_DAYS` | `kauth_login_attempts` | 30 | — |
+| `SMC_RETENTION_OTP_CODES_DAYS` | `kauth_otp_codes` (after expiry) | 7 | — |
+| `SMC_RETENTION_PASSWORD_RESET_CODES_DAYS` | `kauth_password_reset_codes` (after expiry) | 7 | — |
+| `SMC_RETENTION_CLOSED_SESSIONS_DAYS` | `kauth_sessions` (after closing) | 90 | open sessions |
+| `SMC_RETENTION_WEBHOOK_LOGS_DAYS` | `kwh_logs` | 90 | — |
+| `SMC_RETENTION_WEBHOOK_OUTBOX_DAYS` | `kwh_outbox` (sent, dead letter) | 30 | pending, in progress |
+| `SMC_RETENTION_INBOX_DAYS` | `ms_notifications` | 180 | — |
+| `SMC_RETENTION_NOTIFICATION_OUTBOX_DAYS` | `ms_notification_outbox` (sent, dead letter) | 30 | pending, in progress |
+| `SMC_RETENTION_JOB_RUNS_DAYS` | `fnd_job_runs` (finished) | 90 | running jobs |
+
+`0` keeps a table's rows forever. The audit log is not here: its partitions leave the database only through
+the verified archive ("Audit log archive"). The log line `retention_purged policy=… rows=…` and the metric
+`dwh_retention_deleted_rows_total{policy}` show each run; `retention_failed` names a table the run could not
+clean (the others are cleaned regardless, and the next run retries it).
+
+## Cache across nodes
+
+Plan 10/10, item 3.13 (ADR-0025). Each node caches reference data (task statuses and types, modules, menu,
+custom fields) for up to ten minutes. A change clears the cache on its node and, once committed, sends
+`NOTIFY smc_cache`; every other node clears the same cache within a second or two. Each node holds one
+connection of its pool (of 20) to listen. If that connection drops, the node logs
+`cache_invalidation_listen_failed`, clears all its caches and listens again with a growing pause (up to 30 s);
+until then another node's change reaches it at the latest when its entries expire.
+
 ## Incident closure
 
 Document impact, timeline, root cause, data/security assessment, remediation,
