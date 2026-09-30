@@ -64,3 +64,18 @@
   видна: такие места переводятся вручную и проверяются на ревью.
 - Сообщения полей валидации Bean Validation (`errors[].message`) пока остаются
   текстом по умолчанию валидатора.
+
+## 5. Уточнения (2026-10-01)
+
+- Ошибка поля тоже несёт ключ: `FieldErrorItem.keyed(поле, код, ключ, параметры)`
+  отдаёт `messageKey` и `params`, а `message` — текст на языке запроса, собранный
+  так же, как `detail`. `ErrorTextsTest` падает на литеральном тексте в
+  `new FieldErrorItem(...)` и проверяет, что каждый литерал `error.*` в коде есть в
+  каталогах ru, en, uz.
+- Предложение вместо ключа в `ApiException` наружу не уходит: обработчик пишет
+  ошибку в журнал и отвечает текстом кода `error.<code>`.
+- Вне Spring MVC формат тот же: 415, 406, отсутствующая часть multipart,
+  заголовок или cookie — 4xx от `GlobalExceptionHandler`; отказ firewall
+  Spring Security — 400 `error.request_rejected` (`ProblemDetailAuthHandlers`);
+  исключение в фильтре и `sendError` контейнера — `ProblemErrorController`
+  вместо ответа Spring Boot по умолчанию.
