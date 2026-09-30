@@ -43,13 +43,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Блок E основы: версии загрузок и журнал (AC-25…AC-32), плюс состав колонок fnd_loads (AC-44).
- * Тесты протокола идут по двум конфигурациям ведомств А и Б ({@link DepartmentFixture}, AC-41):
- * источники, периоды и версии формата — параметр, а не знание ядра.
+ * Foundation loads: load versions and the load journal, plus the exact column set of fnd_loads.
+ * Protocol tests run against two configurations, departments A and B ({@link DepartmentFixture}):
+ * sources, periods and format versions are parameters, not knowledge built into the core.
  */
 class FndLoadServiceTest extends EmbeddedPostgresTest {
 
-    /** Основная загрузка текущей конфигурации: источник, период, версия формата. */
+    /** Main load of the current configuration: source, period, format version. */
     private String source;
 
     private LocalDate periodFrom;
@@ -259,9 +259,9 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                         .update())
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("fnd_load_log_append_only");
-        // Сессия обслуживания — единственное исключение (как для audit_log каркаса)
+        // A maintenance session is the only exception (as for the framework's audit_log)
         tx.executeWithoutResult(status -> {
-            actors.apply(user); // журнал под аудитом (V106): и обслуживание идёт с актором
+            actors.apply(user); // the journal is audited (V106): maintenance also runs with an actor
             jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
                     .query(String.class)
                     .single();
@@ -361,7 +361,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("AC-44: колонки fnd_loads — ровно список 18 п.14, без канальной специфики")
+    @DisplayName("AC-44: колонки fnd_loads — ровно заданный список, без канальной специфики")
     void loadsSchemaHasNoChannelColumns() {
         List<String> columns = jdbc.sql(
                         "select column_name from information_schema.columns" + " where table_name = 'fnd_loads'")
@@ -468,12 +468,12 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         }
         assertThat(loads.find(loadId).orElseThrow().status()).isEqualTo(FndLoad.APPLIED);
         assertThat(rawWriter.read(loadId)).isEmpty();
-        // После apply запись отвергается сразу: статус уже не pending
+        // After apply a write is refused at once: the status is no longer pending
         assertThat(codeOf(() -> rawWriter.write(loadId, null, rows(1))))
                 .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private long userId() {
         return tx.execute(status -> jdbc.sql("""
@@ -501,7 +501,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         return ((ConstraintViolationException) error).code();
     }
 
-    /** Фасад, который всегда сообщает о недоступности pg-dwh (AC-26). */
+    /** A facade that always reports pg-dwh as unavailable. */
     private static final class BrokenRawWriter implements FndRawWriter {
         @Override
         public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {

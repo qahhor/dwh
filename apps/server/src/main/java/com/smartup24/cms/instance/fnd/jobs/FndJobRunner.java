@@ -18,9 +18,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Снимает задания основы с очереди {@code fnd_job_queue} и пишет результат в {@code fnd_job_runs}
- * (02 п.15; AC-7, AC-31). Планировщика здесь нет намеренно: момент запуска выбирает экземпляр,
- * а порядок «поставить в очередь → выполнить» одинаков и в бою, и в тестах.
+ * Takes foundation jobs off the {@code fnd_job_queue} queue and records each outcome in {@code fnd_job_runs}.
+ * There is deliberately no scheduler here: the instance chooses when to run, and the "enqueue, then run" sequence is
+ * the same in production and in tests.
  *
  * <p>Plan 10/10, item 3.8: a job is leased, not held in a transaction. A short transaction takes one due row
  * ({@code for update skip locked}), stamps the claim and the end of the lease on it and records the run; the handler
@@ -32,13 +32,13 @@ import tools.jackson.databind.ObjectMapper;
  *
  * <p>Scheduling takes a transaction-scoped advisory lock, so two nodes that tick together enqueue a due scheduled
  * job once. A runner takes only the jobs whose handler it knows: during a rolling upgrade an old node leaves a new
- * kind of job to the new one instead of failing it. Выключатель {@code jobs_enabled=false} в {@code md_settings}
- * каркаса ({@code user_id is null}) останавливает выборку.
+ * kind of job to the new one instead of failing it. The switch {@code jobs_enabled=false} in the framework's
+ * {@code md_settings} (the row with {@code user_id is null}) stops the runner from taking jobs.
  */
 @Component
 public class FndJobRunner {
 
-    /** Ключ выключателя в {@code md_settings} каркаса; строки нет — задания выполняются. */
+    /** The switch key in the framework's {@code md_settings}; with no such row, jobs run. */
     public static final String JOBS_ENABLED_KEY = "jobs_enabled";
 
     private static final Logger log = LoggerFactory.getLogger(FndJobRunner.class);
@@ -74,7 +74,7 @@ public class FndJobRunner {
     }
 
     /**
-     * Ставит в очередь задания, у которых подошёл срок по расписанию. Two nodes ticking together: the one that gets
+     * Enqueues the scheduled jobs that are due. Two nodes ticking together: the one that gets
      * the advisory lock enqueues, the other returns 0 at once; the conditional update would stop a duplicate even
      * without the lock, which only spares the second node the wait on the schedule rows.
      */
@@ -102,11 +102,12 @@ public class FndJobRunner {
     }
 
     /**
-     * Выполняет задания, чей срок наступил, по одному до пустой очереди. Успешное снимается из очереди, упавшее ждёт
-     * следующей попытки или, исчерпав попытки, остаётся помеченным {@code failed_at}; каждая попытка остаётся в
-     * {@code fnd_job_runs}: успешные — {@code done}, упавшие — {@code failed} с текстом ошибки и {@code args}.
+     * Runs due jobs one by one until the queue is empty. A successful job leaves the queue; a failed one waits for
+     * its next attempt or, once out of attempts, stays marked with {@code failed_at}. Every attempt is kept in
+     * {@code fnd_job_runs}: successful ones as {@code done}, failed ones as {@code failed} with the error text and
+     * {@code args}.
      *
-     * @return число успешно выполненных заданий
+     * @return the number of jobs that succeeded
      */
     public int runQueued() {
         int done = 0;
@@ -122,9 +123,10 @@ public class FndJobRunner {
     }
 
     /**
-     * Берёт одно задание и выполняет его вне транзакции очереди.
+     * Takes one job and runs it outside the queue transaction.
      *
-     * @return пусто — очередь пуста или задания выключены; иначе {@code true} при успехе, {@code false} при сбое
+     * @return empty when the queue is empty or jobs are switched off; otherwise {@code true} on success and
+     *     {@code false} on failure
      */
     public Optional<Boolean> runNext() {
         Claim claim = tx.execute(status -> claim());
@@ -309,7 +311,7 @@ public class FndJobRunner {
                 .orElse(true);
     }
 
-    /** Ставит задание в очередь вне расписания — например, шагом поставки или сверкой по требованию. */
+    /** Enqueues a scheduled job outside its schedule, e.g. from a deployment step or an on-demand check. */
     @Transactional
     public void enqueue(String scheduleCode) {
         int queued = jdbc.sql("""
@@ -322,8 +324,8 @@ public class FndJobRunner {
     }
 
     /**
-     * Ставит в очередь разовое задание с аргументами — вне расписания. Участвует в транзакции вызывающего:
-     * запись прикладного модуля и задание появляются вместе или не появляются вовсе.
+     * Enqueues a one-off job with arguments, outside any schedule. It joins the caller's transaction, so the business
+     * module's record and the job appear together or not at all.
      */
     @Transactional
     public void enqueueOnce(String handlerCode, Map<String, Object> args) {
@@ -334,7 +336,7 @@ public class FndJobRunner {
                 .update();
     }
 
-    /** Текст ошибки для {@code fnd_job_runs.error}: исключение и цепочка причин, чтобы не терять текст SQLException. */
+    /** Error text for {@code fnd_job_runs.error}: the exception and its cause chain, keeping an SQLException's text. */
     static String describe(Throwable failure) {
         StringBuilder text = new StringBuilder(failure.toString());
         for (Throwable cause = failure.getCause(); cause != null; cause = cause.getCause()) {

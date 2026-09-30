@@ -17,13 +17,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Версии загрузок и журнал пакета (11 п.6, п.8; 18 п.14; AC-25…AC-32).
+ * Load versions and the package log.
  *
- * <p>Протокол применения: {@link #begin} создаёт версию в {@code pending} → строки пишутся фасадом
- * {@code FndRawWriter} в pg-dwh под этим {@code load_id} → {@link #apply} переводит версию в
- * {@code applied} и снимает предыдущую загрузку того же источника за тот же период. Сбой —
- * {@link #fail}: строки остаются, их удаляет задание обслуживания {@code fnd.load_cleanup}.
- * Допустимые переходы: {@code pending→applied}, {@code pending→failed}, {@code applied→superseded}.
+ * <p>Apply protocol: {@link #begin} creates a version in {@code pending}; the {@code FndRawWriter} facade then writes
+ * rows into pg-dwh under that {@code load_id}; {@link #apply} moves the version to {@code applied} and supersedes the
+ * previous load of the same source for the same period. On failure, {@link #fail} is called: the rows stay, and the
+ * maintenance job {@code fnd.load_cleanup} deletes them. Allowed transitions: {@code pending→applied},
+ * {@code pending→failed}, {@code applied→superseded}.
  */
 @Service
 public class FndLoadService {
@@ -36,7 +36,7 @@ public class FndLoadService {
         this.actors = actors;
     }
 
-    /** Открывает версию загрузки. Повторный {@code package_ref} — отказ {@code fnd_loads_uk_package_ref}. */
+    /** Opens a load version. A repeated {@code package_ref} is rejected by {@code fnd_loads_uk_package_ref}. */
     @Transactional
     public long begin(
             String sourceCode,
@@ -62,9 +62,9 @@ public class FndLoadService {
     }
 
     /**
-     * Применяет загрузку: счётчики строк должны сходиться ({@code accepted + rejected = total}),
-     * иначе отказ ограничения {@code fnd_loads_ck_rows}. Предыдущая применённая загрузка того же
-     * источника за тот же период получает {@code superseded} и ссылку {@code superseded_by} (AC-28, доп.7).
+     * Applies a load. The row counters must add up ({@code accepted + rejected = total}), otherwise the
+     * {@code fnd_loads_ck_rows} constraint rejects the update. The previously applied load of the same source for the
+     * same period becomes {@code superseded} and gets a {@code superseded_by} reference to this one.
      */
     @Transactional
     public void apply(long loadId, int rowsTotal, int rowsAccepted, int rowsRejected, FndActor actor) {
@@ -96,7 +96,7 @@ public class FndLoadService {
                 .update());
     }
 
-    /** Отмечает загрузку неудачной и пишет причину в журнал; без причины — отказ (AC-26). */
+    /** Marks a load failed and writes the reason to the log; a call without a reason is rejected. */
     @Transactional
     public void fail(long loadId, String reason, FndActor actor) {
         if (reason == null || reason.isBlank()) {
@@ -113,9 +113,9 @@ public class FndLoadService {
     }
 
     /**
-     * Строка журнала пакета (AC-29). {@code load_id} проставляется, когда версия загрузки уже
-     * применена; до этого события журнал ведётся по {@code package_ref}. Правка и удаление строк
-     * запрещены триггером {@code fnd_load_log_append_only()}.
+     * Writes a package log row. {@code load_id} is filled in once the load version has been applied; before that the
+     * log is keyed by {@code package_ref}. The {@code fnd_load_log_append_only()} trigger forbids updating or deleting
+     * log rows.
      */
     @Transactional
     public void log(
@@ -152,7 +152,7 @@ public class FndLoadService {
                 .update());
     }
 
-    /** Действующие версии данных источника: только применённые загрузки (11 п.10). */
+    /** The current data versions of a source: applied loads only. */
     @Transactional(readOnly = true)
     public List<Long> appliedLoadIds(String sourceCode) {
         return jdbc.sql("select id from fnd_loads where source_code = :source and status = 'applied' order by id")
@@ -172,9 +172,9 @@ public class FndLoadService {
     }
 
     /**
-     * Читает загрузку под блокировкой строки ({@code for update}) и требует статус {@code pending}.
-     * Параллельный {@code apply}/{@code fail} той же загрузки ждёт коммита и видит уже новый статус;
-     * незавершённая запись строк ({@code FndRawWriter.write} держит {@code for share}) тоже дожидается конца.
+     * Reads a load under a row lock ({@code for update}) and requires the {@code pending} status. A concurrent
+     * {@code apply}/{@code fail} of the same load waits for the commit and then sees the new status; a row write still
+     * in progress ({@code FndRawWriter.write} holds {@code for share}) is also waited for.
      */
     private FndLoad lockPending(long loadId) {
         FndLoad load = jdbc.sql("select id, source_code, package_ref, period_from, period_to, format_version,"
@@ -190,7 +190,7 @@ public class FndLoadService {
         return load;
     }
 
-    /** Переход статуса выполняется одним UPDATE с условием на текущий статус: 0 строк — состояние уже ушло. */
+    /** A status transition is one UPDATE conditioned on the current status: 0 rows means the state already moved on. */
     private static void requireUpdated(int updated) {
         if (updated != 1) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);

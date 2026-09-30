@@ -16,9 +16,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
- * Сверка двух баз (AC-31): FK между OLTP и pg-dwh нет (02 п.18), поэтому «сироты» ищутся заданием.
- * Строка {@code raw} со ссылкой на несуществующую загрузку или на несуществующий файл каркаса —
- * событие {@code xdb_mismatch} в {@code security_events}; данные при этом не трогаются.
+ * Cross-database check: there are no foreign keys between OLTP and pg-dwh, so a job looks for orphans instead.
+ * A {@code raw} row that refers to a load or a framework file that does not exist becomes an {@code xdb_mismatch}
+ * event in {@code security_events}; the data itself is left untouched.
  */
 @Component
 public class FndXdbCheckJob implements FndJobHandler {
@@ -26,7 +26,7 @@ public class FndXdbCheckJob implements FndJobHandler {
     public static final String CODE = "fnd.xdb_check";
     public static final String EVENT = "xdb_mismatch";
     private static final Logger log = LoggerFactory.getLogger(FndXdbCheckJob.class);
-    /** Сверка идёт на самом сервере: адреса клиента у неё нет, а колонка ip обязательна. */
+    /** The check runs on the server itself: it has no client address, yet the ip column is mandatory. */
     private static final String LOCAL_IP = "127.0.0.1";
 
     private final JdbcClient oltp;
@@ -46,7 +46,7 @@ public class FndXdbCheckJob implements FndJobHandler {
     public void run(Map<String, Object> args) {
         List<Long> loadIds = new ArrayList<>();
         List<UUID> fileIds = new ArrayList<>();
-        // Оба прохода читают весь raw — предел обслуживания, а не обычный предел запроса
+        // Both passes read the whole of raw, so they run under the maintenance limit, not the usual query limit
         dwh.inTransaction(connection -> {
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet rs = statement.executeQuery("select distinct load_id from raw.rows")) {
@@ -77,7 +77,7 @@ public class FndXdbCheckJob implements FndJobHandler {
         log.info("xdb_check loads={} files={} mismatches={}", loadIds.size(), fileIds.size(), mismatches);
     }
 
-    /** Один запрос на все id: сравнение массивом, без N+1 (M-14). Пустой список — запросов нет. */
+    /** One query for all ids, matched against an array to avoid N+1 queries. An empty list issues no query. */
     private Set<Long> knownLoadIds(List<Long> ids) {
         if (ids.isEmpty()) {
             return Set.of();

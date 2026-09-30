@@ -16,10 +16,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * AC-39 (18 п.14): запись в {@code fnd_loads}/{@code fnd_load_log} — только через фасад {@code FndLoadService}.
- * Grep-тест по {@code src/main}: имена таблиц в SQL-литералах, YAML и прочих исходниках вне пакета
- * {@code ..instance.fnd..} и наших миграций — красный с перечнем файл:строка.
- * [допущение] JPA в каркасе нет (JdbcClient), поэтому проверка сущностей сводится к тому же grep.
+ * Only the {@code FndLoadService} facade writes to {@code fnd_loads}/{@code fnd_load_log}.
+ * A grep test over {@code src/main}: table names in SQL literals, YAML and other sources outside the
+ * {@code ..instance.fnd..} package and our migrations turn it red, listing file:line.
+ * Assumption: the framework has no JPA (it uses JdbcClient), so checking entities comes down to the same grep.
  */
 class FndLoadsAccessRuleTest {
 
@@ -27,7 +27,7 @@ class FndLoadsAccessRuleTest {
     private static final Pattern TABLE = Pattern.compile("(?i)(?<![\\p{L}\\p{N}_])fnd_load(s|_log)(?![\\p{L}\\p{N}_])");
     private static final Set<String> SOURCE_EXTENSIONS =
             Set.of("java", "kt", "sql", "xml", "yml", "yaml", "properties");
-    /** AC-30/M-10: load_id — единый номер fnd_loads.id; своих sequence/uuid у него нет. */
+    /** load_id is the single number fnd_loads.id; it has no sequence or uuid of its own. */
     private static final Pattern LOAD_SEQUENCE = Pattern.compile("(?i)create\\s+sequence\\s+\\S*load");
 
     private static final Pattern LOAD_ID_TYPE =
@@ -102,7 +102,10 @@ class FndLoadsAccessRuleTest {
                 .anySatisfy(v -> assertThat(v).endsWith("UplLoads.java:1"));
     }
 
-    /** Файлы {@code src/main} вне {@code instance/fnd/} и вне наших миграций ({@code V1xx__fnd_*}, {@code db/dwh}). */
+    /**
+     * Files of {@code src/main} outside {@code instance/fnd/} and outside our migrations ({@code V1xx__fnd_*},
+     * {@code db/dwh}).
+     */
     static List<String> violations(Path root) throws IOException {
         List<String> found = new ArrayList<>();
         try (Stream<Path> tree = Files.walk(root)) {
@@ -126,7 +129,10 @@ class FndLoadsAccessRuleTest {
         return found;
     }
 
-    /** AC-30: все исходники {@code src/main}, включая fnd и миграции — строки, где load_id получает свой генератор или тип не bigint. */
+    /**
+     * All sources of {@code src/main}, fnd and migrations included: lines where load_id gets a generator of its own
+     * or a type other than bigint.
+     */
     static List<String> loadIdViolations(Path root) throws IOException {
         List<String> found = new ArrayList<>();
         try (Stream<Path> tree = Files.walk(root)) {

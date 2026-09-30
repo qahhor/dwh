@@ -31,17 +31,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Запись строк в {@code raw} второй базы (AC-33, AC-34, AC-36). Раскладка raw скрыта: модули
- * видят только этот фасад, поэтому переход с общей таблицы на таблицу-на-источник их не затронет.
+ * Writes rows into {@code raw} of the second database. The raw layout is hidden: modules see only this facade,
+ * so moving from one shared table to a table per source will not affect them.
  *
- * <p>Статус загрузки живёт в OLTP, строки — в pg-dwh; распределённой транзакции между ними нет
- * (02 п.18). Строки пишутся одной транзакцией pg-dwh, а OLTP-транзакция открывается только на её
- * коммит (план 10/10, п. 3.8: раньше она держала {@code for share} всю запись, и миллион строк
- * означал минуты открытой транзакции OLTP): строка загрузки берётся {@code for share}, проверяется
- * статус {@code pending}, коммитится pg-dwh, и только затем отпускается блокировка. Параллельный
- * {@code apply}/{@code fail} (они берут {@code for update}) ждёт лишь коммита; загрузка, закрытая во
- * время записи, отвергает её на коммите — строки не попадут в уже применённую загрузку (13 инв.4).
- * Статус проверяется и до записи, чтобы не писать зря. Сбой на любой строке — откат всей записи.
+ * <p>The load status lives in OLTP and the rows live in pg-dwh; there is no distributed transaction between them.
+ * The rows are written in one pg-dwh transaction, and an OLTP transaction is opened only around its commit (plan
+ * 10/10, item 3.8: before, it held {@code for share} for the whole write, and a million rows meant minutes of an
+ * open OLTP transaction). The load row is taken {@code for share}, its status is checked to be {@code pending},
+ * pg-dwh commits, and only then is the lock released. A concurrent {@code apply}/{@code fail} (both take
+ * {@code for update}) waits only for the commit; a load closed during the write rejects it at commit time, so rows
+ * never end up in a load that has already been applied. The status is also checked before the write so as not to
+ * write for nothing. A failure on any row rolls back the whole write.
  *
  * <p>Plan 10/10, item 3.9: rows go through one {@code COPY ... from stdin} in text format, encoded into a small buffer
  * as the source pushes them; no row outlives its line. The copy may run for as long as the file takes to parse, so the
@@ -107,7 +107,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
                 written = stream(connection, loadId, sourceFileId, rows);
                 commitWhilePending(loadId, connection);
             } catch (RuntimeException | SQLException failure) {
-                // Источник строк тоже может бросить исключение (AC-34): в raw не должно остаться ничего
+                // The row source may throw too: nothing of this write may remain in raw
                 rollback(connection);
                 throw failure;
             } finally {
@@ -116,7 +116,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
         } catch (SQLException failure) {
             throw new DwhUnavailableException(failure);
         }
-        // В журнале только объём: содержимое строк raw в логи не попадает (AC-43)
+        // Only the row count is logged: the content of raw rows never reaches the logs
         log.info("raw_write load_id={} rows={}", loadId, written);
         return written;
     }
@@ -237,7 +237,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
         });
     }
 
-    /** Проверка статуса под {@code for share}: блокировка держится до конца OLTP-транзакции вызывающего. */
+    /** Checks the status under {@code for share}: the lock is held until the caller's OLTP transaction ends. */
     private void requirePending(long loadId) {
         String status = oltp.sql("select status from fnd_loads where id = :id for share")
                 .param("id", loadId)

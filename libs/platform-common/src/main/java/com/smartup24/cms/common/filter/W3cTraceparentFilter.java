@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Стандартный W3C Traceparent фильтр для сквозной трассировки и логирования (ADR-0006).
+ * Standard W3C traceparent filter for end-to-end tracing and logging (ADR-0006).
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

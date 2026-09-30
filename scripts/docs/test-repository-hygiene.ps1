@@ -69,6 +69,34 @@ foreach ($script in $checkScripts) {
     }
 }
 
+# Plan 10/10, item 3.14: a comment points a newcomer to an ADR or a requirement (FR/NFR), never to an item of a
+# working brief ("prompt 02 item 18", "extra 12") that the reader has never seen. Released migrations are frozen by
+# checksum (MigrationManifestTest) and keep their history. The words are escaped so this script does not match itself.
+$briefReference = [regex]::new(
+    '\u043f\u0440\u043e\u043c\u043f\u0442|\u0434\u043e\u043f\.\s?\d|\b\d{2} \u043f\.\s?\d',
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+$releasedMigrations = [System.Collections.Generic.HashSet[string]]::new()
+Get-Content -LiteralPath (Join-Path $repoRoot 'apps/server/src/test/resources/migration-manifest.sha256') -Encoding UTF8 |
+    Where-Object { $_ -match '^[0-9a-f]{64}\s+(\S+)$' } |
+    ForEach-Object { [void]$releasedMigrations.Add('apps/server/src/main/resources/' + $Matches[1]) }
+$textFile = '\.(java|ts|js|mjs|cjs|html|scss|css|md|ya?ml|xml|json|sql|ps1|sh|txt|properties|toml|conf)$'
+foreach ($relativePath in $tracked) {
+    if ($relativePath -notmatch $textFile -or $releasedMigrations.Contains($relativePath)) {
+        continue
+    }
+    $fullPath = Join-Path $repoRoot $relativePath
+    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+        continue
+    }
+    $lineNumber = 0
+    foreach ($line in [System.IO.File]::ReadLines($fullPath)) {
+        $lineNumber++
+        if ($briefReference.IsMatch($line)) {
+            $errors.Add("Reference to a working brief instead of an ADR or FR: ${relativePath}:$lineNumber")
+        }
+    }
+}
+
 if ($errors.Count -gt 0) {
     throw "Repository hygiene contract failed:`n - $($errors -join "`n - ")"
 }

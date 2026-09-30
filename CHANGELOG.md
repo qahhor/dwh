@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- One language for code comments (plan 10/10, item 3.14). Comments are
+  written in English and point only at what a newcomer can open — an ADR,
+  an FR/NFR, a plan item; the numbered references to working briefs are
+  gone from the fnd module, its tests and `application.yml` (released
+  migrations keep theirs, frozen by checksum). The repository hygiene
+  check refuses such a reference anywhere else, and `CommentLanguageTest`
+  refuses Russian comments in any Java file not on its baseline, a list
+  that only shrinks (CODE_STYLE, section 2.1.2).
 - Retention of journals and the cache across nodes (plan 10/10, item 3.13,
   ADR-0025). Ten journal tables — security events, sign-in attempts, codes,
   closed sessions, webhook log and outbox, the inbox and its outbox, job

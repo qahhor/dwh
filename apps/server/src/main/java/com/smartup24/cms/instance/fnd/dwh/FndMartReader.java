@@ -22,11 +22,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
- * Чтение витрин и кеша второй базы (11 п.10–11; 02 п.11; AC-35, AC-36).
+ * Reads marts and the cache of the second database.
  *
- * <p>Метода «выполни этот SQL» у фасада нет: имя схемы берётся из белого списка, имя таблицы —
- * по строгому шаблону, значения уходят только связанными параметрами. Слои {@code raw} и
- * {@code core} через этот фасад недоступны: их читают задания построения, а не прикладной код.
+ * <p>The facade has no "run this SQL" method: the schema name comes from an allow-list, the table name must match
+ * a strict pattern, and values are passed only as bound parameters. The {@code raw} and {@code core} layers are not
+ * reachable through this facade: build jobs read them, not application code.
  */
 @Component
 public class FndMartReader {
@@ -40,7 +40,7 @@ public class FndMartReader {
         this.dwh = dwh;
     }
 
-    /** Действующее поколение кеша; его нет — пусто, а не исключение (11 п.10). */
+    /** The current cache generation; if there is none, the result is empty rather than an exception. */
     public Optional<FndGeneration> currentGeneration() {
         List<Map<String, Object>> rows = query(
                 "select generation_id, load_versions::text as load_versions, switched_at"
@@ -58,11 +58,11 @@ public class FndMartReader {
     }
 
     /**
-     * Читает таблицу витрины или кеша с фильтром по равенству.
+     * Reads a mart or cache table filtered by equality.
      *
-     * @param schema  только {@code mart} или {@code cache}
-     * @param table   имя таблицы по шаблону {@code ^[a-z][a-z0-9_]{0,62}$}
-     * @param filters колонка → значение; значения уходят связанными параметрами
+     * @param schema  only {@code mart} or {@code cache}
+     * @param table   table name matching {@code ^[a-z][a-z0-9_]{0,62}$}
+     * @param filters column → value; values are passed as bound parameters
      */
     public List<Map<String, Object>> read(String schema, String table, Map<String, Object> filters) {
         if (!ALLOWED_SCHEMAS.contains(schema) || !NAME.matcher(table).matches()) {
@@ -112,6 +112,6 @@ public class FndMartReader {
         return rows;
     }
 
-    /** Поколение кеша: номер, карта версий загрузок и момент переключения (11 п.10–11). */
+    /** A cache generation: its number, the map of load versions it was built from, and when it was switched in. */
     public record FndGeneration(long generationId, String loadVersions, Instant switchedAt) {}
 }

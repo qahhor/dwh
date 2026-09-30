@@ -1,17 +1,17 @@
 package com.smartup24.cms.instance.fnd;
 
-/** Константы основы: каталоги миграций, квалификатор второй БД, актор заданий. */
+/** Foundation constants: migration locations, the second database's qualifier, the job actor. */
 public final class FndPref {
 
-    /** Каталог миграций OLTP (02 п.10, п.18). */
+    /** Location of the OLTP migrations. */
     public static final String OLTP_MIGRATIONS = "db/migration";
-    /** Каталог миграций pg-dwh. */
+    /** Location of the pg-dwh migrations. */
     public static final String DWH_MIGRATIONS = "db/dwh";
-    /** Квалификатор бинов второй БД; используется только внутри {@code ..instance.fnd..} (AC-5). */
+    /** Qualifier of the second database's beans; used only inside {@code ..instance.fnd..}. */
     public static final String DWH = "dwh";
-    /** Актор для операций заданий и сидов (доп.12, доп.15). */
+    /** Actor recorded for operations performed by jobs and seeds. */
     public static final String SYSTEM_ACTOR = "system";
-    /** Код выхода процесса при расхождении схемы (AC-4). */
+    /** Process exit code when the database schema does not match the expected version. */
     public static final int EXIT_SCHEMA_MISMATCH = 3;
 
     private FndPref() {}

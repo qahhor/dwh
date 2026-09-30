@@ -17,18 +17,24 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-/** AC-2: регламент файлов миграций (промпт 02 п.1–2, п.8) — без базы, по содержимому файлов. */
+/**
+ * Migration file rules (file name, timeout header, no DDL mixed with seed data, approval of destructive changes),
+ * checked from the file contents without a database.
+ */
 class MigrationFileRulesTest {
 
-    /** Наши файлы в общем каталоге каркаса — от V100; всё ниже принадлежит upstream и не проверяется (AC-2). */
+    /** Our files in the framework's shared catalog start at V100; everything below belongs to upstream, unchecked. */
     private static final Pattern OURS = Pattern.compile("^V([1-9]\\d{2,})__.+\\.sql$");
 
     private static final Pattern NAME = Pattern.compile("^V\\d{3}__[a-z0-9_]+\\.sql$");
-    /** Деструктивный DDL — в любом месте верхнего уровня (тела функций $$…$$ вырезаются заранее). */
+    /** Destructive DDL anywhere at the top level (function bodies $$…$$ are cut out beforehand). */
     private static final Pattern DESTRUCTIVE_DDL = Pattern.compile(
             "(?i)\\b(DROP\\s+(TABLE|COLUMN|SCHEMA|INDEX|CONSTRAINT|FUNCTION|TRIGGER|TYPE|VIEW)|TRUNCATE"
                     + "|ALTER\\s+TABLE\\s+\\S+\\s+(DROP|RENAME|ALTER\\s+COLUMN\\s+\\S+\\s+(TYPE|SET\\s+NOT\\s+NULL)))\\b");
-    /** Деструктивный DML — только как начало оператора: `on conflict do update` и `create trigger … after update` не считаются. */
+    /**
+     * Destructive DML only at the start of a statement: `on conflict do update` and `create trigger … after update`
+     * do not count.
+     */
     private static final Pattern DESTRUCTIVE_DML =
             Pattern.compile("(?im)^\\s*(DELETE\\s+FROM|UPDATE\\s+\\S+\\s+SET)\\b");
 
@@ -54,7 +60,7 @@ class MigrationFileRulesTest {
     void realCatalogsAreClean() throws IOException {
         List<Violation> violations = new ArrayList<>();
         violations.addAll(check("classpath*:" + FndPref.OLTP_MIGRATIONS + "/V*.sql"));
-        // Каталог pg-dwh целиком наш: там нумерация начинается с V001 и правила действуют для всех файлов
+        // The pg-dwh catalog is entirely ours: numbering starts at V001 there and the rules apply to every file
         violations.addAll(check("classpath*:" + FndPref.DWH_MIGRATIONS + "/V*.sql", true));
         violations.addAll(check("classpath*:migration-fixtures/good/V*.sql"));
         violations.addAll(check("classpath*:migration-fixtures/lint-good/V*.sql"));
@@ -111,7 +117,7 @@ class MigrationFileRulesTest {
         return check(pattern, false);
     }
 
-    /** {@code allOurs} — каталог, где нет файлов каркаса: проверяются все файлы, а не только V1xx. */
+    /** {@code allOurs}: a catalog without framework files, so every file is checked, not only V1xx. */
     static List<Violation> check(String pattern, boolean allOurs) throws IOException {
         Resource[] files = new PathMatchingResourcePatternResolver().getResources(pattern);
         assertThat(files).as("каталог %s не пуст", pattern).isNotEmpty();
@@ -119,7 +125,7 @@ class MigrationFileRulesTest {
         for (Resource file : files) {
             String name = file.getFilename();
             String text = file.getContentAsString(StandardCharsets.UTF_8);
-            // Файлы каркаса (V0xx) — зона upstream: их регламент мы не проверяем и не правим (AC-2)
+            // Framework files (V0xx) belong to upstream: we neither check nor edit them against these rules
             if (name == null || !(allOurs || OURS.matcher(name).matches())) {
                 continue;
             }
@@ -138,7 +144,7 @@ class MigrationFileRulesTest {
                 if (head.size() < 2 || !head.get(0).trim().equals("set lock_timeout = '2s';") || !timeoutOk) {
                     out.add(new Violation(name, "header_timeouts"));
                 }
-                // Тела функций ($$ … $$) — часть DDL: INSERT внутри триггера сидом не считается
+                // Function bodies ($$ … $$) are part of DDL: an INSERT inside a trigger does not count as seed data
                 String topLevel = DOLLAR_BODY.matcher(text).replaceAll("\\$\\$body\\$\\$");
                 if (DDL.matcher(topLevel).find() && SEED.matcher(topLevel).find()) {
                     out.add(new Violation(name, "ddl_and_seed_mixed"));
@@ -151,7 +157,7 @@ class MigrationFileRulesTest {
         return out;
     }
 
-    /** Деструктивна ли миграция: смотрим только верхний уровень — тела функций ($$…$$) вырезаны (M-6). */
+    /** Whether a migration is destructive: the top level with function bodies ($$…$$) cut out, plus DO blocks. */
     static boolean destructive(String text) {
         String topLevel = DOLLAR_BODY.matcher(text).replaceAll("\\$\\$body\\$\\$");
         if (DESTRUCTIVE_DDL.matcher(topLevel).find()

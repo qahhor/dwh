@@ -8,13 +8,12 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Подключение к {@code pg-dwh} (промпт 02 п.18). Таймаут соединения обязателен: дефолта «без таймаута»
- * нет (AC-36), отсутствие свойства {@code app.dwh.connect-timeout} — красный старт.
+ * Connection settings for {@code pg-dwh}. The connect timeout is mandatory: there is no "no timeout" default,
+ * and a missing {@code app.dwh.connect-timeout} property makes startup fail.
  *
- * <p>Таймауты запросов (P0 DWH): {@code statement-timeout} — предел одного запроса и простоя внутри
- * транзакции для всего пула (чтение витрин, запись raw пачками); {@code maintenance-statement-timeout}
- * — для заданий обслуживания, которые проходят весь raw ({@link FndDwhMaintenance}). У обоих есть
- * значения по умолчанию: без них пул уже не бывает «без таймаута».
+ * <p>Query timeouts: {@code statement-timeout} limits a single query and idle time inside a transaction for the
+ * whole pool (mart reads, raw writes in batches); {@code maintenance-statement-timeout} applies to maintenance jobs
+ * that scan all of raw ({@link FndDwhMaintenance}). Both have defaults, so the pool never runs without a timeout.
  *
  * <p>{@code raw-write-timeout} bounds one streamed write of a load into raw (plan 10/10, item 3.9): a single
  * {@code COPY} lasts as long as the file takes to parse, minutes for a million rows, so the pool limit would cut it.

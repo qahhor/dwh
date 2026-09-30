@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Базовый абстрактный шлюз проверки схемы БД Flyway перед стартом приложения (Zero-Downtime Expand-Contract).
+ * Base gate that checks the Flyway database schema before the application starts (zero-downtime expand-contract).
  */
 public abstract class AbstractFlywaySchemaGate {
 
