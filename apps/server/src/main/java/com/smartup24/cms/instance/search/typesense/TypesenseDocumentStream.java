@@ -4,11 +4,15 @@ import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.client.ClientHttpResponse;
 import tools.jackson.databind.ObjectMapper;
 
 /** A bounded cursor owned by the single coordinator; no transaction or complete export stays in memory. */
 public final class TypesenseDocumentStream implements AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(TypesenseDocumentStream.class);
     private final ClientHttpResponse response;
     private final InputStream input;
     private final ObjectMapper mapper;
@@ -86,8 +90,9 @@ public final class TypesenseDocumentStream implements AutoCloseable {
         partial.reset();
         try {
             input.close();
-        } catch (IOException ignored) {
+        } catch (IOException closeFailed) {
             /* best-effort resource closure */
+            log.debug("typesense_stream_close_failed error={}", closeFailed.toString());
         }
         response.close();
     }

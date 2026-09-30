@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.repository;
 
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.Map;
@@ -8,7 +9,6 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -16,14 +16,16 @@ public class MdUserRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public MdUserRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "md_users");
     }
 
     public UserRecord create(UserCreateData data, Long createdBy) {
-        String attributesJson = toJson(data.attributes());
+        String attributesJson = jsonColumns.object(data.attributes());
 
         return jdbcClient
                 .sql("""
@@ -224,7 +226,7 @@ public class MdUserRepository {
 
     /** Saves the profile made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
     public long update(Long userId, UserUpdateData data, Long modifiedBy, long expectedRevision) {
-        String attributesJson = data.attributes() != null ? toJson(data.attributes()) : null;
+        String attributesJson = data.attributes() != null ? jsonColumns.object(data.attributes()) : null;
 
         return jdbcClient
                 .sql("""
@@ -261,7 +263,7 @@ public class MdUserRepository {
 
     /** Reads a row of {@link MdUserListSql#LIST_COLUMNS}; the user list (registry {@code iam.users}) maps its pages with it. */
     public UserRecord mapUser(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        Map<String, Object> attrs = parseJson(rs.getString("attributes_str"));
+        Map<String, Object> attrs = jsonColumns.readObject(rs.getString("attributes_str"));
         return new UserRecord(
                 rs.getLong("id"),
                 rs.getString("name"),
@@ -286,25 +288,6 @@ public class MdUserRepository {
                 rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null,
                 rs.getLong("auth_version"),
                 rs.getLong("revision"));
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JacksonException e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 
     /** Сколько АКТИВНЫХ пользователей имеют указанную роль (защита последнего админа). */

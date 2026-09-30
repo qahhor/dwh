@@ -94,8 +94,10 @@ public class KwhOutboxWorker {
                     lastError = "Non-2xx response: " + httpStatus;
                 }
             } catch (ApiException exception) {
+                log.info("webhook_target_rejected outboxId={} code={}", item.id(), exception.getErrorCode());
                 lastError = "webhook_target_rejected";
             } catch (Exception exception) {
+                log.warn("webhook_delivery_failed outboxId={} error={}", item.id(), exception.toString());
                 lastError = "webhook_delivery_failed";
             }
 

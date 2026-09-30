@@ -201,6 +201,7 @@ public class SearchService {
         try {
             return executionSnapshot.get();
         } catch (DataAccessException unavailable) {
+            log.warn("search_snapshot_unavailable error={}", unavailable.toString());
             return new SearchExecutionSnapshot(
                     new IndexSnapshot(null, 0, Map.of(), null, false, false), fallbackPolicy.get());
         }

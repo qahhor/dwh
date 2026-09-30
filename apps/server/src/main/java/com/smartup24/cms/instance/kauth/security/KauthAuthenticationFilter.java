@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.kauth.security;
 
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.service.KauthApiTokenService;
@@ -15,6 +16,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -31,6 +34,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 @Component
 public class KauthAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(KauthAuthenticationFilter.class);
 
     private final KauthSessionService sessionService;
     private final KauthApiTokenService apiTokenService;
@@ -124,7 +129,12 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (DataAccessException e) {
             throw e;
-        } catch (Exception ignored) {
+        } catch (ApiException gone) {
+            // The credential names a user who no longer exists: the request stays anonymous.
+            log.debug("kauth_credential_user_missing userId={} code={}", userId, gone.getErrorCode());
+        } catch (RuntimeException unexpected) {
+            // Any other failure is a defect: the request stays anonymous, and the log says why.
+            log.warn("kauth_authentication_failed userId={}", userId, unexpected);
         }
     }
 

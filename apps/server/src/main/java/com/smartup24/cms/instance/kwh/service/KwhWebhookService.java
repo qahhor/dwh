@@ -15,11 +15,15 @@ import java.util.List;
 import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class KwhWebhookService {
+
+    private static final Logger log = LoggerFactory.getLogger(KwhWebhookService.class);
 
     private final KwhSubscriptionRepository subscriptionRepository;
     private final KwhOutboxRepository outboxRepository;
@@ -163,6 +167,7 @@ public class KwhWebhookService {
         try {
             return targetPolicy.redact(java.net.URI.create(url));
         } catch (RuntimeException exception) {
+            log.debug("webhook_target_unreadable error={}", exception.toString());
             return "invalid-webhook-target";
         }
     }

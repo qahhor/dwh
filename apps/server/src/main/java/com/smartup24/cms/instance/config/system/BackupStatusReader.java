@@ -12,6 +12,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -21,6 +23,8 @@ import tools.jackson.databind.ObjectMapper;
 /** Reads the bounded, non-secret status contract written by the backup sidecar. */
 @Component
 public class BackupStatusReader {
+
+    private static final Logger log = LoggerFactory.getLogger(BackupStatusReader.class);
 
     static final int MAX_STATUS_BYTES = 16 * 1024;
 
@@ -67,7 +71,9 @@ public class BackupStatusReader {
                     .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
                     .readValue(contents);
             return sanitize(document);
-        } catch (Exception ignored) {
+        } catch (Exception unreadable) {
+            // The screen shows UNKNOWN; the log says what is wrong with the status file.
+            log.warn("backup_status_unreadable error={}", unreadable.toString());
             return UNKNOWN;
         }
     }
@@ -107,7 +113,8 @@ public class BackupStatusReader {
         Instant completedAt;
         try {
             completedAt = Instant.parse(document.completedAt());
-        } catch (Exception ignored) {
+        } catch (RuntimeException unreadable) {
+            log.warn("backup_status_time_unreadable error={}", unreadable.toString());
             return UNKNOWN;
         }
 

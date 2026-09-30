@@ -10,11 +10,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class WebhookTargetPolicy {
+
+    private static final Logger log = LoggerFactory.getLogger(WebhookTargetPolicy.class);
 
     private final KwhWebhookProperties properties;
     private final HostResolver hostResolver;
@@ -83,6 +87,7 @@ public class WebhookTargetPolicy {
         try {
             return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), null, null).toString();
         } catch (Exception exception) {
+            log.debug("webhook_target_unredactable error={}", exception.toString());
             return "invalid-webhook-target";
         }
     }

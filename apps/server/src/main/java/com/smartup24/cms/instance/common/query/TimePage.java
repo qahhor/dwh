@@ -56,14 +56,18 @@ public record TimePage(int limit, @Nullable Position after) {
     private static Position decode(String cursor) {
         String raw = CursorUtils.decode(cursor);
         int bar = raw == null ? -1 : raw.indexOf('|');
-        try {
-            if (bar > 0) {
-                return new Position(Instant.parse(raw.substring(0, bar)), Long.parseLong(raw.substring(bar + 1)));
-            }
-        } catch (DateTimeParseException | NumberFormatException ignored) {
-            // Falls through to the refusal below.
+        if (bar <= 0) {
+            throw invalidCursor();
         }
-        throw ApiException.validation(
+        try {
+            return new Position(Instant.parse(raw.substring(0, bar)), Long.parseLong(raw.substring(bar + 1)));
+        } catch (DateTimeParseException | NumberFormatException notOurs) {
+            throw invalidCursor();
+        }
+    }
+
+    private static ApiException invalidCursor() {
+        return ApiException.validation(
                 "error.common.query_cursor_invalid",
                 List.of(new FieldErrorItem("cursor", QueryCompiler.INVALID_CURSOR, "cursor is not valid")));
     }

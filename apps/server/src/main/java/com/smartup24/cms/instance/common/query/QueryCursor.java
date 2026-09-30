@@ -2,6 +2,8 @@ package com.smartup24.cms.instance.common.query;
 
 import com.smartup24.cms.core.pagination.CursorUtils;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
@@ -12,6 +14,8 @@ import tools.jackson.databind.node.ObjectNode;
  * Ключ строки хранится текстом: числовой id и UUID ({@code f.id::text}) одинаково годятся.
  */
 public record QueryCursor(String fingerprint, Object sortValue, String lastId, long total) {
+
+    private static final Logger log = LoggerFactory.getLogger(QueryCursor.class);
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -45,6 +49,8 @@ public record QueryCursor(String fingerprint, Object sortValue, String lastId, l
                     node.path("id").asString(),
                     node.path("t").asLong());
         } catch (RuntimeException e) {
+            // A cursor the client altered or kept from another version: the caller answers INVALID_CURSOR.
+            log.debug("query_cursor_unreadable error={}", e.toString());
             return null;
         }
     }

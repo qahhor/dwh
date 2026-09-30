@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.audit.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -7,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -15,10 +15,12 @@ public class AuditLogRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public AuditLogRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "audit_log");
     }
 
     public void logChange(
@@ -32,8 +34,8 @@ public class AuditLogRepository {
             Map<String, Object> oldRow,
             Map<String, Object> newRow) {
 
-        String oldRowJson = oldRow != null ? toJson(oldRow) : null;
-        String newRowJson = newRow != null ? toJson(newRow) : null;
+        String oldRowJson = oldRow != null ? jsonColumns.object(oldRow) : null;
+        String newRowJson = newRow != null ? jsonColumns.object(newRow) : null;
 
         jdbcClient
                 .sql("""
@@ -56,7 +58,7 @@ public class AuditLogRepository {
 
     public void logSecurityEvent(
             String eventType, Long userId, String ip, String userAgent, Map<String, Object> details) {
-        String detailsJson = toJson(details);
+        String detailsJson = jsonColumns.object(details);
 
         jdbcClient
                 .sql("""
@@ -255,7 +257,7 @@ public class AuditLogRepository {
                 rs.getObject("user_id") != null ? rs.getLong("user_id") : null,
                 rs.getString("ip_str"),
                 rs.getString("user_agent"),
-                parseJson(rs.getString("details_str")),
+                jsonColumns.readObject(rs.getString("details_str")),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getString("user_name"),
                 rs.getString("user_login"));
@@ -332,29 +334,10 @@ public class AuditLogRepository {
                 rs.getBoolean("is_api"),
                 rs.getTimestamp("changed_at").toInstant(),
                 columns,
-                parseJson(rs.getString("old_str")),
-                parseJson(rs.getString("new_str")),
+                jsonColumns.readObject(rs.getString("old_str")),
+                jsonColumns.readObject(rs.getString("new_str")),
                 rs.getString("changed_by_name"),
                 rs.getString("changed_by_login"));
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JacksonException e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 
     public record AuditRecord(

@@ -1,12 +1,12 @@
 package com.smartup24.cms.instance.kwh.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -14,14 +14,16 @@ public class KwhOutboxRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public KwhOutboxRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "kwh_outbox");
     }
 
     public void enqueue(Long subscriptionId, String eventType, Map<String, Object> payload) {
-        String payloadJson = toJson(payload);
+        String payloadJson = jsonColumns.object(payload);
 
         jdbcClient
                 .sql("""
@@ -146,7 +148,7 @@ public class KwhOutboxRepository {
                 rs.getLong("id"),
                 rs.getLong("subscription_id"),
                 rs.getString("event_type"),
-                parseJson(rs.getString("payload_str")),
+                jsonColumns.readObject(rs.getString("payload_str")),
                 rs.getString("status"),
                 rs.getInt("attempts"),
                 rs.getInt("max_attempts"),
@@ -163,25 +165,6 @@ public class KwhOutboxRepository {
                         : null,
                 rs.getString("target_url"),
                 rs.getString("secret_token"));
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (JacksonException e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 
     public record KwhOutboxRecord(

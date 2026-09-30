@@ -65,7 +65,8 @@ public class TypesenseClient {
                 return result >= 0 ? result : null;
             }
         } catch (ArithmeticException overflow) {
-            /* unavailable counter */
+            /* unavailable counter: a value past a long is not a count */
+            return null;
         }
         return null;
     }

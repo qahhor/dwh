@@ -6,6 +6,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryList;
@@ -87,6 +88,7 @@ public class ReportExportService {
     private final FndJobRunner jobs;
     private final AuditLogService audit;
     private final ObjectMapper json;
+    private final JsonColumns jsonColumns;
     private final int maxRows;
 
     public ReportExportService(
@@ -113,6 +115,7 @@ public class ReportExportService {
         this.jobs = jobs;
         this.audit = audit;
         this.json = json;
+        this.jsonColumns = new JsonColumns(json, "report_exports");
         this.maxRows = maxRows;
     }
 
@@ -158,7 +161,7 @@ public class ReportExportService {
         if (request.columns() != null && !request.columns().isEmpty()) stored.put("columns", request.columns());
         if (!options.isEmpty()) stored.put("options", options);
         putIfPresent(stored, "lang", request.lang());
-        ExportRow row = repo.insert(userId, list.code(), toJson(stored));
+        ExportRow row = repo.insert(userId, list.code(), jsonColumns.object(stored));
         jobs.enqueueOnce(JOB, Map.of("exportId", row.publicId().toString()));
         audit.logChange(
                 "report_exports",
@@ -305,8 +308,9 @@ public class ReportExportService {
             if (temp != null) {
                 try {
                     Files.deleteIfExists(temp);
-                } catch (IOException ignored) {
+                } catch (IOException cleanup) {
                     // A leftover temp file is harmless; the operating system clears it.
+                    log.debug("report_export_temp_left path={} error={}", temp, cleanup.toString());
                 }
             }
         }
@@ -360,14 +364,6 @@ public class ReportExportService {
                     (String) map.get("lang"));
         } catch (JacksonException e) {
             throw new IllegalStateException("Broken export request", e);
-        }
-    }
-
-    private String toJson(Map<String, Object> value) {
-        try {
-            return json.writeValueAsString(value);
-        } catch (JacksonException e) {
-            throw new IllegalStateException(e);
         }
     }
 

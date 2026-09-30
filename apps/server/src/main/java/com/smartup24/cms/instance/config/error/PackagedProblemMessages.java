@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Error texts from the catalogs packaged with the build (ru, en, uz), without the database: the fallback of
@@ -83,7 +83,8 @@ public final class PackagedProblemMessages implements ProblemMessages {
                 if (in == null) {
                     return Map.of();
                 }
-                return Map.copyOf(new ObjectMapper().readValue(in, new TypeReference<Map<String, String>>() {}));
+                // Read before Spring or without it (slices, the error path itself): the shared default mapper.
+                return Map.copyOf(JsonMapper.shared().readValue(in, new TypeReference<Map<String, String>>() {}));
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

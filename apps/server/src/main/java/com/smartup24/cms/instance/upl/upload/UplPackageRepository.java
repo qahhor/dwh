@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.QueryListRepository;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -55,11 +57,13 @@ public class UplPackageRepository {
 
     private final JdbcClient jdbc;
     private final ObjectMapper json;
+    private final JsonColumns jsonColumns;
     private final QueryListRepository lists;
 
     public UplPackageRepository(JdbcClient jdbc, ObjectMapper json, QueryListRepository lists) {
         this.jdbc = jdbc;
         this.json = json;
+        this.jsonColumns = new JsonColumns(json, "upl_packages");
         this.lists = lists;
     }
 
@@ -265,7 +269,7 @@ public class UplPackageRepository {
                 rs.getObject("rows_rejected", Integer.class),
                 rs.getObject("errors_total", Integer.class),
                 rs.getString("reject_code"),
-                readJson(rs.getString("reject_params")),
+                nullableObject(rs.getString("reject_params")),
                 rs.getObject("load_id", Long.class),
                 rs.getObject("raw_rows", Integer.class),
                 toInstant(rs.getTimestamp("uploaded_at")),
@@ -280,18 +284,15 @@ public class UplPackageRepository {
                 rs.getString("column_name"),
                 rs.getString("cell_value"),
                 rs.getString("code"),
-                readJson(rs.getString("params")));
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> readJson(String raw) {
-        if (raw == null) {
-            return null;
-        }
-        return json.readValue(raw, Map.class);
+                nullableObject(rs.getString("params")));
     }
 
     private static Instant toInstant(Timestamp value) {
         return value == null ? null : value.toInstant();
+    }
+
+    /** A nullable JSON column: null stays null, a stored document is read (plan item 3.11). */
+    private @Nullable Map<String, Object> nullableObject(@Nullable String raw) {
+        return raw == null ? null : jsonColumns.readObject(raw);
     }
 }

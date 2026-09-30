@@ -43,6 +43,7 @@ public class TypesenseHealth {
                 version = value.asString();
             else error = "METADATA_UNAVAILABLE";
         } catch (RuntimeException unavailable) {
+            log.debug("typesense_metadata_unavailable error={}", unavailable.toString());
             error = "METADATA_UNAVAILABLE";
         }
         try {
@@ -51,6 +52,7 @@ public class TypesenseHealth {
             total = TypesenseClient.nonnegativeInteger(metrics.path("system_disk_total_bytes"), true);
             if (used == null || total == null) error = "METADATA_UNAVAILABLE";
         } catch (RuntimeException unavailable) {
+            log.debug("typesense_metadata_unavailable error={}", unavailable.toString());
             error = "METADATA_UNAVAILABLE";
         }
         return new DependencyMetadata(true, true, version, used, total, error);

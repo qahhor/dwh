@@ -1,12 +1,12 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -14,10 +14,12 @@ public class MdCustomFieldRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public MdCustomFieldRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "md_custom_fields");
     }
 
     public CustomFieldRecord create(
@@ -29,7 +31,7 @@ public class MdCustomFieldRepository {
             String defaultValue,
             Object options,
             int orderNo) {
-        String optionsJson = toJson(options);
+        String optionsJson = options == null ? "[]" : jsonColumns.write(options);
 
         return jdbcClient
                 .sql("""
@@ -99,7 +101,7 @@ public class MdCustomFieldRepository {
             Object options,
             Integer orderNo,
             long expectedRevision) {
-        String optionsJson = options != null ? toJson(options) : null;
+        String optionsJson = options != null ? jsonColumns.write(options) : null;
 
         return jdbcClient
                 .sql("""
@@ -145,15 +147,6 @@ public class MdCustomFieldRepository {
                 rs.getInt("order_no"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getLong("revision"));
-    }
-
-    private String toJson(Object obj) {
-        if (obj == null) return "[]";
-        try {
-            return objectMapper.writeValueAsString(obj);
-        } catch (JacksonException e) {
-            return "[]";
-        }
     }
 
     public record CustomFieldRecord(

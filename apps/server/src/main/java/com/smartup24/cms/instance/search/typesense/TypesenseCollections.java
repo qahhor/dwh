@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.search.typesense;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.databind.JsonNode;
@@ -10,6 +12,8 @@ import tools.jackson.databind.JsonNode;
 /** Typesense collections: existence, creation from the registered schema, and schema drift observation. */
 @Component
 public class TypesenseCollections {
+
+    private static final Logger log = LoggerFactory.getLogger(TypesenseCollections.class);
 
     public static final String COL_TASKS = "tasks";
     public static final String COL_PROJECTS = "projects";
@@ -66,6 +70,7 @@ public class TypesenseCollections {
         } catch (HttpClientErrorException.NotFound missing) {
             return new CollectionMetadata(null, null, false, "COLLECTION_MISSING");
         } catch (RuntimeException unavailable) {
+            log.debug("typesense_collection_metadata_unavailable error={}", unavailable.toString());
             return new CollectionMetadata(null, null, null, "COLLECTION_METADATA_UNAVAILABLE");
         }
     }

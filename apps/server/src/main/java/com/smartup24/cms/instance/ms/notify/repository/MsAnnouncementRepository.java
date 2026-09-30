@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.ms.notify.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.ms.notify.model.AnnouncementState;
 import java.sql.ResultSet;
@@ -15,7 +16,6 @@ import java.util.Optional;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -29,11 +29,13 @@ public class MsAnnouncementRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
     private final RowMapper<ManagedAnnouncementRecord> managedMapper = this::mapManaged;
 
     public MsAnnouncementRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "ms_announcements");
     }
 
     public List<AnnouncementRecord> getActiveUnreadAnnouncements(Long userId, String language) {
@@ -103,8 +105,8 @@ public class MsAnnouncementRepository {
                             (cast(:titleJson as jsonb), cast(:bodyJson as jsonb), :bannerType, 'DRAFT', :createdBy)
                         returning
                         """ + MANAGED_COLUMNS)
-                .param("titleJson", toJson(titleJson))
-                .param("bodyJson", toJson(bodyJson))
+                .param("titleJson", jsonColumns.object(titleJson))
+                .param("bodyJson", jsonColumns.object(bodyJson))
                 .param("bannerType", bannerType)
                 .param("createdBy", createdBy)
                 .query(managedMapper)
@@ -125,8 +127,8 @@ public class MsAnnouncementRepository {
                         returning
                         """ + MANAGED_COLUMNS)
                 .param("id", id)
-                .param("titleJson", toJson(titleJson))
-                .param("bodyJson", toJson(bodyJson))
+                .param("titleJson", jsonColumns.object(titleJson))
+                .param("bodyJson", jsonColumns.object(bodyJson))
                 .param("bannerType", bannerType)
                 .param("lockVersion", lockVersion)
                 .query(managedMapper)
@@ -180,14 +182,6 @@ public class MsAnnouncementRepository {
                 nullableInstant(rs, "published_at"),
                 nullableInstant(rs, "archived_at"),
                 rs.getLong("lock_version"));
-    }
-
-    private String toJson(Map<String, String> values) {
-        try {
-            return objectMapper.writeValueAsString(values);
-        } catch (JacksonException error) {
-            throw new IllegalArgumentException("Localized announcement content is not serializable", error);
-        }
     }
 
     @SuppressWarnings("unchecked")

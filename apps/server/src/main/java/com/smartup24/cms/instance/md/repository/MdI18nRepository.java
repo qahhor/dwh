@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.md.repository;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.md.i18n.I18nModels.LanguageRecord;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Repository
@@ -19,10 +19,12 @@ public class MdI18nRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public MdI18nRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "md_languages");
     }
 
     public List<LanguageRecord> findLanguages(boolean activeOnly) {
@@ -165,7 +167,7 @@ public class MdI18nRepository {
                             """)
                     .param("code", code)
                     .param("userId", userId)
-                    .param("overrides", toJson(overrides))
+                    .param("overrides", jsonColumns.object(overrides))
                     .update();
         }
 
@@ -183,13 +185,5 @@ public class MdI18nRepository {
                 rs.getObject("modified_by") != null ? rs.getLong("modified_by") : null,
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("modified_at").toInstant());
-    }
-
-    private String toJson(Map<String, String> values) {
-        try {
-            return objectMapper.writeValueAsString(values);
-        } catch (JacksonException exception) {
-            throw new IllegalArgumentException("Не удалось сериализовать языковой пакет", exception);
-        }
     }
 }

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -15,10 +16,12 @@ public class ModuleRegistryRepository {
 
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
+    private final JsonColumns jsonColumns;
 
     public ModuleRegistryRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
+        this.jsonColumns = new JsonColumns(objectMapper, "md_installed_modules");
     }
 
     public record InstalledModuleRecord(
@@ -72,7 +75,7 @@ public class ModuleRegistryRepository {
     }
 
     public void upsertModule(InstalledModuleRecord module) {
-        String attrsJson = toJson(module.attributes());
+        String attrsJson = jsonColumns.object(module.attributes());
         jdbcClient
                 .sql("""
                 insert into md_installed_modules(code, name, description, version, icon, route, is_system, status, sort_order, attributes, created_at, modified_at)
@@ -101,7 +104,7 @@ public class ModuleRegistryRepository {
     }
 
     private InstalledModuleRecord mapModule(ResultSet rs, int rowNum) throws SQLException {
-        Map<String, Object> attributes = parseJson(rs.getString("attributes_str"));
+        Map<String, Object> attributes = jsonColumns.readObject(rs.getString("attributes_str"));
         return new InstalledModuleRecord(
                 rs.getString("code"),
                 rs.getString("name"),
@@ -119,24 +122,5 @@ public class ModuleRegistryRepository {
                 rs.getTimestamp("modified_at") != null
                         ? rs.getTimestamp("modified_at").toInstant()
                         : null);
-    }
-
-    private String toJson(Map<String, Object> map) {
-        if (map == null || map.isEmpty()) return "{}";
-        try {
-            return objectMapper.writeValueAsString(map);
-        } catch (Exception e) {
-            return "{}";
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> parseJson(String json) {
-        if (json == null || json.isBlank()) return Map.of();
-        try {
-            return objectMapper.readValue(json, Map.class);
-        } catch (Exception e) {
-            return Map.of();
-        }
     }
 }

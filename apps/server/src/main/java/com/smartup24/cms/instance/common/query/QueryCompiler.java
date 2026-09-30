@@ -149,7 +149,7 @@ public final class QueryCompiler {
         try {
             root = JSON.readTree(filter);
         } catch (JacksonException e) {
-            errors.add(new FieldErrorItem("filter", FILTER_INVALID, "filter is not JSON"));
+            errors.add(new FieldErrorItem("filter", FILTER_INVALID, "filter is not JSON: " + e.getOriginalMessage()));
             return conditions;
         }
         if (!root.isArray()) {
