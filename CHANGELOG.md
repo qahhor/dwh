@@ -85,7 +85,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   job, `api contract`, lints the description with Spectral, checks the web
   types byte for byte and runs openapi-diff against the base branch: a pull
   request that breaks clients fails unless it carries the `api-breaking`
-  label.
+  label, or a commit between the base and the head declares the break with
+  an `Api-Breaking:` trailer (a direct push to main has no label).
 - Branch and tag protection as code, and a release that cannot tag an
   unscanned image (plan 10/10, item 1.9). `.github/rulesets` holds the main
   ruleset (reviewed pull requests with code owners, merge commits only, the
@@ -782,8 +783,8 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   TypesenseClient, SearchService and MdUserService are split by concern,
   and the long worker, filter and export methods into their steps.
   Reading a task no longer writes: the web card marks it viewed with
-  `POST /tasks/{id}/view`. OpenApiController (item 3.3) and UplXlsxParser
-  are the only waivers.
+  `POST /tasks/{id}/view`. UplXlsxParser was the only waiver left once
+  item 3.3 removed the hand-written OpenApiController.
 
 - Jobs run on a lease outside the queue transaction (plan 10/10, item
   3.8). A runner takes a job in a short transaction and works outside it,
