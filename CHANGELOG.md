@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- No swallowed errors and one ObjectMapper (plan 10/10, item 3.11). The
+  thirteen private copies of `toJson`/`parseJson` gave way to `JsonColumns`,
+  which writes and reads JSON columns with the application's mapper and
+  raises, naming the table, where the copies returned `{}` and let the next
+  save store it over the real document. `new ObjectMapper()` is gone from
+  main code (`JsonMapper.shared()` outside Spring). Forty catches that
+  dropped an error — among them the authentication filter's — now log or
+  rethrow; `NoSwallowedErrorsTest` and a strict Checkstyle `EmptyCatchBlock`
+  keep it so, and Checkstyle refuses a new private JSON helper.
 - Mandatory optimistic locking (plan 10/10, item 3.6, ADR-0024). Notes,
   projects, users, roles and their rights, custom fields, org units, menu
   items, task statuses and types and webhooks carry a `revision` (V135),
