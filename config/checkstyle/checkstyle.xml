@@ -4,7 +4,8 @@
 <!--
   Java rules of SmartupCMS (plan 10/10, item 1.2). Layout belongs to Spotless (palantir-java-format);
   these rules catch what a formatter does not: naming, imports, and constructs that hide a defect.
-  Local waivers: // CHECKSTYLE.OFF: RuleName ... // CHECKSTYLE.ON: RuleName, with the reason on the line above.
+  Local waivers: // CHECKSTYLE.OFF: RuleName ... // CHECKSTYLE.ON: RuleName, with the reason on the line above;
+  a module with an id is waived by its id only: // CHECKSTYLE.OFF-ID: id ... // CHECKSTYLE.ON-ID: id.
   NeedBraces is left out on purpose: the defect it prevents is indentation that lies about the body of an
   if, and the formatter re-indents every line, so a second statement can no longer look guarded.
 -->
@@ -16,6 +17,13 @@
         <property name="offCommentFormat" value="CHECKSTYLE.OFF\: ([\w\|]+)"/>
         <property name="onCommentFormat" value="CHECKSTYLE.ON\: ([\w\|]+)"/>
         <property name="checkFormat" value="$1"/>
+    </module>
+    <!-- A waiver of one module by its id: // CHECKSTYLE.OFF-ID: noSystemOut ... // CHECKSTYLE.ON-ID: noSystemOut.
+         "CHECKSTYLE.OFF: Regexp" would switch off every Regexp module, singleObjectMapper included. -->
+    <module name="SuppressWithPlainTextCommentFilter">
+        <property name="offCommentFormat" value="CHECKSTYLE.OFF-ID\: ([\w\|]+)"/>
+        <property name="onCommentFormat" value="CHECKSTYLE.ON-ID\: ([\w\|]+)"/>
+        <property name="idFormat" value="^($1)$"/>
     </module>
 
     <!-- Tests keep mutable fixtures in static final fields (a sequence, a container); they are not constants. -->
@@ -38,12 +46,6 @@
     <module name="SuppressionSingleFilter">
         <property name="files" value="[\\/]src[\\/]test[\\/]"/>
         <property name="id" value="singleObjectMapper"/>
-    </module>
-    <!-- Temporary waiver: UplXlsxParser streams rows since item 3.9; splitting its reading from its checks is the
-         next step. -->
-    <module name="SuppressionSingleFilter">
-        <property name="files" value="[\\/]upl[\\/]parse[\\/]UplXlsxParser\.java$"/>
-        <property name="checks" value="FileLength|MethodLength"/>
     </module>
 
     <!-- A class over 400 lines holds more than one responsibility; split it rather than raise the limit. -->
@@ -120,16 +122,20 @@
         <module name="OneTopLevelClass"/>
 
         <!-- Plan 10/10, item 3.11: one ObjectMapper, the application's (or JsonMapper.shared() outside Spring), and JSON
-             columns through JsonColumns, not a private copy of toJson/parseJson. -->
+             columns through JsonColumns, not a private copy of toJson/parseJson. A mapper of its own (JsonMapper.builder)
+             is allowed only where its settings differ on purpose, with a local waiver of this id and the reason:
+             SearchManagementDtos (the strict search boundary). -->
         <module name="Regexp">
             <property name="id" value="singleObjectMapper"/>
-            <property name="format" value="new ObjectMapper\(|private [\w&lt;&gt;, ?]+ (toJson|parseJson|readJson)\("/>
+            <property name="format"
+                      value="new ObjectMapper\(|JsonMapper\s*\.\s*builder\(|private [\w&lt;&gt;, ?]+ (toJson|parseJson|readJson)\("/>
             <property name="illegalPattern" value="true"/>
             <property name="message" value="Use the injected ObjectMapper and JsonColumns (plan 10/10, item 3.11)."/>
         </module>
 
         <!-- The log carries diagnostics; a stray print or stack trace bypasses the PII masking of logback. -->
         <module name="Regexp">
+            <property name="id" value="noSystemOut"/>
             <property name="format" value="System\.(out|err)\.print|\.printStackTrace\(\)"/>
             <property name="illegalPattern" value="true"/>
             <property name="message" value="Use the logger: System.out/err and printStackTrace bypass the log pipeline."/>
