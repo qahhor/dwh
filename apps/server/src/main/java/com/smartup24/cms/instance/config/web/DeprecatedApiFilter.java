@@ -19,6 +19,8 @@ import java.util.Enumeration;
 import java.util.Map;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -35,6 +37,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class DeprecatedApiFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(DeprecatedApiFilter.class);
 
     static final String DEPRECATION = "Deprecation";
     static final String SUNSET = "Sunset";
@@ -98,12 +102,25 @@ public class DeprecatedApiFilter extends OncePerRequestFilter {
         String query = request.getQueryString();
         if (query == null
                 || Arrays.stream(query.split("&"))
-                        .map(pair -> URLDecoder.decode(pair.split("=", 2)[0], StandardCharsets.UTF_8))
+                        .map(pair -> decodedName(pair.split("=", 2)[0]))
                         .noneMatch(ApiDeprecations.QUERY_PARAMETERS::containsKey)) {
             return null;
         }
         Map<String, String[]> renamed = ApiDeprecations.currentNames(request.getParameterMap());
         return Collections.unmodifiableMap(renamed);
+    }
+
+    /**
+     * The decoded name of a query parameter. A malformed escape ({@code %zz}) is not a legacy name: the request goes
+     * on untouched and the handler answers it, instead of this filter failing before security with a container 500.
+     */
+    static String decodedName(String name) {
+        try {
+            return URLDecoder.decode(name, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException malformed) {
+            log.debug("Query parameter name is not URL-encoded correctly: {}", malformed.getMessage());
+            return name;
+        }
     }
 
     private static final class RenamedParameters extends HttpServletRequestWrapper {
