@@ -14,7 +14,7 @@ class CacheConfigTest {
     @Test
     @DisplayName("CacheManager должен регистрировать все необходимые кэши для справочников и навигации")
     void shouldRegisterAllDeclaredCaches() {
-        CacheManager cacheManager = cacheConfig.cacheManager();
+        CacheManager cacheManager = cacheConfig.cacheManager(new CacheInvalidations(null, null));
         assertThat(cacheManager).isNotNull();
 
         assertThat(cacheManager.getCacheNames())
@@ -31,7 +31,7 @@ class CacheConfigTest {
     @Test
     @DisplayName("Кэш должен сохранять и возвращать значения, а также поддерживать очистку")
     void shouldStoreRetrieveAndEvictCachedEntries() {
-        CacheManager cacheManager = cacheConfig.cacheManager();
+        CacheManager cacheManager = cacheConfig.cacheManager(new CacheInvalidations(null, null));
         Cache cache = cacheManager.getCache(CacheConfig.TASK_STATUSES_CACHE);
         assertThat(cache).isNotNull();
 

@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Retention of journals and the cache across nodes (plan 10/10, item 3.13,
+  ADR-0025). Ten journal tables — security events, sign-in attempts, codes,
+  closed sessions, webhook log and outbox, the inbox and its outbox, job
+  runs — lose their rows past a retention set per table
+  (`SMC_RETENTION_*_DAYS`, 0 keeps them); a nightly job deletes in short
+  batches and never touches rows still in flight (V136, V137 index the
+  predicates). A cache cleared on one node is cleared on every node within
+  seconds of the commit (`LISTEN/NOTIFY smc_cache`); a rolled-back change
+  tells nobody.
 - No swallowed errors and one ObjectMapper (plan 10/10, item 3.11). The
   thirteen private copies of `toJson`/`parseJson` gave way to `JsonColumns`,
   which writes and reads JSON columns with the application's mapper and

@@ -65,6 +65,9 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 | Detached archived audit partitions | Per corporate policy  | Cold S3 / compressed |
 | Idempotency keys & cached payloads | 24 hours              | IdempotencyWorker    |
 | Inactive user sessions             | 7 days                | Auto-pruned on login |
+| Journals (security events, sign-in | 7 days - 12 months,   | RetentionJob nightly |
+|   attempts, codes, closed sessions,|   per table (4.2a)    |   (ADR-0025)         |
+|   webhook/notification queues)     |                       |                      |
 | Rate-limit in-memory tracking      | 10 minutes sliding    | Caffeine cache TTL   |
 | Local database backup archives     | 7 days (14 snapshots) | backup-loop.sh       |
 | Remote object backups              | Defined by bucket S3  | S3 Lifecycle rules   |
@@ -82,6 +85,14 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 - Used to protect mutation endpoints (e.g. task creation).
 - Retained for a maximum TTL of 24 hours.
 - Automated `IdempotencyCleanupWorker` executes hourly to purge expired records.
+
+### 4.2a. Journal tables
+- Modules declare how long their journal tables live (`RetentionPolicy`, plan 10/10, item 3.13, ADR-0025);
+  the nightly `RetentionJob` deletes rows past it in short batches. Defaults: security events 365 days,
+  sign-in attempts 30, one-time and password reset codes 7 after expiry, closed sessions 90, webhook log 90,
+  delivered or dead-lettered webhook and notification queue items 30, inbox notifications 180, finished
+  job runs 90. Each is set by `SMC_RETENTION_<NAME>_DAYS`; 0 keeps the rows (docs/ops/operations-runbook.md,
+  "Retention of journal tables"). Rows still in flight are never deleted.
 
 ### 4.3. Backup retention
 - Local encrypted database dumps created by `backup-loop.sh` retain the most recent 14 snapshots (default 7 days of bi-daily backups).

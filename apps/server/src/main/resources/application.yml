@@ -123,6 +123,24 @@ smc:
   # Public address of the web application, e.g. https://cms.example.com. Password reset links are built from it and
   # never from the request's Host header. Empty -> no reset link is sent (the log says why).
   public-url: ${SMC_PUBLIC_URL:}
+  retention:
+    # Journal tables lose their old rows every night (plan 10/10, item 3.13; docs/ops/operations-runbook.md,
+    # "Retention"). Days a row lives, per journal; 0 keeps the rows forever. The audit log is not here: it leaves the
+    # database only through its verified archive (smc.audit.archive).
+    cron: ${SMC_RETENTION_CRON:0 30 3 * * *}
+    batch-size: ${SMC_RETENTION_BATCH_SIZE:5000}
+    max-batches: ${SMC_RETENTION_MAX_BATCHES:200}
+    days:
+      security-events: ${SMC_RETENTION_SECURITY_EVENTS_DAYS:365}
+      login-attempts: ${SMC_RETENTION_LOGIN_ATTEMPTS_DAYS:30}
+      otp-codes: ${SMC_RETENTION_OTP_CODES_DAYS:7}
+      password-reset-codes: ${SMC_RETENTION_PASSWORD_RESET_CODES_DAYS:7}
+      closed-sessions: ${SMC_RETENTION_CLOSED_SESSIONS_DAYS:90}
+      webhook-logs: ${SMC_RETENTION_WEBHOOK_LOGS_DAYS:90}
+      webhook-outbox: ${SMC_RETENTION_WEBHOOK_OUTBOX_DAYS:30}
+      inbox: ${SMC_RETENTION_INBOX_DAYS:180}
+      notification-outbox: ${SMC_RETENTION_NOTIFICATION_OUTBOX_DAYS:30}
+      job-runs: ${SMC_RETENTION_JOB_RUNS_DAYS:90}
   delivery:
     # Refuse to start while users with two-factor sign-in depend on a stub channel (console_*): their login codes
     # would go nowhere. Off in development, where the log is the intended channel.

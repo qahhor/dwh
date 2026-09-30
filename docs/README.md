@@ -65,6 +65,9 @@ Current ADRs that are not superseded:
 - [ADR-0024 — mandatory optimistic locking](adr/ADR-0024-optimistic-locking.md)
   — a change names the revision it was made from (If-Match); none is 428, a
   stale one 409; switches write only when the state changes.
+- [ADR-0025 — retention of journals and the cache across nodes](adr/ADR-0025-retention-and-cluster-cache.md)
+  — modules declare how long their journals live and a nightly job trims them;
+  a cache cleared on one node is cleared on all after the commit.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
