@@ -86,7 +86,7 @@ export class LoginComponent {
         next: (res) => {
           this.isLoading.set(false);
           if (res.step === 'otp') {
-            this.otpToken.set(res.otp_token || '');
+            this.otpToken.set(res.otpToken ?? '');
             this.otpCode.set('');
             this.changeStep('otp');
           } else if (res.step === 'success' && res.user?.forcePasswordChange) {
