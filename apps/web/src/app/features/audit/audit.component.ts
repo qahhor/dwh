@@ -317,16 +317,18 @@ export class AuditComponent implements OnInit {
   }
 
   auditTabs(): SMTTabItem<'audit' | 'security'>[] {
-    return this.tabsMemo([this.tabText.currentLang(), this.auditTotal(), this.securityTotal()], () => [
+    const auditCount = tabCount(this.auditPager);
+    const securityCount = tabCount(this.securityPager);
+    return this.tabsMemo([this.tabText.currentLang(), auditCount, securityCount], () => [
       {
         value: 'audit',
-        label: this.tabText.translate('audit.change_log_count', { count: this.auditTotal() }),
+        label: this.tabText.translate('audit.change_log_count', { count: auditCount }),
         icon: 'database',
         id: 'audit-log-tab',
       },
       {
         value: 'security',
-        label: this.tabText.translate('audit.security_events_count', { count: this.securityTotal() }),
+        label: this.tabText.translate('audit.security_events_count', { count: securityCount }),
         icon: 'shield',
         id: 'security-events-tab',
       },
@@ -351,4 +353,13 @@ export class AuditComponent implements OnInit {
         error: () => this.metaError.set(true),
       });
   }
+}
+
+/**
+ * The count a tab shows: nothing before the first answer (an unloaded list is not an empty one), and "≈ N" when
+ * the server gives the planner's estimate instead of a count (plan 10/10, item 3.5).
+ */
+function tabCount(pager: KeysetPager<unknown>): string {
+  if (!pager.loaded()) return '…';
+  return pager.totalExact() ? String(pager.total()) : `≈ ${pager.total()}`;
 }

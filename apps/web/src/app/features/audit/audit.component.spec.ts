@@ -110,6 +110,22 @@ describe('AuditComponent', () => {
     expect(component.auditLogs()[0].id).toBe(20);
   });
 
+  it('marks an estimated total with ≈ in the tab and shows no count before a list has answered', async () => {
+    const pending = new Subject<unknown>();
+    const get = vi.fn<Get>((url) =>
+      url === '/audit/stats'
+        ? of(stats(94))
+        : url === '/audit/security-events'
+          ? pending
+          : of({ ...page([auditRow(94)], 'audit-next'), totalEstimated: 11644, totalExact: false }),
+    );
+    const { component } = await createFixture(get);
+
+    const [audit, security] = component.auditTabs();
+    expect(audit.label).toBe('Журнал изменений данных (≈ 11644)');
+    expect(security.label).toBe('События безопасности (…)');
+  });
+
   it('keeps redacted credential keys visible so auditors can see that a field changed', async () => {
     const { component } = await createFixture();
     const record = {
