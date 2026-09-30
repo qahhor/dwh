@@ -56,14 +56,14 @@ public class UplPackageRepository {
             """;
 
     private final JdbcClient jdbc;
-    private final ObjectMapper json;
     private final JsonColumns jsonColumns;
+    private final JsonColumns errorColumns;
     private final QueryListRepository lists;
 
     public UplPackageRepository(JdbcClient jdbc, ObjectMapper json, QueryListRepository lists) {
         this.jdbc = jdbc;
-        this.json = json;
         this.jsonColumns = new JsonColumns(json, "upl_packages");
+        this.errorColumns = new JsonColumns(json, "upl_package_errors");
         this.lists = lists;
     }
 
@@ -182,7 +182,7 @@ public class UplPackageRepository {
                          where id = :id and status = 'received'
                         """)
                 .param("code", rejectCode)
-                .param("params", json.writeValueAsString(rejectParams == null ? Map.of() : rejectParams))
+                .param("params", jsonColumns.object(rejectParams))
                 .param("errors", errorsTotal)
                 .param("id", id)
                 .update();
@@ -224,7 +224,7 @@ public class UplPackageRepository {
                          where id = :id and status = 'verified'
                         """)
                 .param("code", rejectCode)
-                .param("params", json.writeValueAsString(rejectParams == null ? Map.of() : rejectParams))
+                .param("params", jsonColumns.object(rejectParams))
                 .param("raw", rawRows)
                 .param("id", id)
                 .update();
@@ -245,7 +245,7 @@ public class UplPackageRepository {
                     .param("column", error.columnName())
                     .param("value", error.cellValue())
                     .param("code", error.code())
-                    .param("params", json.writeValueAsString(error.params() == null ? Map.of() : error.params()))
+                    .param("params", errorColumns.object(error.params()))
                     .update();
         }
     }

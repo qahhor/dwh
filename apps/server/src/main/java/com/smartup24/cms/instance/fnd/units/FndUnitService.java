@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.fnd.units;
 
+import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
@@ -34,13 +35,13 @@ public class FndUnitService {
     private final JdbcClient jdbc;
     private final FndActors actors;
     private final FndVersioning versioning;
-    private final ObjectMapper json;
+    private final JsonColumns jsonColumns;
 
     public FndUnitService(JdbcClient jdbc, FndActors actors, FndVersioning versioning, ObjectMapper json) {
         this.jdbc = jdbc;
         this.actors = actors;
         this.versioning = versioning;
-        this.json = json;
+        this.jsonColumns = new JsonColumns(json, "fnd_units");
     }
 
     /**
@@ -55,7 +56,7 @@ public class FndUnitService {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
         }
         actors.apply(actor);
-        String names = json.writeValueAsString(nameI18n == null ? Map.of() : nameI18n);
+        String names = jsonColumns.object(nameI18n);
         return FndSqlErrors.translating(() -> jdbc.sql("insert into fnd_units (code, name_i18n, base_unit_code)"
                         + " values (:code, cast(:names as jsonb), :base) returning id")
                 .param("code", code)

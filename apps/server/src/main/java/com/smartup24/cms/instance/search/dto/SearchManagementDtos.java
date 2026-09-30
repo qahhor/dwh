@@ -17,6 +17,8 @@ import tools.jackson.databind.json.JsonMapper;
 public final class SearchManagementDtos {
     private SearchManagementDtos() {}
 
+    // Its settings are stricter than the application's on purpose (duplicates, unknown properties, coercion)
+    // CHECKSTYLE.OFF-ID: singleObjectMapper
     private static final JsonMapper STRICT = JsonMapper.builder()
             .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
             .enable(
@@ -28,6 +30,7 @@ public final class SearchManagementDtos {
             .disable(DeserializationFeature.ACCEPT_FLOAT_AS_INT)
             .disable(MapperFeature.ALLOW_COERCION_OF_SCALARS)
             .build();
+    // CHECKSTYLE.ON-ID: singleObjectMapper
 
     public record SettingsSnapshot(long version, SearchQueryPolicy policy) {
         public SettingsSnapshot {

@@ -43,7 +43,11 @@ public final class QueryCompiler {
     private static final int MAX_FILTER_CHARS = 16_384;
     public static final int MAX_SEARCH_CHARS = 200;
 
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    /**
+     * A static compiler with no Spring context only reads the filter into a tree, with default settings: the shared
+     * default mapper does that (plan 10/10, item 3.11).
+     */
+    private static final JsonMapper JSON = JsonMapper.shared();
 
     private QueryCompiler() {}
 

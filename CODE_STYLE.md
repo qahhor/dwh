@@ -55,7 +55,7 @@
 
 ### 2.1.1. Форматирование и статический анализ (план 10/10, пункт 1.2)
 - **Формат** задаёт Spotless с palantir-java-format (4 пробела, 120 колонок): `mvn spotless:apply` форматирует, `mvn verify` и CI проверяют. Разовое переформатирование записано в `.git-blame-ignore-revs`.
-- **Checkstyle** (`config/checkstyle/checkstyle.xml`) проверяет то, что форматтер не видит: имена, импорты, пустые блоки, `equals` без `hashCode`, `System.out` и `printStackTrace` в обход журнала. Исключение — только по месту: `// CHECKSTYLE.OFF: Правило` … `// CHECKSTYLE.ON: Правило` с причиной строкой выше.
+- **Checkstyle** (`config/checkstyle/checkstyle.xml`) проверяет то, что форматтер не видит: имена, импорты, пустые блоки, `equals` без `hashCode`, `System.out` и `printStackTrace` в обход журнала. Исключение — только по месту: `// CHECKSTYLE.OFF: Правило` … `// CHECKSTYLE.ON: Правило` с причиной строкой выше. Модуль с `id` (например, один из нескольких `Regexp`: `noSystemOut`, `singleObjectMapper`) выключают только по id: `// CHECKSTYLE.OFF-ID: id` … `// CHECKSTYLE.ON-ID: id` — `CHECKSTYLE.OFF: Regexp` выключил бы все такие модули сразу.
 - **Error Prone** работает при каждой компиляции: его ошибки роняют сборку, предупреждения видны в выводе и разбираются в фазе 2.
 - **Null.** Пакет, помеченный `@NullMarked` в `package-info.java`, проверяет NullAway: всё, что может быть `null`, объявлено `@Nullable` (JSpecify), иначе сборка падает. Сейчас помечен `common`; модуль подключается, когда размечены его пакеты.
 
