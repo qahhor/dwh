@@ -30,13 +30,26 @@ public class IdempotencyRepository {
             String responseBody,
             @Nullable String responseLocation,
             State state,
-            Instant createdAt) {}
+            Instant createdAt,
+            @Nullable String responseContentType,
+            @Nullable String responseEtag) {}
+
+    /**
+     * The answer kept for a replay: its status, its JSON body ({@code {}} when it had none), and the headers a replay
+     * repeats. {@code contentType} is null for an answer without a body.
+     */
+    public record StoredAnswer(
+            int status,
+            String body,
+            @Nullable String location,
+            @Nullable String contentType,
+            @Nullable String etag) {}
 
     public Optional<IdempotencyRecord> findByKey(UUID key) {
         return jdbcClient
                 .sql("""
                 select key, user_id, request_hash, response_status, response_body::text, response_location, state,
-                       created_at
+                       created_at, response_content_type, response_etag
                 from idempotency_keys
                 where key = :key
                 """)
@@ -49,7 +62,9 @@ public class IdempotencyRepository {
                         rs.getString("response_body"),
                         rs.getString("response_location"),
                         State.valueOf(rs.getString("state")),
-                        rs.getTimestamp("created_at").toInstant()))
+                        rs.getTimestamp("created_at").toInstant(),
+                        rs.getString("response_content_type"),
+                        rs.getString("response_etag")))
                 .optional();
     }
 
@@ -81,19 +96,16 @@ public class IdempotencyRepository {
                 key, userId, requestHash, reservationToken, Instant.now().minusSeconds(120));
     }
 
-    public boolean complete(
-            UUID key,
-            UUID reservationToken,
-            int responseStatus,
-            String responseBodyJson,
-            @Nullable String responseLocation) {
-        String safeBody = (responseBodyJson == null || responseBodyJson.isBlank()) ? "{}" : responseBodyJson;
+    public boolean complete(UUID key, UUID reservationToken, StoredAnswer answer) {
+        String safeBody = (answer.body() == null || answer.body().isBlank()) ? "{}" : answer.body();
         return jdbcClient
                         .sql("""
                 update idempotency_keys
                 set response_status = :responseStatus,
                     response_body = :responseBody::jsonb,
                     response_location = :responseLocation,
+                    response_content_type = :responseContentType,
+                    response_etag = :responseEtag,
                     state = 'COMPLETED',
                     reservation_token = null
                 where key = :key
@@ -101,9 +113,11 @@ public class IdempotencyRepository {
                   and reservation_token = :reservationToken
                 """)
                         .param("key", key)
-                        .param("responseStatus", responseStatus)
+                        .param("responseStatus", answer.status())
                         .param("responseBody", safeBody)
-                        .param("responseLocation", responseLocation)
+                        .param("responseLocation", answer.location())
+                        .param("responseContentType", answer.contentType())
+                        .param("responseEtag", answer.etag())
                         .param("reservationToken", reservationToken)
                         .update()
                 == 1;

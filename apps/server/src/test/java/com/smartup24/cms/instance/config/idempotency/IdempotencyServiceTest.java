@@ -16,6 +16,9 @@ class IdempotencyServiceTest {
     private final IdempotencyRepository repository = Mockito.mock(IdempotencyRepository.class);
     private final IdempotencyService service = new IdempotencyService(repository);
 
+    private static final IdempotencyRepository.StoredAnswer ANSWER = new IdempotencyRepository.StoredAnswer(
+            201, "{\"id\":100}", "/api/v1/notes/100", "application/json", "\"1\"");
+
     @Test
     @DisplayName("Вычисление хэша запроса должно быть детерминированным для одинаковых параметров")
     void shouldComputeDeterministicRequestHash() {
@@ -37,7 +40,7 @@ class IdempotencyServiceTest {
     void shouldFindExistingKey() {
         UUID key = UUID.randomUUID();
         var record = new IdempotencyRepository.IdempotencyRecord(
-                key, 1L, "abc123hash", 200, "{\"id\":42}", null, IdempotencyRepository.State.COMPLETED, Instant.now());
+                key, 1L, "abc123hash", 200, "{\"id\":42}", null, IdempotencyRepository.State.COMPLETED, Instant.now(), null, null);
 
         when(repository.tryReserve(eq(key), eq(1L), eq("abc123hash"), any(UUID.class), any(Instant.class)))
                 .thenReturn(false);
@@ -56,12 +59,12 @@ class IdempotencyServiceTest {
     void shouldCompleteOwnedReservation() {
         UUID key = UUID.randomUUID();
         UUID reservationToken = UUID.randomUUID();
-        when(repository.complete(key, reservationToken, 201, "{\"id\":100}", "/api/v1/notes/100"))
+        when(repository.complete(key, reservationToken, ANSWER))
                 .thenReturn(true);
 
-        service.complete(key, reservationToken, 201, "{\"id\":100}", "/api/v1/notes/100");
+        service.complete(key, reservationToken, ANSWER);
 
-        verify(repository).complete(key, reservationToken, 201, "{\"id\":100}", "/api/v1/notes/100");
+        verify(repository).complete(key, reservationToken, ANSWER);
     }
 
     @Test

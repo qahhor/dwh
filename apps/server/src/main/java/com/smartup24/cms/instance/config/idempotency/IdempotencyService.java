@@ -74,14 +74,8 @@ public class IdempotencyService {
     }
 
     @Transactional
-    public void complete(
-            UUID key,
-            UUID reservationToken,
-            int responseStatus,
-            String responseBodyJson,
-            @Nullable String responseLocation) {
-        if (!idempotencyRepository.complete(
-                key, reservationToken, responseStatus, responseBodyJson, responseLocation)) {
+    public void complete(UUID key, UUID reservationToken, IdempotencyRepository.StoredAnswer answer) {
+        if (!idempotencyRepository.complete(key, reservationToken, answer)) {
             throw new IllegalStateException("Idempotency reservation is no longer owned by this request");
         }
     }

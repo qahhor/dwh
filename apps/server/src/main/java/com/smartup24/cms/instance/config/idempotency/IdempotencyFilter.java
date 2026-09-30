@@ -20,6 +20,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -295,10 +297,10 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
         int status = responseWrapper.getStatus();
         byte[] body = responseWrapper.getContentAsByteArray();
-        boolean storable = status >= 200 && status < 500 && body.length <= MAX_RESPONSE_BODY_BYTES;
-        if (storable && !tx.isRollbackOnly()) {
+        if (status < 500 && !tx.isRollbackOnly()) {
             try {
-                idempotencyService.complete(key, reservationToken, status, text(body), location(responseWrapper));
+                // An answer that cannot be kept (too large, not JSON) still commits; only its replay is lost.
+                record(key, reservationToken, responseWrapper, status, body);
                 transactionManager.commit(tx);
             } catch (RuntimeException e) {
                 // The commit failed after the handler answered: the operation did not happen, so the buffered
@@ -316,7 +318,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                         ErrorCode.INTERNAL_ERROR,
                         "error.internal_error");
             }
-        } else if (storable && status < 400) {
+        } else if (status < 400) {
             // The handler reports success although something in the request rolled back (a failure swallowed on
             // the way): nothing was written, so a success must not reach the client or be replayed.
             log.error("idempotent_success_rolled_back key={} uri={} status={}", key, request.getRequestURI(), status);
@@ -331,13 +333,18 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                     "error.internal_error");
         } else {
             transactionManager.rollback(tx);
-            if (storable) {
-                idempotencyService.complete(key, reservationToken, status, text(body), location(responseWrapper));
-            } else {
-                idempotencyService.release(key, reservationToken);
-            }
+            record(key, reservationToken, responseWrapper, status, body);
         }
         responseWrapper.copyBodyToResponse();
+    }
+
+    /** Stores the answer for a replay when it can be kept, otherwise frees the key. */
+    private void record(UUID key, UUID reservationToken, HttpServletResponse response, int status, byte[] body) {
+        if (storable(response, status, body)) {
+            idempotencyService.complete(key, reservationToken, answer(response, status, body));
+        } else {
+            idempotencyService.release(key, reservationToken);
+        }
     }
 
     /** Without a transaction manager (web slices): the answer is recorded after the request, as before 3.12. */
@@ -356,12 +363,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             int status = responseWrapper.getStatus();
             byte[] responseBytes = responseWrapper.getContentAsByteArray();
             try {
-                if (chainCompleted
-                        && status >= 200
-                        && status < 500
-                        && responseBytes.length <= MAX_RESPONSE_BODY_BYTES) {
-                    idempotencyService.complete(
-                            key, reservationToken, status, text(responseBytes), location(responseWrapper));
+                if (chainCompleted && storable(responseWrapper, status, responseBytes)) {
+                    idempotencyService.complete(key, reservationToken, answer(responseWrapper, status, responseBytes));
                 } else {
                     idempotencyService.release(key, reservationToken);
                 }
@@ -371,11 +374,35 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
     }
 
-    private static String text(byte[] body) {
-        return new String(body, StandardCharsets.UTF_8);
+    /**
+     * A final answer below 500 whose body fits and is JSON (the stored body is jsonb) or empty. Another answer is not
+     * kept: the key is freed and a retry runs again.
+     */
+    private static boolean storable(HttpServletResponse response, int status, byte[] body) {
+        if (status < 200 || status >= 500 || body.length > MAX_RESPONSE_BODY_BYTES) {
+            return false;
+        }
+        String type = response.getContentType();
+        return body.length == 0 || type == null || isJson(type);
     }
 
-    private static @Nullable String location(HttpServletResponse response) {
-        return response.getHeader(HttpHeaders.LOCATION);
+    private static boolean isJson(String contentType) {
+        try {
+            MediaType type = MediaType.parseMediaType(contentType);
+            return MediaType.APPLICATION_JSON.includes(type) || type.getSubtype().endsWith("+json");
+        } catch (InvalidMediaTypeException malformed) {
+            log.warn("idempotency_content_type_unreadable type={}: {}", contentType, malformed.getMessage());
+            return false;
+        }
+    }
+
+    /** What a replay repeats: status, body, and the Location, Content-Type and ETag of the original answer. */
+    private static IdempotencyRepository.StoredAnswer answer(HttpServletResponse response, int status, byte[] body) {
+        return new IdempotencyRepository.StoredAnswer(
+                status,
+                new String(body, StandardCharsets.UTF_8),
+                response.getHeader(HttpHeaders.LOCATION),
+                body.length == 0 ? null : response.getContentType(),
+                response.getHeader(HttpHeaders.ETAG));
     }
 }

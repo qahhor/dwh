@@ -212,7 +212,12 @@ class IdempotencyFilterTest {
 
         assertThat(response.getStatus()).isEqualTo(201);
         // The Location of a create is stored with the answer (plan item 3.4): a replay names the same resource.
-        verify(idempotencyService).complete(eq(key), eq(token), eq(201), eq("{\"id\":10}"), eq("/api/v1/tasks/10"));
+        verify(idempotencyService)
+                .complete(
+                        eq(key),
+                        eq(token),
+                        eq(new IdempotencyRepository.StoredAnswer(
+                                201, "{\"id\":10}", "/api/v1/tasks/10", null, null)));
     }
 
     @Test
@@ -232,7 +237,9 @@ class IdempotencyFilterTest {
                 "{\"id\":10}",
                 "/api/v1/tasks/10",
                 IdempotencyRepository.State.COMPLETED,
-                Instant.now());
+                Instant.now(),
+                null,
+                null);
 
         when(idempotencyService.computeRequestHash(anyString(), anyString(), any(), any()))
                 .thenReturn("hash123");
@@ -278,7 +285,7 @@ class IdempotencyFilterTest {
         filter.doFilter(request, response, chain);
 
         assertThat(response.getStatus()).isEqualTo(200);
-        verify(idempotencyService, never()).complete(any(), any(), anyInt(), anyString(), any());
+        verify(idempotencyService, never()).complete(any(), any(), any());
         verify(idempotencyService).release(eq(key), eq(token));
     }
 }

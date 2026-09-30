@@ -33,14 +33,31 @@ final class IdempotencyAnswers {
         response.getOutputStream().flush();
     }
 
+    /**
+     * The stored answer as it went out the first time: status, Location, ETag, Content-Type and body. An answer that
+     * has no body (204, 205, 304) is replayed without one; a row stored before its Content-Type was kept is JSON.
+     */
     void replay(HttpServletResponse response, IdempotencyRepository.IdempotencyRecord stored) throws IOException {
-        response.setStatus(stored.responseStatus());
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        int status = stored.responseStatus();
+        response.setStatus(status);
         response.setHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY, "true");
         if (stored.responseLocation() != null) {
             response.setHeader(HttpHeaders.LOCATION, stored.responseLocation());
         }
+        if (stored.responseEtag() != null) {
+            response.setHeader(HttpHeaders.ETAG, stored.responseEtag());
+        }
+        if (!carriesBody(status)) {
+            response.flushBuffer();
+            return;
+        }
+        response.setContentType(
+                stored.responseContentType() != null ? stored.responseContentType() : MediaType.APPLICATION_JSON_VALUE);
         response.getOutputStream().write(stored.responseBody().getBytes(StandardCharsets.UTF_8));
         response.getOutputStream().flush();
+    }
+
+    static boolean carriesBody(int status) {
+        return status >= 200 && status != 204 && status != 205 && status != 304;
     }
 }
