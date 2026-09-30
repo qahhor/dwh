@@ -5,10 +5,12 @@ import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.fnd.service.FndJobQueries;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -41,11 +43,13 @@ public class UplApplyRecoveryJob implements FndJobHandler {
     private final UplPackageRepository repo;
     private final FndLoadService loads;
     private final FndActors actors;
+    private final FndJobQueries jobs;
 
-    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoadService loads, FndActors actors) {
+    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoadService loads, FndActors actors, FndJobQueries jobs) {
         this.repo = repo;
         this.loads = loads;
         this.actors = actors;
+        this.jobs = jobs;
     }
 
     @Override
@@ -62,8 +66,14 @@ public class UplApplyRecoveryJob implements FndJobHandler {
                 : DEFAULT_STALE_MINUTES;
         FndActor actor = actors.system();
         actors.apply(actor);
-        List<PackageRow> stale = repo.lockStaleApplies(staleMinutes, UplPref.JOB_APPLY);
+        List<PackageRow> stale = repo.lockStaleApplies(staleMinutes);
+        // Read after the lock: a job that closes a locked package waits for this transaction
+        Set<String> stillQueued = jobs.pendingArgumentValues(UplPref.JOB_APPLY, UplApplyJob.ARG_PACKAGE_ID);
         for (PackageRow row : stale) {
+            if (stillQueued.contains(row.publicId().toString())) {
+                // Its apply job waits for its turn or a retry, or runs: an old request is not an interrupted one
+                continue;
+            }
             // Третий шаг закрывает пакет и загрузку в одной транзакции: загрузка не pending — не прерывание
             if (loads.find(row.loadId())
                     .filter(load -> FndLoad.PENDING.equals(load.status()))

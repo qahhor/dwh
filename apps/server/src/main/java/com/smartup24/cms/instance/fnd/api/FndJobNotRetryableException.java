@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.fnd.api;
 
 /**
  * A failure another attempt would not fix (plan 10/10, item 3.8): the handler has already settled the outcome, e.g.

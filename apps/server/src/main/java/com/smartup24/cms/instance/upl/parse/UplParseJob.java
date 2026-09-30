@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.upl.parse;
 
-import com.smartup24.cms.instance.fnd.jobs.FndJobAttempt;
-import com.smartup24.cms.instance.fnd.jobs.FndJobFailures;
+import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobFailures;
+import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
-import com.smartup24.cms.instance.fnd.jobs.FndJobNotRetryableException;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;

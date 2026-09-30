@@ -2,10 +2,10 @@ package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobFailures;
 import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
 import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobAttempt;
-import com.smartup24.cms.instance.fnd.jobs.FndJobFailures;
 import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
 import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
@@ -44,7 +44,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Component
 public class UplApplyJob implements FndJobHandler {
 
-    private static final String ARG_PACKAGE_ID = "packageId";
+    /** The argument that names the package; the recovery job looks for queued jobs by it. */
+    static final String ARG_PACKAGE_ID = "packageId";
+
     private static final String ARG_USER_ID = "userId";
 
     private static final Logger log = LoggerFactory.getLogger(UplApplyJob.class);

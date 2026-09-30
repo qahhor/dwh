@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.fnd.api;
 
 /**
  * Which attempt of a job a handler runs (plan 10/10, item 3.8). A handler that closes its business record on failure

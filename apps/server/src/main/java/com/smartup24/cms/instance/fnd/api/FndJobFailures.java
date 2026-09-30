@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.fnd.api;
 
 import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
 import java.io.IOException;

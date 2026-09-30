@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
+import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashMap;
