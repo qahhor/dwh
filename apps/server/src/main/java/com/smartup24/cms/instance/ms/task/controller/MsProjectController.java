@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.ms.task.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.ms.task.api.AddProjectMemberRequest;
@@ -74,6 +75,7 @@ public class MsProjectController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> updateProject(
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,

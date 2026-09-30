@@ -16,10 +16,13 @@ import java.io.StringWriter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.security.web.csrf.InvalidCsrfTokenException;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import tools.jackson.databind.ObjectMapper;
 
 class ProblemDetailAuthHandlersTest {
@@ -77,5 +80,22 @@ class ProblemDetailAuthHandlersTest {
             logger.detachAppender(appender);
             appender.stop();
         }
+    }
+
+    @Test
+    @DisplayName("ADR-0021: a request the firewall rejects answers 400 problem details, not the container's page")
+    void firewallRejectionIsProblemJson() throws Exception {
+        var request = new MockHttpServletRequest("GET", "/api/v1/tasks;x=1");
+        var response = new MockHttpServletResponse();
+
+        new ProblemDetailAuthHandlers(new ObjectMapper(), PackagedProblemMessages.russian())
+                .handle(request, response, new RequestRejectedException("semicolon"));
+
+        assertThat(response.getStatus()).isEqualTo(400);
+        assertThat(response.getContentType()).startsWith("application/problem+json");
+        assertThat(response.getContentAsString())
+                .contains("\"code\":\"bad_request\"")
+                .contains("\"messageKey\":\"error.request_rejected\"")
+                .doesNotContain("semicolon");
     }
 }

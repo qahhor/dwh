@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
@@ -75,6 +76,7 @@ public class MdUserController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> updateUser(
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,

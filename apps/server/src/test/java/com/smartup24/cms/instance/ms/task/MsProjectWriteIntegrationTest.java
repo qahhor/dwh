@@ -208,7 +208,7 @@ class MsProjectWriteIntegrationTest {
         assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
         assertThat(exception.getMessageKey()).isEqualTo("error.project.name_required");
         assertThat(exception.getFieldErrors())
-                .containsExactly(new FieldErrorItem("name", "required", "Название проекта обязательно"));
+                .containsExactly(FieldErrorItem.keyed("name", "required", "error.project.name_required"));
         assertThat(projectCount()).isEqualTo(projectsBefore);
         assertThat(projectAuditCount()).isEqualTo(auditBefore);
         verifyNoInteractions(searchChangePublisher);

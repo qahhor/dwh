@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.upl.api;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
@@ -19,6 +20,7 @@ import com.smartup24.cms.instance.upl.api.UplSourceDtos.VersionItem;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.SourceSummary;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.format.UplTemplateBuilder;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -93,21 +95,36 @@ public class UplSourceController {
         if (request.lockVersion() == null) {
             throw ApiException.validation(
                     "error.validation_failed",
-                    List.of(new FieldErrorItem("lockVersion", "REQUIRED", "lockVersion required")));
+                    List.of(FieldErrorItem.keyed("lockVersion", "REQUIRED", "error.field.lock_version_required")));
         }
         var view = service.updateSource(id, request.lockVersion(), request.toData(), userId());
         return ResponseEntity.ok(SourceResponse.of(view));
     }
 
-    @GetMapping("/{id}/format-versions")
+    /**
+     * The versions of a source. With {@code at} the same path answers the one version in force that day instead: two
+     * typed handlers told apart by the parameter (plan 10/10, item 3.2), described as one operation whose answer is
+     * one of the two shapes.
+     */
+    @GetMapping(value = "/{id}/format-versions", params = "!at")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
-    public ResponseEntity<Object> versions(
+    public ResponseEntity<List<VersionItem>> versions(@PathVariable long id) {
+        return ResponseEntity.ok(
+                service.listVersions(id).stream().map(VersionItem::of).toList());
+    }
+
+    /**
+     * The format version in force on the day {@code at}. The parameter is optional in the description because the
+     * operation it shares with the list is; here it is present by the mapping, and an empty value is a 400.
+     */
+    @GetMapping(value = "/{id}/format-versions", params = "at")
+    @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
+    @Operation(operationId = "versions")
+    public ResponseEntity<FormatVersionResponse> versionAt(
             @PathVariable long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate at) {
         if (at == null) {
-            List<VersionItem> items =
-                    service.listVersions(id).stream().map(VersionItem::of).toList();
-            return ResponseEntity.ok(items);
+            throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.request_param_missing", Map.of("name", "at"));
         }
         return ResponseEntity.ok(FormatVersionResponse.of(service.versionAt(id, at)));
     }

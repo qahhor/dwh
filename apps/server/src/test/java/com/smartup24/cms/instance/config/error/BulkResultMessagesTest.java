@@ -34,7 +34,7 @@ class BulkResultMessagesTest {
         mvc.perform(get("/bulk-test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.succeeded").value(1))
-                .andExpect(jsonPath("$.failed").value(3))
+                .andExpect(jsonPath("$.failed").value(4))
                 .andExpect(jsonPath("$.results[0].ok").value(true))
                 .andExpect(jsonPath("$.results[0].message").doesNotExist())
                 .andExpect(jsonPath("$.results[1].code").value("not_found"))
@@ -45,7 +45,10 @@ class BulkResultMessagesTest {
                 .andExpect(jsonPath("$.results[2].message")
                         .value("Загрузка исполняемых файлов (.exe) запрещена правилами безопасности"))
                 .andExpect(jsonPath("$.results[3].code").value("bulk_item_failed"))
-                .andExpect(jsonPath("$.results[3].message").value("BULK_ITEM_FAILED"));
+                .andExpect(jsonPath("$.results[3].message").value("BULK_ITEM_FAILED"))
+                .andExpect(jsonPath("$.results[4].messageKey").value("error.conflict"))
+                .andExpect(jsonPath("$.results[4].message")
+                        .value(org.hamcrest.Matchers.not("Raw sentence instead of a key")));
     }
 
     @Test
@@ -61,7 +64,7 @@ class BulkResultMessagesTest {
 
         @GetMapping("/bulk-test")
         ResponseEntity<BulkResult> bulk() {
-            return ResponseEntity.ok(BulkRunner.run("delete", List.of(1L, 2L, 3L, 4L), id -> {
+            return ResponseEntity.ok(BulkRunner.run("delete", List.of(1L, 2L, 3L, 4L, 5L), id -> {
                 if (id == 2) {
                     throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.record_not_found");
                 }
@@ -73,6 +76,9 @@ class BulkResultMessagesTest {
                 }
                 if (id == 4) {
                     throw new IllegalStateException("internal detail that must not leak");
+                }
+                if (id == 5) {
+                    throw ApiException.conflict(ErrorCode.CONFLICT, "Raw sentence instead of a key");
                 }
             }));
         }

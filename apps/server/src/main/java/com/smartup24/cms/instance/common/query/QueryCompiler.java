@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -48,6 +50,8 @@ public final class QueryCompiler {
      * default mapper does that (plan 10/10, item 3.11).
      */
     private static final JsonMapper JSON = JsonMapper.shared();
+
+    private static final Logger log = LoggerFactory.getLogger(QueryCompiler.class);
 
     private QueryCompiler() {}
 
@@ -92,8 +96,11 @@ public final class QueryCompiler {
             throw ApiException.validation(
                     "error.common.query_limit_invalid",
                     Map.of("max", list.maxLimit()),
-                    List.of(new FieldErrorItem(
-                            "limit", INVALID_LIMIT, "limit must be between 1 and " + list.maxLimit())));
+                    List.of(FieldErrorItem.keyed(
+                            "limit",
+                            INVALID_LIMIT,
+                            "error.common.query_limit_invalid",
+                            Map.of("max", list.maxLimit()))));
         }
 
         List<FieldErrorItem> errors = new ArrayList<>();
@@ -104,7 +111,8 @@ public final class QueryCompiler {
             boolean minus = sort.startsWith("-");
             Optional<QueryField> requested = list.viewerField(minus ? sort.substring(1) : sort);
             if (requested.isEmpty() || !requested.get().sortable()) {
-                errors.add(new FieldErrorItem("sort", SORT_INVALID, "not a sortable field: " + sort));
+                errors.add(FieldErrorItem.keyed(
+                        "sort", SORT_INVALID, "error.common.field_sort_invalid", Map.of("sort", sort)));
             } else {
                 sortField = requested.get();
                 descending = minus;
@@ -114,8 +122,7 @@ public final class QueryCompiler {
         if (term != null
                 && (term.length() > MAX_SEARCH_CHARS
                         || list.viewerFields().stream().noneMatch(QueryField::searchable))) {
-            errors.add(
-                    new FieldErrorItem("q", SEARCH_INVALID, "search is too long or the list has no searchable field"));
+            errors.add(FieldErrorItem.keyed("q", SEARCH_INVALID, "error.common.field_search_invalid"));
         }
         if (!errors.isEmpty()) {
             throw ApiException.validation("error.common.query_invalid", errors);
@@ -128,8 +135,7 @@ public final class QueryCompiler {
             if (decoded == null) {
                 throw ApiException.validation(
                         "error.common.query_cursor_invalid",
-                        List.of(new FieldErrorItem(
-                                "cursor", INVALID_CURSOR, "cursor is malformed or belongs to another filter or sort")));
+                        List.of(FieldErrorItem.keyed("cursor", INVALID_CURSOR, "error.common.query_cursor_invalid")));
             }
         }
         Set<String> hidden = list.fields().stream()
@@ -146,18 +152,19 @@ public final class QueryCompiler {
             return conditions;
         }
         if (filter.length() > MAX_FILTER_CHARS) {
-            errors.add(new FieldErrorItem("filter", FILTER_TOO_LONG, "filter is too long"));
+            errors.add(FieldErrorItem.keyed("filter", FILTER_TOO_LONG, "error.common.field_filter_too_long"));
             return conditions;
         }
         JsonNode root;
         try {
             root = JSON.readTree(filter);
         } catch (JacksonException e) {
-            errors.add(new FieldErrorItem("filter", FILTER_INVALID, "filter is not JSON: " + e.getOriginalMessage()));
+            log.debug("Filter is not JSON: {}", e.getOriginalMessage());
+            errors.add(FieldErrorItem.keyed("filter", FILTER_INVALID, "error.common.field_filter_not_json"));
             return conditions;
         }
         if (!root.isArray()) {
-            errors.add(new FieldErrorItem("filter", FILTER_INVALID, "filter must be an array of conditions"));
+            errors.add(FieldErrorItem.keyed("filter", FILTER_INVALID, "error.common.field_filter_not_array"));
             return conditions;
         }
         int total = 0;
@@ -167,7 +174,8 @@ public final class QueryCompiler {
                     : 1;
         }
         if (total > MAX_CONDITIONS) {
-            errors.add(new FieldErrorItem("filter", FILTER_TOO_LONG, "at most " + MAX_CONDITIONS + " conditions"));
+            errors.add(FieldErrorItem.keyed(
+                    "filter", FILTER_TOO_LONG, "error.common.field_filter_too_many", Map.of("max", MAX_CONDITIONS)));
             return conditions;
         }
         int groups = 0;
@@ -178,15 +186,15 @@ public final class QueryCompiler {
                 // {"any": [...]} — the conditions inside hold when any of them does (ADR-0016, 2.3; roadmap item 53).
                 JsonNode any = node.get("any");
                 if (!any.isArray() || any.size() < 2 || node.size() != 1) {
-                    errors.add(
-                            new FieldErrorItem(at, FILTER_INVALID, "a group is {\"any\": [two or more conditions]}"));
+                    errors.add(FieldErrorItem.keyed(at, FILTER_INVALID, "error.common.field_filter_group_invalid"));
                     continue;
                 }
                 int group = groups++;
                 for (int j = 0; j < any.size(); j++) {
                     JsonNode inner = any.get(j);
                     if (inner.isObject() && inner.has("any")) {
-                        errors.add(new FieldErrorItem(at + ".any[" + j + "]", FILTER_INVALID, "groups do not nest"));
+                        errors.add(FieldErrorItem.keyed(
+                                at + ".any[" + j + "]", FILTER_INVALID, "error.common.field_filter_group_nested"));
                         continue;
                     }
                     parseCondition(list, inner, at + ".any[" + j + "]", errors)
@@ -203,25 +211,28 @@ public final class QueryCompiler {
     private static Optional<QueryPlan.Condition> parseCondition(
             QueryList list, JsonNode node, String at, List<FieldErrorItem> errors) {
         if (!node.isObject()) {
-            errors.add(new FieldErrorItem(at, FILTER_INVALID, "condition must be an object"));
+            errors.add(FieldErrorItem.keyed(at, FILTER_INVALID, "error.common.field_filter_condition_invalid"));
             return Optional.empty();
         }
         String key = node.path("field").asString("");
         Optional<QueryField> found = list.viewerField(key);
         if (found.isEmpty() || !found.get().filterable()) {
-            errors.add(new FieldErrorItem(at + ".field", UNKNOWN_FIELD, "not a filterable field: " + key));
+            errors.add(FieldErrorItem.keyed(
+                    at + ".field", UNKNOWN_FIELD, "error.common.field_filter_field_unknown", Map.of("field", key)));
             return Optional.empty();
         }
         QueryField field = found.get();
         Optional<QueryOp> op = QueryOp.fromWire(node.path("op").asString(""));
         Set<QueryOp> allowed = field.ops();
         if (op.isEmpty() || !allowed.contains(op.get())) {
-            errors.add(new FieldErrorItem(at + ".op", OP_NOT_ALLOWED, "operation not allowed for " + key));
+            errors.add(FieldErrorItem.keyed(
+                    at + ".op", OP_NOT_ALLOWED, "error.common.field_filter_op_invalid", Map.of("field", key)));
             return Optional.empty();
         }
         List<Object> values = new ArrayList<>();
         if (!parseValues(field, op.get(), node.get("value"), values)) {
-            errors.add(new FieldErrorItem(at + ".value", VALUE_INVALID, "value does not fit " + key));
+            errors.add(FieldErrorItem.keyed(
+                    at + ".value", VALUE_INVALID, "error.common.field_filter_value_invalid", Map.of("field", key)));
             return Optional.empty();
         }
         return Optional.of(new QueryPlan.Condition(field, op.get(), values));

@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.md.controller;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
@@ -12,6 +14,7 @@ import com.smartup24.cms.instance.md.service.NavigationItemService.PermissionCho
 import com.smartup24.cms.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,7 +54,8 @@ public class NavigationItemController {
         return navigationService
                 .getItemById(id)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> ApiException.notFound(
+                        ErrorCode.NOT_FOUND, "error.md.navigation_item_not_found", Map.of("id", id)));
     }
 
     @GetMapping("/by-code/{code}")
@@ -60,7 +64,8 @@ public class NavigationItemController {
         return navigationService
                 .getVisibleItemByCode(code)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> ApiException.notFound(
+                        ErrorCode.NOT_FOUND, "error.md.navigation_item_code_not_found", Map.of("code", code)));
     }
 
     @PostMapping

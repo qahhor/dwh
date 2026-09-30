@@ -10,7 +10,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -19,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -94,10 +92,18 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         this(idempotencyService, objectMapper, messages, null, null);
     }
 
+    /**
+     * Whether a path takes an Idempotency-Key: sign-in and the delivery channels of the profile answer secrets and
+     * refuse it (400). The API description declares the header where this is true.
+     */
+    public static boolean supportsPath(String uri) {
+        return !uri.startsWith("/api/v1/auth/")
+                && !uri.equals("/api/v1/auth")
+                && !uri.startsWith("/api/v1/iam/profile/channels");
+    }
+
     private boolean isUnsupportedPath(String uri) {
-        return uri.startsWith("/api/v1/auth/")
-                || uri.equals("/api/v1/auth")
-                || uri.startsWith("/api/v1/iam/profile/channels");
+        return !supportsPath(uri);
     }
 
     /**
@@ -295,10 +301,10 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         }
         int status = responseWrapper.getStatus();
         byte[] body = responseWrapper.getContentAsByteArray();
-        boolean storable = status >= 200 && status < 500 && body.length <= MAX_RESPONSE_BODY_BYTES;
-        if (storable && !tx.isRollbackOnly()) {
+        if (status < 500 && !tx.isRollbackOnly()) {
             try {
-                idempotencyService.complete(key, reservationToken, status, text(body), location(responseWrapper));
+                // An answer that cannot be kept (too large, not JSON) still commits; only its replay is lost.
+                record(key, reservationToken, responseWrapper, status, body);
                 transactionManager.commit(tx);
             } catch (RuntimeException e) {
                 // The commit failed after the handler answered: the operation did not happen, so the buffered
@@ -316,7 +322,7 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                         ErrorCode.INTERNAL_ERROR,
                         "error.internal_error");
             }
-        } else if (storable && status < 400) {
+        } else if (status < 400) {
             // The handler reports success although something in the request rolled back (a failure swallowed on
             // the way): nothing was written, so a success must not reach the client or be replayed.
             log.error("idempotent_success_rolled_back key={} uri={} status={}", key, request.getRequestURI(), status);
@@ -331,13 +337,18 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                     "error.internal_error");
         } else {
             transactionManager.rollback(tx);
-            if (storable) {
-                idempotencyService.complete(key, reservationToken, status, text(body), location(responseWrapper));
-            } else {
-                idempotencyService.release(key, reservationToken);
-            }
+            record(key, reservationToken, responseWrapper, status, body);
         }
         responseWrapper.copyBodyToResponse();
+    }
+
+    /** Stores the answer for a replay when it can be kept, otherwise frees the key. */
+    private void record(UUID key, UUID reservationToken, HttpServletResponse response, int status, byte[] body) {
+        if (IdempotencyAnswers.storable(response, status, body, MAX_RESPONSE_BODY_BYTES)) {
+            idempotencyService.complete(key, reservationToken, IdempotencyAnswers.answer(response, status, body));
+        } else {
+            idempotencyService.release(key, reservationToken);
+        }
     }
 
     /** Without a transaction manager (web slices): the answer is recorded after the request, as before 3.12. */
@@ -353,15 +364,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, responseWrapper);
             chainCompleted = true;
         } finally {
-            int status = responseWrapper.getStatus();
-            byte[] responseBytes = responseWrapper.getContentAsByteArray();
             try {
-                if (chainCompleted
-                        && status >= 200
-                        && status < 500
-                        && responseBytes.length <= MAX_RESPONSE_BODY_BYTES) {
-                    idempotencyService.complete(
-                            key, reservationToken, status, text(responseBytes), location(responseWrapper));
+                if (chainCompleted) {
+                    record(
+                            key,
+                            reservationToken,
+                            responseWrapper,
+                            responseWrapper.getStatus(),
+                            responseWrapper.getContentAsByteArray());
                 } else {
                     idempotencyService.release(key, reservationToken);
                 }
@@ -369,13 +379,5 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 responseWrapper.copyBodyToResponse();
             }
         }
-    }
-
-    private static String text(byte[] body) {
-        return new String(body, StandardCharsets.UTF_8);
-    }
-
-    private static @Nullable String location(HttpServletResponse response) {
-        return response.getHeader(HttpHeaders.LOCATION);
     }
 }

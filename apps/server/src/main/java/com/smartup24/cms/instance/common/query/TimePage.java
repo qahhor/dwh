@@ -35,8 +35,11 @@ public record TimePage(int limit, @Nullable Position after) {
             throw ApiException.validation(
                     "error.common.query_limit_invalid",
                     Map.of("max", max),
-                    List.of(new FieldErrorItem(
-                            "limit", QueryCompiler.INVALID_LIMIT, "limit must be between 1 and " + max)));
+                    List.of(FieldErrorItem.keyed(
+                            "limit",
+                            QueryCompiler.INVALID_LIMIT,
+                            "error.common.query_limit_invalid",
+                            Map.of("max", max))));
         }
         return new TimePage(size, cursor == null || cursor.isBlank() ? null : decode(cursor));
     }
@@ -69,6 +72,7 @@ public record TimePage(int limit, @Nullable Position after) {
     private static ApiException invalidCursor() {
         return ApiException.validation(
                 "error.common.query_cursor_invalid",
-                List.of(new FieldErrorItem("cursor", QueryCompiler.INVALID_CURSOR, "cursor is not valid")));
+                List.of(FieldErrorItem.keyed(
+                        "cursor", QueryCompiler.INVALID_CURSOR, "error.common.query_cursor_invalid")));
     }
 }

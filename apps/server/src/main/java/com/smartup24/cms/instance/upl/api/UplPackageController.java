@@ -9,13 +9,11 @@ import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageErrors;
 import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.upload.UplApplyService;
 import com.smartup24.cms.instance.upl.upload.UplErrorReportBuilder;
-import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService.Upload;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.ContentDisposition;
@@ -86,8 +84,7 @@ public class UplPackageController {
                 file == null ? null : file.getContentType(),
                 file == null ? 0L : file.getSize(),
                 file);
-        PackageRow row = uploads.receive(upload, userId());
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(PackageItem.of(row));
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(uploads.receiveItem(upload, userId()));
     }
 
     @GetMapping
@@ -98,22 +95,20 @@ public class UplPackageController {
             @RequestParam(required = false) String filter,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String q) {
-        KeysetPage<PackageRow> page = packages.list(limit, cursor, filter, sort, q);
-        List<PackageItem> items = page.items().stream().map(PackageItem::of).toList();
-        return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
+        return ResponseEntity.ok(packages.items(limit, cursor, filter, sort, q));
     }
 
     /** One upload, as the list shows it; the overview links straight to its card. */
     @GetMapping("/{id}")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<PackageItem> get(@PathVariable String id) {
-        return ResponseEntity.ok(PackageItem.of(packages.get(id)));
+        return ResponseEntity.ok(packages.item(id));
     }
 
     @GetMapping("/{id}/errors")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<PackageErrors> errors(@PathVariable String id) {
-        return ResponseEntity.ok(PackageErrors.of(packages.errors(id)));
+        return ResponseEntity.ok(packages.errorItems(id));
     }
 
     /**
@@ -123,10 +118,9 @@ public class UplPackageController {
     @GetMapping("/{id}/errors/file")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<byte[]> errorsFile(@PathVariable String id, @RequestParam(required = false) String lang) {
-        PackageRow row = packages.get(id);
         Map<String, String> dictionary = i18n.effectiveDictionary(lang);
-        UplErrorReportBuilder.ReportFile file = reports.build(
-                row, packages.errors(id), (key, params) -> fill(dictionary.getOrDefault(key, key), params));
+        UplErrorReportBuilder.ReportFile file =
+                packages.errorReport(id, reports, (key, params) -> fill(dictionary.getOrDefault(key, key), params));
         return ResponseEntity.ok()
                 .contentType(
                         MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
@@ -156,7 +150,7 @@ public class UplPackageController {
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_APPLY)
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ResponseEntity<PackageItem> apply(@PathVariable String id) {
-        PackageItem item = PackageItem.of(applies.request(id, userId()));
+        PackageItem item = applies.requestItem(id, userId());
         return ResponseEntity.accepted()
                 .location(URI.create(BASE + "/" + item.id()))
                 .body(item);

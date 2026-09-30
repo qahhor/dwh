@@ -49,6 +49,7 @@ public enum ErrorCode {
 
     // 405 Method Not Allowed
     METHOD_NOT_ALLOWED("method_not_allowed", 405),
+    NOT_ACCEPTABLE("not_acceptable", 406),
 
     // 409 Conflict
     CONFLICT("conflict", 409),
@@ -70,6 +71,7 @@ public enum ErrorCode {
     PAYLOAD_TOO_LARGE("payload_too_large", 413),
     FILE_SIZE_EXCEEDED("file_size_exceeded", 413),
     FILE_TYPE_FORBIDDEN("file_type_forbidden", 415),
+    UNSUPPORTED_MEDIA_TYPE("unsupported_media_type", 415),
     STORAGE_QUOTA_EXCEEDED("storage_quota_exceeded", 413),
     USER_STORAGE_QUOTA_EXCEEDED("user_storage_quota_exceeded", 413),
 

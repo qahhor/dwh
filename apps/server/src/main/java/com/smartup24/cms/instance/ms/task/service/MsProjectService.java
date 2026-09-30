@@ -107,7 +107,7 @@ public class MsProjectService {
         if ((required && normalizedName == null) || (normalizedName != null && normalizedName.isBlank())) {
             throw ApiException.validation(
                     "error.project.name_required",
-                    List.of(new FieldErrorItem("name", "required", "Название проекта обязательно")));
+                    List.of(FieldErrorItem.keyed("name", "required", "error.project.name_required")));
         }
         return normalizedName;
     }
@@ -116,7 +116,7 @@ public class MsProjectService {
         if (state != null && !state.equals("A") && !state.equals("P")) {
             throw ApiException.validation(
                     "error.project.state_invalid",
-                    List.of(new FieldErrorItem("state", "invalid", "Допустимые значения: A, P")));
+                    List.of(FieldErrorItem.keyed("state", "invalid", "error.field.one_of", Map.of("values", "A, P"))));
         }
     }
 

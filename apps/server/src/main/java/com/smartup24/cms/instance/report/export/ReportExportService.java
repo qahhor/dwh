@@ -133,18 +133,23 @@ public class ReportExportService {
         List<FieldErrorItem> errors = new ArrayList<>();
         options.keySet().stream()
                 .filter(key -> !exporter.options().contains(key))
-                .forEach(key ->
-                        errors.add(new FieldErrorItem("options." + key, EXPORT_INVALID, "unknown option " + key)));
+                .forEach(key -> errors.add(FieldErrorItem.keyed(
+                        "options." + key, EXPORT_INVALID, "error.field.unknown_option", Map.of("name", key))));
         if (errors.isEmpty()) {
             exporter.checkOptions(options)
-                    .forEach(error -> errors.add(
-                            new FieldErrorItem("options." + error.field(), EXPORT_INVALID, error.message())));
+                    .forEach(error -> errors.add(new FieldErrorItem(
+                            "options." + error.field(),
+                            EXPORT_INVALID,
+                            error.message(),
+                            error.messageKey(),
+                            error.params())));
         }
         if (request.columns() != null) {
             for (int i = 0; i < request.columns().size(); i++) {
                 String key = request.columns().get(i);
                 if (list.viewerField(key).isEmpty()) {
-                    errors.add(new FieldErrorItem("columns[" + i + "]", EXPORT_INVALID, "unknown column " + key));
+                    errors.add(FieldErrorItem.keyed(
+                            "columns[" + i + "]", EXPORT_INVALID, "error.field.unknown_column", Map.of("name", key)));
                 }
             }
         }

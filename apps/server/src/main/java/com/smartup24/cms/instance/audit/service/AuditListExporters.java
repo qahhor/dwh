@@ -36,7 +36,8 @@ public class AuditListExporters {
                 List<FieldErrorItem> errors = common(options);
                 String event = options.get("event");
                 if (event != null && !event.isBlank() && !List.of("I", "U", "D").contains(event)) {
-                    errors.add(new FieldErrorItem("event", "EXPORT_INVALID", "I, U or D"));
+                    errors.add(FieldErrorItem.keyed(
+                            "event", "EXPORT_INVALID", "error.field.one_of", Map.of("values", "I, U, D")));
                 }
                 return errors;
             }
@@ -98,7 +99,8 @@ public class AuditListExporters {
         List<FieldErrorItem> errors = new ArrayList<>();
         String user = options.get("userId");
         if (user != null && !user.isBlank() && !user.strip().matches("\\d{1,18}")) {
-            errors.add(new FieldErrorItem("userId", "EXPORT_INVALID", "not a number: " + user));
+            errors.add(FieldErrorItem.keyed(
+                    "userId", "EXPORT_INVALID", "error.field.not_a_number", Map.of("value", user)));
         }
         for (String key : List.of("from", "to")) {
             String value = options.get(key);
@@ -106,7 +108,8 @@ public class AuditListExporters {
                 try {
                     Instant.parse(value.strip());
                 } catch (DateTimeParseException e) {
-                    errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "not an ISO instant: " + value));
+                    errors.add(FieldErrorItem.keyed(
+                            key, "EXPORT_INVALID", "error.field.not_an_instant", Map.of("value", value)));
                 }
             }
         }

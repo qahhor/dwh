@@ -78,6 +78,36 @@ class ResponseStatusDeclaredTest {
         }
     }
 
+    @Test
+    @DisplayName("3.6: a handler that answers ETag itself is marked @AnswersRevision, so the description declares it")
+    void etagIsDeclared() throws IOException {
+        List<String> wrong = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(MAIN)) {
+            for (Path file :
+                    files.filter(path -> path.toString().endsWith(".java")).toList()) {
+                String source = Files.readString(file, StandardCharsets.UTF_8).replace("\r\n", "\n");
+                if (!source.contains("@RestController")) {
+                    continue;
+                }
+                Matcher handler = HANDLER.matcher(source);
+                while (handler.find()) {
+                    int open = source.indexOf('{', handler.end());
+                    boolean answers =
+                            source.substring(open, closing(source, open)).contains(".eTag(");
+                    String annotations = source.substring(source.lastIndexOf("\n\n", handler.start()), handler.start());
+                    boolean marked = annotations.contains("@AnswersRevision");
+                    if (answers != marked) {
+                        wrong.add(MAIN.relativize(file).toString().replace('\\', '/') + "#" + handler.group(1)
+                                + (answers ? " sets ETag without @AnswersRevision" : " is marked but sets no ETag"));
+                    }
+                }
+            }
+        }
+        assertThat(wrong)
+                .as("handlers whose ETag the description would miss or invent")
+                .isEmpty();
+    }
+
     private static int closing(String source, int open) {
         int depth = 0;
         for (int i = open; i < source.length(); i++) {

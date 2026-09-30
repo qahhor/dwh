@@ -62,8 +62,8 @@ public class MdListViewController {
         if (request.lockVersion() == null) {
             throw ApiException.validation(
                     "error.md.list_view_invalid",
-                    List.of(new FieldErrorItem(
-                            "lockVersion", MdListViewService.LIST_VIEW_INVALID, "lockVersion required")));
+                    List.of(FieldErrorItem.keyed(
+                            "lockVersion", MdListViewService.LIST_VIEW_INVALID, "error.field.lock_version_required")));
         }
         return ResponseEntity.ok(service.update(userId(), listCode, id, request.lockVersion(), request));
     }
