@@ -211,6 +211,18 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
                 send(admin, patch(target).header("If-Match", Revisions.etag(now)), Map.of("name", "Fresh form"));
         assertThat(fresh.getStatus()).as(fresh.getContentAsString()).isEqualTo(204);
         assertThat(fresh.getHeader("ETag")).isEqualTo(Revisions.etag(now + 1));
+
+        // The personal rights are part of the user: saved from its revision, 428 without one, 409 from a stale one.
+        Map<String, Object> grants = Map.of("grants", List.of());
+        assertThat(send(admin, put(target + "/permissions"), grants).getStatus())
+                .isEqualTo(428);
+        assertThat(send(admin, put(target + "/permissions").header("If-Match", Revisions.etag(now)), grants)
+                        .getStatus())
+                .isEqualTo(409);
+        MockHttpServletResponse rights =
+                send(admin, put(target + "/permissions").header("If-Match", Revisions.etag(now + 1)), grants);
+        assertThat(rights.getStatus()).as(rights.getContentAsString()).isEqualTo(200);
+        assertThat(rights.getHeader("ETag")).isEqualTo(Revisions.etag(now + 2));
     }
 
     @Test
