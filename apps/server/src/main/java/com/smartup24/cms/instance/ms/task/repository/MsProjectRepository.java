@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
@@ -122,15 +123,28 @@ public class MsProjectRepository {
     }
 
     public List<ProjectMemberRecord> getMembers(Long projectId) {
+        return getMembers(projectId, null, Integer.MAX_VALUE);
+    }
+
+    /**
+     * The members of a project by name, then user id (plan 10/10, item 3.5): at most {@code limit} after
+     * {@code after}, the name and user id of the last member of the previous page (null for the first page).
+     */
+    public List<ProjectMemberRecord> getMembers(Long projectId, @Nullable ProjectMemberRecord after, int limit) {
         return jdbcClient
                 .sql("""
                 select pm.project_id, pm.user_id, u.name as user_name, u.email as user_email, pm.access_kind
                 from ms_task_project_members pm
                 join md_users u on u.id = pm.user_id
                 where pm.project_id = :projectId
-                order by u.name asc
+                  and (cast(:afterUserId as bigint) is null or (u.name, pm.user_id) > (:afterName, :afterUserId))
+                order by u.name asc, pm.user_id asc
+                limit :limit
                 """)
                 .param("projectId", projectId)
+                .param("afterName", after != null ? after.userName() : null)
+                .param("afterUserId", after != null ? after.userId() : null)
+                .param("limit", limit)
                 .query((rs, rowNum) -> new ProjectMemberRecord(
                         rs.getLong("project_id"),
                         rs.getLong("user_id"),

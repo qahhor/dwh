@@ -97,6 +97,6 @@ public class MsProjectListService {
                             progress);
                 })
                 .toList();
-        return new KeysetPage<>(items, page.nextCursor(), page.hasMore(), page.totalEstimated());
+        return new KeysetPage<>(items, page.nextCursor(), page.hasMore(), page.totalEstimated(), page.totalExact());
     }
 }

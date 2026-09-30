@@ -54,11 +54,12 @@ public class MsTaskListService {
             String search,
             TaskListFilters filters) {
         var page = page(viewerId, limit, cursor, filter, sort, search, MsTaskViews.filters(filters));
-        return KeysetPage.of(
+        return new KeysetPage<>(
                 MsTaskViews.all(page.items(), MsTaskViews::task),
                 page.nextCursor(),
                 page.hasMore(),
-                page.totalEstimated());
+                page.totalEstimated(),
+                page.totalExact());
     }
 
     /**

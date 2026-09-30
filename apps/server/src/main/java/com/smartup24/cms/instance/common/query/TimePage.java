@@ -30,6 +30,15 @@ public record TimePage(int limit, @Nullable Position after) {
      * decoded; a bad value of either is 422 with the field named, as the registry lists answer.
      */
     public static TimePage of(@Nullable Integer limit, @Nullable String cursor, int defaultLimit, int max) {
+        return new TimePage(
+                limit(limit, defaultLimit, max), cursor == null || cursor.isBlank() ? null : decode(cursor));
+    }
+
+    /**
+     * {@code limit} checked against {@code max}, null meaning {@code defaultLimit}: 422 naming the field outside 1 to
+     * {@code max}. A page keyed otherwise than by time checks its limit the same way.
+     */
+    public static int limit(@Nullable Integer limit, int defaultLimit, int max) {
         int size = limit == null ? defaultLimit : limit;
         if (size < 1 || size > max) {
             throw ApiException.validation(
@@ -38,15 +47,19 @@ public record TimePage(int limit, @Nullable Position after) {
                     List.of(new FieldErrorItem(
                             "limit", QueryCompiler.INVALID_LIMIT, "limit must be between 1 and " + max)));
         }
-        return new TimePage(size, cursor == null || cursor.isBlank() ? null : decode(cursor));
+        return size;
     }
 
-    /** The rows read ({@code limit + 1} at most) as a page; the total counts only this page. */
+    /**
+     * The rows read ({@code limit + 1} at most) as a page. Nothing is counted: {@code hasMore} says whether rows
+     * follow, and the total is the number of rows on this page — a count of the collection only for a first page after
+     * which nothing follows, so {@code totalExact} is false otherwise.
+     */
     public <T> KeysetPage<T> page(List<T> rows, Function<T, Position> position) {
         boolean hasMore = rows.size() > limit;
         List<T> items = hasMore ? rows.subList(0, limit) : rows;
         String next = hasMore ? encode(position.apply(items.getLast())) : null;
-        return KeysetPage.of(items, next, hasMore, items.size());
+        return new KeysetPage<>(items, next, hasMore, items.size(), after == null && !hasMore);
     }
 
     static String encode(Position position) {
@@ -66,7 +79,8 @@ public record TimePage(int limit, @Nullable Position after) {
         }
     }
 
-    private static ApiException invalidCursor() {
+    /** The answer to a cursor that is not one of ours: 422 naming the field. */
+    public static ApiException invalidCursor() {
         return ApiException.validation(
                 "error.common.query_cursor_invalid",
                 List.of(new FieldErrorItem("cursor", QueryCompiler.INVALID_CURSOR, "cursor is not valid")));

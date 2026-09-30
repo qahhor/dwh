@@ -15,7 +15,6 @@ import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService.Upload;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.http.ContentDisposition;
@@ -99,8 +98,7 @@ public class UplPackageController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String q) {
         KeysetPage<PackageRow> page = packages.list(limit, cursor, filter, sort, q);
-        List<PackageItem> items = page.items().stream().map(PackageItem::of).toList();
-        return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
+        return ResponseEntity.ok(page.map(PackageItem::of));
     }
 
     /** One upload, as the list shows it; the overview links straight to its card. */

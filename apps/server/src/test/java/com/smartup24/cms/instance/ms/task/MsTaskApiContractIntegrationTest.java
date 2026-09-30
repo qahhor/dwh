@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -229,6 +230,52 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                         Map.of("textMarkdown", "TEST comment", "fileIds", List.of(fileId)))),
                 comment);
         assertKeys(first(items(ok(send(s, get("/api/v1/tasks/" + taskId + "/comments"), null)))), comment);
+    }
+
+    @Test
+    @DisplayName("3.5: the members of a project come a page at a time by name; a bad limit or cursor is 422")
+    void projectMembersArePaged() throws Exception {
+        Session s = login(user());
+        long projectId = id(created(send(
+                s, post("/api/v1/tasks/projects"), Map.of("name", "TEST members page " + suffix(), "state", "A"))));
+        List<Long> members = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            long member = userId(user());
+            members.add(member);
+            assertThat(send(
+                                    s,
+                                    post("/api/v1/tasks/projects/" + projectId + "/members"),
+                                    Map.of("userId", member, "accessKind", "R"))
+                            .getStatus())
+                    .isEqualTo(204);
+        }
+        String path = "/api/v1/tasks/projects/" + projectId + "/members/page";
+
+        List<Long> seen = new ArrayList<>();
+        String cursor = null;
+        do {
+            var request = get(path).param("limit", "2");
+            if (cursor != null) {
+                request.param("cursor", cursor);
+            }
+            Map<String, Object> page = object(ok(send(s, request, null)));
+            items(page).forEach(item -> seen.add(((Number) item.get("userId")).longValue()));
+            cursor = (String) page.get("nextCursor");
+        } while (cursor != null);
+        assertThat(seen).containsExactlyInAnyOrderElementsOf(members).doesNotHaveDuplicates();
+
+        assertThat(send(s, get(path).param("limit", "0"), null).getStatus()).isEqualTo(422);
+        assertThat(send(s, get(path).param("limit", "201"), null).getStatus()).isEqualTo(422);
+        assertThat(send(s, get(path).param("cursor", "not-a-cursor"), null).getStatus())
+                .isEqualTo(422);
+        assertThat(array(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members"), null))))
+                .as("the deprecated whole list still answers until its sunset")
+                .hasSize(3);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> items(Map<String, Object> page) {
+        return (List<Map<String, Object>>) page.get("items");
     }
 
     private static void assertKeys(Map<String, Object> node, Set<String> expected) {
