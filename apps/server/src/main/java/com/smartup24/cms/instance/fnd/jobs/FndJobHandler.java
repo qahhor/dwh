@@ -18,4 +18,14 @@ public interface FndJobHandler {
 
     /** Runs the job; an exception marks the run failed and its text is kept in {@code fnd_job_runs.error}. */
     void run(Map<String, Object> args);
+
+    /**
+     * Runs the job as the given attempt; the runner calls this one. A handler that closes its record on failure
+     * overrides it: while {@link FndJobAttempt#last()} is false it rethrows a transient failure (see
+     * {@link FndJobFailures#isTransient}) and leaves the record for the retry; a failure a retry would not fix it
+     * reports with {@link FndJobNotRetryableException}.
+     */
+    default void run(Map<String, Object> args, FndJobAttempt attempt) {
+        run(args);
+    }
 }
