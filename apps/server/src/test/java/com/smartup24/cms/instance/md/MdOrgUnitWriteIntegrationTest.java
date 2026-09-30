@@ -339,7 +339,11 @@ class MdOrgUnitWriteIntegrationTest {
                         case "role-create" -> roleService.createRole("new-" + sequence.incrementAndGet(), 0);
                         case "role-update" -> roleService.updateRole(role, null, "P", null, 1L);
                         case "role-delete" -> roleService.deleteRole(unusedRole);
-                        case "assign-roles" -> assignments.assignRoles(user, List.of(unusedRole));
+                        case "assign-roles" ->
+                            assignments.assignRoles(
+                                    user,
+                                    List.of(unusedRole),
+                                    users.findById(user).orElseThrow().revision());
                         case "user-create" -> {
                             String login = "new-user-" + sequence.incrementAndGet();
                             userService.createUser(

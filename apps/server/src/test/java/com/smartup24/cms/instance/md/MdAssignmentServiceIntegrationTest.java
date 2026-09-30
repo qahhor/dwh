@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantDto;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.PermissionsVersionResponse;
 import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -41,13 +42,14 @@ class MdAssignmentServiceIntegrationTest {
     static MdScopeRepository scopeRepository;
     static Long scopeUnitId;
     static AuditLogService auditLogService;
+    static MdUserRepository userRepository;
 
     @BeforeAll
     static void setup() {
         var ds = TestDatabases.migratedCopy("dwh_assign_test");
         jdbc = JdbcClient.create(ds);
 
-        var userRepository = new MdUserRepository(jdbc, new ObjectMapper());
+        userRepository = new MdUserRepository(jdbc, new ObjectMapper());
         roleRepository = new MdRoleRepository(jdbc);
         var permissionRepository = new MdPermissionRepository(jdbc);
         permissionService = new MdPermissionService(permissionRepository);
@@ -75,6 +77,19 @@ class MdAssignmentServiceIntegrationTest {
                         """).param("login", login).query(Long.class).single();
     }
 
+    /** The change made from the user's current revision, as the screen that just read the user sends it. */
+    private static PermissionsVersionResponse assignRoles(Long userId, List<Long> roleIds) {
+        return service.assignRoles(userId, roleIds, revisionOf(userId));
+    }
+
+    private static PermissionsVersionResponse replacePersonalPermissions(Long userId, List<GrantDto> grants) {
+        return service.replacePersonalPermissions(userId, grants, revisionOf(userId));
+    }
+
+    private static long revisionOf(Long userId) {
+        return userRepository.findById(userId).orElseThrow().revision();
+    }
+
     private static Long roleId(String pcode) {
         return roleRepository.findByPcode(pcode).orElseThrow().id();
     }
@@ -85,7 +100,7 @@ class MdAssignmentServiceIntegrationTest {
         Long userId = createUser("assign_target");
         long before = permissionService.getPermissionVersion(userId);
 
-        long after = service.assignRoles(userId, List.of(roleId("manager")));
+        long after = assignRoles(userId, List.of(roleId("manager"))).permissionsVersion();
 
         assertThat(after).as("версия обязана вырасти (I-P2)").isGreaterThan(before);
 
@@ -102,9 +117,9 @@ class MdAssignmentServiceIntegrationTest {
     @DisplayName("Персональное право видно как personal и живёт рядом с ролевыми")
     void personalPermissionIsDistinguishable() {
         Long userId = createUser("personal_target");
-        service.assignRoles(userId, List.of(roleId("user")));
+        assignRoles(userId, List.of(roleId("user")));
 
-        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
+        replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
 
         var effective = service.getEffectivePermissions(userId);
         assertThat(effective)
@@ -121,8 +136,8 @@ class MdAssignmentServiceIntegrationTest {
     @DisplayName("Замена набора прав — именно замена: прежние персональные права снимаются")
     void replaceSemanticsRemovesPrevious() {
         Long userId = createUser("replace_target");
-        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
-        service.replacePersonalPermissions(userId, List.of());
+        replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
+        replacePersonalPermissions(userId, List.of());
 
         assertThat(service.getEffectivePermissions(userId))
                 .filteredOn(i -> "personal".equals(i.source()))
@@ -134,20 +149,42 @@ class MdAssignmentServiceIntegrationTest {
     void rejectsPermissionOutsideCatalog() {
         Long userId = createUser("bad_perm_target");
 
-        assertThatThrownBy(
-                        () -> service.replacePersonalPermissions(userId, List.of(new GrantDto("no.such.form", "view"))))
+        assertThatThrownBy(() -> replacePersonalPermissions(userId, List.of(new GrantDto("no.such.form", "view"))))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.permission_not_grantable")
                 .hasFieldOrPropertyWithValue("params", Map.of("permission", "no.such.form.view"));
     }
 
     @Test
+    @DisplayName("3.6: roles and personal rights are saved from the user's revision and raise it")
+    void rolesAndRightsAreSavedFromTheUsersRevision() {
+        Long userId = createUser("revision_target");
+        long read = revisionOf(userId);
+
+        PermissionsVersionResponse roles = service.assignRoles(userId, List.of(roleId("user")), read);
+        assertThat(roles.revision()).isEqualTo(read + 1).isEqualTo(revisionOf(userId));
+
+        assertThatThrownBy(() ->
+                        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")), read))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("messageKey", "error.common.revision_conflict");
+        assertThatThrownBy(() -> service.assignRoles(userId, List.of(roleId("manager")), read))
+                .isInstanceOf(ApiException.class)
+                .hasFieldOrPropertyWithValue("messageKey", "error.common.revision_conflict");
+        assertThat(service.getUserRoleIds(userId)).containsExactly(roleId("user"));
+
+        PermissionsVersionResponse rights = service.replacePersonalPermissions(
+                userId, List.of(new GrantDto("audit.log", "view")), roles.revision());
+        assertThat(rights.revision()).isEqualTo(roles.revision() + 1);
+    }
+
+    @Test
     @DisplayName("F-04: роль admin нельзя снять с последнего администратора")
     void lastAdminIsProtected() {
         Long onlyAdmin = createUser("the_only_admin");
-        service.assignRoles(onlyAdmin, List.of(roleId("admin")));
+        assignRoles(onlyAdmin, List.of(roleId("admin")));
 
-        assertThatThrownBy(() -> service.assignRoles(onlyAdmin, List.of(roleId("user"))))
+        assertThatThrownBy(() -> assignRoles(onlyAdmin, List.of(roleId("user"))))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.last_admin_role");
 
@@ -160,10 +197,10 @@ class MdAssignmentServiceIntegrationTest {
     void adminCanBeRemovedWhenAnotherExists() {
         Long first = createUser("admin_one");
         Long second = createUser("admin_two");
-        service.assignRoles(first, List.of(roleId("admin")));
-        service.assignRoles(second, List.of(roleId("admin")));
+        assignRoles(first, List.of(roleId("admin")));
+        assignRoles(second, List.of(roleId("admin")));
 
-        service.assignRoles(first, List.of(roleId("user")));
+        assignRoles(first, List.of(roleId("user")));
 
         assertThat(service.getUserRoleIds(first)).doesNotContain(roleId("admin"));
         assertThat(service.getUserRoleIds(second)).contains(roleId("admin"));
@@ -181,10 +218,10 @@ class MdAssignmentServiceIntegrationTest {
                 roleRepository.create("Scoped unit role", null, "A", 100).id();
         scopeRepository.setRoleRule(narrowRole, MdScopeService.RULE_UNITS);
 
-        service.assignRoles(userId, List.of(roleId("user")));
+        assignRoles(userId, List.of(roleId("user")));
         assertThat(scopeService.getUserScope(userId).rule()).isEqualTo(MdScopeService.RULE_ALL);
 
-        service.assignRoles(userId, List.of(narrowRole));
+        assignRoles(userId, List.of(narrowRole));
 
         assertThat(scopeService.getUserScope(userId).rule()).isEqualTo(MdScopeService.RULE_UNITS);
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactly(scopeUnitId);
@@ -200,8 +237,8 @@ class MdAssignmentServiceIntegrationTest {
     void roleAssignmentIsAudited() {
         Long userId = createUser("audited_roles");
 
-        service.assignRoles(userId, List.of(roleId("manager")));
-        service.assignRoles(userId, List.of(roleId("user")));
+        assignRoles(userId, List.of(roleId("manager")));
+        assignRoles(userId, List.of(roleId("user")));
 
         var rows = auditRows("md_user_roles", userId);
         assertThat(rows).as("две операции — две записи").hasSize(2);
@@ -222,8 +259,8 @@ class MdAssignmentServiceIntegrationTest {
     void personalPermissionChangeIsAudited() {
         Long userId = createUser("audited_perms");
 
-        service.replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
-        service.replacePersonalPermissions(userId, List.of());
+        replacePersonalPermissions(userId, List.of(new GrantDto("audit.log", "view")));
+        replacePersonalPermissions(userId, List.of());
 
         var rows = auditRows("md_user_permissions", userId);
         assertThat(rows).hasSize(2);
