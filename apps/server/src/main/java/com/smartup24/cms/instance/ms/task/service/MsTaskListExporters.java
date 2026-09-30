@@ -81,7 +81,8 @@ public class MsTaskListExporters {
                 String state = options.get("state");
                 return state == null || state.isBlank() || List.of("A", "P").contains(state.strip())
                         ? List.of()
-                        : List.of(new FieldErrorItem("state", "EXPORT_INVALID", "state is A or P"));
+                        : List.of(FieldErrorItem.keyed(
+                                "state", "EXPORT_INVALID", "error.field.one_of", Map.of("values", "A, P")));
             }
 
             public KeysetPage<?> page(
@@ -98,13 +99,14 @@ public class MsTaskListExporters {
         for (String key : NUMBERS) {
             String value = options.get(key);
             if (value != null && !value.isBlank() && !value.strip().matches("\\d{1,18}")) {
-                errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "not a number: " + value));
+                errors.add(FieldErrorItem.keyed(
+                        key, "EXPORT_INVALID", "error.field.not_a_number", Map.of("value", value)));
             }
         }
         for (String key : FLAGS) {
             String value = options.get(key);
             if (value != null && !value.isBlank() && !List.of("true", "false").contains(value.strip())) {
-                errors.add(new FieldErrorItem(key, "EXPORT_INVALID", "true or false"));
+                errors.add(FieldErrorItem.keyed(key, "EXPORT_INVALID", "error.field.true_or_false"));
             }
         }
         String priority = options.get("priority");
@@ -115,11 +117,23 @@ public class MsTaskListExporters {
                         .orElseThrow()
                         .enumValues()
                         .contains(priority.strip())) {
-            errors.add(new FieldErrorItem("priority", "EXPORT_INVALID", "unknown priority"));
+            errors.add(FieldErrorItem.keyed(
+                    "priority",
+                    "EXPORT_INVALID",
+                    "error.field.one_of",
+                    Map.of(
+                            "values",
+                            String.join(
+                                    ", ",
+                                    MsTaskQuery.LIST
+                                            .field("priority")
+                                            .orElseThrow()
+                                            .enumValues()))));
         }
         String role = options.get("memberRole");
         if (role != null && !role.isBlank() && !List.of("R", "E", "O").contains(role.strip())) {
-            errors.add(new FieldErrorItem("memberRole", "EXPORT_INVALID", "R, E or O"));
+            errors.add(FieldErrorItem.keyed(
+                    "memberRole", "EXPORT_INVALID", "error.field.one_of", Map.of("values", "R, E, O")));
         }
         return errors;
     }

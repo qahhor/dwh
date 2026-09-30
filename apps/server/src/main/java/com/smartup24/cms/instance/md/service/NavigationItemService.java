@@ -173,8 +173,11 @@ public class NavigationItemService {
             throw ApiException.validation(
                     "error.md.navigation_permission_unknown",
                     Map.of("permission", permission),
-                    List.of(new FieldErrorItem(
-                            "requiredPermission", PERMISSION_UNKNOWN, "Право не найдено в каталоге: " + permission)));
+                    List.of(FieldErrorItem.keyed(
+                            "requiredPermission",
+                            PERMISSION_UNKNOWN,
+                            "error.md.navigation_permission_unknown",
+                            Map.of("permission", permission))));
         }
         return permission;
     }

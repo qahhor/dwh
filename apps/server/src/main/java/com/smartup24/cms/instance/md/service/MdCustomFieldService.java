@@ -275,7 +275,7 @@ public class MdCustomFieldService {
     /** The one problem of an attribute value against its definition, or null when the value fits. */
     private FieldErrorItem attributeError(MdCustomFieldRepository.CustomFieldRecord field, Object value) {
         if (field.isRequired() && (value == null || value.toString().trim().isEmpty())) {
-            return fieldError(field, "required", "Поле " + field.name() + " обязательно для заполнения");
+            return fieldError(field, "required", "error.md.field_custom_required", Map.of());
         }
         if (value == null) {
             return null;
@@ -283,33 +283,28 @@ public class MdCustomFieldService {
         return switch (field.fieldType().toLowerCase()) {
             case "string" ->
                 value.toString().length() > 4000
-                        ? fieldError(
-                                field,
-                                "too_long",
-                                "Значение поля " + field.name() + " не должно превышать 4000 символов")
+                        ? fieldError(field, "too_long", "error.md.field_custom_too_long", Map.of("max", 4000))
                         : null;
             case "number" ->
-                isNumber(value)
-                        ? null
-                        : fieldError(field, "invalid_number", "Поле " + field.name() + " должно быть числом");
+                isNumber(value) ? null : fieldError(field, "invalid_number", "error.md.field_custom_number", Map.of());
             case "boolean" ->
                 isBoolean(value)
                         ? null
-                        : fieldError(field, "invalid_boolean", "Поле " + field.name() + " должно быть булевым");
+                        : fieldError(field, "invalid_boolean", "error.md.field_custom_boolean", Map.of());
             case "date" ->
-                isDate(value)
-                        ? null
-                        : fieldError(
-                                field, "invalid_date", "Поле " + field.name() + " должно содержать корректную дату");
+                isDate(value) ? null : fieldError(field, "invalid_date", "error.md.field_custom_date", Map.of());
             case "select" -> selectError(field, value.toString());
             case "user_ref" -> userRefError(field, value);
             default -> null;
         };
     }
 
+    /** The error of an attribute; its text names the field ({@code {name}}) with the extra {@code params}. */
     private static FieldErrorItem fieldError(
-            MdCustomFieldRepository.CustomFieldRecord field, String code, String message) {
-        return new FieldErrorItem("attributes." + field.code(), code, message);
+            MdCustomFieldRepository.CustomFieldRecord field, String code, String messageKey, Map<String, ?> params) {
+        Map<String, Object> all = new HashMap<>(params);
+        all.put("name", field.name());
+        return FieldErrorItem.keyed("attributes." + field.code(), code, messageKey, all);
     }
 
     private static boolean isNumber(Object value) {
@@ -347,8 +342,8 @@ public class MdCustomFieldService {
         return fieldError(
                 field,
                 "invalid_option",
-                "Значение поля " + field.name() + " должно быть одним из вариантов: "
-                        + String.join(", ", allowedOptions));
+                "error.md.field_custom_option",
+                Map.of("options", String.join(", ", allowedOptions)));
     }
 
     /** A reference is a numeric id of an active user; without a user repository only its form is checked. */
@@ -360,10 +355,8 @@ public class MdCustomFieldService {
             try {
                 userId = Long.parseLong(value.toString().trim());
             } catch (NumberFormatException e) {
-                return fieldError(
-                        field,
-                        "invalid_user_ref",
-                        "Поле " + field.name() + " должно содержать числовой ID пользователя");
+                log.debug("User reference of {} is not a number: {}", field.code(), e.getMessage());
+                return fieldError(field, "invalid_user_ref", "error.md.field_custom_user_ref", Map.of());
             }
         }
         if (userRepository == null) {
@@ -371,7 +364,7 @@ public class MdCustomFieldService {
         }
         var userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty() || !"A".equals(userOpt.get().state())) {
-            return fieldError(field, "user_not_found", "Пользователь с ID " + userId + " не найден или неактивен");
+            return fieldError(field, "user_not_found", "error.md.field_custom_user_not_found", Map.of("id", userId));
         }
         return null;
     }

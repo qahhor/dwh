@@ -93,7 +93,7 @@ public class UplSourceController {
         if (request.lockVersion() == null) {
             throw ApiException.validation(
                     "error.validation_failed",
-                    List.of(new FieldErrorItem("lockVersion", "REQUIRED", "lockVersion required")));
+                    List.of(FieldErrorItem.keyed("lockVersion", "REQUIRED", "error.field.lock_version_required")));
         }
         var view = service.updateSource(id, request.lockVersion(), request.toData(), userId());
         return ResponseEntity.ok(SourceResponse.of(view));

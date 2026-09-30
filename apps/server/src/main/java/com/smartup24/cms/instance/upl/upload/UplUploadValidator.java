@@ -45,7 +45,7 @@ public final class UplUploadValidator {
             String sourceId, String periodFrom, String periodTo, boolean filePresent, String fileName, long fileSize) {
         List<FieldErrorItem> errors = new ArrayList<>();
         if (!isPositiveNumber(sourceId)) {
-            errors.add(new FieldErrorItem(FIELD_SOURCE, UPL_PKG_SOURCE_REQUIRED, "Выберите источник"));
+            errors.add(FieldErrorItem.keyed(FIELD_SOURCE, UPL_PKG_SOURCE_REQUIRED, "error.upl.field_source_required"));
         }
         LocalDate from = parseDate(periodFrom);
         LocalDate to = parseDate(periodTo);
@@ -56,7 +56,7 @@ public final class UplUploadValidator {
             errors.add(periodRequired(FIELD_PERIOD_TO));
         }
         if (from != null && to != null && from.isAfter(to)) {
-            errors.add(new FieldErrorItem(FIELD_PERIOD_FROM, UPL_PKG_PERIOD_ORDER, "Начало периода позже конца"));
+            errors.add(FieldErrorItem.keyed(FIELD_PERIOD_FROM, UPL_PKG_PERIOD_ORDER, "error.upl.field_period_order"));
         }
         addFileError(errors, filePresent, fileName, fileSize);
         return List.copyOf(errors);
@@ -64,20 +64,20 @@ public final class UplUploadValidator {
 
     private static void addFileError(List<FieldErrorItem> errors, boolean filePresent, String fileName, long fileSize) {
         if (!filePresent) {
-            errors.add(new FieldErrorItem(FIELD_FILE, UPL_PKG_FILE_REQUIRED, "Выберите файл"));
+            errors.add(FieldErrorItem.keyed(FIELD_FILE, UPL_PKG_FILE_REQUIRED, "error.upl.field_file_required"));
             return;
         }
         if (fileSize == 0) {
-            errors.add(new FieldErrorItem(FIELD_FILE, UPL_PKG_FILE_EMPTY, "Файл пустой"));
+            errors.add(FieldErrorItem.keyed(FIELD_FILE, UPL_PKG_FILE_EMPTY, "error.upl.field_file_empty"));
             return;
         }
         if (!isXlsxName(fileName)) {
-            errors.add(new FieldErrorItem(FIELD_FILE, UPL_PKG_FILE_NOT_XLSX, "Нужен файл Excel с расширением .xlsx"));
+            errors.add(FieldErrorItem.keyed(FIELD_FILE, UPL_PKG_FILE_NOT_XLSX, "error.upl.field_file_not_xlsx"));
         }
     }
 
     private static FieldErrorItem periodRequired(String field) {
-        return new FieldErrorItem(field, UPL_PKG_PERIOD_REQUIRED, "Укажите начало и конец периода");
+        return FieldErrorItem.keyed(field, UPL_PKG_PERIOD_REQUIRED, "error.upl.field_period_required");
     }
 
     private static boolean isPositiveNumber(String value) {

@@ -78,7 +78,8 @@ public final class BulkRunner {
             throw ApiException.validation(
                     "error.common.bulk_ids_invalid",
                     Map.of("max", MAX_IDS),
-                    List.of(new FieldErrorItem("ids", BULK_INVALID, "from 1 to " + MAX_IDS + " positive ids")));
+                    List.of(FieldErrorItem.keyed(
+                            "ids", BULK_INVALID, "error.common.bulk_ids_invalid", Map.of("max", MAX_IDS))));
         }
         return List.copyOf(new LinkedHashSet<>(ids));
     }
@@ -88,14 +89,16 @@ public final class BulkRunner {
         return ApiException.validation(
                 "error.common.bulk_action_unknown",
                 Map.of("action", name),
-                List.of(new FieldErrorItem("action", BULK_ACTION_UNKNOWN, "unknown action: " + name)));
+                List.of(FieldErrorItem.keyed(
+                        "action", BULK_ACTION_UNKNOWN, "error.common.bulk_action_unknown", Map.of("action", name))));
     }
 
-    public static ApiException invalidParam(String name, String message) {
+    /** A parameter of the action is wrong; {@code messageKey} and {@code params} say why, for the field error. */
+    public static ApiException invalidParam(String name, String messageKey, Map<String, ?> params) {
         return ApiException.validation(
                 "error.common.bulk_param_invalid",
                 Map.of("name", name),
-                List.of(new FieldErrorItem("params." + name, BULK_INVALID, message)));
+                List.of(FieldErrorItem.keyed("params." + name, BULK_INVALID, messageKey, params)));
     }
 
     /** Выполняет операцию для каждой записи и собирает итог; ожидаемые отказы — с кодом одиночной операции. */

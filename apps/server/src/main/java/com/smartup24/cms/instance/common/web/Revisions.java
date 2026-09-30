@@ -34,7 +34,7 @@ public final class Revisions {
             if (!tag.matches()) {
                 throw ApiException.validation(
                         "error.common.if_match_invalid",
-                        List.of(new FieldErrorItem(IF_MATCH, "IF_MATCH_INVALID", "If-Match must be \"<revision>\"")));
+                        List.of(FieldErrorItem.keyed(IF_MATCH, "IF_MATCH_INVALID", "error.common.if_match_invalid")));
             }
             return Long.parseLong(tag.group(1));
         }

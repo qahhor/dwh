@@ -23,8 +23,10 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Plan 10/10, item 3.1: the code that throws never writes a sentence. Every text given to {@link ApiException} (its
- * constructors and factories) is a key of the i18n catalogs, present in Russian, English and Uzbek. A text passed
- * through a variable or a constant is not visible to this scan and is checked in review.
+ * constructors and factories) is a key of the i18n catalogs, present in Russian, English and Uzbek. So is the text of
+ * a field error: {@code FieldErrorItem.keyed} takes a key, and {@code new FieldErrorItem} never gets a literal text
+ * (its written form is for bean validation's own message). A text passed through a variable or a constant is not
+ * visible to this scan and is checked in review; a key literal anywhere in the code must be in the catalogs.
  */
 class ErrorTextsTest {
 
@@ -35,6 +37,15 @@ class ErrorTextsTest {
     /** A constructor or factory call; permissionDenied takes the right's form and action, not a text. */
     private static final Pattern CALL =
             Pattern.compile("(?:new\\s+ApiException|ApiException\\.(?!permissionDenied\\b)\\w+)\\s*\\(");
+
+    /** A written field error: its field and code may be literals, its text (third argument on) may not. */
+    private static final Pattern FIELD_ERROR = Pattern.compile("new\\s+FieldErrorItem\\s*\\(");
+
+    /** A keyed field error: the third argument is the key. */
+    private static final Pattern KEYED_FIELD_ERROR = Pattern.compile("FieldErrorItem\\.keyed\\s*\\(");
+
+    /** A string literal that is a whole error key ({@code "error.md.module_not_found"}). */
+    private static final Pattern ERROR_KEY_LITERAL = Pattern.compile("\"(error(?:\\.[a-z0-9_]+)+)\"");
 
     private static final Pattern LITERAL = Pattern.compile("\"(?:[^\"\\\\]|\\\\.)*\"");
 
@@ -64,6 +75,25 @@ class ErrorTextsTest {
                                     .add(key + " (" + file + ")")));
         }
         assertThat(missing).as("keys missing in a catalog").isEmpty();
+    }
+
+    @Test
+    @DisplayName("3.1: a literal text in a field error is found, a keyed one is checked against the catalogs")
+    void literalFieldErrorTextIsFound() {
+        Map<String, List<String>> sentences = new TreeMap<>();
+        Map<String, Set<String>> keys = new TreeMap<>();
+
+        scanFieldErrors("""
+                errors.add(new FieldErrorItem("name", "required", "Поле обязательно"));
+                errors.add(new FieldErrorItem("sort", SORT, "not a sortable field: " + sort));
+                errors.add(new FieldErrorItem(fe.getField(), fe.getCode(), fe.getDefaultMessage()));
+                errors.add(FieldErrorItem.keyed("q", SEARCH, "search is too long"));
+                errors.add(FieldErrorItem.keyed("q", SEARCH, "error.field.required", Map.of()));
+                """, "Fixture.java", sentences, keys);
+
+        assertThat(sentences.get("Fixture.java"))
+                .containsExactly("\"Поле обязательно\"", "\"not a sortable field: \" + sort", "\"search is too long\"");
+        assertThat(keys.get("Fixture.java")).containsExactly("error.field.required");
     }
 
     static Scan scan() throws IOException {
@@ -97,9 +127,48 @@ class ErrorTextsTest {
                         }
                     }
                 }
+                scanFieldErrors(source, name, sentences, keys);
+                Matcher key = ERROR_KEY_LITERAL.matcher(source);
+                while (key.find()) {
+                    keys.computeIfAbsent(name, n -> new TreeSet<>()).add(key.group(1));
+                }
             }
         }
         return new Scan(sentences, keys);
+    }
+
+    /** Field errors: a keyed one names a catalog key, a written one never gets a literal text. */
+    static void scanFieldErrors(
+            String source, String name, Map<String, List<String>> sentences, Map<String, Set<String>> keys) {
+        Matcher written = FIELD_ERROR.matcher(source);
+        while (written.find()) {
+            List<String> arguments = topLevelArguments(source, written.end());
+            for (String argument : arguments.subList(Math.min(2, arguments.size()), arguments.size())) {
+                if (LITERAL.matcher(argument).find()) {
+                    sentences.computeIfAbsent(name, n -> new ArrayList<>()).add(argument.strip());
+                }
+            }
+        }
+        Matcher keyed = KEYED_FIELD_ERROR.matcher(source);
+        while (keyed.find()) {
+            List<String> arguments = topLevelArguments(source, keyed.end());
+            if (arguments.size() < 3) {
+                continue;
+            }
+            String key = arguments.get(2).strip();
+            Matcher literal = LITERAL.matcher(key);
+            if (!literal.find()) {
+                continue; // a key passed through a variable (a helper's parameter): checked where it is written
+            }
+            String text = key.substring(1, key.length() - 1);
+            if (literal.start() == 0
+                    && literal.end() == key.length()
+                    && ApiException.MESSAGE_KEY.matcher(text).matches()) {
+                keys.computeIfAbsent(name, n -> new TreeSet<>()).add(text);
+            } else {
+                sentences.computeIfAbsent(name, n -> new ArrayList<>()).add(key);
+            }
+        }
     }
 
     /** The arguments of the call whose opening parenthesis ends at {@code start}, split at depth zero. */

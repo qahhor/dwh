@@ -12,12 +12,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -251,6 +253,28 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.params.name").value("thing"));
     }
 
+    @Test
+    @DisplayName("3.1: a keyed field error carries its key and params, its message rendered in the request language")
+    void keyedFieldErrorIsRenderedInTheRequestLanguage() throws Exception {
+        MockMvc multilingual = MockMvcBuilders.standaloneSetup(new ReadOnlyTestController())
+                .setControllerAdvice(new GlobalExceptionHandler(new PackagedProblemMessages()))
+                .build();
+
+        multilingual
+                .perform(get("/api/v1/read-only/field-error").header("Accept-Language", "en"))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.errors[0].field").value("state"))
+                .andExpect(jsonPath("$.errors[0].code").value("invalid"))
+                .andExpect(jsonPath("$.errors[0].messageKey").value("error.field.one_of"))
+                .andExpect(jsonPath("$.errors[0].params.values").value("A, P"))
+                .andExpect(jsonPath("$.errors[0].message").value("Allowed values: A, P"))
+                .andExpect(jsonPath("$.errors[1].messageKey").doesNotExist())
+                .andExpect(jsonPath("$.errors[1].message").value("written by bean validation"));
+        multilingual
+                .perform(get("/api/v1/read-only/field-error").header("Accept-Language", "ru"))
+                .andExpect(jsonPath("$.errors[0].message").value("Допустимые значения: A, P"));
+    }
+
     record Item(@NotBlank String name) {}
 
     @RestController
@@ -279,6 +303,15 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/cookie")
         String cookie(@CookieValue("thing") String thing) {
             return thing;
+        }
+
+        @GetMapping("/field-error")
+        String fieldError() {
+            throw ApiException.validation(
+                    "error.validation_failed",
+                    List.of(
+                            FieldErrorItem.keyed("state", "invalid", "error.field.one_of", Map.of("values", "A, P")),
+                            new FieldErrorItem("name", "NotBlank", "written by bean validation")));
         }
 
         @GetMapping("/api-error")

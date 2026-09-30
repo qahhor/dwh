@@ -45,7 +45,7 @@ public final class EntityValidator {
             Object value = values.get(field.key());
             if (value == null || (value instanceof String text && text.isBlank())) {
                 if (field.required() && (!partial || present)) {
-                    errors.add(new FieldErrorItem(field.key(), REQUIRED, "Поле обязательно"));
+                    errors.add(FieldErrorItem.keyed(field.key(), REQUIRED, "error.field.required"));
                 }
                 continue;
             }
@@ -61,13 +61,13 @@ public final class EntityValidator {
                 String text = String.valueOf(value);
                 int length = text.strip().length();
                 if (field.minLength() != null && length < field.minLength()) {
-                    return error(key, TOO_SHORT, "Не короче " + field.minLength() + " символов");
+                    return error(key, TOO_SHORT, "error.field.too_short", Map.of("min", field.minLength()));
                 }
                 if (field.maxLength() != null && text.length() > field.maxLength()) {
-                    return error(key, TOO_LONG, "Не длиннее " + field.maxLength() + " символов");
+                    return error(key, TOO_LONG, "error.field.too_long", Map.of("max", field.maxLength()));
                 }
                 if (field.pattern() != null && !Pattern.matches(field.pattern(), text)) {
-                    return error(key, INVALID, "Значение не подходит под формат");
+                    return error(key, INVALID, "error.field.pattern_mismatch", Map.of());
                 }
             }
             case NUMBER -> {
@@ -75,28 +75,28 @@ public final class EntityValidator {
                 try {
                     number = new BigDecimal(String.valueOf(value).strip());
                 } catch (NumberFormatException e) {
-                    return error(key, INVALID, "Нужно число");
+                    return error(key, INVALID, "error.field.number_required", Map.of());
                 }
                 if ((field.min() != null && number.compareTo(field.min()) < 0)
                         || (field.max() != null && number.compareTo(field.max()) > 0)) {
-                    return error(key, OUT_OF_RANGE, "Число вне допустимого диапазона");
+                    return error(key, OUT_OF_RANGE, "error.field.number_out_of_range", Map.of());
                 }
             }
             case DATE -> {
                 try {
                     LocalDate.parse(String.valueOf(value).strip());
                 } catch (DateTimeParseException e) {
-                    return error(key, INVALID, "Нужна дата ГГГГ-ММ-ДД");
+                    return error(key, INVALID, "error.field.date_required", Map.of());
                 }
             }
             case BOOLEAN -> {
                 if (!(value instanceof Boolean) && !List.of("true", "false").contains(String.valueOf(value))) {
-                    return error(key, INVALID, "Нужно да или нет");
+                    return error(key, INVALID, "error.field.yes_no_required", Map.of());
                 }
             }
             case SELECT -> {
                 if (!field.options().contains(String.valueOf(value))) {
-                    return error(key, INVALID, "Выберите один из вариантов");
+                    return error(key, INVALID, "error.field.option_required", Map.of());
                 }
             }
             case REF -> {
@@ -106,7 +106,7 @@ public final class EntityValidator {
         return Optional.empty();
     }
 
-    private static Optional<FieldErrorItem> error(String key, String code, String message) {
-        return Optional.of(new FieldErrorItem(key, code, message));
+    private static Optional<FieldErrorItem> error(String key, String code, String messageKey, Map<String, ?> params) {
+        return Optional.of(FieldErrorItem.keyed(key, code, messageKey, params));
     }
 }
