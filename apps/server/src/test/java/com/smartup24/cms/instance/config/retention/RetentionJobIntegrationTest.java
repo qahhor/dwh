@@ -1,9 +1,12 @@
 package com.smartup24.cms.instance.config.retention;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.common.retention.RetentionPolicy;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -11,6 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -33,6 +38,12 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
     @Autowired
     private JdbcClient jdbc;
 
+    @Autowired
+    private Environment environment;
+
+    @Autowired
+    private ApplicationContext context;
+
     private long user;
     private long subscription;
 
@@ -51,7 +62,7 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
-    @DisplayName("3.13: ten journals are declared, each with a positive default retention")
+    @DisplayName("3.13: twelve journals are declared, each with a positive default retention")
     void journalsAreDeclared() {
         assertThat(policies)
                 .extracting(RetentionPolicy::name)
@@ -65,7 +76,9 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
                         "webhook-outbox",
                         "inbox",
                         "notification-outbox",
-                        "job-runs");
+                        "job-runs",
+                        "failed-jobs",
+                        "search-jobs");
         assertThat(policies)
                 .allSatisfy(policy -> assertThat(policy.defaultDays()).isPositive());
     }
@@ -88,7 +101,8 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
 
         Map<String, Long> deleted = retention.run();
 
-        assertThat(deleted).containsKeys("security-events", "inbox", "webhook-outbox", "job-runs");
+        assertThat(deleted)
+                .containsKeys("security-events", "inbox", "webhook-outbox", "job-runs", "failed-jobs", "search-jobs");
         assertThat(count("security_events", "details->>'marker' = '" + marker + "'"))
                 .isEqualTo(1);
         assertThat(count("kauth_login_attempts", "login = '" + marker + "'")).isEqualTo(1);
@@ -103,6 +117,59 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
                 .isEqualTo(1);
         // The old finished run goes; the old running one and both recent ones stay.
         assertThat(count("fnd_job_runs", "handler = '" + marker + "'")).isEqualTo(3);
+        // The old failed queued job goes; the old waiting one and the recent failed one stay.
+        assertThat(count("fnd_job_queue", "handler = '" + marker + "'")).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("3.13: finished search jobs go; running ones, recent ones and those a retry points at stay")
+    void searchJobs() {
+        String marker = "retention-" + UUID.randomUUID().toString().substring(0, 8);
+        UUID retried = UUID.randomUUID();
+        insertSearchJob(UUID.randomUUID(), "SUCCEEDED", OLD, marker, null);
+        insertSearchJob(retried, "FAILED", OLD, marker, null);
+        insertSearchJob(UUID.randomUUID(), "RUNNING", OLD, marker, null);
+        insertSearchJob(UUID.randomUUID(), "FAILED", RECENT, marker, retried);
+        insertSearchJob(UUID.randomUUID(), "SUCCEEDED", RECENT, marker, null);
+
+        retention.run();
+
+        assertThat(count("search_jobs", "error_code = '" + marker + "'")).isEqualTo(4);
+        assertThat(count("search_jobs", "id = '" + retried + "'")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("3.13: a partitioned table is refused at startup and never purged: ctid is unique per partition only")
+    void partitionedTableIsRefused() {
+        jdbc.sql("create table if not exists retention_probe_parts (at timestamptz not null) partition by range (at)")
+                .update();
+        jdbc.sql("create table if not exists retention_probe_parts_old partition of retention_probe_parts"
+                        + " for values from ('2000-01-01') to ('2020-01-01')")
+                .update();
+        jdbc.sql("create table if not exists retention_probe_parts_new partition of retention_probe_parts"
+                        + " for values from ('2020-01-01') to (maxvalue)")
+                .update();
+        try {
+            jdbc.sql("insert into retention_probe_parts (at) values ('2010-01-01'), (now() - interval '400 days')")
+                    .update();
+            RetentionPolicy parts = new RetentionPolicy("probe-parts", "retention_probe_parts", "at < :cutoff", 30);
+            RetentionJob job = new RetentionJob(
+                    jdbc,
+                    List.of(parts),
+                    environment,
+                    context.getBeanProvider(MeterRegistry.class),
+                    context.getBeanProvider(Clock.class));
+
+            assertThatThrownBy(job::refusePartitionedTables)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("retention_probe_parts");
+            assertThat(job.run()).doesNotContainKey("probe-parts");
+            assertThat(count("retention_probe_parts", "true")).isEqualTo(2);
+            // The declared journals are plain tables: the application starts.
+            retention.refusePartitionedTables();
+        } finally {
+            jdbc.sql("drop table retention_probe_parts").update();
+        }
     }
 
     @Test
@@ -176,6 +243,30 @@ class RetentionJobIntegrationTest extends EmbeddedPostgresTest {
         jdbc.sql("insert into fnd_job_runs (queue_id, handler, args, started_at, status)" + " values (0, :m, '{}', "
                         + at + ", 'running')")
                 .param("m", marker)
+                .update();
+        jdbc.sql("insert into fnd_job_queue (handler, created_at, next_run_at, attempts, failed_at)" + " values (:m, "
+                        + at + ", " + at + ", 5, " + at + ")")
+                .param("m", marker)
+                .update();
+        if (at.equals(OLD)) {
+            // Waiting for its next attempt however old: never deleted. Not due, so no runner takes it meanwhile.
+            jdbc.sql("insert into fnd_job_queue (handler, created_at, next_run_at, attempts) values (:m, " + at
+                            + ", now() + interval '1 day', 1)")
+                    .param("m", marker)
+                    .update();
+        }
+    }
+
+    private void insertSearchJob(UUID id, String state, String at, String marker, UUID retryOf) {
+        boolean finished = !state.equals("RUNNING");
+        jdbc.sql("insert into search_jobs (id, request_id, action, state, error_code, created_at, updated_at,"
+                        + " finished_at, retry_of_job_id) values (:id, :request, 'CHECK', :state, :m, " + at + ", "
+                        + at + ", " + (finished ? at : "null") + ", :retry)")
+                .param("id", id)
+                .param("request", UUID.randomUUID())
+                .param("state", state)
+                .param("m", marker)
+                .param("retry", retryOf)
                 .update();
     }
 

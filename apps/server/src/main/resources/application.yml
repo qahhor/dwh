@@ -141,6 +141,8 @@ smc:
       inbox: ${SMC_RETENTION_INBOX_DAYS:180}
       notification-outbox: ${SMC_RETENTION_NOTIFICATION_OUTBOX_DAYS:30}
       job-runs: ${SMC_RETENTION_JOB_RUNS_DAYS:90}
+      failed-jobs: ${SMC_RETENTION_FAILED_JOBS_DAYS:90}
+      search-jobs: ${SMC_RETENTION_SEARCH_JOBS_DAYS:90}
   delivery:
     # Refuse to start while users with two-factor sign-in depend on a stub channel (console_*): their login codes
     # would go nowhere. Off in development, where the log is the intended channel.
