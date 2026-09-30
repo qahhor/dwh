@@ -1,10 +1,16 @@
 package com.smartup24.cms.instance.config.cache;
 
+import com.smartup24.cms.instance.common.cluster.ClusterNotices;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import javax.sql.DataSource;
 import org.jspecify.annotations.Nullable;
 import org.postgresql.PGConnection;
@@ -20,11 +26,13 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 /**
  * Keeps the caches of every node of a cluster in step (plan 10/10, item 3.13, ADR-0025). A node that clears a cache
- * sends {@code NOTIFY smc_cache} once its transaction commits — a rolled-back change tells nobody — and every other
- * node, listening on a connection of its own, clears the same cache. After a lost connection the node clears all its
- * caches, since it may have missed a notice, and listens again.
+ * sends {@code NOTIFY smc_cache} inside its transaction, which PostgreSQL delivers only when the transaction commits
+ * and drops with a rollback, so a rolled-back change tells nobody; every other node, listening on a connection of its
+ * own, clears the same cache. A notice may also name a node-local copy that is not a cache (the search settings): the
+ * handlers registered for that name run instead. After a lost connection the node clears all its caches and runs all
+ * handlers, since it may have missed a notice, and listens again.
  */
-public class CacheInvalidations implements SmartLifecycle {
+public class CacheInvalidations implements SmartLifecycle, ClusterNotices {
 
     private static final Logger log = LoggerFactory.getLogger(CacheInvalidations.class);
 
@@ -36,6 +44,7 @@ public class CacheInvalidations implements SmartLifecycle {
     private final @Nullable DataSource dataSource;
     private final @Nullable JdbcClient jdbc;
     private final String node = UUID.randomUUID().toString();
+    private final Map<String, List<Runnable>> handlers = new ConcurrentHashMap<>();
     private volatile @Nullable CacheManager local;
     private volatile boolean running;
     private volatile boolean listening;
@@ -66,23 +75,53 @@ public class CacheInvalidations implements SmartLifecycle {
         }
     }
 
-    /** Tells the other nodes, once the change commits, that {@code cacheName} is stale. */
-    void publish(String cacheName) {
-        if (jdbc == null) {
+    /**
+     * Runs {@code handler} on this node when another node publishes {@code name}, and after a lost connection. For a
+     * node-local copy that is not a Spring cache, such as the search settings.
+     */
+    @Override
+    public void onNotice(String name, Runnable handler) {
+        handlers.computeIfAbsent(name, key -> new CopyOnWriteArrayList<>()).add(handler);
+    }
+
+    /**
+     * Tells the other nodes that {@code name} (a cache or a notice with handlers) is stale once the change commits.
+     * Inside a transaction of this data source the notice is sent on the transaction's own connection: PostgreSQL
+     * delivers it at the commit and drops it with a rollback, and a notice that cannot be queued fails the change
+     * rather than leaving the other nodes stale. Otherwise it goes out after the commit (or now) on a connection of
+     * its own, never on one still bound to a finished transaction.
+     */
+    @Override
+    public void publish(String name) {
+        if (jdbc == null || dataSource == null) {
             return;
         }
-        afterCommit(() -> {
-            try {
-                jdbc.sql("select pg_notify(:channel, :payload)")
-                        .param("channel", CHANNEL)
-                        .param("payload", node + " " + cacheName)
-                        .query()
-                        .listOfRows();
-            } catch (RuntimeException failure) {
-                // The change is committed; the other nodes catch up when the entry expires (10 minutes at most).
-                log.warn("cache_invalidation_notify_failed cache={} error={}", cacheName, failure.toString());
+        String payload = node + " " + name;
+        if (TransactionSynchronizationManager.isActualTransactionActive()
+                && TransactionSynchronizationManager.hasResource(dataSource)) {
+            jdbc.sql("select pg_notify(:channel, :payload)")
+                    .param("channel", CHANNEL)
+                    .param("payload", payload)
+                    .query()
+                    .listOfRows();
+            return;
+        }
+        afterCommit(() -> notifyOwnConnection(name, payload));
+    }
+
+    private void notifyOwnConnection(String name, String payload) {
+        try (Connection connection = dataSource().getConnection();
+                PreparedStatement statement = connection.prepareStatement("select pg_notify(?, ?)")) {
+            if (!connection.getAutoCommit()) {
+                connection.setAutoCommit(true);
             }
-        });
+            statement.setString(1, CHANNEL);
+            statement.setString(2, payload);
+            statement.execute();
+        } catch (SQLException | RuntimeException failure) {
+            // The change is committed; the other nodes catch up when the entry expires (10 minutes at most).
+            log.warn("cache_invalidation_notify_failed cache={} error={}", name, failure.toString());
+        }
     }
 
     /** Whether the listening connection is open: notices from other nodes reach this node. */
@@ -159,13 +198,28 @@ public class CacheInvalidations implements SmartLifecycle {
 
     private void clear(String cacheName) {
         CacheManager caches = local;
-        if (caches == null) {
-            return;
+        if (caches != null) {
+            if (ALL.equals(cacheName)) {
+                caches.getCacheNames().forEach(name -> clearOne(caches, name));
+            } else {
+                clearOne(caches, cacheName);
+            }
         }
         if (ALL.equals(cacheName)) {
-            caches.getCacheNames().forEach(name -> clearOne(caches, name));
+            handlers.values().forEach(CacheInvalidations::runAll);
         } else {
-            clearOne(caches, cacheName);
+            runAll(handlers.getOrDefault(cacheName, List.of()));
+        }
+    }
+
+    private static void runAll(List<Runnable> actions) {
+        for (Runnable action : actions) {
+            try {
+                action.run();
+            } catch (RuntimeException failure) {
+                // One failing handler must not keep the notice from the others or stop the listener.
+                log.warn("cache_invalidation_handler_failed error={}", failure.toString());
+            }
         }
     }
 

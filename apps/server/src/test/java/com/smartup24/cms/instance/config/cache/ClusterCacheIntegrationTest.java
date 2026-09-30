@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
@@ -111,6 +112,36 @@ class ClusterCacheIntegrationTest extends EmbeddedPostgresTest {
     }
 
     @Test
+    @DisplayName("3.13: the notice sent inside a transaction reaches the other node only when it commits")
+    void noticeWaitsForTheCommit() throws InterruptedException {
+        Cache remote = secondCaches.getCache(CacheConfig.MODULE_ACTIVE_CACHE);
+        remote.put("all", "stale until the commit");
+
+        transactions.executeWithoutResult(status -> {
+            cacheManager.getCache(CacheConfig.MODULE_ACTIVE_CACHE).clear();
+            sleep(Duration.ofMillis(500));
+            assertThat(remote.get("all", String.class)).isEqualTo("stale until the commit");
+        });
+
+        awaitTrue(() -> remote.get("all") == null, WITHIN);
+    }
+
+    @Test
+    @DisplayName("3.13: a notice with handlers runs them on the other node, not on the sender")
+    void noticeRunsHandlers() {
+        AtomicInteger remoteRuns = new AtomicInteger();
+        AtomicInteger ownRuns = new AtomicInteger();
+        String notice = "probeNotice" + System.nanoTime();
+        secondNode.onNotice(notice, remoteRuns::incrementAndGet);
+        invalidations.onNotice(notice, ownRuns::incrementAndGet);
+
+        transactions.executeWithoutResult(status -> invalidations.publish(notice));
+
+        awaitTrue(() -> remoteRuns.get() == 1, WITHIN);
+        assertThat(ownRuns).hasValue(0);
+    }
+
+    @Test
     @DisplayName("3.13: a node ignores its own notices and does not echo a remote one")
     void noEcho() {
         Cache own = secondCaches.getCache(CacheConfig.NAVIGATION_ITEMS_CACHE);
@@ -131,12 +162,16 @@ class ClusterCacheIntegrationTest extends EmbeddedPostgresTest {
             if (System.nanoTime() > deadline) {
                 throw new AssertionError("condition not met within " + timeout);
             }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                throw new AssertionError("interrupted", interrupted);
-            }
+            sleep(Duration.ofMillis(20));
+        }
+    }
+
+    private static void sleep(Duration pause) {
+        try {
+            Thread.sleep(pause);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError("interrupted", interrupted);
         }
     }
 }
