@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.upl.UplPref;
+import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,11 @@ public class UplApplyService {
     private final FndActors actors;
     private final FndJobRunner jobs;
     private final TransactionTemplate tx;
+
+    /** Requests the apply as {@link #request} does and answers the package as the API shows it (plan 10/10, 3.2). */
+    public PackageItem requestItem(String publicId, long userId) {
+        return PackageItem.of(request(publicId, userId));
+    }
 
     public UplApplyService(
             UplPackageService packages,

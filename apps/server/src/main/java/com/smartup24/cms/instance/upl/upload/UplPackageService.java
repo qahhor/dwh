@@ -6,6 +6,8 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageErrors;
+import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.ErrorsView;
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +82,33 @@ public class UplPackageService {
     @Transactional(readOnly = true)
     public KeysetPage<PackageRow> list(Integer limit, String cursor, String filter, String sort, String search) {
         return repo.pagePackages(QueryCompiler.compile(UplPackageQuery.LIST, filter, sort, limit, cursor, search));
+    }
+
+    /** One package as the API answers it (plan 10/10, item 3.2: the controller sees DTOs, not rows). */
+    @Transactional(readOnly = true)
+    public PackageItem item(String publicId) {
+        return PackageItem.of(get(publicId));
+    }
+
+    /** A page of packages as the API answers it. */
+    @Transactional(readOnly = true)
+    public KeysetPage<PackageItem> items(Integer limit, String cursor, String filter, String sort, String search) {
+        KeysetPage<PackageRow> page = list(limit, cursor, filter, sort, search);
+        List<PackageItem> items = page.items().stream().map(PackageItem::of).toList();
+        return KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated());
+    }
+
+    /** The errors of a package as the API answers them. */
+    @Transactional(readOnly = true)
+    public PackageErrors errorItems(String publicId) {
+        return PackageErrors.of(errors(publicId));
+    }
+
+    /** The errors of a package as an xlsx file, its texts from {@code text} (a dictionary key and its parameters). */
+    @Transactional(readOnly = true)
+    public UplErrorReportBuilder.ReportFile errorReport(
+            String publicId, UplErrorReportBuilder reports, BiFunction<String, Map<String, Object>, String> text) {
+        return reports.build(get(publicId), errors(publicId), text);
     }
 
     /** Записывает итог разбора: статус, счётчики и первые сохранённые ошибки. */
