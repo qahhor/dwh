@@ -12,9 +12,9 @@ import java.util.stream.Stream;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * Конфигурация экземпляра для тестов ядра (AC-41; 18 п.12а): единицы, датированные коэффициенты, загрузки.
- * Читается из тест-ресурсов {@code fixtures/dept-a.yaml}, {@code fixtures/dept-b.yaml}; в {@code src/main}
- * фикстур нет (это подтверждает grep AC-40). Порядок элементов закреплён комментариями в YAML.
+ * Instance configuration for core tests: units, dated coefficients, loads.
+ * Read from the test resources {@code fixtures/dept-a.yaml}, {@code fixtures/dept-b.yaml}; {@code src/main}
+ * holds no fixtures (a grep test confirms it). The order of elements is fixed by comments in the YAML.
  */
 public record DepartmentFixture(
         String name, List<Unit> units, List<Coefficient> coefficients, List<Load> loads, List<Format> formats) {
@@ -25,7 +25,7 @@ public record DepartmentFixture(
 
     public record Load(String source, LocalDate periodFrom, LocalDate periodTo, String format) {}
 
-    /** Анкета файла экземпляра (раздел {@code formats:}); значения — как в YAML, без перевода в перечисления. */
+    /** An instance file profile (the {@code formats:} section); values stay as in the YAML, not mapped to enums. */
     public record Format(
             String code,
             String name,
@@ -54,7 +54,7 @@ public record DepartmentFixture(
             Integer keyPadMax,
             String refBook) {}
 
-    /** Обе конфигурации — источник для {@code @MethodSource} параметризованных тестов. */
+    /** Both configurations, as the source for {@code @MethodSource} of parameterized tests. */
     public static Stream<DepartmentFixture> departments() {
         return Stream.of(load("dept-a"), load("dept-b"));
     }
@@ -95,44 +95,44 @@ public record DepartmentFixture(
         }
     }
 
-    // ---------- именованные элементы по порядку в YAML ----------
+    // ---------- named elements by their order in the YAML ----------
 
-    /** Базовая единица (первая в списке, ссылается сама на себя). */
+    /** Base unit (first in the list, refers to itself). */
     public Unit baseUnit() {
         return units.get(0);
     }
 
-    /** Производная единица (вторая), её базовая — {@link #baseUnit()}. */
+    /** Derived unit (second); its base is {@link #baseUnit()}. */
     public Unit derivedUnit() {
         return units.get(1);
     }
 
-    /** Отдельная базовая единица (третья) — для пары без коэффициента. */
+    /** A separate base unit (third), for a pair without a coefficient. */
     public Unit otherUnit() {
         return units.get(2);
     }
 
-    /** Первое значение коэффициента «производная → базовая». */
+    /** First value of the "derived → base" coefficient. */
     public Coefficient firstCoefficient() {
         return coefficients.get(0);
     }
 
-    /** Второе, более позднее значение той же пары. */
+    /** Second, later value of the same pair. */
     public Coefficient secondCoefficient() {
         return coefficients.get(1);
     }
 
-    /** Основная загрузка: источник и период. */
+    /** Main load: source and period. */
     public Load mainLoad() {
         return loads.get(0);
     }
 
-    /** Другой источник за тот же период. */
+    /** Another source for the same period. */
     public Load otherSourceLoad() {
         return loads.get(1);
     }
 
-    /** Тот же источник за другой период. */
+    /** The same source for another period. */
     public Load otherPeriodLoad() {
         return loads.get(2);
     }
@@ -208,7 +208,7 @@ public record DepartmentFixture(
                 optionalText(c, "ref_book"));
     }
 
-    /** Список вложенных элементов; ключа нет — пустой список. */
+    /** List of nested elements; an empty list when the key is missing. */
     @SuppressWarnings("unchecked")
     private static List<Map<String, Object>> maps(Map<String, Object> map, String key) {
         Object value = map.get(key);

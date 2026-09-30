@@ -29,9 +29,9 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * Блок C основы: версионность с датой действия (AC-10…AC-17). Стандарт проверяется на тестовой сущности
- * {@code fnd_test_things} + {@code fnd_test_thing_versions} — она создаётся тестом и в миграциях ядра
- * отсутствует (AC-10): ядро не знает ни одного прикладного справочника.
+ * Foundation versioning with an effective date. The standard is checked on a test entity
+ * {@code fnd_test_things} + {@code fnd_test_thing_versions}: the test creates it and the core migrations do not
+ * contain it, since the core knows no application reference book.
  */
 class FndVersioningTest extends EmbeddedPostgresTest {
 
@@ -130,7 +130,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .list();
         assertThat(triggers).contains(VERSIONS + "_bump_version", VERSIONS + "_deny_update_published");
 
-        // Функция одна на все модули — по имени в схеме её ровно одна реализация
+        // One function serves every module: the schema holds exactly one implementation per name
         assertThat(jdbc.sql(
                                 "select count(*) from pg_proc where proname in"
                                         + " ('fnd_version_at', 'bump_version', 'deny_update_published', 'fnd_versioning_enable')")
@@ -154,7 +154,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2025-12-31")))
                 .isEmpty();
 
-        // черновик 2 в «действующей на дату» не участвует
+        // draft 2 does not count as "effective on a date"
         assertThat(versioning.createDraft(VERSIONS, thing, actor)).isEqualTo(2);
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-15")))
                 .contains(1);
@@ -222,7 +222,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     void publishedIntervalsDoNotOverlap() {
         publishVersion(thing, "2026-01-01", "2026-06-30");
 
-        // Проверяется само ограничение БД, поэтому строки вставляются напрямую, минуя порядок публикации
+        // The database constraint itself is checked, so rows are inserted directly, bypassing the publication order
         for (String[] range :
                 new String[][] {{"2026-06-30", null}, {"2026-03-01", "2026-04-01"}, {"2025-01-01", "2026-01-01"}}) {
             Throwable error =
@@ -234,7 +234,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         }
         insertVersionDirectly(thing, 2, "2026-07-01", null, FndVersion.PUBLISHED);
 
-        // draft и superseded в exclusion не участвуют: обе строки ложатся в занятый интервал
+        // draft and superseded rows are outside the exclusion: both fit into an occupied interval
         insertVersionDirectly(thing, 3, "2026-02-01", "2026-03-01", FndVersion.DRAFT);
         insertVersionDirectly(thing, 4, "2026-02-01", "2026-03-01", FndVersion.SUPERSEDED);
         assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h")
@@ -253,7 +253,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining(VERSIONS + "_ck_valid_order");
 
-        // один день — валидный интервал
+        // a single day is a valid interval
         versioning.publish(VERSIONS, thing, 1, LocalDate.parse("2026-01-01"), LocalDate.parse("2026-01-01"), actor);
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-01-01")))
                 .contains(1);
@@ -268,7 +268,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("fnd_version_gap");
 
-        // Заголовки независимы: у второго заголовка номера начинаются заново
+        // Headers are independent: the second header's numbers start over
         assertThat(versioning.createDraft(VERSIONS, otherThing, actor)).isEqualTo(1);
     }
 
@@ -356,7 +356,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
 
     @Test
     @DisplayName(
-            "S-5/доп.14: индекс <таблица>_draft_uidx есть у таблицы теста (fnd_versioning_enable) и у fnd_unit_coefficient_versions (V109)")
+            "Индекс <таблица>_draft_uidx есть у таблицы теста (fnd_versioning_enable) и у fnd_unit_coefficient_versions (V109)")
     void draftUniqueIndexIsApplied() {
         List<String> indexes = jdbc.sql(
                         "select indexname from pg_indexes where indexname like '%\\_draft\\_uidx' order by 1")
@@ -374,7 +374,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
 
     @Test
     @DisplayName(
-            "S-5/доп.14: 30 × два параллельных createDraft одного заголовка — черновик один, второй поток получает fnd_version_draft_exists или fnd_version_conflict")
+            "30 × два параллельных createDraft одного заголовка — черновик один, второй поток получает fnd_version_draft_exists или fnd_version_conflict")
     void concurrentCreateDraftLeavesSingleDraft() throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
@@ -444,7 +444,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
     void duplicateVersionNumberIsTranslatedToConflictCode() {
         insertVersionDirectly(thing, 1, "2026-01-01", null, "published");
 
-        // гонка createDraft: оба посчитали max+1 — воспроизводим без триггера, PK срабатывает первым
+        // createDraft race: both computed max+1; reproduced without the trigger, so the PK fires first
         jdbc.sql("alter table " + VERSIONS + " disable trigger " + VERSIONS + "_bump_version")
                 .update();
         try {
@@ -467,7 +467,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .isEqualTo(1L);
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private long insertThing(String code) {
         return jdbc.sql("insert into fnd_test_things (code) values (:c) returning id")

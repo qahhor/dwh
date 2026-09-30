@@ -5,24 +5,24 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Коды нарушений ограничений таблиц {@code fnd_*} (02 п.16; AC-9а/9б) и логические коды основы.
- * Имена ограничений — по регламенту {@code <table>_(uk|fk|ck|ex)_<suffix>}; каждое ограничение БД типов u/f/c/x
- * имеет элемент здесь и наоборот (CI-тест AC-9а). Элементы без имени ограничения — коды сервисов (AC-11, 15, 16).
+ * Codes for constraint violations on {@code fnd_*} tables, plus the foundation's logical codes. Constraint names
+ * follow the convention {@code <table>_(uk|fk|ck|ex)_<suffix>}; every database constraint of type u/f/c/x has an
+ * element here and vice versa (checked by a CI test). Elements without a constraint name are service-level codes.
  */
 public enum ConstraintErrorCode {
 
-    // fnd_job_schedule, fnd_job_queue, fnd_job_runs (блок B, V100)
+    // fnd_job_schedule, fnd_job_queue, fnd_job_runs (migration V100)
     FND_JOB_SCHEDULE_CK_INTERVAL("fnd_job_schedule_ck_interval"),
     FND_JOB_QUEUE_FK_SCHEDULE("fnd_job_queue_fk_schedule"),
     FND_JOB_RUNS_CK_STATUS("fnd_job_runs_ck_status"),
 
-    // fnd_units (блок D)
+    // fnd_units
     FND_UNITS_UK_CODE("fnd_units_uk_code"),
     FND_UNITS_FK_BASE_UNIT("fnd_units_fk_base_unit"),
     FND_UNITS_CK_CODE("fnd_units_ck_code"),
     FND_UNITS_CK_NAME_UZ("fnd_units_ck_name_uz"),
 
-    // fnd_unit_coefficients + fnd_unit_coefficient_versions (блок D, стандарт версий блока C)
+    // fnd_unit_coefficients + fnd_unit_coefficient_versions (follows the shared versioning standard)
     FND_UNIT_COEFFICIENTS_UK_PAIR("fnd_unit_coefficients_uk_pair"),
     FND_UNIT_COEFFICIENTS_FK_FROM("fnd_unit_coefficients_fk_from"),
     FND_UNIT_COEFFICIENTS_FK_TO("fnd_unit_coefficients_fk_to"),
@@ -34,7 +34,7 @@ public enum ConstraintErrorCode {
     FND_UNIT_COEFFICIENT_VERSIONS_CK_FACTOR_POSITIVE("fnd_unit_coefficient_versions_ck_factor_positive"),
     FND_UNIT_COEFFICIENT_VERSIONS_EX_VALID("fnd_unit_coefficient_versions_ex_valid"),
 
-    // fnd_loads + fnd_load_log (блок E)
+    // fnd_loads + fnd_load_log
     FND_LOADS_UK_PACKAGE_REF("fnd_loads_uk_package_ref"),
     FND_LOADS_CK_STATUS("fnd_loads_ck_status"),
     FND_LOADS_CK_ROWS("fnd_loads_ck_rows"),
@@ -44,7 +44,7 @@ public enum ConstraintErrorCode {
     FND_LOAD_LOG_CK_FILE_SHA("fnd_load_log_ck_file_sha"),
     FND_LOAD_LOG_CK_ACTOR("fnd_load_log_ck_actor"),
 
-    // логические коды основы (не ограничения БД)
+    // logical foundation codes (not database constraints)
     STALE_VERSION(null),
     FND_UNIT_UNKNOWN(null),
     FND_UNIT_BASE_REQUIRED(null),
@@ -66,20 +66,23 @@ public enum ConstraintErrorCode {
         this.constraintName = constraintName;
     }
 
-    /** Имя ограничения в БД; пусто для логических кодов. */
+    /** The constraint name in the database; empty for logical codes. */
     public Optional<String> constraintName() {
         return Optional.ofNullable(constraintName);
     }
 
-    /** Код в нижнем регистре — как он попадает в исключение и лог ({@code fnd_loads_ck_status}, {@code stale_version}). */
+    /**
+     * The code in lower case, as it appears in exceptions and logs ({@code fnd_loads_ck_status},
+     * {@code stale_version}).
+     */
     public String code() {
         return name().toLowerCase();
     }
 
     /**
-     * Код ответа API (план 10/10, п. 3.1): уникальность и исключение пересечений — конфликт с имеющимися данными,
-     * внешний ключ — ссылка на то, чего нет или что занято, проверка — неверные данные. Switch без default: новый
-     * элемент не соберётся, пока ему не выбран код.
+     * The API response code (plan 10/10, item 3.1): a unique or exclusion constraint means a conflict with existing
+     * data, a foreign key means a reference to something missing or still in use, a check constraint means invalid
+     * data. The switch has no default, so a new element will not compile until a code is chosen for it.
      */
     public ErrorCode errorCode() {
         return switch (this) {
@@ -125,7 +128,7 @@ public enum ConstraintErrorCode {
         };
     }
 
-    /** Ключ текста в каталогах i18n: {@code error.fnd.<код>}. */
+    /** The message key in the i18n catalogs: {@code error.fnd.<code>}. */
     public String messageKey() {
         return "error.fnd." + code();
     }
@@ -136,7 +139,7 @@ public enum ConstraintErrorCode {
                 .findFirst();
     }
 
-    /** По тексту серверной ошибки триггера/функции ({@code raise exception 'fnd_version_gap'}). */
+    /** Finds a code by the server error text of a trigger or function ({@code raise exception 'fnd_version_gap'}). */
     public static Optional<ConstraintErrorCode> byMessage(String message) {
         if (message == null) {
             return Optional.empty();

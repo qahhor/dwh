@@ -6,9 +6,10 @@ import java.time.LocalDate;
 import java.util.Map;
 
 /**
- * Коэффициента на дату нет (13 инв.3; AC-21): пересчёт не выполняется и значение не возвращается
- * ни в каком виде — «значение по памяти» запрещено. Обратный коэффициент и цепочки не выводятся (доп.5).
- * В ответе API — конфликт с данными справочника единиц, текст {@code error.fnd.coefficient_missing}.
+ * There is no coefficient for the date: the conversion is not performed and no value is returned in any form,
+ * because a value "from memory" (a guessed or stale factor) is forbidden. An inverse coefficient or a chain of
+ * coefficients is never derived instead. The API answers with a conflict against the unit reference data, with the
+ * text {@code error.fnd.coefficient_missing}.
  */
 public class FndCoefficientMissingException extends ApiException {
 

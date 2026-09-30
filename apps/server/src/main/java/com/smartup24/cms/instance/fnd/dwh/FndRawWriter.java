@@ -4,25 +4,25 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Единственный вход в слой {@code raw} второй базы (11 п.6–7; 18 п.14; AC-33, AC-34).
- * Методов правки и удаления у фасада нет: {@code raw} неизменяем, новая версия данных — новая
- * загрузка (13 инв.4). Удаление строк неудачной загрузки — дело задания {@code fnd.load_cleanup}.
+ * The only entry point into the {@code raw} layer of the second database. The facade has no update or delete
+ * methods: {@code raw} is immutable, and a new version of the data is a new load. Removing the rows of a failed
+ * load is the job of {@code fnd.load_cleanup}.
  */
 public interface FndRawWriter {
 
     /**
-     * Пишет строки одной загрузки одной транзакцией: либо все, либо ни одной (AC-34).
+     * Writes the rows of one load in one transaction: all or none.
      *
-     * @param loadId       версия загрузки в статусе {@code pending}; иначе отказ
-     * @param sourceFileId файл каркаса ({@code mf_files.id}), из которого прочитаны строки
-     * @param rows         строки как прочитаны; исключение источника доходит до вызывающего
+     * @param loadId       a load version in status {@code pending}; any other is refused
+     * @param sourceFileId the framework file ({@code mf_files.id}) the rows were read from
+     * @param rows         the rows as read; an exception thrown by the source reaches the caller
      */
     default void write(long loadId, UUID sourceFileId, Iterable<FndRawRow> rows) {
         copy(loadId, sourceFileId, sink -> rows.forEach(sink));
     }
 
     /**
-     * Streams the rows of one load into raw as the source emits them, in one transaction: all or none (AC-34). The
+     * Streams the rows of one load into raw as the source emits them, in one transaction: all or none. The
      * writer keeps no rows, so the size of a load does not bound it (plan 10/10, item 3.9).
      *
      * @param loadId       a load in status {@code pending}; any other is refused
@@ -36,6 +36,6 @@ public interface FndRawWriter {
     /** How many rows a load has in raw: a reconciliation counts them and never reads them back. */
     long count(long loadId);
 
-    /** Строки загрузки как записаны — без типизации и изменений (AC-33). */
+    /** The rows of a load as written, untyped and unchanged. */
     List<FndRawRow> read(long loadId);
 }

@@ -22,27 +22,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Единственный механизм версий с датой действия для всех модулей DW (02 п.17; 18 п.14; AC-10…AC-17).
- * Модуль объявляет свою таблицу версий в миграции вызовом {@code fnd_versioning_enable}, а данные версии
- * (например {@code factor}) пишет своими колонками через {@link #updateDraft}.
+ * The one mechanism of versions with an effective date for all DW modules. A module declares its versions table in
+ * a migration by calling {@code fnd_versioning_enable}, and writes the version data (for example {@code factor}) to
+ * its own columns through {@link #updateDraft}.
  *
- * <p>Жизненный цикл: {@link #createDraft} (номер = max+1, один черновик на заголовок, доп.14) →
- * правки черновика → {@link #publish} (закрывает предыдущую версию) → при ошибке {@link #supersede}.
- * Опубликованную строку защищает триггер {@code deny_update_published()}.
+ * <p>Lifecycle: {@link #createDraft} (number = max + 1, at most one draft per header) → edits to the draft →
+ * {@link #publish} (closes the previous version) → {@link #supersede} if the version was published by mistake.
+ * The {@code deny_update_published()} trigger protects a published row.
  */
 @Service
 public class FndVersioning {
 
-    /** Имя таблицы/колонки в динамическом SQL: только то, что мы сами создаём миграциями. */
+    /** A table or column name in dynamic SQL: only names we create ourselves in migrations. */
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-z][a-z0-9_]{0,62}$");
 
-    /** Колонки, которыми управляет стандарт версионности (02 п.12, AC-13/AC-16): правятся только через фасад. */
+    /** Columns owned by the versioning standard: they change only through this facade's own methods. */
     private static final Set<String> RESERVED_COLUMNS =
             Set.of("id", "status", "version", "valid_from", "valid_to", "lock_version", "published_at", "published_by");
 
     private final JdbcClient jdbc;
     private final FndActors actors;
-    /** table -&gt; колонка заголовка; реестр fnd_versioned_tables меняется только миграциями. */
+    /** table -&gt; header column; the fnd_versioned_tables registry changes only through migrations. */
     private final Map<String, String> headerColumns = new ConcurrentHashMap<>();
 
     public FndVersioning(JdbcClient jdbc, FndActors actors) {
@@ -51,11 +51,13 @@ public class FndVersioning {
     }
 
     /**
-     * Создаёт черновик со следующим номером. {@code valid_from} черновика — заглушка (текущая дата):
-     * колонка объявлена {@code not null}, а действующие даты задаёт публикация [допущение архитектора].
+     * Creates a draft with the next number. The draft's {@code valid_from} is a placeholder (the current date).
+     * Assumption: a placeholder is acceptable because the column is declared {@code not null} and the effective
+     * dates are set on publishing.
      *
-     * @throws ConstraintViolationException {@code fnd_version_draft_exists} — черновик уже есть (доп.14)
-     * @throws ConstraintViolationException {@code fnd_version_conflict} — параллельный createDraft того же заголовка (M-13)
+     * @throws ConstraintViolationException {@code fnd_version_draft_exists} when the header already has a draft
+     * @throws ConstraintViolationException {@code fnd_version_conflict} when a concurrent createDraft for the same
+     *     header won the race
      */
     @Transactional
     public int createDraft(String versionsTable, long headerId, FndActor actor) {
@@ -80,19 +82,20 @@ public class FndVersioning {
     }
 
     /**
-     * Публикует черновик: закрывает открытый конец предыдущей версии днём до {@code validFrom}
-     * и переводит черновик в {@code published} (доп.2, доп.3).
+     * Publishes a draft: closes the open end of the previous version on the day before {@code validFrom} and moves
+     * the draft to {@code published}.
      *
-     * @throws ConstraintViolationException {@code fnd_version_unknown} — черновика с таким номером нет;
-     *                                      {@code fnd_version_not_after_previous} — дата не позже предыдущей версии
+     * @throws ConstraintViolationException {@code fnd_version_unknown} when there is no draft with that number;
+     *                                      {@code fnd_version_not_after_previous} when the date is not later than
+     *                                      the previous version's
      */
     @Transactional
     public void publish(
             String versionsTable, long headerId, int version, LocalDate validFrom, LocalDate validTo, FndActor actor) {
         String header = headerColumn(versionsTable);
         actors.apply(actor);
-        // Строка черновика берётся под блокировку: параллельный publish той же версии ждёт коммита
-        // и видит уже published — отказ, а не «успех» с нулём обновлённых строк
+        // The draft row is locked: a concurrent publish of the same version waits for the commit, then sees
+        // published and is rejected, rather than "succeeding" with zero rows updated
         String status = jdbc.sql("select status from " + versionsTable + " where " + header
                         + " = :h and version = :v for update")
                 .param("h", headerId)
@@ -103,8 +106,8 @@ public class FndVersioning {
         if (!FndVersion.DRAFT.equals(status)) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_UNKNOWN);
         }
-        // Порядок версий проверяет сервис, а не ограничение БД: при отказе предыдущая версия остаётся
-        // нетронутой, а черновик — черновиком, потому что до этой точки не было ни одной записи (AC-12).
+        // The service, not a database constraint, checks the version order: on rejection the previous version stays
+        // untouched and the draft stays a draft, because nothing has been written before this point.
         Optional<FndVersion> previous = jdbc.sql("select " + header + " as header_id, version, valid_from, valid_to,"
                         + " status, published_at, published_by, lock_version from " + versionsTable
                         + " where " + header + " = :h and status = 'published' order by valid_from desc limit 1")
@@ -133,12 +136,13 @@ public class FndVersioning {
                     .update();
         });
         if (published != 1) {
-            // Черновик исчез между проверкой и обновлением: транзакция откатывается вместе с закрытием предыдущей
+            // The draft vanished between the check and the update: the transaction rolls back, together with the
+            // closing of the previous version
             throw new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_UNKNOWN);
         }
     }
 
-    /** Снимает ошибочно опубликованную версию: интервал освобождается, строка остаётся историей (AC-17). */
+    /** Withdraws a version published by mistake: its interval is freed and the row stays as history. */
     @Transactional
     public void supersede(String versionsTable, long headerId, int version, FndActor actor) {
         String header = headerColumn(versionsTable);
@@ -155,8 +159,8 @@ public class FndVersioning {
     }
 
     /**
-     * Правит колонки черновика с оптимистической блокировкой (02 п.12; AC-16): {@code lock_version}
-     * увеличивает триггер, поэтому клиент со старым значением получает {@link StaleVersionException}.
+     * Updates draft columns under optimistic locking: a trigger increments {@code lock_version}, so a client holding
+     * an old value gets {@link StaleVersionException}.
      */
     @Transactional
     public void updateDraft(
@@ -204,7 +208,7 @@ public class FndVersioning {
         }
     }
 
-    /** Номер версии, действующей на дату; черновики и снятые версии не участвуют (AC-11). */
+    /** The number of the version in effect on the date; drafts and withdrawn versions are ignored. */
     @Transactional(readOnly = true)
     public Optional<Integer> versionAt(String versionsTable, long headerId, LocalDate date) {
         headerColumn(versionsTable);
@@ -216,7 +220,7 @@ public class FndVersioning {
                 .optional();
     }
 
-    /** Строка версии как есть — для модулей и проверок. */
+    /** A version row as stored, for modules and checks. */
     @Transactional(readOnly = true)
     public Optional<FndVersion> find(String versionsTable, long headerId, int version) {
         String header = headerColumn(versionsTable);
@@ -229,7 +233,7 @@ public class FndVersioning {
                 .optional();
     }
 
-    /** Колонка заголовка из реестра; заодно проверяет, что таблица объявлена стандартом (AC-10). */
+    /** The header column from the registry; also checks that the table was declared under the versioning standard. */
     private String headerColumn(String versionsTable) {
         if (!IDENTIFIER.matcher(versionsTable).matches()) {
             throw new IllegalArgumentException("Недопустимое имя таблицы версий: " + versionsTable);

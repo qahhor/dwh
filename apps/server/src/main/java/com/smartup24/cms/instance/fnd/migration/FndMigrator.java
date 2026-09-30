@@ -9,9 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Программное применение миграций обеих БД (промпт 02 п.10: «мигрируй → gate → старт»; AC-1, AC-3).
- * Автомиграция при старте приложения выключена ({@code spring.flyway.enabled=false}); этот класс
- * вызывают {@link MigrateMain} (поставка), dev-запуск и тесты.
+ * Applies the migrations of both databases from code, following the deployment order "migrate, then check the schema
+ * version, then start". Automatic migration on application startup is off ({@code spring.flyway.enabled=false});
+ * this class is called by {@link MigrateMain} (deployment), by the dev launch and by tests.
  */
 public final class FndMigrator {
 
@@ -19,19 +19,23 @@ public final class FndMigrator {
 
     private FndMigrator() {}
 
-    /** Миграции OLTP из каталога каркаса {@code db/migration} (миграции каркаса + наши V1xx); возвращает число применённых файлов. */
+    /**
+     * Migrates OLTP from the framework's {@code db/migration} directory (the framework's migrations plus our V1xx
+     * ones); returns the number of files applied.
+     */
     public static int migrateOltp(DataSource oltp) {
         return migrate(oltp, FndPref.OLTP_MIGRATIONS, "oltp");
     }
 
-    /** Миграции pg-dwh из {@code db/dwh}; возвращает число применённых файлов. */
+    /** Migrates pg-dwh from {@code db/dwh}; returns the number of files applied. */
     public static int migrateDwh(DataSource dwh) {
         return migrate(dwh, FndPref.DWH_MIGRATIONS, "dwh");
     }
 
     /**
-     * Миграции всегда применяются в UTC: {@code V011} каркаса создаёт партиции {@code audit_log}
-     * по date-литералам, и при другой зоне соединения границы съезжают (см. FlywayUtcConfiguration каркаса).
+     * Migrations always run in UTC: the framework's {@code V011} creates {@code audit_log} partitions from date
+     * literals, and with another connection time zone the partition bounds shift (see the framework's
+     * FlywayUtcConfiguration).
      */
     static final String UTC_INIT_SQL = "set time zone 'UTC'";
 

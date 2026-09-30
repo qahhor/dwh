@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.fnd.error;
 
-/** Оптимистическая блокировка: строка изменена другим клиентом (02 п.12; AC-16). Код — {@code stale_version}. */
+/** Optimistic locking: the row was changed by another client. The code is {@code stale_version}. */
 public class StaleVersionException extends ConstraintViolationException {
 
     public StaleVersionException() {

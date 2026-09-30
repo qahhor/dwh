@@ -17,9 +17,9 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * Один встроенный PostgreSQL на всю сборку и две базы в нём (решение архитектора 06.09, DoD AC-1):
- * {@code postgres} — OLTP, {@code dwh} — pg-dwh. Миграции применяются программно один раз;
- * автомиграция при старте контекста выключена (02 п.10).
+ * One embedded PostgreSQL for the whole build with two databases in it (the architect's decision of 06.09):
+ * {@code postgres} for OLTP and {@code dwh} for pg-dwh. Migrations are applied programmatically once;
+ * automatic migration at context start is off.
  */
 public final class TestDatabases {
 
@@ -52,7 +52,7 @@ public final class TestDatabases {
         return postgres;
     }
 
-    /** Создаёт базу с именем {@code name}, если её ещё нет (для сценариев со свежей схемой). */
+    /** Creates a database named {@code name} if it does not exist yet (for scenarios with a fresh schema). */
     public static synchronized void createDatabase(String name) {
         instance();
         if (created.contains(name)) {
@@ -67,13 +67,13 @@ public final class TestDatabases {
         }
     }
 
-    /** Применяет миграции обеих БД один раз на сборку. */
+    /** Applies the migrations of both databases once per build. */
     public static synchronized void migrateOnce() {
         instance();
         if (!migrated) {
             FndMigrator.migrateOltp(oltp());
-            // Контексты тестов поднимаются без параметров первого администратора: непустая md_users
-            // оставляет InstanceBootstrap каркаса no-op (раньше это давал сид миграции, теперь — код основы).
+            // Test contexts start without the first administrator's parameters: a non-empty md_users keeps the
+            // framework's InstanceBootstrap a no-op (a migration seed used to do this; now the foundation code does).
             FndActors.ensureSystemUser(JdbcClient.create(oltp()));
             FndMigrator.migrateDwh(dwh());
             migrated = true;

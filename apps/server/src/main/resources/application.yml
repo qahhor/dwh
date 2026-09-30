@@ -293,15 +293,16 @@ logging:
       max-history: ${SMC_LOG_MAX_HISTORY:12}
       total-size-cap: ${SMC_LOG_TOTAL_SIZE_CAP:2GB}
 
-# Основа fnd — вторая база pg-dwh (промпт 02 п.18, AC-36). Значений по умолчанию нет намеренно:
-# без переменных окружения старт красный, а без таймаута — красный даже при заданном url. Имена переменных — в .env.example и docker-compose.yml.
+# Foundation (fnd): the second database, pg-dwh. There are deliberately no defaults: without the environment
+# variables startup fails, and without a connect timeout it fails even when the url is set. The variable names are
+# listed in .env.example and docker-compose.yml.
 app:
   dwh:
     url: ${APP_DWH_URL}
     username: ${APP_DWH_USERNAME}
     password: ${APP_DWH_PASSWORD}
     connect-timeout: ${APP_DWH_CONNECT_TIMEOUT}
-    # P0 DWH: предел запроса и простоя в транзакции для пула; задания обслуживания — свой, длиннее.
+    # Pool limit on one query and on idle time inside a transaction; maintenance jobs have their own, longer one.
     statement-timeout: ${APP_DWH_STATEMENT_TIMEOUT:60s}
     maintenance-statement-timeout: ${APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT:30m}
     # Plan 10/10, item 3.9: one streamed write of a load into raw (a UPL apply) lasts while its file is parsed.

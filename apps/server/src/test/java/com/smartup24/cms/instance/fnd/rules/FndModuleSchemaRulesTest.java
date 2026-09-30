@@ -15,16 +15,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * AC-38 (18 п.11; 18 тест 2): прикладные модули ({@code upl_|ref_|reg_|vit_}) не заводят своих версий, единиц,
- * журналов и очередей — всё это даёт основа. Правило принимает список схем; таблицы каркаса
- * ({@code kauth_, md_, mf_, ms_, kwh_, search_, audit_}) и основы ({@code fnd_}) в проверку не входят.
- * Фикстура-нарушитель — plain SQL в схеме {@code fnd_test}.
+ * Application modules ({@code upl_|ref_|reg_|vit_}) keep no versions, units, journals or queues of their own: the
+ * foundation provides all of these. The rule takes a list of schemas; framework tables
+ * ({@code kauth_, md_, mf_, ms_, kwh_, search_, audit_}) and foundation tables ({@code fnd_}) are not checked.
+ * The violating fixture is plain SQL in the {@code fnd_test} schema.
  */
 class FndModuleSchemaRulesTest extends EmbeddedPostgresTest {
 
     private static final Pattern MODULE_TABLE = Pattern.compile("^(upl|ref|reg|vit)_.+");
     private static final Pattern OWN_INFRASTRUCTURE = Pattern.compile(".+_(units|coefficients|log|queue|jobs)$");
-    /** Таблицы каркаса и основы — вне правила; перечислены явно, чтобы расширение списка модулей их не задело. */
+    /** Framework and foundation tables are outside the rule; listed explicitly so a longer module list skips them. */
     private static final Set<String> FOREIGN_PREFIXES =
             Set.of("kauth_", "md_", "mf_", "ms_", "kwh_", "search_", "audit_", "fnd_", "flyway_");
 
@@ -79,9 +79,9 @@ class FndModuleSchemaRulesTest extends EmbeddedPostgresTest {
     }
 
     /**
-     * Правило: таблица прикладного модуля нарушает, если (а) это {@code *_versions} не по стандарту AC-10
-     * (нет в {@code fnd_versioned_tables}), (б) у неё есть {@code valid_from}/{@code valid_to} без ограничения
-     * {@code <table>_ex_valid}, (в) это своя таблица единиц/коэффициентов/журнала/очереди/заданий.
+     * Rule: an application module table violates it if (a) it is a {@code *_versions} table outside the versioning
+     * standard (not in {@code fnd_versioned_tables}), (b) it has {@code valid_from}/{@code valid_to} without the
+     * {@code <table>_ex_valid} constraint, (c) it is its own table of units/coefficients/journal/queue/jobs.
      */
     private List<String> violations(List<String> schemas) {
         List<String> found = new ArrayList<>();

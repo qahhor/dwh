@@ -5,8 +5,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * Версия загрузки (18 п.14): {@code id} и есть единый {@code load_id}, которым помечены строки
- * {@code raw} в pg-dwh и поколения кеша (11 п.6, п.10).
+ * A load version: its {@code id} is the single {@code load_id} that tags the {@code raw} rows in pg-dwh and the
+ * cache generations.
  */
 public record FndLoad(
         long id,

@@ -16,13 +16,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * Второй {@link DataSource} — {@code pg-dwh}. Единственное место, где он создаётся; за пределы пакета
- * {@code fnd} квалификатор {@code "dwh"} не выходит (AC-5, 18 п.14). Пул не проверяет соединение при
- * старте: доступность pg-dwh — забота {@code DwhSchemaVersionGate} и фасадов (AC-36).
+ * The second {@link DataSource}, {@code pg-dwh}. This is the only place that creates it, and the {@code "dwh"}
+ * qualifier never leaves the {@code fnd} package. The pool does not check the connection at startup: pg-dwh
+ * availability is the job of {@code DwhSchemaVersionGate} and the facades.
  *
- * <p>{@code defaultCandidate = false}: бины второй БД видны только по квалификатору {@code "dwh"}.
- * Иначе каркас, который инжектит {@code DataSource}/{@code JdbcClient} по типу, получал бы двух
- * кандидатов и контекст не поднимался бы — ни в тестах, ни в бою.
+ * <p>{@code defaultCandidate = false}: the second database's beans are visible only through the {@code "dwh"}
+ * qualifier. Otherwise the framework, which injects {@code DataSource}/{@code JdbcClient} by type, would find two
+ * candidates and the context would fail to start, both in tests and in production.
  */
 @Configuration
 @EnableConfigurationProperties(DwhDataSourceProperties.class)
@@ -40,18 +40,18 @@ public class FndDwhConfig {
         ds.setConnectionTimeout(Math.max(timeoutMs, 250));
         ds.setInitializationFailTimeout(-1);
         ds.setMaximumPoolSize(4);
-        // Драйвер PostgreSQL: connectTimeout/loginTimeout — в секундах, не меньше 1
+        // PostgreSQL driver: connectTimeout/loginTimeout are in seconds, at least 1
         long seconds = Math.max(1, (timeoutMs + 999) / 1000);
         ds.addDataSourceProperty("connectTimeout", String.valueOf(seconds));
         ds.addDataSourceProperty("loginTimeout", String.valueOf(seconds));
-        // P0 DWH: без предела один тяжёлый запрос или брошенная транзакция занимали соединение
-        // навсегда, а в пуле их четыре. Сервер обрывает запрос и простой в транзакции сам...
+        // Without a limit, one heavy query or an abandoned transaction held a connection forever, and the
+        // pool has only four. The server itself cuts off a long query and a transaction left idle...
         long statementMs = props.statementTimeout().toMillis();
         ds.addDataSourceProperty(
                 "options",
                 "-c statement_timeout=" + statementMs + " -c idle_in_transaction_session_timeout=" + statementMs);
-        // ...а socketTimeout (в секундах) — последняя страховка от мёртвой сети: он длиннее любого
-        // серверного предела, включая задания обслуживания, и срабатывает, только если сервер молчит.
+        // ...while socketTimeout (in seconds) is the last safeguard against a dead network: it is longer than
+        // any server-side limit, maintenance jobs included, and fires only when the server goes silent.
         long longestMs = Math.max(
                 statementMs,
                 Math.max(
@@ -63,7 +63,7 @@ public class FndDwhConfig {
 
     /**
      * pg-dwh health for monitoring (plan 10/10, item 0.7), not a readiness member: the DWH module degrades alone.
-     * Declared here: the pg-dwh data source does not leave this package (AC-5).
+     * Declared here: the pg-dwh data source does not leave this package.
      */
     @Bean
     public HealthIndicator dwhHealthIndicator(

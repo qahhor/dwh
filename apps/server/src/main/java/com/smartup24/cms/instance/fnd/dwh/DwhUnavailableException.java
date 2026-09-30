@@ -4,8 +4,8 @@ import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
 import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
 
 /**
- * Вторая база (pg-dwh) недоступна (11 п.11; 02 п.18; AC-36). Пустой список и {@code null}
- * вместо данных не возвращаются никогда: вызывающая транзакция OLTP обязана откатиться.
+ * The second database (pg-dwh) is unavailable. An empty list or {@code null} is never returned in place of data:
+ * the calling OLTP transaction must roll back.
  */
 public class DwhUnavailableException extends ConstraintViolationException {
 

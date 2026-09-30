@@ -35,7 +35,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Правила основы (18 п.11, п.13–14): AC-5, AC-37, AC-42. Без Spring и базы. */
+/**
+ * Architecture rules of the foundation (fnd): the pg-dwh qualifier stays inside fnd, fnd depends on no application
+ * module, keeps no file storage of its own and has no controllers or schedulers. Runs without Spring or a database.
+ */
 class FndArchitectureTest {
 
     private static final String ROOT = "com.smartup24.cms.instance";
@@ -52,7 +55,7 @@ class FndArchitectureTest {
         }
     }
 
-    /** AC-5: квалификатор {@code "dwh"} — только в полях и параметрах классов пакета fnd. */
+    /** The {@code "dwh"} qualifier may appear only on fields and parameters of classes in the fnd package. */
     static ArchRule dwhQualifierOnlyInFnd() {
         return classes().should(new ArchCondition<>("use @Qualifier(\"dwh\") only inside " + FND) {
             @Override
@@ -97,7 +100,10 @@ class FndArchitectureTest {
         assertThat(result.getFailureReport().toString()).contains("DwhQualifierViolator");
     }
 
-    /** AC-37: основа не знает прикладных модулей; платформенные модули каркаса (common, config, kauth, md, mf, audit) — можно. */
+    /**
+     * The foundation knows no application modules; the framework's platform modules (common, config, kauth, md, mf,
+     * audit) are allowed.
+     */
     static ArchRule fndDependsOnNoApplicationModuleRule() {
         return noClasses()
                 .that()
@@ -125,7 +131,7 @@ class FndArchitectureTest {
                 .contains("UplModuleFixture");
     }
 
-    /** AC-8: файлы хранит модуль mf каркаса — своего хранилища и обращений к SPI в основе нет. */
+    /** The framework's mf module keeps the files: the foundation has no storage of its own and never calls the SPI. */
     @Test
     @DisplayName("AC-8: в fnd нет своего FileStorage и зависимости от StorageProvider")
     void fndHasNoOwnFileStorage() {
@@ -140,7 +146,7 @@ class FndArchitectureTest {
                 .check(main);
     }
 
-    /** AC-8: fnd не вызывает удаление файла — исходный файл загрузки неизменяем (13 инв.4). */
+    /** fnd never calls file deletion: the source file of a load is immutable. */
     @Test
     @DisplayName("AC-8: fnd не вызывает удаление файла в модуле mf")
     void fndNeverDeletesFiles() {
@@ -166,7 +172,10 @@ class FndArchitectureTest {
                 .check(main);
     }
 
-    /** AC-7: планировщика в основе нет — момент запуска заданий выбирает экземпляр; воркеры каркаса правило не трогает. */
+    /**
+     * The foundation has no scheduler: the instance chooses when jobs run. The rule leaves the framework's workers
+     * alone.
+     */
     static ArchRule noScheduledInFndRule() {
         return noMethods()
                 .that()
@@ -180,7 +189,7 @@ class FndArchitectureTest {
     @DisplayName("AC-7: @Scheduled отсутствует в ..instance.fnd.. (в модулях каркаса — есть, правило их не касается)")
     void fndHasNoScheduled() {
         noScheduledInFndRule().check(main);
-        // Контроль, что правило действительно узкое: у каркаса @Scheduled есть, и импорт его видит
+        // Check that the rule really is narrow: the framework does use @Scheduled, and the import sees it
         boolean frameworkHasScheduled = main.stream()
                 .filter(type -> !type.getPackageName().startsWith(ROOT + ".fnd"))
                 .flatMap(type -> type.getMethods().stream())

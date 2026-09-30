@@ -18,17 +18,17 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Единицы экземпляра и пересчёт по датированному коэффициенту (13 инв.3; 18 п.14; AC-18…AC-24).
+ * The instance's units of measure and conversion by a dated coefficient.
  *
- * <p>В ядре нет ни одного кода единицы и ни одного множителя: и то и другое заводит экземпляр
- * через {@link #registerUnit} и {@link #publishCoefficient}. Пересчёт идёт только по прямому
- * опубликованному коэффициенту {@code from → to} на дату: обратный множитель и цепочки
- * {@code a → b → c} не выводятся (доп.5), иначе получилось бы «значение по памяти».
+ * <p>The core contains no unit code and no factor at all: the instance creates both through {@link #registerUnit}
+ * and {@link #publishCoefficient}. A conversion uses only the direct published coefficient {@code from → to} valid
+ * on the date: an inverse factor or a chain {@code a → b → c} is never derived, since that would produce a value
+ * "from memory" rather than from a published coefficient.
  */
 @Service
 public class FndUnitService {
 
-    /** Таблица версий коэффициента: стандарт версий блока C. */
+    /** The coefficient versions table, following the foundation's versioning standard ({@link FndVersioning}). */
     public static final String COEFFICIENT_VERSIONS = "fnd_unit_coefficient_versions";
 
     private final JdbcClient jdbc;
@@ -44,10 +44,10 @@ public class FndUnitService {
     }
 
     /**
-     * Заводит единицу. {@code baseUnitCode} указывает на существующую единицу; базовая единица
-     * ссылается сама на себя (AC-18). Без базовой единицы — отказ {@code fnd_unit_base_required}:
-     * иначе {@link #toBase} не отличил бы «базовая» от «база не задана». Проверки кода и обязательного
-     * имени на узбекском — ограничения БД.
+     * Registers a unit. {@code baseUnitCode} points to an existing unit; a base unit refers to itself. A unit without
+     * a base unit is rejected with {@code fnd_unit_base_required}: otherwise {@link #toBase} could not tell "this is
+     * a base unit" from "no base is set". The code format and the mandatory Uzbek name are checked by database
+     * constraints.
      */
     @Transactional
     public long registerUnit(String code, Map<String, String> nameI18n, String baseUnitCode, FndActor actor) {
@@ -65,7 +65,7 @@ public class FndUnitService {
                 .single());
     }
 
-    /** Единица по коду — как её видит экземпляр. */
+    /** A unit by its code, as the instance sees it. */
     @Transactional(readOnly = true)
     public Optional<FndUnit> findUnit(String code) {
         return jdbc.sql("select id, code, name_i18n::text as name_i18n, base_unit_code from fnd_units"
@@ -79,7 +79,10 @@ public class FndUnitService {
                 .optional();
     }
 
-    /** Все единицы экземпляра по коду — для выпадающих списков экранов (К-1, И4). Содержимое {@code nameI18n} ядру безразлично. */
+    /**
+     * All of the instance's units ordered by code, for screen drop-down lists. The core does not care what
+     * {@code nameI18n} contains.
+     */
     @Transactional(readOnly = true)
     public List<FndUnit> listUnits() {
         return jdbc.sql("select id, code, name_i18n::text as name_i18n, base_unit_code from fnd_units order by code")
@@ -92,8 +95,9 @@ public class FndUnitService {
     }
 
     /**
-     * Публикует значение коэффициента с датой начала действия: заголовок пары заводится при первом
-     * вызове, значение кладётся в новую версию стандарта блока C и закрывает предыдущую (AC-19).
+     * Publishes a coefficient value with the date it takes effect. The header for the unit pair is created on the
+     * first call; the value goes into a new version under the foundation's versioning standard, which closes the
+     * previous version.
      */
     @Transactional
     public FndCoefficientRef publishCoefficient(
@@ -116,8 +120,8 @@ public class FndUnitService {
     }
 
     /**
-     * Пересчёт значения на дату. Коэффициента нет — {@link FndCoefficientMissingException},
-     * значение не возвращается (AC-21). Округления в основе нет: умножение numeric как есть (AC-20, AC-23).
+     * Converts a value as of a date. With no coefficient, {@link FndCoefficientMissingException} is thrown and no
+     * value is returned. The foundation does no rounding: the numeric multiplication result is returned as is.
      */
     @Transactional(readOnly = true)
     public FndConversion convert(BigDecimal value, String fromUnit, String toUnit, LocalDate date) {
@@ -143,7 +147,7 @@ public class FndUnitService {
         return new FndConversion(value.multiply(factor), toUnit, new FndCoefficientRef(coefficientId, version), date);
     }
 
-    /** Пересчёт в базовую единицу (13 инв.3): база единицы берётся из справочника, не из кода. */
+    /** Converts to the base unit; the unit's base is taken from the reference data, never from code. */
     @Transactional(readOnly = true)
     public FndConversion toBase(BigDecimal value, String unitCode, LocalDate date) {
         requireUnitCode(unitCode);
@@ -151,7 +155,7 @@ public class FndUnitService {
                 .orElseThrow(() -> new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_UNKNOWN));
         String base = unit.baseUnitCode();
         if (base == null) {
-            // Схема (V107) этого не допускает; ветка — защита от данных, заведённых мимо фасада
+            // The schema (V107) forbids this; the branch guards against data created without going through the facade
             throw new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
         }
         if (base.equals(unitCode)) {
@@ -175,6 +179,6 @@ public class FndUnitService {
                 .optional();
     }
 
-    /** Единица экземпляра; {@code nameI18n} отдаётся как JSON-текст — ядру его содержимое безразлично. */
+    /** An instance unit; {@code nameI18n} is returned as JSON text, since the core does not care what it contains. */
     public record FndUnit(long id, String code, String nameI18n, String baseUnitCode) {}
 }

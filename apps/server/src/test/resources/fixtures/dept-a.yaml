@@ -1,8 +1,8 @@
-# Конфигурация экземпляра «ведомство А» (AC-41; 18 п.12а; 13 инв.6). Только тест-ресурс: в src/main таких данных нет.
-# Коды и имена синтетические: ядро обязано работать с любым набором единиц и источников покупателя.
+# Instance configuration "department A". Test resource only: src/main holds no such data.
+# Codes and names are synthetic: the core must work with any set of units and sources a buyer has.
 name: dept-a
 units:
-  # первая единица — базовая (ссылается сама на себя), вторая — производная от неё, третья — отдельная базовая
+  # the first unit is the base (refers to itself), the second is derived from it, the third is a separate base
   - code: u_test_b
     name_uz: Bazaviy birlik TEST
     base: u_test_b
@@ -13,7 +13,7 @@ units:
     name_uz: Birlik C TEST
     base: u_test_c
 coefficients:
-  # одна пара «производная -> базовая», два датированных значения
+  # one "derived -> base" pair, two dated values
   - from: u_test_a
     to: u_test_b
     factor: 1000
@@ -23,7 +23,7 @@ coefficients:
     factor: 1200
     valid_from: 2026-07-01
 loads:
-  # первая — основная (источник + период), вторая — другой источник за тот же период, третья — тот же источник за другой период
+  # first: the main load (source + period); second: another source, same period; third: same source, other period
   - source: src_test
     period_from: 2026-01-01
     period_to: 2026-01-31
@@ -36,7 +36,7 @@ loads:
     period_from: 2026-02-01
     period_to: 2026-02-28
     format: v1
-# анкета по устройству налогового файла клиента А: над шапкой 3 строки заголовка, шапка в строке 4, итоговая строка; значения TEST
+# profile of client A's tax file: 3 title rows above the header, the header in row 4, a totals row; TEST values
 formats:
   - code: fmt.a.tax
     name: Soliq tushumlari TEST

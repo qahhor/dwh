@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.fnd.versioning;
 import java.time.Instant;
 import java.time.LocalDate;
 
-/** Строка таблицы версий в стандарте основы (02 п.17; AC-10). */
+/** A row of a versions table that follows the foundation's versioning standard. */
 public record FndVersion(
         long headerId,
         int version,

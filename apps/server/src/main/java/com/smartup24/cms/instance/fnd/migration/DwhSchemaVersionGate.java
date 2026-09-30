@@ -14,12 +14,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
- * Проверка при старте второй базы {@code pg-dwh}: последняя миграция сборки применена и успешна
- * (промпт 02 п.10; AC-4). Схему OLTP проверяет gate каркаса
- * ({@code com.smartup24.cms.instance.config.db.SchemaVersionGate}) — здесь она не дублируется.
- * Gate только читает {@code flyway_schema_history} и никогда не мигрирует: применение — отдельный шаг
- * ({@link MigrateMain}) до запуска приложения. Расхождение — {@link SchemaVersionMismatchException},
- * процесс завершается кодом 3.
+ * Startup check of the second database, {@code pg-dwh}: the build's latest migration has been applied and succeeded,
+ * so the application never starts against an outdated or broken schema. The OLTP schema is checked by the
+ * framework's gate ({@code com.smartup24.cms.instance.config.db.SchemaVersionGate}) and is not checked again here.
+ * The gate only reads {@code flyway_schema_history} and never migrates: migrating is a separate step
+ * ({@link MigrateMain}) run before the application starts. A mismatch throws {@link SchemaVersionMismatchException},
+ * and the process exits with code 3.
  */
 @Component
 public class DwhSchemaVersionGate implements InitializingBean {
@@ -45,7 +45,7 @@ public class DwhSchemaVersionGate implements InitializingBean {
         log.info("schema_version_ok db=dwh");
     }
 
-    /** Одна БД: ожидаемая версия найдена, ни одна строка истории не помечена {@code success=false}. */
+    /** Checks one database: the expected version is found and no history row is marked {@code success=false}. */
     void check(String db, DataSource dataSource, MigrationCatalog catalog) {
         String expected = catalog.latestVersion();
         String actual = readActual(db, dataSource, expected);
@@ -62,7 +62,7 @@ public class DwhSchemaVersionGate implements InitializingBean {
             String latest = null;
             boolean expectedFound = false;
             while (rs.next()) {
-                // Flyway хранит версию как в имени файла (001); сравнение — численное
+                // Flyway stores the version as written in the file name (001), so versions are compared as numbers
                 String version = new BigInteger(rs.getString(1)).toString();
                 if (!rs.getBoolean(2)) {
                     return "failed:" + version;
@@ -80,7 +80,7 @@ public class DwhSchemaVersionGate implements InitializingBean {
             return expectedFound ? expected : latest;
         } catch (SQLException e) {
             if ("42P01".equals(e.getSQLState())) {
-                return "none"; // таблицы истории нет — миграции не применялись
+                return "none"; // no history table: no migration has ever been applied
             }
             throw new IllegalStateException("Не удалось прочитать flyway_schema_history в " + db, e);
         }

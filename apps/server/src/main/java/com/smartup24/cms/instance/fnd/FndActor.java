@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.fnd;
 
 /**
- * Кто выполняет операцию основы (02 п.13; AC-32, доп.12): {@code userId} — запись {@code md_users},
- * которую видит аудит каркаса в {@code app.user_id}; {@code name} — то, что попадает в наши журналы
- * ({@code fnd_loads.applied_by}, {@code fnd_load_log.actor}): id как текст либо {@code system} для заданий.
+ * Who performs a foundation operation. {@code userId} is the {@code md_users} row that the framework audit sees
+ * in {@code app.user_id}; {@code name} is what goes into our own journals ({@code fnd_loads.applied_by},
+ * {@code fnd_load_log.actor}): the user id as text, or {@code system} for jobs.
  */
 public record FndActor(long userId, String name) {
 
@@ -16,7 +16,7 @@ public record FndActor(long userId, String name) {
         }
     }
 
-    /** Пользователь: в журналах — его id как текст. */
+    /** A user actor: the journals record the user id as text. */
     public static FndActor user(long userId) {
         return new FndActor(userId, String.valueOf(userId));
     }

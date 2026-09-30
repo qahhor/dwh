@@ -9,8 +9,8 @@ import java.util.HexFormat;
 import org.springframework.stereotype.Component;
 
 /**
- * Единый промышленный хэшер паролей платформы на основе Argon2id и SHA-256 токенов.
- * Соответствует рекомендациям OWASP и PHC (Password Hashing Competition).
+ * The platform's single password hasher: Argon2id for passwords and SHA-256 for tokens.
+ * Follows the OWASP and PHC (Password Hashing Competition) recommendations.
  */
 @Component
 public class Argon2idPasswordHasher {
