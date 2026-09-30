@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CreateCustomFieldDto;
@@ -53,6 +54,7 @@ public class MdCustomFieldController {
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_CUSTOM_FIELDS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> updateField(
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,

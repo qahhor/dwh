@@ -10,7 +10,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -19,9 +18,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.InvalidMediaTypeException;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -96,10 +92,18 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         this(idempotencyService, objectMapper, messages, null, null);
     }
 
+    /**
+     * Whether a path takes an Idempotency-Key: sign-in and the delivery channels of the profile answer secrets and
+     * refuse it (400). The API description declares the header where this is true.
+     */
+    public static boolean supportsPath(String uri) {
+        return !uri.startsWith("/api/v1/auth/")
+                && !uri.equals("/api/v1/auth")
+                && !uri.startsWith("/api/v1/iam/profile/channels");
+    }
+
     private boolean isUnsupportedPath(String uri) {
-        return uri.startsWith("/api/v1/auth/")
-                || uri.equals("/api/v1/auth")
-                || uri.startsWith("/api/v1/iam/profile/channels");
+        return !supportsPath(uri);
     }
 
     /**
@@ -340,8 +344,8 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
     /** Stores the answer for a replay when it can be kept, otherwise frees the key. */
     private void record(UUID key, UUID reservationToken, HttpServletResponse response, int status, byte[] body) {
-        if (storable(response, status, body)) {
-            idempotencyService.complete(key, reservationToken, answer(response, status, body));
+        if (IdempotencyAnswers.storable(response, status, body, MAX_RESPONSE_BODY_BYTES)) {
+            idempotencyService.complete(key, reservationToken, IdempotencyAnswers.answer(response, status, body));
         } else {
             idempotencyService.release(key, reservationToken);
         }
@@ -360,11 +364,14 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, responseWrapper);
             chainCompleted = true;
         } finally {
-            int status = responseWrapper.getStatus();
-            byte[] responseBytes = responseWrapper.getContentAsByteArray();
             try {
-                if (chainCompleted && storable(responseWrapper, status, responseBytes)) {
-                    idempotencyService.complete(key, reservationToken, answer(responseWrapper, status, responseBytes));
+                if (chainCompleted) {
+                    record(
+                            key,
+                            reservationToken,
+                            responseWrapper,
+                            responseWrapper.getStatus(),
+                            responseWrapper.getContentAsByteArray());
                 } else {
                     idempotencyService.release(key, reservationToken);
                 }
@@ -372,38 +379,5 @@ public class IdempotencyFilter extends OncePerRequestFilter {
                 responseWrapper.copyBodyToResponse();
             }
         }
-    }
-
-    /**
-     * A final answer below 500 whose body fits and is JSON (the stored body is jsonb) or empty. Another answer is not
-     * kept: the key is freed and a retry runs again.
-     */
-    private static boolean storable(HttpServletResponse response, int status, byte[] body) {
-        if (status < 200 || status >= 500 || body.length > MAX_RESPONSE_BODY_BYTES) {
-            return false;
-        }
-        String type = response.getContentType();
-        return body.length == 0 || type == null || isJson(type);
-    }
-
-    private static boolean isJson(String contentType) {
-        try {
-            MediaType type = MediaType.parseMediaType(contentType);
-            return MediaType.APPLICATION_JSON.includes(type)
-                    || type.getSubtype().endsWith("+json");
-        } catch (InvalidMediaTypeException malformed) {
-            log.warn("idempotency_content_type_unreadable type={}: {}", contentType, malformed.getMessage());
-            return false;
-        }
-    }
-
-    /** What a replay repeats: status, body, and the Location, Content-Type and ETag of the original answer. */
-    private static IdempotencyRepository.StoredAnswer answer(HttpServletResponse response, int status, byte[] body) {
-        return new IdempotencyRepository.StoredAnswer(
-                status,
-                new String(body, StandardCharsets.UTF_8),
-                response.getHeader(HttpHeaders.LOCATION),
-                body.length == 0 ? null : response.getContentType(),
-                response.getHeader(HttpHeaders.ETAG));
     }
 }

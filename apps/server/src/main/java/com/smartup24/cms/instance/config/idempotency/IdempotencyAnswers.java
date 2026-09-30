@@ -8,12 +8,17 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.ObjectMapper;
 
 /** What the idempotency filter writes itself: its refusals as problem details, and a stored answer replayed. */
 final class IdempotencyAnswers {
+
+    private static final Logger log = LoggerFactory.getLogger(IdempotencyAnswers.class);
 
     private final ObjectMapper objectMapper;
     private final ProblemMessages messages;
@@ -55,6 +60,39 @@ final class IdempotencyAnswers {
                 stored.responseContentType() != null ? stored.responseContentType() : MediaType.APPLICATION_JSON_VALUE);
         response.getOutputStream().write(stored.responseBody().getBytes(StandardCharsets.UTF_8));
         response.getOutputStream().flush();
+    }
+
+    /**
+     * A final answer below 500 whose body fits and is JSON (the stored body is jsonb) or empty. Another answer is not
+     * kept: the key is freed and a retry runs again.
+     */
+    static boolean storable(HttpServletResponse response, int status, byte[] body, int maxBytes) {
+        if (status < 200 || status >= 500 || body.length > maxBytes) {
+            return false;
+        }
+        String type = response.getContentType();
+        return body.length == 0 || type == null || isJson(type);
+    }
+
+    private static boolean isJson(String contentType) {
+        try {
+            MediaType type = MediaType.parseMediaType(contentType);
+            return MediaType.APPLICATION_JSON.includes(type)
+                    || type.getSubtype().endsWith("+json");
+        } catch (InvalidMediaTypeException malformed) {
+            log.warn("idempotency_content_type_unreadable type={}: {}", contentType, malformed.getMessage());
+            return false;
+        }
+    }
+
+    /** What a replay repeats: status, body, and the Location, Content-Type and ETag of the original answer. */
+    static IdempotencyRepository.StoredAnswer answer(HttpServletResponse response, int status, byte[] body) {
+        return new IdempotencyRepository.StoredAnswer(
+                status,
+                new String(body, StandardCharsets.UTF_8),
+                response.getHeader(HttpHeaders.LOCATION),
+                body.length == 0 ? null : response.getContentType(),
+                response.getHeader(HttpHeaders.ETAG));
     }
 
     static boolean carriesBody(int status) {

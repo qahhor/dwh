@@ -98,6 +98,81 @@ class OpenApiContractTest extends EmbeddedPostgresTest {
                 .isEqualTo(current);
     }
 
+    @Test
+    @DisplayName("3.6: If-Match with 409 and 428, ETag and Idempotency-Key are declared where the server uses them")
+    void commonHeadersAreDeclared() throws Exception {
+        JsonNode paths = generated().path("paths");
+
+        JsonNode noteUpdate = paths.path("/api/v1/notes/{id}").path("put");
+        assertThat(parameterNames(noteUpdate)).contains("If-Match", "Idempotency-Key");
+        assertThat(noteUpdate.path("responses").has("409")).isTrue();
+        assertThat(noteUpdate.path("responses").has("428")).isTrue();
+        assertThat(noteUpdate.path("responses").path("200").path("headers").has("ETag"))
+                .as("a revisioned answer carries ETag")
+                .isTrue();
+        assertThat(paths.path("/api/v1/iam/roles/{id}")
+                        .path("patch")
+                        .path("responses")
+                        .path("204")
+                        .path("headers")
+                        .has("ETag"))
+                .as("a 204 marked @AnswersRevision carries ETag")
+                .isTrue();
+        assertThat(paths.path("/api/v1/tasks/{id}")
+                        .path("patch")
+                        .path("responses")
+                        .path("204")
+                        .path("headers")
+                        .has("ETag"))
+                .as("a 204 that sets no ETag declares none")
+                .isFalse();
+        assertThat(paths.path("/api/v1/upl/sources/{id}")
+                        .path("put")
+                        .path("responses")
+                        .has("409"))
+                .as("a body with lockVersion can conflict")
+                .isTrue();
+
+        assertThat(parameterNames(paths.path("/api/v1/tasks").path("post"))).contains("Idempotency-Key");
+        assertThat(parameterNames(paths.path("/api/v1/auth/login").path("post")))
+                .as("sign-in refuses the key")
+                .doesNotContain("Idempotency-Key");
+        assertThat(parameterNames(paths.path("/api/v1/files/upload").path("post")))
+                .as("a multipart body is refused with the key")
+                .doesNotContain("Idempotency-Key");
+        assertThat(parameterNames(paths.path("/api/v1/tasks").path("get"))).doesNotContain("Idempotency-Key");
+    }
+
+    @Test
+    @DisplayName("3.2: the sign-in answer and the format versions are typed, not a bare object")
+    void untypedAnswersAreTyped() throws Exception {
+        JsonNode paths = generated().path("paths");
+
+        assertThat(paths.path("/api/v1/auth/login")
+                        .path("post")
+                        .at("/responses/200/content/application~1json/schema/$ref")
+                        .asString())
+                .endsWith("/LoginResponse");
+        JsonNode versions =
+                paths.path("/api/v1/upl/sources/{id}/format-versions").path("get");
+        assertThat(versions.at("/responses/200/content/application~1json/schema/oneOf")
+                        .size())
+                .isEqualTo(2);
+        assertThat(versions.path("parameters").findValues("required").stream()
+                        .filter(JsonNode::asBoolean)
+                        .count())
+                .as("only the path variable is required: the list answers without at")
+                .isEqualTo(1);
+    }
+
+    private static List<String> parameterNames(JsonNode operation) {
+        List<String> names = new ArrayList<>();
+        operation
+                .path("parameters")
+                .forEach(parameter -> names.add(parameter.path("name").asString()));
+        return names;
+    }
+
     private JsonNode generated() throws Exception {
         MockMvc mvc = MockMvcBuilders.webAppContextSetup(wac).build();
         String body = mvc.perform(get("/api/v1/openapi.json"))
