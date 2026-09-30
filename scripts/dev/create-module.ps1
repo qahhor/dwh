@@ -743,5 +743,6 @@ Write-Host "     ($tableVersion and $seedVersion are the next free numbers now: 
 Write-Host "  2. Check the uz/en texts of the added keys; then in apps/web: npm run i18n:sync-ru"
 Write-Host "  3. API description: mvn -B -pl apps/server test -Dtest=OpenApiContractTest -Dopenapi.update=true; in apps/web: npm run api:types"
 Write-Host "  4. Screen: a route to /$cleanCode with smt-entity-form, smt-entity-card and smt-entity-toolbar; PUT sends ifMatch: revision"
-Write-Host "  5. Tests as for notes (MsNoteControllerTest); a growing table: MigrationLintTest.LARGE_TABLES, withEstimatedTotal(), a RetentionPolicy"
+Write-Host "  5. Tests as for notes (MsNoteControllerTest); a line for $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
+Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and ownerOf; a growing table: LARGE_TABLES, withEstimatedTotal(), a RetentionPolicy"
 Write-Host "  6. mvn -B verify (Checkstyle, Spotless, architecture tests); scripts/dev/test-create-module.ps1 checks this generator"
