@@ -147,6 +147,11 @@ jobs:
         working-directory: apps/web
         run: npm run signals:audit
 
+      # Plan 10/10, item 3.14 (CODE_STYLE, section 2.1.2): no new Russian comments in TypeScript.
+      - name: Validate the language of web code comments
+        working-directory: apps/web
+        run: npm run comments:audit
+
       - name: Test with coverage, typecheck & build web application
         working-directory: apps/web
         run: |

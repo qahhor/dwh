@@ -10,6 +10,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -29,15 +30,21 @@ public class CacheConfig {
     public static final String NAVIGATION_ITEMS_CACHE = "navigationItems";
     public static final String CUSTOM_FIELDS_CACHE = "customFields";
 
-    /** Tells the other nodes of a cluster which cache went stale (plan 10/10, item 3.13, ADR-0025). */
+    /**
+     * Tells the other nodes of a cluster which cache went stale (plan 10/10, item 3.13, ADR-0025). Not in the migrate
+     * step, which serves no requests and must not hold a listening connection.
+     */
     @Bean
+    @Profile("!migrate")
     public CacheInvalidations cacheInvalidations(
             ObjectProvider<DataSource> dataSource, ObjectProvider<JdbcClient> jdbc) {
         return new CacheInvalidations(dataSource.getIfAvailable(), jdbc.getIfAvailable());
     }
 
     @Bean
-    public CacheManager cacheManager(CacheInvalidations invalidations) {
+    public CacheManager cacheManager(ObjectProvider<CacheInvalidations> cluster) {
+        // Without the cluster bean (the migrate step) the caches stay local to the node.
+        CacheInvalidations invalidations = cluster.getIfAvailable(() -> new CacheInvalidations(null, null));
         CaffeineCacheManager cacheManager = new CaffeineCacheManager();
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(500)

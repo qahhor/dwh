@@ -301,7 +301,7 @@ to fix, not at a limit to raise.
 ## Retention of journal tables
 
 Plan 10/10, item 3.13 (ADR-0025). Every night (`SMC_RETENTION_CRON`, default 03:30) the retention job deletes
-the rows of ten journal tables past their retention, in batches of `SMC_RETENTION_BATCH_SIZE` rows (5000), at
+the rows of twelve journal tables past their retention, in batches of `SMC_RETENTION_BATCH_SIZE` rows (5000), at
 most `SMC_RETENTION_MAX_BATCHES` batches (200) per table and run; a larger backlog continues the next night.
 Each batch is its own short transaction; two nodes may run the job at once.
 
@@ -317,11 +317,15 @@ Each batch is its own short transaction; two nodes may run the job at once.
 | `SMC_RETENTION_INBOX_DAYS` | `ms_notifications` | 180 | — |
 | `SMC_RETENTION_NOTIFICATION_OUTBOX_DAYS` | `ms_notification_outbox` (sent, dead letter) | 30 | pending, in progress |
 | `SMC_RETENTION_JOB_RUNS_DAYS` | `fnd_job_runs` (finished) | 90 | running jobs |
+| `SMC_RETENTION_FAILED_JOBS_DAYS` | `fnd_job_queue` (out of attempts, `failed_at`) | 90 | waiting, leased jobs |
+| `SMC_RETENTION_SEARCH_JOBS_DAYS` | `search_jobs` (succeeded, failed, cancelled) | 90 | active jobs, a job a retry points at, the newest job |
 
 `0` keeps a table's rows forever. The audit log is not here: its partitions leave the database only through
 the verified archive ("Audit log archive"). The log line `retention_purged policy=… rows=…` and the metric
 `dwh_retention_deleted_rows_total{policy}` show each run; `retention_failed` names a table the run could not
-clean (the others are cleaned regardless, and the next run retries it).
+clean (the others are cleaned regardless, and the next run retries it). A bad value of one setting is logged
+the same way and leaves the other tables cleaned. The job deletes by `ctid`, so it refuses a partitioned table:
+the application does not start while a retention policy names one.
 
 ## Cache across nodes
 
@@ -331,6 +335,11 @@ custom fields) for up to ten minutes. A change clears the cache on its node and,
 connection of its pool (of 20) to listen. If that connection drops, the node logs
 `cache_invalidation_listen_failed`, clears all its caches and listens again with a growing pause (up to 30 s);
 until then another node's change reaches it at the latest when its entries expire.
+
+The search settings travel the same way: a save sends the notice `searchSettings` with its transaction and
+every other node re-reads them at once; a node also re-reads them every minute in case a notice was lost.
+Rate limits (`RateLimitService`) are counted per node: with N nodes behind a balancer a client may make up
+to N times the configured requests per minute.
 
 ## Incident closure
 
