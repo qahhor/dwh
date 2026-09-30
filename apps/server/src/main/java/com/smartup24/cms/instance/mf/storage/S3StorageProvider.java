@@ -213,7 +213,7 @@ public final class S3StorageProvider implements StorageProvider {
             outcome = "success";
             return ProviderHealth.healthy(getProviderCode(), elapsedMillis(startedAt));
         } catch (Exception error) {
-            log.debug("s3_health_failed error={}", error.toString());
+            log.warn("s3_health_failed error={}", error.toString());
             return ProviderHealth.unhealthy(getProviderCode(), "S3 storage is unavailable", elapsedMillis(startedAt));
         } finally {
             recordOperation("health", outcome, metricStartedAt);

@@ -59,8 +59,8 @@ final class SearchEngineQuery {
                             variant, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
                     groups = mergeGroups(groups, variantGroups);
                 } catch (RuntimeException variantFailed) {
-                    // The main query answered; a failed spelling variant only narrows the hits.
-                    log.debug("search_variant_failed error={}", variantFailed.toString());
+                    // The main query answered; a failed spelling variant only narrows the hits, but it is a failure.
+                    log.warn("search_variant_failed variant_index={}", i, variantFailed);
                 }
             }
         }
@@ -95,8 +95,9 @@ final class SearchEngineQuery {
                             0));
                 }
             }
-        } catch (Exception ex) {
-            log.debug("Note fallback query for ALL skipped: {}", ex.getMessage());
+        } catch (RuntimeException fallbackFailed) {
+            // The Typesense groups still answer; the notes found by the database are missing from this answer
+            log.warn("search_note_fallback_failed", fallbackFailed);
         }
         return groups;
     }
