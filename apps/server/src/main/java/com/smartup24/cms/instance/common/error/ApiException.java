@@ -71,7 +71,10 @@ public class ApiException extends RuntimeException {
         return fieldErrors;
     }
 
-    /** Whether the key names a catalog entry; until item 3.1 is complete an older caller may still pass a sentence. */
+    /**
+     * Whether the key looks like a catalog entry. Every caller passes a key (ADR-0021; {@code ErrorTextsTest}); the
+     * handler logs one that does not and answers with the code's own text.
+     */
     public boolean hasMessageKey() {
         return MESSAGE_KEY.matcher(messageKey).matches();
     }

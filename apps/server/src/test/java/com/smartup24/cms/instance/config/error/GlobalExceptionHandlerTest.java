@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.config.error;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -28,14 +29,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Д-9 (AUDIT-05): клиентская ошибка не должна выдаваться за серверную.
@@ -149,11 +153,12 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("3.1: a sentence passed by a caller not yet on keys goes out as it is, without a key")
-    void legacySentencePassesThrough() throws Exception {
+    @DisplayName("3.1: a sentence instead of a key never reaches the client: the code's own text goes out")
+    void sentenceIsReplacedByTheCodeText() throws Exception {
         mvc.perform(get("/api/v1/read-only/legacy"))
-                .andExpect(jsonPath("$.messageKey").doesNotExist())
-                .andExpect(jsonPath("$.detail").value("Старый текст ошибки"));
+                .andExpect(jsonPath("$.messageKey").value("error.conflict"))
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.not("Старый текст ошибки")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Старый"))));
     }
 
     @Test
@@ -181,6 +186,71 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isOk());
     }
 
+    @Test
+    @DisplayName("3.1: a body in a type the route does not read answers 415 problem+json with Accept")
+    void unsupportedContentTypeIs415() throws Exception {
+        mvc.perform(post("/api/v1/read-only/items").contentType("text/plain").content("x"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("unsupported_media_type"))
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.messageKey").value("error.request_media_type_unsupported"))
+                .andExpect(jsonPath("$.params.contentType").value("text/plain"))
+                .andExpect(header().string("Accept", org.hamcrest.Matchers.containsString("application/json")));
+    }
+
+    @Test
+    @DisplayName("3.1: a route that cannot answer in an accepted type answers 406 problem+json")
+    void notAcceptableIs406() throws Exception {
+        mvc.perform(get("/api/v1/read-only/json-only").accept("text/csv"))
+                .andExpect(status().isNotAcceptable())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("not_acceptable"))
+                .andExpect(jsonPath("$.messageKey").value("error.not_acceptable"));
+    }
+
+    @Test
+    @DisplayName("3.1: an upload without its file part answers 400 problem+json, not 500")
+    void missingPartIs400() throws Exception {
+        mvc.perform(multipart("/api/v1/read-only/upload").param("note", "x"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.code").value("bad_request"))
+                .andExpect(jsonPath("$.messageKey").value("error.request_part_missing"))
+                .andExpect(jsonPath("$.params.name").value("file"));
+    }
+
+    @Test
+    @DisplayName("3.1: an upload that is not multipart answers 400 problem+json, not 500")
+    void notMultipartIs400() throws Exception {
+        mvc.perform(post("/api/v1/read-only/upload")
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.messageKey").value("error.request_multipart_invalid"));
+    }
+
+    @Test
+    @DisplayName("3.1: a missing required header answers 400 problem+json with its name")
+    void missingHeaderIs400() throws Exception {
+        mvc.perform(get("/api/v1/read-only/header"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.messageKey").value("error.request_header_missing"))
+                .andExpect(jsonPath("$.params.name").value("X-Thing"));
+    }
+
+    @Test
+    @DisplayName("3.1: a missing required cookie answers 400 problem+json with its name")
+    void missingCookieIs400() throws Exception {
+        mvc.perform(get("/api/v1/read-only/cookie"))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType("application/problem+json"))
+                .andExpect(jsonPath("$.messageKey").value("error.request_cookie_missing"))
+                .andExpect(jsonPath("$.params.name").value("thing"));
+    }
+
     record Item(@NotBlank String name) {}
 
     @RestController
@@ -189,6 +259,26 @@ class GlobalExceptionHandlerTest {
         @PostMapping("/items")
         String items(@RequestBody List<@NotNull @Valid Item> items) {
             return String.valueOf(items.size());
+        }
+
+        @GetMapping(value = "/json-only", produces = "application/json")
+        String jsonOnly() {
+            return "{}";
+        }
+
+        @PostMapping("/upload")
+        String upload(@RequestParam("file") MultipartFile file) {
+            return file.getOriginalFilename();
+        }
+
+        @GetMapping("/header")
+        String header(@RequestHeader("X-Thing") String thing) {
+            return thing;
+        }
+
+        @GetMapping("/cookie")
+        String cookie(@CookieValue("thing") String thing) {
+            return thing;
         }
 
         @GetMapping("/api-error")

@@ -25,7 +25,6 @@ main/com/smartup24/cms/instance/config/db/SchemaVersionGate.java
 main/com/smartup24/cms/instance/config/error/GlobalExceptionHandler.java
 main/com/smartup24/cms/instance/config/idempotency/IdempotencyCleanupWorker.java
 main/com/smartup24/cms/instance/config/jobs/JobQueueWorker.java
-main/com/smartup24/cms/instance/config/security/ProblemDetailAuthHandlers.java
 main/com/smartup24/cms/instance/config/security/RateLimitFilter.java
 main/com/smartup24/cms/instance/config/security/RateLimitProperties.java
 main/com/smartup24/cms/instance/config/security/RateLimitService.java

@@ -133,12 +133,15 @@ public final class BulkRunner {
 
     /**
      * A refusal of the single operation. Its key goes out for the response handler to render; until then the message
-     * is the key itself. An older caller's sentence (not a key) is the message as it is.
+     * is the key itself. A sentence instead of a key (a defect, ADR-0021) is logged and replaced by the code's text.
      */
     private static BulkItemResult failure(long id, ApiException e) {
         String code = e.getErrorCode().name().toLowerCase(Locale.ROOT);
-        return e.hasMessageKey()
-                ? new BulkItemResult(id, false, code, e.getMessageKey(), e.getMessageKey(), e.getParams())
-                : new BulkItemResult(id, false, code, e.getMessageKey(), null, null);
+        if (!e.hasMessageKey()) {
+            log.error("ApiException without a catalog key in bulk item {}: {}", id, e.getMessageKey());
+            String key = ApiException.defaultKey(e.getErrorCode());
+            return new BulkItemResult(id, false, code, key, key, null);
+        }
+        return new BulkItemResult(id, false, code, e.getMessageKey(), e.getMessageKey(), e.getParams());
     }
 }
