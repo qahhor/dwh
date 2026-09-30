@@ -327,9 +327,11 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
         PackageRow queued = applies.request(row.publicId().toString(), userId);
         backdate(queued);
+        jobOutOfAttempts(queued);
         tx.executeWithoutResult(status -> recovery.run(Map.of("staleMinutes", 60)));
 
-        // The queued apply job of the package closed by recovery runs from the queue and leaves it alone.
+        // An operator puts the failed apply job back; it runs from the queue and leaves the closed package alone.
+        jdbc.sql("update fnd_job_queue set failed_at = null, attempts = 0").update();
         assertThat(jobs.runQueued()).isEqualTo(1);
 
         PackageRow closed = packages.get(row.publicId().toString());
@@ -351,6 +353,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         PackageRow fresh = applies.request(
                 verifiedPackage(UplPackageTestData.workbook(7, 3)).publicId().toString(), userId);
         backdate(stale);
+        jobOutOfAttempts(stale);
 
         tx.executeWithoutResult(status -> recovery.run(Map.of("staleMinutes", 60)));
 
@@ -412,6 +415,13 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                     .param("id", row.id())
                     .update();
         });
+    }
+
+    /** The apply job of the package ran out of attempts: the runner marked its queue row failed. */
+    private void jobOutOfAttempts(PackageRow row) {
+        jdbc.sql("update fnd_job_queue set failed_at = now() where args ->> 'packageId' = :id")
+                .param("id", row.publicId().toString())
+                .update();
     }
 
     private PackageRow verifiedPackage(byte[] content) {

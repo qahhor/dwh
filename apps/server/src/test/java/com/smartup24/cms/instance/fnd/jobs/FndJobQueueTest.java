@@ -2,6 +2,8 @@ package com.smartup24.cms.instance.fnd.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.sql.Connection;
 import java.sql.Statement;
@@ -192,6 +194,141 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
                 .allSatisfy(age -> assertThat(age).isLessThan(1.0));
         assertThat(leases).hasSize(3);
         assertThat(leases.get(2)).as("the lease was renewed").isAfter(leases.get(0));
+    }
+
+    @Test
+    @DisplayName("a lease renewal that fails once does not stop the heartbeat: the lease stays alive")
+    void failedRenewalDoesNotStopTheHeartbeat() {
+        jdbc.sql("create sequence test_fnd_renewals").update();
+        // The first renewal-shaped update (same claim, later end of lease) fails, as if the database were away
+        jdbc.sql("""
+                create function test_fnd_fail_first_renewal() returns trigger language plpgsql as $$
+                begin
+                    if new.locked_by is not distinct from old.locked_by and new.locked_until > old.locked_until then
+                        if nextval('test_fnd_renewals') = 1 then
+                            raise exception 'TEST renewal failure';
+                        end if;
+                    end if;
+                    return new;
+                end $$
+                """).update();
+        jdbc.sql("create trigger test_fnd_fail_first_renewal before update on fnd_job_queue"
+                        + " for each row execute function test_fnd_fail_first_renewal()")
+                .update();
+        try {
+            Duration lease = Duration.ofMillis(600);
+            List<Boolean> leaseAlive = new ArrayList<>();
+            long[] id = new long[1];
+            FndJobRunner runner = runner(settings(1, Duration.ZERO, lease), handler("test.q.renew", args -> {
+                for (int step = 0; step < 4; step++) {
+                    sleep(Duration.ofMillis(500));
+                    leaseAlive.add(jdbc.sql("select locked_until > now() from fnd_job_queue where id = :id")
+                            .param("id", id[0])
+                            .query(Boolean.class)
+                            .single());
+                }
+            }));
+            id[0] = enqueue("test.q.renew");
+
+            assertThat(runner.runQueued()).isEqualTo(1);
+
+            assertThat(leaseAlive).as("the lease at 0.5, 1, 1.5 and 2 seconds").containsExactly(true, true, true, true);
+            assertThat(jdbc.sql("select last_value from test_fnd_renewals")
+                            .query(Long.class)
+                            .single())
+                    .as("renewals tried, the failed first one included")
+                    .isGreaterThan(3);
+            assertThat(jdbc.sql("select status from fnd_job_runs where queue_id = :id")
+                            .param("id", id[0])
+                            .query(String.class)
+                            .list())
+                    .containsExactly("done");
+        } finally {
+            jdbc.sql("drop trigger if exists test_fnd_fail_first_renewal on fnd_job_queue")
+                    .update();
+            jdbc.sql("drop function if exists test_fnd_fail_first_renewal()").update();
+            jdbc.sql("drop sequence if exists test_fnd_renewals").update();
+        }
+    }
+
+    @Test
+    @DisplayName("a node that took the job over keeps its record: the old attempt's outcome is not written over it")
+    void outcomeOfATakenOverJobIsNotRecorded() {
+        for (boolean fails : new boolean[] {false, true}) {
+            String code = fails ? "test.q.over.fail" : "test.q.over.done";
+            long[] id = new long[1];
+            FndJobRunner runner = runner(settings(3, Duration.ZERO, Duration.ofMinutes(1)), handler(code, args -> {
+                // What another runner's claim does once the lease has run out
+                jdbc.sql("update fnd_job_queue set locked_by = 'TEST other node', attempts = attempts + 1,"
+                                + " locked_until = now() + interval '1 minute' where id = :id")
+                        .param("id", id[0])
+                        .update();
+                jdbc.sql("update fnd_job_runs set status = 'failed', finished_at = now(), error = 'lease expired'"
+                                + " where queue_id = :id and status = 'running'")
+                        .param("id", id[0])
+                        .update();
+                if (fails) {
+                    throw new IllegalStateException("TEST failure after the takeover");
+                }
+            }));
+            id[0] = enqueue(code);
+
+            runner.runNext();
+
+            assertThat(jdbc.sql("select status || ':' || error from fnd_job_runs where queue_id = :id")
+                            .param("id", id[0])
+                            .query(String.class)
+                            .list())
+                    .as("fails=%s", fails)
+                    .containsExactly("failed:lease expired");
+            Map<String, Object> row = queueRow(id[0]);
+            assertThat(row.get("locked_by")).as("fails=%s", fails).isEqualTo("TEST other node");
+            assertThat(row.get("attempts")).as("fails=%s", fails).isEqualTo(2);
+            assertThat(row.get("failed_at")).as("fails=%s", fails).isNull();
+        }
+    }
+
+    @Test
+    @DisplayName("the handler learns its attempt; a not-retryable failure marks the job failed at once")
+    void handlerSeesItsAttemptAndCanRefuseARetry() {
+        List<String> seen = new ArrayList<>();
+        FndJobHandler counting = new FndJobHandler() {
+            @Override
+            public String code() {
+                return "test.q.attempts";
+            }
+
+            @Override
+            public void run(Map<String, Object> args) {
+                throw new AssertionError("the runner calls the attempt-aware method");
+            }
+
+            @Override
+            public void run(Map<String, Object> args, FndJobAttempt attempt) {
+                seen.add(attempt.number() + "/" + attempt.maxAttempts() + ":" + attempt.last());
+                if (attempt.number() == 2) {
+                    throw new FndJobNotRetryableException("TEST settled", new IllegalStateException("TEST cause"));
+                }
+                throw new IllegalStateException("TEST transient");
+            }
+        };
+        FndJobRunner runner = runner(settings(4, Duration.ZERO, Duration.ofMinutes(1)), counting);
+        long id = enqueue("test.q.attempts");
+
+        assertThat(runner.runQueued()).isZero();
+
+        assertThat(seen).containsExactly("1/4:false", "2/4:false");
+        assertThat(queueRow(id).get("failed_at")).isNotNull();
+        assertThat(jdbc.sql("select error from fnd_job_runs where queue_id = :id order by id")
+                        .param("id", id)
+                        .query(String.class)
+                        .list())
+                .hasSize(2)
+                .last()
+                .asString()
+                .contains("TEST settled")
+                .contains("TEST cause");
+        assertThat(FndJobAttempt.only().last()).isTrue();
     }
 
     @Test

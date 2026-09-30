@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
+import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashMap;
@@ -25,8 +27,9 @@ import tools.jackson.databind.ObjectMapper;
  * <p>Plan 10/10, item 3.8: a job is leased, not held in a transaction. A short transaction takes one due row
  * ({@code for update skip locked}), stamps the claim and the end of the lease on it and records the run; the handler
  * then works with no transaction of the runner open (parsing a 50 MB file used to keep one open for minutes), and
- * another short transaction records the outcome. While the handler works, a virtual thread renews the lease; a node
- * that dies stops renewing, and once the lease runs out another runner takes the job again. A failed attempt is
+ * another short transaction records the outcome. While the handler works, {@link FndJobLease} renews the lease; a
+ * node that dies stops renewing, and once the lease runs out another runner takes the job again. The outcome of an
+ * attempt is recorded only while its claim still holds the job. A failed attempt is
  * retried after a doubling pause until {@link FndJobProperties#maxAttempts()}, then the row is marked failed and
  * stays for the operator. Handlers open their own transactions where they need atomicity.
  *
@@ -202,72 +205,47 @@ public class FndJobRunner {
 
     private boolean execute(Claim claim) {
         RuntimeException failure = null;
-        Thread heartbeat =
-                Thread.ofVirtual().name("job-lease-" + claim.queueId()).start(() -> renew(claim));
+        FndJobLease lease = FndJobLease.start(jdbc, settings.lease(), claim.queueId(), claim.handler(), claim.token());
         try {
-            handler(claim.handler()).run(args(claim.rawArgs()));
+            handler(claim.handler())
+                    .run(args(claim.rawArgs()), new FndJobAttempt(claim.attempt(), settings.maxAttempts()));
         } catch (RuntimeException e) {
             failure = e;
         } finally {
-            heartbeat.interrupt();
+            lease.close();
         }
         RuntimeException outcome = failure;
-        tx.executeWithoutResult(status -> finish(claim, outcome));
+        tx.executeWithoutResult(status -> finish(claim, outcome, lease.lost()));
         return failure == null;
     }
 
-    /** Renews the lease every third of it until interrupted; a lost lease is only logged, the handler finishes. */
-    private void renew(Claim claim) {
-        long pauseMs = Math.max(1, settings.lease().toMillis() / 3);
-        try {
-            while (!Thread.currentThread().isInterrupted()) {
-                Thread.sleep(pauseMs);
-                int renewed = jdbc.sql(
-                                "update fnd_job_queue set locked_until = now() + :lease * interval '1 millisecond'"
-                                        + " where id = :id and locked_by = :token")
-                        .param("lease", millis(settings.lease()))
-                        .param("id", claim.queueId())
-                        .param("token", claim.token())
-                        .update();
-                if (renewed == 0) {
-                    log.warn("job_lease_lost handler={} queue_id={}", claim.handler(), claim.queueId());
-                    return;
-                }
-            }
-        } catch (InterruptedException stopped) {
-            Thread.currentThread().interrupt();
-        } catch (RuntimeException renewalFailure) {
-            // The database is away: the lease may run out and the job be taken again, which retries allow
-            log.warn(
-                    "job_lease_renewal_failed handler={} queue_id={}",
+    /** Records the outcome, only while this claim still holds the job: a node that took it over records its own. */
+    private void finish(Claim claim, RuntimeException failure, boolean leaseLost) {
+        if (failure != null) {
+            log.error(
+                    "job_failed handler={} queue_id={} attempt={}",
                     claim.handler(),
                     claim.queueId(),
-                    renewalFailure);
+                    claim.attempt(),
+                    failure);
         }
-    }
-
-    private void finish(Claim claim, RuntimeException failure) {
+        if (leaseLost || recordRun(claim, failure) == 0) {
+            log.warn(
+                    "job_outcome_not_recorded_lease_lost handler={} queue_id={} attempt={} failed={}",
+                    claim.handler(),
+                    claim.queueId(),
+                    claim.attempt(),
+                    failure != null);
+            return;
+        }
         if (failure == null) {
-            jdbc.sql("update fnd_job_runs set status = 'done', finished_at = now() where id = :id")
-                    .param("id", claim.runId())
-                    .update();
             jdbc.sql("delete from fnd_job_queue where id = :id and locked_by = :token")
                     .param("id", claim.queueId())
                     .param("token", claim.token())
                     .update();
             return;
         }
-        log.error(
-                "job_failed handler={} queue_id={} attempt={}",
-                claim.handler(),
-                claim.queueId(),
-                claim.attempt(),
-                failure);
-        jdbc.sql("update fnd_job_runs set status = 'failed', finished_at = now(), error = :error where id = :id")
-                .param("error", describe(failure))
-                .param("id", claim.runId())
-                .update();
-        if (claim.attempt() >= settings.maxAttempts()) {
+        if (claim.attempt() >= settings.maxAttempts() || failure instanceof FndJobNotRetryableException) {
             markFailed(claim.queueId(), claim.token());
             return;
         }
@@ -278,6 +256,28 @@ public class FndJobRunner {
                         """)
                 .param("pause", millis(settings.backoffAfter(claim.attempt())))
                 .param("id", claim.queueId())
+                .param("token", claim.token())
+                .update();
+    }
+
+    /**
+     * Closes the run of this attempt, on the condition that the claim still holds the job and the run is still
+     * {@code running}: a node that took the job over after the lease ran out has already closed it as
+     * {@code lease expired}, and that stays.
+     *
+     * @return 1 when recorded, 0 when the claim no longer holds the job
+     */
+    private int recordRun(Claim claim, RuntimeException failure) {
+        return jdbc.sql("""
+                        update fnd_job_runs r
+                           set status = :status, finished_at = now(), error = :error
+                         where r.id = :run and r.status = 'running'
+                           and exists (select 1 from fnd_job_queue q where q.id = :queue and q.locked_by = :token)
+                        """)
+                .param("status", failure == null ? "done" : "failed")
+                .param("error", failure == null ? null : describe(failure))
+                .param("run", claim.runId())
+                .param("queue", claim.queueId())
                 .param("token", claim.token())
                 .update();
     }

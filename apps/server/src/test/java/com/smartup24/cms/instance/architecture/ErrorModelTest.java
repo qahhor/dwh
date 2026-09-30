@@ -35,7 +35,9 @@ class ErrorModelTest {
             "com.smartup24.cms.instance.search.typesense.TypesenseException",
             "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)",
             "com.smartup24.cms.instance.fnd.dwh.JdbcFndRawWriter$CopyFailed",
-            "carries a server refusal out of the COPY callback and is unwrapped by the writer itself");
+            "carries a server refusal out of the COPY callback and is unwrapped by the writer itself",
+            "com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException",
+            "ends a queued job, never a request: the job runner records it and marks the job failed at once");
 
     /**
      * Exceptions of modules not yet moved to the model. Empty since the fnd hierarchy joined it; kept so a temporary

@@ -256,8 +256,17 @@ Uploads are parsed and applied, exports written and maintenance run by the job
 queue (`fnd_job_queue`, plan 10/10 item 3.8). Every server instance runs it:
 
 - a job is leased in a short transaction and runs outside it; the instance
-  renews the lease while the job works. A job whose instance died is taken by
-  another one once its lease runs out (`DWH_JOBS_LEASE`, 5 minutes by default);
+  renews the lease while the job works; a renewal that fails (the database away
+  for a moment) is logged as `job_lease_renewal_failed` and tried again. A job
+  whose instance died is taken by another one once its lease runs out
+  (`DWH_JOBS_LEASE`, 5 minutes by default); the outcome of the old attempt is
+  then not recorded (`job_outcome_not_recorded_lease_lost`), its run stays
+  `failed` with `lease expired`;
+- upload parse and apply jobs retry transient failures (pg-dwh or storage
+  away) like any job and close the package «отклонён системой» only on the last
+  attempt or for a failure a retry would not fix; the recovery job
+  (`upl.apply_recovery`) never closes an apply whose `upl.apply` job is still
+  queued, waiting for a retry or running;
 - a failed job is retried after 30 seconds, then 1, 2, 4 minutes and so on up
   to one hour (`DWH_JOBS_RETRY_BACKOFF`, `DWH_JOBS_RETRY_BACKOFF_MAX`); after 5
   attempts (`DWH_JOBS_MAX_ATTEMPTS`) it is marked failed. Each attempt is a row

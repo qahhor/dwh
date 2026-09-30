@@ -23,7 +23,7 @@ public class TypesenseHealth {
             var response = client.metadata("/health");
             return response.path("ok").isBoolean() && response.path("ok").asBoolean();
         } catch (Exception e) {
-            log.debug("Typesense health check unavailable");
+            log.warn("typesense_health_unavailable error={}", e.toString());
             return false;
         }
     }
@@ -43,7 +43,7 @@ public class TypesenseHealth {
                 version = value.asString();
             else error = "METADATA_UNAVAILABLE";
         } catch (RuntimeException unavailable) {
-            log.debug("typesense_metadata_unavailable error={}", unavailable.toString());
+            log.warn("typesense_metadata_unavailable error={}", unavailable.toString());
             error = "METADATA_UNAVAILABLE";
         }
         try {
@@ -52,7 +52,7 @@ public class TypesenseHealth {
             total = TypesenseClient.nonnegativeInteger(metrics.path("system_disk_total_bytes"), true);
             if (used == null || total == null) error = "METADATA_UNAVAILABLE";
         } catch (RuntimeException unavailable) {
-            log.debug("typesense_metadata_unavailable error={}", unavailable.toString());
+            log.warn("typesense_metadata_unavailable error={}", unavailable.toString());
             error = "METADATA_UNAVAILABLE";
         }
         return new DependencyMetadata(true, true, version, used, total, error);

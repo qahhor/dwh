@@ -49,7 +49,8 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Plan 10/10, item 3.9, acceptance: a 50 MB file of a million rows is uploaded, checked by the parse job and applied
  * through {@code POST /apply} and the apply job, with the whole application in a 512 MB heap; the apply answers in
- * under a second.
+ * under a second. It runs for two files: one with 2,000 distinct names and one with a name per row, a million distinct
+ * shared strings, which the reader keeps in memory as it reads them.
  *
  * <p>Tagged {@code large}: the everyday suite skips it (it writes a 50 MB file and a million raw rows, minutes of
  * work); {@link UplApplyStreamingTest} proves the streaming there. Run it in its own JVM capped at 512 MB:
@@ -102,6 +103,21 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("3.9: файл 50 МБ на миллион строк применяется в куче 512 МБ, ответ на «Применить» — меньше секунды")
     void millionRowFileAppliesInHalfAGigabyte(@TempDir Path dir) throws Exception {
+        applyMillionRows(dir, false);
+    }
+
+    /**
+     * The same file with a name of its own in every row: a million distinct shared strings. The reader keeps the
+     * shared strings it has read in memory, so this is the case where the heap grows with the file.
+     */
+    @Test
+    @DisplayName("3.9: миллион строк с уникальными строками (1 000 000 разных) применяется в куче 512 МБ")
+    void millionDistinctStringsApplyInHalfAGigabyte(@TempDir Path dir) throws Exception {
+        applyMillionRows(dir, true);
+    }
+
+    private void applyMillionRows(Path dir, boolean uniqueNames) throws Exception {
+        String variant = uniqueNames ? "unique strings" : "repeated strings";
         MockMvc mvc =
                 MockMvcBuilders.webAppContextSetup(wac).apply(springSecurity()).build();
         long systemUserId = jdbc.sql("select id from md_users where login = 'system'")
@@ -132,9 +148,16 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
                 systemUserId);
 
         long started = System.nanoTime();
-        Path file = UplLargeWorkbook.write(dir.resolve("TEST-large.xlsx"), ROWS);
+        Path file = UplLargeWorkbook.write(dir.resolve("TEST-large.xlsx"), ROWS, uniqueNames);
         long fileBytes = Files.size(file);
-        report("file", "%d bytes (%d MB), %d rows, written in %s", fileBytes, fileBytes / MB, ROWS, since(started));
+        report(
+                variant,
+                "file",
+                "%d bytes (%d MB), %d rows, written in %s",
+                fileBytes,
+                fileBytes / MB,
+                ROWS,
+                since(started));
         assertThat(fileBytes).isBetween(40 * MB, UplLimits.MAX_FILE_BYTES);
 
         try (HeapSampler heap = new HeapSampler()) {
@@ -156,7 +179,7 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
                             systemUserId)
                     .publicId()
                     .toString();
-            report("upload", "received in %s", since(started));
+            report(variant, "upload", "received in %s", since(started));
 
             started = System.nanoTime();
             assertThat(jobs.runQueued()).isEqualTo(1);
@@ -166,7 +189,7 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
                     .isEqualTo(UplPackageModel.VERIFIED);
             assertThat((Integer) JsonPath.read(parsed.getContentAsString(), "$.rowsTotal"))
                     .isEqualTo(ROWS);
-            report("parse", "verified in %s", since(started));
+            report(variant, "parse", "verified in %s", since(started));
 
             started = System.nanoTime();
             MockHttpServletResponse queued = send(mvc, admin, post(BASE + "/" + id + "/apply"));
@@ -174,7 +197,7 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
             assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
             assertThat((String) JsonPath.read(queued.getContentAsString(), "$.status"))
                     .isEqualTo(UplPackageModel.APPLYING);
-            report("apply request", "202 in %d ms", answer.toMillis());
+            report(variant, "apply request", "202 in %d ms", answer.toMillis());
             assertThat(answer).isLessThan(Duration.ofSeconds(1));
 
             started = System.nanoTime();
@@ -189,13 +212,18 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
                             .query(Long.class)
                             .single())
                     .isEqualTo(ROWS);
-            report("apply job", "applied in %s", since(started));
-            report("heap", "max %d MB, peak used %d MB", Runtime.getRuntime().maxMemory() / MB, heap.peak() / MB);
+            report(variant, "apply job", "applied in %s", since(started));
+            report(
+                    variant,
+                    "heap",
+                    "max %d MB, peak used %d MB",
+                    Runtime.getRuntime().maxMemory() / MB,
+                    heap.peak() / MB);
         }
     }
 
-    private static void report(String step, String format, Object... args) {
-        log.info("[upl-large] {}: {}", step, String.format(format, args));
+    private static void report(String variant, String step, String format, Object... args) {
+        log.info("[upl-large] {} {}: {}", variant, step, String.format(format, args));
     }
 
     private static String since(long startedNanos) {
