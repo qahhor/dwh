@@ -69,26 +69,35 @@ lowercase `snake_case` глагол, например `view`, `create`, `update`
 
 ## Ошибки API
 
-HTTP API возвращает единый Problem Details контракт из `libs/core-types`:
+HTTP API возвращает единый Problem Details контракт (`ProblemDetailRecord` из
+`libs/core-types`, `application/problem+json`) по
+[ADR-0021](../adr/ADR-0021-error-model.md):
 
 ```json
 {
   "type": "https://api.dwh.internal/errors/validation_failed",
-  "title": "Validation Failed",
+  "title": "VALIDATION_FAILED",
   "status": 422,
   "code": "validation_failed",
-  "detail": "Описание ошибки",
+  "detail": "Проверьте поля записи",
   "instance": "/api/v1/example",
-  "timestamp": "2026-09-03T00:00:00Z",
+  "timestamp": "2026-10-01T00:00:00Z",
   "errors": [
     { "field": "name", "code": "required", "message": "Поле обязательно" }
-  ]
+  ],
+  "messageKey": "error.common.record_fields_invalid",
+  "params": {}
 }
 ```
 
-`type`, `instance` и `errors` могут отсутствовать в ответах, где они неприменимы;
-`title`, HTTP `status`, стабильный `code` и безопасный `detail` сохраняют единый
-смысл. В ответ нельзя помещать stack trace, SQL или секреты.
+Сервер бросает `ApiException` с `ErrorCode`, ключом каталога
+`error.<модуль>.<имя>` и параметрами; `detail` он рендерит на языке запроса
+(`Accept-Language`), а клиент показывает текст по `messageKey` и `params` из
+своего каталога. Ключ есть в ru, uz и en (`ErrorTextsTest`). `type`,
+`instance`, `errors`, `messageKey` и `params` могут отсутствовать там, где они
+неприменимы; `title`, HTTP `status`, стабильный `code` и безопасный `detail`
+сохраняют единый смысл. В ответ нельзя помещать stack trace, SQL или секреты.
+Поведение API целиком — [docs/api/README.md](../api/README.md).
 
 ## Angular
 

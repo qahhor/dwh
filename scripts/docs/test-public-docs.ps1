@@ -34,10 +34,13 @@ foreach ($relativePath in $requiredFiles) {
 $activeDocs = @(
     'README.md',
     'CONTRIBUTING.md',
+    'CODE_STYLE.md',
     'docs/README.md',
     'docs/ai-context.md',
     'docs/technical-specification.md',
     'docs/onboarding.md',
+    'docs/api/README.md',
+    'docs/architecture/extension-points.md',
     'docs/architecture/biruni-smartup-conventions.md',
     'docs/architecture/monorepo-structure.md',
     'docs/guidelines/database-migrations.md',
@@ -48,25 +51,29 @@ $activeDocs = @(
     'docs/ops/deployment-guide.md',
     'docs/ops/maintenance-guide.md',
     'docs/ops/operations-runbook.md',
+    'docs/ops/privacy-and-retention-annex.md',
     'docs/ops/production-launch-checklist.md',
     'docs/ops/rollback.md',
     'docs/runbooks/RB-04-migration-failure-triage.md'
 )
 
-$currentAndPartiallyCurrentAdrs = @(
-    'docs/adr/ADR-0001-architecture-model.md',
-    'docs/adr/ADR-0002-backend-stack.md',
-    'docs/adr/ADR-0003-tenancy-rbac.md',
-    'docs/adr/ADR-0005-ai-ml-readiness.md',
-    'docs/adr/ADR-0006-modular-monolith.md',
-    'docs/adr/ADR-0008-security-baseline.md',
-    'docs/adr/ADR-0009-observability.md',
-    'docs/adr/ADR-0010-resilience-tiers.md',
-    'docs/adr/ADR-0011-provider-spi.md',
-    'docs/adr/ADR-0012-ui-foundation.md',
-    'docs/adr/ADR-0013-data-scope.md',
-    'docs/adr/ADR-0014-unified-open-source-runtime.md'
+$supersededAdrs = @(
+    'docs/adr/ADR-0004-deployment-model.md',
+    'docs/adr/ADR-0007-fleet-strategy.md'
 )
+
+# Every ADR on disk: the index must link each one, and all but the superseded are active documents.
+$allAdrs = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot 'docs/adr') -Filter 'ADR-*.md' -File |
+    Sort-Object Name | ForEach-Object { "docs/adr/$($_.Name)" })
+$currentAndPartiallyCurrentAdrs = @($allAdrs | Where-Object { $supersededAdrs -notcontains $_ })
+
+$docsIndex = Get-Content -LiteralPath (Join-Path $repoRoot 'docs/README.md') -Raw -Encoding UTF8
+foreach ($relativePath in $allAdrs) {
+    $link = '(' + $relativePath.Substring('docs/'.Length) + ')'
+    if (-not $docsIndex.Contains($link)) {
+        $errors.Add("ADR is not linked from docs/README.md: $relativePath")
+    }
+}
 
 $retiredTerms = '(?i)apps/(?:instance|control-plane|web-instance|web-cp)|docker-compose\.fleet|migrate-cp|DWH_CP_|(?:TRD|TZ|ТЗ|ТРД)-[0-9]+'
 $retiredIdentifierCompatibility = @{
@@ -102,10 +109,6 @@ foreach ($relativePath in $retiredTermDocs) {
     }
 }
 
-$supersededAdrs = @(
-    'docs/adr/ADR-0004-deployment-model.md',
-    'docs/adr/ADR-0007-fleet-strategy.md'
-)
 foreach ($relativePath in $supersededAdrs) {
     $content = Get-Content -LiteralPath (Join-Path $repoRoot $relativePath) -Raw -Encoding UTF8
     if ($content -notmatch 'Заменено ADR-0014') {

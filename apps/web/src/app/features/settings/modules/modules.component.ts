@@ -91,7 +91,7 @@ export type { InstalledModule, ModuleFilterTab };
           <p class="cli-command-label">{{ 'modules.cli_example_label' | t }}</p>
           <pre
             class="cli-command-box"
-          ><code>powershell -ExecutionPolicy Bypass -File scripts/dev/create-module.ps1 -ModuleCode "crm" -ModuleName "CRM & Deals" -ModuleDescription "Customer relationships and deal pipeline" -Subpackage "crm"</code></pre>
+          ><code>powershell -ExecutionPolicy Bypass -File scripts/dev/create-module.ps1 -ModuleName crm -ModuleTitle "CRM" -TitleEn "CRM & Deals" -ModuleDescription "Customer relationships and deal pipeline"</code></pre>
         </div>
       </div>
     </section>
