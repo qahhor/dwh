@@ -30,6 +30,15 @@
         <property name="files" value="[\\/]src[\\/]test[\\/]"/>
         <property name="checks" value="FileLength|MethodLength"/>
     </module>
+    <!-- Tests build their own mappers and catch the failures they expect (item 3.11 holds for main code). -->
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[\\/]src[\\/]test[\\/]"/>
+        <property name="id" value="noEmptyCatch"/>
+    </module>
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[\\/]src[\\/]test[\\/]"/>
+        <property name="id" value="singleObjectMapper"/>
+    </module>
     <!-- Temporary waiver: UplXlsxParser streams rows since item 3.9; splitting its reading from its checks is the
          next step. -->
     <module name="SuppressionSingleFilter">
@@ -89,8 +98,12 @@
         <module name="EmptyBlock">
             <property name="option" value="text"/>
         </module>
+        <!-- Plan 10/10, item 3.11: no error is swallowed. A catch in main code is never empty, whatever its variable
+             or comment says (NoSwallowedErrorsTest checks that it rethrows, logs or uses what it caught). -->
         <module name="EmptyCatchBlock">
-            <property name="exceptionVariableName" value="expected|ignored"/>
+            <property name="id" value="noEmptyCatch"/>
+            <property name="exceptionVariableName" value="^$"/>
+            <property name="commentFormat" value="(?!)"/>
         </module>
         <module name="FallThrough"/>
         <module name="SimplifyBooleanExpression"/>
@@ -105,6 +118,15 @@
         <module name="ModifierOrder"/>
         <module name="OuterTypeFilename"/>
         <module name="OneTopLevelClass"/>
+
+        <!-- Plan 10/10, item 3.11: one ObjectMapper, the application's (or JsonMapper.shared() outside Spring), and JSON
+             columns through JsonColumns, not a private copy of toJson/parseJson. -->
+        <module name="Regexp">
+            <property name="id" value="singleObjectMapper"/>
+            <property name="format" value="new ObjectMapper\(|private [\w&lt;&gt;, ?]+ (toJson|parseJson|readJson)\("/>
+            <property name="illegalPattern" value="true"/>
+            <property name="message" value="Use the injected ObjectMapper and JsonColumns (plan 10/10, item 3.11)."/>
+        </module>
 
         <!-- The log carries diagnostics; a stray print or stack trace bypasses the PII masking of logback. -->
         <module name="Regexp">

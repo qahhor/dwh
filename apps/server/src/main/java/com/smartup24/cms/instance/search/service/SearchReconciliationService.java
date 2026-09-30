@@ -12,12 +12,16 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
 import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SearchReconciliationService {
+
+    private static final Logger log = LoggerFactory.getLogger(SearchReconciliationService.class);
     private final DataSource source;
     private final SearchProjectionReader reader;
     private final TypesenseCollections collections;
@@ -72,8 +76,9 @@ public class SearchReconciliationService {
                 if (acquired != null)
                     try {
                         acquired.close();
-                    } catch (SQLException ignored) {
+                    } catch (SQLException closeFailed) {
                         /* acquisition failed */
+                        log.debug("search_reconcile_close_failed error={}", closeFailed.toString());
                     }
                 throw new IllegalStateException("RECONCILIATION_STORAGE_UNAVAILABLE");
             }
@@ -214,10 +219,12 @@ public class SearchReconciliationService {
                     try {
                         connection.rollback();
                     } catch (SQLException rollbackFailed) {
+                        log.warn("search_reconcile_rollback_failed error={}", rollbackFailed.toString());
                         try {
                             connection.abort(Runnable::run);
-                        } catch (SQLException ignored) {
+                        } catch (SQLException abortFailed) {
                             /* do not commit a failed transaction */
+                            log.warn("search_reconcile_abort_failed error={}", abortFailed.toString());
                         }
                     }
                     throw failure;
@@ -237,8 +244,9 @@ public class SearchReconciliationService {
                 if (stream != null) {
                     try {
                         stream.close();
-                    } catch (RuntimeException ignored) {
+                    } catch (RuntimeException closeFailed) {
                         /* still release task-owned database resources */
+                        log.debug("search_reconcile_stream_close_failed error={}", closeFailed.toString());
                     }
                     stream = null;
                 }
@@ -249,16 +257,19 @@ public class SearchReconciliationService {
                     jdbc.sql("drop table if exists pg_temp.search_reconcile_source")
                             .update();
             } catch (RuntimeException failure) {
+                log.warn("search_reconcile_cleanup_failed error={}", failure.toString());
                 try {
                     connection.abort(Runnable::run);
-                } catch (SQLException ignored) {
+                } catch (SQLException abortFailed) {
                     /* pool must discard this connection */
+                    log.warn("search_reconcile_abort_failed error={}", abortFailed.toString());
                 }
             } finally {
                 try {
                     connection.close();
-                } catch (SQLException ignored) {
+                } catch (SQLException closeFailed) {
                     /* task-owned connection */
+                    log.debug("search_reconcile_connection_close_failed error={}", closeFailed.toString());
                 }
             }
         }

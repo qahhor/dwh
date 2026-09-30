@@ -10,6 +10,8 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -19,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class ReportService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportService.class);
 
     private static final DateTimeFormatter DATE_FMT =
             DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.of("UTC"));
@@ -78,6 +82,7 @@ public class ReportService {
             writer.flush();
         } catch (ClientAbortException | IOException e) {
             // Client aborted or socket closed; terminate streaming and release DB connection cleanly
+            log.debug("report_stream_aborted error={}", e.toString());
         }
     }
 
@@ -171,6 +176,7 @@ public class ReportService {
             writer.flush();
         } catch (ClientAbortException | IOException e) {
             // Client aborted or socket closed; terminate streaming and release DB connection cleanly
+            log.debug("report_stream_aborted error={}", e.toString());
         }
     }
 

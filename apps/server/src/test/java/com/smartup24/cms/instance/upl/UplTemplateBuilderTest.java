@@ -146,6 +146,30 @@ class UplTemplateBuilderTest {
                 .isEqualTo("Код;\"Сумма; руб\"\r\n");
     }
 
+    @Test
+    @DisplayName("CSV: неизвестная кодировка анкеты даёт UTF-8 и пишется в лог, а не роняет выгрузку шаблона")
+    void unknownCsvEncodingFallsBackToUtf8() {
+        Sheet sheet = new Sheet(null, 1, "data", 1, null, List.of(column(1, null, "Код", DataType.TEXT, true)));
+        FormatVersion csv = new FormatVersion(
+                1L,
+                2,
+                null,
+                null,
+                "draft",
+                null,
+                null,
+                1,
+                FileKind.CSV,
+                "no-such-charset",
+                ";",
+                MatchBy.HEADER,
+                List.of(sheet));
+
+        byte[] content = builder.build(SOURCE, csv, TEXT).content();
+
+        assertThat(new String(content, StandardCharsets.UTF_8)).contains("Код");
+    }
+
     private static FormatVersion format(MatchBy matchBy, List<Column> columns) {
         Sheet sheet = new Sheet(null, 1, "TEST лист", 2, null, columns);
         return new FormatVersion(

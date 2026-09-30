@@ -12,6 +12,8 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name = "dwh.files.scanner.clamav.enabled", havingValue = "true")
 public class ClamAvFileScanner implements FileScanner {
+
+    private static final Logger log = LoggerFactory.getLogger(ClamAvFileScanner.class);
 
     private static final int CHUNK_BYTES = 8 * 1024;
     private static final int MAX_RESPONSE_BYTES = 4 * 1024;
@@ -103,6 +107,7 @@ public class ClamAvFileScanner implements FileScanner {
             socket.getOutputStream().flush();
             return "PONG".equals(readResponse(socket.getInputStream()));
         } catch (IOException exception) {
+            log.debug("clamav_ping_failed error={}", exception.toString());
             return false;
         }
     }

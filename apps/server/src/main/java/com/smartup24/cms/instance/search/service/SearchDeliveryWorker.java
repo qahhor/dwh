@@ -163,6 +163,7 @@ public class SearchDeliveryWorker {
                             acks.get(i).errorCode());
             }
         } catch (RuntimeException failure) {
+            log.warn("search_delivery_batch_failed size={} error={}", values.size(), failure.toString());
             for (var value : values)
                 delivery.failed(
                         value.claim(),

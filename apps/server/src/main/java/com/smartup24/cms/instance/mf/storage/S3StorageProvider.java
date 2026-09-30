@@ -19,6 +19,8 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -32,6 +34,8 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
 public final class S3StorageProvider implements StorageProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(S3StorageProvider.class);
 
     private static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
@@ -209,6 +213,7 @@ public final class S3StorageProvider implements StorageProvider {
             outcome = "success";
             return ProviderHealth.healthy(getProviderCode(), elapsedMillis(startedAt));
         } catch (Exception error) {
+            log.debug("s3_health_failed error={}", error.toString());
             return ProviderHealth.unhealthy(getProviderCode(), "S3 storage is unavailable", elapsedMillis(startedAt));
         } finally {
             recordOperation("health", outcome, metricStartedAt);
@@ -274,8 +279,9 @@ public final class S3StorageProvider implements StorageProvider {
         }
         try {
             Files.deleteIfExists(staged);
-        } catch (IOException ignored) {
+        } catch (IOException cleanup) {
             // The OS will reclaim the temp directory; never mask the storage result.
+            log.debug("s3_staged_file_left path={} error={}", staged, cleanup.toString());
         }
     }
 }

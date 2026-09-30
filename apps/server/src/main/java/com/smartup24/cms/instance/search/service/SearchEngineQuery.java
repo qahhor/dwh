@@ -58,7 +58,9 @@ final class SearchEngineQuery {
                     List<CollectionSearch> variantGroups = typesense.multiSearch(
                             variant, cleanEntityType, effectiveLimit, snapshot.collections(), currentPolicy);
                     groups = mergeGroups(groups, variantGroups);
-                } catch (Exception ignored) {
+                } catch (RuntimeException variantFailed) {
+                    // The main query answered; a failed spelling variant only narrows the hits.
+                    log.debug("search_variant_failed error={}", variantFailed.toString());
                 }
             }
         }

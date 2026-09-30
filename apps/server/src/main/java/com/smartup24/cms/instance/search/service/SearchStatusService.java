@@ -15,10 +15,14 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SearchStatusService {
+
+    private static final Logger log = LoggerFactory.getLogger(SearchStatusService.class);
     private final SearchAccessPolicy access;
     private final SearchIndexStateRepository repository;
     private final SearchPolicyProvider policies;
@@ -52,6 +56,7 @@ public class SearchStatusService {
             rate = policies.effectiveBudgets(policy);
         } catch (ApiException unavailable) {
             /* No valid settings have been observed yet. */
+            log.debug("search_status_without_policy code={}", unavailable.getErrorCode());
         }
         var dependency = health.observeDependency();
         var generations = new ArrayList<GenerationStatus>();

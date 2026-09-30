@@ -142,12 +142,8 @@ public class MdSettingService {
     }
 
     private static int parseIdleLock(String value, boolean strict) {
-        try {
-            int minutes = Integer.parseInt(value == null ? "" : value.strip());
-            if (minutes >= 0 && minutes <= MAX_IDLE_LOCK_MINUTES) return minutes;
-        } catch (NumberFormatException ignored) {
-            // falls through
-        }
+        Integer minutes = wholeNumber(value);
+        if (minutes != null && minutes >= 0 && minutes <= MAX_IDLE_LOCK_MINUTES) return minutes;
         if (strict) {
             throw ApiException.validation(
                     "error.md.setting_invalid",
@@ -155,6 +151,14 @@ public class MdSettingService {
                             IDLE_LOCK_MINUTES, SETTING_INVALID, "minutes from 0 to " + MAX_IDLE_LOCK_MINUTES)));
         }
         return Integer.parseInt(DEFAULT_INSTANCE_SETTINGS.get(IDLE_LOCK_MINUTES));
+    }
+
+    private static Integer wholeNumber(String value) {
+        try {
+            return Integer.parseInt(value == null ? "" : value.strip());
+        } catch (NumberFormatException notANumber) {
+            return null;
+        }
     }
 
     private static boolean isPersonal(String key) {

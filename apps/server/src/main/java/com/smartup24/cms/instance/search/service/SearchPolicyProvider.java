@@ -6,12 +6,16 @@ import com.smartup24.cms.instance.search.SearchOwnerRateLimits;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.SettingsSnapshot;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /** Shared source of the active query policy and its owner-clamped rate budgets. */
 @Service
 public class SearchPolicyProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(SearchPolicyProvider.class);
     private final SearchOwnerRateLimits ownerRateLimits;
     private final SearchSettingsRepository repository;
     private volatile SettingsSnapshot snapshot;
@@ -38,6 +42,7 @@ public class SearchPolicyProvider {
         try {
             publishCommitted(repository.current());
         } catch (RuntimeException failure) {
+            log.warn("search_policy_refresh_failed error={}", failure.toString());
             degraded = true;
         }
     }

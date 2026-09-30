@@ -7,6 +7,7 @@ import com.smartup24.cms.spi.storage.StoredFileMetadata;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,6 +16,8 @@ import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HexFormat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -25,6 +28,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name = "dwh.providers.storage", havingValue = "local_disk", matchIfMissing = true)
 public class LocalStorageProvider implements StorageProvider {
+
+    private static final Logger log = LoggerFactory.getLogger(LocalStorageProvider.class);
 
     private final Path basePath;
 
@@ -143,8 +148,9 @@ public class LocalStorageProvider implements StorageProvider {
     private static void deletePartialFile(Path targetFile) {
         try {
             Files.deleteIfExists(targetFile);
-        } catch (Exception ignored) {
-            // Preserve the original upload error.
+        } catch (IOException | RuntimeException cleanup) {
+            // Preserve the original upload error; the leftover file is logged for the operator.
+            log.warn("local_storage_partial_file_left path={} error={}", targetFile, cleanup.toString());
         }
     }
 }

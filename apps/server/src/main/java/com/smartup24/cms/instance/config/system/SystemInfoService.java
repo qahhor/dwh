@@ -18,6 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.info.BuildProperties;
@@ -26,6 +28,8 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class SystemInfoService {
+
+    private static final Logger log = LoggerFactory.getLogger(SystemInfoService.class);
 
     private static final String UNKNOWN = "unknown";
     private static final Duration COMPONENT_TIMEOUT = Duration.ofSeconds(2);
@@ -79,7 +83,8 @@ public class SystemInfoService {
             var storage = providers.getActiveStorageProvider();
             storageProvider = storage.getProviderCode();
             storageHealth = probe(() -> component(storage.checkHealth()), new SystemInfoResponse.Component("DEGRADED"));
-        } catch (Exception ignored) {
+        } catch (Exception storageUnavailable) {
+            log.debug("system_info_storage_unavailable error={}", storageUnavailable.toString());
             storageHealth = CompletableFuture.completedFuture(new SystemInfoResponse.Component("DOWN"));
         }
 
@@ -122,7 +127,8 @@ public class SystemInfoService {
         try {
             jdbc.sql("select 1").query().singleValue();
             return "UP";
-        } catch (Exception ignored) {
+        } catch (Exception unavailable) {
+            log.debug("system_info_database_down error={}", unavailable.toString());
             return "DOWN";
         }
     }
@@ -140,7 +146,8 @@ public class SystemInfoService {
                     .optional()
                     .filter(SystemInfoService::hasText)
                     .orElse(UNKNOWN);
-        } catch (Exception ignored) {
+        } catch (Exception unavailable) {
+            log.debug("system_info_schema_version_unavailable error={}", unavailable.toString());
             return UNKNOWN;
         }
     }
@@ -157,7 +164,8 @@ public class SystemInfoService {
                     .query(SystemInfoResponse.Organization.class)
                     .optional()
                     .orElseGet(this::configuredOrganization);
-        } catch (Exception ignored) {
+        } catch (Exception unavailable) {
+            log.debug("system_info_organization_unavailable error={}", unavailable.toString());
             return configuredOrganization();
         }
     }
@@ -181,7 +189,11 @@ public class SystemInfoService {
                     .send(request, HttpResponse.BodyHandlers.discarding())
                     .statusCode();
             return status == 200 ? "UP" : "DEGRADED";
-        } catch (Exception ignored) {
+        } catch (Exception unavailable) {
+            if (unavailable instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            log.debug("system_info_typesense_unavailable error={}", unavailable.toString());
             return "DEGRADED";
         }
     }

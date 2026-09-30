@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import org.dhatim.fastexcel.Workbook;
 import org.dhatim.fastexcel.Worksheet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,6 +37,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class UplTemplateBuilder {
+
+    private static final Logger log = LoggerFactory.getLogger(UplTemplateBuilder.class);
 
     /** Rows below the header that get formats and input checks: far more than a real upload, still a small file. */
     static final int CHECKED_ROWS = 5000;
@@ -248,6 +252,8 @@ public class UplTemplateBuilder {
         try {
             return encoding == null || encoding.isBlank() ? StandardCharsets.UTF_8 : Charset.forName(encoding);
         } catch (RuntimeException e) {
+            // The format was checked when it was saved; an unknown charset here falls back and says so.
+            log.warn("upl_template_charset_unknown encoding={}", encoding);
             return StandardCharsets.UTF_8;
         }
     }
