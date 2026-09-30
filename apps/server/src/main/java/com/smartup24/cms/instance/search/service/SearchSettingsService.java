@@ -49,6 +49,8 @@ public class SearchSettingsService {
                         saved.version(),
                         "schema_profile",
                         saved.policy().schemaProfile()));
+        // The other nodes re-read the settings once this transaction commits (ADR-0025).
+        provider.publishChange();
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
