@@ -25,7 +25,10 @@ public class KauthSessionCookies {
         this.clientIpResolver = clientIpResolver != null ? clientIpResolver : new ClientIpResolver(null);
     }
 
-    /** The session cookie of the request: the new name first, then the old one; empty without either. */
+    /**
+     * The session cookie of the request: the new name first, then the old one; empty without either. A blank value
+     * (a cookie being removed) counts as no cookie.
+     */
     public static Optional<SessionCookie> read(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
@@ -33,6 +36,9 @@ public class KauthSessionCookies {
         }
         String legacy = null;
         for (Cookie cookie : cookies) {
+            if (cookie.getValue() == null || cookie.getValue().isBlank()) {
+                continue;
+            }
             if (KauthPref.SESSION_COOKIE_NAME.equals(cookie.getName())) {
                 return Optional.of(new SessionCookie(cookie.getValue(), false));
             }
