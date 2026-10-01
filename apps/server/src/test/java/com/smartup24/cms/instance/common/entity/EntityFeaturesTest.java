@@ -31,6 +31,7 @@ class EntityFeaturesTest {
     static final class FakeRecords implements EntityRecords {
         private final String entity;
         final List<Long> deleted = new ArrayList<>();
+        final List<Long> archived = new ArrayList<>();
 
         FakeRecords(String entity) {
             this.entity = entity;
@@ -51,6 +52,12 @@ class EntityFeaturesTest {
         public void delete(long id) {
             requireVisible(id);
             deleted.add(id);
+        }
+
+        @Override
+        public void archive(long id) {
+            requireVisible(id);
+            archived.add(id);
         }
     }
 
@@ -150,7 +157,7 @@ class EntityFeaturesTest {
                 .historySources()
                 .getFirst();
         assertThat(source.fieldLabels())
-                .containsOnlyKeys("title", "contentMd", "color", "isPinned")
+                .containsOnlyKeys("title", "contentMd", "color", "isPinned", "archived")
                 .containsEntry("contentMd", "notes.col.content");
         assertThat(source.fieldNames()).isEmpty();
 
@@ -188,6 +195,24 @@ class EntityFeaturesTest {
         assertThat(records.deleted).containsExactly(1L, 2L);
     }
 
+    /** Plan 10/10, item 5.3 (ADR-0032, 5.4): the bulk archive runs the module's single archive, record by record. */
+    @Test
+    void bulkArchiveRunsTheModuleArchiveRecordByRecord() {
+        FakeRecords records = records(NOTES.code());
+        EntityBulkController controller =
+                new EntityBulkController(new EntityRegistry(List.of(NOTES), List.of(), List.of(records)));
+        SecurityContext.setPrincipal(principal(Set.of("notes.view", "notes.delete")));
+
+        BulkResult result = controller
+                .bulk("ms.notes", new BulkRequest("archive", List.of(2L, 3L), null))
+                .getBody();
+
+        assertThat(result.succeeded()).isEqualTo(1);
+        assertThat(result.results().get(1).code()).isEqualTo("not_found");
+        assertThat(records.archived).containsExactly(2L);
+        assertThat(records.deleted).isEmpty();
+    }
+
     @Test
     void bulkRefusesWithoutTheRightAnUnknownActionAndAHiddenEntity() {
         EntityBulkController controller = new EntityBulkController(notesRegistry());
@@ -197,7 +222,11 @@ class EntityFeaturesTest {
         assertThatThrownBy(() -> controller.bulk("ms.notes", delete))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED));
+        // The archive needs the right's delete (ADR-0032, 19, question 11: the default, an assumption).
         assertThatThrownBy(() -> controller.bulk("ms.notes", new BulkRequest("archive", List.of(1L), null)))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PERMISSION_DENIED));
+        assertThatThrownBy(() -> controller.bulk("ms.notes", new BulkRequest("purge", List.of(1L), null)))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
 
