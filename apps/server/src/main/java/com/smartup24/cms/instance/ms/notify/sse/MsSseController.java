@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Поток серверных событий для realtime-уведомлений (FR-NOTIF-2, FR-API-5).
- * Клиент: `new EventSource('/api/v1/events', {withCredentials: true})`.
- * Переподключение при разрыве — штатное поведение EventSource, отдельной логики не нужно.
+ * Server-sent event stream for realtime notifications (FR-NOTIF-2, FR-API-5).
+ * Client: `new EventSource('/api/v1/events', {withCredentials: true})`.
+ * Reconnecting after a drop is standard EventSource behaviour; no extra logic is needed.
  */
 @RestController
 @RequestMapping("/api/v1/events")

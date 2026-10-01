@@ -8,11 +8,11 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * Доставка уведомлений в открытые SSE-потоки.
+ * Delivers notifications to open SSE streams.
  *
- * Слушатель срабатывает ПОСЛЕ коммита транзакции (AFTER_COMMIT): если бы push
- * уходил внутри транзакции, клиент мог бы запросить список и не увидеть
- * уведомление — или увидеть то, что затем откатилось.
+ * The listener fires AFTER the transaction commits (AFTER_COMMIT): if the push
+ * went out inside the transaction, the client could request the list and not see
+ * the notification, or see one that was later rolled back.
  */
 @Component
 @Profile("!migrate")
@@ -39,7 +39,7 @@ public class MsSsePublisher {
                         "createdAt", n.createdAt().toString()));
     }
 
-    /** Keep-alive: прокси рвут соединения без трафика (обычно 60 с). */
+    /** Keep-alive: proxies drop connections without traffic (usually after 60 s). */
     @Scheduled(fixedDelayString = "${dwh.sse.heartbeat-ms:25000}")
     public void heartbeat() {
         registry.sendHeartbeat();

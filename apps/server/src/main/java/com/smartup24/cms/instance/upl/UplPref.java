@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.upl;
 
-/** Константы модуля upl (анкеты файлов). */
+/** Constants of the upl module (file formats). */
 public final class UplPref {
 
     public static final String FORM_SOURCES = "upl.sources";
@@ -13,10 +13,10 @@ public final class UplPref {
     public static final String ACTION_APPLY = "apply";
     public static final String TABLE_FORMAT_VERSIONS = "upl_format_versions";
 
-    /** Код обработчика задания «разобрать файл пакета» в очереди основы. */
+    /** Handler code of the "parse the package file" job in the foundation queue. */
     public static final String JOB_PARSE = "upl.parse";
 
-    /** Код обработчика задания «применить пакет» (план 10/10, п. 3.9): строки файла потоком в raw. */
+    /** Handler code of the "apply the package" job (plan 10/10, item 3.9): file rows streamed into raw. */
     public static final String JOB_APPLY = "upl.apply";
 
     private UplPref() {}

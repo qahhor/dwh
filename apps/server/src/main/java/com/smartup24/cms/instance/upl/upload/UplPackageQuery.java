@@ -9,8 +9,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Список загрузок в реестре полей: {@code GET /api/v1/upl/packages} и {@code /api/v1/query-meta/upl.packages}.
- * Поля без колонки ({@code asHidden}) — только для фильтра.
+ * Upload list in the field registry: {@code GET /api/v1/upl/packages} and {@code /api/v1/query-meta/upl.packages}.
+ * Fields without a column ({@code asHidden}) are for filtering only.
  */
 @Configuration
 public class UplPackageQuery {

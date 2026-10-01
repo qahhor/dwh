@@ -4,9 +4,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Итог разбора файла пакета, целиком в памяти: либо «проверен» со счётчиками строк,
- * либо «отклонён системой» с причиной. Записей об ошибках столько, сколько разрешено хранить,
- * а {@code errorsTotal} считает все найденные.
+ * Result of parsing a package file, entirely in memory: either "verified" with row counters,
+ * or "rejected" with a reason. There are as many error records as may be stored,
+ * while {@code errorsTotal} counts all that were found.
  */
 public record UplParseResult(
         Outcome outcome,
@@ -18,13 +18,13 @@ public record UplParseResult(
         int errorsTotal,
         List<ErrorRecord> errors) {
 
-    /** Исход разбора: файл проверен или отклонён системой. */
+    /** Parse outcome: the file is verified or rejected by the system. */
     public enum Outcome {
         VERIFIED,
         REJECTED
     }
 
-    /** Запись об ошибке: {@code rowNo == null} — расхождение с анкетой, иначе ошибка ячейки. */
+    /** Error record: {@code rowNo == null} means a mismatch with the format, otherwise a cell error. */
     public record ErrorRecord(
             String sheet,
             Integer rowNo,
@@ -33,13 +33,13 @@ public record UplParseResult(
             String code,
             Map<String, Object> params) {}
 
-    /** Файл проверен: «принято» = всего − строк с ошибками. */
+    /** The file is verified: "accepted" = total minus rows with errors. */
     public static UplParseResult verified(int total, int rejected, int errorsTotal, List<ErrorRecord> errors) {
         return new UplParseResult(
                 Outcome.VERIFIED, null, null, total, total - rejected, rejected, errorsTotal, List.copyOf(errors));
     }
 
-    /** Файл отклонён системой: счётчики строк не заполняются. */
+    /** The file is rejected by the system: row counters are not filled in. */
     public static UplParseResult rejected(
             String code, Map<String, Object> params, int errorsTotal, List<ErrorRecord> errors) {
         return new UplParseResult(

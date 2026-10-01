@@ -7,9 +7,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
- * Акторы основы и их установка в сессию БД. Аудит каркаса ({@code fnd_audit_trigger}) требует числовой
- * {@code app.user_id} при любом изменении fnd-таблиц, поэтому каждый сервис основы первым делом
- * вызывает {@link #apply(FndActor)} внутри своей транзакции (AC-6, AC-32).
+ * Foundation actors and setting them into the database session. The platform audit ({@code fnd_audit_trigger})
+ * requires a numeric {@code app.user_id} on any change to fnd tables, so every foundation service first
+ * calls {@link #apply(FndActor)} inside its own transaction.
  */
 @Component
 public class FndActors implements FndActorContext {
@@ -25,9 +25,9 @@ public class FndActors implements FndActorContext {
     }
 
     /**
-     * Техническая учётка заданий и сидов: в журналах основы — {@code system}. Создаётся кодом
-     * при запуске ({@link FndSystemUserBootstrap}) или при первом обращении — миграции
-     * пользователей не создают.
+     * Technical account of jobs and seeds, shown as {@code system} in foundation logs. It is created by code
+     * at startup ({@link FndSystemUserBootstrap}) or on first access; migrations
+     * do not create users.
      */
     @Override
     public FndActor system() {
@@ -40,8 +40,8 @@ public class FndActors implements FndActorContext {
     }
 
     /**
-     * Каркас создаёт первого администратора только при пустой {@code md_users}, поэтому до первичной
-     * настройки экземпляра учётку основы создавать нельзя — иначе администратор не появится никогда.
+     * The platform creates the first administrator only when {@code md_users} is empty, so the foundation
+     * account must not be created before the instance initial setup; otherwise no administrator would ever appear.
      */
     private long createAfterInstanceBootstrap() {
         Long users = jdbc.sql("select count(*) from md_users").query(Long.class).single();
@@ -52,18 +52,18 @@ public class FndActors implements FndActorContext {
         return ensureSystemUser(jdbc);
     }
 
-    /** Создаёт учётку при отсутствии; вызывать только после первичной настройки экземпляра (шаг запуска основы). */
+    /** Creates the account if missing; call only after the instance initial setup (a foundation startup step). */
     public FndActor ensureSystem() {
         systemUserId = ensureSystemUser(jdbc);
         return new FndActor(systemUserId, FndPref.SYSTEM_ACTOR);
     }
 
-    /** Возвращает id технической учётки, создавая её при отсутствии (идемпотентно). */
+    /** Returns the id of the technical account, creating it if missing (idempotent). */
     public static long ensureSystemUser(JdbcClient jdbc) {
         return ensureUser(jdbc, FndPref.SYSTEM_ACTOR, SYSTEM_NAME, SYSTEM_EMAIL);
     }
 
-    /** Учётка без пароля в состоянии {@code P}: войти под ней нельзя. */
+    /** An account without a password in state {@code P}: nobody can sign in with it. */
     static long ensureUser(JdbcClient jdbc, String login, String name, String email) {
         return findUserId(jdbc, login).orElseGet(() -> {
             jdbc.sql("""
@@ -93,9 +93,9 @@ public class FndActors implements FndActorContext {
     }
 
     /**
-     * Ставит {@code app.user_id} на текущую транзакцию (третий аргумент {@code true} — is_local),
-     * поэтому вызывать только внутри {@code @Transactional}: иначе настройка потеряется вместе
-     * с соединением и триггер аудита откажет кодом {@code audit_actor_missing}.
+     * Sets {@code app.user_id} on the current transaction (the third argument {@code true} is is_local),
+     * so call it only inside {@code @Transactional}: otherwise the setting is lost together
+     * with the connection and the audit trigger fails with code {@code audit_actor_missing}.
      */
     @Override
     public void apply(FndActor actor) {

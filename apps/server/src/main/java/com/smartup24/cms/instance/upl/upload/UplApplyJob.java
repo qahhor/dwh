@@ -28,17 +28,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Задание «применить пакет» (план 10/10, п. 3.9), queued by {@link UplApplyService#request}. It reads the stored file
+ * The "apply package" job (plan 10/10, item 3.9), queued by {@link UplApplyService#request}. It reads the stored file
  * from a temporary copy on disk and pushes each parsed row straight into one {@code COPY} of pg-dwh: no list of rows,
  * no reading raw back — the reconciliation takes the count {@code COPY} returns. Raw lives in the second database, so a
- * failed write becomes the package's reason, not a failed job: the job closes the package «отклонён системой» and ends.
+ * failed write becomes the package's reason, not a failed job: the job closes the package as "rejected" and ends.
  * A transient failure (pg-dwh away, storage not readable) is first left to the runner's retries; only the last attempt
  * closes the package with it.
  *
  * <p>The runner calls it with no transaction open (item 3.8); the job opens one short transaction to close the
  * package. It may run again after its node died. Raw is written in one pg-dwh transaction, so a load has all its rows
  * or none: rows already there mean an earlier attempt committed them and died before closing the package, and the
- * retry closes it with their count instead of writing them twice. A package no longer «применяется» — closed by an
+ * retry closes it with their count instead of writing them twice. A package no longer "applying", closed by an
  * earlier attempt or by {@link UplApplyRecoveryJob} — is left alone.
  */
 @Component
@@ -98,7 +98,7 @@ public class UplApplyJob implements FndJobHandler {
     /**
      * A transient failure of the write (pg-dwh away, the stored file not readable for a moment) fails the attempt
      * while attempts remain, so the runner retries it (plan 10/10, item 3.8); the last attempt, or a failure a retry
-     * would not fix, closes the package «отклонён системой».
+     * would not fix, closes the package as "rejected".
      */
     @Override
     public void run(Map<String, Object> args, FndJobAttempt attempt) {

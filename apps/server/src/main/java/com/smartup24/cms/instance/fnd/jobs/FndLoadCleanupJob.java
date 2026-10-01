@@ -11,9 +11,9 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
 
 /**
- * Единственное место, где строки удаляются из {@code raw} (AC-31): убирает данные загрузок,
- * оставшихся в статусе {@code failed}. Применённые загрузки не трогаются никогда — raw неизменяем
- * (13 инв.4), а неудачная загрузка данных не образует.
+ * The only place where rows are deleted from {@code raw}: removes the data of loads
+ * left in status {@code failed}. Applied loads are never touched, because raw is immutable,
+ * and a failed load produces no data.
  */
 @Component
 public class FndLoadCleanupJob implements FndJobHandler {
@@ -42,7 +42,8 @@ public class FndLoadCleanupJob implements FndJobHandler {
         if (failed.isEmpty()) {
             return;
         }
-        // Удаление по всему raw может идти дольше обычного предела запроса — предел обслуживания
+        // Deleting across the whole raw layer can take longer than the normal statement limit, hence the maintenance
+        // limit
         int removed = dwh.inTransaction(connection -> {
             try (PreparedStatement statement =
                     connection.prepareStatement("delete from raw.rows where load_id = any (?)")) {

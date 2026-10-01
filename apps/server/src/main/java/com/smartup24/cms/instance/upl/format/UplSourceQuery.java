@@ -10,7 +10,10 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Список источников анкеты в реестре полей: {@code GET /api/v1/upl/sources} и {@code /api/v1/query-meta/upl.sources}. */
+/**
+ * List of format sources in the field registry: {@code GET /api/v1/upl/sources} and
+ * {@code /api/v1/query-meta/upl.sources}.
+ */
 @Configuration
 public class UplSourceQuery {
 

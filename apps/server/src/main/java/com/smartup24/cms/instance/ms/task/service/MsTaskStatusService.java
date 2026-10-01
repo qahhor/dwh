@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Выделенный сервис для управления динамическими статусами и типами задач (SRP).
+ * Dedicated service that manages dynamic task statuses and task types (SRP).
  */
 @Service
 public class MsTaskStatusService {

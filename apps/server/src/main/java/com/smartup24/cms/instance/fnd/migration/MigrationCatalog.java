@@ -12,8 +12,8 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 /**
- * Каталог версионных миграций одной БД на classpath: имена файлов и последняя ожидаемая версия.
- * Не зависит от Flyway — используется и мигратором, и {@link DwhSchemaVersionGate} (AC-4).
+ * Catalog of versioned migrations of one database on the classpath: file names and the latest expected version.
+ * Independent of Flyway: used both by the migrator and by {@link DwhSchemaVersionGate}.
  */
 public final class MigrationCatalog {
 
@@ -27,7 +27,7 @@ public final class MigrationCatalog {
         this.fileNames = fileNames;
     }
 
-    /** Читает каталог {@code classpath:<location>/V*.sql}; каталог без файлов — ошибка конфигурации. */
+    /** Reads the catalog {@code classpath:<location>/V*.sql}; a catalog without files is a configuration error. */
     public static MigrationCatalog onClasspath(String location) {
         try {
             Resource[] resources =
@@ -54,7 +54,7 @@ public final class MigrationCatalog {
         return fileNames;
     }
 
-    /** Наибольшая версия каталога в нормализованном виде (как хранит Flyway: без ведущих нулей). */
+    /** The highest catalog version in normalized form (as Flyway stores it: without leading zeros). */
     public String latestVersion() {
         return fileNames.stream()
                 .map(MigrationCatalog::versionOf)

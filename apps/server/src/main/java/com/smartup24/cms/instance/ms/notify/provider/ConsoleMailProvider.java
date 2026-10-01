@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Заглушка канала почты для разработки: пишет письмо в журнал и никуда его не шлёт.
- * Здоровье намеренно отрицательное — восстановление пароля через такой канал
- * не доходит до получателя, и знать об этом должна эксплуатация, а не пользователь.
+ * Development stub of the mail channel: writes the message to the log and sends it nowhere.
+ * Its health is deliberately negative: password recovery through such a channel
+ * never reaches the recipient, and operations must know this, not the user.
  */
 @Component
 public class ConsoleMailProvider implements MailProvider {
