@@ -262,6 +262,12 @@ class MdOrgUnitWriteIntegrationTest {
             mvc.perform(delete("/api/v1/iam/org-units/{id}", id)).andExpect(status().isConflict());
             assertThat(units.findById(id)).isPresent();
         }
+        // The home unit is a new record's default unit (ADR-0032, 5.1); a user without one has none.
+        assertThat(scopeService.homeUnit(explicit)).contains(legacy);
+        jdbc.sql("update md_users set org_unit_id = null where id = :user")
+                .param("user", explicit)
+                .update();
+        assertThat(scopeService.homeUnit(explicit)).isEmpty();
     }
 
     @Test

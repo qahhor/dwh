@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.md.repository.MdOrgUnitRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import org.springframework.stereotype.Service;
@@ -220,6 +221,13 @@ public class MdScopeService implements DataScopes {
     @Transactional(readOnly = true)
     public boolean unitVisible(long userId, long orgUnitId) {
         return scopeRepository.isUnitAvailable(userId, orgUnitId, scopeRepository.getUserRule(userId));
+    }
+
+    /** The user's home unit, the default unit of a new record (ADR-0032, 5.1). */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> homeUnit(long userId) {
+        return scopeRepository.homeUnit(userId);
     }
 
     /** Row visibility for queries whose task table alias is {@code t}. */

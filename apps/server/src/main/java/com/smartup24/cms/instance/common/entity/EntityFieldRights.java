@@ -31,8 +31,11 @@ public final class EntityFieldRights {
     /** The field error of a property the viewer may not see, the same as for one that does not exist. */
     public static final String UNKNOWN_FIELD = "unknown_field";
 
-    /** The field error of a changed value of a field the viewer may not write. */
-    public static final String READONLY = "readonly";
+    /**
+     * The field error of a changed value of a field the viewer may not write: the same code and message as for a field
+     * read-only by its declaration (ADR-0032, 4.4).
+     */
+    public static final String READONLY = EntityValidator.READONLY;
 
     private EntityFieldRights() {}
 
@@ -116,17 +119,22 @@ public final class EntityFieldRights {
             if (!values.containsKey(key)) continue;
             if (!visible(field.access())) {
                 errors.add(FieldErrorItem.keyed(key, UNKNOWN_FIELD, "error.field.unknown"));
-            } else if (!writable(field.access()) && changes(values.get(key), current, key)) {
+            } else if (!writable(field.access()) && changes(field.formField(), values.get(key), current, key)) {
                 errors.add(FieldErrorItem.keyed(key, READONLY, "error.field.readonly"));
             }
         }
         return errors;
     }
 
-    /** A value equal to the current one is kept, so a client may send the whole record back (ADR-0032, 4.4). */
-    private static boolean changes(@Nullable Object value, @Nullable Map<String, ?> current, String key) {
-        if (current == null) return value != null;
-        Object now = current.get(key);
+    /**
+     * A value equal to the current one is kept, so a client may send the whole record back (ADR-0032, 4.4); a form
+     * field compares by its type ({@link FieldValueRules#same}), so an empty text is no value and {@code 12.50} is
+     * {@code 12.5}. On creation there is no current value: anything but an empty one is a change.
+     */
+    private static boolean changes(
+            @Nullable FormField form, @Nullable Object value, @Nullable Map<String, ?> current, String key) {
+        Object now = current == null ? null : current.get(key);
+        if (form != null) return !FieldValueRules.same(form, value, now);
         if (value == null || now == null) return (value == null) != (now == null);
         return !String.valueOf(value).equals(String.valueOf(now));
     }

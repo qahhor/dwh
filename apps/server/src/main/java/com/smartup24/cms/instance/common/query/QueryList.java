@@ -133,6 +133,25 @@ public record QueryList(
                 estimatedTotal);
     }
 
+    /** The same list with its own fields as they are now (an enumeration's values, ADR-0032, 4.5). */
+    public QueryList withFields(List<QueryField> current) {
+        return new QueryList(
+                code,
+                form,
+                action,
+                select,
+                from,
+                idSql,
+                current,
+                defaultSort,
+                defaultDescending,
+                defaultLimit,
+                maxLimit,
+                customEntity,
+                attributesSql,
+                estimatedTotal);
+    }
+
     /** The same list reporting an estimate of its rows instead of a count (plan 10/10, item 3.5). */
     public QueryList withEstimatedTotal() {
         return new QueryList(

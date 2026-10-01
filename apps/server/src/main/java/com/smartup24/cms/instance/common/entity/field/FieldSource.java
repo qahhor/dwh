@@ -3,19 +3,23 @@ package com.smartup24.cms.instance.common.entity.field;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Where the value of an entity field lives (ADR-0032, 3.1). The names and the expressions are written in module code
  * and checked here, so only declared identifiers reach SQL (ADR-0032, 12); values are always parameters.
  *
- * <p>Money columns and link tables of the types of plan 10/10, item 5.2 join this list with their types.
+ * <p>The pair of money columns and the link table of several references came with their types (plan 10/10, item
+ * 5.2).
  */
 public sealed interface FieldSource
         permits FieldSource.Column,
                 FieldSource.Expression,
                 FieldSource.Computed,
                 FieldSource.Attribute,
-                FieldSource.SystemValue {
+                FieldSource.SystemValue,
+                FieldSource.MoneyColumns,
+                FieldSource.Link {
 
     /** A table or column name: lower-case letters, digits and underscores. */
     Pattern IDENTIFIER = Pattern.compile("^[a-z_][a-z0-9_]*$");
@@ -23,7 +27,7 @@ public sealed interface FieldSource
     /** The value read in the entity's list, an expression over its table aliased {@code alias}. */
     String sql(String alias);
 
-    /** Whether a save writes it: only a column or an attribute; the server writes the rest. */
+    /** Whether a save writes it: a column, an attribute, a pair of money columns or a link table. */
     boolean writable();
 
     /** A column of the entity's table: {@code title} reads as {@code n.title}. */
@@ -60,10 +64,7 @@ public sealed interface FieldSource
         }
     }
 
-    /**
-     * A computed value ({@code qty * price}): read-only; its read-only form field comes with the form flags of plan
-     * 10/10, item 5.2 (ADR-0032, 4.4).
-     */
+    /** A computed value ({@code qty * price}): read-only; on the form it is read-only and marked computed. */
     record Computed(String sql) implements FieldSource {
         public Computed {
             requireExpression(sql);
@@ -113,6 +114,65 @@ public sealed interface FieldSource
             return false;
         }
     }
+
+    /**
+     * The amount column of a money field and its currency column ({@code total_amount}, {@code total_currency}), or
+     * no currency column when the field holds one currency only (ADR-0032, 4.1). {@link #sql} reads the amount: the
+     * list sorts and filters by it.
+     */
+    record MoneyColumns(String amount, @Nullable String currency) implements FieldSource {
+        public MoneyColumns {
+            requireIdentifier(amount);
+            if (currency != null) {
+                requireIdentifier(currency);
+            }
+        }
+
+        @Override
+        public String sql(String alias) {
+            return alias + "." + amount;
+        }
+
+        /** The currency as SQL: its column, or the field's one currency as a literal. */
+        public String currencySql(String alias, String fixed) {
+            if (currency != null) return alias + "." + currency;
+            if (!CURRENCY.matcher(fixed).matches()) {
+                throw new IllegalArgumentException("Bad currency: " + fixed);
+            }
+            return "'" + fixed + "'";
+        }
+
+        @Override
+        public boolean writable() {
+            return true;
+        }
+    }
+
+    /**
+     * The link table of several references ({@code ex_order_tags(order_id, tag_id, position)}): a row per key, in the
+     * order of {@code position} (ADR-0032, 4.1). {@link #sql} reads the keys as a {@code bigint[]}.
+     */
+    record Link(String table, String ownerColumn, String targetColumn) implements FieldSource {
+        public Link {
+            requireIdentifier(table);
+            requireIdentifier(ownerColumn);
+            requireIdentifier(targetColumn);
+        }
+
+        @Override
+        public String sql(String alias) {
+            return "array(select l." + targetColumn + " from " + table + " l where l." + ownerColumn + " = " + alias
+                    + ".id order by l.position, l." + targetColumn + ")";
+        }
+
+        @Override
+        public boolean writable() {
+            return true;
+        }
+    }
+
+    /** An ISO 4217 currency code. */
+    Pattern CURRENCY = Pattern.compile("^[A-Z]{3}$");
 
     /** The system columns and the record properties they answer as. */
     enum SystemColumn {

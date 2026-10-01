@@ -340,6 +340,15 @@ public class MdScopeRepository {
                 .single();
     }
 
+    /** The user's home unit ({@code md_users.org_unit_id}), when they have one. */
+    public Optional<Long> homeUnit(long userId) {
+        return jdbcClient
+                .sql("select org_unit_id from md_users where id = :userId and org_unit_id is not null")
+                .param("userId", userId)
+                .query(Long.class)
+                .optional();
+    }
+
     public boolean userExists(Long userId) {
         return jdbcClient
                 .sql("select exists (select 1 from md_users where id = :userId)")

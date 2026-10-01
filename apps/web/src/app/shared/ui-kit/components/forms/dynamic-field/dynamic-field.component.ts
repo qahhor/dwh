@@ -9,8 +9,9 @@
  * required, its options — drawn with the matching field inside smt-control,
  * so every type gets the same label, required mark and error: text, long
  * text, number, yes/no (a switch), date, date and time, time, a choice from
- * a list, and a person, searched on the server through the lookup source
- * the caller gives. This is where screens built from configuration — custom
+ * a list, an e-mail, a phone and a web address (inputs of their kind, so a
+ * phone keyboard offers digits), and a person, searched on the server
+ * through the lookup source the caller gives. This is where screens built from configuration — custom
  * fields today, the form designer later — get their fields. */
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input, model } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -25,7 +26,19 @@ import { SMTTextareaComponent } from '../textarea/textarea.component';
 import { SMTTimePickerComponent } from '../time-picker/time-picker.component';
 
 export type SMTDynamicFieldType =
-  'string' | 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select' | 'user_ref' | 'ref';
+  | 'string'
+  | 'text'
+  | 'number'
+  | 'boolean'
+  | 'date'
+  | 'datetime'
+  | 'time'
+  | 'select'
+  | 'user_ref'
+  | 'ref'
+  | 'email'
+  | 'phone'
+  | 'url';
 
 export interface SMTDynamicFieldDef {
   readonly code: string;
@@ -169,13 +182,15 @@ let nextFieldId = 0;
         @default {
           <input
             class="form-input"
-            type="text"
+            [type]="inputType()"
             [id]="fieldId"
             [name]="field().code"
             [placeholder]="field().placeholder ?? ''"
             [required]="!!field().required"
             [disabled]="disabled()"
             [attr.maxlength]="field().maxLength ?? null"
+            [attr.autocomplete]="autocomplete()"
+            [attr.inputmode]="inputMode()"
             [value]="text()"
             (input)="setText($event)"
           />
@@ -227,6 +242,13 @@ export class SMTDynamicFieldComponent {
     return typeof value === 'number' || (typeof value === 'string' && value !== '') ? value : null;
   });
 
+  /** The kind of input: an e-mail, a phone and a web address get their own (plan 10/10, item 5.2). */
+  readonly inputType = computed(() => INPUT_TYPES[this.field().type] ?? 'text');
+
+  readonly autocomplete = computed(() => AUTOCOMPLETE[this.field().type] ?? null);
+
+  readonly inputMode = computed(() => (this.field().type === 'phone' ? 'tel' : null));
+
   readonly fieldId = `smt-dynamic-field-${nextFieldId++}`;
 
   setText(event: Event): void {
@@ -239,3 +261,7 @@ export class SMTDynamicFieldComponent {
     this.value.set(raw === '' ? null : Number(raw));
   }
 }
+
+const INPUT_TYPES: Partial<Record<SMTDynamicFieldType, string>> = { email: 'email', phone: 'tel', url: 'url' };
+
+const AUTOCOMPLETE: Partial<Record<SMTDynamicFieldType, string>> = { email: 'email', phone: 'tel', url: 'url' };

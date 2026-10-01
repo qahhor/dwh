@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.common.security;
 
+import java.util.Optional;
+
 /**
  * The data scope of ADR-0013 as the platform needs it, without knowing the module that keeps it (ADR-0032, 5.1): the
  * md module implements it, so an entity declared with {@code EntityScope.orgUnit(...)} is restricted by the same rule
@@ -21,4 +23,10 @@ public interface DataScopes {
      * a unit of the user's scope, under {@code SELF} one of the user's own units.
      */
     boolean unitVisible(long userId, long orgUnitId);
+
+    /**
+     * The user's home unit ({@code md_users.org_unit_id}): the unit a new record of an org-unit entity takes by
+     * default ({@code FieldDefault.currentOrgUnit()}, ADR-0032, 5.1); empty for a user without one.
+     */
+    Optional<Long> homeUnit(long userId);
 }

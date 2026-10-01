@@ -21,6 +21,8 @@
   }, {
     "name" : "entity-bulk-controller"
   }, {
+    "name" : "entity-file-controller"
+  }, {
     "name" : "entity-menu-controller"
   }, {
     "name" : "form-meta-controller"
@@ -1475,6 +1477,61 @@
         },
         "summary" : "Run a bulk action on records",
         "tags" : [ "entity-bulk-controller" ]
+      }
+    },
+    "/api/v1/entities/{code}/{id}/files/{fileId}" : {
+      "get" : {
+        "description" : "The content of a file attached to a file or image field of a record the viewer may see.",
+        "operationId" : "download",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "code",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "path",
+          "name" : "fileId",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string",
+                  "format" : "binary"
+                }
+              }
+            },
+            "description" : "OK"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Download a file of a record",
+        "tags" : [ "entity-file-controller" ]
       }
     },
     "/api/v1/events" : {
@@ -10653,6 +10710,46 @@
           }
         }
       },
+      "ConditionClauseMeta" : {
+        "type" : "object",
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "op" : {
+            "type" : "string"
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ConditionItemMeta" : {
+        "type" : "object",
+        "properties" : {
+          "any" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConditionClauseMeta"
+            }
+          },
+          "field" : {
+            "type" : "string"
+          },
+          "op" : {
+            "type" : "string"
+          },
+          "values" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
       "ConfirmChannelRequest" : {
         "type" : "object",
         "properties" : {
@@ -11171,6 +11268,17 @@
           }
         }
       },
+      "DefaultValueMeta" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "string"
+          }
+        }
+      },
       "DependencyMetadata" : {
         "type" : "object",
         "properties" : {
@@ -11400,11 +11508,20 @@
           "enumLabelPrefix" : {
             "type" : "string"
           },
+          "enumLabels" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
           "enumValues" : {
             "type" : "array",
             "items" : {
               "type" : "string"
             }
+          },
+          "format" : {
+            "type" : "string"
           },
           "key" : {
             "type" : "string"
@@ -11552,6 +11669,27 @@
           "attribute" : {
             "type" : "string"
           },
+          "computed" : {
+            "type" : "boolean"
+          },
+          "contentTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "currencies" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "defaultValue" : {
+            "$ref" : "#/components/schemas/DefaultValueMeta"
+          },
+          "jsonRoot" : {
+            "type" : "string"
+          },
           "key" : {
             "type" : "string"
           },
@@ -11563,6 +11701,14 @@
           },
           "max" : {
             "type" : "number"
+          },
+          "maxBytes" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "maxItems" : {
+            "type" : "integer",
+            "format" : "int32"
           },
           "maxLength" : {
             "type" : "integer",
@@ -11578,6 +11724,12 @@
           "optionLabelPrefix" : {
             "type" : "string"
           },
+          "optionLabels" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
           "options" : {
             "type" : "array",
             "items" : {
@@ -11590,14 +11742,33 @@
           "readonly" : {
             "type" : "boolean"
           },
+          "readonlyOnUpdate" : {
+            "type" : "boolean"
+          },
+          "readonlyWhen" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConditionItemMeta"
+            }
+          },
           "ref" : {
             "$ref" : "#/components/schemas/QueryRef"
           },
           "required" : {
             "type" : "boolean"
           },
+          "scale" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
           "type" : {
             "type" : "string"
+          },
+          "visibleWhen" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ConditionItemMeta"
+            }
           }
         }
       },

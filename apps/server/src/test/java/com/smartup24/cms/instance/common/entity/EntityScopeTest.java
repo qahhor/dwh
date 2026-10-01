@@ -15,6 +15,7 @@ import com.smartup24.cms.instance.common.security.ScopeFilter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -37,6 +38,11 @@ class EntityScopeTest {
         @Override
         public boolean unitVisible(long userId, long orgUnitId) {
             return orgUnitId == 1 || orgUnitId == 2;
+        }
+
+        @Override
+        public Optional<Long> homeUnit(long userId) {
+            return Optional.of(1L);
         }
     }
 

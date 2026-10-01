@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.config.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.common.entity.EntityEnums;
 import java.lang.reflect.Method;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,8 @@ class CacheConfigTest {
                         CacheConfig.ALL_MODULES_CACHE,
                         CacheConfig.MODULE_ACTIVE_CACHE,
                         CacheConfig.NAVIGATION_ITEMS_CACHE,
-                        CacheConfig.CUSTOM_FIELDS_CACHE);
+                        CacheConfig.CUSTOM_FIELDS_CACHE,
+                        EntityEnums.CACHE);
     }
 
     @Test

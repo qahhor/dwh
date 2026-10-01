@@ -149,10 +149,13 @@ class EntityFieldContractTest {
         return problems;
     }
 
-    /** The list type each form type is shown, filtered and exported as. */
+    /**
+     * The list type each form type is shown, filtered and exported as; a type of plan 10/10, item 5.2 also names
+     * itself as the list field's format (ADR-0032, 4.1).
+     */
     static boolean compatible(FormField form, QueryField list) {
         QueryFieldType type = list.type();
-        return switch (form.type()) {
+        boolean shown = switch (form.type()) {
             case TEXT, TEXTAREA, MARKDOWN -> type == QueryFieldType.TEXT;
             case NUMBER -> type == QueryFieldType.NUMBER;
             case DATE -> type == QueryFieldType.DATE;
@@ -161,7 +164,13 @@ class EntityFieldContractTest {
             case BOOLEAN -> type == QueryFieldType.BOOLEAN;
             case SELECT -> type == QueryFieldType.ENUM;
             case REF -> (type == QueryFieldType.NUMBER || type == QueryFieldType.TEXT) && list.ref() != null;
+            case EMAIL, PHONE, URL -> type == QueryFieldType.TEXT;
+            case MONEY -> type == QueryFieldType.NUMBER;
+            case ENUM -> type == QueryFieldType.ENUM;
+            case MULTI_REF -> type == QueryFieldType.REF_SET && list.ref() != null;
+            case FILE, IMAGE, JSON -> type == QueryFieldType.OBJECT;
         };
+        return shown && (!form.type().formatted() || form.type().wire().equals(list.format()));
     }
 
     @Test

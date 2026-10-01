@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity.field;
 
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.bool;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.date;
+import static com.smartup24.cms.instance.common.entity.field.EntityFields.enumeration;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.hidden;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
 import static com.smartup24.cms.instance.common.entity.field.EntityFields.listed;
@@ -104,7 +105,7 @@ class EntityFieldTest {
     }
 
     @Test
-    void readOnlySourcesAreInTheListOnly() {
+    void anExpressionAndASystemColumnAreInTheListOnlyAndAComputedValueIsShownReadOnly() {
         EntityField rank = text("rank", "x.col.rank")
                 .expression("(t.a || t.b)")
                 .listOnly(sortable().notFilterable().hidden())
@@ -124,7 +125,8 @@ class EntityFieldTest {
         assertThat(changed.formField()).isNull();
         assertThat(changed.queryField("t").type()).isEqualTo(QueryFieldType.INSTANT);
         assertThat(changed.queryField("t").sql()).isEqualTo("t.modified_at");
-        assertThat(total.formField()).isNull();
+        assertThat(total.formField().computed()).isTrue();
+        assertThat(total.formField().flags().readonly()).isEqualTo(FieldReadonly.ALWAYS);
         assertThat(total.queryField("t").sql()).isEqualTo("t.qty * t.price");
         assertThat(total.importable()).isFalse();
     }
@@ -152,7 +154,17 @@ class EntityFieldTest {
         assertThat(region.formField().attribute()).isEqualTo("region");
         assertThat(region.queryField("t").attribute()).isEqualTo("region");
         assertThat(region.queryField("t").sql()).isEqualTo("(t.attributes->>'region')");
-        assertThatThrownBy(() -> date("due", "x.col.due").attribute("due").build())
+        assertThat(date("due", "x.col.due")
+                        .attribute("due")
+                        .build()
+                        .queryField("t")
+                        .sql())
+                .as("a scalar of another type is cast, only a value of its shape (plan 10/10, item 5.2)")
+                .isEqualTo("(case when (t.attributes->>'due') ~ '^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'"
+                        + " then (t.attributes->>'due')::date end)");
+        assertThatThrownBy(() -> enumeration("unit", "x.col.unit", "ex.units")
+                        .attribute("unit")
+                        .build())
                 .hasMessageContaining("attribute");
         assertThatThrownBy(() -> text("code", "x.col.code")
                         .attribute("code")
@@ -190,7 +202,7 @@ class EntityFieldTest {
                         false,
                         false,
                         false))
-                .hasMessageContaining("only a column or an attribute");
+                .hasMessageContaining("only a column");
         assertThatThrownBy(() -> new EntityField(
                         "color",
                         "l",

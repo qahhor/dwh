@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.config.cache;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.smartup24.cms.instance.common.entity.EntityEnums;
 import java.time.Duration;
 import java.util.List;
 import javax.sql.DataSource;
@@ -15,7 +16,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * In-memory caching configuration using Caffeine for frequently queried reference data
- * (task statuses/types, installed modules, navigation items, custom field definitions). Each node keeps its own
+ * (task statuses/types, installed modules, navigation items, custom field definitions, the items of reference
+ * entities, ADR-0032, 4.5). Each node keeps its own
  * entries; a change clears the cache on every node of the cluster through {@link CacheInvalidations}.
  */
 @Configuration
@@ -57,7 +59,8 @@ public class CacheConfig {
                 ALL_MODULES_CACHE,
                 MODULE_ACTIVE_CACHE,
                 NAVIGATION_ITEMS_CACHE,
-                CUSTOM_FIELDS_CACHE));
+                CUSTOM_FIELDS_CACHE,
+                EntityEnums.CACHE));
         return new ClusterCacheManager(cacheManager, invalidations);
     }
 }

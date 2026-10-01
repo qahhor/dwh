@@ -154,6 +154,10 @@ final class ScopeByIdCases {
      */
     static final Map<String, String> ALLOWLIST = Map.ofEntries(
             Map.entry("EntityBulkController#bulk", "an entity code; every record passes the entity's own by-id path"),
+            Map.entry(
+                    "EntityFileController#download",
+                    "a record's file: the entity's own EntityRecords.requireVisible decides (EntityFileControllerTest);"
+                            + " no entity of the application has a file field yet"),
             Map.entry("FormMetaController#get", "metadata of an entity code, no record"),
             Map.entry("QueryMetaController#get", "metadata of a list code, no record"),
             Map.entry("KauthApiTokenController#revokeToken", "the caller's own token; another id changes nothing"),

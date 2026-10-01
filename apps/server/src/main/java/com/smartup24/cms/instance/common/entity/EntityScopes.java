@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.security.ScopeFilter;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -35,6 +36,11 @@ public class EntityScopes {
         @Override
         public boolean unitVisible(long userId, long orgUnitId) {
             throw new IllegalStateException("An org-unit scope needs the data scope of the md module");
+        }
+
+        @Override
+        public Optional<Long> homeUnit(long userId) {
+            return Optional.empty();
         }
     };
 
