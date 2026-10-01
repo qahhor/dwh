@@ -144,8 +144,13 @@ public class SearchJobService {
         return new JobPage(items, next, more);
     }
 
+    // The state changes below keep their 2 s limit inside an outer transaction too (SearchJobRepository#limited).
     @Transactional(timeout = 2)
     public JobReceipt cancel(UUID id) {
+        return jobs.limited(() -> cancelNow(id));
+    }
+
+    private JobReceipt cancelNow(UUID id) {
         access.requireSettingsUpdate();
         jobs.lockState();
         var job = required(id);
@@ -159,6 +164,10 @@ public class SearchJobService {
 
     @Transactional(timeout = 2)
     public JobReceipt retry(UUID id, UUID requestId) {
+        return jobs.limited(() -> retryNow(id, requestId));
+    }
+
+    private JobReceipt retryNow(UUID id, UUID requestId) {
         access.requireSettingsUpdate();
         jobs.lockState();
         if (requestId == null) throw new ApiException(ErrorCode.BAD_REQUEST, "error.search.retry_request_invalid");
@@ -195,8 +204,12 @@ public class SearchJobService {
 
     @Transactional(timeout = 2)
     public void failOwned(JobStatus job, UUID owner, String error) {
-        jobs.lockState();
-        if (jobs.fail(job.id(), owner, error) && job.action().equals("REBUILD")) generations.failed(job.generationId());
+        jobs.limited(() -> {
+            jobs.lockState();
+            if (jobs.fail(job.id(), owner, error) && job.action().equals("REBUILD"))
+                generations.failed(job.generationId());
+            return Boolean.TRUE;
+        });
     }
 
     /** Startup is a system-owned request, not a fabricated request principal. */

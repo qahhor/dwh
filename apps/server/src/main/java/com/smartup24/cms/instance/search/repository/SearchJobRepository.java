@@ -1,10 +1,13 @@
 package com.smartup24.cms.instance.search.repository;
 
+import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Supplier;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,12 +15,23 @@ import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class SearchJobRepository {
+    /**
+     * The limit of each statement of a job state change, the same as their {@code @Transactional(timeout = 2)}: it
+     * holds inside an outer transaction too (an Idempotency-Key request), where that timeout is ignored.
+     */
+    public static final Duration STATE_CHANGE_LIMIT = Duration.ofSeconds(2);
+
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
 
     public SearchJobRepository(JdbcClient jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
         this.mapper = mapper;
+    }
+
+    /** Runs a job state change with each statement limited to {@link #STATE_CHANGE_LIMIT}. */
+    public <T> T limited(Supplier<T> work) {
+        return StatementTimeouts.within(jdbc, STATE_CHANGE_LIMIT, work);
     }
 
     public void lockState() {
@@ -115,6 +129,10 @@ public class SearchJobRepository {
 
     @Transactional(timeout = 2)
     public Optional<JobStatus> claim(UUID owner) {
+        return limited(() -> claimNow(owner));
+    }
+
+    private Optional<JobStatus> claimNow(UUID owner) {
         if (!owns(owner)) return Optional.empty();
         var id = jdbc.sql(
                         "select id from search_jobs where state in ('QUEUED','RUNNING','VERIFYING','ACTIVATING') and (owner_token is null or owner_token=:owner) order by created_at,id limit 1 for update skip locked")
@@ -132,6 +150,11 @@ public class SearchJobRepository {
 
     @Transactional(timeout = 2)
     public boolean checkpoint(
+            UUID id, UUID owner, String state, long processed, long failed, VerificationSummary verification) {
+        return limited(() -> checkpointNow(id, owner, state, processed, failed, verification));
+    }
+
+    private boolean checkpointNow(
             UUID id, UUID owner, String state, long processed, long failed, VerificationSummary verification) {
         if (!owns(owner)) return false;
         return jdbc.sql("""
