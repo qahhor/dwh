@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** Files attached to a task, under the same paths as the tasks. */
 @RestController
-@RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
+@RequestMapping("/api/v1/tasks")
 public class MsTaskFileController {
 
     private final MsTaskFileService files;

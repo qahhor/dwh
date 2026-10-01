@@ -1,6 +1,7 @@
 // The deprecated API forms of docs/api/openapi.json and how a source file's calls are matched against them (plan
-// 10/10, item 3.4, ADR-0023). Shared by the audits of the web (apps/web/scripts/api-deprecation-audit.mjs) and of the
-// e2e suite (e2e/scripts/api-deprecation-audit.mjs); this module checks nothing by itself.
+// 10/10, item 3.4, ADR-0023), and the calls no operation answers at all (a removed form). Shared by the audits of the
+// web (apps/web/scripts/api-deprecation-audit.mjs) and of the e2e suite (e2e/scripts/api-deprecation-audit.mjs);
+// this module checks nothing by itself.
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -81,17 +82,17 @@ export function requestedPath(literal) {
 
 // Self-check of the resolution on the case that once passed unnoticed: a literal alias beside a variable route.
 const sample = [
-  entry('get', '/api/v1/tasks/{id}', false),
-  entry('get', '/api/v1/tasks/items', true, 'GET /api/v1/tasks'),
-  entry('post', '/api/v1/tasks/items/{id}/pin', true, 'PUT /api/v1/tasks/items/{id}/pin'),
-  entry('put', '/api/v1/tasks/items/{id}/pin', false),
+  entry('get', '/api/v1/widgets/{id}', false),
+  entry('get', '/api/v1/widgets/legacy', true, 'GET /api/v1/widgets'),
+  entry('post', '/api/v1/widgets/legacy/{id}/pin', true, 'PUT /api/v1/widgets/legacy/{id}/pin'),
+  entry('put', '/api/v1/widgets/legacy/{id}/pin', false),
 ];
 if (
-  resolve(sample, 'get', '/tasks/items')?.deprecated !== true ||
-  resolve(sample, 'get', '/api/v1/tasks/{value}')?.deprecated !== false ||
-  resolve(sample, 'post', '/tasks/items') !== null ||
-  resolveAnyMethod(sample, '/api/v1/tasks/items')?.deprecated !== true ||
-  resolveAnyMethod(sample, '/api/v1/tasks/items/7/pin') !== null
+  resolve(sample, 'get', '/widgets/legacy')?.deprecated !== true ||
+  resolve(sample, 'get', '/api/v1/widgets/{value}')?.deprecated !== false ||
+  resolve(sample, 'post', '/widgets/legacy') !== null ||
+  resolveAnyMethod(sample, '/api/v1/widgets/legacy')?.deprecated !== true ||
+  resolveAnyMethod(sample, '/api/v1/widgets/legacy/7/pin') !== null
 ) {
   throw new Error('api-deprecations: the self-check of the path resolution failed');
 }
@@ -110,10 +111,12 @@ export async function loadDeprecatedApi(specPath = SPEC_PATH) {
       }
     }
   }
-  const deprecatedCount = operations.filter((operation) => operation.deprecated).length;
-  if (deprecatedCount === 0) {
-    throw new Error('docs/api/openapi.json lists no deprecated operation: is it the generated description?');
+  // No deprecated form is a valid state (ADR-0023: those of the first release were removed before it); an empty
+  // description is not.
+  if (operations.length === 0) {
+    throw new Error('docs/api/openapi.json lists no operation: is it the generated description?');
   }
+  const deprecatedCount = operations.filter((operation) => operation.deprecated).length;
   return { operations, parameters, deprecatedCount };
 }
 
@@ -159,4 +162,52 @@ export function deprecatedCalls(api, text, relative) {
     }
   }
   return { problems, callsApi };
+}
+
+/**
+ * Whether an operation of the description may answer a call: its template has as many segments as the path, and
+ * each segment is the same, a template variable, or an interpolation of the caller, which may stand for any segment
+ * (`/announcements/${id}/${action}`). A path whose first segment is interpolated (`/api/v1${path}`) is not judged.
+ */
+export function answered(operations, method, requested) {
+  const relative = requested.startsWith(API_PREFIX) ? requested.slice(API_PREFIX.length) : requested;
+  const segments = relative.split('/');
+  if (!relative.startsWith('/') || segments[1] === '' || segments[1].includes('{value}')) return true;
+  return operations.some((operation) => {
+    if (operation.method !== method) return false;
+    const template = operation.template.slice(API_PREFIX.length).split('/');
+    return (
+      template.length === segments.length &&
+      template.every(
+        (part, index) => part === segments[index] || /^\{[^}]+\}$/.test(part) || segments[index].includes('{value}'),
+      )
+    );
+  });
+}
+
+/** Every call with a literal path that no operation answers (a removed or mistyped form), as report lines. */
+export function unknownCalls(api, text, relative) {
+  const problems = [];
+  for (const match of text.matchAll(CALL)) {
+    const [, method, , literal] = match;
+    const requested = requestedPath(literal);
+    if (requested.startsWith('/') && !answered(api.operations, method, requested)) {
+      problems.push(
+        `${relative}:${lineOf(text, match.index)} ${method.toUpperCase()} ${literal} is answered by no operation ` +
+          'of docs/api/openapi.json',
+      );
+    }
+  }
+  return problems;
+}
+
+// Self-check of the matching of unknown calls.
+if (
+  answered(sample, 'put', '/widgets/legacy/7/pin') !== true ||
+  answered(sample, 'post', '/api/v1/widgets/{value}/{value}/pin') !== true ||
+  answered(sample, 'get', '/api/v1{value}') !== true ||
+  answered(sample, 'get', '/widgets/missing/7') !== false ||
+  answered(sample, 'delete', '/widgets/7') !== false
+) {
+  throw new Error('api-deprecations: the self-check of the unknown-call matching failed');
 }

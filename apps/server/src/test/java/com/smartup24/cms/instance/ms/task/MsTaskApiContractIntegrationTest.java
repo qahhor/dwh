@@ -179,13 +179,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                         .findFirst()
                         .orElseThrow(),
                 type);
-
-        assertKeys(
-                array(ok(send(s, get("/api/v1/tasks/projects/stats"), null))).stream()
-                        .filter(item -> ((Number) item.get("projectId")).longValue() == projectId)
-                        .findFirst()
-                        .orElseThrow(),
-                Set.of("projectId", "totalTasks", "activeTasks", "doneTasks"));
     }
 
     @Test
@@ -204,12 +197,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertKeys(created, project);
         long projectId = id(created);
         assertKeys(object(ok(send(s, get("/api/v1/tasks/projects/" + projectId), null))), project);
-        assertKeys(
-                array(ok(send(s, get("/api/v1/tasks/projects"), null))).stream()
-                        .filter(item -> ((Number) item.get("id")).longValue() == projectId)
-                        .findFirst()
-                        .orElseThrow(),
-                project);
         assertThat(send(
                                 s,
                                 post("/api/v1/tasks/projects/" + projectId + "/members"),
@@ -217,7 +204,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
                         .getStatus())
                 .isEqualTo(204);
         assertKeys(
-                first(array(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members"), null)))),
+                first(items(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members/page"), null)))),
                 Set.of("projectId", "userId", "userName", "userEmail", "accessKind"));
 
         long taskId = id(created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST contract comments"))));
@@ -269,9 +256,6 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertThat(send(s, get(path).param("limit", "201"), null).getStatus()).isEqualTo(422);
         assertThat(send(s, get(path).param("cursor", "not-a-cursor"), null).getStatus())
                 .isEqualTo(422);
-        assertThat(array(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members"), null))))
-                .as("the deprecated whole list still answers until its sunset")
-                .hasSize(3);
     }
 
     @Test

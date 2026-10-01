@@ -70,6 +70,6 @@ export class UsersApi {
 
   /** The forms and actions a personal grant can name. */
   permissionForms(): Observable<FormTreeItem[]> {
-    return this.api.get<FormTreeItem[]>('/iam/roles/forms');
+    return this.api.get<FormTreeItem[]>('/iam/forms');
   }
 }

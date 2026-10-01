@@ -67,11 +67,6 @@ public class MsProjectService {
         return MsTaskViews.project(findProject(id));
     }
 
-    @Transactional(readOnly = true)
-    public List<ProjectView> listProjects(String state) {
-        return MsTaskViews.all(projectRepository.listProjects(state), MsTaskViews::project);
-    }
-
     private MsProjectRepository.ProjectRecord findProject(Long id) {
         return projectRepository.findById(id).orElseThrow(() -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
     }
@@ -152,11 +147,6 @@ public class MsProjectService {
                 List.of("user_id"),
                 Map.of("project_id", projectId, "user_id", userId),
                 null);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProjectMemberView> getProjectMembers(Long projectId) {
-        return MsTaskViews.all(projectRepository.getMembers(projectId), MsTaskViews::projectMember);
     }
 
     /**

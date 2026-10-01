@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** The task status and type dictionaries, under the same paths as the tasks. */
 @RestController
-@RequestMapping({"/api/v1/tasks/items", "/api/v1/tasks"})
+@RequestMapping("/api/v1/tasks")
 public class MsTaskStatusController {
 
     private final MsTaskStatusViewService statuses;

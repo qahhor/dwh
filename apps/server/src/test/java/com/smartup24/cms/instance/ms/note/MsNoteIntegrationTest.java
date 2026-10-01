@@ -77,10 +77,8 @@ class MsNoteIntegrationTest {
         assertThat(note.title()).isEqualTo("Архитектурный манифест");
         assertThat(note.isPinned()).isFalse();
 
-        // Pin
-        var pinned = noteService.togglePinned(note.id(), user1Id);
-        assertThat(pinned.isPinned()).isTrue();
         // PUT /notes/{id}/pin (plan item 3.4): the state is set, a repeat leaves it.
+        assertThat(noteService.setPinned(note.id(), user1Id, true).isPinned()).isTrue();
         assertThat(noteService.setPinned(note.id(), user1Id, true).isPinned()).isTrue();
         assertThat(noteService.setPinned(note.id(), user1Id, false).isPinned()).isFalse();
         assertThat(noteService.setPinned(note.id(), user1Id, false).isPinned()).isFalse();

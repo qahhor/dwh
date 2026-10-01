@@ -104,19 +104,6 @@ public class MsNoteController {
         return ResponseEntity.ok(noteService.setPinned(id, userId, body.pinned()));
     }
 
-    /** Flips the pin: deprecated for PUT /{id}/pin, answers until its sunset (ADR-0023). */
-    @Operation(
-            summary = "Toggle the pin of a note (deprecated)",
-            description =
-                    "Flips the pin of a note. Deprecated for PUT /api/v1/notes/{id}/pin; answers until its sunset.")
-    @PostMapping("/{id}/pin")
-    @RequiresPermission(form = "notes", action = "update")
-    public ResponseEntity<NoteView> togglePin(@PathVariable Long id) {
-        Long userId = SecurityContext.getCurrentUserId();
-        if (userId == null) throw ApiException.unauthorized("error.note.not_authenticated");
-        return ResponseEntity.ok(noteService.togglePinned(id, userId));
-    }
-
     @Operation(summary = "Delete a note", description = "Removes a note of the caller.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = "notes", action = "delete")

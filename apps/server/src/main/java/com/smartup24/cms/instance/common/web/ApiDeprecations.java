@@ -14,87 +14,52 @@ import org.springframework.web.util.pattern.PathPatternParser;
 /**
  * The request forms the API keeps for one release after it chose another (plan 10/10, item 3.4, ADR-0023): path
  * aliases, toggles replaced by an explicit {@code PUT}, and snake_case query parameters. One table serves the runtime
- * (the web filter answers them with {@code Deprecation}, {@code Sunset} and {@code Link}) and the API
- * description (the operations and parameters are marked deprecated), so both say the same.
+ * (the web filter answers them with {@code Deprecation}, {@code Sunset} and {@code Link}) and the API description (the
+ * operations and parameters are marked deprecated), so both say the same.
+ *
+ * <p>{@link #CURRENT} is empty: the forms deprecated before the first release were removed with it (ADR-0023). The
+ * machinery stays for the forms a later release deprecates; a new one is an entry of {@link #CURRENT}.
  */
 public final class ApiDeprecations {
 
-    /** The day these forms were deprecated (RFC 9745 {@code Deprecation}). */
+    /** The day the current forms were deprecated (RFC 9745 {@code Deprecation}). */
     public static final LocalDate DEPRECATED_SINCE = LocalDate.of(2026, 9, 29);
 
     /** The day they stop answering (RFC 8594 {@code Sunset}): the release after the one that deprecated them. */
     public static final LocalDate SUNSET = LocalDate.of(2026, 12, 31);
 
-    private static final String ANY = "*";
+    /** Any method, in an {@link #alias} of a path. */
+    public static final String ANY = "*";
+
     private static final Pattern VARIABLE = Pattern.compile("\\{(\\w+)}");
 
-    /** Path aliases, the more specific first: the first that matches wins. */
-    private static final List<PathAlias> PATHS = List.of(
-            alias(ANY, "/api/v1/tasks/items/{*rest}", ANY, "/api/v1/tasks{rest}"),
-            alias(ANY, "/api/v1/rbac/{*rest}", ANY, "/api/v1/iam{rest}"),
-            alias(ANY, "/api/v1/notify/{*rest}", ANY, "/api/v1/notifications{rest}"),
-            alias(ANY, "/api/v1/iam/sessions/{*rest}", ANY, "/api/v1/iam/profile/sessions{rest}"),
-            alias(
-                    ANY,
-                    "/api/v1/iam/profile/sessions/users/{userId}/security",
-                    ANY,
-                    "/api/v1/iam/users/{userId}/security"),
-            alias(
-                    ANY,
-                    "/api/v1/iam/profile/sessions/users/{userId}/force-password-change",
-                    ANY,
-                    "/api/v1/iam/users/{userId}/force-password-change"),
-            alias(
-                    ANY,
-                    "/api/v1/iam/profile/sessions/users/{userId}/reset-2fa",
-                    ANY,
-                    "/api/v1/iam/users/{userId}/reset-2fa"),
-            alias(
-                    ANY,
-                    "/api/v1/iam/profile/sessions/users/{userId}/{id}",
-                    ANY,
-                    "/api/v1/iam/users/{userId}/sessions/{id}"),
-            alias(ANY, "/api/v1/iam/profile/sessions/users/{userId}", ANY, "/api/v1/iam/users/{userId}/sessions"),
-            alias("POST", "/api/v1/iam/users/me/password", "POST", "/api/v1/auth/password"),
-            alias("GET", "/api/v1/announcements", "GET", "/api/v1/announcements/active"),
-            // Plan 10/10, item 3.5: a whole list of projects with their task counts; the paged project list carries
-            // the same counts per project.
-            alias("GET", "/api/v1/tasks/projects/stats", "GET", "/api/v1/tasks/projects/page"),
-            // Plan 10/10, item 3.5: every project at once; pickers search the paged list, task rows carry the name.
-            alias("GET", "/api/v1/tasks/projects", "GET", "/api/v1/tasks/projects/page"),
-            alias("GET", "/api/v1/tasks/projects/{id}/members", "GET", "/api/v1/tasks/projects/{id}/members/page"),
-            alias("POST", "/api/v1/notes/{id}/pin", "PUT", "/api/v1/notes/{id}/pin"),
-            alias("POST", "/api/v1/modules/{code}/toggle", "PUT", "/api/v1/modules/{code}/enabled"),
-            alias("POST", "/api/v1/modules", "PUT", "/api/v1/modules/{code}"),
-            alias("POST", "/api/v1/navigation/items/{id}/toggle", "PUT", "/api/v1/navigation/items/{id}/active"));
+    /** The forms deprecated now: none. Path aliases go the more specific first, as the first that matches wins. */
+    public static final ApiDeprecations CURRENT = new ApiDeprecations(List.of(), Map.of());
 
-    /** snake_case query parameters and the camelCase names that replaced them. */
-    public static final Map<String, String> QUERY_PARAMETERS = Map.ofEntries(
-            Map.entry("table_name", "tableName"),
-            Map.entry("row_pk", "rowPk"),
-            Map.entry("user_id", "userId"),
-            Map.entry("event_type", "eventType"),
-            Map.entry("entity_type", "entityType"),
-            Map.entry("role_id", "roleId"),
-            Map.entry("manager_id", "managerId"),
-            Map.entry("is_2fa_enabled", "is2faEnabled"),
-            Map.entry("project_id", "projectId"),
-            Map.entry("status_id", "statusId"),
-            Map.entry("hide_terminal", "hideTerminal"),
-            Map.entry("assigned_user_id", "assignedUserId"),
-            Map.entry("member_role", "memberRole"),
-            Map.entry("reporter_id", "reporterId"));
-
-    private ApiDeprecations() {}
+    private final List<PathAlias> paths;
+    private final Map<String, String> queryParameters;
 
     /**
-     * Parameters with their snake_case names replaced by the camelCase ones: the query of a request, and the options
-     * of an export (ADR-0018), which name the same filters. A current name wins over its legacy twin.
+     * A table of deprecated forms.
+     *
+     * @param paths path aliases, the more specific first: the first that matches wins
+     * @param queryParameters snake_case query parameters and the camelCase names that replaced them
      */
-    public static <V> Map<String, V> currentNames(Map<String, V> parameters) {
+    public ApiDeprecations(List<PathAlias> paths, Map<String, String> queryParameters) {
+        this.paths = List.copyOf(paths);
+        this.queryParameters = Map.copyOf(queryParameters);
+    }
+
+    /** snake_case query parameters and the camelCase names that replaced them. */
+    public Map<String, String> queryParameters() {
+        return queryParameters;
+    }
+
+    /** The query parameters of a request with legacy names replaced by the current ones; a current name wins. */
+    public <V> Map<String, V> currentNames(Map<String, V> parameters) {
         Map<String, V> renamed = new LinkedHashMap<>();
         parameters.forEach((name, value) -> {
-            String current = QUERY_PARAMETERS.get(name);
+            String current = queryParameters.get(name);
             if (current == null) {
                 renamed.put(name, value);
             } else if (!parameters.containsKey(current)) {
@@ -108,9 +73,12 @@ public final class ApiDeprecations {
      * The successor of a deprecated request form, or empty for a current one. Works on request paths and on path
      * templates of the API description alike: a template variable is carried over as it is.
      */
-    public static Optional<Successor> successor(String method, String path) {
+    public Optional<Successor> successor(String method, String path) {
+        if (paths.isEmpty()) {
+            return Optional.empty();
+        }
         PathContainer container = PathContainer.parsePath(path);
-        for (PathAlias alias : PATHS) {
+        for (PathAlias alias : paths) {
             if (!ANY.equals(alias.method()) && !alias.method().equalsIgnoreCase(method)) {
                 continue;
             }
@@ -132,22 +100,28 @@ public final class ApiDeprecations {
         while (matcher.find()) {
             matcher.appendReplacement(
                     expanded,
-                    // A variable the legacy form does not carry in its path (the code of POST /modules is in the
-                    // body) stays a template variable.
+                    // A variable the legacy form does not carry in its path (one sent in the body) stays a template
+                    // variable.
                     Matcher.quoteReplacement(variables.getOrDefault(matcher.group(1), matcher.group())));
         }
         return matcher.appendTail(expanded).toString();
     }
 
-    private static PathAlias alias(String method, String legacy, String successorMethod, String successor) {
+    /**
+     * A path alias: {@code method} (or {@link #ANY}) on the {@code legacy} pattern is answered as {@code
+     * successorMethod} (or the same method for {@link #ANY}) on {@code successor}, whose variables are taken from the
+     * legacy path.
+     */
+    public static PathAlias alias(String method, String legacy, String successorMethod, String successor) {
         return new PathAlias(method, PathPatternParser.defaultInstance.parse(legacy), successorMethod, successor);
     }
 
-    private record PathAlias(String method, PathPattern legacy, String successorMethod, String successor) {}
+    /** One deprecated path form; built with {@link #alias}. */
+    public record PathAlias(String method, PathPattern legacy, String successorMethod, String successor) {}
 
     /**
-     * The form to use instead: {@code alias} is the legacy pattern (a bounded metric tag), {@code method} and
-     * {@code path} the successor request.
+     * The form to use instead: {@code alias} is the legacy pattern (a bounded metric tag), {@code method} and {@code
+     * path} the successor request.
      */
     public record Successor(String alias, String method, String path) {}
 }

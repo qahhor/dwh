@@ -148,7 +148,7 @@ class IdempotencyFilterIntegrationTest {
     }
 
     private static MockHttpServletResponse invoke(UUID key, FilterChain chain) throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(IdempotencyFilter.HEADER_IDEMPOTENCY_KEY, key.toString());
         request.setContentType("application/json");
         request.setContent("{\"title\":\"Release\"}".getBytes(StandardCharsets.UTF_8));

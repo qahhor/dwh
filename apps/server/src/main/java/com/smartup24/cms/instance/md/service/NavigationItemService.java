@@ -309,14 +309,6 @@ public class NavigationItemService {
                 Objects.toString(item.requiredPermission(), ""));
     }
 
-    /** Flips the state; kept for the deprecated POST …/toggle until its sunset (ADR-0023). */
-    @Transactional
-    @CacheEvict(value = "navigationItems", allEntries = true)
-    public NavigationItemView toggleState(Long id, Long userId) {
-        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
-        return setActive(id, userId, !"A".equals(existing.state()));
-    }
-
     /** Sets the state (PUT …/active, plan item 3.4): repeating the call changes nothing and audits nothing. */
     @Transactional
     @CacheEvict(value = "navigationItems", allEntries = true)

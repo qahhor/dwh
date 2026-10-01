@@ -83,16 +83,16 @@ class ModuleRegistryIntegrationTest {
     @Test
     @DisplayName("4. Динамическая регистрация нового модуля через реестр")
     void registerNewCustomModule() {
-        var registered = moduleService.registerModule(
+        var registered = moduleService.putModule(
                 "inventory",
                 "Управление складом",
                 "Учет товаров и остатков",
                 "1.0.0",
                 "package",
                 "/inventory",
-                false,
                 150,
-                Map.of("currency", "USD"));
+                Map.of("currency", "USD"),
+                null);
 
         assertThat(registered.code()).isEqualTo("inventory");
         assertThat(registered.status()).isEqualTo("ACTIVE");

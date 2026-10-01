@@ -84,7 +84,7 @@ class AuthenticationGenerationHttpTest {
     }
 
     static Stream<Arguments> paths() {
-        return Stream.of("/api/v1/auth/password", "/api/v1/iam/users/me/password")
+        return Stream.of("/api/v1/auth/password")
                 .flatMap(path -> Stream.of(
                         Arguments.of(path, false, false),
                         Arguments.of(path, true, false),
@@ -94,7 +94,7 @@ class AuthenticationGenerationHttpTest {
 
     @ParameterizedTest
     @MethodSource("paths")
-    void passwordAliasesRevokeCookieAndBearerThenRequireRealNewPasswordLogin(
+    void passwordChangeRevokesCookieAndBearerThenRequiresRealNewPasswordLogin(
             String path, boolean forced, boolean bearer) throws Exception {
         Long id = f.user(false, false);
         grantTokenPermission(id);
@@ -124,7 +124,7 @@ class AuthenticationGenerationHttpTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/v1/auth/password", "/api/v1/iam/users/me/password"})
+    @ValueSource(strings = {"/api/v1/auth/password"})
     void anonymousCsrfWrongPasswordAndPasswordPolicyErrorsPreserveAccess(String path) throws Exception {
         Long id = f.user(true, false);
         var cookies = login(id, OLD_PASSWORD);
@@ -243,8 +243,8 @@ class AuthenticationGenerationHttpTest {
         assertThat(lastCookie(challenge, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
         var challengeBody = f.mapper.readTree(challenge.getContentAsString());
         String otpToken = challengeBody.get("otpToken").asText();
-        // The snake_case name stays for one release next to the camelCase one (ADR-0023).
-        assertThat(challengeBody.get("otp_token").asText()).isEqualTo(otpToken);
+        assertThat(otpToken).isNotBlank();
+        assertThat(challengeBody.has("otp_token")).isFalse();
         assertThat(challengeBody.has("user")).isFalse();
         String code = f.deliveredCodes.get(id);
         String wrongCode = code.equals("000000") ? "000001" : "000000";
@@ -459,12 +459,7 @@ class AuthenticationGenerationHttpTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "/api/v1/auth/password,false",
-        "/api/v1/auth/password,true",
-        "/api/v1/iam/users/me/password,false",
-        "/api/v1/iam/users/me/password,true"
-    })
+    @CsvSource({"/api/v1/auth/password,false", "/api/v1/auth/password,true"})
     void passwordChangeAllowsExplicitReloginWithStaleSessionAndExistingCsrf(String path, boolean forced)
             throws Exception {
         Long id = f.user(forced, false);

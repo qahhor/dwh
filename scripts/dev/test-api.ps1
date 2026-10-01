@@ -144,7 +144,7 @@ $projectResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/projects" -Meth
 Write-Host "   Project created: ID=$($projectResponse.id), Name=$($projectResponse.name)" -ForegroundColor Green
 
 # 7. Create Task with dynamic custom attributes
-Write-Host "`n7. Create Task with Dynamic JSONB Attributes (POST /api/v1/tasks/items)..." -ForegroundColor Yellow
+Write-Host "`n7. Create Task with Dynamic JSONB Attributes (POST /api/v1/tasks)..." -ForegroundColor Yellow
 $taskBody = @{
     projectId = $projectResponse.id
     title = "Setup Kafka CDC connector"
@@ -156,7 +156,7 @@ $taskBody = @{
     }
 } | ConvertTo-Json
 
-$taskResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $taskBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+$taskResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $taskBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Task created: ID=$($taskResponse.id), Title=$($taskResponse.title)" -ForegroundColor Green
 Write-Host "   Dynamic attributes stored: $($taskResponse.attributes | ConvertTo-Json -Compress)" -ForegroundColor Green
 
@@ -169,12 +169,12 @@ foreach ($hit in $searchResponse.hits) {
 }
 
 # 9. Add Comment to Task
-Write-Host "`n9. Add Markdown Comment (POST /api/v1/tasks/items/$($taskResponse.id)/comments)..." -ForegroundColor Yellow
+Write-Host "`n9. Add Markdown Comment (POST /api/v1/tasks/$($taskResponse.id)/comments)..." -ForegroundColor Yellow
 $commentBody = @{
     textMarkdown = "Initial replication tests passed cleanly"
     fileIds = @()
 } | ConvertTo-Json
-$commentResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items/$($taskResponse.id)/comments" -Method Post -Body $commentBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+$commentResponse = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/$($taskResponse.id)/comments" -Method Post -Body $commentBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Comment added: ID=$($commentResponse.id)" -ForegroundColor Green
 
 # 9b. Upload and Attach File to Task (M7 FILE)
@@ -350,7 +350,7 @@ $enDict = Invoke-RestMethod -Uri "$BaseUrl/api/v1/i18n/en" -Method Get -WebSessi
 Write-Host "   I18n Dictionaries retrieved: RU: nav.tasks='$($ruDict.'nav.tasks')', UZ: nav.tasks='$($uzDict.'nav.tasks')', EN: nav.tasks='$($enDict.'nav.tasks')'" -ForegroundColor Green
 
 # 18. API Contract & Idempotency Key (M10 API)
-Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/tasks/items with Idempotency-Key)..." -ForegroundColor Yellow
+Write-Host "`n18. Idempotency Key & OpenAPI Contract (POST /api/v1/tasks with Idempotency-Key)..." -ForegroundColor Yellow
 $idemKey = [guid]::NewGuid().ToString()
 $idemHeaders = @{
     Authorization = "Bearer $($tokenResponse.rawSecretToken)"
@@ -363,11 +363,11 @@ $idemBody = @{
 } | ConvertTo-Json
 
 # 18.1 First request (creates entity and caches response)
-$firstRes = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders
+$firstRes = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders
 Write-Host "   First Request executed: Task ID=$($firstRes.id), Title='$($firstRes.title)'" -ForegroundColor Green
 
 # 18.2 Second request (must return cached response with Idempotent-Replay header)
-$secondWebRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
+$secondWebRes = Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
 $secondBody = $secondWebRes.Content | ConvertFrom-Json
 $isReplayed = $secondWebRes.Headers["Idempotent-Replay"]
 Write-Host "   Second Request executed: Task ID=$($secondBody.id), Idempotent-Replay header='$isReplayed'" -ForegroundColor Green
@@ -381,7 +381,7 @@ $tamperedBody = @{
     priority = "low"
 } | ConvertTo-Json
 try {
-    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $tamperedBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $tamperedBody -ContentType "application/json" -Headers $idemHeaders -UseBasicParsing
     Write-Host "   ERROR: Expected 409 Conflict for tampered payload" -ForegroundColor Red
 } catch {
     Write-Host "   Payload mismatch protection ACTIVE: HTTP 409 Conflict / ErrorCode.IDEMPOTENCY_KEY_PAYLOAD_MISMATCH" -ForegroundColor Green
@@ -393,7 +393,7 @@ $badIdemHeaders = @{
     "Idempotency-Key" = "not-a-valid-uuid"
 }
 try {
-    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks/items" -Method Post -Body $idemBody -ContentType "application/json" -Headers $badIdemHeaders -UseBasicParsing
+    Invoke-WebRequest -Uri "$BaseUrl/api/v1/tasks" -Method Post -Body $idemBody -ContentType "application/json" -Headers $badIdemHeaders -UseBasicParsing
     Write-Host "   ERROR: Expected 400 Bad Request for invalid UUID" -ForegroundColor Red
 } catch {
     Write-Host "   Key format validation ACTIVE: HTTP 400 Bad Request / ErrorCode.IDEMPOTENCY_KEY_INVALID" -ForegroundColor Green
@@ -507,7 +507,7 @@ $userMe = Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/me" -Method Get -WebSessi
 Write-Host "   Authenticated as regular user '$($userMe.user.login)'. Permissions count: $($userMe.permissions.Count)" -ForegroundColor Green
 
 # 21.3 Positive Check: Regular user CAN view tasks (tasks.items.view)
-$userTasks = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $userSession
+$userTasks = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $userSession
 Write-Host "   Positive Check PASSED: Regular user successfully queried tasks (Count: $($userTasks.items.Count))" -ForegroundColor Green
 
 # 21.4 Negative Check: Regular user CANNOT view audit log (audit.log.view) -> HTTP 403
@@ -589,7 +589,7 @@ Write-Host "   Logged in as temp user. forcePasswordChange reported: $($loginRes
 
 # Attempt to access tasks before changing password (Must be rejected with 403)
 try {
-    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $tempSession
     Write-Error "Security Failure: Temp user accessed business API without changing password!"
 } catch {
     $code = [int]$_.Exception.Response.StatusCode
@@ -619,7 +619,7 @@ Write-Host "   Password changed successfully via POST /api/v1/auth/password" -Fo
 # A password change ends every session of the user, the one that made the change included
 $revoked = $false
 try {
-    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession | Out-Null
+    Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $tempSession | Out-Null
 } catch {
     if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode -eq 401) { $revoked = $true } else { throw }
 }
@@ -629,7 +629,7 @@ Write-Host "   Session revoked by the password change (HTTP 401)" -ForegroundCol
 # Sign in with the new password: full access (Must succeed)
 $tempSession = $null
 Invoke-RestMethod -Uri "$BaseUrl/api/v1/auth/login" -Method Post -Body (@{ login = $tempUserLogin; password = $newPass } | ConvertTo-Json) -ContentType "application/json" -SessionVariable tempSession | Out-Null
-$tasksAfter = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks/items" -Method Get -WebSession $tempSession
+$tasksAfter = Invoke-RestMethod -Uri "$BaseUrl/api/v1/tasks" -Method Get -WebSession $tempSession
 Write-Host "   Full access UNLOCKED: Temp user successfully queried tasks (Count: $($tasksAfter.items.Count))" -ForegroundColor Green
 
 # Cleanup temp user
@@ -649,11 +649,10 @@ foreach ($p in $providers) {
 # through a provider now goes through its real authorization flow only.
 
 # 27. Module registry: register, enable, find among the active ones, disable (ModuleRegistryController)
-Write-Host "`n27. Module Registry Lifecycle (POST /api/v1/modules, toggle, active list)..." -ForegroundColor Yellow
+Write-Host "`n27. Module Registry Lifecycle (PUT /api/v1/modules/{code}, PUT .../enabled, active list)..." -ForegroundColor Yellow
 
 $modCode = "smoke_module_$(Get-Random -Minimum 100 -Maximum 999)"
 $registerModPayload = @{
-    code = $modCode
     name = "Smoke Test Module"
     description = "Registered by the nightly API smoke"
     version = "1.0.0"
@@ -663,8 +662,8 @@ $registerModPayload = @{
     attributes = @{}
 } | ConvertTo-Json
 
-# 27.1 Register (registered modules start disabled)
-$createdMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules" -Method Post -Body $registerModPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
+# 27.1 Register: a new code needs no If-Match
+$createdMod = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode" -Method Put -Body $registerModPayload -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders)
 Write-Host "   Module registered: Code='$($createdMod.code)'" -ForegroundColor Green
 
 # 27.2 Read it back by code
@@ -673,14 +672,14 @@ if ($readMod.code -ne $modCode) { throw "Registered module $modCode is not retur
 
 # 27.3 Enable, then it is listed among the active modules
 $enableBody = @{ enabled = $true } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode/toggle" -Method Post -Body $enableBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode/enabled" -Method Put -Body $enableBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
 $activeMods = Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/active" -Method Get -WebSession $session
 if (-not ($activeMods | Where-Object { $_.code -eq $modCode })) { throw "Enabled module $modCode is missing from the active list." }
 Write-Host "   Module enabled and listed as active" -ForegroundColor Green
 
 # 27.4 Disable again: the registry has no delete, the stack is disposable
 $disableBody = @{ enabled = $false } | ConvertTo-Json
-Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode/toggle" -Method Post -Body $disableBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
+Invoke-RestMethod -Uri "$BaseUrl/api/v1/modules/$modCode/enabled" -Method Put -Body $disableBody -ContentType "application/json" -WebSession $session -Headers (Get-CsrfHeaders) | Out-Null
 Write-Host "   Module disabled" -ForegroundColor Green
 
 Write-Host "`n============================================================" -ForegroundColor Cyan

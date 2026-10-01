@@ -18,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping({"/api/v1/notify", "/api/v1/notifications"})
+@RequestMapping("/api/v1/notifications")
 public class MsNotificationController {
 
     static final int INBOX_PAGE = 50;

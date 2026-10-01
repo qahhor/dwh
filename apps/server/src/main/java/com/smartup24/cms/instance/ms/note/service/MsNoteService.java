@@ -191,12 +191,6 @@ public class MsNoteService {
                 entity, values(note.title(), note.contentMd(), note.color(), note.isPinned()), note.attributes());
     }
 
-    /** Flips the pin; kept for the deprecated POST /notes/{id}/pin until its sunset (ADR-0023). */
-    @Transactional
-    public NoteView togglePinned(Long id, Long userId) {
-        return setPinned(id, userId, !ownNote(id, userId).isPinned());
-    }
-
     /**
      * Sets the pin (PUT /notes/{id}/pin, plan item 3.4): the same call twice leaves the same note. The write happens
      * only when the pin changes (plan item 3.6), so concurrent calls leave one state and one audit row per change.
