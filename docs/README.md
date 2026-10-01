@@ -94,6 +94,12 @@ Current ADRs that are not superseded:
   `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
   refuses to start without the key outside dev and encrypts legacy plain
   values at start.
+- [ADR-0030 — splitting fnd into jobs, warehouse and units](adr/ADR-0030-fnd-split.md)
+  — the shared job queue is the `jobs` module, the second database with its
+  load ledger is `warehouse`, units of measure are `units`, versioning and the
+  audit actor are platform contracts in `common`; SQL lives only in
+  repositories (no `*Service` runs SQL), the queue never depends on the
+  warehouse, and message keys stay `error.fnd.*`.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:

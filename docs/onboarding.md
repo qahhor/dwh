@@ -38,8 +38,9 @@ Historical ADRs remain in the repository as decision records. An ADR marked
 The server packages follow the module prefixes: `common` (platform: entity
 model, field registry, bulk, history), `md` (users, roles, rights, settings,
 languages, menu), `kauth` (authentication), `ms` (tasks, projects, notes,
-notifications), `mf` (files), `audit`, `search`, `kwh` (webhooks), `fnd`
-(jobs and the data-upload foundation), `upl` (data uploads), `report`
+notifications), `mf` (files), `audit`, `search`, `kwh` (webhooks), `jobs`
+(the shared job queue), `warehouse` (the second database and its load
+ledger), `units` (units of measure), `upl` (data uploads), `report`
 (exports), `analytics` (dashboard figures). `config` holds the infrastructure
 (security, web filters, cache, retention job, idempotency, OpenAPI).
 
