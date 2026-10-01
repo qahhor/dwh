@@ -8,9 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
-import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
@@ -25,6 +22,9 @@ import com.smartup24.cms.instance.upl.UplXlsxFixtures.SheetSpec;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel;
+import com.smartup24.cms.instance.warehouse.WarehousePref;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.load.WarehouseLoadService;
 import jakarta.servlet.http.Cookie;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -95,11 +95,11 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
     private TransactionTemplate tx;
 
     @Autowired
-    @Qualifier(FndPref.DWH)
+    @Qualifier(WarehousePref.QUALIFIER)
     private JdbcClient dwhJdbc;
 
     @Autowired
-    private FndLoadService loads;
+    private WarehouseLoadService loads;
 
     private MockMvc mvc;
     private String analystLogin;
@@ -254,7 +254,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isGreaterThan(sheet.headerRow());
-        assertThat(loads.find(firstLoad).orElseThrow().status()).isEqualTo(FndLoad.APPLIED);
+        assertThat(loads.find(firstLoad).orElseThrow().status()).isEqualTo(WarehouseLoad.APPLIED);
 
         Sample second = sample(sheet);
         String secondId = uploadAndParse(admin, sourceId, format, second);
@@ -263,8 +263,8 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         assertThat(secondLoad).isNotEqualTo(firstLoad);
         assertThat(rawRows(secondLoad)).isEqualTo(second.total());
         assertThat(rawRows(firstLoad)).isEqualTo(first.total());
-        assertThat(loads.find(firstLoad).orElseThrow().status()).isEqualTo(FndLoad.SUPERSEDED);
-        assertThat(loads.find(secondLoad).orElseThrow().status()).isEqualTo(FndLoad.APPLIED);
+        assertThat(loads.find(firstLoad).orElseThrow().status()).isEqualTo(WarehouseLoad.SUPERSEDED);
+        assertThat(loads.find(secondLoad).orElseThrow().status()).isEqualTo(WarehouseLoad.APPLIED);
 
         var list = sendGet(admin, BASE, 200);
         List<Map<String, Object>> items = read(list, "$.items");

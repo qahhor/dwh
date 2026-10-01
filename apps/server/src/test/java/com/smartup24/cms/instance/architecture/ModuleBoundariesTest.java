@@ -48,7 +48,6 @@ class ModuleBoundariesTest {
     static final List<String> MODULES = List.of(
             "analytics",
             "audit",
-            "fnd",
             "jobs",
             "kauth",
             "kwh",
@@ -60,7 +59,8 @@ class ModuleBoundariesTest {
             "report",
             "search",
             "units",
-            "upl");
+            "upl",
+            "warehouse");
 
     private static JavaClasses classes;
 
@@ -265,7 +265,10 @@ class ModuleBoundariesTest {
 
     /**
      * The module that owns a table or a published view, by its prefix. {@code md_sso_providers} carries the md prefix
-     * from V017 but only kauth reads it (SSO sign-in): the code that holds a table owns it (ADR-0026).
+     * from V017 but only kauth reads it (SSO sign-in): the code that holds a table owns it (ADR-0026). The tables of the
+     * former foundation keep their {@code fnd_} names (ADR-0020): {@code fnd_job_*} belong to jobs, {@code fnd_unit*}
+     * to units, {@code fnd_load*} to warehouse; {@code fnd_versioned_tables} and {@code fnd_audit_tables} are registries
+     * of the platform in common, which owns no module (ADR-0030).
      */
     static Optional<String> ownerOf(String table) {
         if (table.startsWith("audit_log") || table.equals("security_events")) return Optional.of("audit");
@@ -276,7 +279,8 @@ class ModuleBoundariesTest {
         if (table.equals("idempotency_keys")) return Optional.of("config");
         if (table.startsWith("fnd_job_")) return Optional.of("jobs");
         if (table.startsWith("fnd_unit")) return Optional.of("units");
-        for (String module : List.of("fnd", "kauth", "kwh", "md", "mf", "report", "search", "upl")) {
+        if (table.startsWith("fnd_load")) return Optional.of("warehouse");
+        for (String module : List.of("kauth", "kwh", "md", "mf", "report", "search", "upl")) {
             if (table.startsWith(module + "_")) return Optional.of(module);
         }
         return Optional.empty();

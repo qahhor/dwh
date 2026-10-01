@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.support;
 
-import com.smartup24.cms.instance.fnd.migration.FndMigrator;
 import com.smartup24.cms.instance.md.service.MdAuditActors;
+import com.smartup24.cms.instance.warehouse.migration.Migrator;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
@@ -71,11 +71,11 @@ public final class TestDatabases {
     public static synchronized void migrateOnce() {
         instance();
         if (!migrated) {
-            FndMigrator.migrateOltp(oltp());
+            Migrator.migrateOltp(oltp());
             // Test contexts start without the first administrator's parameters: a non-empty md_users keeps the
             // framework's InstanceBootstrap a no-op (a migration seed used to do this; now the foundation code does).
             MdAuditActors.ensureSystemUser(JdbcClient.create(oltp()));
-            FndMigrator.migrateDwh(dwh());
+            Migrator.migrateDwh(dwh());
             migrated = true;
         }
     }
@@ -95,7 +95,7 @@ public final class TestDatabases {
         instance();
         if (!templateReady) {
             createDatabase(TEMPLATE_DB);
-            FndMigrator.migrateOltp(database(TEMPLATE_DB));
+            Migrator.migrateOltp(database(TEMPLATE_DB));
             templateReady = true;
         }
         String name = prefix.toLowerCase().replaceAll("[^a-z0-9_]", "_") + "_" + (++copies);

@@ -2,10 +2,6 @@ package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.api.FndLoads;
-import com.smartup24.cms.instance.fnd.api.FndRawRow;
-import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.jobs.api.JobAttempt;
 import com.smartup24.cms.instance.jobs.api.JobFailures;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
@@ -17,6 +13,10 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.parse.UplSpooledFile;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import com.smartup24.cms.instance.warehouse.api.RawRow;
+import com.smartup24.cms.instance.warehouse.api.RawWriter;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -55,8 +55,8 @@ public class UplApplyJob implements JobHandler {
     private final UplSourceService sources;
     private final MfFileService files;
     private final UplXlsxParser parser;
-    private final FndLoads loads;
-    private final FndRawWriter raw;
+    private final WarehouseLoads loads;
+    private final RawWriter raw;
     private final AuditActorContext actors;
     private final TransactionTemplate tx;
 
@@ -65,8 +65,8 @@ public class UplApplyJob implements JobHandler {
             UplSourceService sources,
             MfFileService files,
             UplXlsxParser parser,
-            FndLoads loads,
-            FndRawWriter raw,
+            WarehouseLoads loads,
+            RawWriter raw,
             AuditActorContext actors,
             TransactionTemplate tx) {
         this.repo = repo;
@@ -116,7 +116,7 @@ public class UplApplyJob implements JobHandler {
 
     private boolean loadOpen(PackageRow row) {
         return loads.find(row.loadId())
-                .filter(load -> FndLoad.PENDING.equals(load.status()))
+                .filter(load -> WarehouseLoad.PENDING.equals(load.status()))
                 .isPresent();
     }
 
@@ -161,8 +161,7 @@ public class UplApplyJob implements JobHandler {
                 UplParseResult result = parser.parse(
                         spooled.path(),
                         format,
-                        data -> sink.accept(
-                                new FndRawRow(++rowNo[0], data.sheet(), data.sourceRowNo(), data.fields())));
+                        data -> sink.accept(new RawRow(++rowNo[0], data.sheet(), data.sourceRowNo(), data.fields())));
                 if (result.outcome() != UplParseResult.Outcome.VERIFIED) {
                     throw new IllegalStateException(
                             "Повторный разбор файла пакета " + row.publicId() + " не дал «проверен»");

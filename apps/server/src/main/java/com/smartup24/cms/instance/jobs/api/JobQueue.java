@@ -4,10 +4,10 @@ import java.util.Map;
 
 /**
  * Putting work on the job queue. The jobs themselves are {@link JobHandler} beans; the read-only questions about
- * the queue are answered by {@code fnd.service.JobQueries}.
+ * the queue are answered by {@code jobs.service.JobQueries}.
  *
- * <p>Part of the foundation's contract (plan 10/10, item 4.2): callers depend on this interface, not on the job
- * runner that implements it, which may move to another package.
+ * <p>The contract of the jobs module (plan 10/10, item 4.2): callers depend on this interface, not on the job
+ * runner that implements it.
  */
 public interface JobQueue {
 

@@ -1,4 +1,5 @@
-# Buyer terms and industry units: they must not appear in the core (fnd/upl/ref/reg/vit and our migrations V1xx,
+# Buyer terms and industry units: they must not appear in the core (jobs/warehouse/units/upl/ref/reg/vit, the
+# versioning and actor contracts of common, our migrations V1xx,
 # db/dwh). Format: one term per line, case-insensitive (Cyrillic and Latin spellings listed separately), lines
 # starting with # are comments. The architect maintains the list; the file never goes into src/main.
 

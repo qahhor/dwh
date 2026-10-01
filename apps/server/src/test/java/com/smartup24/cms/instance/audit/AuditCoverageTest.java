@@ -71,7 +71,7 @@ class AuditCoverageTest {
             "MsNotificationService", // delivers notifications, does not change data
             // audited by the foundation triggers (fnd_audit_enable, V100): the actor comes from app.user_id, one
             // audit_log row per insert, update or delete
-            "FndLoadService",
+            "WarehouseLoadService",
             "UnitService",
             "VersioningService",
             "UplSourceService",

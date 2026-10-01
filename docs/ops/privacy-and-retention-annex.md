@@ -111,7 +111,7 @@ Modules declare how long their journal tables live (`RetentionPolicy` beans, pla
 | `webhook-outbox` | `kwh_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `KwhRetentionPolicies` |
 | `inbox` | `ms_notifications` | `created_at` past the cutoff | 180 | `MsNotifyRetentionPolicies` |
 | `notification-outbox` | `ms_notification_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `MsNotifyRetentionPolicies` |
-| `job-runs` | `fnd_job_runs` | finished, `finished_at` past the cutoff | 90 | `FndRetentionPolicies` |
+| `job-runs` | `fnd_job_runs` | finished, `finished_at` past the cutoff | 90 | `JobRetentionPolicies` |
 
 ### 4.3. Backup retention
 - Local encrypted database dumps created by `backup-loop.sh` retain the most recent 14 snapshots (default 7 days of bi-daily backups).

@@ -4,11 +4,11 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -31,7 +31,7 @@ public class UplApplyService {
 
     private final UplPackageService packages;
     private final UplPackageRepository repo;
-    private final FndLoads loads;
+    private final WarehouseLoads loads;
     private final AuditActorContext actors;
     private final JobQueue jobs;
     private final TransactionTemplate tx;
@@ -44,7 +44,7 @@ public class UplApplyService {
     public UplApplyService(
             UplPackageService packages,
             UplPackageRepository repo,
-            FndLoads loads,
+            WarehouseLoads loads,
             AuditActorContext actors,
             JobQueue jobs,
             TransactionTemplate tx) {

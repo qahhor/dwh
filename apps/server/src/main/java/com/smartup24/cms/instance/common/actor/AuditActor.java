@@ -3,7 +3,8 @@ package com.smartup24.cms.instance.common.actor;
 /**
  * Who performs a change of a table audited by {@code fnd_audit_trigger} (V100). {@code userId} is the {@code md_users}
  * row that the audit sees in {@code app.user_id}; {@code name} is what goes into the modules' own journals
- * ({@code fnd_loads.applied_by}, {@code fnd_load_log.actor}): the user id as text, or {@code system} for jobs.
+ * (the warehouse load ledger: who applied a load, who wrote a log row): the user id as text, or {@code system} for
+ * jobs.
  */
 public record AuditActor(long userId, String name) {
 

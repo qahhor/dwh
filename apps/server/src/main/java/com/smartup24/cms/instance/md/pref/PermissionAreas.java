@@ -25,7 +25,7 @@ public final class PermissionAreas {
 
     /** Areas that are business module codes themselves. */
     private static final Set<String> MODULE_AREAS =
-            Set.of("analytics", "audit", "fnd", "kauth", "md", "mf", "report", "search", "upl");
+            Set.of("analytics", "audit", "jobs", "kauth", "md", "mf", "report", "search", "units", "upl", "warehouse");
 
     /** Named areas and their owning modules. */
     private static final Map<String, String> NAMED_AREAS = Map.of(

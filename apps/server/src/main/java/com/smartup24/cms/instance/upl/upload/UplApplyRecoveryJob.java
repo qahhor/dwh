@@ -2,12 +2,12 @@ package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.common.actor.AuditActorContext;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.service.JobQueries;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,11 +41,12 @@ public class UplApplyRecoveryJob implements JobHandler {
     private static final Logger log = LoggerFactory.getLogger(UplApplyRecoveryJob.class);
 
     private final UplPackageRepository repo;
-    private final FndLoads loads;
+    private final WarehouseLoads loads;
     private final AuditActorContext actors;
     private final JobQueries jobs;
 
-    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, AuditActorContext actors, JobQueries jobs) {
+    public UplApplyRecoveryJob(
+            UplPackageRepository repo, WarehouseLoads loads, AuditActorContext actors, JobQueries jobs) {
         this.repo = repo;
         this.loads = loads;
         this.actors = actors;
@@ -77,7 +78,7 @@ public class UplApplyRecoveryJob implements JobHandler {
             // The third step closes the package and the load in one transaction: a load that is not pending is not
             // an interruption
             if (loads.find(row.loadId())
-                    .filter(load -> FndLoad.PENDING.equals(load.status()))
+                    .filter(load -> WarehouseLoad.PENDING.equals(load.status()))
                     .isEmpty()) {
                 continue;
             }

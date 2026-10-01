@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -116,6 +117,24 @@ public class AuditPartitionRepository {
                 .param("day", day)
                 .query(String.class)
                 .single();
+    }
+
+    /**
+     * The rows of one partition as JSON text, one by one through a cursor (the pool's fetch size), in key order (plan
+     * 10/10, item 4.2: the archive service writes no SQL). The name comes from {@code pg_class} and matched the
+     * partition pattern; it is quoted all the same.
+     *
+     * @return the number of rows streamed
+     */
+    public long streamRows(String partitionName, Consumer<String> line) {
+        String table = "\"" + partitionName.replace("\"", "\"\"") + "\"";
+        long[] lines = {0};
+        jdbc.sql("select row_to_json(t)::text from " + table + " t order by changed_at, id")
+                .query(rs -> {
+                    line.accept(rs.getString(1));
+                    lines[0]++;
+                });
+        return lines[0];
     }
 
     /**
