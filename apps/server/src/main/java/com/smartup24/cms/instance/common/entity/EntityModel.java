@@ -2,11 +2,13 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.FieldSource;
+import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import com.smartup24.cms.instance.common.query.QueryField;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -24,6 +26,14 @@ import java.util.stream.Stream;
 public record EntityModel(
         String table, String alias, List<EntityField> fields, String defaultSort, boolean defaultDescending) {
 
+    /** The record property of the custom field values. */
+    public static final String ATTRIBUTES = "attributes";
+
+    /** The record's own properties: a field may use one only as its system column. */
+    private static final Set<String> RESERVED = Stream.concat(
+                    Stream.of(SystemColumn.values()).map(SystemColumn::key), Stream.of(ATTRIBUTES))
+            .collect(Collectors.toUnmodifiableSet());
+
     public EntityModel {
         requireIdentifier(table);
         requireIdentifier(alias);
@@ -33,6 +43,10 @@ public record EntityModel(
         for (EntityField field : fields) {
             if (!keys.add(field.key())) {
                 throw new IllegalArgumentException("Table " + table + ": duplicate field " + field.key());
+            }
+            if (RESERVED.contains(field.key()) && !(field.source() instanceof FieldSource.SystemValue)) {
+                throw new IllegalArgumentException("Table " + table + ": the key " + field.key()
+                        + " is the record's own; only its system field may use it");
             }
         }
     }

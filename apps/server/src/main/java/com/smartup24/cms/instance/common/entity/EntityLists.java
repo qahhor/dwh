@@ -8,9 +8,6 @@ import com.smartup24.cms.instance.common.query.QueryListSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -29,11 +26,7 @@ import org.springframework.stereotype.Component;
 public class EntityLists implements QueryListSource {
 
     /** The property of the custom field values in a row. */
-    public static final String ATTRIBUTES = "attributes";
-
-    private static final Set<String> RESERVED = Stream.concat(
-                    Stream.of(SystemColumn.values()).map(SystemColumn::key), Stream.of(ATTRIBUTES))
-            .collect(Collectors.toUnmodifiableSet());
+    public static final String ATTRIBUTES = EntityModel.ATTRIBUTES;
 
     private final List<QueryList> lists;
 
@@ -58,7 +51,7 @@ public class EntityLists implements QueryListSource {
                 Objects.requireNonNull(entity.listCode(), entity.code()),
                 entity.form(),
                 "view",
-                select(entity.code(), model, attributes),
+                select(model, attributes),
                 model.table() + " " + alias,
                 alias + ".id",
                 model.listFields(),
@@ -71,7 +64,7 @@ public class EntityLists implements QueryListSource {
                 false);
     }
 
-    private static String select(String code, EntityModel model, @Nullable String attributes) {
+    private static String select(EntityModel model, @Nullable String attributes) {
         String alias = model.alias();
         List<String> columns = new ArrayList<>();
         for (SystemColumn column : SystemColumn.values()) {
@@ -79,10 +72,6 @@ public class EntityLists implements QueryListSource {
         }
         for (EntityField field : model.fields()) {
             if (field.source() instanceof FieldSource.SystemValue) continue;
-            if (RESERVED.contains(field.key())) {
-                throw new IllegalArgumentException("Entity " + code + ": the key " + field.key()
-                        + " is the record's own; only its system field may use it");
-            }
             columns.add(field.source().sql(alias) + " as \"" + field.key() + "\"");
         }
         if (attributes != null) {
