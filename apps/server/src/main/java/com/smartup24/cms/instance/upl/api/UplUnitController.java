@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
-/** Единицы экземпляра для экрана анкеты (К-1, И4): имя — ru, иначе uz, иначе код. */
+/** Instance units for the file format screen: the name is ru, otherwise uz, otherwise the code. */
 @RestController
 @RequestMapping("/api/v1/upl/units")
 public class UplUnitController {
@@ -39,7 +39,7 @@ public class UplUnitController {
         return ResponseEntity.ok(items);
     }
 
-    /** ru → uz → код; пустые строки считаются отсутствием имени. */
+    /** ru, then uz, then the code; blank strings count as a missing name. */
     public static String displayName(String code, Map<String, String> names) {
         String ru = names.get(RU);
         if (ru != null && !ru.isBlank()) {
@@ -59,6 +59,6 @@ public class UplUnitController {
         return json.readValue(nameI18n, new TypeReference<Map<String, String>>() {});
     }
 
-    /** Единица для выпадающего списка: код, имя на языке пользователя и код базовой единицы. */
+    /** A unit for a drop-down list: code, name in the user's language and the code of the base unit. */
     public record UnitItem(String code, String name, String baseUnitCode) {}
 }

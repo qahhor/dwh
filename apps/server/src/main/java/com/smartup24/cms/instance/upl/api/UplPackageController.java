@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * API загрузок файлов: приём файла, список пакетов и ошибки пакета (контракт И5), применение пакета (И6). Both the
+ * File upload API: accepting a file, the package list and package errors, and applying a package. Both the
  * upload and the apply answer 202: the work is a job, the package is the status resource.
  */
 @RestController
@@ -65,8 +65,8 @@ public class UplPackageController {
     }
 
     /**
-     * Принимает файл: 202 и пакет в статусе «получен». Части запроса не обязательны для каркаса —
-     * их отсутствие проверяет сервис и отвечает одним списком ошибок, а не отказом разбора запроса.
+     * Accepts a file: 202 and a package in status "received". The request parts are not required by the framework:
+     * the service checks whether they are missing and answers with one list of errors, not a request parsing failure.
      */
     @Operation(
             summary = "Upload a data package",
@@ -121,8 +121,8 @@ public class UplPackageController {
     }
 
     /**
-     * Ошибки пакета файлом xlsx (роадмап п. 21): что загружено и чем кончилось, затем каждая сохранённая
-     * ошибка с адресом и словами, а не кодом, — на языке, который попросили (по умолчанию русский).
+     * Package errors as an xlsx file: what was uploaded and how it ended, then each stored
+     * error with its address and words rather than a code, in the requested language (Russian by default).
      */
     @Operation(
             summary = "Download the errors of a package",
@@ -155,8 +155,8 @@ public class UplPackageController {
     }
 
     /**
-     * Ставит применение пакета «проверен» в очередь (план 10/10, п. 3.9): 202, пакет «применяется» и {@code Location}
-     * — the package itself, which the client polls until it turns «применён» or «отклонён системой».
+     * Queues the apply of a "verified" package (plan 10/10, item 3.9): 202, the package "applying" and {@code Location}
+     * is the package itself, which the client polls until it turns "applied" or "rejected".
      */
     @Operation(
             summary = "Apply a data package",

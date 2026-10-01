@@ -24,8 +24,8 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Пакеты загрузки: запись принятого файла, итог разбора и чтение списка с ошибками (контракт И5).
- * Кнопки «Применить» здесь нет — это следующий инкремент.
+ * Upload packages: recording an accepted file, the parse result and reading the list with errors.
+ * Applying a package is not handled here (see {@link UplApplyService}).
  */
 @Service
 public class UplPackageService {
@@ -41,8 +41,8 @@ public class UplPackageService {
     }
 
     /**
-     * Записывает принятый файл пакетом в статусе «получен». Присоединяется к транзакции вызывающего:
-     * пакет и задание на его разбор появляются вместе или не появляются вовсе.
+     * Records an accepted file as a package in status "received". Joins the caller's transaction:
+     * the package and its parse job appear together or not at all.
      */
     @Transactional
     public PackageRow register(NewPackage p) {
@@ -53,7 +53,7 @@ public class UplPackageService {
                 .orElseThrow(() -> new IllegalStateException("Пакет " + id + " не найден сразу после записи"));
     }
 
-    /** Пакет по идентификатору из API; строка не uuid или пакета нет — 404. */
+    /** Package by its API identifier; a string that is not a uuid or a missing package gives 404. */
     @Transactional(readOnly = true)
     public PackageRow get(String publicId) {
         return find(toUuid(publicId))
@@ -65,7 +65,7 @@ public class UplPackageService {
         return repo.findByPublicId(publicId);
     }
 
-    /** Ошибки пакета: сколько найдено всего и сохранённые записи по порядку. */
+    /** Package errors: how many were found in total and the stored records in order. */
     @Transactional(readOnly = true)
     public ErrorsView errors(String publicId) {
         PackageRow row = get(publicId);
@@ -73,7 +73,7 @@ public class UplPackageService {
         return new ErrorsView(total, repo.findErrors(row.id()));
     }
 
-    /** Список пакетов по реестру: по умолчанию от новых к старым; фильтр, сортировка и поиск — ADR-0016. */
+    /** Package list by the registry: newest first by default; filter, sort and search follow ADR-0016. */
     @Transactional(readOnly = true)
     public KeysetPage<PackageRow> list(int limit, String cursor) {
         return list(limit, cursor, null, null, null);
@@ -110,7 +110,7 @@ public class UplPackageService {
         return reports.build(get(publicId), errors(publicId), text);
     }
 
-    /** Записывает итог разбора: статус, счётчики и первые сохранённые ошибки. */
+    /** Records the parse result: status, counters and the first stored errors. */
     @Transactional
     public void saveParseResult(long id, UplParseResult result) {
         actors.apply(actors.system());
@@ -125,8 +125,8 @@ public class UplPackageService {
     }
 
     /**
-     * Отклоняет пакет в отдельной транзакции: вызывается из упавшего задания, чья транзакция будет откачена.
-     * Пакет уже закрыт — не ошибка.
+     * Rejects the package in a separate transaction: it is called from a failed job whose transaction will be
+     * rolled back. A package that is already closed is not an error.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void rejectInNewTransaction(long id, String rejectCode) {

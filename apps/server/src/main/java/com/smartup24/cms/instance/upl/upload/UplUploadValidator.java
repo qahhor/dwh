@@ -10,22 +10,22 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Проверка полей запроса приёма файла до создания пакета (контракт И5, раздел 8.1).
- * Собирает все ошибки сразу: пользователь исправляет форму за один заход, а не по одной ошибке.
+ * Checks the fields of a file upload request before a package is created.
+ * Collects all errors at once: the user fixes the form in one pass rather than one error at a time.
  */
 public final class UplUploadValidator {
 
-    /** Источник не выбран или его идентификатор не положительное целое. */
+    /** The source is not selected or its identifier is not a positive integer. */
     public static final String UPL_PKG_SOURCE_REQUIRED = "UPL_PKG_SOURCE_REQUIRED";
-    /** Нет начала или конца периода либо дата не читается как {@code yyyy-MM-dd}. */
+    /** The period start or end is missing, or a date cannot be read as {@code yyyy-MM-dd}. */
     public static final String UPL_PKG_PERIOD_REQUIRED = "UPL_PKG_PERIOD_REQUIRED";
-    /** Начало периода позже конца. */
+    /** The period start is after its end. */
     public static final String UPL_PKG_PERIOD_ORDER = "UPL_PKG_PERIOD_ORDER";
-    /** Файл к запросу не приложен. */
+    /** No file is attached to the request. */
     public static final String UPL_PKG_FILE_REQUIRED = "UPL_PKG_FILE_REQUIRED";
-    /** Приложенный файл пустой. */
+    /** The attached file is empty. */
     public static final String UPL_PKG_FILE_EMPTY = "UPL_PKG_FILE_EMPTY";
-    /** Расширение приложенного файла не {@code .xlsx}. */
+    /** The extension of the attached file is not {@code .xlsx}. */
     public static final String UPL_PKG_FILE_NOT_XLSX = "UPL_PKG_FILE_NOT_XLSX";
 
     private static final String FIELD_SOURCE = "sourceId";
@@ -40,7 +40,7 @@ public final class UplUploadValidator {
 
     private UplUploadValidator() {}
 
-    /** Все ошибки полей запроса приёма; пустой список — запрос можно принимать. */
+    /** All field errors of the upload request; an empty list means the request can be accepted. */
     public static List<FieldErrorItem> validate(
             String sourceId, String periodFrom, String periodTo, boolean filePresent, String fileName, long fileSize) {
         List<FieldErrorItem> errors = new ArrayList<>();
@@ -95,7 +95,7 @@ public final class UplUploadValidator {
         return fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(XLSX_SUFFIX);
     }
 
-    /** Дата строго вида {@code yyyy-MM-dd}; иначе {@code null} — вызывающий превращает это в ошибку поля. */
+    /** A date strictly as {@code yyyy-MM-dd}; otherwise {@code null}, which the caller turns into a field error. */
     private static LocalDate parseDate(String value) {
         if (value == null || value.isBlank()) {
             return null;

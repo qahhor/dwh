@@ -22,9 +22,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Разбор xlsx-файла пакета по опубликованной анкете. Читает файл потоком за два прохода:
- * сначала структура (листы и колонки), потом значения. В базу и в журнал не пишет ничего —
- * итог возвращается в памяти, а строки данных уходят в переданный приёмник по одной.
+ * Parses the xlsx file of a package by the published format. Reads the file as a stream in two passes:
+ * first the structure (sheets and columns), then the values. Writes nothing to the database or the log:
+ * the result is returned in memory, and data rows go to the given consumer one by one.
  *
  * <p>A workbook given as a stream is copied into memory whole by the reader (it needs random access to the zip); the
  * jobs give a file on disk instead ({@link #parse(Path, FormatVersion, Consumer)}), so a 50 MB file costs no heap.
@@ -35,27 +35,27 @@ import org.springframework.stereotype.Component;
 @Component
 public class UplXlsxParser {
 
-    /** Файл отклонён: расхождения с анкетой. */
+    /** File rejected: mismatches with the format. */
     public static final String UPL_PKG_STRUCTURE = "UPL_PKG_STRUCTURE";
-    /** Файл отклонён: не читается как xlsx. */
+    /** File rejected: it cannot be read as xlsx. */
     public static final String UPL_PKG_UNREADABLE = "UPL_PKG_UNREADABLE";
-    /** Файл отклонён: заполненных ячеек больше предела загрузки. */
+    /** File rejected: more filled cells than the upload limit. */
     public static final String UPL_PKG_TOO_MANY_CELLS = "UPL_PKG_TOO_MANY_CELLS";
-    /** Расхождение с анкетой: листа нет в файле. */
+    /** Mismatch with the format: the sheet is missing from the file. */
     public static final String UPL_STRUCT_SHEET_MISSING = "UPL_STRUCT_SHEET_MISSING";
-    /** Расхождение с анкетой: колонки анкеты нет в шапке. */
+    /** Mismatch with the format: a format column is missing from the header. */
     public static final String UPL_STRUCT_COLUMN_MISSING = "UPL_STRUCT_COLUMN_MISSING";
-    /** Расхождение с анкетой: в шапке колонка, которой нет в анкете. */
+    /** Mismatch with the format: the header has a column that the format does not have. */
     public static final String UPL_STRUCT_COLUMN_UNKNOWN = "UPL_STRUCT_COLUMN_UNKNOWN";
-    /** Ошибка ячейки: обязательное значение пусто. */
+    /** Cell error: a required value is empty. */
     public static final String UPL_CELL_REQUIRED = "UPL_CELL_REQUIRED";
-    /** Ошибка ячейки: не целое число. */
+    /** Cell error: not an integer. */
     public static final String UPL_CELL_NOT_INTEGER = "UPL_CELL_NOT_INTEGER";
-    /** Ошибка ячейки: не число. */
+    /** Cell error: not a number. */
     public static final String UPL_CELL_NOT_NUMBER = "UPL_CELL_NOT_NUMBER";
-    /** Ошибка ячейки: не дата. */
+    /** Cell error: not a date. */
     public static final String UPL_CELL_NOT_DATE = "UPL_CELL_NOT_DATE";
-    /** Ошибка ячейки: ключ объекта учёта не подходит под маску анкеты. */
+    /** Cell error: the accounting object key does not match the format mask. */
     public static final String UPL_CELL_KEY_MASK = "UPL_CELL_KEY_MASK";
 
     private final long maxCells;
@@ -69,14 +69,14 @@ public class UplXlsxParser {
         this.maxCells = maxCells;
     }
 
-    /** Разбирает файл по анкете. Поток закрывает вызывающий. */
+    /** Parses the file by the format. The caller closes the stream. */
     public UplParseResult parse(InputStream content, FormatVersion format) {
         return parse(content, format, row -> {});
     }
 
     /**
-     * Разбирает файл по анкете; строки данных (с ошибками тоже, без пустых и итоговых) отдаёт в {@code rows}
-     * в порядке листов анкеты и строк. Поток закрывает вызывающий.
+     * Parses the file by the format; passes data rows (including rows with errors, without empty and total rows)
+     * to {@code rows} in the order of the format sheets and rows. The caller closes the stream.
      */
     public UplParseResult parse(InputStream content, FormatVersion format, Consumer<DataRow> rows) {
         try (ReadableWorkbook book = new ReadableWorkbook(content)) {
@@ -86,13 +86,13 @@ public class UplXlsxParser {
         }
     }
 
-    /** Разбирает файл на диске по анкете: книга читается с диска, в памяти не копируется. */
+    /** Parses a file on disk by the format: the workbook is read from disk and not copied into memory. */
     public UplParseResult parse(Path file, FormatVersion format) {
         return parse(file, format, row -> {});
     }
 
     /**
-     * Разбирает файл на диске по анкете; строки данных отдаёт в {@code rows}, как {@link #parse(InputStream,
+     * Parses a file on disk by the format; passes data rows to {@code rows}, like {@link #parse(InputStream,
      * FormatVersion, Consumer)}.
      */
     public UplParseResult parse(Path file, FormatVersion format, Consumer<DataRow> rows) {
@@ -118,7 +118,7 @@ public class UplXlsxParser {
         return UplParseResult.rejected(UPL_PKG_UNREADABLE, Map.of(), 0, List.of());
     }
 
-    // --- проход 2: значения ---
+    // --- pass 2: values ---
 
     private UplParseResult readValues(List<SheetMatch> sheets, Consumer<DataRow> rows) throws IOException {
         long cells = 0;
@@ -157,7 +157,7 @@ public class UplXlsxParser {
         return UplParseResult.verified(total, rejected, errorsTotal, errors);
     }
 
-    /** Пустая строка и итоговая строка не считаются строками данных и ошибок не дают. */
+    /** An empty row and a total row are not data rows and produce no errors. */
     private static boolean skipped(List<CellValue> values, String totalRowMarker) {
         boolean empty = true;
         boolean total = false;
@@ -201,6 +201,6 @@ public class UplXlsxParser {
                 : List.copyOf(found.subList(0, UplLimits.MAX_STORED_ERRORS));
     }
 
-    /** Строка данных как в файле: лист, № строки Excel и значения по полям анкеты ({@code null} — пустая ячейка). */
+    /** A data row as in the file: sheet, Excel row number and values by format field ({@code null} = empty cell). */
     public record DataRow(String sheet, int sourceRowNo, Map<String, Object> fields) {}
 }

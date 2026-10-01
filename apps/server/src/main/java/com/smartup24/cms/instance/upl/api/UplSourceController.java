@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** API анкеты файла: источники и версии формата (контракт И3). */
+/** File format API: sources and format versions. */
 @RestController
 @RequestMapping("/api/v1/upl/sources")
 public class UplSourceController {

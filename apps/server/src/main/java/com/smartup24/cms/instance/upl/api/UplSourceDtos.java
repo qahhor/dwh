@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-/** Запросы и ответы API анкеты файла (контракт И3). Перечисления — строки в нижнем регистре, как в БД. */
+/** Requests and responses of the file format API. Enumerations are lower-case strings, as in the database. */
 public final class UplSourceDtos {
 
     private UplSourceDtos() {}
@@ -151,7 +151,7 @@ public final class UplSourceDtos {
             String refBookCode,
             @Size(max = 10) List<@NotBlank @Size(max = 200) String> headerSynonyms) {
 
-        /** Порядок колонки берётся из позиции в списке (контракт: {@code ordinal} = позиция), id назначает БД. */
+        /** The column order is its position in the list ({@code ordinal} = position); the database assigns the id. */
         public Column toModel(int position) {
             return new Column(
                     null,
@@ -199,7 +199,7 @@ public final class UplSourceDtos {
             String totalRowMarker,
             @NotNull List<@NotNull @Valid ColumnDto> columns) {
 
-        /** Порядок листа и колонок берётся из позиции в списке, id назначает БД. */
+        /** Sheet and column order comes from their position in the list; the database assigns the id. */
         public Sheet toModel(int position) {
             List<Column> models = new ArrayList<>(columns.size());
             for (int i = 0; i < columns.size(); i++) {

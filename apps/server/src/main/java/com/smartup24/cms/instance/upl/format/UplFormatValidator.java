@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.springframework.stereotype.Component;
 
-/** Проверки анкеты перед публикацией (контракт И3, «Ошибки»): собирает все нарушения сразу. */
+/**
+ * Checks of a file format before publication (the "Errors" table of the format contract): collects all
+ * violations at once.
+ */
 @Component
 public class UplFormatValidator {
 
@@ -54,7 +57,7 @@ public class UplFormatValidator {
         this.units = units;
     }
 
-    /** Все нарушения анкеты; пустой список — версию можно публиковать. */
+    /** All violations of the format; an empty list means the version can be published. */
     public List<FieldErrorItem> validate(FormatVersion v) {
         List<FieldErrorItem> errors = new ArrayList<>();
         checkVersion(v, errors);

@@ -17,17 +17,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Закрывает применения, прервавшиеся между шагами (P0 DWH). Запрос ({@link UplApplyService}) фиксирует номер
- * загрузки и ставит {@link UplApplyJob}, задание пишет raw во вторую базу и закрывает пакет; если задание так и не
- * закрыло его (узел падал на каждой попытке, попытки кончились, очередь стояла), пакет навсегда оставался бы
- * «применяется» (проверен с номером загрузки), а загрузка — {@code pending}: повторное применение отвечало 409, а
- * очистка raw видит только {@code failed}.
+ * Closes applies that were interrupted between steps. The request ({@link UplApplyService}) records the load
+ * number and queues {@link UplApplyJob}; the job writes raw to the second database and closes the package. If
+ * the job never closed it (the node crashed on every attempt, attempts ran out, the queue stalled), the package
+ * would stay "applying" forever (verified with a load number) and the load {@code pending}: a repeated apply
+ * would answer 409, and the raw cleanup only sees {@code failed}.
  *
- * <p>Задание отмечает такую загрузку неудачной (её строки raw уберёт {@code fnd.load_cleanup}), а
- * пакет — «отклонён системой» с кодом {@link UplApplyService#UPL_PKG_APPLY_INTERRUPTED}, как при
- * сбое записи raw: у загрузки уникальный {@code package_ref}, поэтому тот же пакет второй раз не
- * применить, файл загружают заново. Прерванным считается применение старше {@code staleMinutes}
- * (по умолчанию {@value #DEFAULT_STALE_MINUTES}): живое применение большого файла не трогается.
+ * <p>The job marks such a load as failed (its raw rows are removed by {@code fnd.load_cleanup}) and
+ * the package as "rejected" with code {@link UplApplyService#UPL_PKG_APPLY_INTERRUPTED}, as on
+ * a raw write failure: the load has a unique {@code package_ref}, so the same package cannot be
+ * applied a second time and the file is uploaded again. An apply older than {@code staleMinutes} counts as interrupted
+ * (by default {@value #DEFAULT_STALE_MINUTES}): a live apply of a large file is not touched.
  * An apply whose job is still queued, waiting for a retry or leased is never interrupted, whatever its age: only a job
  * that left the queue without closing the package, or ran out of attempts, makes it one.
  */
@@ -35,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UplApplyRecoveryJob implements FndJobHandler {
 
     public static final String CODE = "upl.apply_recovery";
-    /** Больше самого долгого применения, которое мы ждём от живого процесса. */
+    /** Longer than the longest apply we expect from a live process. */
     static final int DEFAULT_STALE_MINUTES = 60;
 
     private static final Logger log = LoggerFactory.getLogger(UplApplyRecoveryJob.class);
@@ -74,7 +74,8 @@ public class UplApplyRecoveryJob implements FndJobHandler {
                 // Its apply job waits for its turn or a retry, or runs: an old request is not an interrupted one
                 continue;
             }
-            // Третий шаг закрывает пакет и загрузку в одной транзакции: загрузка не pending — не прерывание
+            // The third step closes the package and the load in one transaction: a load that is not pending is not
+            // an interruption
             if (loads.find(row.loadId())
                     .filter(load -> FndLoad.PENDING.equals(load.status()))
                     .isEmpty()) {

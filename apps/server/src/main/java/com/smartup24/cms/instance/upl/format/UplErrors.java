@@ -7,14 +7,14 @@ import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.StaleVersionException;
 import org.springframework.dao.DataAccessException;
 
-/** Перевод ошибок основы и БД в ответ API по таблице «Ошибки» контракта анкеты файла. */
+/** Maps foundation and database errors to an API response per the "Errors" table of the file format contract. */
 public final class UplErrors {
 
     private static final String NOT_DRAFT_DB_ERROR = "upl_format_not_draft";
 
     private UplErrors() {}
 
-    /** Знакомую ошибку переводит в {@link ApiException}; незнакомую возвращает тем же объектом. */
+    /** Turns a known error into an {@link ApiException}; returns an unknown one as the same object. */
     public static RuntimeException toApi(RuntimeException e) {
         if (e instanceof StaleVersionException) {
             return ApiException.conflict(ErrorCode.CONFLICT, "error.upl.stale_version");
