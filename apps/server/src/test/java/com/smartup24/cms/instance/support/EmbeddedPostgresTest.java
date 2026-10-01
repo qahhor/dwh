@@ -30,6 +30,8 @@ public abstract class EmbeddedPostgresTest {
         registry.add("app.dwh.password", () -> "");
         // Test contexts run on stub channels; KauthDeliveryGuardTest covers the guard itself.
         registry.add("smc.delivery.enforce", () -> "false");
+        // Stored secrets are encrypted with an installation key (ADR-0029); tests share one derived key.
+        registry.add("smc.secrets.key", TestStoredSecrets::keyBase64);
         registry.add("app.dwh.connect-timeout", () -> "2s");
         // Assumption: in tests OneID is a mock provider without network access; each test turns it on explicitly
         registry.add("platform.oneid.mock", () -> true);

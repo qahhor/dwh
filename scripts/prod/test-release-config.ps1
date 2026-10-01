@@ -60,6 +60,7 @@ foreach ($variable in @('SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 
         "Production Compose must pass $variable to the server (password reset and two-factor delivery)."
 }
 Assert-Matches $composeSource 'SMC_DELIVERY_ENFORCE:\s*\$\{SMC_DELIVERY_ENFORCE:-true\}' 'Production must refuse to start while two-factor users depend on a stub channel.'
+Assert-Matches $composeSource 'SMC_SECRETS_KEY:\s*\$\{SMC_SECRETS_KEY:\?' 'Production must require the key of the secrets kept in the database (ADR-0029).'
 Assert-DoesNotMatch $composeSource 'max-size:\s*"50m"' 'Container logs rotate at 100 MB (decision of 2026-09-27).'
 Assert-Matches $composeSource 'max-size:\s*"100m",\s*max-file:\s*"5",\s*compress:\s*"true"' 'Container logs must rotate at 100 MB and be compressed.'
 Assert-Matches $composeSource 'SMC_LOG_FILE:\s*\$\{SMC_LOG_FILE:-/var/lib/smartupcms/logs/server\.log\}' 'The server must write its weekly archived log file on the data volume.'

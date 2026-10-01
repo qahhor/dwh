@@ -51,6 +51,10 @@ try {
     $backupPassword = "Backup!" + [Guid]::NewGuid().ToString("N") + "aA1"
     $adminPassword = "Admin!" + [Guid]::NewGuid().ToString("N") + "aA1"
     $typesenseKey = "Typesense-" + [Guid]::NewGuid().ToString("N")
+    # A disposable key of the secrets kept in the database (ADR-0029): base64 of 32 random bytes.
+    $secretsKeyBytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($secretsKeyBytes)
+    $secretsKey = [Convert]::ToBase64String($secretsKeyBytes)
 
     Invoke-Docker -Arguments @(
         "compose", "-f", "docker-compose.yml", "--profile", "tools", "--profile", "backup",
@@ -92,6 +96,7 @@ try {
         "ADMIN_EMAIL=admin@upgrade.test",
         "ADMIN_PASSWORD=$adminPassword",
         "TYPESENSE_API_KEY=$typesenseKey",
+        "SMC_SECRETS_KEY=$secretsKey",
         "HTTP_BIND=127.0.0.1",
         "HTTP_PORT=$HttpPort",
         "DWH_PROVIDER_STORAGE=local_disk",

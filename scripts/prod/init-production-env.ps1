@@ -42,6 +42,18 @@ function New-SecureHexToken([int]$bytes = 32) {
     }
 }
 
+# The key of the secrets kept in the database (ADR-0029): base64 of 32 random bytes.
+function New-SecureBase64Key([int]$bytes = 32) {
+    $buffer = New-Object byte[] $bytes
+    $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rng.GetBytes($buffer)
+        return [Convert]::ToBase64String($buffer)
+    } finally {
+        $rng.Dispose()
+    }
+}
+
 # The first administrator password: 20 characters, the longest the password policy accepts.
 function New-SecurePassword([int]$length = 20) {
     $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*-_=+'
@@ -66,6 +78,7 @@ if (-not (Test-Path -LiteralPath $targetSecretsDir)) {
 $dbPassword = New-SecureHexToken 32
 $backupDbPassword = New-SecureHexToken 32
 $typesenseApiKey = New-SecureHexToken 32
+$secretsKey = New-SecureBase64Key 32
 $resolvedAdminPassword = if ([string]::IsNullOrWhiteSpace($AdminPassword)) { New-SecurePassword 20 } else { $AdminPassword }
 
 # Write secret files
@@ -169,6 +182,10 @@ ADMIN_EMAIL=$AdminEmail
 ADMIN_PASSWORD=$resolvedAdminPassword
 
 TYPESENSE_API_KEY=$typesenseApiKey
+
+# Encrypts the secrets kept in the database (ADR-0029). Keep a copy with the
+# backup identity, outside this host: a restore without it loses those secrets.
+SMC_SECRETS_KEY=$secretsKey
 
 # Storage configuration
 DWH_PROVIDER_STORAGE=$StorageMode

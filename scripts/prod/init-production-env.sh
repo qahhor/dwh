@@ -34,6 +34,15 @@ generate_hex_token() {
     fi
 }
 
+# The key of the secrets kept in the database (ADR-0029): base64 of 32 random bytes.
+generate_base64_key() {
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 32
+    else
+        head -c 32 /dev/urandom | base64 | tr -d '\n'
+    fi
+}
+
 # The first administrator password: 20 characters, the longest the password policy accepts.
 generate_secure_password() {
     if command -v openssl >/dev/null 2>&1; then
@@ -51,6 +60,7 @@ chmod 700 "$SECRETS_DIR"
 DB_PASSWORD="$(generate_hex_token)"
 BACKUP_DB_PASSWORD="$(generate_hex_token)"
 TYPESENSE_API_KEY="$(generate_hex_token)"
+SMC_SECRETS_KEY="$(generate_base64_key)"
 
 if [[ -z "$ADMIN_PASSWORD" ]]; then
     ADMIN_PASSWORD="$(generate_secure_password)"
@@ -140,6 +150,10 @@ ADMIN_EMAIL=$ADMIN_EMAIL
 ADMIN_PASSWORD=$ADMIN_PASSWORD
 
 TYPESENSE_API_KEY=$TYPESENSE_API_KEY
+
+# Encrypts the secrets kept in the database (ADR-0029). Keep a copy with the
+# backup identity, outside this host: a restore without it loses those secrets.
+SMC_SECRETS_KEY=$SMC_SECRETS_KEY
 
 # Storage configuration
 DWH_PROVIDER_STORAGE=$STORAGE_MODE
