@@ -8,7 +8,7 @@ import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
-/** Сохранённые представления списков (V117). Все запросы — только в пределах своего пользователя и списка. */
+/** Saved list views (V117). Every query stays within the user's own views of one list. */
 @Repository
 public class MdListViewRepository {
 
@@ -71,7 +71,7 @@ public class MdListViewRepository {
                 .single();
     }
 
-    /** @return 0 — представления нет или его уже изменили (другой {@code lock_version}) */
+    /** @return 0 if the view does not exist or was already changed (a different {@code lock_version}) */
     public int update(
             long userId, String listCode, long id, int lockVersion, String name, String stateJson, boolean isDefault) {
         return jdbc.sql("""
@@ -90,7 +90,7 @@ public class MdListViewRepository {
                 .update();
     }
 
-    /** Снимает признак «по умолчанию» с остальных представлений списка. */
+    /** Clears the "default" flag on the list's other views. */
     public void clearDefault(long userId, String listCode, Long exceptId) {
         jdbc.sql("""
                         update md_list_views set is_default = false, modified_at = now()

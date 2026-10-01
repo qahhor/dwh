@@ -311,7 +311,7 @@ public class MdUserRepository {
                 rs.getLong("revision"));
     }
 
-    /** Сколько АКТИВНЫХ пользователей имеют указанную роль (защита последнего админа). */
+    /** How many ACTIVE users have the given role (protects the last administrator). */
     public int countUsersWithRole(Long roleId) {
         return jdbcClient.sql("""
                         select count(*) from md_user_roles ur

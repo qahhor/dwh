@@ -7,18 +7,18 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Скоуп данных: правило видимости у роли, позиция пользователя в дереве и
- * материализация эффективного скоупа (ADR-0013).
+ * Data scope: a role's visibility rule, the user's position in the tree and
+ * materialization of the effective scope (ADR-0013).
  *
- * Материализация повторяет механику md_effective_permissions намеренно:
- * проверка «виден ли узел» попадает в каждый запрос списка, а рекурсивный
- * обход дерева на каждый запрос — тот случай, когда правильная модель
- * убивает отзывчивость.
+ * Materialization deliberately mirrors the md_effective_permissions mechanism:
+ * the "is the unit visible" check goes into every list query, and a recursive
+ * tree walk on every query is the case where the correct model
+ * kills responsiveness.
  */
 @Repository
 public class MdScopeRepository {
 
-    /** Порядок ширины правил: чем больше, тем шире видимость. */
+    /** Rule breadth order: the larger, the wider the visibility. */
     private static final List<String> RULES_WIDEST_FIRST = List.of("ALL", "SUBTREE", "UNITS", "SELF");
 
     private final JdbcClient jdbcClient;
@@ -35,7 +35,7 @@ public class MdScopeRepository {
                 .single();
     }
 
-    // ------------------------------------------------------------------ роли
+    // ----------------------------------------------------------------- roles
 
     public void setRoleRule(Long roleId, String rule) {
         jdbcClient.sql("""
@@ -62,7 +62,7 @@ public class MdScopeRepository {
                 .single();
     }
 
-    // ----------------------------------------------------------- пользователь
+    // ------------------------------------------------------------------ user
 
     public Set<Long> getUserOrgUnitIds(Long userId) {
         return Set.copyOf(jdbcClient
@@ -72,7 +72,7 @@ public class MdScopeRepository {
                 .list());
     }
 
-    /** Полная замена набора узлов пользователя — та же семантика PUT, что у ролей. */
+    /** Replaces the user's whole set of units, with the same PUT semantics as for roles. */
     public void replaceUserOrgUnits(Long userId, List<Long> orgUnitIds) {
         jdbcClient
                 .sql("delete from md_user_org_units where user_id = :userId")
@@ -104,14 +104,14 @@ public class MdScopeRepository {
                 .list());
     }
 
-    // --------------------------------------------------------- материализация
+    // ------------------------------------------------------- materialization
 
     /**
-     * Пересчёт эффективного скоупа. Вызывается в ТОЙ ЖЕ транзакции, что и
-     * изменение ролей, позиции или дерева — иначе между изменением и
-     * пересчётом существует окно, в котором доступ к данным неверен.
+     * Recalculates the effective scope. Called in the SAME transaction as the
+     * change of roles, position or tree; otherwise there is a window between the change
+     * and the recalculation in which data access is wrong.
      *
-     * @return правило, которое получилось у пользователя
+     * @return the rule the user ended up with
      */
     public String recalculateEffectiveScope(Long userId) {
         String rule = resolveWidestRule(userId);
@@ -127,7 +127,7 @@ public class MdScopeRepository {
                 .param("userId", userId)
                 .update();
 
-        // ALL не ограничивает ничего, SELF не опирается на дерево — материализовать нечего.
+        // ALL restricts nothing and SELF does not rely on the tree, so there is nothing to materialize.
         switch (rule) {
             case "UNITS" -> jdbcClient.sql("""
                             insert into md_effective_scope (user_id, org_unit_id)
@@ -138,8 +138,8 @@ public class MdScopeRepository {
                             on conflict do nothing
                             """).param("userId", userId).update();
 
-            // Пассивный узел обрывает ветку целиком: узел выключен вместе с тем,
-            // что под ним, иначе «выключение филиала» не выключало бы его отделы.
+            // A passive unit cuts off the whole branch: the unit is off together with everything
+            // under it, otherwise "turning off a branch office" would not turn off its departments.
             case "SUBTREE" -> jdbcClient.sql("""
                             with recursive subtree as (
                                 select u.id
@@ -158,7 +158,7 @@ public class MdScopeRepository {
                             """).param("userId", userId).update();
 
             default -> {
-                /* ALL, SELF — материализация не нужна */
+                /* ALL, SELF: no materialization needed */
             }
         }
 
@@ -166,9 +166,9 @@ public class MdScopeRepository {
     }
 
     /**
-     * Самое широкое правило среди активных ролей пользователя.
-     * Роль без явного правила считается ALL: сегодня так ведёт себя весь
-     * экземпляр, и сужение должно быть осознанным действием администратора.
+     * The widest rule among the user's active roles.
+     * A role without an explicit rule counts as ALL: that is how the whole instance
+     * behaves today, and narrowing must be a deliberate administrator action.
      */
     private String resolveWidestRule(Long userId) {
         List<String> rules =
@@ -186,7 +186,7 @@ public class MdScopeRepository {
         return RULES_WIDEST_FIRST.stream().filter(rules::contains).findFirst().orElse("ALL");
     }
 
-    /** Пользователи роли — кому нужно пересчитать скоуп после смены её правила. */
+    /** The role's users: whose scope must be recalculated after its rule changes. */
     public List<Long> getUserIdsByRole(Long roleId) {
         return jdbcClient
                 .sql("select user_id from md_user_roles where role_id = :roleId order by user_id")

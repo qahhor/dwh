@@ -5,26 +5,26 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Человекочитаемые имена форм и действий (FR-PERM-1).
+ * Human-readable names of forms and actions (FR-PERM-1).
  *
- * Разделение ответственности намеренное: **существование** пары «форма × действие»
- * определяется аннотациями {@code @RequiresPermission} в контроллерах — это
- * единственный источник правды, потому что именно они реально охраняют эндпоинты.
- * Здесь живут только названия для экрана матрицы прав.
+ * The split of responsibility is deliberate: the **existence** of a "form x action" pair
+ * is defined by {@code @RequiresPermission} annotations in controllers; they are the
+ * single source of truth because they are what actually guards the endpoints.
+ * Only the names for the permission matrix screen live here.
  *
- * Формы сущностей, объявленных через {@code EntityDefinition}, называют себя сами
- * ({@code EntityRights}, roadmap item 57) и здесь не повторяются.
+ * Forms of entities declared through {@code EntityDefinition} name themselves
+ * ({@code EntityRights}) and are not repeated here.
  *
- * Пара, объявленная аннотацией, но забытая здесь, получит имя = собственный код
- * и не сломает работу; сборку в этом случае валит тест
- * {@code everyDeclaredPermissionHasHumanName}. Обратный случай — имя без
- * аннотации — означает мёртвую запись в каталоге и помечается устаревшим.
+ * A pair declared by an annotation but forgotten here gets its own code as its name
+ * and does not break anything; the build is then failed by the
+ * {@code everyDeclaredPermissionHasHumanName} test. The reverse case, a name without
+ * an annotation, means a dead catalog entry and is marked obsolete.
  */
 public final class MdFormCatalog {
 
     private MdFormCatalog() {}
 
-    /** Форма: модуль-владелец, имя и имена её действий. */
+    /** A form: the owning module, its name and the names of its actions. */
     public record FormMeta(String module, String name, Map<String, String> actionNames) {}
 
     private static final Map<String, FormMeta> FORMS = buildForms();
@@ -33,7 +33,7 @@ public final class MdFormCatalog {
         return Optional.ofNullable(FORMS.get(formCode));
     }
 
-    /** Модуль формы; для незнакомой — префикс кода, чтобы группировка в UI не рассыпалась. */
+    /** The form's module; for an unknown form, the code prefix, so grouping in the UI does not fall apart. */
     public static String moduleOf(String formCode) {
         var meta = FORMS.get(formCode);
         if (meta != null) {
@@ -56,7 +56,7 @@ public final class MdFormCatalog {
         return meta.actionNames().getOrDefault(action, action);
     }
 
-    /** Есть ли имя у пары — используется тестом полноты каталога. */
+    /** Whether the pair has a name; used by the catalog completeness test. */
     public static boolean hasHumanName(String formCode, String action) {
         var meta = FORMS.get(formCode);
         return meta != null && meta.actionNames().containsKey(action);

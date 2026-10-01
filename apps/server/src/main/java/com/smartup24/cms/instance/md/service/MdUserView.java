@@ -8,9 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Безопасная проекция пользователя для API-ответов.
- * Репозиторная запись (UserRecord) наружу не отдаётся НИКОГДА:
- * она содержит password_hash (утечка обнаружена live-проверкой 2026-08-28).
+ * A safe user projection for API responses.
+ * The repository record (UserRecord) is NEVER exposed:
+ * it contains password_hash (a leak found by a live check on 2026-08-28).
  */
 public record MdUserView(
         Long id,

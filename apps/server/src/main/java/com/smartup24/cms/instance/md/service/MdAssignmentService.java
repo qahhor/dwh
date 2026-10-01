@@ -19,14 +19,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Назначение ролей и персональных прав пользователям (FR-PERM-4, FR-PERM-5, FR-PERM-10).
+ * Assigns roles and personal permissions to users (FR-PERM-4, FR-PERM-5, FR-PERM-10).
  *
- * Ключевое правило: любое изменение прав в ТОЙ ЖЕ транзакции пересчитывает
- * эффективные права и инкрементирует permissions_version (инвариант I-P2) —
- * иначе кэш в приложении не узнает об изменении и отзыв права не сработает.
+ * The key rule: every permission change recalculates effective permissions and increments
+ * permissions_version in the SAME transaction (an ADR-0006 invariant);
+ * otherwise the application cache never learns of the change and revoking a permission fails.
  *
- * Второе правило той же силы: изменение прав пишется в аудит той же транзакцией
- * (FR-AUD-1). Выдача доступа без следа в журнале неотличима от компрометации.
+ * A second rule of equal weight: the permission change is audited in the same transaction
+ * (FR-AUD-1). Granting access without a trace in the log is indistinguishable from a compromise.
  */
 @Service
 public class MdAssignmentService {
@@ -110,9 +110,9 @@ public class MdAssignmentService {
                         .map(g -> new MdRoleRepository.PermissionPair(g.form(), g.action()))
                         .toList();
 
-        // Права выдаются только на живые пары каталога (FR-PERM-1): устаревшая
-        // пара ничего не открывает, и выданное по ней право неотличимо от
-        // ошибки настройки доступа.
+        // Permissions are granted only on live catalog pairs (FR-PERM-1): an obsolete
+        // pair opens nothing, and a permission granted on it is indistinguishable from
+        // an access misconfiguration.
         var grantable = permissionService.getGrantablePairs();
         for (var p : requested) {
             if (!grantable.contains(p.formCode() + "." + p.action())) {
@@ -166,8 +166,8 @@ public class MdAssignmentService {
     }
 
     /**
-     * Нельзя снять роль admin с последнего администратора: система осталась бы
-     * без единого пользователя, способного управлять доступом (сценарий F-04).
+     * The admin role cannot be removed from the last administrator: the system would be left
+     * without a single user able to manage access.
      */
     private void guardLastAdmin(Long userId, List<Long> newRoleIds) {
         var adminRole = roleRepository.findByPcode(MdPref.ROLE_ADMIN).orElse(null);
@@ -189,7 +189,7 @@ public class MdAssignmentService {
         ApiException.requirePresent(userRepository.findById(userId), () -> new ApiException(ErrorCode.USER_NOT_FOUND));
     }
 
-    /** Одним запросом: идентификатор в имя. В журнале аудита имя роли читается, а идентификатор нет. */
+    /** Maps ids to names in one query. In the audit log a role name is readable and an id is not. */
     private Map<Long, String> roleNames() {
         return roleRepository.listRoles().stream()
                 .collect(Collectors.toMap(
@@ -200,7 +200,7 @@ public class MdAssignmentService {
         return ids.stream().map(id -> names.getOrDefault(id, "id:" + id)).toList();
     }
 
-    /** Что есть в from и нет в to. */
+    /** What is in from and not in to. */
     private static <T extends Comparable<T>> Set<T> diff(Set<T> from, Set<T> to) {
         return from.stream().filter(x -> !to.contains(x)).collect(Collectors.toCollection(TreeSet::new));
     }

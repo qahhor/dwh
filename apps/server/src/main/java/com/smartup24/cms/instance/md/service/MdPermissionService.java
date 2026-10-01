@@ -60,15 +60,15 @@ public class MdPermissionService {
     }
 
     /**
-     * Приводит каталог форм в соответствие с кодом (FR-PERM-1).
+     * Brings the form catalog in line with the code (FR-PERM-1).
      *
-     * Существование пары определяется аннотациями {@code @RequiresPermission},
-     * имена — объявлением сущности ({@link EntityRights}), а для форм без него —
-     * справочником {@link MdFormCatalog}. Всё, чего нет среди
-     * объявленных пар, помечается устаревшим, но не удаляется: удаление
-     * каскадом сняло бы уже выданные права.
+     * A pair's existence is defined by {@code @RequiresPermission} annotations,
+     * names by the entity declaration ({@link EntityRights}), and for forms without one by
+     * the {@link MdFormCatalog} directory. Everything not among the
+     * declared pairs is marked obsolete but not deleted: deletion
+     * would cascade to permissions already granted.
      *
-     * @param declaredPairs пары {@code form.action}, найденные в коде
+     * @param declaredPairs {@code form.action} pairs found in the code
      */
     @Transactional
     public CatalogSyncResult syncFormCatalog(Set<String> declaredPairs) {
@@ -101,7 +101,7 @@ public class MdPermissionService {
         return new CatalogSyncResult(declaredPairs.size(), deprecated, deprecatedPairs);
     }
 
-    /** Пары, которые реально можно выдать: устаревшие исключены (FR-PERM-1). */
+    /** Pairs that can actually be granted: obsolete ones are excluded (FR-PERM-1). */
     @Transactional(readOnly = true)
     public Set<String> getGrantablePairs() {
         return permissionRepository.getGrantablePairs();

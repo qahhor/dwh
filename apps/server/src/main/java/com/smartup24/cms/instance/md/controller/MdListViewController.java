@@ -25,8 +25,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Свои сохранённые представления списка. Как и собственные настройки, это часть профиля: право —
- * от формы профиля, которая есть у всех ролей; доступ к самому списку сервис проверяет по реестру.
+ * The user's own saved list views. Like personal settings, they are part of the profile: the permission
+ * comes from the profile form every role has; the service checks access to the list itself in the registry.
  */
 @RestController
 @RequestMapping("/api/v1/list-views/{listCode}")

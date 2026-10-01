@@ -29,9 +29,9 @@ import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * Сохранённые представления списка (ADR-0016): колонки, сортировка и фильтр, которые пользователь
- * назвал и может вернуть одним выбором. Состояние проверяется по реестру полей и хранится в
- * канонической форме, собранной сервером, так что в базу не попадает ничего, чего реестр не знает.
+ * Saved list views (ADR-0016): columns, sort and filter that the user named and can restore with one
+ * choice. The state is validated against the field registry and stored in a canonical form built by the
+ * server, so nothing the registry does not know reaches the database.
  */
 @Service
 public class MdListViewService {
@@ -41,7 +41,7 @@ public class MdListViewService {
     public static final String LIST_VIEW_NAME_TAKEN = "LIST_VIEW_NAME_TAKEN";
     public static final String LIST_VIEW_LIMIT = "LIST_VIEW_LIMIT";
 
-    /** Больше представлений одного списка человек не различает в меню. */
+    /** A person cannot tell apart more views of one list in a menu. */
     public static final int MAX_VIEWS_PER_LIST = 20;
 
     public static final int MAX_NAME = 80;
@@ -131,7 +131,7 @@ public class MdListViewService {
         audit.logChange(TABLE, Long.toString(id), "D", AUDITED, row(before), null);
     }
 
-    /** Список, который пользователь может смотреть; чужой и несуществующий неотличимы, как в {@code query-meta}. */
+    /** A list the user may view; a forbidden and a missing list look the same, as in {@code query-meta}. */
     private QueryList visibleList(String listCode) {
         return registry.find(listCode)
                 .filter(list -> SecurityContext.hasPermission(list.form(), list.action()))
@@ -153,9 +153,9 @@ public class MdListViewService {
     }
 
     /**
-     * Проверенное состояние в канонической форме: колонки — только поля списка, ширина — пиксели,
-     * сортировка и фильтр — то, что принял бы сам список ({@link QueryCompiler}). Ошибки адресованы
-     * внутрь {@code state}: {@code state.columns.order[2]}, {@code state.filter[0].op}, {@code state.sort}.
+     * The validated state in canonical form: columns are only the list's fields, widths are pixels,
+     * sort and filter are what the list itself would accept ({@link QueryCompiler}). Errors point
+     * inside {@code state}: {@code state.columns.order[2]}, {@code state.filter[0].op}, {@code state.sort}.
      */
     String canonicalState(QueryList list, JsonNode state) {
         List<FieldErrorItem> errors = new ArrayList<>();

@@ -165,8 +165,8 @@ public class MdCustomFieldService {
         var field = customFieldRepository.create(
                 entityType, normalizedCode, name, normalizedFieldType, isRequired, defaultValue, options, orderNo);
 
-        // Поле меняет форму данных всех записей сущности — операция уровня схемы,
-        // и она обязана быть в журнале (FR-AUD-1).
+        // A field changes the data shape of every record of the entity: a schema-level operation
+        // that must be in the audit log (FR-AUD-1).
         auditLogService.logChange(
                 "md_custom_fields",
                 String.valueOf(field.id()),
