@@ -124,6 +124,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `SMC_S3_SECRET_KEY` | `smc.storage.s3.secret-key` | пусто |
 | `SMC_SCHEMA_GATE_ENABLED` | `smc.schema-gate.enabled` | `true` |
 | `SMC_SEARCH_MAXIMUM_GENERATIONS` | `smc.search.maximum-generations` | `4` |
+| `SMC_SECRETS_KEY` | `smc.secrets.key` | пусто |
 | `SMC_SECURITY_TRUSTED_PROXIES` | `smc.security.trusted-proxies` | `127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10` |
 | `SMC_SESSION_CLEANUP_INTERVAL` | `smc.session.cleanup-interval` | `1h` |
 | `SMC_SSE_HEARTBEAT_MS` | `smc.sse.heartbeat-ms` | `25000` |

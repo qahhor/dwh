@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.config.env;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.common.env.LegacyConfigNames;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;

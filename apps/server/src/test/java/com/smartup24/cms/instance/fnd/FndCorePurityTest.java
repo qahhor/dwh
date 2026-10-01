@@ -32,6 +32,8 @@ class FndCorePurityTest {
     private static final Path DWH_MIGRATIONS = Path.of("src/main/resources/db/dwh");
     private static final Path TERMS = Path.of("src/test/resources/forbidden-terms.txt");
     private static final Path ALLOWED_NUMBERS = Path.of("src/test/resources/allowed-numbers.txt");
+    /** Lines where a listed term is an identifier, not a unit or a buyer: {@code path:line:term # reason}. */
+    private static final Path ALLOWED_TERMS = Path.of("src/test/resources/allowed-terms.txt");
     /** A fraction or a number of 4+ digits as a separate token: 127.0.0.1, V100, id_2026 do not count. */
     private static final Pattern NUMBER =
             Pattern.compile("(?<![\\p{L}\\p{N}_.])(\\d+\\.\\d+|\\d{4,})(?![\\p{L}\\p{N}_.])");
@@ -51,7 +53,23 @@ class FndCorePurityTest {
         assertThat(files)
                 .as("исходники ядра не найдены — проверьте рабочий каталог теста")
                 .isNotEmpty();
-        assertThat(scan(files, terms)).isEmpty();
+        Set<String> allowed = allowedTerms();
+        assertThat(scan(files, terms).stream()
+                        .filter(hit -> !allowed.contains(hit.replace('\\', '/')))
+                        .toList())
+                .isEmpty();
+    }
+
+    private static Set<String> allowedTerms() throws IOException {
+        Set<String> allowed = new java.util.HashSet<>();
+        for (String line : Files.readAllLines(ALLOWED_TERMS, StandardCharsets.UTF_8)) {
+            String entry = line.replaceFirst("#.*$", "").strip();
+            if (!entry.isEmpty()) {
+                int term = entry.lastIndexOf(':');
+                allowed.add(entry.substring(0, term) + " — " + entry.substring(term + 1));
+            }
+        }
+        return allowed;
     }
 
     @Test

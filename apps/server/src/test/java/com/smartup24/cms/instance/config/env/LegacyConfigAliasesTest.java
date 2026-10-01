@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.config.env;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.smartup24.cms.instance.common.env.LegacyConfigNames;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;

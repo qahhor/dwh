@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.config.env;
 
+import com.smartup24.cms.instance.common.env.LegacyConfigNames;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
