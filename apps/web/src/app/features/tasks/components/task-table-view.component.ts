@@ -23,6 +23,7 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { ListViewState } from '@shared/list-views/list-views';
 import { registryTableConfig } from '@shared/ui/registry-table-config';
+import { RefLookups } from '@shared/lookups/ref-lookup';
 import { Task, TaskStatus, TaskType } from '@core/models/task.models';
 import { TaskProjectRef } from '../tasks.models';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
@@ -57,6 +58,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
 })
 export class TaskTableViewComponent {
   private readonly i18n = inject(I18nService);
+  private readonly refLookups = inject(RefLookups);
   private readonly tasksApi = inject(TasksApi);
   private readonly toast = inject(ToastService);
 
@@ -160,6 +162,7 @@ export class TaskTableViewComponent {
         endTime: '180px',
       },
       align: { id: 'left' },
+      refName: (ref, key) => this.refLookups.name(ref, key),
     });
     const order = [...base.columnsOrder];
     order.splice(order.includes('id') ? order.indexOf('id') + 1 : 0, 0, 'type');

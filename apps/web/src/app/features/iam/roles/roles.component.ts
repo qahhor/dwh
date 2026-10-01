@@ -16,7 +16,7 @@ import { lastLoaded } from '@features/iam/last-loaded';
 import { RolesApi } from '@core/services/roles.api';
 import { PermissionService } from '@core/services/permission.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { Role, FormTreeItem } from '@core/models/rbac.models';
+import { Role, FormTreeItem, namedCatalog } from '@core/models/rbac.models';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { safeNumericRecordId } from '@core/services/search-target';
 import { RoleScopePanelComponent } from '../org-units/public-api';
@@ -181,7 +181,10 @@ export class RolesComponent implements OnInit {
   }
 
   buildModuleGroups(items: FormTreeItem[]) {
-    this.moduleGroups = buildModuleGroups(items, (mod) => this.getModuleDisplayName(mod));
+    this.moduleGroups = buildModuleGroups(
+      namedCatalog(items, (key) => this.uiI18n.translate(key)),
+      (mod) => this.getModuleDisplayName(mod),
+    );
   }
 
   /** Switching roles asks about an unsaved matrix and waits for the scope panel to let go. */

@@ -3,6 +3,8 @@ import { firstValueFrom, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { QueryListMeta } from '../models/query-meta.models';
 import { ApiService } from './api.service';
+import { CustomFieldsApi } from './custom-fields.api';
+import { PermissionService } from './permission.service';
 import { QueryMetaService, parseSort, toQueryParams } from './query-meta.service';
 
 const META: QueryListMeta = {
@@ -76,6 +78,57 @@ describe('QueryMetaService', () => {
 
     await expect(firstValueFrom(service.get('upl.sources'))).rejects.toEqual({ status: 503 });
     expect(await firstValueFrom(service.get('upl.sources'))).toEqual(META);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  // Plan 10/10, item 5.0: a new custom field becomes a column without a reload.
+  it('asks again after a custom field was saved, so the new field is a column', async () => {
+    const withField: QueryListMeta = {
+      ...META,
+      fields: [
+        {
+          key: 'cfRegion',
+          labelKey: '',
+          label: 'Region',
+          type: 'text',
+          ops: ['eq'],
+          sortable: false,
+          nullable: true,
+          defaultVisible: true,
+          enumValues: [],
+          enumLabelPrefix: null,
+        },
+      ],
+    };
+    const get = vi.fn().mockReturnValueOnce(of(META)).mockReturnValueOnce(of(withField));
+    const post = vi.fn(() => of({ id: 1 }));
+    TestBed.configureTestingModule({ providers: [{ provide: ApiService, useValue: { get, post } }] });
+    const service = TestBed.inject(QueryMetaService);
+
+    expect((await firstValueFrom(service.get('upl.sources'))).fields).toEqual([]);
+    await firstValueFrom(
+      TestBed.inject(CustomFieldsApi).create({
+        entityType: 'USER',
+        code: 'region',
+        name: 'Region',
+        fieldType: 'string',
+        isRequired: false,
+        orderNo: 1,
+      }),
+    );
+
+    expect((await firstValueFrom(service.get('upl.sources'))).fields.map((field) => field.key)).toEqual(['cfRegion']);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('asks again when the viewer’s rights change', async () => {
+    const get = vi.fn(() => of(META));
+    const service = setup(get);
+
+    await firstValueFrom(service.get('upl.sources'));
+    TestBed.inject(PermissionService).setPermissions(['upl.sources.view'], 2);
+    await firstValueFrom(service.get('upl.sources'));
+
     expect(get).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,5 +1,5 @@
 export type CustomFieldEntityType = 'USER' | 'PROJECT' | 'TASK' | 'NOTE' | string;
-export type CustomFieldType = 'string' | 'number' | 'boolean' | 'date' | 'select' | 'user_ref';
+export type CustomFieldType = 'string' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select' | 'user_ref';
 
 export interface CustomField {
   id: number;

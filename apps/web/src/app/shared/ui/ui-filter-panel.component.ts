@@ -24,6 +24,7 @@ import {
 } from '../list-views/filter-conditions';
 import { SMT_DRAWER_DATA, SMT_DRAWER_REF, SMTDrawerRef } from '../ui-kit/components/drawer';
 import { DateRange, SMTDatePickerComponent, SMTDateRangePickerComponent } from '../ui-kit/components/forms/date-picker';
+import { SMTTimePickerComponent } from '../ui-kit/components/forms/time-picker';
 import { SMTButtonComponent } from '../ui-kit/components/button';
 import { SMTInputComponent, SMTInputValue } from '../ui-kit/components/forms/input';
 import { SMTCheckboxComponent } from '../ui-kit/components/forms/checkbox';
@@ -67,6 +68,7 @@ let nextPanelId = 0;
     SMTDateRangePickerComponent,
     SMTDataSelectComponent,
     SMTRadioGroupComponent,
+    SMTTimePickerComponent,
   ],
   templateUrl: './ui-filter-panel.component.html',
   styleUrl: './ui-filter-panel.component.css',
@@ -154,10 +156,12 @@ export class UiFilterPanelComponent {
     return opTakesValue(op);
   }
 
-  editorOf(field: QueryFieldMeta, op: QueryOp): 'ref' | 'choice' | 'choices' | 'date' | 'input' {
+  editorOf(field: QueryFieldMeta, op: QueryOp): 'ref' | 'choice' | 'choices' | 'date' | 'time' | 'input' {
     if (field.ref && (op === 'eq' || op === 'ne')) return 'ref';
     if (field.type === 'enum' || field.type === 'boolean') return op === 'in' ? 'choices' : 'choice';
     if (field.type === 'date' || field.type === 'instant') return 'date';
+    // A time of day is picked as one (plan 10/10, item 5.0); "in" stays a comma-separated list.
+    if (field.type === 'time' && op !== 'in') return 'time';
     return 'input';
   }
 

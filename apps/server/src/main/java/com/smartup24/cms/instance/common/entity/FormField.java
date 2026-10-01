@@ -43,7 +43,8 @@ public record FormField(
         @Nullable QueryRef ref,
         @Nullable String attribute) {
 
-    private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9_]{0,63}$");
+    /** The list registry's key rule, so a form field and its list field can share one name (plan 10/10, item 5.0). */
+    private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9]{0,63}$");
 
     public FormField {
         Objects.requireNonNull(type, "type");

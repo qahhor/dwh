@@ -14376,6 +14376,9 @@
           "field" : {
             "type" : "string"
           },
+          "label" : {
+            "type" : "string"
+          },
           "labelKey" : {
             "type" : "string"
           },
@@ -14543,10 +14546,16 @@
           "actionName" : {
             "type" : "string"
           },
+          "actionNameKey" : {
+            "type" : "string"
+          },
           "formCode" : {
             "type" : "string"
           },
           "formName" : {
+            "type" : "string"
+          },
+          "formNameKey" : {
             "type" : "string"
           },
           "isDeprecated" : {

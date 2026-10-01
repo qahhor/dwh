@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -39,14 +40,23 @@ public record EntityDefinition(
         Set<EntityCapability> capabilities) {
 
     /**
-     * How the permission matrix names the entity's right (roadmap item 57): the owning module, the form's name and
-     * each action's name. Every action the entity declares and {@code view} are named.
+     * How the permission matrix names the entity's right (roadmap item 57): the owning module, the dictionary key
+     * of the form's name and the key of each action's name (ADR-0031, plan 10/10, item 5.0), so the matrix reads
+     * in the viewer's language. Every action the entity declares and {@code view} are named.
      */
-    public record EntityRights(String module, String name, Map<String, String> actionNames) {
+    public record EntityRights(String module, String nameKey, Map<String, String> actionKeys) {
         public EntityRights {
             Objects.requireNonNull(module, "module");
-            Objects.requireNonNull(name, "name");
-            actionNames = Map.copyOf(actionNames);
+            Objects.requireNonNull(nameKey, "nameKey");
+            actionKeys = Map.copyOf(actionKeys);
+        }
+
+        /** The keys of the form's and its actions' names, the form's first. */
+        public List<String> keys() {
+            List<String> keys = new ArrayList<>();
+            keys.add(nameKey);
+            actionKeys.values().stream().sorted().forEach(keys::add);
+            return keys;
         }
     }
 
@@ -122,7 +132,7 @@ public record EntityDefinition(
             throw new IllegalArgumentException("Entity " + code + ": bulk delete needs the delete action");
         }
         if (rights != null) {
-            Set<String> named = rights.actionNames().keySet();
+            Set<String> named = rights.actionKeys().keySet();
             if (!named.contains("view") || actions.stream().anyMatch(action -> !named.contains(action.permission()))) {
                 throw new IllegalArgumentException("Entity " + code + ": name view and every action's right");
             }

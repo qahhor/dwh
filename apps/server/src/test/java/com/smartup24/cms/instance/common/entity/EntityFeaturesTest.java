@@ -142,6 +142,26 @@ class EntityFeaturesTest {
         }
     }
 
+    /** Plan 10/10, item 5.0: every field is named, a custom field added after start by its own name. */
+    @Test
+    void historyNamesEveryFieldIncludingCustomFieldsAddedLater() {
+        List<FormField> custom = new ArrayList<>();
+        FormFieldExtender extender = entity -> List.copyOf(custom);
+        RecordHistorySource source = new EntityRegistry(
+                        List.of(NOTES), List.of(extender), List.of(records(NOTES.code())))
+                .historySources()
+                .getFirst();
+        assertThat(source.fieldLabels())
+                .containsOnlyKeys("title", "contentMd", "color", "isPinned")
+                .containsEntry("contentMd", "notes.col.content");
+        assertThat(source.fieldNames()).isEmpty();
+
+        custom.add(FormField.of("cfRegion", "", FormFieldType.TEXT).custom("Регион", "region"));
+
+        assertThat(source.fieldNames()).containsExactly(Map.entry("cfRegion", "Регион"));
+        assertThat(source.fieldLabels()).doesNotContainKey("cfRegion");
+    }
+
     @Test
     void exportComesFromTheDeclarationUnderTheListCode() {
         QueryListExporter exporter = notesRegistry().exporters().getFirst();
@@ -211,7 +231,7 @@ class EntityFeaturesTest {
     void rightsNameViewAndEveryDeclaredActionsRight() {
         FormField title = FormField.of("title", "t", FormFieldType.TEXT);
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
-        var rights = new EntityDefinition.EntityRights("x", "X", Map.of("view", "Просмотр"));
+        var rights = new EntityDefinition.EntityRights("x", "x.rights.form", Map.of("view", "x.rights.view"));
 
         assertThatThrownBy(() -> new EntityDefinition(
                         "x",
@@ -226,7 +246,7 @@ class EntityFeaturesTest {
                         List.of(new EntityAction("create", "create")),
                         Set.of()))
                 .hasMessageContaining("right");
-        assertThat(notesRegistry().rights("notes").orElseThrow().actionNames())
+        assertThat(notesRegistry().rights("notes").orElseThrow().actionKeys())
                 .containsKeys("view", "create", "update", "delete");
         assertThat(notesRegistry().rights("tasks.items")).isEmpty();
     }

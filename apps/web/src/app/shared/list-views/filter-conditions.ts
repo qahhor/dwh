@@ -147,6 +147,8 @@ function valueFits(field: QueryFieldMeta, text: string): boolean {
       return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value));
     case 'instant':
       return !Number.isNaN(Date.parse(value));
+    case 'time':
+      return /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(value);
     case 'boolean':
       return value === 'true' || value === 'false';
     case 'enum':

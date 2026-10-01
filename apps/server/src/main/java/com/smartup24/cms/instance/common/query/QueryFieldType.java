@@ -21,6 +21,8 @@ public enum QueryFieldType {
     NUMBER(EnumSet.of(EQ, NE, IN, GT, GTE, LT, LTE, BETWEEN)),
     DATE(EnumSet.of(EQ, GT, GTE, LT, LTE, BETWEEN)),
     INSTANT(EnumSet.of(GT, GTE, LT, LTE, BETWEEN)),
+    /** A time of day ({@code HH:mm[:ss]}), compared as a time (plan 10/10, item 5.0). */
+    TIME(EnumSet.of(EQ, NE, GT, GTE, LT, LTE, BETWEEN)),
     BOOLEAN(EnumSet.of(EQ)),
     ENUM(EnumSet.of(EQ, NE, IN));
 

@@ -31,7 +31,7 @@ const users: SMTLookupSource<{ id: number; name: string }, number> = {
     @for (field of fields; track field.code) {
       <smt-dynamic-field
         [field]="field"
-        [userSource]="users"
+        [source]="users"
         [value]="values()[field.code] ?? null"
         (valueChange)="set(field.code, $event)"
       />
@@ -132,5 +132,28 @@ describe('SMTDynamicFieldComponent', () => {
       .click();
     await settle();
     expect(fixture.componentInstance.values()['region']).toBe('sam');
+  });
+
+  // Plan 10/10, item 5.0: a reference to any list keeps its key, a text code included; a person's is a number.
+  it('keeps the key of a reference as it is, a text code too', () => {
+    TestBed.configureTestingModule({ providers: [{ provide: SMTI18nService, useValue: testI18n() }] });
+    const fixture = TestBed.createComponent(SMTDynamicFieldComponent);
+    const units: SMTLookupSource<{ code: string; title: string }, string> = {
+      page: () => of({ items: [{ code: 'hq', title: 'HQ' }], nextCursor: null, hasMore: false }),
+      key: (unit) => unit.code,
+      option: (unit) => ({ label: unit.title }),
+    };
+    fixture.componentRef.setInput('field', { code: 'unit', label: 'Unit', type: 'ref' });
+    fixture.componentRef.setInput('source', units);
+    fixture.componentRef.setInput('value', 'hq');
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.refValue()).toBe('hq');
+    expect((fixture.nativeElement as HTMLElement).querySelector('smt-data-select')).not.toBeNull();
+    fixture.componentRef.setInput('value', 7);
+    expect(fixture.componentInstance.refValue()).toBe(7);
+    fixture.componentRef.setInput('value', '');
+    expect(fixture.componentInstance.refValue()).toBeNull();
+    expect(fixture.componentInstance.userValue()).toBeNull();
   });
 });

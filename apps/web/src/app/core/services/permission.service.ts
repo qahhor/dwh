@@ -1,5 +1,6 @@
 import { inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { MetaCacheState } from './meta-cache';
 
 /**
  * Form codes of the previous release by their successors (ADR-0028). A permission set loaded before the server moved
@@ -24,15 +25,20 @@ export const LEGACY_FORM_CODES: Readonly<Record<string, string>> = {
   providedIn: 'root',
 })
 export class PermissionService {
+  private readonly metaCache = inject(MetaCacheState);
+
   readonly permissions = signal<Set<string>>(new Set());
   readonly permissionVersion = signal<number>(1);
 
   setPermissions(perms: string[], version: number = 1) {
-    this.permissions.set(new Set(perms));
+    const next = new Set(perms);
+    this.changed(next, version);
+    this.permissions.set(next);
     this.permissionVersion.set(version);
   }
 
   clear() {
+    this.changed(new Set(), 1);
     this.permissions.set(new Set());
     this.permissionVersion.set(1);
   }
@@ -73,6 +79,14 @@ export class PermissionService {
 
   canManage(form: string): boolean {
     return this.hasPermission(form, 'manage');
+  }
+
+  /** Other rights show other actions and fields: list and form descriptions are read again (plan 10/10, item 5.0). */
+  private changed(next: ReadonlySet<string>, version: number): void {
+    const now = this.permissions();
+    if (version !== this.permissionVersion() || next.size !== now.size || [...next].some((key) => !now.has(key))) {
+      this.metaCache.invalidate();
+    }
   }
 }
 

@@ -5,7 +5,6 @@ import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListExtender;
 import com.smartup24.cms.instance.common.query.QueryRef;
-import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,14 +30,22 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
 
     private static final Pattern ATTRIBUTES_SQL = Pattern.compile("^[a-z_][a-z0-9_]*\\.attributes$");
 
-    private final MdCustomFieldRepository repository;
+    /** A moment as an ISO text with its offset; anything else reads as empty instead of failing the cast. */
+    private static final String MOMENT = "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3])"
+            + ":[0-5][0-9](:[0-5][0-9]([.][0-9]{1,9})?)?(Z|[+-]([01][0-9]|2[0-3])(:?[0-5][0-9])?)$";
+
+    private static final String TIME_OF_DAY = "^([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$";
+
     private final MdCustomFieldService service;
 
-    public MdCustomFieldQueryFields(MdCustomFieldRepository repository, MdCustomFieldService service) {
-        this.repository = repository;
+    public MdCustomFieldQueryFields(MdCustomFieldService service) {
         this.service = service;
     }
 
+    /**
+     * Read through the service's cluster cache of definitions (ADR-0025, plan 10/10, item 5.0): a change of a custom
+     * field clears it on every node, so {@code query-meta} and the list show a new field at once.
+     */
     @Override
     public List<QueryField> extraFields(QueryList list) {
         if (list.customEntity() == null
@@ -47,7 +54,7 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
             return List.of();
         }
         List<QueryField> fields = new ArrayList<>();
-        for (CustomFieldRecord record : repository.findByEntityType(list.customEntity())) {
+        for (CustomFieldRecord record : service.getFields(list.customEntity())) {
             toField(record, list.attributesSql()).ifPresent(fields::add);
         }
         return fields;
@@ -75,52 +82,48 @@ public class MdCustomFieldQueryFields implements QueryListExtender {
             return Optional.empty();
         }
         String raw = "(" + attributes + "->>'" + code + "')";
+        String type = record.fieldType().toLowerCase(Locale.ROOT);
+        if ("select".equals(type)) {
+            List<String> options = service.parseSelectOptions(record.optionsJson());
+            return Optional.of(
+                    options.isEmpty()
+                            ? QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of())
+                            : QueryField.custom(key, record.name(), QueryFieldType.ENUM, raw, code, options));
+        }
+        return shape(type, raw).map(shape -> {
+            QueryField field = QueryField.custom(key, record.name(), shape.type(), shape.sql(), code, List.of());
+            return "user_ref".equals(type) ? field.refersTo(QueryRef.paged("/iam/users", "name")) : field;
+        });
+    }
+
+    /** How a custom field of one type reads as a registry field: its type and the expression over its raw text. */
+    private record Shape(QueryFieldType type, String sql) {}
+
+    private static Optional<Shape> shape(String type, String raw) {
         return Optional.ofNullable(
-                switch (record.fieldType().toLowerCase(Locale.ROOT)) {
-                    case "string" -> QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of());
+                switch (type) {
+                    case "string" -> new Shape(QueryFieldType.TEXT, raw);
                     case "number" ->
-                        QueryField.custom(
-                                key,
-                                record.name(),
-                                QueryFieldType.NUMBER,
-                                "(case when " + raw + " ~ '^-?[0-9]{1,15}([.][0-9]{1,6})?$' then " + raw
-                                        + "::numeric end)",
-                                code,
-                                List.of());
-                    case "user_ref" ->
-                        QueryField.custom(
-                                        key,
-                                        record.name(),
-                                        QueryFieldType.NUMBER,
-                                        "(case when " + raw + " ~ '^[0-9]{1,18}$' then " + raw + "::bigint end)",
-                                        code,
-                                        List.of())
-                                .refersTo(QueryRef.paged("/iam/users", "name"));
+                        new Shape(
+                                QueryFieldType.NUMBER, cast(raw, "^-?[0-9]{1,15}([.][0-9]{1,6})?$", raw + "::numeric"));
+                    case "user_ref" -> new Shape(QueryFieldType.NUMBER, cast(raw, "^[0-9]{1,18}$", raw + "::bigint"));
                     case "date" ->
-                        QueryField.custom(
-                                key,
-                                record.name(),
+                        new Shape(
                                 QueryFieldType.DATE,
-                                "(case when " + raw + " ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' then left(" + raw
-                                        + ", 10)::date end)",
-                                code,
-                                List.of());
+                                cast(raw, "^[0-9]{4}-[0-9]{2}-[0-9]{2}", "left(" + raw + ", 10)::date"));
+                    case "datetime" -> new Shape(QueryFieldType.INSTANT, cast(raw, MOMENT, raw + "::timestamptz"));
+                    case "time" -> new Shape(QueryFieldType.TIME, cast(raw, TIME_OF_DAY, raw + "::time"));
                     case "boolean" ->
-                        QueryField.custom(
-                                key,
-                                record.name(),
+                        new Shape(
                                 QueryFieldType.BOOLEAN,
                                 "(case when lower(" + raw + ") in ('true', 'false') then lower(" + raw
-                                        + ")::boolean end)",
-                                code,
-                                List.of());
-                    case "select" -> {
-                        List<String> options = service.parseSelectOptions(record.optionsJson());
-                        yield options.isEmpty()
-                                ? QueryField.custom(key, record.name(), QueryFieldType.TEXT, raw, code, List.of())
-                                : QueryField.custom(key, record.name(), QueryFieldType.ENUM, raw, code, options);
-                    }
+                                        + ")::boolean end)");
                     default -> null;
                 });
+    }
+
+    /** The cast only of a value of the right shape; any other value is empty, not an error for the whole page. */
+    private static String cast(String raw, String shape, String typed) {
+        return "(case when " + raw + " ~ '" + shape + "' then " + typed + " end)";
     }
 }

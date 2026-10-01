@@ -1,7 +1,8 @@
 import type { QueryRefMeta } from './query-meta.models';
 
 /** A field's type in `form-meta` (ADR-0019 2.2): the control the form draws for it. */
-export type FormFieldType = 'text' | 'textarea' | 'markdown' | 'number' | 'date' | 'boolean' | 'select' | 'ref';
+export type FormFieldType =
+  'text' | 'textarea' | 'markdown' | 'number' | 'date' | 'datetime' | 'time' | 'boolean' | 'select' | 'ref';
 
 /** One field of an entity's form and the rules the server checks on save. */
 export interface FormFieldMeta {

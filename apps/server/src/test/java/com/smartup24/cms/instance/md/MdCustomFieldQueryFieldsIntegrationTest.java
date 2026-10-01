@@ -58,8 +58,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var repository = new MdCustomFieldRepository(jdbc, mapper);
         fields = new MdCustomFieldService(repository, audit);
-        registry = new QueryListRegistry(
-                List.of(MdUserQuery.LIST), List.of(new MdCustomFieldQueryFields(repository, fields)));
+        registry = new QueryListRegistry(List.of(MdUserQuery.LIST), List.of(new MdCustomFieldQueryFields(fields)));
         var roles = new MdRoleRepository(jdbc);
         var scope = new MdScopeService(
                 new MdScopeRepository(jdbc),
@@ -145,6 +144,41 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         assertThat(registry.resolve(MdUserQuery.LIST).field("cfCfrDesk")).isEmpty();
         fields.createField("USER", "cfr_desk", "Стол", "string", false, null, null, 9);
         assertThat(registry.resolve(MdUserQuery.LIST).field("cfCfrDesk")).isPresent();
+    }
+
+    @Test
+    @DisplayName("5.0: date-and-time and time-of-day fields are checked on save, filtered as moments and times")
+    void momentsAndTimesOfDay() {
+        fields.createField("USER", "cfr_due", "Срок", "datetime", false, null, null, 11);
+        fields.createField("USER", "cfr_slot", "Слот", "time", false, null, null, 12);
+        var list = registry.resolve(MdUserQuery.LIST);
+        assertThat(list.field("cfCfrDue").orElseThrow().type()).isEqualTo(QueryFieldType.INSTANT);
+        assertThat(list.field("cfCfrSlot").orElseThrow().type()).isEqualTo(QueryFieldType.TIME);
+
+        assertThatThrownBy(
+                        () -> fields.checkedAttributes("USER", Map.of("cfr_due", "2026-10-01T09:30", "cfr_slot", "9")))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::field, FieldErrorItem::code)
+                                .containsExactly(
+                                        org.assertj.core.groups.Tuple.tuple("attributes.cfr_due", "invalid_datetime"),
+                                        org.assertj.core.groups.Tuple.tuple("attributes.cfr_slot", "invalid_time")));
+        assertThat(fields.checkedAttributes("USER", Map.of("cfr_due", "2026-10-01T09:30:00Z", "cfr_slot", "08:15")))
+                .containsEntry("cfr_slot", "08:15");
+
+        user("cfr_early", "{\"cfr_due\":\"2026-10-01T09:30:00Z\",\"cfr_slot\":\"08:15\"}");
+        user("cfr_late", "{\"cfr_due\":\"2026-10-03T12:00:00+05:00\",\"cfr_slot\":\"18:40:00\"}");
+        user("cfr_shapeless", "{\"cfr_due\":\"tomorrow\",\"cfr_slot\":\"25:99\"}");
+        assertThat(logins("[{\"field\":\"cfCfrDue\",\"op\":\"gte\",\"value\":\"2026-10-02T00:00:00Z\"}]"))
+                .containsExactly("cfr_late");
+        assertThat(logins("[{\"field\":\"cfCfrSlot\",\"op\":\"lt\",\"value\":\"12:00\"}]"))
+                .containsExactly("cfr_early");
+        assertThat(logins("[{\"field\":\"cfCfrSlot\",\"op\":\"eq\",\"value\":\"18:40\"}]"))
+                .containsExactly("cfr_late");
+        assertThat(logins("[{\"field\":\"cfCfrDue\",\"op\":\"empty\"}]"))
+                .contains("cfr_shapeless")
+                .doesNotContain("cfr_early", "cfr_late");
     }
 
     @Test

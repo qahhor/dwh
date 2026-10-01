@@ -1,11 +1,8 @@
 package com.smartup24.cms.instance.ms.note.service;
 
-import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.entity.EntityRecords;
-import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
-import java.util.Map;
 import org.springframework.stereotype.Component;
 
 /**
@@ -28,12 +25,8 @@ public class MsNoteRecords implements EntityRecords {
 
     @Override
     public void requireVisible(long id) {
-        try {
-            notes.getNote(id, SecurityContext.getCurrentUserId());
-        } catch (ApiException e) {
-            // Someone else's note is not revealed: the same answer as a note that does not exist.
-            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id));
-        }
+        // Someone else's note answers as a missing one, as on every note path (plan 10/10, item 5.0).
+        notes.getNote(id, SecurityContext.getCurrentUserId());
     }
 
     @Override

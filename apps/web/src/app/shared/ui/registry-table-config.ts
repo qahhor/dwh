@@ -1,5 +1,12 @@
 import { TrackByFunction } from '@angular/core';
-import { fieldLabel, fieldValue, QueryFieldMeta, QueryListMeta, QuerySort } from '@core/models/query-meta.models';
+import {
+  fieldLabel,
+  fieldValue,
+  QueryFieldMeta,
+  QueryListMeta,
+  QueryRefMeta,
+  QuerySort,
+} from '@core/models/query-meta.models';
 import { ColumnContentType, ColumnInfo, OrderBy, TableConfig } from '../ui-kit/components/table/table.types';
 
 export interface RegistryTableOptions<T> {
@@ -12,6 +19,11 @@ export interface RegistryTableOptions<T> {
   cells?: Partial<Record<string, ColumnContentType<T>>>;
   widths?: Partial<Record<string, string>>;
   align?: Partial<Record<string, ColumnInfo<T>['align']>>;
+  /**
+   * The name of a referenced row (`RefLookups.name`, plan 10/10, item 5.0): a reference column shows it instead of
+   * the key, once it has come. Without it a reference shows its key.
+   */
+  refName?: (ref: QueryRefMeta, key: unknown) => string | null;
 }
 
 /**
@@ -28,7 +40,7 @@ export function registryTableConfig<T>(meta: QueryListMeta, options: RegistryTab
     columns[field.key] = {
       key: field.key,
       header: { type: 'primitive', value: fieldLabel(field, options.translate) },
-      content: options.cells?.[field.key] ?? defaultCell<T>(field, options.translate),
+      content: options.cells?.[field.key] ?? defaultCell<T>(field, options.translate, options.refName),
       hasSorting: field.sortable,
       sortedBy: options.sort?.field === field.key ? (options.sort.descending ? OrderBy.Desc : OrderBy.Asc) : undefined,
       width: options.widths?.[field.key],
@@ -48,8 +60,23 @@ export function sortFromHeader(event: { column: string; sortBy: OrderBy } | unde
   return event ? { field: event.column, descending: event.sortBy === OrderBy.Desc } : null;
 }
 
-function defaultCell<T>(field: QueryFieldMeta, translate: (key: string) => string): ColumnContentType<T> {
+function defaultCell<T>(
+  field: QueryFieldMeta,
+  translate: (key: string) => string,
+  refName?: RegistryTableOptions<T>['refName'],
+): ColumnContentType<T> {
   const value = (row: T) => fieldValue(field, row);
+  const ref = field.ref;
+  if (ref && refName) {
+    // A reference by the name of its row, from its own target (a person, a project, any list).
+    return {
+      type: 'primitive',
+      value: (row) => {
+        const raw = value(row);
+        return raw == null || raw === '' ? '—' : (refName(ref, raw) ?? String(raw));
+      },
+    };
+  }
   switch (field.type) {
     case 'date':
       return { type: 'date', value: (row) => (value(row) as string | null) ?? '' };

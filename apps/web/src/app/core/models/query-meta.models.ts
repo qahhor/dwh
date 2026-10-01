@@ -1,6 +1,6 @@
 /** Server field registry for lists (ADR-0016): what `GET /api/v1/query-meta/{list}` returns. */
 
-export type QueryFieldType = 'text' | 'number' | 'date' | 'instant' | 'boolean' | 'enum';
+export type QueryFieldType = 'text' | 'number' | 'date' | 'instant' | 'time' | 'boolean' | 'enum';
 
 /** Every filter operation the server knows; `ui.filter.op.<op>` names each. */
 export const QUERY_OPS = [

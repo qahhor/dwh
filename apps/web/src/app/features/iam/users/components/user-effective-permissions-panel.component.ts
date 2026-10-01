@@ -17,7 +17,7 @@ import { ToastService } from '@core/services/toast.service';
 import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { TranslatePipe, I18nService } from '@core/services/i18n.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
-import { FormTreeItem } from '@core/models/rbac.models';
+import { FormTreeItem, namedCatalog } from '@core/models/rbac.models';
 import { MODULE_ICON_MAP, MODULE_NAME_KEY_MAP } from '@features/iam/roles/roles.models';
 import { EffectivePermissionItem, PersonalGrant } from '../users.models';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
@@ -210,7 +210,15 @@ export class UserEffectivePermissionsPanelComponent {
   private readonly catalogRead = rxResource({
     params: () => this.hasUser() || undefined,
     stream: () =>
-      orNull(this.usersApi.permissionForms().pipe(map((catalog) => (Array.isArray(catalog) ? catalog : null)))),
+      orNull(
+        this.usersApi
+          .permissionForms()
+          .pipe(
+            map((catalog) =>
+              Array.isArray(catalog) ? namedCatalog(catalog, (key) => this.uiI18n.translate(key)) : null,
+            ),
+          ),
+      ),
   });
 
   readonly effectiveItems = lastLoaded<EffectivePermissionItem[]>(() => this.effectiveRead.value(), []);
