@@ -1,7 +1,7 @@
 <div class="analytics-card chart-card" [attr.aria-busy]="loading()">
   <div class="card-header-row">
     <div>
-      <h2 class="card-title">{{ 'analytics.dinamika_potoka_zadach' | t }}</h2>
+      <h2 class="card-title">{{ 'analytics.dashboard.task_flow_trend' | t }}</h2>
       <p class="card-subtitle">{{ 'analytics.created_vs_completed_range' | t: { range: displayedRange() } }}</p>
     </div>
     <div class="chart-legend">
@@ -11,7 +11,7 @@
       </div>
       <div class="legend-item">
         <span class="legend-dot" style="background-color: var(--success)"></span>
-        <span>{{ 'analytics.zaversheno' | t }}</span>
+        <span>{{ 'analytics.dashboard.completed' | t }}</span>
       </div>
     </div>
   </div>
@@ -26,7 +26,7 @@
       class="svg-chart-container"
       role="region"
       tabindex="0"
-      [attr.aria-label]="'analytics.dinamika_potoka_zadach' | t"
+      [attr.aria-label]="'analytics.dashboard.task_flow_trend' | t"
       (mouseleave)="clearHover()"
     >
       <!-- Y Axis numeric tick values -->
@@ -105,7 +105,7 @@
               stroke="var(--primary)"
               stroke-width="2"
             >
-              <title>{{ pt.date }}: {{ 'analytics.sozdano' | t }}: {{ pt.created }}</title>
+              <title>{{ pt.date }}: {{ 'analytics.dashboard.created' | t }}: {{ pt.created }}</title>
             </circle>
             <circle
               [attr.cx]="pt.x"
@@ -115,7 +115,7 @@
               stroke="var(--success)"
               stroke-width="2"
             >
-              <title>{{ pt.date }}: {{ 'analytics.zaversheno' | t }}: {{ pt.completed }}</title>
+              <title>{{ pt.date }}: {{ 'analytics.dashboard.completed' | t }}: {{ pt.completed }}</title>
             </circle>
             <!-- X axis date labels for some points -->
             @if (shouldShowDateLabel(i, chartPoints().length)) {
@@ -142,13 +142,13 @@
             <div class="tooltip-val">
               <span class="tooltip-dot" style="background-color: var(--primary)"></span>
               <span
-                >{{ 'analytics.sozdano' | t }}: <strong>{{ hp.created }}</strong></span
+                >{{ 'analytics.dashboard.created' | t }}: <strong>{{ hp.created }}</strong></span
               >
             </div>
             <div class="tooltip-val">
               <span class="tooltip-dot" style="background-color: var(--success)"></span>
               <span
-                >{{ 'analytics.zaversheno' | t }}: <strong>{{ hp.completed }}</strong></span
+                >{{ 'analytics.dashboard.completed' | t }}: <strong>{{ hp.completed }}</strong></span
               >
             </div>
           </div>
@@ -162,7 +162,7 @@
       <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light)" aria-hidden="true"
         >show_chart</span
       >
-      <p>{{ 'analytics.net_dannyh_za_vybrannyy_period' | t }}</p>
+      <p>{{ 'analytics.dashboard.no_data_for_period' | t }}</p>
     </div>
   }
 </div>

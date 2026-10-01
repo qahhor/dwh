@@ -2,24 +2,24 @@
   <!-- Filter Toolbar -->
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label class="sr-only" for="audit-table-filter">{{ 'audit.filtr_zhurnala_po_tablice' | t }}</label>
+      <label class="sr-only" for="audit-table-filter">{{ 'audit.logs.filter_by_table' | t }}</label>
       <smt-select
         smtTriggerId="audit-table-filter"
         class="filter-select"
         [options]="tableOptions()"
-        [placeholder]="'audit.vse_tablicy' | t"
-        [emptyLabel]="'audit.vse_tablicy' | t"
+        [placeholder]="'audit.logs.all_tables' | t"
+        [emptyLabel]="'audit.logs.all_tables' | t"
         [value]="tableFilter() || null"
         (valueChange)="tableFilterChange.emit($event ?? ''); applyFilters.emit()"
       />
 
-      <label class="sr-only" for="audit-event-filter">{{ 'audit.filtr_zhurnala_po_deystviyu' | t }}</label>
+      <label class="sr-only" for="audit-event-filter">{{ 'audit.logs.filter_by_action' | t }}</label>
       <smt-select
         smtTriggerId="audit-event-filter"
         class="filter-select"
         [options]="eventOptions()"
-        [placeholder]="'audit.vse_deystviya' | t"
-        [emptyLabel]="'audit.vse_deystviya' | t"
+        [placeholder]="'audit.logs.all_actions' | t"
+        [emptyLabel]="'audit.logs.all_actions' | t"
         [value]="eventFilter() || null"
         (valueChange)="eventFilterChange.emit($event ?? ''); applyFilters.emit()"
       />
@@ -91,7 +91,7 @@
   <div
     class="table-container"
     role="region"
-    [attr.aria-label]="'audit.tablica_zhurnala_izmeneniy' | t"
+    [attr.aria-label]="'audit.logs.change_log_table' | t"
     [attr.aria-busy]="pager().loading()"
   >
     @if (tableConfig(); as config) {
@@ -132,7 +132,7 @@
       </div>
     }
     @if (!item.changedByName) {
-      <span class="text-muted">{{ 'audit.sistema' | t }}</span>
+      <span class="text-muted">{{ 'audit.logs.system_actor' | t }}</span>
     }
   </ng-template>
   <ng-template #channelCell let-item>
@@ -149,7 +149,7 @@
       type="button"
       class="diff-btn"
       [attr.aria-label]="'audit.view_change_number' | t: { id: item.id }"
-      [title]="'audit.prosmotr_izmeneniy' | t"
+      [title]="'audit.logs.view_changes' | t"
       (click)="selectRecord.emit(item)"
     >
       <span class="material-symbols-outlined" aria-hidden="true">difference</span>
@@ -158,8 +158,8 @@
   <ng-template #emptyStateTpl>
     <div class="empty-state-box">
       <span class="material-symbols-outlined empty-icon" aria-hidden="true">history_toggle_off</span>
-      <h3>{{ 'audit.zapisey_audita_ne_naydeno' | t }}</h3>
-      <p>{{ 'audit.poprobuyte_sbrosit_vybrannye_filtry' | t }}</p>
+      <h3>{{ 'audit.logs.empty' | t }}</h3>
+      <p>{{ 'audit.logs.try_reset_filters' | t }}</p>
     </div>
   </ng-template>
 </div>

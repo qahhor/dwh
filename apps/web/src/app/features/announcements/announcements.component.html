@@ -1,8 +1,8 @@
 <section class="announcements-page" aria-labelledby="announcements-title">
   <ui-page-header
-    [title]="'announcements.obyavleniya' | t"
-    [eyebrow]="'announcements.lokalnye_soobscheniya' | t"
-    [subtitle]="'announcements.publikuyte_vazhnye_soobscheniya_polzovatelyam_et' | t"
+    [title]="'announcements.list.title' | t"
+    [eyebrow]="'announcements.list.local_messages' | t"
+    [subtitle]="'announcements.list.subtitle' | t"
     titleId="announcements-title"
   >
     <button
@@ -11,7 +11,7 @@
       smtVariant="secondary"
       smtIcon="refresh"
       [smtLoading]="store.isLoading()"
-      [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+      [attr.aria-label]="'announcements.list.refresh_announcements' | t"
       (click)="store.loadAnnouncements()"
     >
       {{ 'common.refresh' | t }}
@@ -21,7 +21,7 @@
         smt-button
         type="button"
         smtIcon="add"
-        [attr.aria-label]="'announcements.sozdat_obyavlenie' | t"
+        [attr.aria-label]="'announcements.list.create_announcement' | t"
         (click)="store.openCreate()"
       >
         {{ 'common.create' | t }}
@@ -33,7 +33,7 @@
     <div class="inline-alert" role="alert">
       <span class="material-symbols-outlined" aria-hidden="true">sync_problem</span>
       <div>
-        <strong>{{ 'announcements.izmeneniya_ne_sohraneny' | t }}</strong>
+        <strong>{{ 'announcements.list.changes_not_saved' | t }}</strong>
         <p>{{ store.operationError() }}</p>
       </div>
       <button
@@ -41,10 +41,10 @@
         type="button"
         smtVariant="secondary"
         smtSize="sm"
-        [attr.aria-label]="'announcements.obnovit_spisok_obyavleniy' | t"
+        [attr.aria-label]="'announcements.list.refresh_announcements' | t"
         (click)="store.refreshAfterConflict()"
       >
-        {{ 'announcements.obnovit_spisok' | t }}
+        {{ 'announcements.list.refresh' | t }}
       </button>
     </div>
   }
@@ -67,7 +67,7 @@
   @if (store.isLoading() && store.announcements().length === 0) {
     <div class="state-panel" aria-busy="true" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span>
-      <span>{{ 'announcements.zagruzhaem_obyavleniya' | t }}</span>
+      <span>{{ 'announcements.list.loading' | t }}</span>
     </div>
   }
 
@@ -75,17 +75,17 @@
     <div class="state-panel error-state" role="alert" data-testid="announcements-load-error">
       <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
       <div>
-        <h2>{{ 'announcements.ne_udalos_zagruzit_obyavleniya' | t }}</h2>
-        <p>{{ 'announcements.proverte_soedinenie_s_serverom_i_povtorite_zapro' | t }}</p>
+        <h2>{{ 'announcements.list.load_failed' | t }}</h2>
+        <p>{{ 'announcements.list.check_connection_and_retry' | t }}</p>
       </div>
       <button
         smt-button
         type="button"
         smtVariant="secondary"
-        [attr.aria-label]="'announcements.povtorit_zagruzku_obyavleniy' | t"
+        [attr.aria-label]="'announcements.list.reload_announcements' | t"
         (click)="store.loadAnnouncements()"
       >
-        {{ 'announcements.povtorit' | t }}
+        {{ 'announcements.list.retry' | t }}
       </button>
     </div>
   }
@@ -94,12 +94,12 @@
     <div class="state-panel empty-state" data-testid="announcements-empty">
       <span class="material-symbols-outlined" aria-hidden="true">campaign</span>
       <div>
-        <h2>{{ 'announcements.obyavleniy_poka_net' | t }}</h2>
-        <p>{{ 'announcements.sozdayte_chernovik_proverte_tekst_i_opublikuyte_' | t }}</p>
+        <h2>{{ 'announcements.list.empty' | t }}</h2>
+        <p>{{ 'announcements.list.empty_hint' | t }}</p>
       </div>
       @if (store.canCreate()) {
         <button smt-button type="button" smtVariant="secondary" smtIcon="add" (click)="store.openCreate()">
-          {{ 'announcements.sozdat_chernovik' | t }}
+          {{ 'announcements.list.create_draft' | t }}
         </button>
       }
     </div>
@@ -115,10 +115,10 @@
     <div class="state-panel empty-state" role="status">
       <span class="material-symbols-outlined" aria-hidden="true">filter_list_off</span>
       <div>
-        <h2>{{ 'announcements.po_filtram_nichego_ne_naydeno' | t }}</h2>
+        <h2>{{ 'announcements.list.no_matches' | t }}</h2>
       </div>
       <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="store.resetFilters()">
-        {{ 'announcements.sbrosit_filtry' | t }}
+        {{ 'announcements.list.reset_filters' | t }}
       </button>
     </div>
   }

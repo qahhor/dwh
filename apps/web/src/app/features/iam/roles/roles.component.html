@@ -1,6 +1,6 @@
 <div class="roles-page">
   <!-- Top Page Header -->
-  <ui-page-header [title]="'iam.roli_i_matrica_prav' | t" [count]="roles().length">
+  <ui-page-header [title]="'iam.roles.title' | t" [count]="roles().length">
     @if (canCreateRole()) {
       <button
         smt-button
@@ -10,7 +10,7 @@
         smtIcon="add"
         (click)="roleForms.openCreateModal()"
       >
-        {{ 'iam.novaya_rol' | t }}
+        {{ 'iam.roles.new_role' | t }}
       </button>
     }
   </ui-page-header>

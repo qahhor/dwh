@@ -12,8 +12,8 @@ import { ProjectDistribution } from '../analytics.models';
     <div class="analytics-card">
       <div class="card-header-row">
         <div>
-          <h2 class="card-title">{{ 'analytics.progress_po_proektam' | t }}</h2>
-          <p class="card-subtitle">{{ 'analytics.statusy_i_procent_vypolneniya' | t }}</p>
+          <h2 class="card-title">{{ 'analytics.dashboard.project_progress' | t }}</h2>
+          <p class="card-subtitle">{{ 'analytics.dashboard.statuses_and_completion' | t }}</p>
         </div>
         <!-- Quick Project Filter -->
         @if (projects().length > 3) {
@@ -23,8 +23,8 @@ import { ProjectDistribution } from '../analytics.models';
             smtIcon="search"
             clearable
             smtSize="sm"
-            [placeholder]="'analytics.poisk_proekta' | t"
-            [smtAriaLabel]="'analytics.poisk_proekta' | t"
+            [placeholder]="'analytics.dashboard.search_project' | t"
+            [smtAriaLabel]="'analytics.dashboard.search_project' | t"
             [value]="searchProjectQuery()"
             (valueChange)="searchProjectQuery.set($any($event) ?? '')"
           />
@@ -78,7 +78,7 @@ import { ProjectDistribution } from '../analytics.models';
           <span class="material-symbols-outlined" style="font-size: 32px; color: var(--text-light);" aria-hidden="true"
             >folder_open</span
           >
-          <p>{{ 'analytics.aktivnye_proekty_ne_naydeny' | t }}</p>
+          <p>{{ 'analytics.dashboard.no_active_projects_found' | t }}</p>
         </div>
       }
     </div>

@@ -52,7 +52,7 @@ interface DiffRow {
     <!-- MODAL: AUDIT DIFF VIEWER -->
     <smt-dialog
       [open]="selectedAudit() !== null"
-      [smtTitle]="'audit.detali_izmeneniya_zapisi_visual_diff' | t"
+      [smtTitle]="'audit.details.record_change_title' | t"
       smtSize="lg"
       (closed)="closeAuditModal.emit()"
     >
@@ -61,7 +61,7 @@ interface DiffRow {
           <div body class="diff-modal-body">
             <div class="diff-meta-grid">
               <div class="meta-item">
-                <span class="meta-label">{{ 'audit.tablica.6f39b76' | t }}</span>
+                <span class="meta-label">{{ 'audit.details.table_label' | t }}</span>
                 <span class="meta-val font-mono">{{ audit.tableName }}</span>
               </div>
               <div class="meta-item">
@@ -69,13 +69,13 @@ interface DiffRow {
                 <span class="meta-val font-mono">{{ audit.rowPk }}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-label">{{ 'audit.deystvie.7b79e9f' | t }}</span>
+                <span class="meta-label">{{ 'audit.details.action_label' | t }}</span>
                 <span class="event-badge" [ngClass]="getEventBadgeClass(audit.event)">{{
                   getEventName(audit.event)
                 }}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-label">{{ 'audit.avtor' | t }}</span>
+                <span class="meta-label">{{ 'audit.details.author' | t }}</span>
                 <span class="meta-val">{{
                   audit.changedByName ? audit.changedByName + ' (@' + audit.changedByLogin + ')' : ('common.system' | t)
                 }}</span>
@@ -87,24 +87,24 @@ interface DiffRow {
             </div>
 
             <!-- Diff Table -->
-            <div class="diff-section-title">{{ 'audit.sravnenie_poley_diff' | t }}</div>
+            <div class="diff-section-title">{{ 'audit.details.fields_diff' | t }}</div>
             @if (getDiffKeys(audit).length > 0) {
               <div
                 class="diff-table-box"
                 role="region"
-                [attr.aria-label]="'audit.sravnenie_izmenennyh_poley' | t"
+                [attr.aria-label]="'audit.details.changed_fields_comparison' | t"
                 tabindex="0"
               >
                 <ui-local-table [rows]="diffRows(audit)" [config]="diffConfig()" />
               </div>
             } @else {
-              <div class="no-diff-msg">{{ 'audit.net_podrobnyh_dannyh_diff_dlya_etoy_operacii' | t }}</div>
+              <div class="no-diff-msg">{{ 'audit.details.no_diff_data' | t }}</div>
             }
           </div>
         }
         <div footer class="modal-footer-actions">
           <button smt-button type="button" smtVariant="secondary" (click)="closeAuditModal.emit()">
-            {{ 'audit.zakryt' | t }}
+            {{ 'audit.common.close' | t }}
           </button>
         </div>
       </ng-template>
@@ -113,7 +113,7 @@ interface DiffRow {
     <!-- MODAL: SECURITY EVENT DETAILS -->
     <smt-dialog
       [open]="selectedSecEvent() !== null"
-      [smtTitle]="'audit.sobytie_bezopasnosti' | t"
+      [smtTitle]="'audit.details.security_event' | t"
       smtSize="md"
       (closed)="closeSecModal.emit()"
     >
@@ -122,7 +122,7 @@ interface DiffRow {
           <div body class="sec-modal-body">
             <div class="diff-meta-grid">
               <div class="meta-item">
-                <span class="meta-label">{{ 'audit.tip_sobytiya' | t }}</span>
+                <span class="meta-label">{{ 'audit.details.event_type_label' | t }}</span>
                 <span class="sec-event-badge" [ngClass]="getSecurityEventBadgeClass(ev.eventType)">
                   {{ ev.eventType }}
                 </span>
@@ -132,7 +132,7 @@ interface DiffRow {
                 <span class="meta-val font-mono">{{ ev.ip }}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-label">{{ 'audit.polzovatel.a7d134d' | t }}</span>
+                <span class="meta-label">{{ 'audit.details.user_label' | t }}</span>
                 <span class="meta-val">{{
                   ev.userName ? ev.userName + ' (@' + ev.userLogin + ')' : ev.details['login'] || '—'
                 }}</span>
@@ -149,13 +149,13 @@ interface DiffRow {
               }
             </div>
 
-            <div class="diff-section-title">{{ 'audit.parametry_sobytiya_json' | t }}</div>
+            <div class="diff-section-title">{{ 'audit.details.event_params_json' | t }}</div>
             <pre class="json-details-viewer">{{ ev.details | json }}</pre>
           </div>
         }
         <div footer class="modal-footer-actions">
           <button smt-button type="button" smtVariant="secondary" (click)="closeSecModal.emit()">
-            {{ 'audit.zakryt' | t }}
+            {{ 'audit.common.close' | t }}
           </button>
         </div>
       </ng-template>
@@ -184,15 +184,19 @@ export class AuditModalsComponent {
     const header = (key: string) => ({ type: 'primitive' as const, value: this.i18n.translate(key) });
     return {
       trackBy: (_index, row) => row.field,
-      ariaLabel: this.i18n.translate('audit.sravnenie_znacheniy_do_i_posle_izmeneniya'),
+      ariaLabel: this.i18n.translate('audit.details.before_after_comparison'),
       layout: 'fit',
       columns: {
-        field: { header: header('audit.pole'), content: { type: 'templateRef', value: this.fieldCell }, width: '25%' },
+        field: {
+          header: header('audit.details.field'),
+          content: { type: 'templateRef', value: this.fieldCell },
+          width: '25%',
+        },
         before: {
-          header: header('audit.predyduschee_znachenie'),
+          header: header('audit.details.previous_value'),
           content: { type: 'templateRef', value: this.beforeCell },
         },
-        after: { header: header('audit.novoe_znachenie'), content: { type: 'templateRef', value: this.afterCell } },
+        after: { header: header('audit.details.new_value'), content: { type: 'templateRef', value: this.afterCell } },
       },
       columnsOrder: ['field', 'before', 'after'],
     };

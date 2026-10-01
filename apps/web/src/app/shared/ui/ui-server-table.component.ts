@@ -125,7 +125,7 @@ import { UiPaginationComponent } from './ui-pagination.component';
           smtIcon="refresh"
           (click)="pager().retry()"
         >
-          {{ 'ui.table.povtorit' | t }}
+          {{ 'ui.table.retry' | t }}
         </button>
       </div>
     }

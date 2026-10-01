@@ -42,7 +42,7 @@ export class SettingsStore {
   /** Hidden while a retry runs, so the banner only reports a finished load. */
   readonly loadError = computed(() =>
     loadFailed(this.systemResource) || loadFailed(this.userResource)
-      ? this.i18n.translate('settings.oshibka_zagruzki_nastroek')
+      ? this.i18n.translate('settings.page.load_failed')
       : null,
   );
 

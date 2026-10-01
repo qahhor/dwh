@@ -12,8 +12,8 @@ import { TranslatePipe } from '@core/services/i18n.service';
         <span class="brand-mark" aria-hidden="true">S</span>
         <span class="brand-name" aria-hidden="true">SmartupCMS</span>
       </div>
-      <h1 class="login-title">{{ 'auth.korporativnyy_vhod' | t }}</h1>
-      <p class="login-subtitle">{{ 'auth.platforma_upravleniya_dannymi_i_zadachami' | t }}</p>
+      <h1 class="login-title">{{ 'auth.login.corporate_login' | t }}</h1>
+      <p class="login-subtitle">{{ 'auth.login.platform_tagline' | t }}</p>
     </div>
   `,
   styles: [

@@ -27,7 +27,7 @@ export interface LanguageChangeRequest {
           #mobileMenuBtn
           type="button"
           class="icon-btn mobile-menu-btn"
-          [attr.aria-label]="'layout.app_shell.otkryt_menyu_navigacii' | t"
+          [attr.aria-label]="'layout.app_shell.open_navigation_menu' | t"
           [attr.aria-expanded]="isMobileMenuOpen()"
           [attr.aria-controls]="sidebarId()"
           (click)="toggleMobileMenu.emit()"
@@ -38,7 +38,7 @@ export interface LanguageChangeRequest {
         <button
           type="button"
           class="palette-trigger"
-          [attr.aria-label]="'layout.app_shell.otkryt_globalnyy_poisk' | t"
+          [attr.aria-label]="'layout.app_shell.open_global_search' | t"
           aria-haspopup="dialog"
           aria-keyshortcuts="Control+K Meta+K"
           [attr.aria-expanded]="paletteService.isOpen()"
@@ -46,7 +46,7 @@ export interface LanguageChangeRequest {
           (click)="paletteService.open()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">search</span>
-          <span class="trigger-text">{{ 'layout.app_shell.poisk' | t }}</span>
+          <span class="trigger-text">{{ 'layout.app_shell.search' | t }}</span>
           <kbd class="shortcut-kbd">Ctrl K</kbd>
         </button>
       </div>
@@ -58,7 +58,7 @@ export interface LanguageChangeRequest {
           <smt-select
             smtTriggerId="app-language-selector"
             class="lang-select"
-            [ariaLabel]="'settings.yazyk_interfeysa' | t"
+            [ariaLabel]="'settings.common.interface_language' | t"
             [options]="languageOptions()"
             [allowClear]="false"
             [value]="i18n.currentLang()"
@@ -72,7 +72,7 @@ export interface LanguageChangeRequest {
         <button
           type="button"
           class="icon-btn"
-          [attr.aria-label]="'layout.app_shell.pereklyuchit_temu' | t"
+          [attr.aria-label]="'layout.app_shell.switch_theme' | t"
           [attr.aria-pressed]="themeService.currentTheme() === 'dark'"
           [disabled]="authService.isLoggingOut()"
           (click)="themeService.toggleTheme()"
@@ -89,7 +89,7 @@ export interface LanguageChangeRequest {
             type="button"
             class="icon-btn notif-btn"
             routerLink="/notifications"
-            [attr.aria-label]="'layout.app_shell.otkryt_uvedomleniya' | t"
+            [attr.aria-label]="'layout.app_shell.open_notifications' | t"
             [attr.aria-describedby]="notifService.unreadCount() > 0 ? 'header-unread-count' : null"
             [disabled]="authService.isLoggingOut()"
             [title]="'nav.notifications' | t"
@@ -110,11 +110,11 @@ export interface LanguageChangeRequest {
         <button
           type="button"
           class="icon-btn logout-btn"
-          [attr.aria-label]="'layout.app_shell.vyyti_iz_sistemy' | t"
+          [attr.aria-label]="'layout.app_shell.sign_out' | t"
           [disabled]="authService.isLoggingOut()"
           [attr.aria-busy]="authService.isLoggingOut()"
           (click)="onLogout()"
-          [title]="'layout.app_shell.vyyti_iz_sistemy' | t"
+          [title]="'layout.app_shell.sign_out' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">
             {{ authService.isLoggingOut() ? 'hourglass_top' : 'logout' }}
@@ -137,7 +137,7 @@ export interface LanguageChangeRequest {
           type="button"
           class="banner-close"
           [disabled]="isDismissingAnnouncement() || authService.isLoggingOut()"
-          [attr.aria-label]="'layout.app_shell.zakryt_obyavlenie' | t"
+          [attr.aria-label]="'layout.app_shell.close_announcement' | t"
           (click)="dismissAnnouncement.emit()"
         >
           <span class="material-symbols-outlined" aria-hidden="true">close</span>

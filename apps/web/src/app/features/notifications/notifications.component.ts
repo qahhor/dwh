@@ -123,7 +123,7 @@ export class NotificationsComponent {
   private readonly inboxRevision = signal(0);
 
   readonly loadError = computed(() =>
-    !this.isLoading() && this.inbox.value() === null ? this.uiI18n.translate('notifications.oshibka_zagruzki') : null,
+    !this.isLoading() && this.inbox.value() === null ? this.uiI18n.translate('notifications.inbox.load_failed') : null,
   );
 
   readonly unreadItemsCount = computed(() => {
@@ -222,7 +222,7 @@ export class NotificationsComponent {
       )
       .subscribe({
         next: () => {
-          this.toast.success(this.uiI18n.translate('notifications.vse_uvedomleniya_prochitany'));
+          this.toast.success(this.uiI18n.translate('notifications.inbox.all_read'));
           this.loadNotifications();
           this.refreshUnreadCount();
         },

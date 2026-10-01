@@ -11,7 +11,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
     <div class="palette-results">
       @if (isLoading()) {
         <div class="palette-loading" role="status" aria-live="polite">
-          {{ 'layout.app_shell.poisk' | t }}
+          {{ 'layout.app_shell.search' | t }}
         </div>
       }
 
@@ -27,7 +27,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
             [disabled]="retrySeconds() > 0 || !validQuery()"
             (click)="retry.emit()"
           >
-            {{ 'announcements.povtorit' | t }}
+            {{ 'announcements.list.retry' | t }}
           </button>
         </div>
       }
@@ -59,7 +59,7 @@ import { I18nService, TranslatePipe } from '@core/services/i18n.service';
         <div class="palette-hint">
           <div class="hint-text">
             <span class="material-symbols-outlined hint-icon" aria-hidden="true">info</span>
-            <span>{{ 'layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk' | t }}</span>
+            <span>{{ 'layout.command_palette.min_query_hint' | t }}</span>
           </div>
 
           @if (recentSearches().length > 0) {
@@ -160,11 +160,11 @@ export class CommandPaletteResultsComponent {
   getEntityBadge(type: string): string {
     switch (type) {
       case 'TASK':
-        return this.uiI18n.translate('tasks.zadacha');
+        return this.uiI18n.translate('tasks.common.task');
       case 'PROJECT':
-        return this.uiI18n.translate('projects.proekt');
+        return this.uiI18n.translate('projects.common.project');
       case 'USER':
-        return this.uiI18n.translate('analytics.sotrudnik');
+        return this.uiI18n.translate('analytics.dashboard.employee');
       case 'NOTE':
         return this.uiI18n.translate('search.entity.note');
       default:

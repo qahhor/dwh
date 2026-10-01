@@ -43,12 +43,12 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
         >
           <!-- Language selector tabs for multilingual content -->
           <div class="lang-selector-row">
-            <span class="lang-selector-label">{{ 'announcements.yazyk_redaktirovaniya' | t }}:</span>
+            <span class="lang-selector-label">{{ 'announcements.editor.content_language' | t }}:</span>
             <smt-tab-bar
               class="lang-chips"
               [tabs]="languageTabs()"
               [value]="selectedLang()"
-              [smtAriaLabel]="'announcements.yazyk_redaktirovaniya' | t"
+              [smtAriaLabel]="'announcements.editor.content_language' | t"
               (valueChange)="$event && selectedLang.set($event)"
             />
           </div>
@@ -58,9 +58,11 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
             <div class="field-group">
               <div class="field-header">
                 <label for="announcement-title-ru"
-                  >{{ 'announcements.zagolovok_ru' | t }} <span aria-hidden="true">*</span></label
+                  >{{ 'announcements.editor.title_ru' | t }} <span aria-hidden="true">*</span></label
                 >
-                <span class="char-count">{{ titleRu.length }} / 10 000 {{ 'announcements.simvolov' | t }}</span>
+                <span class="char-count"
+                  >{{ titleRu.length }} / 10 000 {{ 'announcements.editor.characters' | t }}</span
+                >
               </div>
               <smt-input
                 smtFieldId="announcement-title-ru"
@@ -74,13 +76,13 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 smtDescribedBy="announcement-title-hint"
               />
               <span id="announcement-title-hint" class="field-hint">{{
-                'announcements.korotko_opishite_glavnoe_soobschenie' | t
+                'announcements.editor.title_placeholder' | t
               }}</span>
             </div>
             <div class="field-group">
               <div class="field-header">
                 <label for="announcement-body-ru"
-                  >{{ 'announcements.tekst_obyavleniya_ru' | t }} <span aria-hidden="true">*</span></label
+                  >{{ 'announcements.editor.body_ru' | t }} <span aria-hidden="true">*</span></label
                 >
               </div>
               <smt-textarea
@@ -94,9 +96,7 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
                 [value]="bodyRu"
                 (valueChange)="onDraftBodyChange('ru', $event)"
               />
-              <span id="announcement-body-hint" class="field-hint">{{
-                'announcements.do_10_000_simvolov_tekst_uvidyat_vse_polzovateli' | t
-              }}</span>
+              <span id="announcement-body-hint" class="field-hint">{{ 'announcements.editor.body_hint' | t }}</span>
             </div>
           }
 
@@ -137,7 +137,7 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
           }
 
           <div class="field-group">
-            <label for="announcement-banner-type">{{ 'announcements.uroven_soobscheniya' | t }}</label>
+            <label for="announcement-banner-type">{{ 'announcements.editor.level' | t }}</label>
             <smt-select
               smtTriggerId="announcement-banner-type"
               [options]="bannerTypeOptions()"
@@ -235,9 +235,9 @@ export class AnnouncementsModalsComponent {
   /** The languages to write in; Russian, the one required, is marked. */
   bannerTypeOptions(): SMTSelectOption<AnnouncementBannerType>[] {
     return this.bannerTypeMemo([this.tabText.currentLang()], () => [
-      { id: 'INFO', label: this.tabText.translate('announcements.informaciya') },
-      { id: 'WARNING', label: this.tabText.translate('announcements.preduprezhdenie') },
-      { id: 'CRITICAL', label: this.tabText.translate('announcements.kriticheskoe') },
+      { id: 'INFO', label: this.tabText.translate('announcements.common.level_info') },
+      { id: 'WARNING', label: this.tabText.translate('announcements.common.level_warning') },
+      { id: 'CRITICAL', label: this.tabText.translate('announcements.common.level_critical') },
     ]);
   }
 

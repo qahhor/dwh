@@ -41,15 +41,15 @@ public class MdUserHistorySources {
 
             public Map<String, String> fieldLabels() {
                 return Map.of(
-                        "name", "iam.fio",
+                        "name", "iam.common.full_name",
                         "login", "analytics.login",
                         "email", "iam.email",
-                        "phone", "iam.telefon.822f9fd",
-                        "language", "iam.yazyk",
-                        "timezone", "iam.chasovoy_poyas",
+                        "phone", "iam.common.phone",
+                        "language", "iam.common.language",
+                        "timezone", "iam.common.time_zone",
                         "state", "common.status",
-                        "forcePasswordChange", "iam.trebovanie_smeny_parolya",
-                        "is2faEnabled", "iam.status_2fa");
+                        "forcePasswordChange", "iam.common.force_password_change",
+                        "is2faEnabled", "iam.common.two_factor_status");
             }
         };
     }

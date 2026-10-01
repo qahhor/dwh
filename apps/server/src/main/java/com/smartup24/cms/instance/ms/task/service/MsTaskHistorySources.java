@@ -42,7 +42,7 @@ public class MsTaskHistorySources {
                 return Map.of(
                         "title", "task.title",
                         "priority", "common.priority",
-                        "projectId", "projects.proekt",
+                        "projectId", "projects.common.project",
                         "statusId", "common.status",
                         "descriptionMarkdown", "task.description");
             }
@@ -74,8 +74,8 @@ public class MsTaskHistorySources {
 
             public Map<String, String> fieldLabels() {
                 return Map.of(
-                        "name", "projects.nazvanie_proekta",
-                        "description", "projects.opisanie",
+                        "name", "projects.common.project_name",
+                        "description", "projects.common.description",
                         "state", "common.status");
             }
         };

@@ -1,7 +1,7 @@
 <!-- User View / Profile Modal -->
 <smt-dialog
   [open]="isOpen()"
-  [smtTitle]="'iam.profil_polzovatelya' | t"
+  [smtTitle]="'iam.users.detail.user_profile' | t"
   [smtSize]="
     activeViewTab() === 'security' ||
     activeViewTab() === 'permissions' ||
@@ -46,7 +46,7 @@
           class="modal-tab-bar"
           [tabs]="viewTabs(u)"
           [value]="activeViewTab()"
-          [smtAriaLabel]="'iam.razdely_kartochki' | t"
+          [smtAriaLabel]="'iam.users.detail.sections' | t"
           (valueChange)="$event && switchTab.emit({ tab: $event, userId: u.id })"
         />
 
@@ -58,19 +58,19 @@
               <span class="val font-mono">{{ u.email }}</span>
             </div>
             <div class="info-row">
-              <span class="lbl">{{ 'iam.telefon.822f9fd' | t }}</span>
+              <span class="lbl">{{ 'iam.common.phone' | t }}</span>
               <span class="val font-mono">{{ u.phone || '—' }}</span>
             </div>
             <div class="info-row">
-              <span class="lbl">{{ 'iam.rukovoditel' | t }}</span>
+              <span class="lbl">{{ 'iam.users.supervisor' | t }}</span>
               <span class="val">{{ getManagerName()(u) || '—' }}</span>
             </div>
             <div class="info-row">
-              <span class="lbl">{{ 'iam.roli' | t }}</span>
+              <span class="lbl">{{ 'iam.users.roles' | t }}</span>
               <span class="val">{{ getUserRoleNames()(u).join(', ') || '—' }}</span>
             </div>
             <div class="info-row">
-              <span class="lbl">{{ 'iam.2fa_zaschita' | t }}</span>
+              <span class="lbl">{{ 'iam.users.detail.two_factor' | t }}</span>
               <span class="val">{{
                 (u.is2faEnabled ? 'common.enabled_feminine' : 'common.disabled_feminine') | t
               }}</span>
@@ -82,7 +82,7 @@
               }}</span>
             </div>
             <div class="info-row">
-              <span class="lbl">{{ 'iam.sozdan' | t }}</span>
+              <span class="lbl">{{ 'iam.common.created_masculine' | t }}</span>
               <span class="val font-mono">{{ u.createdAt | date: 'dd.MM.yyyy' }}</span>
             </div>
           </div>
@@ -106,16 +106,16 @@
                 <!-- Security Overview Cards -->
                 <div class="sec-metrics-grid">
                   <div class="sec-metric-card">
-                    <span class="sec-metric-lbl">{{ 'iam.status_2fa' | t }}</span>
+                    <span class="sec-metric-lbl">{{ 'iam.common.two_factor_status' | t }}</span>
                     <span class="sec-metric-badge" [class.success]="sec.is2faEnabled" [class.muted]="!sec.is2faEnabled">
                       <span class="material-symbols-outlined metric-icon" aria-hidden="true">{{
                         sec.is2faEnabled ? 'lock' : 'lock_open'
                       }}</span>
-                      {{ (sec.is2faEnabled ? 'iam.vklyuchena' : 'iam.otklyuchena') | t }}
+                      {{ (sec.is2faEnabled ? 'iam.users.enabled_feminine' : 'iam.users.disabled_feminine') | t }}
                     </span>
                   </div>
                   <div class="sec-metric-card">
-                    <span class="sec-metric-lbl">{{ 'iam.trebovanie_smeny_parolya' | t }}</span>
+                    <span class="sec-metric-lbl">{{ 'iam.common.force_password_change' | t }}</span>
                     <span
                       class="sec-metric-badge"
                       [class.warning]="sec.forcePasswordChange"
@@ -124,15 +124,17 @@
                       <span class="material-symbols-outlined metric-icon" aria-hidden="true">{{
                         sec.forcePasswordChange ? 'priority_high' : 'check'
                       }}</span>
-                      {{ (sec.forcePasswordChange ? 'iam.trebuetsya' : 'iam.ne_trebuetsya') | t }}
+                      {{
+                        (sec.forcePasswordChange ? 'iam.users.detail.required' : 'iam.users.detail.not_required') | t
+                      }}
                     </span>
                   </div>
                   <div class="sec-metric-card">
-                    <span class="sec-metric-lbl">{{ 'iam.aktivnyh_sessiy' | t }}</span>
+                    <span class="sec-metric-lbl">{{ 'iam.users.detail.active_sessions_count' | t }}</span>
                     <span class="sec-metric-val">{{ sec.activeSessionsCount }}</span>
                   </div>
                   <div class="sec-metric-card">
-                    <span class="sec-metric-lbl">{{ 'iam.versiya_bezopasnosti' | t }}</span>
+                    <span class="sec-metric-lbl">{{ 'iam.users.detail.security_version' | t }}</span>
                     <span class="sec-metric-val font-mono">v{{ sec.authVersion }}</span>
                   </div>
                 </div>
@@ -147,7 +149,7 @@
                       (click)="forcePasswordChange.emit(u.id)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">password</span>
-                      <span>{{ 'iam.potrebovat_smenu_parolya' | t }}</span>
+                      <span>{{ 'iam.users.detail.force_password_change' | t }}</span>
                     </button>
 
                     <button
@@ -157,7 +159,7 @@
                       (click)="reset2fa.emit(u.id)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">key_off</span>
-                      <span>{{ 'iam.sbrosit_2fa' | t }}</span>
+                      <span>{{ 'iam.users.reset_two_factor' | t }}</span>
                     </button>
 
                     <button
@@ -167,7 +169,7 @@
                       (click)="terminateAllSessions.emit(u.id)"
                     >
                       <span class="material-symbols-outlined" aria-hidden="true">logout</span>
-                      <span>{{ 'iam.zavershit_vse_sessii' | t }}</span>
+                      <span>{{ 'iam.users.terminate_all_sessions' | t }}</span>
                     </button>
                   </div>
                 }
@@ -176,13 +178,13 @@
                 <div class="sec-section">
                   <div class="sec-section-title">
                     <span class="material-symbols-outlined sec-title-icon" aria-hidden="true">devices</span>
-                    <h4>{{ 'iam.aktivnye_sessii' | t }}</h4>
+                    <h4>{{ 'iam.common.active_sessions' | t }}</h4>
                     <span class="count-pill">{{ sec.activeSessions.length }}</span>
                   </div>
 
                   @if (sec.activeSessions.length === 0) {
                     <div class="sec-empty-state">
-                      <p>{{ 'iam.net_aktivnyh_sessiy' | t }}</p>
+                      <p>{{ 'iam.common.no_active_sessions' | t }}</p>
                     </div>
                   }
 
@@ -202,13 +204,13 @@
                 <div class="sec-section">
                   <div class="sec-section-title">
                     <span class="material-symbols-outlined sec-title-icon" aria-hidden="true">history</span>
-                    <h4>{{ 'iam.istoriya_popytok_vhoda' | t }}</h4>
+                    <h4>{{ 'iam.users.detail.login_attempts_history' | t }}</h4>
                     <span class="count-pill">{{ sec.recentLoginAttempts.length }}</span>
                   </div>
 
                   @if (sec.recentLoginAttempts.length === 0) {
                     <div class="sec-empty-state">
-                      <p>{{ 'iam.net_zapisan_popytok_vhoda' | t }}</p>
+                      <p>{{ 'iam.users.detail.no_login_attempts' | t }}</p>
                     </div>
                   }
 
@@ -260,7 +262,7 @@
     }
     <div footer>
       <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeRecordView.emit()">
-        {{ (routeRecordId() ? 'search.back_to_list' : 'audit.zakryt') | t }}
+        {{ (routeRecordId() ? 'search.back_to_list' : 'audit.common.close') | t }}
       </button>
       @if (canUpdateUser() && viewingUser() && safeRecordId()(viewingUser()!.id)) {
         <button smt-button type="button" smtVariant="primary" smtSize="md" (click)="openEdit.emit()">
@@ -293,7 +295,7 @@
       smtIconOnly
       smtIcon="close"
       class="danger"
-      [title]="'iam.zavershit_sessiyu' | t"
+      [title]="'iam.users.detail.terminate_session' | t"
       [attr.aria-label]="'iam.terminate_session_ip_named' | t: { ip: s.ip }"
       [disabled]="isSecurityActionPending()"
       (click)="terminateSession(s)"

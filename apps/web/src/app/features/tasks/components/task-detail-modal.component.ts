@@ -115,13 +115,13 @@ export class TaskDetailModalComponent {
       case 'R':
         return this.i18n.translate('task.responsible');
       case 'E':
-        return this.i18n.translate('tasks.ispolnitel');
+        return this.i18n.translate('tasks.common.executor');
       case 'O':
-        return this.i18n.translate('tasks.nablyudatel');
+        return this.i18n.translate('tasks.common.observer');
       case 'A':
-        return this.i18n.translate('tasks.avtor');
+        return this.i18n.translate('tasks.common.author');
       default:
-        return this.i18n.translate('tasks.uchastnik');
+        return this.i18n.translate('tasks.common.participant');
     }
   }
 

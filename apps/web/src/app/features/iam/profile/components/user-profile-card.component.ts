@@ -22,7 +22,7 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
             @if (user.is2faEnabled) {
               <smt-badge smtSize="SM" smtVariant="success">
                 <span class="material-symbols-outlined badge-icon" aria-hidden="true">verified_user</span>
-                {{ 'iam.2fa_vklyuchena' | t }}
+                {{ 'iam.profile.two_factor_enabled' | t }}
               </smt-badge>
             }
           </div>
@@ -37,12 +37,12 @@ import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
             </div>
             @if (user.phone) {
               <div class="info-item">
-                <span class="info-label">{{ 'iam.telefon' | t }}:</span>
+                <span class="info-label">{{ 'iam.common.phone_label' | t }}:</span>
                 <span class="info-value font-mono">{{ user.phone }}</span>
               </div>
             }
             <div class="info-item">
-              <span class="info-label">{{ 'iam.yazyk_zona' | t }}</span>
+              <span class="info-label">{{ 'iam.profile.language_and_zone' | t }}</span>
               <span class="info-value">{{ user.language || 'ru' }} ({{ user.timezone || 'Asia/Tashkent' }})</span>
             </div>
           </div>

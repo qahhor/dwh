@@ -140,7 +140,7 @@ export class SettingsComponent implements OnInit {
       ['security', 'security', 'settings.tab.security'],
       ['storage', 'cloud', 'settings.tab.storage'],
       ['preferences', 'person', 'settings.tab.preferences'],
-      ['languages', 'language', 'settings.yazyki_i_lokalizaciya'],
+      ['languages', 'language', 'settings.page.languages_tab'],
       ['search', 'manage_search', 'settings.search.tab'],
       ['navigation', 'menu_open', 'settings.navigation.tab'],
       ['webhooks', 'webhook', 'settings.webhooks.tab'],

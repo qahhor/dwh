@@ -12,7 +12,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SMTInputComponent, SMTDialogComponent, SMTDialogContentDirective, SMTButtonComponent, TranslatePipe],
   template: `
-    <smt-dialog [open]="isOpen()" [smtTitle]="'auth.vosstanovlenie_parolya' | t" smtSize="sm" (closed)="onClose()">
+    <smt-dialog [open]="isOpen()" [smtTitle]="'auth.reset_request.title' | t" smtSize="sm" (closed)="onClose()">
       <ng-template smtDialogContent>
         <div body class="reset-body">
           <p id="reset-hint" class="reset-hint">{{ 'auth.reset.request_hint' | t }}</p>
@@ -84,9 +84,7 @@ export class LoginResetModalComponent {
       },
       error: (err) => {
         this.isResetLoading.set(false);
-        this.resetError.set(
-          this.errorMessage(err, this.i18n.translate('auth.ne_udalos_otpravit_instrukciyu_povtorite_popytku')),
-        );
+        this.resetError.set(this.errorMessage(err, this.i18n.translate('auth.reset_request.send_failed')));
       },
     });
   }

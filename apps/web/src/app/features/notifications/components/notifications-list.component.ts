@@ -14,7 +14,7 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
     @if (isLoading() && itemsCount() === 0) {
       <div class="notif-loading" role="status">
         <div class="loading-spinner"></div>
-        <span class="loading-text">{{ 'notifications.zagruzka' | t }}</span>
+        <span class="loading-text">{{ 'notifications.inbox.loading' | t }}</span>
       </div>
     }
 
@@ -23,13 +23,13 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
         <span class="material-symbols-outlined error-icon" aria-hidden="true">error</span>
         <span class="error-text">{{ loadError() }}</span>
         <button smt-button type="button" smtVariant="secondary" smtSize="sm" smtIcon="refresh" (click)="retry.emit()">
-          {{ 'notifications.povtorit' | t }}
+          {{ 'notifications.inbox.retry' | t }}
         </button>
       </div>
     }
 
     @if ((!isLoading() || itemsCount() > 0) && !loadError()) {
-      <div class="notif-list" role="region" [attr.aria-label]="'notifications.spisok_uvedomleniy' | t">
+      <div class="notif-list" role="region" [attr.aria-label]="'notifications.inbox.list' | t">
         @for (n of paginatedItems(); track n) {
           <article
             class="notif-item"
@@ -56,7 +56,7 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
               @if (n.targetUrl) {
                 <div class="notif-target-link">
                   <span class="material-symbols-outlined target-icon" aria-hidden="true">arrow_forward</span>
-                  <span>{{ 'notifications.pereyti_k_resursu' | t }}</span>
+                  <span>{{ 'notifications.inbox.go_to_item' | t }}</span>
                 </div>
               }
             </div>
@@ -87,20 +87,10 @@ import { NotificationFilterTab, resolveNotificationIcon } from '../notifications
               </span>
             </div>
             <div class="empty-title">
-              {{
-                (filterTab() === 'unread'
-                  ? 'notifications.vse_uvedomleniya_prochitany'
-                  : 'notifications.u_vas_net_uvedomleniy'
-                ) | t
-              }}
+              {{ (filterTab() === 'unread' ? 'notifications.inbox.all_read' : 'notifications.inbox.empty') | t }}
             </div>
             <div class="empty-subtitle">
-              {{
-                (filterTab() === 'unread'
-                  ? 'notifications.net_novyh_uvedomleniy'
-                  : 'notifications.zdes_budut_uvedomleniya'
-                ) | t
-              }}
+              {{ (filterTab() === 'unread' ? 'notifications.inbox.no_unread' : 'notifications.inbox.empty_hint') | t }}
             </div>
           </div>
         }

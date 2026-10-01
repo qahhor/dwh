@@ -61,7 +61,7 @@
 
     <!-- Delegation: a followed link (by mouse or Enter) bubbles a click here and closes the mobile menu. -->
     <!-- eslint-disable-next-line @angular-eslint/template/click-events-have-key-events, @angular-eslint/template/interactive-supports-focus -->
-    <nav class="sidebar-nav" [attr.aria-label]="'layout.app_shell.osnovnaya_navigaciya' | t" (click)="navClick.emit()">
+    <nav class="sidebar-nav" [attr.aria-label]="'layout.app_shell.main_navigation' | t" (click)="navClick.emit()">
       <!-- Collapsed Mode: Categories Rail (Main Categories of the Menu) -->
       @if (isCollapsed() && !isMobileMenuOpen()) {
         <div class="rail-category-list">

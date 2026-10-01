@@ -98,9 +98,7 @@ export class LoginComponent {
         },
         error: (err) => {
           this.isLoading.set(false);
-          this.formError.set(
-            this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_vypolnit_vhod_proverte_dannye_i_povtor')),
-          );
+          this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.login.sign_in_failed')));
           this.focusInput('password');
         },
       });
@@ -131,9 +129,7 @@ export class LoginComponent {
         },
         error: (err) => {
           this.isLoading.set(false);
-          this.formError.set(
-            this.errorMessage(err, this.uiI18n.translate('auth.kod_ne_podtverzhden_proverte_kod_i_povtorite_pop')),
-          );
+          this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.login.otp_failed')));
           this.focusInput('otp-code');
         },
       });
@@ -152,7 +148,7 @@ export class LoginComponent {
       return;
     }
     if (this.newPassword() !== this.confirmNewPassword()) {
-      this.formError.set(this.uiI18n.translate('auth.vvedennye_paroli_ne_sovpadayut'));
+      this.formError.set(this.uiI18n.translate('auth.password.mismatch'));
       this.focusInput('confirm-new-password');
       return;
     }
@@ -176,9 +172,7 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        this.formError.set(
-          this.errorMessage(err, this.uiI18n.translate('auth.ne_udalos_izmenit_parol_proverte_slozhnost_parol')),
-        );
+        this.formError.set(this.errorMessage(err, this.uiI18n.translate('auth.login.change_password_failed')));
         this.focusInput('new-password');
       },
     });

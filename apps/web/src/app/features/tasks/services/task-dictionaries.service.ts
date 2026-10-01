@@ -67,10 +67,11 @@ export class TaskDictionariesService {
       })
       .subscribe({
         next: () => {
-          this.toast.success(this.uiI18n.translate('tasks.tip_zadachi_dobavlen'));
+          this.toast.success(this.uiI18n.translate('tasks.dictionaries.type_added'));
           this.loadTypes();
         },
-        error: (err) => this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_tipa')),
+        error: (err) =>
+          this.toast.error(err.error?.message || this.uiI18n.translate('tasks.dictionaries.type_add_failed')),
       });
   }
 
@@ -84,11 +85,11 @@ export class TaskDictionariesService {
       })
       .subscribe({
         next: () => {
-          this.toast.success(this.uiI18n.translate('tasks.status_zadachi_dobavlen'));
+          this.toast.success(this.uiI18n.translate('tasks.dictionaries.status_added'));
           this.loadStatuses();
         },
         error: (err) =>
-          this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_dobavleniya_statusa')),
+          this.toast.error(err.error?.message || this.uiI18n.translate('tasks.dictionaries.status_add_failed')),
       });
   }
 
@@ -102,8 +103,8 @@ export class TaskDictionariesService {
     const endpoint = isType ? `/tasks/types/${target.id}` : `/tasks/statuses/${target.id}`;
     this.modal
       .confirm({
-        title: t('tasks.udalenie_elementa_spravochnika'),
-        message: `${t('tasks.delete_dictionary_confirm', { kind: t(isType ? 'tasks.task_type_accusative' : 'tasks.status_accusative'), name: target.name })}\n${t('tasks.udalenie_budet_otkloneno_esli_element_uzhe_ispol')}`,
+        title: t('tasks.dictionaries.delete_title'),
+        message: `${t('tasks.delete_dictionary_confirm', { kind: t(isType ? 'tasks.task_type_accusative' : 'tasks.status_accusative'), name: target.name })}\n${t('tasks.dictionaries.delete_in_use_warning')}`,
         yesLabel: t('common.delete'),
         noLabel: t('common.cancel'),
         destructive: true,
@@ -111,17 +112,17 @@ export class TaskDictionariesService {
           this.api.delete(endpoint, { notifyError: false }).pipe(
             tap(() => {
               if (isType) {
-                this.toast.success(t('tasks.tip_zadachi_udalen'));
+                this.toast.success(t('tasks.dictionaries.type_deleted'));
                 this.loadTypes();
               } else {
-                this.toast.success(t('tasks.status_udalen'));
+                this.toast.success(t('tasks.dictionaries.status_deleted'));
                 this.loadStatuses();
               }
             }),
           ),
         actionError: (error) =>
           problemText(error) ||
-          t(isType ? 'tasks.oshibka_udaleniya_tipa' : 'tasks.nelzya_udalit_status_privyazannyy_k_zadacham'),
+          t(isType ? 'tasks.dictionaries.type_delete_failed' : 'tasks.dictionaries.status_in_use'),
       })
       .subscribe();
   }
@@ -139,18 +140,18 @@ export class TaskDictionariesService {
   private persistStatusOrder(list: TaskStatus[]): void {
     const orderedIds = list.map((status) => status.id);
     this.api.post('/tasks/statuses/reorder', orderedIds).subscribe({
-      next: () => this.toast.success(this.uiI18n.translate('tasks.poryadok_statusov_sohranen')),
+      next: () => this.toast.success(this.uiI18n.translate('tasks.dictionaries.status_order_saved')),
       error: (err) =>
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka')),
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.dictionaries.reorder_failed')),
     });
   }
 
   private persistTypeOrder(list: TaskType[]): void {
     const orderedIds = list.map((t) => t.id);
     this.api.post('/tasks/types/reorder', orderedIds).subscribe({
-      next: () => this.toast.success(this.uiI18n.translate('tasks.poryadok_tipov_zadach_sohranen')),
+      next: () => this.toast.success(this.uiI18n.translate('tasks.dictionaries.type_order_saved')),
       error: (err) =>
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_izmeneniya_poryadka')),
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.dictionaries.reorder_failed')),
     });
   }
 }

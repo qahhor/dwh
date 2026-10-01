@@ -102,9 +102,9 @@ export class TaskEditModalComponent {
         lang,
         options: [
           { value: 'low', label: this.i18n.translate('task.priority.low'), tone: 'success' },
-          { value: 'medium', label: this.i18n.translate('tasks.sredniy') },
+          { value: 'medium', label: this.i18n.translate('tasks.common.medium') },
           { value: 'high', label: this.i18n.translate('task.priority.high'), tone: 'warning' },
-          { value: 'critical', label: this.i18n.translate('tasks.kriticheskiy'), tone: 'danger' },
+          { value: 'critical', label: this.i18n.translate('tasks.common.critical'), tone: 'danger' },
         ],
       };
     }

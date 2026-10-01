@@ -100,10 +100,10 @@ export class ProfileComponent {
   readonly channels = lastLoaded<UserChannel[]>(() => this.channelsRead.value(), []);
 
   tokenExpirationOptions: TokenExpirationOption[] = [
-    { value: '30', labelKey: 'iam.srok_30_dney' },
-    { value: '90', labelKey: 'iam.srok_90_dney' },
-    { value: '365', labelKey: 'iam.srok_1_god' },
-    { value: 'never', labelKey: 'iam.bessrochno' },
+    { value: '30', labelKey: 'iam.profile.expiry_30_days' },
+    { value: '90', labelKey: 'iam.profile.expiry_90_days' },
+    { value: '365', labelKey: 'iam.profile.expiry_1_year' },
+    { value: 'never', labelKey: 'iam.profile.no_expiry' },
   ];
 
   // Methods, not computed: the card edits the form object in place.
@@ -140,13 +140,13 @@ export class ProfileComponent {
     this.profile.bindChannel(event.channel, event.address).subscribe({
       next: (res) => {
         this.isBindingChannel.set(false);
-        this.toast.info(this.uiI18n.translate('iam.kod_podtverzhdeniya_otpravlen', { address: event.address }));
+        this.toast.info(this.uiI18n.translate('iam.profile.verification_code_sent', { address: event.address }));
         this.channelsCard()?.openConfirmModal(res.verifyToken, event.address);
         this.loadChannels();
       },
       error: (err: unknown) => {
         this.isBindingChannel.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('iam.oshibka_privyazki_kanala'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('iam.profile.channel_bind_failed'));
       },
     });
   }
@@ -156,13 +156,13 @@ export class ProfileComponent {
     this.profile.confirmChannel(event.verifyToken, event.code).subscribe({
       next: () => {
         this.isConfirmingChannel.set(false);
-        this.toast.success(this.uiI18n.translate('iam.kanal_uspeshno_privyazan'));
+        this.toast.success(this.uiI18n.translate('iam.profile.channel_bound'));
         this.channelsCard()?.closeConfirmModal();
         this.loadChannels();
       },
       error: (err: unknown) => {
         this.isConfirmingChannel.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('iam.oshibka_podtverzhdeniya_kanala'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('iam.profile.channel_verify_failed'));
       },
     });
   }
@@ -172,15 +172,15 @@ export class ProfileComponent {
     const channelsCard = this.channelsCard();
     const label = channelsCard ? channelsCard.channelLabel(channel.channel) : channel.channel;
     this.askThenRun({
-      title: t('iam.otvyazat_kanal'),
-      message: `${t('iam.vy_uvereny_chto_hotite_otvyazat_kanal', { channel: label, address: channel.address })}\n${t('iam.otvyazat_kanal_preduprezhdenie')}`,
-      yesLabel: t('iam.otvyazat_kanal'),
+      title: t('iam.profile.unbind'),
+      message: `${t('iam.profile.unbind_confirm', { channel: label, address: channel.address })}\n${t('iam.profile.unbind_warning')}`,
+      yesLabel: t('iam.profile.unbind'),
       request: () => this.profile.unbindChannel(channel.channel),
       done: () => {
-        this.toast.success(t('iam.kanal_uspeshno_otvyazan'));
+        this.toast.success(t('iam.profile.channel_unbound'));
         this.loadChannels();
       },
-      failure: t('iam.oshibka_otvyazki_kanala'),
+      failure: t('iam.profile.channel_unbind_failed'),
     });
   }
 
@@ -191,15 +191,15 @@ export class ProfileComponent {
   requestTerminateSession(session: UserSession) {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
     this.askThenRun({
-      title: t('iam.zavershenie_sessii'),
-      message: `${t('iam.terminate_session_question', { ip: session.ip })}\n${t('iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni')}`,
-      yesLabel: t('iam.zavershit'),
+      title: t('iam.profile.end_session_title'),
+      message: `${t('iam.terminate_session_question', { ip: session.ip })}\n${t('iam.profile.end_other_sessions_hint')}`,
+      yesLabel: t('iam.profile.terminate'),
       request: () => this.profile.endSession(session.id),
       done: () => {
-        this.toast.success(t('iam.sessiya_uspeshno_zavershena'));
+        this.toast.success(t('iam.profile.session_ended'));
         this.loadSessions();
       },
-      failure: t('iam.oshibka_pri_zavershenii_sessii'),
+      failure: t('iam.profile.end_session_failed'),
       busy: (on) => this.isTerminatingSession.set(on),
     });
   }
@@ -207,15 +207,15 @@ export class ProfileComponent {
   requestTerminateOtherSessions() {
     const t = (key: string) => this.uiI18n.translate(key);
     this.askThenRun({
-      title: t('iam.zavershenie_sessii'),
-      message: `${t('iam.zavershit_vse_ostalnye_aktivnye_sessii_krome_tek')}\n${t('iam.na_zavershennyh_ustroystvah_potrebuetsya_vypolni')}`,
-      yesLabel: t('iam.zavershit'),
+      title: t('iam.profile.end_session_title'),
+      message: `${t('iam.profile.end_other_sessions_confirm')}\n${t('iam.profile.end_other_sessions_hint')}`,
+      yesLabel: t('iam.profile.terminate'),
       request: () => this.profile.endOtherSessions(),
       done: () => {
-        this.toast.success(t('iam.vse_ostalnye_sessii_uspeshno_zaversheny'));
+        this.toast.success(t('iam.profile.other_sessions_ended'));
         this.loadSessions();
       },
-      failure: t('iam.oshibka_pri_zavershenii_sessiy'),
+      failure: t('iam.profile.end_sessions_failed'),
       busy: (on) => this.isTerminatingSession.set(on),
     });
   }
@@ -225,7 +225,7 @@ export class ProfileComponent {
     this.isPasswordSubmitted.set(true);
 
     if (!this.passwordForm().oldPassword || !this.passwordForm().newPassword || !this.passwordForm().confirmPassword) {
-      this.toast.warning(this.uiI18n.translate('iam.zapolnite_vse_polya_smeny_parolya'));
+      this.toast.warning(this.uiI18n.translate('iam.profile.password_fields_required'));
       return;
     }
 
@@ -235,7 +235,7 @@ export class ProfileComponent {
     }
 
     if (this.passwordForm().newPassword !== this.passwordForm().confirmPassword) {
-      this.toast.warning(this.uiI18n.translate('iam.novyy_parol_i_podtverzhdenie_ne_sovpadayut'));
+      this.toast.warning(this.uiI18n.translate('iam.profile.password_mismatch'));
       return;
     }
 
@@ -267,7 +267,7 @@ export class ProfileComponent {
   createTokenSubmit() {
     this.isTokenSubmitted.set(true);
     if (!this.newTokenName().trim()) {
-      this.toast.warning(this.uiI18n.translate('iam.vvedite_nazvanie_api_tokena.bfec35d'));
+      this.toast.warning(this.uiI18n.translate('iam.profile.token_name_required'));
       return;
     }
 
@@ -285,7 +285,7 @@ export class ProfileComponent {
       },
       error: (err: unknown) => {
         this.isCreatingToken.set(false);
-        this.toast.error(problemText(err) || this.uiI18n.translate('iam.oshibka_pri_sozdanii_api_tokena'));
+        this.toast.error(problemText(err) || this.uiI18n.translate('iam.profile.token_create_failed'));
       },
     });
   }
@@ -293,15 +293,15 @@ export class ProfileComponent {
   requestRevokeToken(token: ApiToken) {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
     this.askThenRun({
-      title: t('iam.otzyv_api_tokena'),
-      message: `${t('iam.revoke_token_question', { name: token.name })}\n${t('iam.integracii_s_etim_tokenom_nemedlenno_poteryayut_')}`,
-      yesLabel: t('iam.otozvat'),
+      title: t('iam.profile.revoke_token_title'),
+      message: `${t('iam.revoke_token_question', { name: token.name })}\n${t('iam.profile.revoke_token_warning')}`,
+      yesLabel: t('iam.profile.revoke'),
       request: () => this.profile.revokeToken(token.id),
       done: () => {
-        this.toast.success(t('iam.token_uspeshno_otozvan'));
+        this.toast.success(t('iam.profile.token_revoked'));
         this.loadTokens();
       },
-      failure: t('iam.oshibka_pri_otzyve_tokena'),
+      failure: t('iam.profile.token_revoke_failed'),
     });
   }
 
@@ -309,7 +309,7 @@ export class ProfileComponent {
     if (!this.createdTokenSecret()) return;
     navigator.clipboard.writeText(this.createdTokenSecret());
     this.copiedSecret.set(true);
-    this.toast.success(this.uiI18n.translate('iam.token_skopirovan_v_bufer_obmena'));
+    this.toast.success(this.uiI18n.translate('iam.profile.token_copied'));
     setTimeout(() => this.copiedSecret.set(false), 2000);
   }
 

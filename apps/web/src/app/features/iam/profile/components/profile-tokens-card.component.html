@@ -2,7 +2,7 @@
   <div class="section-header">
     <div class="section-title-box">
       <span class="material-symbols-outlined section-icon" aria-hidden="true">key</span>
-      <h4 class="section-title">{{ 'iam.api_tokeny_dostupa_bearer_tokens' | t }}</h4>
+      <h4 class="section-title">{{ 'iam.profile.tokens.title' | t }}</h4>
       <span class="badge-count">{{ tokens().length }}</span>
     </div>
     <button
@@ -13,11 +13,11 @@
       smtIcon="add"
       (click)="openCreateTokenModal.emit()"
     >
-      {{ 'iam.vypustit_token' | t }}
+      {{ 'iam.profile.tokens.issue' | t }}
     </button>
   </div>
 
-  <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_api_tokenov' | t" tabindex="0">
+  <div class="table-wrapper" role="region" [attr.aria-label]="'iam.profile.tokens.api_token_table' | t" tabindex="0">
     <div class="data-table">
       <ui-local-table
         [rows]="rows()"
@@ -55,18 +55,18 @@
       [attr.aria-label]="'iam.revoke_api_token_named' | t: { name: t.name }"
       (click)="requestRevoke.emit(t)"
     >
-      {{ 'iam.otozvat' | t }}
+      {{ 'iam.profile.revoke' | t }}
     </button>
   </div>
 </ng-template>
 <ng-template #emptyTokens
-  ><p class="empty-cell">{{ 'iam.net_sozdannyh_api_tokenov' | t }}</p></ng-template
+  ><p class="empty-cell">{{ 'iam.profile.tokens.empty' | t }}</p></ng-template
 >
 
 <!-- Create Token Modal -->
 <smt-dialog
   [open]="isCreateTokenModalOpen()"
-  [smtTitle]="'iam.vypusk_novogo_api_tokena' | t"
+  [smtTitle]="'iam.profile.tokens.issue_title' | t"
   smtSize="sm"
   (closed)="closeCreateTokenModal.emit()"
 >
@@ -74,7 +74,7 @@
     <div body class="token-form">
       <div class="form-group">
         <label class="form-label" for="profile-token-name"
-          >{{ 'iam.nazvanie_tokena' | t }} <span class="req">*</span></label
+          >{{ 'iam.profile.tokens.token_name' | t }} <span class="req">*</span></label
         >
         <smt-input
           smtFieldId="profile-token-name"
@@ -84,16 +84,16 @@
           [smtDescribedBy]="isTokenSubmitted() && !newTokenName().trim() ? 'profile-token-name-error' : null"
           [value]="newTokenName()"
           (valueChange)="nameChange.emit($event === null ? '' : '' + $event)"
-          [placeholder]="'iam.naprimer_ci_cd_deployer_kafka_sync' | t"
+          [placeholder]="'iam.profile.tokens.name_placeholder' | t"
         />
         @if (isTokenSubmitted() && !newTokenName().trim()) {
           <span id="profile-token-name-error" class="field-error">
-            {{ 'iam.vvedite_nazvanie_api_tokena' | t }}
+            {{ 'iam.profile.token_name_placeholder' | t }}
           </span>
         }
       </div>
 
-      <smt-control class="mt-3" [smtLabel]="'iam.srok_deystviya_tokena' | t">
+      <smt-control class="mt-3" [smtLabel]="'iam.profile.tokens.expiry' | t">
         <smt-radio-group
           smtAppearance="cards"
           smtOrientation="horizontal"
@@ -115,7 +115,7 @@
         [smtLoading]="isCreatingToken()"
         (click)="createTokenSubmit.emit()"
       >
-        {{ 'iam.sgenerirovat' | t }}
+        {{ 'iam.profile.tokens.generate' | t }}
       </button>
     </div>
   </ng-template>
@@ -124,7 +124,7 @@
 <!-- Token Secret Reveal Modal -->
 <smt-dialog
   [open]="isTokenSecretModalOpen()"
-  [smtTitle]="'iam.api_token_uspeshno_sozdan' | t"
+  [smtTitle]="'iam.profile.tokens.created' | t"
   smtSize="md"
   (closed)="closeSecretModal.emit()"
 >
@@ -132,7 +132,7 @@
     <div body class="secret-reveal-body">
       <div class="warning-box">
         <span class="material-symbols-outlined" aria-hidden="true">warning</span>
-        <p>{{ 'iam.skopiruyte_i_sohranite_token_seychas_v_celyah_be' | t }}</p>
+        <p>{{ 'iam.profile.tokens.copy_now_warning' | t }}</p>
       </div>
       <div class="token-secret-box">
         <code>{{ createdTokenSecret() }}</code>
@@ -144,11 +144,11 @@
           [smtIcon]="copiedSecret() ? 'check' : 'content_copy'"
           (click)="copySecret.emit()"
         >
-          {{ (copiedSecret() ? 'iam.skopirovano' : 'iam.skopirovat') | t }}
+          {{ (copiedSecret() ? 'iam.profile.tokens.copied' : 'iam.profile.tokens.copy') | t }}
         </button>
       </div>
       <button smt-button type="button" smtVariant="primary" smtSize="md" class="mt-4" (click)="closeSecretModal.emit()">
-        {{ 'iam.ya_sohranil_token' | t }}
+        {{ 'iam.profile.tokens.saved_confirm' | t }}
       </button>
     </div>
   </ng-template>

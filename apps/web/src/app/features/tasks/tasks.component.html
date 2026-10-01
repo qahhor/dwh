@@ -7,7 +7,7 @@
       class="view-switch"
       [options]="presenter.viewOptions()"
       [value]="filterService.viewMode"
-      [smtAriaLabel]="'tasks.rezhim_otobrazheniya_zadach' | t"
+      [smtAriaLabel]="'tasks.list.display_mode' | t"
       (valueChange)="filterService.viewMode = $event ?? filterService.viewMode"
     />
     <!-- Dictionary Settings Button -->
@@ -16,11 +16,11 @@
       smtVariant="secondary"
       type="button"
       class="compact-secondary-action"
-      [title]="'tasks.upravlenie_statusami_i_tipami_zadach' | t"
+      [title]="'tasks.list.manage_dictionaries' | t"
       (click)="dictService.openSettingsModal()"
     >
       <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-      <span>{{ 'tasks.spravochniki' | t }}</span>
+      <span>{{ 'tasks.list.dictionaries' | t }}</span>
     </button>
     <!-- Export Dropdown -->
     <div class="export-dropdown-container" style="position: relative; display: inline-block">
@@ -33,7 +33,7 @@
         (click)="filterService.showExportMenu = !filterService.showExportMenu"
       >
         <span class="material-symbols-outlined" aria-hidden="true">download</span>
-        <span>{{ 'analytics.eksport' | t }}</span>
+        <span>{{ 'analytics.dashboard.export' | t }}</span>
         <span class="material-symbols-outlined" style="font-size: 16px" aria-hidden="true">arrow_drop_down</span>
       </button>
       @if (filterService.showExportMenu) {

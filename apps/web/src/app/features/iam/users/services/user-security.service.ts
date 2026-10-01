@@ -39,11 +39,11 @@ export class UserSecurityService {
 
   terminateUserSessions(userId: number): void {
     this.askThenRun({
-      title: 'iam.zavershit_vse_sessii',
-      message: 'iam.podtverdit_zavershenie_vseh_sessiy',
+      title: 'iam.users.terminate_all_sessions',
+      message: 'iam.users.security.end_all_sessions_confirm',
       destructive: true,
       request: () => this.api.delete(`/iam/users/${userId}/sessions`, { notifyError: false }),
-      success: 'iam.vse_sessii_zaversheny',
+      success: 'iam.users.security.all_sessions_ended',
       userId,
     });
   }
@@ -53,7 +53,7 @@ export class UserSecurityService {
     this.api.delete(`/iam/users/${userId}/sessions/${sessionId}`).subscribe({
       next: () => {
         this.isSecurityActionPending.set(false);
-        this.toast.success(this.uiI18n.translate('iam.sessiya_zavershena'));
+        this.toast.success(this.uiI18n.translate('iam.users.security.session_ended'));
         this.loadUserSecurity(userId);
       },
       error: () => this.isSecurityActionPending.set(false),
@@ -62,11 +62,11 @@ export class UserSecurityService {
 
   forcePasswordChange(userId: number, onComplete?: () => void): void {
     this.askThenRun({
-      title: 'iam.trebovanie_smeny_parolya',
-      message: 'iam.podtverdit_trebovanie_smeny_parolya',
+      title: 'iam.common.force_password_change',
+      message: 'iam.users.security.force_password_change_confirm',
       destructive: false,
       request: () => this.api.post(`/iam/users/${userId}/force-password-change`, undefined, { notifyError: false }),
-      success: 'iam.smena_parolya_potrebovana',
+      success: 'iam.users.security.password_change_forced',
       userId,
       onComplete,
     });
@@ -74,11 +74,11 @@ export class UserSecurityService {
 
   resetUser2fa(userId: number, onComplete?: () => void): void {
     this.askThenRun({
-      title: 'iam.sbrosit_2fa',
-      message: 'iam.podtverdit_sbros_2fa',
+      title: 'iam.users.reset_two_factor',
+      message: 'iam.users.security.reset_two_factor_confirm',
       destructive: true,
       request: () => this.api.post(`/iam/users/${userId}/reset-2fa`, undefined, { notifyError: false }),
-      success: 'iam.2fa_sbroshena',
+      success: 'iam.users.security.two_factor_reset',
       userId,
       onComplete,
     });
@@ -101,7 +101,7 @@ export class UserSecurityService {
       .confirm({
         title: this.uiI18n.translate(ask.title),
         message: this.uiI18n.translate(ask.message),
-        yesLabel: this.uiI18n.translate('iam.vypolnit'),
+        yesLabel: this.uiI18n.translate('iam.users.security.confirm'),
         noLabel: this.uiI18n.translate('common.cancel'),
         destructive: ask.destructive,
         action: () => {

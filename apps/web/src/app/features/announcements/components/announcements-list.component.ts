@@ -39,7 +39,7 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } fr
                   @if (item.id === activeId()) {
                     <span class="active-badge">
                       <span class="material-symbols-outlined badge-icon" aria-hidden="true">sensors</span>
-                      {{ 'announcements.aktivno_dlya_polzovateley' | t }}
+                      {{ 'announcements.list.active' | t }}
                     </span>
                   }
                   <span class="id-tag">№{{ item.id }}</span>
@@ -49,12 +49,12 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } fr
               <div class="card-timestamps">
                 @if (item.publishedAt) {
                   <span class="meta-time">
-                    {{ 'announcements.opublikovano_v' | t }} {{ item.publishedAt | date: 'dd.MM.yyyy, HH:mm' }}
+                    {{ 'announcements.list.published_at' | t }} {{ item.publishedAt | date: 'dd.MM.yyyy, HH:mm' }}
                   </span>
                 }
                 @if (item.archivedAt) {
                   <span class="meta-time">
-                    {{ 'announcements.arhivirovano_v' | t }} {{ item.archivedAt | date: 'dd.MM.yyyy, HH:mm' }}
+                    {{ 'announcements.list.archived_at' | t }} {{ item.archivedAt | date: 'dd.MM.yyyy, HH:mm' }}
                   </span>
                 }
                 <time [attr.datetime]="item.modifiedAt">{{ item.modifiedAt | date: 'dd.MM.yyyy, HH:mm' }}</time>
@@ -77,18 +77,18 @@ import { AnnouncementAdminRecord, AnnouncementBannerType, AnnouncementState } fr
                   (click)="publish.emit(item)"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">publish</span>
-                  {{ 'announcements.opublikovat' | t }}
+                  {{ 'announcements.list.publish' | t }}
                 </button>
               }
               @if (item.state === 'DRAFT' && !hasPublishableContent(item)) {
                 <span class="invalid-hint" [id]="'invalid-draft-' + item.id">
-                  {{ 'announcements.zapolnite_ru_zagolovok_i_tekst' | t }}
+                  {{ 'announcements.list.fill_ru_title_and_text' | t }}
                 </span>
               }
               @if (item.state === 'PUBLISHED' && canArchive()) {
                 <button type="button" class="text-action archive-action" (click)="archive.emit(item)">
                   <span class="material-symbols-outlined" aria-hidden="true">archive</span>
-                  {{ 'announcements.arhivirovat' | t }}
+                  {{ 'announcements.list.archive' | t }}
                 </button>
               }
             </div>
@@ -121,9 +121,9 @@ export class AnnouncementsListComponent {
   stateLabel(state: AnnouncementState): string {
     return (
       {
-        DRAFT: this.uiI18n.translate('announcements.chernovik'),
-        PUBLISHED: this.uiI18n.translate('announcements.opublikovano'),
-        ARCHIVED: this.uiI18n.translate('projects.arhiv'),
+        DRAFT: this.uiI18n.translate('announcements.list.draft'),
+        PUBLISHED: this.uiI18n.translate('announcements.list.published'),
+        ARCHIVED: this.uiI18n.translate('projects.common.archive'),
       } as const
     )[state];
   }
@@ -131,9 +131,9 @@ export class AnnouncementsListComponent {
   bannerLabel(type: AnnouncementBannerType): string {
     return (
       {
-        INFO: this.uiI18n.translate('announcements.informaciya'),
-        WARNING: this.uiI18n.translate('announcements.preduprezhdenie'),
-        CRITICAL: this.uiI18n.translate('announcements.kriticheskoe'),
+        INFO: this.uiI18n.translate('announcements.common.level_info'),
+        WARNING: this.uiI18n.translate('announcements.common.level_warning'),
+        CRITICAL: this.uiI18n.translate('announcements.common.level_critical'),
       } as const
     )[type];
   }

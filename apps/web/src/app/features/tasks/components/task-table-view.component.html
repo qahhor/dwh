@@ -1,9 +1,4 @@
-<div
-  class="table-card"
-  role="region"
-  [attr.aria-label]="'tasks.tablica_zadach' | t"
-  [attr.aria-busy]="pager().loading()"
->
+<div class="table-card" role="region" [attr.aria-label]="'tasks.table.table' | t" [attr.aria-busy]="pager().loading()">
   @if (tableConfig(); as config) {
     <ui-server-table
       [pager]="pager()"
@@ -108,7 +103,7 @@
       {{ t.title }}
     </button>
     @if (isOverdue()(t.endTime, t.statusId)) {
-      <span class="overdue-tag">{{ 'tasks.prosrocheno' | t }}</span>
+      <span class="overdue-tag">{{ 'tasks.table.overdue' | t }}</span>
     }
     @if (t.parentTaskId) {
       <span class="parent-chip font-mono" [title]="'task.parent' | t">{{
@@ -152,7 +147,7 @@
       [allowClear]="false"
       [disabled]="!canUpdateTask()"
       [ariaLabel]="'tasks.task_status_aria' | t: { id: t.id }"
-      [title]="'tasks.nazhmite_dlya_smeny_statusa' | t"
+      [title]="'tasks.table.click_to_change_status' | t"
     ></smt-select>
   </div>
 </ng-template>
@@ -182,7 +177,7 @@
         type="button"
         class="icon-ghost-btn"
         [attr.aria-label]="'tasks.edit_task_number' | t: { id: t.id }"
-        [title]="'tasks.redaktirovat_zadachu' | t"
+        [title]="'tasks.common.edit_task' | t"
         (click)="openEditModal.emit(t)"
       >
         <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -192,7 +187,7 @@
       type="button"
       class="icon-ghost-btn"
       [attr.aria-label]="'tasks.view_task_number' | t: { id: t.id }"
-      [title]="'tasks.prosmotret_detali' | t"
+      [title]="'tasks.table.view_details' | t"
       (click)="openTaskDetails.emit(t)"
     >
       <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
@@ -202,10 +197,10 @@
 <ng-template #emptyStateTpl>
   <div class="empty-state-cell">
     <span class="material-symbols-outlined icon" aria-hidden="true">task</span>
-    <p>{{ 'tasks.zadachi_ne_naydeny' | t }}</p>
+    <p>{{ 'tasks.common.no_tasks_found' | t }}</p>
     @if (hasActiveFilters()) {
       <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
-        {{ 'tasks.sbrosit_vse_filtry' | t }}
+        {{ 'tasks.common.reset_all_filters' | t }}
       </button>
     } @else if (canCreateTask()) {
       <button smt-button type="button" smtVariant="primary" smtSize="sm" smtIcon="add" (click)="createTask.emit()">

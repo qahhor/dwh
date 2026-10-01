@@ -10,15 +10,15 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
   imports: [TranslatePipe, SMTSelectComponent],
   template: `
     @if (totalItems() > 0 || (cursorMode() && (currentPage() > 1 || hasNextPage()))) {
-      <nav class="pagination-bar" [attr.aria-label]="'ui.pagination.paginaciya' | t">
+      <nav class="pagination-bar" [attr.aria-label]="'ui.pagination.label' | t">
         <!-- Left: Item Range & Total Counter -->
         @if (totalItems() > 0) {
           <div class="pagination-info" role="status" aria-live="polite" aria-atomic="true">
             <span class="range-text">
-              {{ 'ui.pagination.pokazano' | t }}
+              {{ 'ui.pagination.shown' | t }}
               <strong class="highlight font-mono">{{ startItem }}–{{ endItem }}</strong>
               @if (!cursorMode() || !cursorItemsArePageLength()) {
-                {{ 'files.iz' | t }}
+                {{ 'files.common.of' | t }}
                 <strong class="highlight font-mono">{{ totalApproximate() ? '≈ ' : '' }}{{ totalItems() }}</strong>
               }
             </span>
@@ -30,7 +30,7 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
           <!-- Page Size Selector -->
           @if (showPageSize()) {
             <div class="page-size-picker">
-              <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.strok' | t }}</label>
+              <label class="size-label" [for]="pageSizeSelectId">{{ 'ui.pagination.rows_label' | t }}</label>
               <smt-select
                 class="size-select"
                 [smtTriggerId]="pageSizeSelectId"
@@ -50,8 +50,8 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               <button
                 type="button"
                 class="nav-btn"
-                [attr.aria-label]="'ui.pagination.pervaya_stranica' | t"
-                [title]="'ui.pagination.pervaya_stranica' | t"
+                [attr.aria-label]="'ui.pagination.first_page' | t"
+                [title]="'ui.pagination.first_page' | t"
                 [disabled]="disabled() || currentPage() === 1"
                 (click)="goToPage(1)"
               >
@@ -63,8 +63,8 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
             <button
               type="button"
               class="nav-btn"
-              [attr.aria-label]="'ui.pagination.predyduschaya_stranica' | t"
-              [title]="'ui.pagination.predyduschaya_stranica' | t"
+              [attr.aria-label]="'ui.pagination.previous_page' | t"
+              [title]="'ui.pagination.previous_page' | t"
               [disabled]="disabled() || currentPage() === 1"
               (click)="goToPage(currentPage() - 1)"
             >
@@ -107,8 +107,8 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
             <button
               type="button"
               class="nav-btn"
-              [attr.aria-label]="'ui.pagination.sleduyuschaya_stranica' | t"
-              [title]="'ui.pagination.sleduyuschaya_stranica' | t"
+              [attr.aria-label]="'ui.pagination.next_page' | t"
+              [title]="'ui.pagination.next_page' | t"
               [disabled]="disabled() || (cursorMode() ? !hasNextPage() : currentPage() >= totalPages)"
               (click)="goToPage(currentPage() + 1)"
             >
@@ -120,8 +120,8 @@ import { optionsMemo } from '../ui-kit/components/forms/radio-group/radio-option
               <button
                 type="button"
                 class="nav-btn"
-                [attr.aria-label]="'ui.pagination.poslednyaya_stranica' | t"
-                [title]="'ui.pagination.poslednyaya_stranica' | t"
+                [attr.aria-label]="'ui.pagination.last_page' | t"
+                [title]="'ui.pagination.last_page' | t"
                 [disabled]="disabled() || currentPage() >= totalPages"
                 (click)="goToPage(totalPages)"
               >

@@ -132,7 +132,7 @@ class RecordHistoryControllerTest extends EmbeddedPostgresTest {
                 .contains("name", "login")
                 .noneMatch(field -> field.toLowerCase().contains("password"));
         assertThat((List<String>) read(response, "$.items[-1:].changes[?(@.field == 'name')].labelKey"))
-                .containsExactly("iam.fio");
+                .containsExactly("iam.common.full_name");
     }
 
     @Test

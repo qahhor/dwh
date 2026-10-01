@@ -16,6 +16,7 @@
     "i18n:audit": "node scripts/localization-audit.mjs",
     "contrast:audit": "node scripts/contrast-audit.mjs",
     "i18n:sync-ru": "node scripts/sync-packaged-russian.mjs",
+    "i18n:rename": "node scripts/i18n-rename-keys.mjs",
     "aria:audit": "node scripts/aria-audit.mjs",
     "lint": "eslint . && stylelint \"src/**/*.{css,scss}\" && prettier --check \"src/**/*.{ts,html,css,scss}\" \"scripts/**/*.mjs\" \"*.{mjs,json}\"",
     "lint:prune": "eslint . --prune-suppressions",

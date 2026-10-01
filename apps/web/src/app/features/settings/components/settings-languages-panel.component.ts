@@ -85,26 +85,26 @@ export class SettingsLanguagesPanelComponent {
     return {
       trackBy: (_: number, lang: LanguageInfo) => lang.code,
       layout: 'fit',
-      ariaLabel: this.i18n.translate('settings.upravlenie_yazykovymi_paketami_i_lokalizaciey'),
+      ariaLabel: this.i18n.translate('settings.languages.title'),
       columnsOrder: ['code', 'name', 'type', 'coverage', 'status', 'actions'],
       columns: {
         code: {
-          header: header(this.i18n.translate('settings.kod')),
+          header: header(this.i18n.translate('settings.common.code')),
           content: { type: 'templateRef', value: this.codeCell },
           width: '88px',
         },
         name: {
-          header: header(this.i18n.translate('settings.nazvanie_yazyka')),
+          header: header(this.i18n.translate('settings.languages.language_name')),
           content: { type: 'primitive', value: (lang) => lang.name },
           width: share,
         },
         type: {
-          header: header(this.i18n.translate('settings.tip')),
+          header: header(this.i18n.translate('settings.common.type')),
           content: { type: 'templateRef', value: this.typeCell },
           width: share,
         },
         coverage: {
-          header: header(this.i18n.translate('settings.gotovnost')),
+          header: header(this.i18n.translate('settings.languages.readiness')),
           content: { type: 'templateRef', value: this.coverageCell },
           width: share,
         },

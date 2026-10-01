@@ -56,7 +56,7 @@ export class LanguageEditorComponent {
   /** Hidden while a retry runs. */
   readonly loadError = computed(() =>
     this.editorResource.error() !== undefined && !this.editorResource.isLoading()
-      ? this.uiI18n.translate('settings.ne_udalos_zagruzit_redaktor_perevodov')
+      ? this.uiI18n.translate('settings.languages.editor_load_failed')
       : null,
   );
 
@@ -163,18 +163,17 @@ export class LanguageEditorComponent {
           this.applySavedModel(model, language, translations);
           this.i18n.refreshLanguage(this.languageCode()).subscribe({
             next: () => {
-              this.toast.success(this.uiI18n.translate('settings.perevody_uspeshno_sohraneny'));
+              this.toast.success(this.uiI18n.translate('settings.languages.translations_saved'));
               this.saved.emit(this.languageCode());
             },
-            error: () =>
-              this.toast.error(this.uiI18n.translate('settings.perevody_sohraneny_no_interfeys_ne_udalos_obnovi')),
+            error: () => this.toast.error(this.uiI18n.translate('settings.languages.saved_refresh_failed')),
           });
         },
         error: (error) => {
           this.saveError.set(
             error?.status === 409
-              ? this.uiI18n.translate('settings.yazykovoy_paket_izmenen_drugim_administratorom_v')
-              : this.uiI18n.translate('settings.ne_udalos_sohranit_perevody'),
+              ? this.uiI18n.translate('settings.languages.stale_conflict')
+              : this.uiI18n.translate('settings.languages.save_failed'),
           );
         },
       });
@@ -203,7 +202,7 @@ export class LanguageEditorComponent {
       );
       return true;
     } catch {
-      this.toast.error(this.uiI18n.translate('settings.nevernyy_json_ili_slovar_soderzhit_neizvestnye_k'));
+      this.toast.error(this.uiI18n.translate('settings.languages.invalid_dictionary'));
       return false;
     }
   }
@@ -242,7 +241,7 @@ export class LanguageEditorComponent {
     }
     this.modal
       .confirm({
-        message: this.uiI18n.translate('settings.est_nesohranennye_perevody_zakryt_redaktor_bez_s'),
+        message: this.uiI18n.translate('settings.languages.unsaved_close_confirm'),
         destructive: true,
       })
       .subscribe((confirmed) => {

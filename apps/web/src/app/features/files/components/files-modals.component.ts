@@ -14,7 +14,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
     <!-- Upload Modal -->
     <smt-dialog
       [open]="isUploadModalOpen()"
-      [smtTitle]="'files.zagruzka_faylov_v_hranilische' | t"
+      [smtTitle]="'files.details.upload_title' | t"
       smtSize="md"
       (closed)="closeUpload.emit()"
     >
@@ -30,7 +30,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
         </div>
         <div footer class="modal-footer-actions">
           <button smt-button type="button" smtVariant="secondary" (click)="closeUpload.emit()">
-            {{ 'audit.zakryt' | t }}
+            {{ 'audit.common.close' | t }}
           </button>
         </div>
       </ng-template>

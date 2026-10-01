@@ -81,13 +81,13 @@ export class UiCustomFieldsComponent {
           ...base,
           type: 'select',
           options: selectOptions(field),
-          placeholder: this.i18n.translate('ui.custom_fields.vyberite_znachenie'),
+          placeholder: this.i18n.translate('ui.custom_fields.select_value'),
         };
       case 'user_ref':
         return {
           ...base,
           type: 'user_ref',
-          placeholder: this.i18n.translate('ui.custom_fields.vyberite_polzovatelya'),
+          placeholder: this.i18n.translate('ui.custom_fields.select_user_option'),
         };
       default:
         return {

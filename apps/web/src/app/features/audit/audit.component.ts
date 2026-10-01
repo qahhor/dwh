@@ -58,9 +58,9 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
           smt-button
           smtVariant="secondary"
           type="button"
-          [attr.aria-label]="'audit.obnovit_zhurnal_audita' | t"
+          [attr.aria-label]="'audit.logs.refresh_audit_log' | t"
           (click)="refreshAll()"
-          [title]="'audit.obnovit_zhurnal' | t"
+          [title]="'audit.logs.refresh_log' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
           <span>{{ 'common.refresh' | t }}</span>
@@ -80,7 +80,7 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
           class="audit-tabs"
           [tabs]="auditTabs()"
           [value]="activeTab()"
-          [smtAriaLabel]="'audit.razdely_audita' | t"
+          [smtAriaLabel]="'audit.logs.sections' | t"
           (valueChange)="$event && setTab($event)"
         />
       </div>

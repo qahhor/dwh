@@ -111,7 +111,7 @@ export class SystemComponent implements OnInit {
       (
         {
           database: 'PostgreSQL',
-          storage: this.uiI18n.translate('files.faylovoe_hranilische'),
+          storage: this.uiI18n.translate('files.common.file_storage'),
           typesense: 'Typesense',
         } as Record<string, string>
       )[name] ?? name
@@ -133,11 +133,11 @@ export class SystemComponent implements OnInit {
     return (
       (
         {
-          UP: this.uiI18n.translate('system.rabotaet'),
-          DEGRADED: this.uiI18n.translate('system.est_problemy'),
-          DOWN: this.uiI18n.translate('system.nedostupen'),
-          DISABLED: this.uiI18n.translate('system.otklyuchen'),
-          UNKNOWN: this.uiI18n.translate('system.neizvestno'),
+          UP: this.uiI18n.translate('system.health.state_up'),
+          DEGRADED: this.uiI18n.translate('system.health.state_degraded'),
+          DOWN: this.uiI18n.translate('system.health.state_down'),
+          DISABLED: this.uiI18n.translate('system.health.state_disabled'),
+          UNKNOWN: this.uiI18n.translate('system.health.state_unknown'),
         } as Record<string, string>
       )[status] ?? status
     );
@@ -163,10 +163,10 @@ export class SystemComponent implements OnInit {
     return (
       (
         {
-          NEVER: this.uiI18n.translate('system.rezervnaya_kopiya_esche_ne_sozdavalas'),
-          FAILED: this.uiI18n.translate('system.poslednyaya_rezervnaya_kopiya_zavershilas_oshibk'),
+          NEVER: this.uiI18n.translate('system.health.backup_never'),
+          FAILED: this.uiI18n.translate('system.health.backup_failed'),
         } as Record<string, string>
-      )[backup.status] ?? this.uiI18n.translate('system.sostoyanie_rezervnoy_kopii_neizvestno')
+      )[backup.status] ?? this.uiI18n.translate('system.health.backup_unknown')
     );
   }
 

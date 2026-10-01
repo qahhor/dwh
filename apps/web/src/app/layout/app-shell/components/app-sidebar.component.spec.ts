@@ -51,7 +51,7 @@ describe('AppSidebarComponent', () => {
     const toggle = element.querySelector('.toggle-btn') as HTMLButtonElement;
 
     expect(element.querySelector('nav')?.getAttribute('aria-label')).toBe(
-      PACKAGED_RUSSIAN['layout.app_shell.osnovnaya_navigaciya'],
+      PACKAGED_RUSSIAN['layout.app_shell.main_navigation'],
     );
     expect(toggle.getAttribute('aria-label')).toBe(PACKAGED_RUSSIAN['layout.app_shell.collapse_navigation']);
     expect(toggle.getAttribute('aria-expanded')).toBe('true');

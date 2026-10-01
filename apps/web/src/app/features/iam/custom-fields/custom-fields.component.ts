@@ -33,10 +33,10 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
     <div class="custom-fields-page">
       <!-- Header -->
       <ui-page-header
-        [title]="'iam.dinamicheskie_atributy' | t"
-        [subtitle]="'iam.sohranennye_znacheniya_etogo_atributa_mogut_stat' | t"
+        [title]="'iam.custom_fields.title' | t"
+        [subtitle]="'iam.custom_fields.delete_warning' | t"
         [count]="filteredFields().length"
-        [countLabel]="'iam.vsego_poley' | t"
+        [countLabel]="'iam.custom_fields.total_fields' | t"
       >
         <button
           type="button"
@@ -44,14 +44,14 @@ import { UiPageHeaderComponent } from '@shared/ui/ui-page-header.component';
           [class.spinning]="isLoading()"
           [disabled]="isLoading()"
           (click)="loadFields()"
-          [attr.aria-label]="'iam.obnovit_polya' | t"
+          [attr.aria-label]="'iam.custom_fields.refresh' | t"
           [title]="'common.refresh' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
         </button>
         @if (canCreate()) {
           <button smt-button type="button" smtVariant="primary" smtIcon="add" (click)="openCreateModal()">
-            {{ 'iam.dobavit_pole' | t }}
+            {{ 'iam.custom_fields.add_field' | t }}
           </button>
         }
       </ui-page-header>
@@ -168,7 +168,7 @@ export class CustomFieldsComponent {
       this.customFields.list().pipe(
         map((data) => data || []),
         catchError(() => {
-          this.toast.error(this.uiI18n.translate('iam.oshibka_zagruzki_dinamicheskih_poley'));
+          this.toast.error(this.uiI18n.translate('iam.custom_fields.load_failed'));
           return of(null);
         }),
       ),
@@ -233,7 +233,7 @@ export class CustomFieldsComponent {
       navigator.clipboard
         .writeText(code)
         .then(() => {
-          this.toast.success(this.uiI18n.translate('iam.kod_skopirovan'));
+          this.toast.success(this.uiI18n.translate('iam.custom_fields.code_copied'));
         })
         .catch(() => {});
     }
@@ -296,7 +296,7 @@ export class CustomFieldsComponent {
         .subscribe({
           next: () => {
             this.saving.set(false);
-            this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_obnovleno'));
+            this.toast.success(this.uiI18n.translate('iam.custom_fields.updated'));
             this.closeModal();
             this.loadFields();
           },
@@ -304,7 +304,7 @@ export class CustomFieldsComponent {
             this.saving.set(false);
             // A newer revision: the list is read again and the field is opened from it.
             this.saveErrors.show(err, {
-              fallbackKey: 'iam.oshibka_sohraneniya_polya',
+              fallbackKey: 'iam.custom_fields.save_failed',
               reload: () => {
                 this.closeModal();
                 this.loadFields();
@@ -327,13 +327,13 @@ export class CustomFieldsComponent {
         .subscribe({
           next: () => {
             this.saving.set(false);
-            this.toast.success(this.uiI18n.translate('iam.pole_uspeshno_sozdano'));
+            this.toast.success(this.uiI18n.translate('iam.custom_fields.created'));
             this.closeModal();
             this.loadFields();
           },
           error: (err: unknown) => {
             this.saving.set(false);
-            this.saveErrors.show(err, { fallbackKey: 'iam.oshibka_sozdaniya_polya' });
+            this.saveErrors.show(err, { fallbackKey: 'iam.custom_fields.create_failed' });
           },
         });
     }
@@ -344,8 +344,8 @@ export class CustomFieldsComponent {
     const t = (key: string, params?: Record<string, string>) => this.uiI18n.translate(key, params);
     this.modal
       .confirm({
-        title: t('iam.udalenie_dinamicheskogo_polya'),
-        message: `${t('iam.delete_custom_field_question', { name: field.name, code: field.code })}\n${t('iam.sohranennye_znacheniya_etogo_atributa_mogut_stat')}`,
+        title: t('iam.custom_fields.delete_title'),
+        message: `${t('iam.delete_custom_field_question', { name: field.name, code: field.code })}\n${t('iam.custom_fields.delete_warning')}`,
         yesLabel: t('common.delete'),
         noLabel: t('common.cancel'),
         destructive: true,
@@ -353,7 +353,7 @@ export class CustomFieldsComponent {
           this.isDeleting.set(true);
           return this.customFields.remove(field.id).pipe(
             tap(() => {
-              this.toast.success(t('iam.pole_udaleno'));
+              this.toast.success(t('iam.custom_fields.deleted'));
               this.loadFields();
             }),
             finalize(() => {
@@ -361,7 +361,7 @@ export class CustomFieldsComponent {
             }),
           );
         },
-        actionError: (error) => problemText(error) || t('iam.oshibka_udaleniya_polya'),
+        actionError: (error) => problemText(error) || t('iam.custom_fields.delete_failed'),
       })
       .subscribe();
   }

@@ -12,7 +12,7 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
   imports: [SMTRadioGroupComponent, SMTInputComponent, TranslatePipe],
   template: `
     <div class="toolbar">
-      <label class="sr-only" for="project-search">{{ 'projects.poisk_proektov' | t }}</label>
+      <label class="sr-only" for="project-search">{{ 'projects.list.search' | t }}</label>
       <smt-input
         class="search-field"
         smtFieldId="project-search"
@@ -20,7 +20,7 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
         type="search"
         smtIcon="search"
         clearable
-        [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
+        [placeholder]="'projects.common.search_placeholder' | t"
         [value]="searchQuery()"
         (valueChange)="onSearchValue($event)"
       />
@@ -30,7 +30,7 @@ import { SMTInputComponent, SMTInputValue } from '@shared/ui-kit/components/form
         class="status-filter"
         [options]="stateOptions()"
         [value]="selectedState()"
-        [smtAriaLabel]="'projects.filtr_proektov_po_statusu' | t"
+        [smtAriaLabel]="'projects.list.filter_by_status' | t"
         (valueChange)="stateChange.emit($event ?? selectedState())"
       />
     </div>
@@ -92,8 +92,8 @@ export class ProjectFilterBarComponent {
   stateOptions(): SMTRadioOption<ProjectStateFilter>[] {
     return this.stateMemo([this.optionText.currentLang()], () => [
       { value: 'all', label: this.optionText.translate('common.all') },
-      { value: 'A', label: this.optionText.translate('iam.aktivnye'), color: 'var(--success)' },
-      { value: 'P', label: this.optionText.translate('projects.arhiv'), color: 'var(--text-light)' },
+      { value: 'A', label: this.optionText.translate('iam.common.active_plural'), color: 'var(--success)' },
+      { value: 'P', label: this.optionText.translate('projects.common.archive'), color: 'var(--text-light)' },
     ]);
   }
 }

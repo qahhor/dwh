@@ -35,7 +35,7 @@
         <!-- Ancestor Breadcrumbs Trail -->
         @if (taskAncestors().length > 0) {
           <div class="ancestor-trail">
-            <span class="trail-label">{{ 'tasks.ierarhiya' | t }}</span>
+            <span class="trail-label">{{ 'tasks.detail.hierarchy' | t }}</span>
             @for (anc of taskAncestors(); track anc) {
               <button
                 type="button"
@@ -68,7 +68,7 @@
 
             <!-- Description (Rich Markdown View) -->
             <div class="detail-section">
-              <h4 class="section-label">{{ 'tasks.opisanie_zadachi' | t }}</h4>
+              <h4 class="section-label">{{ 'tasks.detail.description' | t }}</h4>
               @if (t.descriptionMarkdown) {
                 <div class="description-card">
                   <ui-markdown-view [content]="t.descriptionMarkdown"></ui-markdown-view>
@@ -76,7 +76,7 @@
               }
               @if (!t.descriptionMarkdown) {
                 <div class="description-card empty-desc text-muted">
-                  {{ 'tasks.opisanie_otsutstvuet_nazhmite_redaktirovat_chtob' | t }}
+                  {{ 'tasks.detail.no_description' | t }}
                 </div>
               }
             </div>
@@ -88,7 +88,7 @@
                 @if (canCreateTask() && safeRecordId(t.id)) {
                   <button type="button" class="add-subtask-btn" (click)="openAddSubtask.emit(t)">
                     <span class="material-symbols-outlined" aria-hidden="true">add</span>
-                    {{ 'tasks.dobavit_podzadachu' | t }}
+                    {{ 'tasks.detail.add_subtask' | t }}
                   </button>
                 }
               </div>
@@ -131,7 +131,7 @@
               }
               @if (taskSubtasks().length === 0) {
                 <div class="no-subtasks-hint text-muted">
-                  {{ 'tasks.u_etoy_zadachi_poka_net_podzadach' | t }}
+                  {{ 'tasks.detail.no_subtasks' | t }}
                 </div>
               }
             </div>
@@ -189,7 +189,7 @@
                   }
                   @if (comments().length === 0) {
                     <div class="no-comments-hint text-muted">
-                      {{ 'tasks.kommentariev_poka_net' | t }}
+                      {{ 'tasks.detail.no_comments' | t }}
                     </div>
                   }
                   @if (commentsHasMore()) {
@@ -217,7 +217,7 @@
                     class="comment-textarea"
                     smtFieldId="task-comment-draft"
                     [rows]="2"
-                    [placeholder]="'tasks.napisat_kommentariy_k_zadache_ctrl_enter_dlya_ot' | t"
+                    [placeholder]="'tasks.detail.comment_placeholder' | t"
                     [value]="commentDraft()"
                     (valueChange)="commentDraftChange.emit($event)"
                     [disabled]="isCommentSubmitting()"
@@ -232,7 +232,7 @@
                     [smtLoading]="isCommentSubmitting()"
                     (click)="submitComment.emit()"
                   >
-                    {{ 'tasks.otpravit' | t }}
+                    {{ 'tasks.detail.send' | t }}
                   </button>
                 </div>
               }
@@ -270,7 +270,7 @@
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">{{ 'tasks.tip_zadachi' | t }}</span>
+                <span class="prop-k">{{ 'tasks.common.task_type' | t }}</span>
                 <div class="prop-v">
                   <span
                     class="task-type-badge"
@@ -293,19 +293,19 @@
               </div>
 
               <div class="side-prop-row">
-                <span class="prop-k">{{ 'projects.proekt' | t }}</span>
+                <span class="prop-k">{{ 'projects.common.project' | t }}</span>
                 <div class="prop-v">{{ getProjectName()(t) || ('tasks.without_project' | t) }}</div>
               </div>
 
               @if (t.parentTaskId) {
                 <div class="side-prop-row">
-                  <span class="prop-k">{{ 'tasks.roditel' | t }}</span>
+                  <span class="prop-k">{{ 'tasks.detail.parent' | t }}</span>
                   <div class="prop-v font-mono text-xs">#{{ t.parentTaskId }}</div>
                 </div>
               }
 
               <div class="side-prop-row">
-                <span class="prop-k">{{ 'tasks.dedlayn' | t }}</span>
+                <span class="prop-k">{{ 'tasks.detail.deadline' | t }}</span>
                 <div class="prop-v" [class.text-danger]="isOverdue()(t.endTime, t.statusId)">
                   {{ t.endTime ? (t.endTime | date: 'dd.MM.yyyy HH:mm') : ('common.not_set' | t) }}
                 </div>
@@ -313,13 +313,13 @@
 
               @if (t.beginTime) {
                 <div class="side-prop-row">
-                  <span class="prop-k">{{ 'tasks.data_nachala' | t }}</span>
+                  <span class="prop-k">{{ 'tasks.detail.start_date' | t }}</span>
                   <div class="prop-v">{{ t.beginTime | date: 'dd.MM.yyyy HH:mm' }}</div>
                 </div>
               }
 
               <div class="side-prop-row">
-                <span class="prop-k">{{ 'iam.sozdana' | t }}</span>
+                <span class="prop-k">{{ 'iam.common.created_feminine' | t }}</span>
                 <div class="prop-v text-muted">{{ t.createdAt | date: 'dd.MM.yyyy HH:mm' }}</div>
               </div>
             </div>
@@ -327,7 +327,7 @@
             <!-- Members Card -->
             @if (taskMembers().length > 0) {
               <div class="side-card">
-                <h5 class="side-card-title">{{ 'tasks.uchastniki' | t }}</h5>
+                <h5 class="side-card-title">{{ 'tasks.detail.members' | t }}</h5>
 
                 <!-- Responsible (R) -->
                 @if (groupedMembers.responsible; as resp) {
@@ -351,7 +351,7 @@
                   <div class="member-role-group">
                     <div class="member-role-title">
                       <span class="member-role-icon material-symbols-outlined" aria-hidden="true">group</span>
-                      <span>{{ 'tasks.soispolniteli' | t }} ({{ groupedMembers.executors.length }})</span>
+                      <span>{{ 'tasks.common.co_executors' | t }} ({{ groupedMembers.executors.length }})</span>
                     </div>
                     <div class="members-stack">
                       @for (m of groupedMembers.executors; track m) {
@@ -372,7 +372,7 @@
                   <div class="member-role-group">
                     <div class="member-role-title">
                       <span class="member-role-icon material-symbols-outlined" aria-hidden="true">visibility</span>
-                      <span>{{ 'tasks.nablyudateli' | t }} ({{ groupedMembers.observers.length }})</span>
+                      <span>{{ 'tasks.common.observers' | t }} ({{ groupedMembers.observers.length }})</span>
                     </div>
                     <div class="members-stack">
                       @for (m of groupedMembers.observers; track m) {
@@ -393,7 +393,7 @@
                   <div class="member-role-group member-author-group">
                     <div class="member-role-title">
                       <span class="member-role-icon material-symbols-outlined" aria-hidden="true">edit_note</span>
-                      <span>{{ 'tasks.avtor' | t }}</span>
+                      <span>{{ 'tasks.common.author' | t }}</span>
                     </div>
                     <div class="member-stack-item member-author">
                       <span class="member-name">{{ auth.userName }}</span>
@@ -407,7 +407,7 @@
                   <div class="member-role-group">
                     <div class="member-role-title">
                       <span class="member-role-icon material-symbols-outlined" aria-hidden="true">person_outline</span>
-                      <span>{{ 'tasks.uchastnik' | t }}</span>
+                      <span>{{ 'tasks.common.participant' | t }}</span>
                     </div>
                     <div class="members-stack">
                       @for (m of groupedMembers.others; track m) {
@@ -440,7 +440,7 @@
             @if (canUpdateTask() && safeRecordId(t.id)) {
               <button type="button" class="side-edit-btn" (click)="openEditModal.emit(t)">
                 <span class="material-symbols-outlined" aria-hidden="true">edit</span>
-                {{ 'tasks.redaktirovat_zadachu' | t }}
+                {{ 'tasks.common.edit_task' | t }}
               </button>
             }
           </div>
@@ -450,7 +450,7 @@
 
     <div footer>
       <button smt-button type="button" smtVariant="secondary" smtSize="md" (click)="closeModal.emit()">
-        {{ 'audit.zakryt' | t }}
+        {{ 'audit.common.close' | t }}
       </button>
     </div>
   </ng-template>

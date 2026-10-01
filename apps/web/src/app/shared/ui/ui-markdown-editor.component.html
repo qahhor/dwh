@@ -1,13 +1,13 @@
 <div class="md-editor-container" [class.focused]="isFocused">
   <!-- Toolbar -->
-  <div class="md-toolbar" role="toolbar" [attr.aria-label]="'ui.markdown_editor.formatirovanie_markdown' | t">
+  <div class="md-toolbar" role="toolbar" [attr.aria-label]="'ui.markdown_editor.toolbar' | t">
     <div class="toolbar-actions">
       <button
         type="button"
         class="tool-btn"
         (click)="insertFormat('bold')"
-        [attr.aria-label]="'ui.markdown_editor.zhirnyy' | t"
-        [title]="'ui.markdown_editor.zhirnyy_ctrl_b' | t"
+        [attr.aria-label]="'ui.markdown_editor.bold' | t"
+        [title]="'ui.markdown_editor.bold_ctrl_b' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">format_bold</span>
       </button>
@@ -15,8 +15,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('italic')"
-        [attr.aria-label]="'ui.markdown_editor.kursiv' | t"
-        [title]="'ui.markdown_editor.kursiv_ctrl_i' | t"
+        [attr.aria-label]="'ui.markdown_editor.italic' | t"
+        [title]="'ui.markdown_editor.italic_ctrl_i' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">format_italic</span>
       </button>
@@ -24,8 +24,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('strike')"
-        [attr.aria-label]="'ui.markdown_editor.zacherknutyy' | t"
-        [title]="'ui.markdown_editor.zacherknutyy.681ea7a' | t"
+        [attr.aria-label]="'ui.markdown_editor.strikethrough' | t"
+        [title]="'ui.markdown_editor.strikethrough_title' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">format_strikethrough</span>
       </button>
@@ -35,8 +35,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('h2')"
-        [attr.aria-label]="'ui.markdown_editor.zagolovok' | t"
-        [title]="'ui.markdown_editor.zagolovok' | t"
+        [attr.aria-label]="'ui.markdown_editor.heading' | t"
+        [title]="'ui.markdown_editor.heading' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">title</span>
       </button>
@@ -44,8 +44,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('bullet-list')"
-        [attr.aria-label]="'ui.markdown_editor.markirovannyy_spisok' | t"
-        [title]="'ui.markdown_editor.markirovannyy_spisok' | t"
+        [attr.aria-label]="'ui.markdown_editor.bulleted_list' | t"
+        [title]="'ui.markdown_editor.bulleted_list' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">format_list_bulleted</span>
       </button>
@@ -53,8 +53,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('num-list')"
-        [attr.aria-label]="'ui.markdown_editor.numerovannyy_spisok' | t"
-        [title]="'ui.markdown_editor.numerovannyy_spisok' | t"
+        [attr.aria-label]="'ui.markdown_editor.numbered_list' | t"
+        [title]="'ui.markdown_editor.numbered_list' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">format_list_numbered</span>
       </button>
@@ -62,8 +62,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('task-list')"
-        [attr.aria-label]="'ui.markdown_editor.chek_list_zadach' | t"
-        [title]="'ui.markdown_editor.chek_list_zadach' | t"
+        [attr.aria-label]="'ui.markdown_editor.task_checklist' | t"
+        [title]="'ui.markdown_editor.task_checklist' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">checklist</span>
       </button>
@@ -73,8 +73,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('code')"
-        [attr.aria-label]="'settings.kod' | t"
-        [title]="'settings.kod' | t"
+        [attr.aria-label]="'settings.common.code' | t"
+        [title]="'settings.common.code' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">code</span>
       </button>
@@ -82,8 +82,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('quote')"
-        [attr.aria-label]="'ui.markdown_editor.citata' | t"
-        [title]="'ui.markdown_editor.citata' | t"
+        [attr.aria-label]="'ui.markdown_editor.quote' | t"
+        [title]="'ui.markdown_editor.quote' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">format_quote</span>
       </button>
@@ -91,8 +91,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('link')"
-        [attr.aria-label]="'ui.markdown_editor.ssylka' | t"
-        [title]="'ui.markdown_editor.ssylka' | t"
+        [attr.aria-label]="'ui.markdown_editor.link' | t"
+        [title]="'ui.markdown_editor.link' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">link</span>
       </button>
@@ -100,8 +100,8 @@
         type="button"
         class="tool-btn"
         (click)="insertFormat('table')"
-        [attr.aria-label]="'audit.tablica' | t"
-        [title]="'audit.tablica' | t"
+        [attr.aria-label]="'audit.common.table' | t"
+        [title]="'audit.common.table' | t"
       >
         <span class="material-symbols-outlined" aria-hidden="true">table</span>
       </button>
@@ -112,7 +112,7 @@
       class="smt-tab-bar--compact"
       [tabs]="modeTabs()"
       [value]="mode"
-      [smtAriaLabel]="'ui.markdown_editor.rezhim_markdown' | t"
+      [smtAriaLabel]="'ui.markdown_editor.markdown_mode' | t"
       (valueChange)="mode = $event ?? mode"
     />
   </div>
@@ -122,15 +122,13 @@
     <!-- Textarea Mode -->
     @if (mode === 'edit') {
       <div class="editor-pane" role="tabpanel" [id]="editPanelId" [attr.aria-labelledby]="editTabId">
-        <label class="sr-only" [for]="textareaId">{{
-          ariaLabel() || ('ui.markdown_editor.tekst_v_formate_markdown' | t)
-        }}</label>
+        <label class="sr-only" [for]="textareaId">{{ ariaLabel() || ('ui.markdown_editor.text_label' | t) }}</label>
         <textarea
           #textareaRef
           [id]="textareaId"
           class="md-textarea"
           [rows]="rows()"
-          [placeholder]="placeholder() || ('ui.markdown_editor.napishite_tekst_zadachi_podderzhivaetsya_markdow' | t)"
+          [placeholder]="placeholder() || ('ui.markdown_editor.placeholder' | t)"
           [value]="value()"
           (input)="onTextInput($event)"
           (focus)="isFocused = true"

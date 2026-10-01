@@ -78,11 +78,20 @@ export class ProfileTokensCardComponent {
       ariaLabel: this.i18n.translate('nav.tokens'),
       layout: 'fit',
       columns: {
-        name: { header: header('iam.nazvanie_tokena'), content: cell(this.nameCell) },
-        prefix: { header: header('iam.prefiks_tokena'), content: cell(this.prefixCell) },
-        created: { header: header('iam.sozdan'), content: cell(this.createdCell), width: '130px' },
-        expires: { header: header('iam.srok_deystviya'), content: cell(this.expiresCell), width: '150px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' },
+        name: { header: header('iam.profile.tokens.token_name'), content: cell(this.nameCell) },
+        prefix: { header: header('iam.profile.tokens.token_prefix'), content: cell(this.prefixCell) },
+        created: { header: header('iam.common.created_masculine'), content: cell(this.createdCell), width: '130px' },
+        expires: {
+          header: header('iam.profile.tokens.validity_period'),
+          content: cell(this.expiresCell),
+          width: '150px',
+        },
+        action: {
+          header: header('audit.common.action'),
+          content: cell(this.actionCell),
+          width: '140px',
+          align: 'right',
+        },
       },
       columnsOrder: ['name', 'prefix', 'created', 'expires', 'action'],
     };

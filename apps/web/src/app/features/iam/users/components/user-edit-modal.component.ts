@@ -47,7 +47,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
   template: `
     <smt-dialog
       [open]="isOpen()"
-      [smtTitle]="'iam.redaktirovat_polzovatelya' | t"
+      [smtTitle]="'iam.users.editor.edit_user' | t"
       smtSize="md"
       (closed)="closeModal.emit()"
     >
@@ -57,8 +57,10 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
             <div class="form-grid">
               <smt-control
                 class="form-group span-2"
-                [smtLabel]="'iam.fio' | t"
-                [smtError]="isEditSubmitted() && !editForm().name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+                [smtLabel]="'iam.common.full_name' | t"
+                [smtError]="
+                  isEditSubmitted() && !editForm().name.trim() ? ('iam.users.editor.full_name_placeholder' | t) : ''
+                "
               >
                 <smt-input
                   smtFieldId="user-edit-name"
@@ -69,32 +71,32 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'iam.login_chtenie' | t">
+              <smt-control class="form-group" [smtLabel]="'iam.users.editor.login_readonly' | t">
                 <smt-input smtFieldId="user-edit-login" class="font-mono" [value]="u.login" disabled />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'iam.email_chtenie' | t">
+              <smt-control class="form-group" [smtLabel]="'iam.users.editor.email_readonly' | t">
                 <smt-input smtFieldId="user-edit-email" type="email" class="font-mono" [value]="u.email" disabled />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
+              <smt-control class="form-group" [smtLabel]="'iam.common.phone' | t">
                 <smt-phone-input smtFieldId="user-edit-phone" name="userEditPhone" [(value)]="editForm().phone" />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
+              <smt-control class="form-group" [smtLabel]="'iam.users.supervisor' | t">
                 <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
                 <smt-data-select
                   [source]="users"
                   [exclude]="notThisUser"
                   [value]="editForm().managerId"
                   (valueChange)="editForm().managerId = $event"
-                  [placeholder]="'iam.bez_rukovoditelya' | t"
-                  [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-                  [emptyLabel]="'iam.bez_rukovoditelya' | t"
+                  [placeholder]="'iam.users.editor.no_supervisor' | t"
+                  [searchPlaceholder]="'tasks.common.employee_search_placeholder' | t"
+                  [emptyLabel]="'iam.users.editor.no_supervisor' | t"
                 />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
+              <smt-control class="form-group" [smtLabel]="'iam.common.language' | t">
                 <smt-select
                   smtTriggerId="user-edit-language"
                   name="userEditLanguage"
@@ -104,7 +106,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
                 />
               </smt-control>
 
-              <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
+              <smt-control class="form-group" [smtLabel]="'iam.common.time_zone' | t">
                 <smt-select
                   smtTriggerId="user-edit-timezone"
                   name="userEditTimezone"
@@ -116,13 +118,13 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
 
               <div class="form-group span-2">
                 <div smt-checkbox name="userEdit2fa" [(checked)]="editForm().is2faEnabled">
-                  {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
+                  {{ 'iam.users.editor.enable_two_factor' | t }}
                 </div>
               </div>
 
               <!-- Roles -->
               @if (roles().length > 0) {
-                <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+                <smt-control class="form-group span-2" [smtLabel]="'iam.users.editor.access_roles' | t">
                   <smt-tag-group
                     [options]="roleOptions(u)"
                     [value]="editForm().roleIds || []"
@@ -134,7 +136,7 @@ const TIMEZONE_OPTIONS: readonly SMTSelectOption<string>[] = [
               <!-- Custom Fields -->
               @if (customFields().length > 0) {
                 <div class="form-group span-2">
-                  <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
+                  <span class="clean-label">{{ 'iam.users.editor.additional_fields' | t }}</span>
                   <ui-custom-fields [fields]="customFields()" [(values)]="editForm().attributes"></ui-custom-fields>
                 </div>
               }
@@ -212,7 +214,7 @@ export class UserEditModalComponent {
             label: role.name,
             disabled: true,
             icon: 'lock',
-            note: this.i18n.translate('iam.zaschischeno'),
+            note: this.i18n.translate('iam.users.editor.protected'),
           }
         : { value: role.id, label: role.name },
     );

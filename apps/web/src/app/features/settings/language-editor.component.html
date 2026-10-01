@@ -5,7 +5,7 @@
         type="button"
         class="icon-action"
         data-testid="language-editor-close"
-        [attr.aria-label]="'settings.vernutsya_k_spisku_yazykov' | t"
+        [attr.aria-label]="'settings.languages.back_to_list' | t"
         (click)="requestClose()"
       >
         <span class="material-symbols-outlined" aria-hidden="true">arrow_back</span>
@@ -39,19 +39,19 @@
   </header>
 
   @if (isLoading()) {
-    <div class="editor-loading" role="status">{{ 'settings.zagruzka_perevodov' | t }}</div>
+    <div class="editor-loading" role="status">{{ 'settings.languages.loading_translations' | t }}</div>
   }
   @if (loadError()) {
     <div class="editor-error" role="alert">
       <span>{{ loadError() }}</span>
-      <button type="button" class="text-action" (click)="load()">{{ 'announcements.povtorit' | t }}</button>
+      <button type="button" class="text-action" (click)="load()">{{ 'announcements.list.retry' | t }}</button>
     </div>
   }
 
   @if (editor()) {
     <div class="editor-toolbar">
       <div class="search-field">
-        <label for="translation-search">{{ 'settings.poisk_perevoda' | t }}</label>
+        <label for="translation-search">{{ 'settings.languages.search_translation' | t }}</label>
         <smt-input
           smtFieldId="translation-search"
           type="search"
@@ -59,14 +59,14 @@
           clearable
           [value]="search()"
           (valueChange)="search.set($event === null ? '' : '' + $event)"
-          [placeholder]="'settings.klyuch_russkiy_tekst_ili_perevod' | t"
+          [placeholder]="'settings.languages.search_placeholder' | t"
         />
       </div>
       <smt-switch
         class="missing-filter"
         [checked]="missingOnly()"
         (checkedChange)="missingOnly.set($event)"
-        [smtLabel]="'settings.tolko_neperevedennye' | t"
+        [smtLabel]="'settings.languages.only_untranslated' | t"
       />
       @if (canEdit) {
         <label class="import-action">
@@ -77,13 +77,18 @@
       }
       <button type="button" class="secondary-action" (click)="exportDraft()">
         <span class="material-symbols-outlined" aria-hidden="true">download</span>
-        {{ 'settings.eksport_json' | t }}
+        {{ 'settings.languages.export_json_short' | t }}
       </button>
     </div>
 
-    <div class="translation-table" role="region" [attr.aria-label]="'settings.tablica_perevodov' | t" tabindex="0">
+    <div
+      class="translation-table"
+      role="region"
+      [attr.aria-label]="'settings.languages.translation_table' | t"
+      tabindex="0"
+    >
       <div class="translation-row header-row" aria-hidden="true">
-        <span>{{ 'settings.klyuch' | t }}</span>
+        <span>{{ 'settings.languages.key' | t }}</span>
         <span>{{ (languageCode() === 'ru' ? 'settings.packaged_russian' : 'settings.russian_source') | t }}</span>
         <span>{{ (languageCode() === 'ru' ? 'settings.interface_text' : 'settings.translation') | t }}</span>
         <span>{{ 'common.status' | t }}</span>
@@ -136,7 +141,7 @@
 
       @if (filteredEntries().length === 0) {
         <div class="empty-filter">
-          {{ 'settings.po_zadannym_usloviyam_stroki_ne_naydeny' | t }}
+          {{ 'settings.languages.no_matching_rows' | t }}
         </div>
       }
     </div>
@@ -155,7 +160,7 @@
             [disabled]="dirtyCount() === 0 || isSaving()"
             (click)="cancelChanges()"
           >
-            {{ 'settings.otmenit_izmeneniya' | t }}
+            {{ 'settings.languages.cancel_changes' | t }}
           </button>
           <button
             type="button"

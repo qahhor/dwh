@@ -11,7 +11,7 @@ import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
   template: `
     <div class="tiles">
       <ui-kpi-card
-        [label]="'analytics.vsego_zadach' | t"
+        [label]="'analytics.dashboard.total_tasks' | t"
         [value]="summary()?.totalTasks || 0"
         icon="task_alt"
         tone="primary"
@@ -20,7 +20,7 @@ import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
         {{ 'analytics.completed_count' | t: { count: summary()?.completedTasks || 0 } }}
       </ui-kpi-card>
       <ui-kpi-card
-        [label]="'analytics.effektivnost_zakrytiya' | t"
+        [label]="'analytics.dashboard.closing_efficiency' | t"
         [value]="(summary()?.completionRatePercent || 0) + '%'"
         icon="trending_up"
         tone="success"
@@ -29,18 +29,21 @@ import { UiKpiCardComponent } from '@shared/ui/ui-kpi-card.component';
         {{ 'analytics.created_count' | t: { count: summary()?.createdLast7d || 0 } }}
       </ui-kpi-card>
       <ui-kpi-card
-        [label]="'analytics.prosrocheno_dedlaynov' | t"
+        [label]="'analytics.dashboard.overdue_deadlines' | t"
         [value]="summary()?.overdueTasks || 0"
         [icon]="(summary()?.overdueTasks || 0) > 0 ? 'warning' : 'verified'"
         [tone]="(summary()?.overdueTasks || 0) > 0 ? 'danger' : 'success'"
         [alert]="(summary()?.overdueTasks || 0) > 0"
       >
         {{
-          ((summary()?.overdueTasks || 0) > 0 ? 'analytics.trebuyut_vnimaniya' : 'analytics.vse_zadachi_v_grafike') | t
+          ((summary()?.overdueTasks || 0) > 0
+            ? 'analytics.dashboard.need_attention'
+            : 'analytics.dashboard.all_tasks_on_schedule'
+          ) | t
         }}
       </ui-kpi-card>
       <ui-kpi-card
-        [label]="'analytics.proekty_i_resursy' | t"
+        [label]="'analytics.dashboard.projects_and_resources' | t"
         [value]="summary()?.activeProjectsCount || 0"
         icon="folder_special"
         tone="warning"

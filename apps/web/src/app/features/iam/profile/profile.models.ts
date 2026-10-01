@@ -42,20 +42,20 @@ export function passwordStrengthOf(pwd: string): PasswordStrength {
   if (/\d/.test(pwd)) score++;
   if (/[^a-zA-ZЀ-ӿ0-9]/.test(pwd)) score++;
 
-  let label = 'iam.parol_slabyy';
+  let label = 'iam.common.password_weak';
   let colorClass = 'strength-weak';
   let percent = 25;
 
   if (score === 2) {
-    label = 'iam.parol_sredniy';
+    label = 'iam.common.password_medium';
     colorClass = 'strength-medium';
     percent = 50;
   } else if (score === 3) {
-    label = 'iam.parol_horoshiy';
+    label = 'iam.common.password_good';
     colorClass = 'strength-good';
     percent = 75;
   } else if (score >= 4) {
-    label = 'iam.parol_otlichnyy';
+    label = 'iam.common.password_strong';
     colorClass = 'strength-strong';
     percent = 100;
   }

@@ -62,7 +62,7 @@ function formatBytes(bytes: number): string {
   template: `
     <div class="files-page">
       <!-- Page Header -->
-      <ui-page-header [title]="'files.faylovoe_hranilische' | t" [count]="pager.total()" countTestId="files-count">
+      <ui-page-header [title]="'files.common.file_storage' | t" [count]="pager.total()" countTestId="files-count">
         <button
           smt-button
           type="button"
@@ -70,7 +70,7 @@ function formatBytes(bytes: number): string {
           smtIcon="cloud_upload"
           (click)="isUploadModalOpen.set(true)"
         >
-          {{ 'files.zagruzit_fayl' | t }}
+          {{ 'files.list.upload_file' | t }}
         </button>
       </ui-page-header>
 
@@ -303,7 +303,7 @@ export class FilesComponent implements OnInit, OnDestroy {
     if (this.isDeleting() || !this.canDeleteFile(file)) return;
     this.modal
       .confirm({
-        title: this.uiI18n.translate('files.podtverzhdenie_udaleniya'),
+        title: this.uiI18n.translate('files.list.delete_confirmation'),
         message: `${this.uiI18n.translate('files.delete_file_question', { name: file.originalName })}\n${this.uiI18n.translate('files.quota_will_be_released', { size: formatBytes(file.sizeBytes) })}`,
         yesLabel: this.uiI18n.translate('common.delete'),
         noLabel: this.uiI18n.translate('common.cancel'),

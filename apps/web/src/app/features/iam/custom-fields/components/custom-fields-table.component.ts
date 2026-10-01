@@ -23,12 +23,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
   imports: [SMTButtonComponent, TranslatePipe, UiLocalTableComponent, NgClass],
   template: `
     <div class="card table-card">
-      <div
-        class="table-wrapper"
-        role="region"
-        [attr.aria-label]="'iam.tablica_dinamicheskih_atributov' | t"
-        tabindex="0"
-      >
+      <div class="table-wrapper" role="region" [attr.aria-label]="'iam.custom_fields.table' | t" tabindex="0">
         <ui-local-table
           [rows]="rows()"
           [config]="config()"
@@ -50,7 +45,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
           class="copy-code-btn"
           (click)="copyCode.emit(f.code)"
           [attr.aria-label]="'iam.copy_code_named' | t: { code: f.code }"
-          [title]="'iam.kopirovat_kod' | t"
+          [title]="'iam.custom_fields.copy_code' | t"
         >
           <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
         </button>
@@ -113,17 +108,17 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">search_off</span>
           <p>
-            {{ 'iam.nichego_ne_naydeno_po_zaprosu' | t }}: «<strong>{{ searchQuery() }}</strong
+            {{ 'iam.custom_fields.nothing_found_for' | t }}: «<strong>{{ searchQuery() }}</strong
             >»
           </p>
           <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="clearSearch.emit()">
-            {{ 'iam.sbrosit_poisk' | t }}
+            {{ 'iam.custom_fields.reset_filters' | t }}
           </button>
         </div>
       } @else {
         <div class="empty-state">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">tune</span>
-          <p>{{ 'iam.dinamicheskie_polya_ne_naydeny' | t }}</p>
+          <p>{{ 'iam.custom_fields.empty' | t }}</p>
           @if (canManage()) {
             <button
               smt-button
@@ -133,7 +128,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
               smtIcon="add"
               (click)="createField.emit()"
             >
-              {{ 'iam.dobavit_pole' | t }}
+              {{ 'iam.custom_fields.add_field' | t }}
             </button>
           }
         </div>
@@ -179,12 +174,12 @@ export class CustomFieldsTableComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     const columns: TableConfig<CustomField>['columns'] = {
       orderNo: { header: header('#'), content: cell(this.orderCell), width: '70px' },
-      code: { header: header('iam.kod_polya'), content: cell(this.codeCell) },
-      name: { header: header('iam.nazvanie'), content: cell(this.nameCell) },
-      entityType: { header: header('iam.suschnost'), content: cell(this.entityCell) },
-      fieldType: { header: header('iam.tip_dannyh'), content: cell(this.typeCell) },
-      isRequired: { header: header('iam.obyazatelnoe'), content: cell(this.requiredCell), width: '130px' },
-      defaultValue: { header: header('iam.znachenie_po_umolchaniyu'), content: cell(this.defaultCell) },
+      code: { header: header('iam.custom_fields.field_code'), content: cell(this.codeCell) },
+      name: { header: header('iam.custom_fields.name'), content: cell(this.nameCell) },
+      entityType: { header: header('iam.custom_fields.entity'), content: cell(this.entityCell) },
+      fieldType: { header: header('iam.custom_fields.data_type'), content: cell(this.typeCell) },
+      isRequired: { header: header('iam.custom_fields.required'), content: cell(this.requiredCell), width: '130px' },
+      defaultValue: { header: header('iam.custom_fields.default_value'), content: cell(this.defaultCell) },
     };
     const order = ['orderNo', 'code', 'name', 'entityType', 'fieldType', 'isRequired', 'defaultValue'];
     if (this.canManage() || this.canEdit() || this.canDelete()) {
@@ -198,7 +193,7 @@ export class CustomFieldsTableComponent {
     }
     return {
       trackBy: (_index, f) => f.id ?? f.code,
-      ariaLabel: this.uiI18n.translate('iam.dinamicheskie_atributy'),
+      ariaLabel: this.uiI18n.translate('iam.custom_fields.title'),
       layout: 'fit',
       columns,
       columnsOrder: order,
@@ -229,7 +224,7 @@ export class CustomFieldsTableComponent {
       case 'TASK':
         return this.uiI18n.translate('nav.tasks');
       case 'NOTE':
-        return this.uiI18n.translate('iam.zametka_note');
+        return this.uiI18n.translate('iam.custom_fields.entity_note');
       case 'ORGANIZATION_UNIT':
         return this.uiI18n.translate('nav.org_units') || ent;
       default:
@@ -267,15 +262,15 @@ export class CustomFieldsTableComponent {
   getTypeName(type: string): string {
     switch (type) {
       case 'string':
-        return this.uiI18n.translate('iam.tekst');
+        return this.uiI18n.translate('iam.custom_fields.text');
       case 'number':
-        return this.uiI18n.translate('iam.chislo');
+        return this.uiI18n.translate('iam.custom_fields.number');
       case 'boolean':
-        return this.uiI18n.translate('iam.da_net');
+        return this.uiI18n.translate('iam.custom_fields.type_yes_no');
       case 'date':
         return this.uiI18n.translate('iam.data');
       case 'select':
-        return this.uiI18n.translate('projects.spisok');
+        return this.uiI18n.translate('projects.common.list');
       case 'user_ref':
         return this.uiI18n.translate('iam.user_ref');
       default:

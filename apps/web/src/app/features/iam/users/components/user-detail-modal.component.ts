@@ -112,15 +112,19 @@ export class UserDetailModalComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     return {
       trackBy: (_index, s) => s.id,
-      ariaLabel: this.i18n.translate('iam.aktivnye_sessii'),
+      ariaLabel: this.i18n.translate('iam.common.active_sessions'),
       layout: 'fit',
       columns: {
         ip: { header: { type: 'primitive', value: 'IP' }, content: cell(this.sessionIpCell), width: '130px' },
-        agent: { header: header('iam.ustroystvo_i_brauzer'), content: cell(this.sessionAgentCell) },
-        created: { header: header('iam.sozdana'), content: cell(this.sessionCreatedCell), width: '140px' },
-        seen: { header: header('iam.poslednyaya_aktivnost'), content: cell(this.sessionSeenCell), width: '160px' },
+        agent: { header: header('iam.users.detail.device_browser'), content: cell(this.sessionAgentCell) },
+        created: {
+          header: header('iam.common.created_feminine'),
+          content: cell(this.sessionCreatedCell),
+          width: '140px',
+        },
+        seen: { header: header('iam.common.last_activity'), content: cell(this.sessionSeenCell), width: '160px' },
         action: {
-          header: header('audit.deystvie'),
+          header: header('audit.common.action'),
           content: cell(this.sessionActionCell),
           width: '70px',
           align: 'right',
@@ -135,13 +139,13 @@ export class UserDetailModalComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     return {
       trackBy: (_index, att) => att.id,
-      ariaLabel: this.i18n.translate('iam.istoriya_popytok_vhoda'),
+      ariaLabel: this.i18n.translate('iam.users.detail.login_attempts_history'),
       layout: 'fit',
       columns: {
-        time: { header: header('iam.vremya'), content: cell(this.attemptTimeCell), width: '160px' },
+        time: { header: header('iam.users.detail.time'), content: cell(this.attemptTimeCell), width: '160px' },
         ip: { header: { type: 'primitive', value: 'IP' }, content: cell(this.attemptIpCell), width: '130px' },
         status: { header: header('common.status'), content: cell(this.attemptStatusCell), width: '120px' },
-        reason: { header: header('iam.prichina_otkaza'), content: cell(this.attemptReasonCell) },
+        reason: { header: header('iam.users.detail.failure_reason'), content: cell(this.attemptReasonCell) },
       },
       columnsOrder: ['time', 'ip', 'status', 'reason'],
     };
@@ -168,7 +172,7 @@ export class UserDetailModalComponent {
   private readonly tabsMemo = optionsMemo<SMTTabItem<'info' | 'security' | 'orgUnits' | 'permissions'>[]>();
 
   attemptStatus(att: LoginAttemptRecord): string {
-    return this.i18n.translate(att.isSuccess ? 'iam.uspeshno' : 'iam.oshibka');
+    return this.i18n.translate(att.isSuccess ? 'iam.users.detail.attempt_success' : 'iam.users.detail.attempt_failed');
   }
 
   terminateSession(session: UserSession): void {
@@ -187,8 +191,8 @@ export class UserDetailModalComponent {
     const orgUnits = this.canViewOrgUnits() && withId;
     const permissions = this.canViewAssignments() && withId;
     return this.tabsMemo([this.tabText.currentLang(), orgUnits, permissions], () => [
-      { value: 'info' as const, label: this.tabText.translate('iam.osnovnoe'), icon: 'badge' },
-      { value: 'security' as const, label: this.tabText.translate('iam.bezopasnost_i_sessii'), icon: 'shield' },
+      { value: 'info' as const, label: this.tabText.translate('iam.users.detail.general_tab'), icon: 'badge' },
+      { value: 'security' as const, label: this.tabText.translate('iam.users.detail.security_tab'), icon: 'shield' },
       ...(orgUnits
         ? [{ value: 'orgUnits' as const, label: this.tabText.translate('iam.org_struktura'), icon: 'account_tree' }]
         : []),
@@ -196,7 +200,7 @@ export class UserDetailModalComponent {
         ? [
             {
               value: 'permissions' as const,
-              label: this.tabText.translate('iam.effektivnye_prava'),
+              label: this.tabText.translate('iam.users.detail.effective_permissions'),
               icon: 'lock_person',
             },
           ]

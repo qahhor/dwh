@@ -63,7 +63,7 @@ export class UserFormsService {
   submitCreateUser(onSuccess: () => void): void {
     this.isCreateSubmitted = true;
     if (!this.createForm.name || !this.createForm.login || !this.createForm.email || !this.createForm.password) {
-      this.toast.warning(this.uiI18n.translate('iam.zapolnite_obyazatelnye_polya'));
+      this.toast.warning(this.uiI18n.translate('iam.common.fill_required_fields'));
       return;
     }
 
@@ -77,7 +77,7 @@ export class UserFormsService {
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('iam.polzovatel_uspeshno_sozdan'));
+        this.toast.success(this.uiI18n.translate('iam.users.editor.created'));
         onSuccess();
       },
       error: () => {
@@ -100,7 +100,7 @@ export class UserFormsService {
     if (!this.editingUser) return;
     this.isEditSubmitted = true;
     if (!this.editForm.name) {
-      this.toast.warning(this.uiI18n.translate('iam.imya_polzovatelya_obyazatelno'));
+      this.toast.warning(this.uiI18n.translate('iam.users.editor.name_required'));
       return;
     }
 
@@ -119,7 +119,7 @@ export class UserFormsService {
             this.isSubmitting.set(false);
             onCloseModal(currentEditSessionId);
           }
-          this.toast.success(this.uiI18n.translate('iam.dannye_sohraneny'));
+          this.toast.success(this.uiI18n.translate('iam.users.editor.saved'));
           onSuccess();
         },
         error: (err: unknown) => {
