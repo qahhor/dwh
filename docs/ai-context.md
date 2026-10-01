@@ -133,8 +133,8 @@ JSON, сроки хранения) и `config` (безопасность, фил
 структура»; порядок задач задаёт пользователь. Правила для всех AI-ассистентов —
 в [`AGENTS.md`](../AGENTS.md).
 
-Оставшийся долг виден в тестах и только сокращается: `NOT_YET_LOCKED` в
-`ChangesNameTheirRevisionTest`, `NOT_YET_PAGED` в `CollectionsArePagedTest`,
+Оставшийся долг виден в тестах и только сокращается (долг блокировки
+`NOT_YET_LOCKED` закрыт в V142): `NOT_YET_PAGED` в `CollectionsArePagedTest`,
 замороженные нарушения границ (`src/test/resources/archunit_store`),
 `comment-language-baseline.txt` для `CommentLanguageTest`.
 
