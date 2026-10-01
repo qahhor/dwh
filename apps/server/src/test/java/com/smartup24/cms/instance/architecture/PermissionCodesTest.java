@@ -9,11 +9,18 @@ import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +33,11 @@ import org.junit.jupiter.params.provider.CsvSource;
  * of its own module, or with a form the owner publishes to that module.
  */
 class PermissionCodesTest {
+
+    private static final Path SOURCES = Path.of("src/main/java/com/smartup24/cms/instance");
+    /** A form written as a literal where code checks a right: a field's right, a check, a refusal. */
+    private static final Pattern LITERAL_CHECK =
+            Pattern.compile("\\b(?:requires|hasPermission|permissionDenied)\\(\\s*\"([^\"]+)\"\\s*,");
 
     private static JavaClasses classes;
 
@@ -76,6 +88,27 @@ class PermissionCodesTest {
             }
         }
         assertThat(checked).as("annotated handlers found").isGreaterThan(100);
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("4.4: a form written as a literal in a programmatic check obeys the rule as well")
+    void literalFormsInProgrammaticChecksObeyTheRule() throws IOException {
+        List<String> violations = new ArrayList<>();
+        int checked = 0;
+        try (Stream<Path> files = Files.walk(SOURCES)) {
+            for (Path file :
+                    files.filter(path -> path.toString().endsWith(".java")).toList()) {
+                Matcher literal = LITERAL_CHECK.matcher(Files.readString(file, StandardCharsets.UTF_8));
+                while (literal.find()) {
+                    checked++;
+                    String form = literal.group(1);
+                    violation(Optional.empty(), form)
+                            .ifPresent(problem -> violations.add(file.getFileName() + ": " + problem));
+                }
+            }
+        }
+        assertThat(checked).as("literal checks found").isPositive();
         assertThat(violations).isEmpty();
     }
 
