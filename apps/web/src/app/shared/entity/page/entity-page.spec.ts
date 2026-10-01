@@ -275,6 +275,31 @@ describe('the general entity record /e/:code/:id', () => {
     expect(root.querySelectorAll('[role="tab"]').length).toBe(2);
   });
 
+  it('shows the change history on its tab, opened', async () => {
+    const entry = {
+      id: 5,
+      event: 'U',
+      changedAt: '2026-10-01T09:00:00Z',
+      changedByName: 'Иван Петров',
+      isApi: false,
+      changes: [{ field: 'customer', label: 'Клиент', oldValue: 'Магазин', newValue: 'Магазин 1' }],
+    };
+    const { root, api, settle } = await renderEntityScreen(`/e/${CODE}/1`, {
+      meta: META,
+      records: ORDERS,
+      answers: { [`/history/${CODE}/1`]: { items: [entry], nextCursor: null, hasMore: false } },
+    });
+
+    const historyTab = Array.from(root.querySelectorAll<HTMLButtonElement>('[role="tab"]')).find((tab) =>
+      tab.textContent?.includes(translateTest('ui.entity_page.tab_history')),
+    )!;
+    historyTab.click();
+    await settle();
+
+    expect(api.get).toHaveBeenCalledWith(`/history/${CODE}/1`, expect.anything(), expect.anything());
+    expect(root.querySelector('[data-testid="record-history-list"]')?.textContent).toContain('Магазин 1');
+  });
+
   it('offers nothing the record does not allow this viewer', async () => {
     const { root } = await renderEntityScreen(`/e/${CODE}/1`, {
       meta: META,

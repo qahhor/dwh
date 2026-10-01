@@ -101,11 +101,6 @@ export class SMTEntityEditPageComponent {
   private readonly i18n = inject(I18nService);
   private readonly saveErrors = inject(SaveErrorNotifier);
 
-  /** The record's id from the route; none on `/new`. */
-  readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id') ?? undefined)), {
-    initialValue: undefined,
-  });
-
   /** The record as last read: the loaded one, or the one read again after a save was refused over a newer revision. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
   /** The fields by key, starting from the record, or from the defaults of a new one. */
@@ -139,6 +134,11 @@ export class SMTEntityEditPageComponent {
   readonly backLink = computed(() => {
     const record = this.record();
     return record ? `${this.context.listLink()}/${record.id}` : this.context.listLink();
+  });
+
+  /** The record's id from the route; none on `/new`. */
+  readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id') ?? undefined)), {
+    initialValue: undefined,
   });
 
   /** The record as read: none while creating. */

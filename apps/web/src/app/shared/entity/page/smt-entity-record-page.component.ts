@@ -151,7 +151,12 @@ const OWN_ACTIONS = new Set(['create', 'update', 'archive', 'delete']);
                 }
               }
               @case ('history') {
-                <ui-record-history [kind]="context.code()" [recordId]="current.id" [meta]="context.formMeta()" />
+                <ui-record-history
+                  [kind]="context.code()"
+                  [recordId]="current.id"
+                  [meta]="context.formMeta()"
+                  [expanded]="true"
+                />
               }
               @default {
                 @if (tabOverride(tab()); as custom) {
@@ -203,11 +208,6 @@ export class SMTEntityRecordPageComponent {
   private readonly modal = inject(SMTModalService);
   private readonly saveErrors = inject(SaveErrorNotifier);
 
-  /** The record's id from the route. */
-  readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id'))), {
-    initialValue: null,
-  });
-
   /** The record as last read: loaded, or as an archive switch or an action returned it. */
   readonly record = linkedSignal<EntityRecord | null>(() => (this.loaded.hasValue() ? this.loaded.value() : null));
   readonly busy = signal(false);
@@ -255,6 +255,11 @@ export class SMTEntityRecordPageComponent {
         panelId: 'entity-record-panel',
       })),
     ];
+  });
+
+  /** The record's id from the route. */
+  readonly id = toSignal(inject(ActivatedRoute).paramMap.pipe(map((params) => params.get('id'))), {
+    initialValue: null,
   });
 
   readonly loaded = rxResource({

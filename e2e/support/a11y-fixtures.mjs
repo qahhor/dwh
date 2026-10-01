@@ -202,6 +202,12 @@ export const fixtures = {
   },
   '/list-views/ms.notes': [],
   '/entities/ms.notes': page(range(1, 6).map(note), null, 6),
+  // The general entity screen (ADR-0032 7.1) reads a record of the runtime with the viewer's actions, and names the
+  // entity by its menu item.
+  '/entities/ms.notes/1': { ...note(1), revision: 2, archived: false, actions: ['update', 'archive', 'delete'] },
+  '/entities/menu': [
+    { code: 'ms.notes', form: 'notes', route: '/notes', labelKey: 'nav.notes', icon: 'description', section: 'workspace', order: 30, module: 'notes' },
+  ],
   '/history/ms.notes/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
     { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },

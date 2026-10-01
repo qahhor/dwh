@@ -170,9 +170,9 @@ export class SMTEntityListPageComponent {
   readonly listMeta = signal<QueryListMeta | null>(null);
   readonly listFailed = signal(false);
   readonly search = signal('');
+  readonly selectedRows = signal<EntityRecord[]>([]);
   /** The default view has been applied: the list may be asked for. */
   private readonly viewsReady = signal(false);
-  readonly selectedRows = signal<EntityRecord[]>([]);
 
   readonly meta = computed(() => this.context.formMeta());
   readonly selectedIds = computed(() => this.selectedRows().map((row) => row.id));
@@ -233,6 +233,14 @@ export class SMTEntityListPageComponent {
     });
   });
 
+  /** What the list asks for: the search, the sort and the filter of the view on screen. */
+  private readonly query = computed<ListQuery>(() => ({
+    search: this.searched().trim(),
+    sort: this.views.sort(),
+    conditions: this.views.filter(),
+    match: this.views.match(),
+  }));
+
   /**
    * The saved views of the list. What the list asks for follows their sort and filter by itself (`query`), whoever
    * changes them — a view, the filter bar, the archive switch, a header click — so applying a view asks for nothing.
@@ -250,14 +258,6 @@ export class SMTEntityListPageComponent {
   private readonly searched = toSignal(toObservable(this.search).pipe(debounceTime(300), distinctUntilChanged()), {
     initialValue: '',
   });
-
-  /** What the list asks for: the search, the sort and the filter of the view on screen. */
-  private readonly query = computed<ListQuery>(() => ({
-    search: this.searched().trim(),
-    sort: this.views.sort(),
-    conditions: this.views.filter(),
-    match: this.views.match(),
-  }));
 
   readonly pager = new KeysetPager<EntityRecord>(
     (cursor, limit) => this.entities.page(this.context.code(), this.query(), cursor, limit),
