@@ -26,8 +26,16 @@ const SOURCE_TREES = [
   ['e2e', /\.(ts|mjs)$/],
   ['scripts', /\.(ps1|mjs|sh)$/],
 ];
-/** Never rewritten: released migrations are frozen, and the mapping itself names the old keys. */
-const UNTOUCHED = [/\/db\/migration\//, /\/node_modules\//, /\/i18n-key-renames[^/]*\.json$/];
+/**
+ * Never rewritten: released migrations are frozen, and the mapping and the tests of a rename
+ * migration name the old keys on purpose.
+ */
+const UNTOUCHED = [
+  /\/db\/migration\//,
+  /\/node_modules\//,
+  /\/i18n-key-renames[^/]*\.json$/,
+  /\/instance\/db\/[A-Za-z0-9]+MigrationTest\.java$/,
+];
 
 function option(name) {
   const index = process.argv.indexOf(name);

@@ -150,7 +150,7 @@ export function keyProblems(key, ru, en, vocab) {
 /** Known bad and good keys: the checks must keep telling them apart. */
 export const SELF_CHECK = [
   { key: 'tasks.soispolniteli', ru: 'Соисполнители', en: 'Co-executors', expect: ['translit'] },
-  { key: 'iam.hranilische_dannyh_dwh', ru: 'Хранилище данных (DWH)', en: 'Data Warehouse (DWH)', expect: ['translit'] },
+  { key: 'iam.kanaly_svyazi', ru: 'Каналы связи', en: 'Communication channels', expect: ['translit'] },
   { key: 'audit.tablica.6f39b76', ru: 'Таблица:', en: 'Table:', expect: ['hash', 'translit'] },
   { key: 'audit.details.table_label.6f39b76', ru: 'Таблица:', en: 'Table:', expect: ['hash'] },
   {

@@ -5,10 +5,10 @@ import { CONVENTION, keyProblems, selfCheck, vocabularies } from './i18n-key-rul
 import { leftovers, loadMapping } from './i18n-rename-keys.mjs';
 
 /**
- * Keys built from a code at run time (`upl.err.` + error code, `audit.event.` + I/U/D): the code
- * keeps its own spelling, only the prefix follows the convention.
+ * Keys built from a code at run time (`upl.err.` + error code, `audit.event.` + I/U/D, `nav.` +
+ * menu item code): the code keeps its own spelling, the prefix names module and screen.
  */
-const CODE_KEY_PREFIXES = ['upl.err.', 'audit.event.', 'projects.state.', 'iam.users.state.'];
+const CODE_KEY_PREFIXES = ['upl.err.', 'audit.event.', 'projects.state.', 'iam.users.state.', 'nav.'];
 
 const webRoot = process.cwd();
 const appRoot = path.join(webRoot, 'src', 'app');
@@ -120,10 +120,9 @@ const baseline = new Set(
     .map((line) => line.trim())
     .filter((line) => line && !line.startsWith('#')),
 );
-const followsConvention = (key) => {
-  const codePrefix = CODE_KEY_PREFIXES.find((prefix) => key.startsWith(prefix));
-  return codePrefix ? CONVENTION.test(`${codePrefix}code`) : CONVENTION.test(key);
-};
+const followsConvention = (key) =>
+  CONVENTION.test(key) ||
+  CODE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix) && /^[A-Za-z0-9_.]+$/.test(key.slice(prefix.length)));
 const offConvention = Object.keys(catalogs.ru)
   .filter((key) => !followsConvention(key) && !baseline.has(key))
   .sort();
@@ -164,5 +163,6 @@ if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValue
 }
 
 process.stdout.write(
-  `Localization audit passed: ${usedKeys.size} referenced keys, ${russianKeys.size} Russian catalog keys.\n`,
+  `Localization audit passed: ${usedKeys.size} referenced keys, ${russianKeys.size} Russian catalog keys; ` +
+    `no transliterated, hash-suffixed or truncated key, ${baseline.size} older keys outside the convention.\n`,
 );

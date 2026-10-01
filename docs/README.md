@@ -100,6 +100,11 @@ Current ADRs that are not superseded:
   audit actor are platform contracts in `common`; SQL lives only in
   repositories (no `*Service` runs SQL), the queue never depends on the
   warehouse, and message keys stay `error.fnd.*`.
+- [ADR-0031 — semantic translation keys](adr/ADR-0031-semantic-translation-keys.md)
+  — a key is `<module>.<screen>.<element>` in English snake_case; 857
+  transliterated, truncated and hash-suffixed keys were renamed by a mapping
+  and a script, V156 moved administrators' overrides, and `npm run i18n:audit`
+  refuses such keys from now on.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
