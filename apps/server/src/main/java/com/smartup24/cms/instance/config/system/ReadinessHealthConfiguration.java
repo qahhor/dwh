@@ -22,8 +22,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * <p>The main database is a member of the readiness group: before, readiness was the application state alone, and
  * with the database stopped the container stayed healthy and kept receiving traffic. Typesense (when enabled),
  * ClamAV (when scanning is required) and pg-dwh (declared next to its data source in {@code FndDwhConfig}) are
- * health components for monitoring only: search falls back to PostgreSQL, uploads fail closed and the DWH module
- * degrades alone, so their outage must not take the whole instance out of traffic. A dependency that is switched
+ * health components for monitoring only: search falls back to PostgreSQL, uploads fail closed and warehouse loads
+ * degrade alone, so their outage must not take the whole instance out of traffic. A dependency that is switched
  * off reports UP with the reason.
  */
 @Configuration(proxyBeanMethods = false)

@@ -85,7 +85,7 @@ public class ClamAvFileScanner implements FileScanner {
         } catch (IOException exception) {
             throw new IllegalStateException("ClamAV scan failed", exception);
         } finally {
-            Timer.builder("dwh.file.scanner")
+            Timer.builder("smc.file.scanner")
                     .description("End-to-end file scanner latency")
                     .tag("provider", getProviderCode())
                     .tag("outcome", outcome)

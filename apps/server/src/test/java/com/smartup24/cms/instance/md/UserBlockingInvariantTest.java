@@ -22,7 +22,7 @@ class UserBlockingInvariantTest {
 
     @BeforeAll
     static void migrate() {
-        var ds = TestDatabases.migratedCopy("dwh_block_test");
+        var ds = TestDatabases.migratedCopy("smc_block_test");
         jdbc = JdbcClient.create(ds);
     }
 

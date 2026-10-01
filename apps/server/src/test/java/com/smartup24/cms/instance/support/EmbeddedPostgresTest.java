@@ -41,10 +41,10 @@ public abstract class EmbeddedPostgresTest {
         registry.add("smc.instance.client-name", () -> "TEST instance");
         // The generated bootstrap password is written to a file; in tests, to a temporary directory
         // Files of the framework's mf module are kept on disk in the test's temporary directory, not in ./data/storage
-        registry.add("smc.storage.local-path", () -> System.getProperty("java.io.tmpdir") + "/dwh-test-storage");
+        registry.add("smc.storage.local-path", () -> System.getProperty("java.io.tmpdir") + "/smc-test-storage");
         registry.add(
                 "platform.bootstrap.admin-password-file",
-                () -> System.getProperty("java.io.tmpdir") + "/dwh-test-bootstrap-password.txt");
+                () -> System.getProperty("java.io.tmpdir") + "/smc-test-bootstrap-password.txt");
         // The job queue ticker is off in tests: the tests drain the queue themselves by calling runQueued()
         registry.add("smc.jobs.ticker-enabled", () -> false);
     }

@@ -25,7 +25,7 @@ class ModuleRegistryIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_module_test");
+        var ds = TestDatabases.migratedCopy("smc_module_test");
         jdbc = JdbcClient.create(ds);
         var mapper = new ObjectMapper();
         var repo = new ModuleRegistryRepository(jdbc, mapper);

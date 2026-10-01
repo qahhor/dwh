@@ -33,7 +33,7 @@ class IdempotencyFilterIntegrationTest {
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("dwh_idempotency_test")
+            .withDatabaseName("smc_idempotency_test")
             .withUsername("test_user")
             .withPassword("test_pass");
 

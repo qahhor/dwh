@@ -59,12 +59,12 @@ class SearchMetricsTest {
                 .thenThrow(new DataAccessResourceFailureException("safe fixture"));
         assertThatThrownBy(() -> service.search("private-query-marker", "TASK", 10))
                 .isInstanceOf(ApiException.class);
-        assertThat(registry.find("dwh.search.query.duration").timers()).hasSize(3);
-        assertThat(registry.find("dwh.search.engine.duration").timer()).isNotNull();
-        assertThat(registry.find("dwh.search.engine.duration").timer().totalTime(TimeUnit.MILLISECONDS))
+        assertThat(registry.find("smc.search.query.duration").timers()).hasSize(3);
+        assertThat(registry.find("smc.search.engine.duration").timer()).isNotNull();
+        assertThat(registry.find("smc.search.engine.duration").timer().totalTime(TimeUnit.MILLISECONDS))
                 .isEqualTo(7);
-        assertThat(registry.find("dwh.search.fallback").counter()).isNotNull();
-        assertThat(registry.find("dwh.search.query.errors").counter()).isNotNull();
+        assertThat(registry.find("smc.search.fallback").counter()).isNotNull();
+        assertThat(registry.find("smc.search.query.errors").counter()).isNotNull();
         assertThat(registry.getMeters())
                 .allSatisfy(meter -> assertThat(meter.getId().getTags()).allSatisfy(tag -> {
                     assertThat(tag.getKey()).isIn("entity", "source", "outcome");

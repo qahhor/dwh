@@ -42,7 +42,7 @@ class MdFormCatalogIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_catalog_test");
+        var ds = TestDatabases.migratedCopy("smc_catalog_test");
         jdbc = JdbcClient.create(ds);
 
         permissionService = new MdPermissionService(new MdPermissionRepository(jdbc));

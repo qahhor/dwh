@@ -28,7 +28,7 @@ spring:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=10m
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/dwh_instance}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smartupcms}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -104,7 +104,7 @@ management:
         readiness:
           # Plan 10/10, item 0.7: traffic waits for the main database, without which no request can be served.
           # pg-dwh, Typesense and ClamAV are health components (/actuator/health) but not readiness members: their
-          # outage degrades one feature (DWH module, search falls back to PostgreSQL, uploads fail closed), and
+          # outage degrades one feature (warehouse loads, search falls back to PostgreSQL, uploads fail closed), and
           # taking the instance out of traffic would turn that into a full outage. Liveness stays the process alone.
           include: readinessState,database
   health:

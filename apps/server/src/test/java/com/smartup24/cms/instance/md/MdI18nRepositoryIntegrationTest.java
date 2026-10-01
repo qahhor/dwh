@@ -23,7 +23,7 @@ class MdI18nRepositoryIntegrationTest {
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("dwh_i18n_repository_test")
+            .withDatabaseName("smc_i18n_repository_test")
             .withUsername("test_user")
             .withPassword("test_pass");
 

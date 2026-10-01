@@ -309,10 +309,10 @@ class RateLimitFilterTest {
                         eq(RateLimitFilter.EVENT_RATE_LIMIT_EXCEEDED), eq(11L), anyString(), any(), details.capture());
         assertThat(details.getValue().toString()).doesNotContain("sensitive-search-text");
         assertThat(details.getValue().toString()).doesNotContain("different-sensitive-text");
-        assertThat(searchMetricRegistry.find("dwh.search.rate.rejections").counter())
+        assertThat(searchMetricRegistry.find("smc.search.rate.rejections").counter())
                 .isNotNull();
         assertThat(searchMetricRegistry
-                        .find("dwh.search.rate.rejections")
+                        .find("smc.search.rate.rejections")
                         .counter()
                         .count())
                 .isEqualTo(2);
@@ -420,7 +420,7 @@ class RateLimitFilterTest {
     private void mockAuthenticatedApiUser(long userId, long tokenId, String rawToken) {
         when(apiTokenService.validateToken(rawToken))
                 .thenReturn(Optional.of(new KauthApiTokenRepository.ApiTokenRecord(
-                        tokenId, userId, "test", "dwh_test", "hash", null, Instant.now(), null, null, 0)));
+                        tokenId, userId, "test", "smc_test", "hash", null, Instant.now(), null, null, 0)));
         when(userService.getUserIdentity(userId))
                 .thenReturn(
                         new MdUserIdentity(userId, "u" + userId, "u" + userId + "@x", MdPref.STATE_ACTIVE, false, 0));

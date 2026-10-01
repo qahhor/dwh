@@ -119,7 +119,7 @@ Link: </api/v1/новый/путь>; rel="successor-version"
 
 Список форм — `ApiDeprecations` (дата — `ApiDeprecations.SUNSET`); в описании
 API у них `deprecated`, `x-sunset`, `x-successor`. Метрика
-`dwh_api_deprecated_calls_total{alias}` показывает, кто ещё ими пользуется.
+`smc_api_deprecated_calls_total{alias}` показывает, кто ещё ими пользуется.
 
 **Ломающее изменение** (удалена операция или поле, сужен тип, удалена
 устаревшая форма после `Sunset`) объявляется меткой `api-breaking` у pull

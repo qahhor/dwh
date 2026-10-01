@@ -29,7 +29,7 @@ class KauthDeliveryGuardTest {
 
     @BeforeEach
     void setUp() {
-        jdbc = JdbcClient.create(TestDatabases.migratedCopy("dwh_delivery_guard_" + System.nanoTime()));
+        jdbc = JdbcClient.create(TestDatabases.migratedCopy("smc_delivery_guard_" + System.nanoTime()));
     }
 
     @Test

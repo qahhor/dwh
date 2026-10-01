@@ -31,7 +31,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Answers a deprecated request form (plan 10/10, item 3.4, ADR-0023; the forms are listed in
  * {@link ApiDeprecations}) as before, and says so: {@code Deprecation} (RFC 9745), {@code Sunset} (RFC 8594) and,
  * for a path, {@code Link: <successor>; rel="successor-version"}. A snake_case query parameter reaches the handler
- * under its camelCase name. {@code dwh_api_deprecated_calls_total} counts the calls, so the alias is removed when
+ * under its camelCase name. {@code smc_api_deprecated_calls_total} counts the calls, so the alias is removed when
  * nobody uses it.
  */
 @Component
@@ -88,7 +88,7 @@ public class DeprecatedApiFilter extends OncePerRequestFilter {
     private void announce(HttpServletResponse response, String alias) {
         response.setHeader(DEPRECATION, DEPRECATION_VALUE);
         response.setHeader(SUNSET, SUNSET_VALUE);
-        meters.ifAvailable(registry -> Counter.builder("dwh_api_deprecated_calls_total")
+        meters.ifAvailable(registry -> Counter.builder("smc_api_deprecated_calls_total")
                 .description("Calls of API forms deprecated for one release (ADR-0023)")
                 .tag("alias", alias)
                 .register(registry)

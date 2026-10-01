@@ -95,7 +95,7 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
 
     @Autowired
     @Qualifier(FndPref.DWH)
-    private JdbcClient dwhJdbc;
+    private JdbcClient warehouseJdbc;
 
     @Autowired
     private TransactionTemplate tx;
@@ -207,7 +207,8 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
             assertThat((String) JsonPath.read(body, "$.status")).as(body).isEqualTo(UplPackageModel.APPLIED);
             assertThat((Integer) JsonPath.read(body, "$.rawRows")).isEqualTo(ROWS);
             long loadId = ((Number) JsonPath.read(body, "$.loadId")).longValue();
-            assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
+            assertThat(warehouseJdbc
+                            .sql("select count(*) from raw.rows where load_id = :id")
                             .param("id", loadId)
                             .query(Long.class)
                             .single())

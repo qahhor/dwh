@@ -88,7 +88,7 @@ class KauthOtpLoginIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_otp_test");
+        var ds = TestDatabases.migratedCopy("smc_otp_test");
         jdbc = JdbcClient.create(ds);
 
         var mapper = new ObjectMapper();

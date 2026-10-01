@@ -86,7 +86,7 @@ class KauthPasswordResetIntegrationTest {
 
     @BeforeAll
     static void setUp() {
-        var ds = TestDatabases.migratedCopy("dwh_password_reset");
+        var ds = TestDatabases.migratedCopy("smc_password_reset");
         jdbc = JdbcClient.create(ds);
 
         var mapper = new ObjectMapper();

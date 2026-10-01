@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MdSettingService {
 
     public static final Map<String, String> DEFAULT_INSTANCE_SETTINGS = Map.of(
-            "system.company_name", "Smartup DWH Platform",
+            "system.company_name", "SmartupCMS",
             "system.default_language", "ru",
             "system.default_timezone", "Asia/Tashkent",
             "system.date_format", "dd.MM.yyyy HH:mm",

@@ -52,7 +52,7 @@ class MdCustomFieldQueryFieldsIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        ds = TestDatabases.migratedCopy("dwh_custom_fields_registry_test");
+        ds = TestDatabases.migratedCopy("smc_custom_fields_registry_test");
         jdbc = JdbcClient.create(ds);
         mapper = new ObjectMapper();
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());

@@ -31,8 +31,8 @@ FROM eclipse-temurin:25-jre@sha256:8da0490fa9a3c26867012019565948eef0ee69438f5c7
 
 # Hardening:non-root пользователь, только необходимые пакеты, чистый apt-кэш
 RUN apt-get update && apt-get upgrade -y --no-install-recommends \
- && groupadd --system --gid 10001 dwh \
- && useradd  --system --uid 10001 --gid dwh --home-dir /app --shell /usr/sbin/nologin dwh \
+ && groupadd --system --gid 10001 smartupcms \
+ && useradd  --system --uid 10001 --gid smartupcms --home-dir /app --shell /usr/sbin/nologin smartupcms \
  && apt-get install -y --no-install-recommends curl \
  && rm -f /usr/bin/pebble \
  && rm -rf /var/lib/apt/lists/*
@@ -42,17 +42,17 @@ WORKDIR /app
 # Каталог local_disk provider под non-root. В production этот путь обязан быть
 # томом; S3-compatible provider хранит bytes вне контейнера.
 RUN mkdir -p /var/lib/smartupcms/storage /var/lib/smartupcms/backup /var/lib/smartupcms/logs /var/lib/smartupcms/audit-archive /opt/smartupcms/jna \
- && chown -R dwh:dwh /var/lib/smartupcms /opt/smartupcms/jna
+ && chown -R smartupcms:smartupcms /var/lib/smartupcms /opt/smartupcms/jna
 ENV SMC_STORAGE_LOCAL_PATH=/var/lib/smartupcms/storage \
     SMC_BACKUP_STATUS_FILE=/var/lib/smartupcms/backup/status.json
 VOLUME ["/var/lib/smartupcms"]
 
 # Порядок COPY = порядок изменчивости (реже меняется — раньше): зависимости,
 # затем код приложения. Правка кода не инвалидирует ~100 МБ слоя с библиотеками.
-COPY --from=build --chown=dwh:dwh /layers/lib     ./lib
-COPY --from=build --chown=dwh:dwh /layers/run.jar ./app.jar
+COPY --from=build --chown=smartupcms:smartupcms /layers/lib     ./lib
+COPY --from=build --chown=smartupcms:smartupcms /layers/run.jar ./app.jar
 
-USER dwh:dwh
+USER smartupcms:smartupcms
 EXPOSE 8080 9090
 
 # Контейнерные умолчания JVM: heap от лимита памяти cgroup, не от хоста.

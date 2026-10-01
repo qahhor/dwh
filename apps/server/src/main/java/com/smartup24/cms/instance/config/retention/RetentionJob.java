@@ -156,7 +156,7 @@ public class RetentionJob {
                     cutoff,
                     Duration.ofNanos(System.nanoTime() - started).toMillis());
             long counted = total;
-            meters.ifAvailable(registry -> Counter.builder("dwh_retention_deleted_rows_total")
+            meters.ifAvailable(registry -> Counter.builder("smc_retention_deleted_rows_total")
                     .description("Rows of journal tables deleted past their retention (plan item 3.13)")
                     .tag("policy", policy.name())
                     .register(registry)

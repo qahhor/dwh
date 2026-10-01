@@ -88,7 +88,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
 
     @Autowired
     @Qualifier(FndPref.DWH)
-    private JdbcClient dwhJdbc;
+    private JdbcClient warehouseJdbc;
 
     @Autowired
     private TransactionTemplate tx;
@@ -106,7 +106,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from upl_packages").update();
             jdbc.sql("delete from fnd_job_queue").update();
         });
-        dwhJdbc.sql("delete from raw.rows").update();
+        warehouseJdbc.sql("delete from raw.rows").update();
     }
 
     @Test
@@ -126,7 +126,8 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
         PackageRow applied = packages.get(row.publicId().toString());
         assertThat(applied.status()).as("%s", applied.rejectCode()).isEqualTo(UplPackageModel.APPLIED);
         assertThat(applied.rawRows()).isEqualTo(ROWS);
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows where load_id = :id")
                         .param("id", applied.loadId())
                         .query(Long.class)
                         .single())

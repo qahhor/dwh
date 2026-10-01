@@ -64,7 +64,7 @@ class MdScopeServiceIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_scope_test");
+        var ds = TestDatabases.migratedCopy("smc_scope_test");
         jdbc = JdbcClient.create(ds);
 
         var auditLogService =

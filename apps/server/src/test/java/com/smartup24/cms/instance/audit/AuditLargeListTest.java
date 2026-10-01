@@ -48,7 +48,7 @@ class AuditLargeListTest {
 
     @BeforeAll
     static void fillTheLog() {
-        var ds = TestDatabases.migratedCopy("dwh_audit_large_test");
+        var ds = TestDatabases.migratedCopy("smc_audit_large_test");
         jdbc = JdbcClient.create(ds);
         var repository = new AuditLogRepository(jdbc, new ObjectMapper());
         auditLog = new AuditLogService(repository, null, new AuditDataRedactor());

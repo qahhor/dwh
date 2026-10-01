@@ -46,7 +46,7 @@ class MdAssignmentServiceIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_assign_test");
+        var ds = TestDatabases.migratedCopy("smc_assign_test");
         jdbc = JdbcClient.create(ds);
 
         userRepository = new MdUserRepository(jdbc, new ObjectMapper());
