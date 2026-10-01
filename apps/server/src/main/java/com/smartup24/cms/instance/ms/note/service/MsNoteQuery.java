@@ -24,7 +24,7 @@ public class MsNoteQuery {
             + " || to_char(n.modified_at at time zone 'UTC', 'YYYYMMDDHH24MISSUS'))";
 
     public static final QueryList LIST = new QueryList(
-                    "ms.notes",
+                    MsNoteEntity.CODE,
                     "notes",
                     "view",
                     COLUMNS,
@@ -37,7 +37,9 @@ public class MsNoteQuery {
                             QueryField.of("contentMd", "notes.col.content", QueryFieldType.TEXT, "n.content_md")
                                     .asSearchable()
                                     .asHidden(),
-                            QueryField.of("color", "notes.col.color", QueryFieldType.TEXT, "n.color"),
+                            // The colours of the form (MsNoteEntity), named alike (plan 10/10, item 5.0).
+                            QueryField.enumeration(
+                                    "color", "notes.col.color", "n.color", MsNoteEntity.COLORS, "notes.color_"),
                             QueryField.of("isPinned", "notes.col.pinned", QueryFieldType.BOOLEAN, "n.is_pinned"),
                             QueryField.of(
                                             "modifiedAt",

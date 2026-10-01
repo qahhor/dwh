@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -147,9 +148,11 @@ public class EntityRegistry {
         return Objects.requireNonNull(records.get(entity.code()), entity.code());
     }
 
-    private static RecordHistorySource historySource(EntityDefinition entity, EntityRecords records) {
-        Map<String, String> labels = new TreeMap<>();
-        entity.fields().forEach(field -> labels.put(field.key(), field.labelKey()));
+    /**
+     * The entity's history source. Its fields are named from the entity as it is when the history is read, so a
+     * custom field added later is named too, by its own name (plan 10/10, item 5.0).
+     */
+    private RecordHistorySource historySource(EntityDefinition entity, EntityRecords records) {
         return new RecordHistorySource() {
             public String key() {
                 return entity.code();
@@ -168,7 +171,19 @@ public class EntityRegistry {
             }
 
             public Map<String, String> fieldLabels() {
+                Map<String, String> labels = new LinkedHashMap<>();
+                resolve(entity).fields().stream()
+                        .filter(field -> !field.labelKey().isEmpty())
+                        .forEach(field -> labels.put(field.key(), field.labelKey()));
                 return labels;
+            }
+
+            public Map<String, String> fieldNames() {
+                Map<String, String> names = new LinkedHashMap<>();
+                resolve(entity).fields().stream()
+                        .filter(field -> field.labelKey().isEmpty() && field.label() != null)
+                        .forEach(field -> names.put(field.key(), field.label()));
+                return names;
             }
 
             public void requireVisible(String recordId) {

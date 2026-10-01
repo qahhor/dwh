@@ -5,7 +5,6 @@ import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.FormFieldExtender;
 import com.smartup24.cms.instance.common.entity.FormFieldType;
 import com.smartup24.cms.instance.common.query.QueryRef;
-import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
 import java.util.List;
 import java.util.Locale;
@@ -23,18 +22,20 @@ public class MdCustomFieldFormFields implements FormFieldExtender {
     /** The longest text a custom field takes (MdCustomFieldService). */
     public static final int MAX_TEXT = 4000;
 
-    private final MdCustomFieldRepository repository;
     private final MdCustomFieldService service;
 
-    public MdCustomFieldFormFields(MdCustomFieldRepository repository, MdCustomFieldService service) {
-        this.repository = repository;
+    public MdCustomFieldFormFields(MdCustomFieldService service) {
         this.service = service;
     }
 
+    /**
+     * Read through the service's cluster cache of definitions (ADR-0025), which every change of a custom field
+     * clears on every node — so the form shows a new field at once without reading the table per request.
+     */
     @Override
     public List<FormField> extraFields(EntityDefinition entity) {
         if (entity.customEntity() == null) return List.of();
-        return repository.findByEntityType(entity.customEntity()).stream()
+        return service.getFields(entity.customEntity()).stream()
                 .map(this::toField)
                 .filter(Objects::nonNull)
                 .toList();
@@ -47,6 +48,8 @@ public class MdCustomFieldFormFields implements FormFieldExtender {
             case "string" -> FormField.of(key, "", FormFieldType.TEXT).length(null, MAX_TEXT);
             case "number" -> FormField.of(key, "", FormFieldType.NUMBER);
             case "date" -> FormField.of(key, "", FormFieldType.DATE);
+            case "datetime" -> FormField.of(key, "", FormFieldType.DATETIME);
+            case "time" -> FormField.of(key, "", FormFieldType.TIME);
             case "boolean" -> FormField.of(key, "", FormFieldType.BOOLEAN);
             case "select" -> {
                 List<String> options = service.parseSelectOptions(record.optionsJson());

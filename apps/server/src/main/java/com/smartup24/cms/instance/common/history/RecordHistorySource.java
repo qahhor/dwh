@@ -39,6 +39,14 @@ public interface RecordHistorySource {
         return Map.of();
     }
 
+    /**
+     * Ready names of fields that have no dictionary key — an administrator's custom field is labelled by its own
+     * name (plan 10/10, item 5.0) — by field name in camelCase. Read once per page of history.
+     */
+    default Map<String, String> fieldNames() {
+        return Map.of();
+    }
+
     /** Fields never shown in the history, in camelCase, beyond the technical ones. */
     default Set<String> hiddenFields() {
         return Set.of();

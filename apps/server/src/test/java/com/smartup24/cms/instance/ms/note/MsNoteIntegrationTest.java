@@ -7,19 +7,27 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.audit.service.RecordHistoryService;
+import com.smartup24.cms.instance.common.entity.EntityRegistry;
+import com.smartup24.cms.instance.common.entity.FormField;
+import com.smartup24.cms.instance.common.entity.FormFieldExtender;
+import com.smartup24.cms.instance.common.entity.FormFieldType;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
 import com.smartup24.cms.instance.md.service.ModuleRegistryService;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
+import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
 import com.smartup24.cms.instance.ms.note.service.MsNoteRecords;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
 import com.smartup24.cms.instance.support.TestDatabases;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
@@ -27,6 +35,7 @@ class MsNoteIntegrationTest {
 
     static JdbcClient jdbc;
     static MsNoteService noteService;
+    static AuditLogService auditService;
     static Long user1Id;
     static Long user2Id;
 
@@ -37,7 +46,7 @@ class MsNoteIntegrationTest {
         var mapper = new ObjectMapper();
         var repo = new MsNoteRepository(jdbc, mapper);
         var auditRepo = new AuditLogRepository(jdbc, mapper);
-        var auditService = new AuditLogService(auditRepo, null, new AuditDataRedactor());
+        auditService = new AuditLogService(auditRepo, null, new AuditDataRedactor());
         noteService = new MsNoteService(repo, auditService);
 
         user1Id = jdbc.sql("""
@@ -203,6 +212,70 @@ class MsNoteIntegrationTest {
                         e -> assertThat(e.getFieldErrors())
                                 .extracting(item -> item.field())
                                 .containsExactly("title"));
+    }
+
+    @Test
+    @DisplayName("7. Аудит пишет все объявленные поля, текст и доп. поля; история называет каждое поле")
+    void auditKeepsEveryFieldAndHistoryNamesThem() {
+        var extender = (FormFieldExtender) entity ->
+                List.of(FormField.of("cfRegion", "", FormFieldType.TEXT).custom("Регион", "region"));
+        var registry = new EntityRegistry(
+                List.of(MsNoteEntity.DEFINITION), List.of(extender), List.of(new MsNoteRecords(noteService)));
+        var beans = new DefaultListableBeanFactory();
+        beans.registerSingleton("entities", registry);
+        noteService.setEntityRegistry(beans.getBeanProvider(EntityRegistry.class));
+        SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
+                user1Id, "user1", "user1@example.com", 1L, false, Set.of("notes.view"), 1L, false, 0, null));
+        try {
+            var note = noteService.createNote(
+                    "Аудит", "Первый **текст**", "blue", false, Map.of("region", "Tashkent"), user1Id);
+            noteService.updateNote(
+                    note.id(), null, "Второй текст", null, null, Map.of("region", "Bukhara"), user1Id, 1L);
+
+            var history = new RecordHistoryService(auditService, List.of(), registry)
+                    .history("ms.notes", String.valueOf(note.id()), null, null)
+                    .items();
+            assertThat(history)
+                    .extracting(RecordHistoryService.HistoryEntry::event)
+                    .containsExactly("U", "I");
+            var created = history.get(1).changes();
+            assertThat(created)
+                    .extracting(RecordHistoryService.FieldChange::field)
+                    .containsExactly("title", "contentMd", "color", "isPinned", "cfRegion");
+            assertThat(created)
+                    .extracting(change -> change.labelKey() != null ? change.labelKey() : change.label())
+                    .containsExactly(
+                            "notes.col.title", "notes.col.content", "notes.col.color", "notes.col.pinned", "Регион");
+            var changed = history.get(0).changes();
+            assertThat(changed)
+                    .extracting(
+                            RecordHistoryService.FieldChange::field,
+                            RecordHistoryService.FieldChange::oldValue,
+                            RecordHistoryService.FieldChange::newValue)
+                    .containsExactly(
+                            org.assertj.core.groups.Tuple.tuple("contentMd", "Первый **текст**", "Второй текст"),
+                            org.assertj.core.groups.Tuple.tuple("cfRegion", "Tashkent", "Bukhara"));
+            noteService.deleteNote(note.id(), user1Id);
+            String deleted = jdbc.sql("""
+                            select old_row::text from audit_log
+                            where table_name = 'ms_notes' and row_pk = :id and event = 'D'
+                            """)
+                    .param("id", String.valueOf(note.id()))
+                    .query(String.class)
+                    .single();
+            assertThat(deleted).contains("\"contentMd\": \"Второй текст\"", "\"cfRegion\": \"Bukhara\"");
+            String columns = jdbc.sql("""
+                            select array_to_string(changed_columns, ',') from audit_log
+                            where table_name = 'ms_notes' and row_pk = :id and event = 'U'
+                            """)
+                    .param("id", String.valueOf(note.id()))
+                    .query(String.class)
+                    .single();
+            assertThat(columns).isEqualTo("contentMd,cfRegion");
+        } finally {
+            SecurityContext.clear();
+            noteService.setEntityRegistry(null);
+        }
     }
 
     @Test

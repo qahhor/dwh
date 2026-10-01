@@ -19,15 +19,19 @@ public class MdPermissionService {
     private final MdPermissionRepository permissionRepository;
     /** Declared entities name their own rights (roadmap item 57); null — only the catalog names them. */
     private final EntityRegistry entities;
+    /** The Russian catalog names an entity's right in the stored catalog (ADR-0031); null — the key itself. */
+    private final MdI18nCatalog catalog;
 
     @Autowired
-    public MdPermissionService(MdPermissionRepository permissionRepository, @Lazy EntityRegistry entities) {
+    public MdPermissionService(
+            MdPermissionRepository permissionRepository, @Lazy EntityRegistry entities, MdI18nCatalog catalog) {
         this.permissionRepository = permissionRepository;
         this.entities = entities;
+        this.catalog = catalog;
     }
 
     public MdPermissionService(MdPermissionRepository permissionRepository) {
-        this(permissionRepository, null);
+        this(permissionRepository, null, null);
     }
 
     @Transactional(readOnly = true)
@@ -54,9 +58,30 @@ public class MdPermissionService {
     @Transactional(readOnly = true)
     public List<FormCatalogItem> getFormCatalogItems() {
         return getFormCatalog().stream()
-                .map(i -> new FormCatalogItem(
-                        i.formCode(), i.module(), i.formName(), i.action(), i.actionName(), i.isDeprecated()))
+                .map(i -> {
+                    Optional<EntityRights> rights = rightsOf(i.formCode());
+                    return new FormCatalogItem(
+                            i.formCode(),
+                            i.module(),
+                            i.formName(),
+                            rights.map(EntityRights::nameKey).orElse(null),
+                            i.action(),
+                            i.actionName(),
+                            rights.map(named -> named.actionKeys().get(i.action()))
+                                    .orElse(null),
+                            i.isDeprecated());
+                })
                 .toList();
+    }
+
+    private Optional<EntityRights> rightsOf(String formCode) {
+        return entities == null ? Optional.empty() : entities.rights(formCode);
+    }
+
+    /** The Russian words of a key for the stored catalog, the source language (ADR-0031); the key when absent. */
+    private String russian(String key) {
+        if (key == null) return null;
+        return catalog == null ? key : catalog.bundled("ru").getOrDefault(key, key);
     }
 
     /**
@@ -79,15 +104,15 @@ public class MdPermissionService {
             String formCode = pair.substring(0, dot);
             String action = pair.substring(dot + 1);
 
-            Optional<EntityRights> rights = entities == null ? Optional.empty() : entities.rights(formCode);
+            Optional<EntityRights> rights = rightsOf(formCode);
             permissionRepository.registerForm(
                     formCode,
                     rights.map(EntityRights::module).orElseGet(() -> MdFormCatalog.moduleOf(formCode)),
-                    rights.map(EntityRights::name).orElseGet(() -> MdFormCatalog.formNameOf(formCode)));
+                    rights.map(named -> russian(named.nameKey())).orElseGet(() -> MdFormCatalog.formNameOf(formCode)));
             permissionRepository.registerFormAction(
                     formCode,
                     action,
-                    rights.map(named -> named.actionNames().get(action))
+                    rights.map(named -> russian(named.actionKeys().get(action)))
                             .orElseGet(() -> MdFormCatalog.actionNameOf(formCode, action)));
         }
 
