@@ -9,6 +9,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Phase 3 debts closed (2026-10-01). Modules read each other's data only
+  through published read views `<owner>_pub_*` (ADR-0026, V141); the
+  foreign-SQL list and the frozen module-boundary store are empty, so both
+  rules are strict. `fnd.api` is the contract item 4.2 keeps while it splits
+  the module. Every collection is paged (`NOT_YET_PAGED` gone) and every
+  change of a shared record names its revision (`NOT_YET_LOCKED` gone).
+  Code comments are English everywhere; released migrations keep theirs,
+  frozen by checksum. Every API operation has a summary and a description
+  (Spectral `operation-description` is an error). The e2e job checks that
+  readiness answers 503 within 30 s when PostgreSQL stops, and signs in with
+  a code read from email and resets a password by an emailed link through
+  Mailpit (plan items 0.7, 0.8). e2e sources are audited for deprecated API
+  calls like the web.
+
 - One language for code comments (plan 10/10, item 3.14). Comments are
   written in English and point only at what a newcomer can open — an ADR,
   an FR/NFR, a plan item; the numbered references to working briefs are
@@ -764,6 +778,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (phase 3 debts):** `GET /settings/system` answers
+  `{values, revision}` with an `ETag` instead of a bare map;
+  `PATCH /settings/system`, `PUT /iam/org-units/users/{id}` and
+  `PUT /iam/org-units/roles/{id}/rule` answer 428 without `If-Match`;
+  `PUT /modules/{code}` without `If-Match` only creates a module (428 for an
+  existing one). Deprecated until 2026-12-31: the whole project list
+  `GET /tasks/projects` (successor `GET /tasks/projects/page`); task rows
+  carry `projectName`. String and select custom-field values are stored as
+  strings (V145 converts numbers and booleans stored before).
+
 - **API-breaking (phase 3 review):** `PUT /iam/users/{id}/roles` and
   `PUT /iam/users/{id}/permissions` answer 428 without `If-Match` carrying
   the user's revision, like every other change of a revisioned record
@@ -1086,6 +1110,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Email delivery in production: with `SMTP_HOST` (or a Telegram token) set the
+  server did not start (two mail providers matched one injection point), and a
+  code sent by email could not be stored, so confirming an email channel,
+  two-factor sign-in by email and password reset by email failed (V146).
+  Found by the new e2e mail test.
+- The texts of the database privilege test, saved in a broken encoding, are
+  readable again.
 
 - Phase 3 review (2026-10-01), found by four read-only reviews and a visual
   pass over the screens:
