@@ -6,7 +6,6 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.api.NavigationItemView;
-import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository.FormTreeItem;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository;
 import com.smartup24.cms.instance.md.repository.NavigationItemRepository.NavigationItemRecord;
@@ -169,8 +168,7 @@ public class NavigationItemService {
         if (value == null || value.isBlank()) {
             return null;
         }
-        // A legacy form code is still accepted until the sunset of ADR-0028's mapping (2026-12-31).
-        String permission = PermissionAreas.currentPermission(value.trim());
+        String permission = value.trim();
         if (!permissionService.getGrantablePairs().contains(permission)) {
             throw ApiException.validation(
                     "error.md.navigation_permission_unknown",
@@ -307,14 +305,6 @@ public class NavigationItemService {
                 item.state(),
                 "required_permission",
                 Objects.toString(item.requiredPermission(), ""));
-    }
-
-    /** Flips the state; kept for the deprecated POST …/toggle until its sunset (ADR-0023). */
-    @Transactional
-    @CacheEvict(value = "navigationItems", allEntries = true)
-    public NavigationItemView toggleState(Long id, Long userId) {
-        NavigationItemRecord existing = navigationRepository.findById(id).orElseThrow(() -> itemNotFound(id));
-        return setActive(id, userId, !"A".equals(existing.state()));
     }
 
     /** Sets the state (PUT …/active, plan item 3.4): repeating the call changes nothing and audits nothing. */

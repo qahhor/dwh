@@ -3,6 +3,9 @@ package com.smartup24.cms.instance.ms.note.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
+import com.smartup24.cms.instance.common.entity.EntityAuditRow;
+import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
@@ -16,6 +19,7 @@ import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,10 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MsNoteService {
 
+    private static final String AUDIT_TABLE = "ms_notes";
+
     private final MsNoteRepository noteRepository;
     private final AuditLogService auditLogService;
     private final MdCustomFieldService customFieldService;
     private final ModuleRegistryService moduleRegistryService;
+    private QueryListRegistry registry;
+    private ObjectProvider<EntityRegistry> entities;
 
     @Autowired
     public MsNoteService(
@@ -40,16 +48,23 @@ public class MsNoteService {
         this.moduleRegistryService = moduleRegistryService;
     }
 
+    public MsNoteService(MsNoteRepository noteRepository, AuditLogService auditLogService) {
+        this(noteRepository, auditLogService, null, null);
+    }
+
     /** The registry adds the note custom fields to the list (ADR-0019, 2.3); without it, the declared fields only. */
     @Autowired(required = false)
     public void setQueryListRegistry(QueryListRegistry registry) {
         this.registry = registry;
     }
 
-    private QueryListRegistry registry;
-
-    public MsNoteService(MsNoteRepository noteRepository, AuditLogService auditLogService) {
-        this(noteRepository, auditLogService, null, null);
+    /**
+     * The note with its custom fields as they are now, for the audit row (plan 10/10, item 5.0). Read when a note
+     * is saved, not at start: the registry is built from the records beans, which need this service.
+     */
+    @Autowired(required = false)
+    public void setEntityRegistry(ObjectProvider<EntityRegistry> entities) {
+        this.entities = entities;
     }
 
     private void checkModuleActive() {
@@ -103,15 +118,7 @@ public class MsNoteService {
 
     @Transactional(readOnly = true)
     public NoteView getNote(Long id, Long userId) {
-        checkModuleActive();
-        var note = noteRepository
-                .findById(id)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
-        if (!note.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
-        }
-        return NoteView.from(note);
+        return NoteView.from(ownNote(id, userId));
     }
 
     @Transactional
@@ -125,20 +132,11 @@ public class MsNoteService {
         checkModuleActive();
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), false);
 
-        Map<String, Object> storedAttributes = attributes;
-        if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
-            storedAttributes = customFieldService.checkedAttributes("NOTE", attributes);
-        }
+        var note =
+                noteRepository.create(title.trim(), contentMd, color, isPinned, checkedAttributes(attributes), userId);
 
-        var note = noteRepository.create(title.trim(), contentMd, color, isPinned, storedAttributes, userId);
-
-        auditLogService.logChange(
-                "ms_notes",
-                String.valueOf(note.id()),
-                "I",
-                List.of("title", "color", "is_pinned"),
-                null,
-                Map.of("title", note.title(), "color", note.color(), "is_pinned", note.isPinned()));
+        Map<String, Object> row = audited(note);
+        auditLogService.logChange(AUDIT_TABLE, String.valueOf(note.id()), "I", List.copyOf(row.keySet()), null, row);
 
         return NoteView.from(note);
     }
@@ -153,33 +151,25 @@ public class MsNoteService {
             Map<String, Object> attributes,
             Long userId,
             long expectedRevision) {
-        checkModuleActive();
-        var existing = noteRepository
-                .findById(id)
-                .orElseThrow(
-                        () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
-        if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
-        }
+        var existing = ownNote(id, userId);
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
 
-        Map<String, Object> storedAttributes = attributes;
-        if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
-            storedAttributes = customFieldService.checkedAttributes("NOTE", attributes);
-        }
-
         var updated = noteRepository.update(
-                id, title, contentMd, color, isPinned, storedAttributes, userId, expectedRevision);
+                id, title, contentMd, color, isPinned, checkedAttributes(attributes), userId, expectedRevision);
 
+        Map<String, Object> before = audited(existing);
+        Map<String, Object> after = audited(updated);
         auditLogService.logChange(
-                "ms_notes",
-                String.valueOf(id),
-                "U",
-                List.of("title", "color", "is_pinned"),
-                Map.of("title", existing.title(), "color", existing.color(), "is_pinned", existing.isPinned()),
-                Map.of("title", updated.title(), "color", updated.color(), "is_pinned", updated.isPinned()));
+                AUDIT_TABLE, String.valueOf(id), "U", EntityAuditRow.changed(before, after), before, after);
 
         return NoteView.from(updated);
+    }
+
+    private Map<String, Object> checkedAttributes(Map<String, Object> attributes) {
+        if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
+            return customFieldService.checkedAttributes("NOTE", attributes);
+        }
+        return attributes;
     }
 
     /** The declared fields a save carries; an absent one (null) is left out, so an update keeps it. */
@@ -192,10 +182,13 @@ public class MsNoteService {
         return values;
     }
 
-    /** Flips the pin; kept for the deprecated POST /notes/{id}/pin until its sunset (ADR-0023). */
-    @Transactional
-    public NoteView togglePinned(Long id, Long userId) {
-        return setPinned(id, userId, !ownNote(id, userId).isPinned());
+    /** The audit row of a note: every declared field and every custom field it has (plan 10/10, item 5.0). */
+    private Map<String, Object> audited(NoteRecord note) {
+        EntityRegistry resolved = entities == null ? null : entities.getIfAvailable();
+        EntityDefinition entity =
+                resolved == null ? MsNoteEntity.DEFINITION : resolved.resolve(MsNoteEntity.DEFINITION);
+        return EntityAuditRow.of(
+                entity, values(note.title(), note.contentMd(), note.color(), note.isPinned()), note.attributes());
     }
 
     /**
@@ -208,25 +201,26 @@ public class MsNoteService {
         noteRepository
                 .setPinned(id, pinned, userId)
                 .ifPresent(changed -> auditLogService.logChange(
-                        "ms_notes",
+                        AUDIT_TABLE,
                         String.valueOf(id),
                         "U",
-                        List.of("is_pinned"),
-                        Map.of("is_pinned", !changed.isPinned()),
-                        Map.of("is_pinned", changed.isPinned())));
+                        List.of("isPinned"),
+                        Map.of("isPinned", !changed.isPinned()),
+                        Map.of("isPinned", changed.isPinned())));
         return NoteView.from(noteRepository.findById(id).orElse(before));
     }
 
+    /**
+     * The owner's note. Another person's note answers exactly as a missing one, 404 (plan 10/10, item 5.0): the
+     * answer must not tell that a note with this id exists.
+     */
     private NoteRecord ownNote(Long id, Long userId) {
         checkModuleActive();
-        var existing = noteRepository
+        return noteRepository
                 .findById(id)
+                .filter(note -> note.createdBy().equals(userId))
                 .orElseThrow(
                         () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
-        if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
-        }
-        return existing;
     }
 
     @Transactional
@@ -235,7 +229,7 @@ public class MsNoteService {
 
         noteRepository.delete(id);
 
-        auditLogService.logChange(
-                "ms_notes", String.valueOf(id), "D", List.of("title"), Map.of("title", existing.title()), null);
+        Map<String, Object> row = audited(existing);
+        auditLogService.logChange(AUDIT_TABLE, String.valueOf(id), "D", List.copyOf(row.keySet()), row, null);
     }
 }

@@ -108,7 +108,7 @@ class MsNotifyApiContractIntegrationTest extends EmbeddedPostgresTest {
                 Map.of("lockVersion", updated.get("lockVersion")))));
         assertKeys(published, with(DRAFT, "publishedAt"));
         assertKeys(
-                array(ok(send(s, get("/api/v1/announcements?language=ru"), null))).stream()
+                array(ok(send(s, get("/api/v1/announcements/active?language=ru"), null))).stream()
                         .filter(item -> ((Number) item.get("id")).longValue() == id)
                         .findFirst()
                         .orElseThrow(),

@@ -7,7 +7,6 @@ import com.smartup24.cms.instance.md.api.MdAssignmentDtos.EffectivePermission;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.PermissionsVersionResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
-import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
@@ -108,8 +107,7 @@ public class MdAssignmentService {
         List<MdRoleRepository.PermissionPair> requested = grants == null
                 ? List.of()
                 : grants.stream()
-                        .map(g ->
-                                new MdRoleRepository.PermissionPair(PermissionAreas.currentForm(g.form()), g.action()))
+                        .map(g -> new MdRoleRepository.PermissionPair(g.form(), g.action()))
                         .toList();
 
         // Permissions are granted only on live catalog pairs (FR-PERM-1): an obsolete

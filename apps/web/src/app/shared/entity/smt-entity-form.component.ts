@@ -14,7 +14,6 @@ import { NgTemplateOutlet } from '@angular/common';
 import type { FormFieldMeta, FormMeta, FormProblems, FormSectionMeta, FormValues } from '@core/models/form-meta.models';
 import { fieldLabel, optionLabel } from '@core/services/form-meta.service';
 import { I18nService } from '@core/services/i18n.service';
-import { LookupSources } from '../lookups/lookup-sources';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownEditorComponent } from '../ui/ui-markdown-editor.component';
 import { SMTControlComponent } from '../ui-kit/components/forms/control/control.component';
@@ -101,7 +100,7 @@ interface DrawnSection {
               } @else {
                 <smt-dynamic-field
                   [field]="field.def"
-                  [userSource]="field.source"
+                  [source]="field.source"
                   [disabled]="disabled()"
                   [error]="problemOf(field.meta.key)"
                   [value]="value()[field.meta.key] ?? null"
@@ -151,8 +150,6 @@ export class SMTEntityFormComponent {
   private readonly i18n = inject(I18nService);
 
   private readonly refLookups = inject(RefLookups);
-
-  private readonly lookups = inject(LookupSources);
 
   readonly meta = input.required<FormMeta>();
 
@@ -232,10 +229,8 @@ export class SMTEntityFormComponent {
           ? (field.options ?? []).map((option) => ({ id: option, label: optionLabel(field, option, translate) }))
           : undefined,
     };
-    let source: SMTLookupSource<unknown, SMTLookupKey> | null = null;
-    if (field.ref) {
-      source = field.ref.path === '/iam/users' ? this.lookups.activeUsers : this.refLookups.source(field.ref);
-    }
+    // A reference is picked from its own target (plan 10/10, item 5.0): a person, a project, a task, any list.
+    const source = field.ref ? this.refLookups.source(field.ref) : null;
     return { meta: field, def, label, source };
   }
 }
@@ -246,7 +241,9 @@ const TYPES: Record<FormFieldMeta['type'], SMTDynamicFieldType> = {
   markdown: 'text',
   number: 'number',
   date: 'date',
+  datetime: 'datetime',
+  time: 'time',
   boolean: 'boolean',
   select: 'select',
-  ref: 'user_ref',
+  ref: 'ref',
 };

@@ -4,6 +4,8 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,8 @@ public final class EntityValidator {
     public static final String TOO_LONG = "too_long";
     public static final String OUT_OF_RANGE = "out_of_range";
     public static final String INVALID = "invalid";
+
+    private static final Pattern TIME = Pattern.compile("^\\d{2}:\\d{2}(:\\d{2})?$");
 
     private EntityValidator() {}
 
@@ -89,6 +93,16 @@ public final class EntityValidator {
                     return error(key, INVALID, "error.field.date_required", Map.of());
                 }
             }
+            case DATETIME -> {
+                if (!isMoment(String.valueOf(value).strip())) {
+                    return error(key, INVALID, "error.field.datetime_required", Map.of());
+                }
+            }
+            case TIME -> {
+                if (!isTime(String.valueOf(value).strip())) {
+                    return error(key, INVALID, "error.field.time_required", Map.of());
+                }
+            }
             case BOOLEAN -> {
                 if (!(value instanceof Boolean) && !List.of("true", "false").contains(String.valueOf(value))) {
                     return error(key, INVALID, "error.field.yes_no_required", Map.of());
@@ -104,6 +118,27 @@ public final class EntityValidator {
             }
         }
         return Optional.empty();
+    }
+
+    /** An ISO date and time with its offset or {@code Z}: a moment, the same everywhere (plan 10/10, item 5.0). */
+    public static boolean isMoment(String text) {
+        try {
+            OffsetDateTime.parse(text);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+    }
+
+    /** A time of day, {@code HH:mm} or {@code HH:mm:ss} (plan 10/10, item 5.0). */
+    public static boolean isTime(String text) {
+        if (!TIME.matcher(text).matches()) return false;
+        try {
+            LocalTime.parse(text);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
     }
 
     private static Optional<FieldErrorItem> error(String key, String code, String messageKey, Map<String, ?> params) {

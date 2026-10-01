@@ -42,7 +42,7 @@ class TraceparentFilterTest {
     @DisplayName("Фильтр должен сохранять входящий валидный traceparent и извлекать X-Client-Code")
     void shouldPreserveIncomingTraceparent() throws ServletException, IOException {
         String incomingTp = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01";
-        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks/items");
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/tasks");
         request.addHeader(TraceparentFilter.HEADER_TRACEPARENT, incomingTp);
         request.addHeader(TraceparentFilter.HEADER_CLIENT_CODE, "acme_corp");
 

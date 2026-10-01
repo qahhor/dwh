@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
-import { LEGACY_FORM_CODES, PermissionService } from './permission.service';
+import { PermissionService } from './permission.service';
 
 describe('PermissionService', () => {
   function service(permissions: string[]): PermissionService {
@@ -20,19 +20,17 @@ describe('PermissionService', () => {
     expect(permissions.hasPermissionKey('search')).toBe(false);
   });
 
-  it('still honours a permission set of the previous release until the sunset', () => {
+  it('opens nothing for a form code of the previous release (ADR-0028)', () => {
     const permissions = service(['iam.org_units.assign', 'platform.settings.*']);
 
-    expect(permissions.hasPermission('md.org_units', 'assign')).toBe(true);
-    expect(permissions.hasPermission('md.org_units', 'view')).toBe(false);
-    expect(permissions.hasPermission('md.settings', 'update')).toBe(true);
+    expect(permissions.hasPermission('md.org_units', 'assign')).toBe(false);
+    expect(permissions.hasPermission('md.settings', 'update')).toBe(false);
   });
 
   it('does not treat an old code as current', () => {
     const permissions = service(['md.users.view']);
 
     expect(permissions.canView('iam.users')).toBe(false);
-    expect(Object.values(LEGACY_FORM_CODES)).not.toContain('md.users');
   });
 
   it('lets the administrator wildcard open everything', () => {

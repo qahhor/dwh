@@ -265,4 +265,35 @@ describe('ui-filter-panel', () => {
     expect(all(fixture, 'filter-date')).toHaveLength(1);
     expect(all(fixture, 'filter-date-range')).toHaveLength(0);
   });
+
+  // Plan 10/10, item 5.0: a time of day is picked as one, both bounds of "between" too.
+  it('edits a time of day with time pickers and applies both bounds of a period', async () => {
+    const timed: QueryListMeta = {
+      ...META,
+      fields: [
+        {
+          key: 'cfSlot',
+          labelKey: '',
+          label: 'Слот',
+          type: 'time',
+          ops: ['eq', 'between', 'empty'],
+          sortable: false,
+          nullable: true,
+          defaultVisible: true,
+          enumValues: [],
+          enumLabelPrefix: null,
+        },
+      ],
+    };
+    const { fixture, close } = await render([{ field: 'cfSlot', op: 'between', value: ['08:00', '12:30'] }], timed);
+
+    const pickers = [...all(fixture, 'filter-time'), ...all(fixture, 'filter-time-to')];
+    expect(pickers).toHaveLength(2);
+    expect((pickers[0].querySelector('input') as HTMLInputElement).value).toBe('08:00');
+    expect((pickers[1].querySelector('input') as HTMLInputElement).value).toBe('12:30');
+    button(fixture, 'filter-apply').click();
+
+    const applied = (close.mock.calls.at(-1)?.[0] as { conditions: QueryCondition[] }).conditions;
+    expect(applied).toEqual([{ field: 'cfSlot', op: 'between', value: ['08:00', '12:30'] }]);
+  });
 });

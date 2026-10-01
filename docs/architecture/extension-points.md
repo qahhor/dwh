@@ -22,7 +22,7 @@ SmartupCMS расширяется **модулями в коде**: модуль
 
 | Точка | Где | Что даёт |
 |---|---|---|
-| `EntityDefinition` (`@Bean`) | `S/common/entity/EntityDefinition.java` | Одно объявление сущности: поля формы и правила (`FormField`: `TEXT`, `TEXTAREA`, `MARKDOWN`, `NUMBER`, `DATE`, `BOOLEAN`, `SELECT`, `REF`), секции, действия с правом каждое, названия права (`EntityRights`), пункт меню (`EntityMenu`), возможности (`EntityCapability`). Отдаётся `GET /api/v1/form-meta/{code}`. |
+| `EntityDefinition` (`@Bean`) | `S/common/entity/EntityDefinition.java` | Одно объявление сущности: поля формы и правила (`FormField`: `TEXT`, `TEXTAREA`, `MARKDOWN`, `NUMBER`, `DATE`, `DATETIME`, `TIME`, `BOOLEAN`, `SELECT`, `REF`; поле списка того же ключа — того же вида, `EntityFieldContractTest`), секции, действия с правом каждое, названия права (`EntityRights`), пункт меню (`EntityMenu`), возможности (`EntityCapability`). Отдаётся `GET /api/v1/form-meta/{code}`. |
 | `EntityRecords` (`@Bean`) | `S/common/entity/EntityRecords.java` | То, что знает только модуль: видимость записи в скоупе зрителя, страница списка, удаление одной записи. Из него и объявления платформа строит историю, экспорт и `POST /api/v1/entities/{code}/bulk`. |
 | `EntityValidator` | `S/common/entity/EntityValidator.java` | Проверка сохранения по объявлению: 422 с ошибкой на каждом поле. Вызывается сервисом модуля. |
 | `FormFieldExtender` | `S/common/entity/FormFieldExtender.java` | Поля, добавляемые в форму во время запроса. Реализация — дополнительные поля (`S/md/service/MdCustomFieldFormFields.java`). |
@@ -53,7 +53,7 @@ SmartupCMS расширяется **модулями в коде**: модуль
 | Точка | Где | Что даёт |
 |---|---|---|
 | `@RequiresPermission(form, action)` | `S/common/annotation/RequiresPermission.java` | Единственный источник существования права: при старте пары попадают в каталог (`S/md/service/MdFormCatalogSynchronizer.java`). Код формы — `<область>.<сущность>`, область называет модуль-владельца (`S/md/pref/PermissionAreas.java`, ADR-0028). |
-| `EntityRights` | в объявлении | Названия формы и действий в матрице прав; тест не даёт выпустить пару без названия. |
+| `EntityRights` | в объявлении | Ключи названий формы и действий в матрице прав (ADR-0031): каталог хранит русские слова, API отдаёт и ключи; тесты не дают выпустить пару без названия и ключ без перевода в ru/uz/en. |
 | `EntityMenu` | в объявлении | Пункт бокового меню: маршрут, подпись, иконка, раздел, порядок, модуль-выключатель. Отдаётся `GET /api/v1/entities/menu` по правам зрителя. |
 | Модуль-выключатель | `md_installed_modules`, `S/md/service/ModuleRegistryService.java` | Администратор включает и выключает модуль; экран охраняет `moduleActiveGuard`. |
 | Переводы | `apps/server/src/main/resources/i18n/{ru,uz,en}.json` | Ключи модуля (`nav.<код>`, подписи полей). Русский — канонический каталог; другие языки администратор добавляет в редакторе языков. |
@@ -121,7 +121,7 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 | `ApiException` + `ErrorCode` | `S/common/error/ApiException.java`, `libs/core-types/.../core/error/ErrorCode.java` | Ошибка запроса: код, ключ каталога `error.<модуль>.<имя>`, параметры; `GlobalExceptionHandler` отвечает `application/problem+json` на языке запроса ([ADR-0021](../adr/ADR-0021-error-model.md)). Ключ — в ru, uz и en (`ErrorTextsTest`). |
 | `Revisioned` / `Revisions` | `S/common/web/Revisioned.java`, `S/common/web/Revisions.java` | Ответ-record с `revision()` получает `ETag` (`S/config/web/RevisionETagAdvice.java`); `Revisions.required(ifMatch)` — ревизия из `If-Match` или 428, `Revisions.conflict()` — 409 ([ADR-0024](../adr/ADR-0024-optimistic-locking.md)). |
 | `Created` | `S/common/web/Created.java` | `Created.at("/api/v1/<путь>/{id}", id, body)` — 201 с `Location` ([ADR-0023](../adr/ADR-0023-uniform-rest.md)). |
-| `ApiDeprecations` | `S/common/web/ApiDeprecations.java` | Единый список устаревших путей и параметров: по нему `S/config/web/DeprecatedApiFilter.java` отвечает с `Deprecation`, `Sunset`, `Link`, а описание API помечает их `deprecated` (ADR-0023). Новый псевдоним — строка в `PATHS` или `QUERY_PARAMETERS`. |
+| `ApiDeprecations` | `S/common/web/ApiDeprecations.java` | Единый список устаревших путей и параметров: по нему `S/config/web/DeprecatedApiFilter.java` отвечает с `Deprecation`, `Sunset`, `Link`, а описание API помечает их `deprecated` (ADR-0023). Сейчас таблица `CURRENT` пуста (ADR-0023, §5); новый псевдоним — `ApiDeprecations.alias(...)` в её списке путей, параметр — строка в её словаре параметров. |
 | `KeysetPage` | `libs/core-types/.../core/pagination/KeysetPage.java` | Страница коллекции: `items`, `nextCursor`, `hasMore`, `totalEstimated`, `totalExact` (план 10/10, пункт 3.5). |
 | `TimePage` | `S/common/query/TimePage.java` | Страница коллекции вне реестра полей по времени и id: `TimePage.of(limit, cursor, default, max)` (422 выше максимума), `page(rows, position)`. |
 | `QueryList.withEstimatedTotal()` | `S/common/query/QueryList.java` | Список реестра над таблицей без предела отдаёт оценку планировщика вместо подсчёта (`totalExact: false`, в интерфейсе «≈ N»). |

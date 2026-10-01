@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, model } from '@angular/core';
 import { CustomField } from '@core/models/custom-field.models';
 import { I18nService } from '@core/services/i18n.service';
+import { localMoment, utcMoment } from '@core/services/form-meta.service';
 import { LookupSources } from '../lookups/lookup-sources';
 import { SMTDynamicFieldComponent, SMTDynamicFieldDef } from '../ui-kit/components/forms/dynamic-field';
 import type { SMTSelectOption } from '../ui-kit/components/forms/select';
@@ -22,8 +23,8 @@ import type { SMTSelectOption } from '../ui-kit/components/forms/select';
         @for (field of definitions(); track field.code) {
           <smt-dynamic-field
             [field]="field"
-            [userSource]="users"
-            [value]="values()[field.code] ?? null"
+            [source]="users"
+            [value]="shown(field)"
             (valueChange)="onValueChange(field.code, $event)"
           />
         }
@@ -63,8 +64,16 @@ export class UiCustomFieldsComponent {
     return this.cache.definitions;
   }
 
+  /** A field's value as its control edits it: a moment in the viewer's time (plan 10/10, item 5.0). */
+  shown(field: SMTDynamicFieldDef): unknown {
+    const value = this.values()[field.code] ?? null;
+    return field.type === 'datetime' ? (localMoment(value) ?? value) : value;
+  }
+
+  /** A moment is kept with its offset, as the server checks it; other values as the control gives them. */
   onValueChange(code: string, value: unknown): void {
-    this.values.set({ ...this.values(), [code]: value });
+    const moment = this.fields().find((field) => field.code === code)?.fieldType === 'datetime';
+    this.values.set({ ...this.values(), [code]: moment ? (utcMoment(value) ?? value) : value });
   }
 
   private definitionOf(field: CustomField): SMTDynamicFieldDef {
@@ -76,6 +85,10 @@ export class UiCustomFieldsComponent {
         return { ...base, type: 'boolean' };
       case 'date':
         return { ...base, type: 'date' };
+      case 'datetime':
+        return { ...base, type: 'datetime' };
+      case 'time':
+        return { ...base, type: 'time' };
       case 'select':
         return {
           ...base,

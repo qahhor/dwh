@@ -23,25 +23,28 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MsNoteEntity {
 
+    /** The entity's code and its list's: a constant, so neither declaration waits for the other to load. */
+    public static final String CODE = "ms.notes";
+
     public static final List<String> COLORS = List.of("default", "blue", "green", "yellow", "purple", "red");
 
     /** Text of a note, generous but bounded, so one request cannot store an unbounded document. */
     public static final int MAX_CONTENT = 100_000;
 
     public static final EntityDefinition DEFINITION = new EntityDefinition(
-            MsNoteQuery.LIST.code(),
+            CODE,
             "notes",
-            MsNoteQuery.LIST.code(),
+            CODE,
             "NOTE",
             "ms_notes",
             new EntityRights(
                     "ms.note",
-                    "Заметки",
+                    "notes.rights.form",
                     Map.of(
-                            "view", "Просмотр заметок",
-                            "create", "Создание заметки",
-                            "update", "Редактирование и закрепление заметки",
-                            "delete", "Удаление заметки")),
+                            "view", "notes.rights.view",
+                            "create", "notes.rights.create",
+                            "update", "notes.rights.update",
+                            "delete", "notes.rights.delete")),
             new EntityMenu("/notes", "nav.notes", "description", "workspace", 30, "notes"),
             List.of(
                     FormField.of("title", "notes.col.title", FormFieldType.TEXT)

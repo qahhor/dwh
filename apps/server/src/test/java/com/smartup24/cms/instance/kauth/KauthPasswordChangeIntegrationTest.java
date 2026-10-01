@@ -141,7 +141,7 @@ class KauthPasswordChangeIntegrationTest {
     }
 
     static Stream<Arguments> passwordPaths() {
-        return Stream.of("/api/v1/auth/password", "/api/v1/iam/users/me/password")
+        return Stream.of("/api/v1/auth/password")
                 .flatMap(path -> Stream.of(Arguments.of(path, false), Arguments.of(path, true)));
     }
 
@@ -311,9 +311,8 @@ class KauthPasswordChangeIntegrationTest {
                 .single();
         List<String> sessionSecrets =
                 List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
-        // Plan 10/10, item 4.7: a token issued under the old prefix authenticates like a new one until the sunset.
-        List<String> tokenSecrets = List.of(
-                KauthPref.LEGACY_API_TOKEN_PREFIX + UUID.randomUUID(), KauthPref.API_TOKEN_PREFIX + UUID.randomUUID());
+        List<String> tokenSecrets =
+                List.of(KauthPref.API_TOKEN_PREFIX + UUID.randomUUID(), KauthPref.API_TOKEN_PREFIX + UUID.randomUUID());
         for (String secret : sessionSecrets)
             sessions.create(userId, 0, KauthPasswordHasher.sha256(secret), "127.0.0.1", "test", "test");
         for (String secret : tokenSecrets)

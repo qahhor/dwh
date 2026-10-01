@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import type { FormFieldMeta, FormMeta, FormValues } from '@core/models/form-meta.models';
-import { fieldLabel, optionLabel } from '@core/services/form-meta.service';
+import { fieldLabel } from '@core/services/form-meta.service';
 import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
+import { fieldText } from './entity-values';
 
 interface CardLine {
   key: string;
@@ -73,8 +74,6 @@ export class SMTEntityCardComponent {
 
   private readonly refLookups = inject(RefLookups);
 
-  private readonly destroyRef = inject(DestroyRef);
-
   readonly meta = input.required<FormMeta>();
 
   /** The record's values by field key (`recordValues`). */
@@ -83,14 +82,10 @@ export class SMTEntityCardComponent {
   /** The sections to show, by key; every section when empty. */
   readonly sections = input<readonly string[]>([]);
 
-  /** Names of referenced records by field key and id, filled as they are read. */
-  private readonly names = signal<Record<string, string>>({});
-
   readonly lines = computed<CardLine[]>(() => {
     this.i18n.currentLang();
     const translate = (key: string) => this.i18n.translate(key);
     const values = this.value();
-    const names = this.names();
     return this.shownFields().flatMap((field) => {
       const value = values[field.key];
       if (value === null || value === undefined || value === '') return [];
@@ -98,7 +93,7 @@ export class SMTEntityCardComponent {
         {
           key: field.key,
           label: fieldLabel(field, translate),
-          text: this.textOf(field, value, names, translate),
+          text: fieldText(field, value, translate, this.refLookups),
           markdown: field.type === 'markdown',
         },
       ];
@@ -115,51 +110,4 @@ export class SMTEntityCardComponent {
         section.fields.map((key) => byKey.get(key)).filter((field): field is FormFieldMeta => !!field),
       );
   });
-
-  /** References already asked for, so a name is read once. */
-  private readonly asked = new Set<string>();
-
-  constructor() {
-    effect(() => {
-      const values = this.value();
-      for (const field of this.shownFields()) {
-        const id = values[field.key];
-        const ref = field.ref;
-        if (!ref || id === null || id === undefined || id === '') continue;
-        const wanted = nameKey(field.key, id);
-        if (this.asked.has(wanted)) continue;
-        this.asked.add(wanted);
-        const subscription = this.refLookups
-          .source(ref)
-          .resolve?.([id as string | number])
-          .subscribe((rows) => {
-            const row = rows[0] as Record<string, unknown> | undefined;
-            if (row) this.names.update((names) => ({ ...names, [wanted]: String(row[ref.labelField] ?? id) }));
-          });
-        if (subscription) this.destroyRef.onDestroy(() => subscription.unsubscribe());
-      }
-    });
-  }
-
-  private textOf(
-    field: FormFieldMeta,
-    value: unknown,
-    names: Record<string, string>,
-    translate: (key: string) => string,
-  ): string {
-    switch (field.type) {
-      case 'boolean':
-        return translate(value === true || value === 'true' ? 'common.yes' : 'common.no');
-      case 'select':
-        return optionLabel(field, String(value), translate);
-      case 'ref':
-        return names[nameKey(field.key, value)] ?? String(value);
-      default:
-        return String(value);
-    }
-  }
-}
-
-function nameKey(field: string, id: unknown): string {
-  return `${field}:${String(id)}`;
 }

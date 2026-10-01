@@ -121,8 +121,6 @@
       <app-settings-languages-panel
         [canUpdateSystemSettings]="store.canUpdateSystemSettings()"
         [editingLanguageCode]="languageStore.editingLanguageCode()"
-        [legacyLanguageCount]="languageStore.legacyLanguageCount()"
-        [isMigratingLegacyLanguages]="languageStore.isMigratingLegacyLanguages()"
         [languages]="i18n.languages()"
         [currentLang]="i18n.currentLang()"
         [isAddLangModalOpen]="languageStore.isAddLangModalOpen()"
@@ -133,7 +131,6 @@
         (openLanguageEditor)="languageStore.openLanguageEditor($event)"
         (closeLanguageEditor)="languageStore.editingLanguageCode.set(null)"
         (languageSaved)="languageStore.onLanguageSaved()"
-        (migrateLegacyLanguages)="languageStore.migrateLegacyLanguages()"
         (openAddLangModal)="openAddLangModal()"
         (closeAddLangModal)="languageStore.isAddLangModalOpen.set(false)"
         (saveNewLanguage)="saveNewLanguage()"

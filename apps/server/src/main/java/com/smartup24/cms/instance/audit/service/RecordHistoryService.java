@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -68,7 +69,29 @@ public class RecordHistoryService {
         source.requireVisible(recordId);
 
         TimePage page = TimePage.of(limit, cursor, DEFAULT_LIMIT, MAX_LIMIT);
-        return auditLogService.recordHistory(source.tableName(), recordId, page).map(row -> toEntry(row, source));
+        Labels labels = new Labels(source.fieldLabels(), source.fieldNames(), source.hiddenFields());
+        return auditLogService.recordHistory(source.tableName(), recordId, page).map(row -> toEntry(row, labels));
+    }
+
+    /** How a page of history names its fields: read from the source once, not per row. */
+    private record Labels(Map<String, String> keys, Map<String, String> names, Set<String> hidden) {
+
+        /**
+         * A field's place in the source's order — the labelled fields first, as the source lists them, then the
+         * named ones; others after them. The audit row's own key order is lost in jsonb.
+         */
+        int rank(String field) {
+            int index = 0;
+            for (String key : keys.keySet()) {
+                if (key.equals(field)) return index;
+                index++;
+            }
+            for (String key : names.keySet()) {
+                if (key.equals(field)) return index;
+                index++;
+            }
+            return Integer.MAX_VALUE;
+        }
     }
 
     /** The kinds of records with a history the viewer may open, for the UI to know where to offer it. */
@@ -80,7 +103,7 @@ public class RecordHistoryService {
                 .toList();
     }
 
-    private HistoryEntry toEntry(AuditLogRepository.AuditRecord row, RecordHistorySource source) {
+    private HistoryEntry toEntry(AuditLogRepository.AuditRecord row, Labels labels) {
         Map<String, Object> oldRow = camelKeys(row.oldRow());
         Map<String, Object> newRow = camelKeys(row.newRow());
         Set<String> fields = new LinkedHashSet<>();
@@ -88,13 +111,20 @@ public class RecordHistoryService {
         fields.addAll(newRow.keySet());
         List<FieldChange> changes = new ArrayList<>();
         for (String field : fields) {
-            if (TECHNICAL_FIELDS.contains(field) || source.hiddenFields().contains(field)) continue;
+            if (TECHNICAL_FIELDS.contains(field) || labels.hidden().contains(field)) continue;
             Object before = oldRow.get(field);
             Object after = newRow.get(field);
             // An update lists a field only when its value really changed.
             if ("U".equals(row.event()) && Objects.equals(before, after)) continue;
-            changes.add(new FieldChange(field, source.fieldLabels().get(field), before, after));
+            String labelKey = labels.keys().get(field);
+            changes.add(new FieldChange(
+                    field,
+                    labelKey == null || labelKey.isEmpty() ? null : labelKey,
+                    labels.names().get(field),
+                    before,
+                    after));
         }
+        changes.sort(Comparator.comparingInt(change -> labels.rank(change.field())));
         return new HistoryEntry(
                 row.id(),
                 row.event(),
@@ -139,6 +169,9 @@ public class RecordHistoryService {
             boolean isApi,
             List<FieldChange> changes) {}
 
-    /** A field's value before and after; the label key is null when the source names none. */
-    public record FieldChange(String field, String labelKey, Object oldValue, Object newValue) {}
+    /**
+     * A field's value before and after. {@code labelKey} names it from the dictionary; a custom field has none and
+     * carries its own {@code label} instead (plan 10/10, item 5.0); both are null when the source names neither.
+     */
+    public record FieldChange(String field, String labelKey, String label, Object oldValue, Object newValue) {}
 }

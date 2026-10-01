@@ -393,7 +393,8 @@ public class ${queryClass} {
                     QueryField.of("code", "${cleanCode}.col.code", QueryFieldType.TEXT, "t.code")
                             .asSortable()
                             .asSearchable(),
-                    QueryField.of("status", "${cleanCode}.col.status", QueryFieldType.TEXT, "t.status"),
+                    QueryField.enumeration(
+                            "status", "${cleanCode}.col.status", "t.status", ${entityClass}.STATUSES, "${cleanCode}.status."),
                     QueryField.of("modifiedAt", "${cleanCode}.col.modified_at", QueryFieldType.INSTANT, "t.modified_at")
                             .asSortable()),
             "modifiedAt",
@@ -438,15 +439,19 @@ public class ${entityClass} {
     public static final List<String> STATUSES = List.of("active", "archived");
 
     public static final EntityDefinition DEFINITION = new EntityDefinition(
-            ${queryClass}.LIST.code(),
+            "$listCode",
             "$cleanCode",
-            ${queryClass}.LIST.code(),
+            "$listCode",
             null,
             "$tableName",
             new EntityRights(
                     "$prefixLower",
-                    "$titleJava",
-                    Map.of("view", "View", "create", "Create", "update", "Edit", "delete", "Delete")),
+                    "${cleanCode}.rights.form",
+                    Map.of(
+                            "view", "${cleanCode}.rights.view",
+                            "create", "${cleanCode}.rights.create",
+                            "update", "${cleanCode}.rights.update",
+                            "delete", "${cleanCode}.rights.delete")),
             new EntityMenu("/$cleanCode", "nav.$cleanCode", "$Icon", "workspace", 100, "$cleanCode"),
             List.of(
                     FormField.of("name", "${cleanCode}.col.name", FormFieldType.TEXT)
@@ -738,6 +743,11 @@ $labels = [ordered]@{
     "${cleanCode}.col.modified_at"   = @{ ru = "Изменено"; en = "Modified"; uz = "Oʻzgartirilgan" }
     "${cleanCode}.status.active"     = @{ ru = "Действует"; en = "Active"; uz = "Faol" }
     "${cleanCode}.status.archived"   = @{ ru = "В архиве"; en = "Archived"; uz = "Arxivda" }
+    "${cleanCode}.rights.form"       = @{ ru = $ModuleTitle; en = $TitleEn; uz = $TitleUz }
+    "${cleanCode}.rights.view"       = @{ ru = "Просмотр"; en = "View"; uz = "Koʻrish" }
+    "${cleanCode}.rights.create"     = @{ ru = "Создание"; en = "Create"; uz = "Yaratish" }
+    "${cleanCode}.rights.update"     = @{ ru = "Редактирование"; en = "Edit"; uz = "Tahrirlash" }
+    "${cleanCode}.rights.delete"     = @{ ru = "Удаление"; en = "Delete"; uz = "Oʻchirish" }
 }
 $catalogDir = Join-Path $Root "apps\server\src\main\resources\i18n"
 foreach ($language in @("ru", "en", "uz")) {

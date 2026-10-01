@@ -91,12 +91,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List active announcements
-         * @deprecated
-         * @description The published announcements addressed to the caller.
-         */
-        get: operations["getAnnouncements"];
+        get?: never;
         put?: never;
         /**
          * Create an announcement
@@ -120,7 +115,7 @@ export interface paths {
          * List active announcements
          * @description The published announcements addressed to the caller.
          */
-        get: operations["getAnnouncements_1"];
+        get: operations["getAnnouncements"];
         put?: never;
         post?: never;
         delete?: never;
@@ -222,7 +217,7 @@ export interface paths {
          * Mark an announcement read
          * @description Records that the caller has read an announcement.
          */
-        post: operations["markAsRead_2"];
+        post: operations["markAsRead_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -530,7 +525,7 @@ export interface paths {
          * Run a bulk action on records
          * @description Applies a bulk action of an entity to the selected records; the entity's own right is checked.
          */
-        post: operations["bulk_2"];
+        post: operations["bulk_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -880,7 +875,7 @@ export interface paths {
          * Get the permission catalog
          * @description The forms and their actions on which permissions are granted.
          */
-        get: operations["getFormCatalog_1"];
+        get: operations["getFormCatalog"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1084,7 +1079,7 @@ export interface paths {
          * List my sessions
          * @description The open sessions of the caller.
          */
-        get: operations["listActiveSessions_1"];
+        get: operations["listActiveSessions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1107,117 +1102,7 @@ export interface paths {
          * Close my other sessions
          * @description Closes every session of the caller except the current one.
          */
-        delete: operations["closeOtherSessions_1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/profile/sessions/users/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List the sessions of a user
-         * @deprecated
-         * @description The open sessions of a user, for an administrator.
-         */
-        get: operations["listUserSessions_1"];
-        put?: never;
-        post?: never;
-        /**
-         * Close the sessions of a user
-         * @deprecated
-         * @description Closes every open session of a user.
-         */
-        delete: operations["closeAllUserSessions_1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/profile/sessions/users/{userId}/force-password-change": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Force a password change
-         * @deprecated
-         * @description Makes the user change the password at the next sign-in.
-         */
-        post: operations["forcePasswordChange_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/profile/sessions/users/{userId}/reset-2fa": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reset the second factor
-         * @deprecated
-         * @description Resets the second factor of a user.
-         */
-        post: operations["reset2fa_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/profile/sessions/users/{userId}/security": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get the security summary of a user
-         * @deprecated
-         * @description The security summary of a user, for an administrator.
-         */
-        get: operations["getUserSecuritySummary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/profile/sessions/users/{userId}/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Close a session of a user
-         * @deprecated
-         * @description Closes one session of a user.
-         */
-        delete: operations["closeUserSession_1"];
+        delete: operations["closeOtherSessions"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1237,7 +1122,7 @@ export interface paths {
          * Close one of my sessions
          * @description Closes one session of the caller.
          */
-        delete: operations["closeSession_1"];
+        delete: operations["closeSession"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1379,69 +1264,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/iam/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List my sessions
-         * @deprecated
-         * @description The open sessions of the caller.
-         */
-        get: operations["listActiveSessions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/sessions/others": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Close my other sessions
-         * @deprecated
-         * @description Closes every session of the caller except the current one.
-         */
-        delete: operations["closeOtherSessions"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/sessions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Close one of my sessions
-         * @deprecated
-         * @description Closes one session of the caller.
-         */
-        delete: operations["closeSession"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/iam/users": {
         parameters: {
             query?: never;
@@ -1460,27 +1282,6 @@ export interface paths {
          * @description Adds a user with their login, contacts, roles and custom field values.
          */
         post: operations["createUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/iam/users/me/password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change my password
-         * @deprecated
-         * @description Changes the caller's password after checking the current one.
-         */
-        post: operations["changeMyPassword_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1674,7 +1475,7 @@ export interface paths {
          * Get the security summary of a user
          * @description The security summary of a user, for an administrator.
          */
-        get: operations["getUserSecuritySummary_1"];
+        get: operations["getUserSecuritySummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1788,12 +1589,7 @@ export interface paths {
          */
         get: operations["getAllModules"];
         put?: never;
-        /**
-         * Register a module (deprecated)
-         * @deprecated
-         * @description Registers a module, replacing an existing registration. Deprecated for PUT /api/v1/modules/{code}; answers until its sunset.
-         */
-        post: operations["registerModule"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1858,27 +1654,6 @@ export interface paths {
          */
         put: operations["setEnabled"];
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/modules/{code}/toggle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Toggle a module (deprecated)
-         * @deprecated
-         * @description Flips the state of a module. Deprecated for PUT /api/v1/modules/{code}/enabled; answers until its sunset.
-         */
-        post: operations["toggleModule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2017,27 +1792,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/navigation/items/{id}/toggle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Toggle a menu item (deprecated)
-         * @deprecated
-         * @description Flips whether a menu item is shown. Deprecated for PUT /api/v1/navigation/items/{id}/active; answers until its sunset.
-         */
-        post: operations["toggleItem"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/notes": {
         parameters: {
             query?: never;
@@ -2103,12 +1857,7 @@ export interface paths {
          * @description Sets whether a note is pinned; the same call twice leaves the same note.
          */
         put: operations["setPin"];
-        /**
-         * Toggle the pin of a note (deprecated)
-         * @deprecated
-         * @description Flips the pin of a note. Deprecated for PUT /api/v1/notes/{id}/pin; answers until its sunset.
-         */
-        post: operations["togglePin"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2126,7 +1875,7 @@ export interface paths {
          * List my notifications
          * @description The caller's notification inbox.
          */
-        get: operations["getInbox_1"];
+        get: operations["getInbox"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2168,7 +1917,7 @@ export interface paths {
          * Mark a notification read
          * @description Marks one notification of the caller as read.
          */
-        post: operations["markAsRead_1"];
+        post: operations["markAsRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2210,116 +1959,6 @@ export interface paths {
          * Count my unread notifications
          * @description How many notifications of the caller are unread.
          */
-        get: operations["getUnreadCount_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notify/inbox": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List my notifications
-         * @deprecated
-         * @description The caller's notification inbox.
-         */
-        get: operations["getInbox"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notify/inbox/read-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Mark all notifications read
-         * @deprecated
-         * @description Marks every notification of the caller as read.
-         */
-        post: operations["markAllAsRead_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notify/inbox/{id}/read": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Mark a notification read
-         * @deprecated
-         * @description Marks one notification of the caller as read.
-         */
-        post: operations["markAsRead"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notify/preferences": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get my notification preferences
-         * @deprecated
-         * @description The caller's notification preferences.
-         */
-        get: operations["getPreferences_1"];
-        /**
-         * Update my notification preferences
-         * @deprecated
-         * @description Replaces the caller's notification preferences.
-         */
-        put: operations["updatePreferences_1"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/notify/unread-count": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Count my unread notifications
-         * @deprecated
-         * @description How many notifications of the caller are unread.
-         */
         get: operations["getUnreadCount"];
         put?: never;
         post?: never;
@@ -2342,126 +1981,6 @@ export interface paths {
          */
         get: operations["get_3"];
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/rbac/forms": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get the permission catalog
-         * @deprecated
-         * @description The forms and their actions on which permissions are granted.
-         */
-        get: operations["getFormCatalog"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/rbac/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List roles
-         * @deprecated
-         * @description The roles of the installation.
-         */
-        get: operations["listRoles_1"];
-        put?: never;
-        /**
-         * Create a role
-         * @deprecated
-         * @description Adds a role with its code and name.
-         */
-        post: operations["createRole_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/rbac/roles/user-counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Count users per role
-         * @deprecated
-         * @description How many users each role is assigned to.
-         */
-        get: operations["getRoleUserCounts_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/rbac/roles/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a role
-         * @deprecated
-         * @description Removes a role.
-         */
-        delete: operations["deleteRole_1"];
-        options?: never;
-        head?: never;
-        /**
-         * Update a role
-         * @deprecated
-         * @description Changes the name or state of a role; names the revision it was read at.
-         */
-        patch: operations["updateRole_1"];
-        trace?: never;
-    };
-    "/api/v1/rbac/roles/{id}/permissions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get the permissions of a role
-         * @deprecated
-         * @description The form actions granted to a role.
-         */
-        get: operations["getRolePermissions_1"];
-        /**
-         * Replace the permissions of a role
-         * @deprecated
-         * @description Replaces the whole set of form actions granted to a role.
-         */
-        put: operations["setRolePermissions_1"];
         post?: never;
         delete?: never;
         options?: never;
@@ -2802,383 +2321,7 @@ export interface paths {
          * Run a bulk action on tasks
          * @description Applies one bulk action to the selected tasks.
          */
-        post: operations["bulk_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List tasks
-         * @deprecated
-         * @description The tasks the caller may see, with filters, sort and search.
-         */
-        get: operations["listTasks_1"];
-        put?: never;
-        /**
-         * Create a task
-         * @deprecated
-         * @description Adds a task with its project, participants, dates and custom field values.
-         */
-        post: operations["createTask_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/bulk": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run a bulk action on tasks
-         * @deprecated
-         * @description Applies one bulk action to the selected tasks.
-         */
         post: operations["bulk"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/projects/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get task counts per project
-         * @deprecated
-         * @description Task counts per project.
-         */
-        get: operations["getProjectStats_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/statuses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List task statuses
-         * @deprecated
-         * @description The task statuses in their order.
-         */
-        get: operations["listStatuses_1"];
-        put?: never;
-        /**
-         * Create a task status
-         * @deprecated
-         * @description Adds a task status.
-         */
-        post: operations["createStatus_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/statuses/reorder": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reorder task statuses
-         * @deprecated
-         * @description Sets the order of the task statuses.
-         */
-        post: operations["reorderStatuses"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/statuses/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a task status
-         * @deprecated
-         * @description Removes a task status.
-         */
-        delete: operations["deleteStatus_1"];
-        options?: never;
-        head?: never;
-        /**
-         * Update a task status
-         * @deprecated
-         * @description Changes a task status; names the revision it was read at.
-         */
-        patch: operations["updateStatus_1"];
-        trace?: never;
-    };
-    "/api/v1/tasks/items/types": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List task types
-         * @deprecated
-         * @description The task types in their order.
-         */
-        get: operations["listTypes"];
-        put?: never;
-        /**
-         * Create a task type
-         * @deprecated
-         * @description Adds a task type.
-         */
-        post: operations["createType"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/types/reorder": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reorder task types
-         * @deprecated
-         * @description Sets the order of the task types.
-         */
-        post: operations["reorderTypes"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/types/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Delete a task type
-         * @deprecated
-         * @description Removes a task type.
-         */
-        delete: operations["deleteType_1"];
-        options?: never;
-        head?: never;
-        /**
-         * Update a task type
-         * @deprecated
-         * @description Changes a task type; names the revision it was read at.
-         */
-        patch: operations["updateType_1"];
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get a task
-         * @deprecated
-         * @description The task card; reading it changes nothing.
-         */
-        get: operations["getTask"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update a task
-         * @deprecated
-         * @description Changes the given fields of a task; a field left out keeps its value.
-         */
-        patch: operations["updateTask"];
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{id}/files": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List task files
-         * @deprecated
-         * @description The files attached to a task.
-         */
-        get: operations["getTaskFiles"];
-        put?: never;
-        /**
-         * Attach a file to a task
-         * @deprecated
-         * @description Attaches a stored file to a task.
-         */
-        post: operations["attachFile"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{id}/files/{fileId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /**
-         * Detach a file from a task
-         * @deprecated
-         * @description Removes the link between a task and a file.
-         */
-        delete: operations["detachFile"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{id}/status": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Change the status of a task
-         * @deprecated
-         * @description Moves a task to another status of its workflow.
-         */
-        post: operations["changeStatus"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{id}/subtasks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List subtasks
-         * @deprecated
-         * @description The direct subtasks of a task.
-         */
-        get: operations["getSubtasks_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{id}/view": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Mark a task viewed
-         * @deprecated
-         * @description Records that the caller has seen the task, clearing its new mark for them.
-         */
-        post: operations["markViewed"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/items/{taskId}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List task comments
-         * @deprecated
-         * @description The comments of a task.
-         */
-        get: operations["listComments"];
-        put?: never;
-        /**
-         * Comment on a task
-         * @deprecated
-         * @description Adds a comment to a task.
-         */
-        post: operations["addComment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3192,12 +2335,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List projects
-         * @deprecated
-         * @description Every project the caller may see. Deprecated: use GET /tasks/projects/page.
-         */
-        get: operations["listProjects"];
+        get?: never;
         put?: never;
         /**
          * Create a project
@@ -3222,27 +2360,6 @@ export interface paths {
          * @description The projects a keyset page at a time on the registry: filter, sort, search and the caller's task counts.
          */
         get: operations["pageProjects"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tasks/projects/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get task counts per project
-         * @deprecated
-         * @description Task counts per project.
-         */
-        get: operations["getProjectStats"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3282,12 +2399,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List project members (deprecated)
-         * @deprecated
-         * @description Every member of a project at once. Deprecated for GET /api/v1/tasks/projects/{id}/members/page; answers until its sunset.
-         */
-        get: operations["getMembers"];
+        get?: never;
         put?: never;
         /**
          * Add a project member
@@ -3377,7 +2489,7 @@ export interface paths {
          * Reorder task statuses
          * @description Sets the order of the task statuses.
          */
-        post: operations["reorderStatuses_1"];
+        post: operations["reorderStatuses"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3419,13 +2531,13 @@ export interface paths {
          * List task types
          * @description The task types in their order.
          */
-        get: operations["listTypes_1"];
+        get: operations["listTypes"];
         put?: never;
         /**
          * Create a task type
          * @description Adds a task type.
          */
-        post: operations["createType_1"];
+        post: operations["createType"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3445,7 +2557,7 @@ export interface paths {
          * Reorder task types
          * @description Sets the order of the task types.
          */
-        post: operations["reorderTypes_1"];
+        post: operations["reorderTypes"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3487,7 +2599,7 @@ export interface paths {
          * Get a task
          * @description The task card; reading it changes nothing.
          */
-        get: operations["getTask_1"];
+        get: operations["getTask"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3497,7 +2609,7 @@ export interface paths {
          * Update a task
          * @description Changes the given fields of a task; a field left out keeps its value.
          */
-        patch: operations["updateTask_1"];
+        patch: operations["updateTask"];
         trace?: never;
     };
     "/api/v1/tasks/{id}/files": {
@@ -3511,13 +2623,13 @@ export interface paths {
          * List task files
          * @description The files attached to a task.
          */
-        get: operations["getTaskFiles_1"];
+        get: operations["getTaskFiles"];
         put?: never;
         /**
          * Attach a file to a task
          * @description Attaches a stored file to a task.
          */
-        post: operations["attachFile_1"];
+        post: operations["attachFile"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3538,7 +2650,7 @@ export interface paths {
          * Detach a file from a task
          * @description Removes the link between a task and a file.
          */
-        delete: operations["detachFile_1"];
+        delete: operations["detachFile"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3557,7 +2669,7 @@ export interface paths {
          * Change the status of a task
          * @description Moves a task to another status of its workflow.
          */
-        post: operations["changeStatus_1"];
+        post: operations["changeStatus"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3597,7 +2709,7 @@ export interface paths {
          * Mark a task viewed
          * @description Records that the caller has seen the task, clearing its new mark for them.
          */
-        post: operations["markViewed_1"];
+        post: operations["markViewed"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3615,13 +2727,13 @@ export interface paths {
          * List task comments
          * @description The comments of a task.
          */
-        get: operations["listComments_1"];
+        get: operations["listComments"];
         put?: never;
         /**
          * Comment on a task
          * @description Adds a comment to a task.
          */
-        post: operations["addComment_1"];
+        post: operations["addComment"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4468,6 +3580,7 @@ export interface components {
         };
         FieldChange: {
             field?: string;
+            label?: string;
             labelKey?: string;
             newValue?: unknown;
             oldValue?: unknown;
@@ -4533,8 +3646,10 @@ export interface components {
         FormCatalogItem: {
             action?: string;
             actionName?: string;
+            actionNameKey?: string;
             formCode?: string;
             formName?: string;
+            formNameKey?: string;
             isDeprecated?: boolean;
             module?: string;
         };
@@ -4855,11 +3970,6 @@ export interface components {
         };
         LoginResponse: {
             otpToken?: string;
-            /**
-             * @deprecated
-             * @description Deprecated name of otpToken; sent until the sunset of ADR-0023 forms
-             */
-            otp_token?: string;
             /** @enum {string} */
             step?: "otp" | "success";
             user?: components["schemas"]["MdUserView"];
@@ -5165,16 +4275,6 @@ export interface components {
             userId?: number;
             userName?: string;
         };
-        ProjectTaskStatsView: {
-            /** Format: int32 */
-            activeTasks?: number;
-            /** Format: int32 */
-            doneTasks?: number;
-            /** Format: int64 */
-            projectId?: number;
-            /** Format: int32 */
-            totalTasks?: number;
-        };
         ProjectView: {
             attributes?: {
                 [key: string]: unknown;
@@ -5206,7 +4306,6 @@ export interface components {
             attributes?: {
                 [key: string]: unknown;
             };
-            code?: string;
             description?: string;
             icon?: string;
             name?: string;
@@ -5960,37 +5059,6 @@ export interface operations {
             };
         };
     };
-    getAnnouncements: {
-        parameters: {
-            query?: {
-                language?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AnnouncementView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     create_3: {
         parameters: {
             query?: never;
@@ -6038,7 +5106,7 @@ export interface operations {
             };
         };
     };
-    getAnnouncements_1: {
+    getAnnouncements: {
         parameters: {
             query?: {
                 language?: string;
@@ -6242,7 +5310,7 @@ export interface operations {
             };
         };
     };
-    markAsRead_2: {
+    markAsRead_1: {
         parameters: {
             query?: never;
             header?: {
@@ -6288,21 +5356,6 @@ export interface operations {
                 filter?: string;
                 sort?: string;
                 q?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of tableName; answers until 2026-12-31
-                 */
-                table_name?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of rowPk; answers until 2026-12-31
-                 */
-                row_pk?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of userId; answers until 2026-12-31
-                 */
-                user_id?: number;
             };
             header?: never;
             path?: never;
@@ -6343,16 +5396,6 @@ export interface operations {
                 filter?: string;
                 sort?: string;
                 q?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of eventType; answers until 2026-12-31
-                 */
-                event_type?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of userId; answers until 2026-12-31
-                 */
-                user_id?: number;
             };
             header?: never;
             path?: never;
@@ -6657,11 +5700,6 @@ export interface operations {
         parameters: {
             query?: {
                 entityType?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of entityType; answers until 2026-12-31
-                 */
-                entity_type?: string;
             };
             header?: never;
             path?: never;
@@ -6847,7 +5885,7 @@ export interface operations {
             };
         };
     };
-    bulk_2: {
+    bulk_1: {
         parameters: {
             query?: never;
             header?: {
@@ -7513,7 +6551,7 @@ export interface operations {
             };
         };
     };
-    getFormCatalog_1: {
+    getFormCatalog: {
         parameters: {
             query?: never;
             header?: never;
@@ -8066,7 +7104,7 @@ export interface operations {
             };
         };
     };
-    listActiveSessions_1: {
+    listActiveSessions: {
         parameters: {
             query?: never;
             header?: never;
@@ -8095,7 +7133,7 @@ export interface operations {
             };
         };
     };
-    closeOtherSessions_1: {
+    closeOtherSessions: {
         parameters: {
             query?: never;
             header?: {
@@ -8125,198 +7163,7 @@ export interface operations {
             };
         };
     };
-    listUserSessions_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    closeAllUserSessions_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    forcePasswordChange_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    reset2fa_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getUserSecuritySummary: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UserSecuritySummary"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    closeUserSession_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                userId: number;
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    closeSession_1: {
+    closeSession: {
         parameters: {
             query?: never;
             header?: {
@@ -8721,97 +7568,6 @@ export interface operations {
             };
         };
     };
-    listActiveSessions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActiveSessionView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    closeOtherSessions: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    closeSession: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     listUsers: {
         parameters: {
             query?: {
@@ -8825,21 +7581,6 @@ export interface operations {
                 roleId?: number;
                 managerId?: number;
                 is2faEnabled?: boolean;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of roleId; answers until 2026-12-31
-                 */
-                role_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of managerId; answers until 2026-12-31
-                 */
-                manager_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of is2faEnabled; answers until 2026-12-31
-                 */
-                is_2fa_enabled?: boolean;
             };
             header?: never;
             path?: never;
@@ -8895,40 +7636,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MdUserView"];
                 };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    changeMyPassword_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePasswordDto"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {
@@ -9402,7 +8109,7 @@ export interface operations {
             };
         };
     };
-    getUserSecuritySummary_1: {
+    getUserSecuritySummary: {
         parameters: {
             query?: never;
             header?: never;
@@ -9719,44 +8426,6 @@ export interface operations {
             };
         };
     };
-    registerModule: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RegisterModuleRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InstalledModuleView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     getActiveModules: {
         parameters: {
             query?: never;
@@ -9891,48 +8560,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody: {
-            content: {
-                "application/json": components["schemas"]["ToggleStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InstalledModuleView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    toggleModule: {
-        parameters: {
-            query?: {
-                active?: boolean;
-            };
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                code: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
             content: {
                 "application/json": components["schemas"]["ToggleStatusRequest"];
             };
@@ -10284,42 +8911,6 @@ export interface operations {
             };
         };
     };
-    toggleItem: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NavigationItemView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     getNotes: {
         parameters: {
             query?: {
@@ -10559,43 +9150,7 @@ export interface operations {
             };
         };
     };
-    togglePin: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NoteView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getInbox_1: {
+    getInbox: {
         parameters: {
             query?: {
                 limit?: number;
@@ -10657,7 +9212,7 @@ export interface operations {
             };
         };
     };
-    markAsRead_1: {
+    markAsRead: {
         parameters: {
             query?: never;
             header?: {
@@ -10752,194 +9307,6 @@ export interface operations {
             };
         };
     };
-    getUnreadCount_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: number;
-                    };
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getInbox: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageNotificationView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    markAllAsRead_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    markAsRead: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getPreferences_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["NotificationPrefView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updatePreferences_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["NotificationPrefUpdate"][];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
     getUnreadCount: {
         parameters: {
             query?: never;
@@ -10989,312 +9356,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ListMeta"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getFormCatalog: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FormCatalogItem"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listRoles_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createRole_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateRoleDto"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RoleView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getRoleUserCounts_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: number;
-                    };
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    deleteRole_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateRole_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateRoleDto"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getRolePermissions_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": string[];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    setRolePermissions_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RolePermission"][];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -11934,36 +9995,6 @@ export interface operations {
                 memberRole?: string;
                 reporterId?: number;
                 overdue?: boolean;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of projectId; answers until 2026-12-31
-                 */
-                project_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of statusId; answers until 2026-12-31
-                 */
-                status_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of hideTerminal; answers until 2026-12-31
-                 */
-                hide_terminal?: boolean;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of assignedUserId; answers until 2026-12-31
-                 */
-                assigned_user_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of memberRole; answers until 2026-12-31
-                 */
-                member_role?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of reporterId; answers until 2026-12-31
-                 */
-                reporter_id?: number;
             };
             header?: never;
             path?: never;
@@ -11992,154 +10023,6 @@ export interface operations {
         };
     };
     createTask: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    bulk_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BulkResult"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listTasks_1: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-                filter?: string;
-                sort?: string;
-                q?: string;
-                projectId?: number;
-                statusId?: number;
-                priority?: string;
-                search?: string;
-                hideTerminal?: boolean;
-                assignedUserId?: number;
-                memberRole?: string;
-                reporterId?: number;
-                overdue?: boolean;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of projectId; answers until 2026-12-31
-                 */
-                project_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of statusId; answers until 2026-12-31
-                 */
-                status_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of hideTerminal; answers until 2026-12-31
-                 */
-                hide_terminal?: boolean;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of assignedUserId; answers until 2026-12-31
-                 */
-                assigned_user_id?: number;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of memberRole; answers until 2026-12-31
-                 */
-                member_role?: string;
-                /**
-                 * @deprecated
-                 * @description Deprecated name of reporterId; answers until 2026-12-31
-                 */
-                reporter_id?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageTaskView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createTask_1: {
         parameters: {
             query?: never;
             header?: {
@@ -12213,22 +10096,33 @@ export interface operations {
             };
         };
     };
-    getProjectStats_1: {
+    createProject: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProjectRequest"];
+            };
+        };
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Created */
+            201: {
                 headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    /** @description Path of the created resource, when it has one */
+                    Location?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProjectTaskStatsView"][];
+                    "application/json": components["schemas"]["ProjectView"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -12242,7 +10136,236 @@ export interface operations {
             };
         };
     };
-    listStatuses_1: {
+    pageProjects: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+                filter?: string;
+                sort?: string;
+                q?: string;
+                state?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageProjectListItem"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectView"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProjectRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    /** @description The revision of the record, the value a following change sends in If-Match */
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    addMember: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddProjectMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    pageMembers: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageProjectMemberView"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    removeMember: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    listStatuses: {
         parameters: {
             query?: never;
             header?: never;
@@ -12271,7 +10394,7 @@ export interface operations {
             };
         };
     };
-    createStatus_1: {
+    createStatus: {
         parameters: {
             query?: never;
             header?: {
@@ -12345,7 +10468,7 @@ export interface operations {
             };
         };
     };
-    deleteStatus_1: {
+    deleteStatus: {
         parameters: {
             query?: never;
             header?: {
@@ -12377,7 +10500,7 @@ export interface operations {
             };
         };
     };
-    updateStatus_1: {
+    updateStatus: {
         parameters: {
             query?: never;
             header?: {
@@ -12537,7 +10660,7 @@ export interface operations {
             };
         };
     };
-    deleteType_1: {
+    deleteType: {
         parameters: {
             query?: never;
             header?: {
@@ -12569,7 +10692,7 @@ export interface operations {
             };
         };
     };
-    updateType_1: {
+    updateType: {
         parameters: {
             query?: never;
             header?: {
@@ -12867,7 +10990,7 @@ export interface operations {
             };
         };
     };
-    getSubtasks_1: {
+    getSubtasks: {
         parameters: {
             query?: never;
             header?: never;
@@ -12965,1128 +11088,6 @@ export interface operations {
         };
     };
     addComment: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                taskId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddCommentRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskCommentView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listProjects: {
-        parameters: {
-            query?: {
-                state?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createProject: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    pageProjects: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-                filter?: string;
-                sort?: string;
-                q?: string;
-                state?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageProjectListItem"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getProjectStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectTaskStatsView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateProject: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getMembers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ProjectMemberView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    addMember: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AddProjectMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    pageMembers: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-            };
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageProjectMemberView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    removeMember: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listStatuses: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatusView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatusView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    reorderStatuses_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": number[];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    deleteStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateStatus: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listTypes_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTypeView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    createType_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateTypeRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    /** @description Path of the created resource, when it has one */
-                    Location?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskTypeView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    reorderTypes_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": number[];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    deleteType: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateType: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTypeRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    /** @description The revision of the record, the value a following change sends in If-Match */
-                    ETag?: string;
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getTask_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskDetail"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    updateTask_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateTaskRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getTaskFiles_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskFileView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    attachFile_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AttachFileRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    detachFile_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-                fileId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    changeStatus_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                "If-Match"?: string;
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangeStatusRequest"];
-            };
-        };
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description The record changed since the revision named in If-Match */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description The change names no revision: send If-Match */
-            428: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    getSubtasks: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskView"][];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    markViewed_1: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
-                "Idempotency-Key"?: string;
-            };
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    listComments_1: {
-        parameters: {
-            query?: {
-                limit?: number;
-                cursor?: string;
-            };
-            header?: never;
-            path: {
-                taskId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeysetPageTaskCommentView"];
-                };
-            };
-            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
-                };
-            };
-        };
-    };
-    addComment_1: {
         parameters: {
             query?: never;
             header?: {

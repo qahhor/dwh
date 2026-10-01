@@ -81,9 +81,8 @@ deploy/compose/.secrets/backup-s3-secret-access-key
 ```
 
 Every server variable, its property and default are listed in the
-[configuration reference](configuration-reference.md) (ADR-0027). Names before
-ADR-0027 (`DWH_*`, `APP_DWH_*`) are still read until 2026-12-31; the deploy
-scripts list them so they can be renamed. The server refuses to start without
+[configuration reference](configuration-reference.md) (ADR-0027); names before
+ADR-0027 are not read. The server refuses to start without
 the `dev` profile while `TYPESENSE_API_KEY`, `ADMIN_PASSWORD` or `DB_PASSWORD`
 keeps a development value published in this repository.
 

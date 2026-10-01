@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.md.service.MdScopeService;
-import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
 import com.smartup24.cms.instance.ms.task.api.TaskDetail;
 import com.smartup24.cms.instance.ms.task.api.TaskView;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
@@ -81,11 +80,5 @@ public class MsTaskReadService {
     @Transactional(readOnly = true)
     public List<ProjectTaskStats> getProjectTaskStats() {
         return statsRepository.getProjectTaskStats();
-    }
-
-    @Transactional(readOnly = true)
-    public List<ProjectTaskStatsView> getProjectTaskStats(Long currentUserId) {
-        return MsTaskViews.all(
-                statsRepository.getProjectTaskStats(scopeService.filterForTasks(currentUserId)), MsTaskViews::stats);
     }
 }

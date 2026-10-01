@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.md.pref.PermissionAreas;
+import com.smartup24.cms.instance.support.V147FormCodes;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethod;
@@ -189,21 +190,18 @@ class PermissionCodesTest {
     }
 
     @Test
-    @DisplayName("4.4: a legacy code never obeys the rule, its successor always does")
-    void legacyCodesMapOntoCodesThatObeyTheRule() {
+    @DisplayName("4.4: an old code of V147 never obeys the rule, its successor always does")
+    void oldCodesMapOntoCodesThatObeyTheRule() {
         Set<String> problems = new TreeSet<>();
-        PermissionAreas.LEGACY_FORMS.forEach((legacy, current) -> {
-            if (PermissionAreas.ownerOf(legacy).isPresent()) {
-                problems.add(legacy + ": still parses as a current code");
+        V147FormCodes.successors().forEach((old, current) -> {
+            if (PermissionAreas.ownerOf(old).isPresent()) {
+                problems.add(old + ": still parses as a current code");
             }
             if (PermissionAreas.ownerOf(current).isEmpty()) {
                 problems.add(current + ": breaks the rule");
             }
         });
         assertThat(problems).isEmpty();
-        assertThat(PermissionAreas.currentPermission("iam.org_units.assign")).isEqualTo("md.org_units.assign");
-        assertThat(PermissionAreas.currentPermission("platform.search.view")).isEqualTo("search.view");
-        assertThat(PermissionAreas.currentPermission("tasks.items.view")).isEqualTo("tasks.items.view");
-        assertThat(PermissionAreas.currentForm("rbac.roles")).isEqualTo("md.roles");
+        assertThat(V147FormCodes.successors()).isNotEmpty();
     }
 }

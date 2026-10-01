@@ -75,7 +75,7 @@ class NavigationItemVisibilityIntegrationTest {
         NavigationItemView parent = create("vis-parent", GUARDED, null);
         create("vis-child", null, parent.id());
         NavigationItemView off = create("vis-off", null, null);
-        service.toggleState(off.id(), null);
+        service.setActive(off.id(), null, false);
 
         signIn("md.profile.view");
         assertThat(visibleCodes()).doesNotContain("vis-parent", "vis-child", "vis-off");
@@ -110,9 +110,14 @@ class NavigationItemVisibilityIntegrationTest {
 
         NavigationItemView item = create("vis-good", "  " + GUARDED + " ", null);
         assertThat(item.requiredPermission()).isEqualTo(GUARDED);
-        // ADR-0028: a code of the previous release is stored under its successor until the sunset.
-        assertThat(create("vis-legacy", "platform.navigation.manage", null).requiredPermission())
-                .isEqualTo(GUARDED);
+        // ADR-0028: a code before V147 is no catalog pair any more and is refused like any unknown one.
+        assertThatThrownBy(() -> create("vis-old", "platform.navigation.manage", null))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getFieldErrors())
+                                .extracting(FieldErrorItem::field, FieldErrorItem::code)
+                                .containsExactly(org.assertj.core.groups.Tuple.tuple(
+                                        "requiredPermission", NavigationItemService.PERMISSION_UNKNOWN)));
 
         assertThatThrownBy(() -> service.updateItem(
                         item.id(),

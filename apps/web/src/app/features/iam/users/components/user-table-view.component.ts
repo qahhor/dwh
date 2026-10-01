@@ -18,6 +18,7 @@ import { OrderBy, TableConfig } from '@shared/ui-kit/components/table/table.type
 import { QueryListMeta } from '@core/models/query-meta.models';
 import { ListViewState } from '@shared/list-views/list-views';
 import { registryTableConfig } from '@shared/ui/registry-table-config';
+import { RefLookups } from '@shared/lookups/ref-lookup';
 import { User } from '@core/models/auth.models';
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { SMTDropdownButtonComponent, SMTMenuItem } from '@shared/ui-kit/components/dropdown-button';
@@ -177,6 +178,7 @@ type UserMenuAction = 'block' | 'unblock' | 'delete';
 })
 export class UserTableViewComponent {
   private readonly i18n = inject(I18nService);
+  private readonly refLookups = inject(RefLookups);
 
   readonly pager = input.required<KeysetPager<User>>();
 
@@ -240,6 +242,7 @@ export class UserTableViewComponent {
       },
       widths: { name: share, email: share, is2faEnabled: '60px', state: '130px', createdAt: '100px' },
       align: { is2faEnabled: 'center', createdAt: 'right' },
+      refName: (ref, key) => this.refLookups.name(ref, key),
     });
     const order = [...base.columnsOrder];
     const afterEmail = order.includes('email') ? order.indexOf('email') + 1 : order.length;

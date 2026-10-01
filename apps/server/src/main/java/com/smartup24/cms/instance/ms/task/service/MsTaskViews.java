@@ -1,7 +1,6 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
-import com.smartup24.cms.instance.ms.task.api.ProjectTaskStatsView;
 import com.smartup24.cms.instance.ms.task.api.ProjectView;
 import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.api.TaskFileView;
@@ -17,7 +16,6 @@ import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository.Com
 import com.smartup24.cms.instance.ms.task.repository.MsTaskFileRepository.TaskFileRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository.TaskMemberRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskRepository.TaskRecord;
-import com.smartup24.cms.instance.ms.task.repository.MsTaskStatsRepository.ProjectTaskStats;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository.StatusRecord;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository.TypeRecord;
 import java.util.List;
@@ -87,10 +85,6 @@ final class MsTaskViews {
                 type.isSystem(),
                 type.createdAt(),
                 type.revision());
-    }
-
-    static ProjectTaskStatsView stats(ProjectTaskStats stats) {
-        return new ProjectTaskStatsView(stats.projectId(), stats.totalTasks(), stats.activeTasks(), stats.doneTasks());
     }
 
     static ProjectView project(ProjectRecord project) {

@@ -95,7 +95,8 @@ class SearchRevisionIntegrationTest {
                         new MsProjectRepository(jdbc, mapper),
                         mock(MdCustomFieldService.class),
                         publisher,
-                        mock(AuditLogService.class)),
+                        mock(AuditLogService.class),
+                        scopes),
                 manager);
         reporter = jdbc.sql("""
                 insert into md_users(name,login,email,password_hash,state,language,timezone)

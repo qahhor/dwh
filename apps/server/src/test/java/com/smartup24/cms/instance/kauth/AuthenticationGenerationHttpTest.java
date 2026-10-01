@@ -84,7 +84,7 @@ class AuthenticationGenerationHttpTest {
     }
 
     static Stream<Arguments> paths() {
-        return Stream.of("/api/v1/auth/password", "/api/v1/iam/users/me/password")
+        return Stream.of("/api/v1/auth/password")
                 .flatMap(path -> Stream.of(
                         Arguments.of(path, false, false),
                         Arguments.of(path, true, false),
@@ -94,7 +94,7 @@ class AuthenticationGenerationHttpTest {
 
     @ParameterizedTest
     @MethodSource("paths")
-    void passwordAliasesRevokeCookieAndBearerThenRequireRealNewPasswordLogin(
+    void passwordChangeRevokesCookieAndBearerThenRequiresRealNewPasswordLogin(
             String path, boolean forced, boolean bearer) throws Exception {
         Long id = f.user(false, false);
         grantTokenPermission(id);
@@ -124,7 +124,7 @@ class AuthenticationGenerationHttpTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/v1/auth/password", "/api/v1/iam/users/me/password"})
+    @ValueSource(strings = {"/api/v1/auth/password"})
     void anonymousCsrfWrongPasswordAndPasswordPolicyErrorsPreserveAccess(String path) throws Exception {
         Long id = f.user(true, false);
         var cookies = login(id, OLD_PASSWORD);
@@ -243,8 +243,8 @@ class AuthenticationGenerationHttpTest {
         assertThat(lastCookie(challenge, KauthPref.SESSION_COOKIE_NAME) == null).isTrue();
         var challengeBody = f.mapper.readTree(challenge.getContentAsString());
         String otpToken = challengeBody.get("otpToken").asText();
-        // The snake_case name stays for one release next to the camelCase one (ADR-0023).
-        assertThat(challengeBody.get("otp_token").asText()).isEqualTo(otpToken);
+        assertThat(otpToken).isNotBlank();
+        assertThat(challengeBody.has("otp_token")).isFalse();
         assertThat(challengeBody.has("user")).isFalse();
         String code = f.deliveredCodes.get(id);
         String wrongCode = code.equals("000000") ? "000001" : "000000";
@@ -459,12 +459,7 @@ class AuthenticationGenerationHttpTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "/api/v1/auth/password,false",
-        "/api/v1/auth/password,true",
-        "/api/v1/iam/users/me/password,false",
-        "/api/v1/iam/users/me/password,true"
-    })
+    @CsvSource({"/api/v1/auth/password,false", "/api/v1/auth/password,true"})
     void passwordChangeAllowsExplicitReloginWithStaleSessionAndExistingCsrf(String path, boolean forced)
             throws Exception {
         Long id = f.user(forced, false);
@@ -491,22 +486,24 @@ class AuthenticationGenerationHttpTest {
     }
 
     @Test
-    @DisplayName("4.7: сервер выдаёт SMC_SESSION и smc_-токены; старая cookie DWH_SESSION работает и заменяется")
-    void newNamesAreIssuedAndTheOldCookieKeepsTheSession() throws Exception {
+    @DisplayName("4.7: сервер выдаёт SMC_SESSION и smc_-токены; старая cookie DWH_SESSION и префикс dwh_ не читаются")
+    void newNamesAreIssuedAndTheOldOnesAreIgnored() throws Exception {
         Long id = f.user(false, false);
         grantTokenPermission(id);
         var cookies = login(id, OLD_PASSWORD);
         assertThat(cookies.session.getName()).isEqualTo("SMC_SESSION");
-        assertThat(createApiToken(cookies)).startsWith(KauthPref.API_TOKEN_PREFIX);
+        String apiToken = createApiToken(cookies);
+        assertThat(apiToken).startsWith(KauthPref.API_TOKEN_PREFIX);
 
-        var legacy = new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, cookies.session.getValue());
-        var moved = mvc.perform(get("/api/v1/auth/me").cookie(legacy))
-                .andExpect(status().isOk())
+        var old = new Cookie("DWH_SESSION", cookies.session.getValue());
+        var ignored = mvc.perform(get("/api/v1/auth/me").cookie(old))
+                .andExpect(status().isUnauthorized())
                 .andReturn()
                 .getResponse();
-        assertThat(lastCookie(moved, KauthPref.SESSION_COOKIE_NAME).getValue()).isEqualTo(cookies.session.getValue());
-        assertThat(lastCookie(moved, KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
-                .isZero();
+        assertThat(lastCookie(ignored, KauthPref.SESSION_COOKIE_NAME)).isNull();
+        String oldPrefix = "dwh_" + apiToken.substring(KauthPref.API_TOKEN_PREFIX.length());
+        mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + oldPrefix))
+                .andExpect(status().isUnauthorized());
 
         var logout = mvc.perform(csrf(post("/api/v1/auth/logout"), cookies))
                 .andExpect(status().isNoContent())
@@ -514,9 +511,7 @@ class AuthenticationGenerationHttpTest {
                 .getResponse();
         assertThat(lastCookie(logout, KauthPref.SESSION_COOKIE_NAME).getMaxAge())
                 .isZero();
-        assertThat(lastCookie(logout, KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
-                .isZero();
-        mvc.perform(get("/api/v1/auth/me").cookie(legacy)).andExpect(status().isUnauthorized());
+        assertThat(lastCookie(logout, "DWH_SESSION")).isNull();
     }
 
     private Cookie anonymousCsrf() throws Exception {

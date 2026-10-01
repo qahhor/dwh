@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 import com.smartup24.cms.instance.kauth.repository.SsoProviderRepository;
-import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.support.V147FormCodes;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -269,7 +269,7 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
         // V147 (ADR-0028) renamed most forms V110 names, so a replay over today's catalog can rebuild only the pairs
         // whose codes it still writes.
         List<String> restorable = ANALYST_PAIRS.stream()
-                .filter(pair -> !PermissionAreas.LEGACY_FORMS.containsValue(pair.substring(0, pair.indexOf(':'))))
+                .filter(pair -> !V147FormCodes.successors().containsValue(pair.substring(0, pair.indexOf(':'))))
                 .toList();
         assertThat(restorable).isNotEmpty();
 

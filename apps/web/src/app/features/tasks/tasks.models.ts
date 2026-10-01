@@ -1,6 +1,7 @@
 import { Task, TaskStatus, TaskType, TaskMember } from '@core/models/task.models';
 import { CustomField } from '@core/models/custom-field.models';
 import { I18nService } from '@core/services/i18n.service';
+import { momentText } from '@shared/entity/entity-values';
 
 export interface TaskDeadlineInfo {
   state: 'none' | 'overdue' | 'today' | 'tomorrow' | 'upcoming';
@@ -277,6 +278,8 @@ export function formatAttributes(
       let valueStr = String(v ?? '');
       if (field?.fieldType === 'boolean') {
         valueStr = v === true || v === 'true' ? uiI18n.translate('common.yes') : uiI18n.translate('common.no');
+      } else if (field?.fieldType === 'datetime') {
+        valueStr = momentText(v);
       } else if (field?.fieldType === 'user_ref') {
         const name = nameOf(Number(v));
         if (name) {

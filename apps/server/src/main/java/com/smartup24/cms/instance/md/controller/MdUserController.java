@@ -65,6 +65,7 @@ public class MdUserController {
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<MdUserView> getUser(@PathVariable("id") Long id) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), id);
         return ResponseEntity.ok(userService.getUserView(id));
     }
 
@@ -91,6 +92,7 @@ public class MdUserController {
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
             @RequestBody UpdateUserDto body) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, id);
         long expectedRevision = Revisions.required(ifMatch);
 
         long revision = userService.updateUser(
@@ -116,6 +118,7 @@ public class MdUserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> blockUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, id);
         userSecurityService.setUserState(id, MdPref.STATE_PASSIVE, currentUserId);
         return ResponseEntity.noContent().build();
     }
@@ -126,6 +129,7 @@ public class MdUserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> unblockUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, id);
         userSecurityService.setUserState(id, MdPref.STATE_ACTIVE, currentUserId);
         return ResponseEntity.noContent().build();
     }
@@ -136,6 +140,7 @@ public class MdUserController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, id);
         userSecurityService.anonymizeUser(id, currentUserId);
         return ResponseEntity.noContent().build();
     }

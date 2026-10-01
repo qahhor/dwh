@@ -25,7 +25,7 @@ public class MsAnnouncementController {
     @Operation(
             summary = "List active announcements",
             description = "The published announcements addressed to the caller.")
-    @GetMapping({"", "/active"})
+    @GetMapping("/active")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "view")
     public ResponseEntity<List<AnnouncementView>> getAnnouncements(
             @RequestParam(name = "language", defaultValue = "ru") String language) {

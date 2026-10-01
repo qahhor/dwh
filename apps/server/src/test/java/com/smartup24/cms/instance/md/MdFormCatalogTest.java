@@ -67,7 +67,7 @@ class MdFormCatalogTest {
         for (var entity : EntityActionPermissionContractTest.declaredEntities()) {
             if (entity.rights() != null) {
                 entity.rights()
-                        .actionNames()
+                        .actionKeys()
                         .keySet()
                         .forEach(action -> namedByEntities.add(entity.form() + "." + action));
             }

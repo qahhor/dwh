@@ -33,7 +33,7 @@ void ACCEPTANCE_MAX_P99_MS;
 void ACCEPTANCE_MAX_ERROR_RATE;
 
 export default function () {
-  const taskList = http.get(`${baseUrl}/api/v1/tasks/items?limit=20`, {
+  const taskList = http.get(`${baseUrl}/api/v1/tasks?limit=20`, {
     headers: authHeaders(),
     tags: { name: 'tasks-list' },
   });
@@ -52,7 +52,7 @@ export default function () {
   expectStatus(analytics, 200, 'analytics-summary');
 
   if (__ENV.ACCEPTANCE_LOAD_WRITES === 'true' && __ITER % 10 === 0) {
-    jsonRequest('POST', '/api/v1/tasks/items', {
+    jsonRequest('POST', '/api/v1/tasks', {
       title: `acceptance-${__VU}-${__ITER}-${Date.now()}`,
       priority: 'normal',
       descriptionMarkdown: 'Managed infrastructure capacity acceptance record.',

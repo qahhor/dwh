@@ -25,7 +25,7 @@ import { SMTTextareaComponent } from '../textarea/textarea.component';
 import { SMTTimePickerComponent } from '../time-picker/time-picker.component';
 
 export type SMTDynamicFieldType =
-  'string' | 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select' | 'user_ref';
+  'string' | 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'time' | 'select' | 'user_ref' | 'ref';
 
 export interface SMTDynamicFieldDef {
   readonly code: string;
@@ -141,14 +141,27 @@ let nextFieldId = 0;
           />
         }
         @case ('user_ref') {
-          @if (userSource(); as source) {
+          @if (source(); as lookup) {
             <smt-data-select
               [smtTriggerId]="fieldId"
-              [source]="source"
+              [source]="lookup"
               [required]="!!field().required"
               [disabled]="disabled()"
               [placeholder]="field().placeholder ?? ''"
               [value]="userValue()"
+              (valueChange)="value.set($event)"
+            />
+          }
+        }
+        @case ('ref') {
+          @if (source(); as lookup) {
+            <smt-data-select
+              [smtTriggerId]="fieldId"
+              [source]="lookup"
+              [required]="!!field().required"
+              [disabled]="disabled()"
+              [placeholder]="field().placeholder ?? ''"
+              [value]="refValue()"
               (valueChange)="value.set($event)"
             />
           }
@@ -175,8 +188,8 @@ let nextFieldId = 0;
 export class SMTDynamicFieldComponent {
   readonly field = input.required<SMTDynamicFieldDef>();
 
-  /** Where a person (or, from an entity form, any referenced record) is searched for; needed by a `user_ref` field. */
-  readonly userSource = input<SMTLookupSource<unknown, SMTLookupKey> | null>(null);
+  /** Where a person (`user_ref`) or any referenced record (`ref`) is searched for; needed by those fields. */
+  readonly source = input<SMTLookupSource<unknown, SMTLookupKey> | null>(null);
 
   /** A problem to show under the field, such as the server's answer to a save. */
   readonly error = input('');
@@ -206,6 +219,12 @@ export class SMTDynamicFieldComponent {
   readonly userValue = computed(() => {
     const id = Number(this.value());
     return this.value() !== null && this.value() !== '' && Number.isSafeInteger(id) && id > 0 ? id : null;
+  });
+
+  /** A reference keeps its key as it is — a number or a text code — so a list keyed by codes works too. */
+  readonly refValue = computed<SMTLookupKey | null>(() => {
+    const value = this.value();
+    return typeof value === 'number' || (typeof value === 'string' && value !== '') ? value : null;
   });
 
   readonly fieldId = `smt-dynamic-field-${nextFieldId++}`;

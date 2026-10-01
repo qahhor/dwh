@@ -6,24 +6,19 @@ import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.md.pref.PermissionAreas;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.support.TestDatabases;
+import com.smartup24.cms.instance.support.V147FormCodes;
 import com.zaxxer.hikari.HikariDataSource;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
@@ -34,7 +29,23 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 class PermissionCodesMigrationTest {
 
     private static final String DATABASE = "permission_codes_upgrade";
-    private static final Pattern MAPPING_ROW = Pattern.compile("\\['([a-z_.]+)', '([a-z_.]+)', '([a-z_.]+)'\\]");
+    /**
+     * The mapping of ADR-0028 as a test-only copy: the server no longer translates old codes, so V147 is checked
+     * against this record of the decision.
+     */
+    private static final Map<String, String> OLD_FORMS = Map.ofEntries(
+            Map.entry("iam.users", "md.users"),
+            Map.entry("iam.profile", "md.profile"),
+            Map.entry("iam.org_units", "md.org_units"),
+            Map.entry("rbac.roles", "md.roles"),
+            Map.entry("rbac.assignments", "md.assignments"),
+            Map.entry("platform.settings", "md.settings"),
+            Map.entry("platform.navigation", "md.navigation"),
+            Map.entry("platform.modules", "md.modules"),
+            Map.entry("platform.announcements", "notify.announcements"),
+            Map.entry("platform.files", "mf.files"),
+            Map.entry("platform.search", "search"),
+            Map.entry("platform.webhooks", "webhook.subscriptions"));
 
     private static HikariDataSource dataSource;
     private static JdbcClient jdbc;
@@ -104,9 +115,7 @@ class PermissionCodesMigrationTest {
         Map<Long, Set<String>> expected = new TreeMap<>();
         effectiveBefore.forEach((user, rights) -> expected.put(
                 user,
-                rights.stream()
-                        .map(PermissionAreas::currentPermission)
-                        .collect(Collectors.toCollection(TreeSet::new))));
+                rights.stream().map(V147FormCodes::currentPermission).collect(Collectors.toCollection(TreeSet::new))));
 
         assertThat(effective()).isEqualTo(expected);
         assertThat(expected.values().stream().flatMap(Set::stream))
@@ -122,7 +131,7 @@ class PermissionCodesMigrationTest {
     @Test
     @DisplayName("4.4: no table keeps an old code; the catalog holds the new forms with the owning module")
     void noOldCodeIsLeft() {
-        Set<String> legacy = PermissionAreas.LEGACY_FORMS.keySet();
+        Set<String> legacy = OLD_FORMS.keySet();
         for (String sql : List.of(
                 "select code from md_forms",
                 "select form_code from md_form_actions",
@@ -137,7 +146,7 @@ class PermissionCodesMigrationTest {
                 .list()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        PermissionAreas.LEGACY_FORMS
+        OLD_FORMS
                 .values()
                 .forEach(current -> assertThat(modules.get(current))
                         .as(current)
@@ -164,20 +173,18 @@ class PermissionCodesMigrationTest {
     }
 
     @Test
-    @DisplayName("4.4: the migration and the request-side mapping name the same old and new codes")
-    void migrationAndLegacyMappingAgree() throws IOException {
-        String sql = new ClassPathResource("db/migration/V147__permission_codes_by_module.sql")
-                .getContentAsString(StandardCharsets.UTF_8);
-        Map<String, String> migrated = new LinkedHashMap<>();
-        Matcher row = MAPPING_ROW.matcher(sql);
-        while (row.find()) {
-            migrated.put(row.group(1), row.group(2));
+    @DisplayName("4.4: V147 maps each old code, which breaks the rule, onto a code of the module it records")
+    void migrationMappingIsConsistent() {
+        List<V147FormCodes.Row> rows = V147FormCodes.rows();
+        assertThat(rows).hasSize(OLD_FORMS.size());
+        assertThat(V147FormCodes.successors()).isEqualTo(OLD_FORMS);
+        for (V147FormCodes.Row row : rows) {
+            assertThat(PermissionAreas.ownerOf(row.old())).as(row.old()).isEmpty();
             // V147 is frozen: the module it wrote as kwh was renamed to webhook by V155 (plan 10/10, item 4.3).
-            assertThat(row.group(3).equals("kwh") ? "webhook" : row.group(3))
-                    .as(row.group(2))
-                    .isEqualTo(PermissionAreas.ownerOf(row.group(2)).orElseThrow());
+            assertThat(row.module().equals("kwh") ? "webhook" : row.module())
+                    .as(row.current())
+                    .isEqualTo(PermissionAreas.ownerOf(row.current()).orElseThrow());
         }
-        assertThat(migrated).isEqualTo(PermissionAreas.LEGACY_FORMS);
     }
 
     private static Flyway flyway(String target) {

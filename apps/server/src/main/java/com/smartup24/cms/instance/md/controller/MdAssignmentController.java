@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.AssignRolesDto;
@@ -11,6 +12,7 @@ import com.smartup24.cms.instance.md.api.MdAssignmentDtos.ReplacePermissionsDto;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.RoleIdsResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdAssignmentService;
+import com.smartup24.cms.instance.md.service.MdUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -33,15 +35,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class MdAssignmentController {
 
     private final MdAssignmentService assignmentService;
+    private final MdUserService userService;
 
-    public MdAssignmentController(MdAssignmentService assignmentService) {
+    public MdAssignmentController(MdAssignmentService assignmentService, MdUserService userService) {
         this.assignmentService = assignmentService;
+        this.userService = userService;
     }
 
     @Operation(summary = "Get the roles of a user", description = "The roles assigned to a user.")
     @GetMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
     public ResponseEntity<RoleIdsResponse> getUserRoles(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(new RoleIdsResponse(assignmentService.getUserRoleIds(userId)));
     }
 
@@ -56,6 +61,7 @@ public class MdAssignmentController {
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
             @Valid @RequestBody AssignRolesDto body) {
         // The roles are part of the user: they are saved from the user's revision (plan 10/10, item 3.6).
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         var saved = assignmentService.assignRoles(userId, body.roleIds(), Revisions.required(ifMatch));
         return ResponseEntity.ok().eTag(Revisions.etag(saved.revision())).body(saved);
     }
@@ -66,6 +72,7 @@ public class MdAssignmentController {
     @GetMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
     public ResponseEntity<GrantsResponse> getPersonalPermissions(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(new GrantsResponse(assignmentService.getPersonalGrants(userId)));
     }
 
@@ -80,6 +87,7 @@ public class MdAssignmentController {
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
             @Valid @RequestBody ReplacePermissionsDto body) {
         // The personal rights are part of the user, like its roles (plan 10/10, item 3.6).
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         var saved = assignmentService.replacePersonalPermissions(userId, body.grants(), Revisions.required(ifMatch));
         return ResponseEntity.ok().eTag(Revisions.etag(saved.revision())).body(saved);
     }
@@ -92,6 +100,7 @@ public class MdAssignmentController {
     @GetMapping("/effective-permissions")
     @RequiresPermission(form = MdPref.FORM_ASSIGNMENTS, action = "view")
     public ResponseEntity<EffectivePermissionsResponse> getEffectivePermissions(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(new EffectivePermissionsResponse(assignmentService.getEffectivePermissions(userId)));
     }
 }

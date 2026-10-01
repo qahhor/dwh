@@ -31,7 +31,7 @@ void ACCEPTANCE_MAX_P99_MS;
 void ACCEPTANCE_MAX_ERROR_RATE;
 
 export default function () {
-  const tasks = http.get(`${baseUrl}/api/v1/tasks/items?limit=20`, {
+  const tasks = http.get(`${baseUrl}/api/v1/tasks?limit=20`, {
     headers: authHeaders(),
     tags: { name: 'soak-tasks-list' },
   });

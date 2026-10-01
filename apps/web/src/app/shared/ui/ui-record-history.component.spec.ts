@@ -3,6 +3,7 @@ import { Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { KeysetPage } from '@core/models/common.models';
 import { ApiService } from '@core/services/api.service';
+import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
 import { HistoryEntry, UiRecordHistoryComponent } from './ui-record-history.component';
 
 const update: HistoryEntry = {
@@ -50,6 +51,47 @@ async function render(get: ReturnType<typeof vi.fn>, recordId: number = 42) {
 }
 
 describe('ui-record-history', () => {
+  // Plan 10/10, item 5.0: every field is named, a custom one by its own name; with the form, values read in words.
+  it('names a custom field by its label and shows values as the entity card does', async () => {
+    const entry: HistoryEntry = {
+      ...update,
+      changes: [
+        { field: 'color', labelKey: 'notes.col.color', oldValue: 'blue', newValue: 'red' },
+        { field: 'cfRegion', label: 'Регион', oldValue: 'Tashkent', newValue: 'Bukhara' },
+        { field: 'cfOwner', label: 'Ответственный', oldValue: null, newValue: 42 },
+      ],
+    };
+    const get = vi.fn((path: string) =>
+      path.startsWith('/history') ? of(page([entry])) : of({ id: 42, name: 'Анна' }),
+    );
+    const { fixture, host, toggle } = await render(get);
+    fixture.componentRef.setInput(
+      'meta',
+      withCustomField(
+        NOTES_FORM_META,
+        formField('cfOwner', 'ref', {
+          labelKey: '',
+          label: 'Ответственный',
+          attribute: 'owner',
+          ref: { path: '/iam/users', labelField: 'name', keyField: 'id', paged: true },
+        }),
+      ),
+    );
+
+    toggle.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const labels = [...host.querySelectorAll('dt')].map((dt) => dt.textContent);
+    expect(labels).toEqual(['Цвет', 'Регион', 'Ответственный']);
+    const values = [...host.querySelectorAll('dd')].map((dd) => dd.textContent?.replace(/\s+/g, ' ').trim());
+    expect(values[0]).toContain('Синий');
+    expect(values[0]).toContain('Красный');
+    expect(values[1]).toContain('Bukhara');
+    expect(values[2]).toContain('Анна');
+  });
+
   it('loads only when opened and shows who changed which field from what to what', async () => {
     const get = vi.fn(() => of(page([update, creation])));
     const { fixture, host, toggle } = await render(get);

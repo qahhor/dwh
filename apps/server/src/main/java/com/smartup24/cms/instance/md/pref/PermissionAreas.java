@@ -63,24 +63,6 @@ public final class PermissionAreas {
             "tasks.items",
             Set.of("report"));
 
-    /**
-     * Form codes of earlier releases and their successors (V147). Requests that grant rights or bind a menu item to a
-     * right still accept them until the sunset of the deprecated API forms (2026-12-31, ADR-0023).
-     */
-    public static final Map<String, String> LEGACY_FORMS = Map.ofEntries(
-            Map.entry("iam.users", MdPref.FORM_USERS),
-            Map.entry("iam.profile", MdPref.FORM_PROFILE),
-            Map.entry("iam.org_units", MdPref.FORM_ORG_UNITS),
-            Map.entry("rbac.roles", MdPref.FORM_ROLES),
-            Map.entry("rbac.assignments", MdPref.FORM_ASSIGNMENTS),
-            Map.entry("platform.settings", MdPref.FORM_SETTINGS),
-            Map.entry("platform.navigation", MdPref.FORM_NAVIGATION),
-            Map.entry("platform.modules", MdPref.FORM_MODULES),
-            Map.entry("platform.announcements", "notify.announcements"),
-            Map.entry("platform.files", "mf.files"),
-            Map.entry("platform.search", "search"),
-            Map.entry("platform.webhooks", "webhook.subscriptions"));
-
     /** Whether the code is {@code <area>} or {@code <area>.<name>} of well-formed segments. */
     public static boolean isWellFormed(String formCode) {
         String[] segments = formCode.split("\\.", -1);
@@ -117,21 +99,5 @@ public final class PermissionAreas {
     public static boolean usableBy(String formCode, String module) {
         return ownerOf(formCode).map(owner -> owner.equals(module)).orElse(false)
                 || PUBLISHED.getOrDefault(formCode, Set.of()).contains(module);
-    }
-
-    /** The current code of a form: the successor of a legacy code, otherwise the code itself. */
-    public static String currentForm(String formCode) {
-        return LEGACY_FORMS.getOrDefault(formCode, formCode);
-    }
-
-    /** A {@code form.action} key with a legacy form code replaced by its successor. */
-    public static String currentPermission(String permission) {
-        int dot = permission.lastIndexOf('.');
-        if (dot <= 0) {
-            return permission;
-        }
-        String form = permission.substring(0, dot);
-        String current = LEGACY_FORMS.get(form);
-        return current == null ? permission : current + permission.substring(dot);
     }
 }

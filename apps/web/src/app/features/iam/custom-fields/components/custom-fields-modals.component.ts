@@ -25,6 +25,8 @@ const FIELD_TYPES: readonly [string, string][] = [
   ['date', 'iam.data_date'],
   ['select', 'iam.custom_fields.editor.type_select'],
   ['user_ref', 'iam.custom_fields.editor.type_user_ref'],
+  ['datetime', 'iam.custom_fields.editor.type_datetime'],
+  ['time', 'iam.custom_fields.editor.type_time'],
 ];
 
 @Component({

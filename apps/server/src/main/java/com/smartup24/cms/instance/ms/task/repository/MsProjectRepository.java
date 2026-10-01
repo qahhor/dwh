@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
@@ -51,22 +52,18 @@ public class MsProjectRepository {
                 """).param("id", id).query(this::mapRecord).optional();
     }
 
-    public List<ProjectRecord> listProjects(String state) {
-        StringBuilder sql = new StringBuilder("""
-                select id, name, description, state, attributes::text as attributes_str, created_at, created_by, revision
-                from ms_task_projects
-                where 1=1
-                """);
-        if (state != null && !state.isBlank()) {
-            sql.append(" and state = :state");
+    /** The project as the viewer may see it (ADR-0013): outside the scope it is as good as missing. */
+    public Optional<ProjectRecord> findById(Long id, ScopeFilter scope) {
+        var query = jdbcClient.sql("""
+                select p.id, p.name, p.description, p.state, p.attributes::text as attributes_str, p.created_at,
+                       p.created_by, p.revision
+                from ms_task_projects p
+                where p.id = :id
+                """ + scope.sql()).param("id", id);
+        if (scope.bindsUserId()) {
+            query = query.param("scopeUserId", scope.userId());
         }
-        sql.append(" order by name asc");
-
-        var query = jdbcClient.sql(sql.toString());
-        if (state != null && !state.isBlank()) {
-            query.param("state", state);
-        }
-        return query.query(this::mapRecord).list();
+        return query.query(this::mapRecord).optional();
     }
 
     /** Saves the project made from {@code expectedRevision} (plan item 3.6) and answers its new revision. */
@@ -120,10 +117,6 @@ public class MsProjectRepository {
                 .param("projectId", projectId)
                 .param("userId", userId)
                 .update();
-    }
-
-    public List<ProjectMemberRecord> getMembers(Long projectId) {
-        return getMembers(projectId, null, Integer.MAX_VALUE);
     }
 
     /**

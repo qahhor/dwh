@@ -33,7 +33,7 @@ public class KauthSessionController {
     }
 
     @Operation(summary = "List my sessions", description = "The open sessions of the caller.")
-    @GetMapping({"/profile/sessions", "/sessions"})
+    @GetMapping("/profile/sessions")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<List<ActiveSessionView>> listActiveSessions() {
         var principal = SecurityContext.getPrincipal();
@@ -48,7 +48,7 @@ public class KauthSessionController {
     @Operation(
             summary = "Close my other sessions",
             description = "Closes every session of the caller except the current one.")
-    @DeleteMapping({"/profile/sessions/others", "/sessions/others"})
+    @DeleteMapping("/profile/sessions/others")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeOtherSessions() {
@@ -63,7 +63,7 @@ public class KauthSessionController {
     }
 
     @Operation(summary = "Close one of my sessions", description = "Closes one session of the caller.")
-    @DeleteMapping({"/profile/sessions/{id}", "/sessions/{id}"})
+    @DeleteMapping("/profile/sessions/{id}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeSession(@PathVariable("id") Long id) {
@@ -79,26 +79,29 @@ public class KauthSessionController {
     @Operation(
             summary = "List the sessions of a user",
             description = "The open sessions of a user, for an administrator.")
-    @GetMapping({"/users/{userId}/sessions", "/profile/sessions/users/{userId}"})
+    @GetMapping("/users/{userId}/sessions")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<List<SessionView>> listUserSessions(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(sessionService.listUserActiveSessions(userId));
     }
 
     @Operation(summary = "Close the sessions of a user", description = "Closes every open session of a user.")
-    @DeleteMapping({"/users/{userId}/sessions", "/profile/sessions/users/{userId}"})
+    @DeleteMapping("/users/{userId}/sessions")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeAllUserSessions(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         sessionService.closeAllUserSessions(userId);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Close a session of a user", description = "Closes one session of a user.")
-    @DeleteMapping({"/users/{userId}/sessions/{id}", "/profile/sessions/users/{userId}/{id}"})
+    @DeleteMapping("/users/{userId}/sessions/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> closeUserSession(@PathVariable("userId") Long userId, @PathVariable("id") Long id) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         sessionService.closeUserSession(userId, id);
         return ResponseEntity.noContent().build();
     }
@@ -106,9 +109,10 @@ public class KauthSessionController {
     @Operation(
             summary = "Get the security summary of a user",
             description = "The security summary of a user, for an administrator.")
-    @GetMapping({"/users/{userId}/security", "/profile/sessions/users/{userId}/security"})
+    @GetMapping("/users/{userId}/security")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<UserSecuritySummary> getUserSecuritySummary(@PathVariable("userId") Long userId) {
+        userService.requireVisible(SecurityContext.getCurrentUserId(), userId);
         var user = userService.findAuthUserById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
         return ResponseEntity.ok(sessionService.getUserSecuritySummary(userId, user));
     }
@@ -116,21 +120,23 @@ public class KauthSessionController {
     @Operation(
             summary = "Force a password change",
             description = "Makes the user change the password at the next sign-in.")
-    @PostMapping({"/users/{userId}/force-password-change", "/profile/sessions/users/{userId}/force-password-change"})
+    @PostMapping("/users/{userId}/force-password-change")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> forcePasswordChange(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, userId);
         userSecurityService.setForcePasswordChange(userId, true, currentUserId);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Reset the second factor", description = "Resets the second factor of a user.")
-    @PostMapping({"/users/{userId}/reset-2fa", "/profile/sessions/users/{userId}/reset-2fa"})
+    @PostMapping("/users/{userId}/reset-2fa")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> reset2fa(@PathVariable("userId") Long userId) {
         Long currentUserId = SecurityContext.getCurrentUserId();
+        userService.requireVisible(currentUserId, userId);
         userSecurityService.reset2fa(userId, currentUserId);
         return ResponseEntity.noContent().build();
     }

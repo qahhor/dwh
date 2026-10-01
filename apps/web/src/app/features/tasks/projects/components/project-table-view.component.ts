@@ -18,6 +18,7 @@ import { QueryListMeta } from '@core/models/query-meta.models';
 import { KeysetPager } from '@shared/paging/keyset-pager';
 import { ListViewState } from '@shared/list-views/list-views';
 import { registryTableConfig } from '@shared/ui/registry-table-config';
+import { RefLookups } from '@shared/lookups/ref-lookup';
 import { ProjectListItem } from '../projects.models';
 
 /**
@@ -152,6 +153,7 @@ import { ProjectListItem } from '../projects.models';
 })
 export class ProjectTableViewComponent {
   private readonly i18n = inject(I18nService);
+  private readonly refLookups = inject(RefLookups);
 
   readonly pager = input.required<KeysetPager<ProjectListItem>>();
 
@@ -214,6 +216,7 @@ export class ProjectTableViewComponent {
         createdAt: '120px',
       },
       align: { id: 'left' },
+      refName: (ref, key) => this.refLookups.name(ref, key),
     });
     return {
       ...base,

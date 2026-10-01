@@ -4,8 +4,7 @@ set -eu
 # ADR-0001: CMS database and DWH database are separate from day one.
 # Runs after 01-init-roles.sh (roles already exist), only on an empty PGDATA.
 # The application role owns pg-dwh: db/dwh migrations create their own schemas (raw/core/mart/cache).
-# DWH_DB_NAME is the name before ADR-0027, read until 2026-12-31.
-DWH_DATABASE="${WAREHOUSE_DB_NAME:-${DWH_DB_NAME:-smartupcms_dwh}}"
+DWH_DATABASE="${WAREHOUSE_DB_NAME:-smartupcms_dwh}"
 APP_USER="${APP_DB_USER:-${DB_USER:-smartupcms}}"
 
 if [ "$DWH_DATABASE" = "${POSTGRES_DB:-smartupcms}" ]; then

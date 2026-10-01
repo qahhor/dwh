@@ -22,6 +22,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -29,10 +30,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Answers a deprecated request form (plan 10/10, item 3.4, ADR-0023; the forms are listed in
- * {@link ApiDeprecations}) as before, and says so: {@code Deprecation} (RFC 9745), {@code Sunset} (RFC 8594) and,
- * for a path, {@code Link: <successor>; rel="successor-version"}. A snake_case query parameter reaches the handler
- * under its camelCase name. {@code smc_api_deprecated_calls_total} counts the calls, so the alias is removed when
- * nobody uses it.
+ * {@link ApiDeprecations#CURRENT}) as before, and says so: {@code Deprecation} (RFC 9745), {@code Sunset} (RFC 8594)
+ * and, for a path, {@code Link: <successor>; rel="successor-version"}. A snake_case query parameter reaches the
+ * handler under its camelCase name. {@code smc_api_deprecated_calls_total} counts the calls, so the alias is removed
+ * when nobody uses it. With an empty table every request passes through untouched.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
@@ -52,8 +53,17 @@ public class DeprecatedApiFilter extends OncePerRequestFilter {
     /** Absent in slices without metrics; the headers do not depend on it. */
     private final ObjectProvider<MeterRegistry> meters;
 
+    private final ApiDeprecations deprecations;
+
+    @Autowired
     public DeprecatedApiFilter(ObjectProvider<MeterRegistry> meters) {
+        this(meters, ApiDeprecations.CURRENT);
+    }
+
+    /** A filter over another table of deprecated forms: the tests use a fixture while {@code CURRENT} is empty. */
+    DeprecatedApiFilter(ObjectProvider<MeterRegistry> meters, ApiDeprecations deprecations) {
         this.meters = meters;
+        this.deprecations = deprecations;
     }
 
     @Override
@@ -65,7 +75,7 @@ public class DeprecatedApiFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        Optional<ApiDeprecations.Successor> successor = ApiDeprecations.successor(request.getMethod(), path);
+        Optional<ApiDeprecations.Successor> successor = deprecations.successor(request.getMethod(), path);
         successor.ifPresent(found -> {
             announce(response, found.alias());
             if (!found.path().contains("{")) {
@@ -96,17 +106,19 @@ public class DeprecatedApiFilter extends OncePerRequestFilter {
     }
 
     /** The parameters with legacy names replaced, or {@code null} when the request uses none. */
-    private static @Nullable Map<String, String[]> renamedParameters(HttpServletRequest request) {
+    private @Nullable Map<String, String[]> renamedParameters(HttpServletRequest request) {
         // Only the query string is looked at: reading the parameters of a form or multipart body here would consume
         // the body before the idempotency filter and the upload handlers see it.
         String query = request.getQueryString();
+        Map<String, String> legacyNames = deprecations.queryParameters();
         if (query == null
+                || legacyNames.isEmpty()
                 || Arrays.stream(query.split("&"))
                         .map(pair -> decodedName(pair.split("=", 2)[0]))
-                        .noneMatch(ApiDeprecations.QUERY_PARAMETERS::containsKey)) {
+                        .noneMatch(legacyNames::containsKey)) {
             return null;
         }
-        Map<String, String[]> renamed = ApiDeprecations.currentNames(request.getParameterMap());
+        Map<String, String[]> renamed = deprecations.currentNames(request.getParameterMap());
         return Collections.unmodifiableMap(renamed);
     }
 

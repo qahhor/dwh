@@ -121,6 +121,30 @@
                     </div>
                   }
                 }
+                @case ('time') {
+                  <div class="filter-control">
+                    <label class="filter-label" [for]="rowId(i) + '-time'">{{
+                      (row.op === 'between' ? 'ui.filter.from' : 'ui.filter.value') | t
+                    }}</label>
+                    <smt-time-picker
+                      data-testid="filter-time"
+                      [smtFieldId]="rowId(i) + '-time'"
+                      [value]="row.value || null"
+                      (valueChange)="patch(i, { value: $event ?? '' })"
+                    />
+                  </div>
+                  @if (row.op === 'between') {
+                    <div class="filter-control">
+                      <label class="filter-label" [for]="rowId(i) + '-time-to'">{{ 'ui.filter.to' | t }}</label>
+                      <smt-time-picker
+                        data-testid="filter-time-to"
+                        [smtFieldId]="rowId(i) + '-time-to'"
+                        [value]="row.valueTo || null"
+                        (valueChange)="patch(i, { valueTo: $event ?? '' })"
+                      />
+                    </div>
+                  }
+                }
                 @default {
                   <label class="filter-control">
                     <span class="filter-label">{{

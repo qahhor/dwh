@@ -100,6 +100,32 @@ describe('SMTEntityFormComponent', () => {
     expect(root.querySelector('legend.sr-only')).not.toBeNull();
   });
 
+  // Plan 10/10, item 5.0: a reference is picked from its own target; a moment and a time of day have their controls.
+  it('picks a reference from its own list, keeps a text key, and draws moment and time controls', async () => {
+    const { fixture, root, host } = await render((host) => {
+      host.meta.set({
+        ...NOTES_FORM_META,
+        fields: [
+          formField('unit', 'ref', {
+            ref: { path: '/org/units', labelField: 'title', keyField: 'code', paged: false },
+          }),
+          formField('startsAt', 'datetime'),
+          formField('callTime', 'time'),
+        ],
+        layout: [{ key: 'main', labelKey: 'entity.section.main', fields: ['unit', 'startsAt', 'callTime'] }],
+      });
+      host.values.set({ unit: 'hq', startsAt: '2026-10-01T09:30', callTime: '14:45' });
+    });
+
+    const select = fixture.debugElement.query((node) => node.name === 'smt-data-select');
+    expect(select).not.toBeNull();
+    expect(select.componentInstance.value()).toBe('hq');
+    expect(select.componentInstance.source().key({ code: 'hq', title: 'HQ' })).toBe('hq');
+    expect(root.querySelector('[data-field="startsAt"] smt-date-picker')).not.toBeNull();
+    expect(root.querySelector('[data-field="callTime"] smt-time-picker')).not.toBeNull();
+    expect(host.values()['unit']).toBe('hq');
+  });
+
   it('lets a screen replace one field and keeps the rest', async () => {
     const { fixture, root, host } = await render((host) => host.replaceColor.set(true));
 

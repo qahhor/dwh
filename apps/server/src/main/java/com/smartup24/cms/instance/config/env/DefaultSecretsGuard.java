@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.EnvironmentPostProcessor;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Profiles;
@@ -23,8 +24,8 @@ import org.springframework.core.env.PropertySourcesPropertyResolver;
  */
 public class DefaultSecretsGuard implements EnvironmentPostProcessor, Ordered {
 
-    /** After the old names are aliased, so a secret set under an old name is checked too. */
-    public static final int ORDER = LegacyConfigAliases.ORDER + 1;
+    /** After the configuration files are loaded, so a secret set in any of them is checked too. */
+    public static final int ORDER = ConfigDataEnvironmentPostProcessor.ORDER + 1;
 
     /** Profiles under which the published defaults are allowed. */
     static final Profiles RELAXED = Profiles.of("dev", "test", "migrate");
@@ -35,7 +36,7 @@ public class DefaultSecretsGuard implements EnvironmentPostProcessor, Ordered {
                     "smc.typesense.api-key",
                     "SMC_TYPESENSE_API_KEY",
                     "TYPESENSE_API_KEY",
-                    Set.of("", "smartupcms_typesense_local_dev", "dwh_typesense_local_dev_key"),
+                    Set.of("", "smartupcms_typesense_local_dev"),
                     "smc.typesense.enabled"),
             new Secret(
                     "smc.instance.admin-password",
