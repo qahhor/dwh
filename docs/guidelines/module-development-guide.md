@@ -109,7 +109,20 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
    (`query-meta/<код>`) строит `EntityLists`, отдельный бин `QueryList` для
    сущности не пишется (реестр не стартует с двумя объявлениями одного
    списка, `EntityFieldsSingleSourceTest`). Строки списка читаются по ключам
-   записи (`"title"`, `"createdAt"`, `"attributes"`).
+   записи (`"title"`, `"createdAt"`, `"attributes"`) общим `EntityRowMapper`.
+
+   Типы ERP/SFA (план 10/10, пункт 5.2; ADR-0032, §4): `email`, `phone`,
+   `url`, `money(..., валюты).money(колонка суммы, колонка валюты)`,
+   `enumeration(..., код справочника)` — справочник объявляется
+   `.reference("code", "name")`, `multiRef(...).link(таблица, владелец,
+   цель)`, `file`/`image` — колонка `uuid` с FK на `mf_files`, `json(...,
+   корень)`, вычисляемое `computed(sql)` любого скалярного типа. Признаки
+   формы: `readonly()`, `readonlyOnUpdate()`, `readonlyWhen(условие)`,
+   `defaultValue(FieldDefault.fixed/now/today/currentUser/sequence)`,
+   `visibleWhen(FieldCondition.eq(...))`. Значения сохранения готовит и
+   проверяет `EntityFieldValues.prepare` (умолчания, readonly, скрытые поля,
+   элемент справочника, файл); файл поля прикрепляет `EntityFiles.attach`.
+   Ключ поля не называет секрет (ADR-0029).
 3. **Сервис** берёт список из реестра (`QueryListRegistry.get(<код>)`),
    проверяет каждое сохранение `EntityValidator.check` по объявлению (при
    изменении — частично) и пишет аудит в `auditTable` строкой
