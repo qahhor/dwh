@@ -5,7 +5,7 @@
  * one follows the WAI-ARIA APG date picker grid: a table with role="grid",
  * one day in the tab order, arrows move by day and week, Home and End to the
  * week's ends, PageUp and PageDown by month (with Shift by year), Enter or
- * Space picks. Every day is named in full ("четверг, 24 сентября 2026 г."). */
+ * Space picks. Every day is named in full, in the person's language ("Thursday, 24 September 2026"). */
 import {
   afterNextRender,
   ChangeDetectionStrategy,

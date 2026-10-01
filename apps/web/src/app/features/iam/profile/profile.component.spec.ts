@@ -183,7 +183,7 @@ describe('ProfileComponent UI contracts', () => {
     expect(currentBadge).not.toBeNull();
     expect(currentBadge.textContent).toContain('Текущая сессия');
 
-    // The other session has a danger "Завершить" button
+    // The other session has a danger button that ends it
     const buttons = inScreen(fixture.nativeElement).querySelectorAll('.data-table button');
     expect(buttons.length).toBeGreaterThanOrEqual(1);
   });

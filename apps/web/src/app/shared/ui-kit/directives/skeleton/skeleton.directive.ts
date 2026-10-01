@@ -73,20 +73,20 @@ export class SMTSkeletonDirective implements OnDestroy {
   readonly smtSkeletonRadius = input<string>('4px');
 
   /**
-   * Как у полей формы: светлая/тёмная поверхность; `auto` — из SMTThemeService.
-   * На тёмной поверхности — отдельная палитра шима.
+   * As with form fields: a light or dark surface; `auto` comes from SMTThemeService.
+   * A dark surface gets its own shimmer palette.
    *
-   * В микросинтаксисе `*smtSkeleton` вторичные ключи дают привязку **`smtSkeleton` + `Key`** с заглавной буквы
-   * (`appearance:` → свойство шаблона `smtSkeletonAppearance`). Алиас `smtAppearance` нельзя: Angular
-   * тогда не сопоставляет сгенерированную привязку с инпутом, и остаётся дефолт `light`.
+   * In the `*smtSkeleton` microsyntax, secondary keys bind to **`smtSkeleton` + `Key`** with a capital letter
+   * (`appearance:` becomes the template property `smtSkeletonAppearance`). The alias `smtAppearance` does not work:
+   * Angular then does not match the generated binding with the input, and the default `light` stays.
    *
-   * Примеры: `appearance: 'dark'` в `*smtSkeleton`, либо явно `[smtSkeletonAppearance]="'dark'"` на `ng-template`.
+   * Examples: `appearance: 'dark'` in `*smtSkeleton`, or `[smtSkeletonAppearance]="'dark'"` on `ng-template`.
    */
   readonly smtSkeletonAppearance = input<SMTInputAppearance>('light');
 
   /**
-   * Уточнение на **светлой** поверхности: более контрастные полоски при `dark`.
-   * На тёмой поверхности (`smtAppearance` разрешился в dark) не используется.
+   * A refinement on a **light** surface: more contrasting stripes with `dark`.
+   * Not used on a dark surface (when `smtAppearance` resolved to dark).
    */
   readonly smtSkeletonVariant = input<TSkeletonVariant>('light');
 

@@ -4,13 +4,13 @@ import { PACKAGED_RUSSIAN } from '@core/i18n/packaged-russian';
 
 const UPL_DIR = 'src/app/features/upl';
 const SHELL_FILES = ['src/app/layout/app-shell/app-shell.component.ts', 'src/app/layout/app-shell/app-shell.models.ts'];
-/** Литерал ключа словаря; префикс `'upl.err.'` (кончается точкой) сюда не попадает. */
+/** A dictionary key literal; the `'upl.err.'` prefix (ending with a dot) does not match. */
 const KEY_LITERAL = /'(upl\.[A-Za-z0-9_.]*[A-Za-z0-9_]|nav\.upl_[a-z0-9_]+)'/g;
-/** Подкод ошибки контракта: текст берётся по ключу `upl.err.<подкод>`. */
+/** A contract error subcode: the text comes from the key `upl.err.<subcode>`. */
 const CODE_LITERAL = /'(UPL_[A-Z0-9_]+|FND_VERSION_[A-Z0-9_]+|STALE_VERSION|PERMISSION_DENIED|VALIDATION_FAILED)'/g;
-/** Литералы того же вида, которые ключами словаря не являются: код формы в каталоге прав. */
+/** Literals of the same form that are not dictionary keys: a form code in the permission catalog. */
 const NOT_KEYS = new Set(['upl.sources', 'upl.packages']);
-/** Коды Bean Validation, которые сервер отдаёт в `errors[].code`; текст — по ключу `upl.err.<код>`. */
+/** Bean Validation codes the server returns in `errors[].code`; the text comes from the key `upl.err.<code>`. */
 const VALIDATOR_CODES = ['NotBlank', 'NotNull', 'Pattern', 'Min', 'Max', 'Size', 'Positive', 'PositiveOrZero'];
 
 function sourceFiles(): string[] {

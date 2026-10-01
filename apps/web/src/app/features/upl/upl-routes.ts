@@ -1,13 +1,13 @@
 import { UrlMatcher } from '@angular/router';
 
-/** `/upl/sources` и `/upl/sources/:id` — один маршрут: список и карточка (как iam/users). */
+/** `/upl/sources` and `/upl/sources/:id` are one route: the list and the card (as in iam/users). */
 export const uplSourceMatcher: UrlMatcher = (segments) => {
   if (segments[0]?.path !== 'upl' || segments[1]?.path !== 'sources' || segments.length > 3) return null;
   if (segments.length === 3 && !/^[1-9]\d{0,18}$/.test(segments[2].path)) return null;
   return { consumed: segments, ...(segments[2] ? { posParams: { id: segments[2] } } : {}) };
 };
 
-/** `/upl/sources/:id/formats/:v` — анкета версии. */
+/** `/upl/sources/:id/formats/:v`: the file format of a version. */
 export const uplFormatMatcher: UrlMatcher = (segments) => {
   if (
     segments.length !== 5 ||

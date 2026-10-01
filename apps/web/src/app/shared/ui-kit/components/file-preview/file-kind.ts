@@ -45,7 +45,7 @@ export function canPreview(mimeType?: string | null, fileName?: string | null): 
 
 const UNITS = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'] as const;
 
-/** "1,5 МБ" / "1.5 MB": the size in the largest unit below 1024, in the person's language. */
+/** "1,5 MB" (unit translated) / "1.5 MB": the size in the largest unit below 1024, in the person's language. */
 export function formatFileSize(bytes: number | null | undefined, locale: string): string {
   const size = Math.max(0, Number(bytes) || 0);
   const power = size === 0 ? 0 : Math.min(UNITS.length - 1, Math.floor(Math.log(size) / Math.log(1024)));
