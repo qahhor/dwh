@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.ms.task.api.UpdateProjectRequest;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.service.MsProjectListService;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -32,6 +33,7 @@ public class MsProjectController {
         this.projectListService = projectListService;
     }
 
+    @Operation(summary = "List projects", description = "Every project the caller may see, for pickers.")
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<List<ProjectView>> listProjects(
@@ -43,6 +45,10 @@ public class MsProjectController {
      * The project list a page at a time on the registry (ms.projects, roadmap item 51): filter, sort, search and
      * the viewer's task counts. The whole list above stays for the pickers.
      */
+    @Operation(
+            summary = "Page through projects",
+            description =
+                    "The projects a keyset page at a time on the registry: filter, sort, search and the caller's task counts.")
     @GetMapping("/page")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<KeysetPage<MsProjectListService.ProjectListItem>> pageProjects(
@@ -56,12 +62,16 @@ public class MsProjectController {
                 projectListService.page(SecurityContext.getCurrentUserId(), limit, cursor, filter, sort, query, state));
     }
 
+    @Operation(summary = "Get a project", description = "One project with its custom field values.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<ProjectView> getProject(@PathVariable("id") Long id) {
         return ResponseEntity.ok(projectService.getProjectById(id));
     }
 
+    @Operation(
+            summary = "Create a project",
+            description = "Adds a project with its name, description, state and custom field values.")
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -72,6 +82,7 @@ public class MsProjectController {
         return Created.at("/api/v1/tasks/projects/{id}", project.id(), project);
     }
 
+    @Operation(summary = "Update a project", description = "Changes a project; names the revision it was read at.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -85,6 +96,7 @@ public class MsProjectController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Add a project member", description = "Adds a user to a project.")
     @PostMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -94,6 +106,7 @@ public class MsProjectController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Remove a project member", description = "Removes a user from a project.")
     @DeleteMapping("/{id}/members/{userId}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -103,6 +116,10 @@ public class MsProjectController {
     }
 
     /** Deprecated for {@code GET /{id}/members/page} (ApiDeprecations); answers the whole list until its sunset. */
+    @Operation(
+            summary = "List project members (deprecated)",
+            description =
+                    "Every member of a project at once. Deprecated for GET /api/v1/tasks/projects/{id}/members/page; answers until its sunset.")
     @GetMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<List<ProjectMemberView>> getMembers(@PathVariable("id") Long id) {
@@ -110,6 +127,9 @@ public class MsProjectController {
     }
 
     /** The members of a project a page at a time, by name (plan 10/10, item 3.5). */
+    @Operation(
+            summary = "Page through project members",
+            description = "The members of a project, by name, a keyset page at a time.")
     @GetMapping("/{id}/members/page")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<KeysetPage<ProjectMemberView>> pageMembers(

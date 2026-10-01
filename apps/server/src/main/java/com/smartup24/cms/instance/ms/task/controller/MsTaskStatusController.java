@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.ms.task.api.UpdateStatusRequest;
 import com.smartup24.cms.instance.ms.task.api.UpdateTypeRequest;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusViewService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -38,12 +39,14 @@ public class MsTaskStatusController {
         this.statuses = statuses;
     }
 
+    @Operation(summary = "List task statuses", description = "The task statuses in their order.")
     @GetMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<TaskStatusView>> listStatuses() {
         return ResponseEntity.ok(statuses.listStatuses());
     }
 
+    @Operation(summary = "Create a task status", description = "Adds a task status.")
     @PostMapping("/statuses")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -52,6 +55,9 @@ public class MsTaskStatusController {
         return Created.at("/api/v1/tasks/statuses/{id}", status.id(), status);
     }
 
+    @Operation(
+            summary = "Update a task status",
+            description = "Changes a task status; names the revision it was read at.")
     @PatchMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -65,6 +71,7 @@ public class MsTaskStatusController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete a task status", description = "Removes a task status.")
     @DeleteMapping("/statuses/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -73,6 +80,7 @@ public class MsTaskStatusController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Reorder task statuses", description = "Sets the order of the task statuses.")
     @PostMapping("/statuses/reorder")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -81,12 +89,14 @@ public class MsTaskStatusController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "List task types", description = "The task types in their order.")
     @GetMapping("/types")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "view")
     public ResponseEntity<List<TaskTypeView>> listTypes() {
         return ResponseEntity.ok(statuses.listTypes());
     }
 
+    @Operation(summary = "Create a task type", description = "Adds a task type.")
     @PostMapping("/types")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -95,6 +105,7 @@ public class MsTaskStatusController {
         return Created.at("/api/v1/tasks/types/{id}", type.id(), type);
     }
 
+    @Operation(summary = "Update a task type", description = "Changes a task type; names the revision it was read at.")
     @PatchMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -108,6 +119,7 @@ public class MsTaskStatusController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete a task type", description = "Removes a task type.")
     @DeleteMapping("/types/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -116,6 +128,7 @@ public class MsTaskStatusController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Reorder task types", description = "Sets the order of the task types.")
     @PostMapping("/types/reorder")
     @RequiresPermission(form = MsTaskPref.FORM_TASKS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)

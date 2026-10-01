@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.ms.task.api.AddCommentRequest;
 import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +28,7 @@ public class MsTaskCommentController {
         this.commentService = commentService;
     }
 
+    @Operation(summary = "List task comments", description = "The comments of a task.")
     @GetMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "view")
     public ResponseEntity<KeysetPage<TaskCommentView>> listComments(
@@ -38,6 +40,7 @@ public class MsTaskCommentController {
                 taskId, SecurityContext.getCurrentUserId(), TimePage.of(limit, cursor, COMMENTS_PAGE, COMMENTS_MAX)));
     }
 
+    @Operation(summary = "Comment on a task", description = "Adds a comment to a task.")
     @PostMapping
     @RequiresPermission(form = MsTaskPref.FORM_COMMENTS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
