@@ -26,7 +26,7 @@ public class ExportPrincipals {
         var previous = SecurityContext.getPrincipal();
         var user = users.getUserIdentity(userId);
         if (!"A".equals(user.state())) {
-            throw ApiException.permissionDenied("iam.profile", "view");
+            throw ApiException.permissionDenied("md.profile", "view");
         }
         SecurityContext.setPrincipal(new SecurityContext.KauthPrincipal(
                 user.id(),

@@ -30,11 +30,11 @@ class MdPermissionEntityNamesTest {
         MdPermissionService service = new MdPermissionService(
                 repository, new EntityRegistry(List.of(MsNoteEntity.DEFINITION), List.of(), List.of(records)));
 
-        service.syncFormCatalog(Set.of("notes.update", "iam.users.block"));
+        service.syncFormCatalog(Set.of("notes.update", "md.users.block"));
 
         verify(repository).registerForm("notes", "ms.note", "Заметки");
         verify(repository).registerFormAction("notes", "update", "Редактирование и закрепление заметки");
-        verify(repository).registerForm("iam.users", "md", "Пользователи");
-        verify(repository).registerFormAction("iam.users", "block", "Блокировка");
+        verify(repository).registerForm("md.users", "md", "Пользователи");
+        verify(repository).registerFormAction("md.users", "block", "Блокировка");
     }
 }

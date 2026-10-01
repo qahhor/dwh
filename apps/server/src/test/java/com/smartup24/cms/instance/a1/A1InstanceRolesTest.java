@@ -27,17 +27,17 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
 
     /** The exact analyst set from V110, part 3: the set of the user role without tasks.*. */
     static final List<String> ANALYST_PAIRS = List.of(
-            "iam.profile:view",
-            "iam.profile:update",
-            "iam.profile:manage_tokens",
-            "iam.profile:manage_channels",
-            "platform.files:view",
-            "platform.files:upload",
-            "platform.search:view",
+            "md.profile:view",
+            "md.profile:update",
+            "md.profile:manage_tokens",
+            "md.profile:manage_channels",
+            "mf.files:view",
+            "mf.files:upload",
+            "search:view",
             "notify.inbox:view",
             "notify.preferences:view",
             "notify.preferences:update",
-            "platform.announcements:view");
+            "notify.announcements:view");
 
     /**
      * Modules add their working pairs to analyst in their own migration (V112: upl.sources, V115: upl.packages);
@@ -130,8 +130,8 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
                 select count(*) from md_role_permissions p
                 join md_roles r on r.id = p.role_id
                 where r.pcode = 'analyst'
-                  and (p.form_code in ('iam.users', 'rbac.roles', 'rbac.assignments', 'audit.log',
-                                       'platform.settings', 'md.custom_fields', 'platform.webhooks')
+                  and (p.form_code in ('md.users', 'md.roles', 'md.assignments', 'audit.log',
+                                       'md.settings', 'md.custom_fields', 'webhook.subscriptions')
                        or p.form_code like 'tasks.%')
                 """).query(Long.class).single();
         assertThat(forbidden).isZero();
@@ -227,10 +227,10 @@ class A1InstanceRolesTest extends EmbeddedPostgresTest {
                 .list();
         assertThat(effective).containsExactlyInAnyOrderElementsOf(allAnalystPairs());
         assertThat(effective)
-                .noneMatch(p -> p.startsWith("iam.users:")
+                .noneMatch(p -> p.startsWith("md.users:")
                         || p.startsWith("rbac.")
                         || p.startsWith("audit.log:")
-                        || p.startsWith("platform.settings:")
+                        || p.startsWith("md.settings:")
                         || p.startsWith("tasks."));
     }
 

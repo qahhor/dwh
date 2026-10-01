@@ -322,9 +322,9 @@ class SearchJobIntegrationTest extends SearchSettingsIntegrationTestSupport {
                         .param("cursor", first.path("nextCursor").asString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1));
-        authenticate(Set.of("platform.search.view"), false);
+        authenticate(Set.of("search.view"), false);
         mvc.perform(auth(get("/api/v1/search/jobs"))).andExpect(status().isForbidden());
-        authenticate(Set.of("platform.search.view"), true);
+        authenticate(Set.of("search.view"), true);
         mvc.perform(auth(get("/api/v1/search/jobs"))).andExpect(status().isOk());
         mvc.perform(auth(post("/api/v1/search/jobs")).content(jobJson(UUID.randomUUID(), "CHECK", null)))
                 .andExpect(status().isForbidden());

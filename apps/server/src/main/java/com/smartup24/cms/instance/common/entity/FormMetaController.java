@@ -81,7 +81,7 @@ public class FormMetaController {
             description =
                     "The fields, layout and rules of an entity form, built from its declaration; the entity's own right is checked.")
     @GetMapping("/{code}")
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<FormMeta> get(@PathVariable String code) {
         EntityDefinition entity = registry.find(code)
                 .filter(found -> SecurityContext.hasPermission(found.form(), "view"))

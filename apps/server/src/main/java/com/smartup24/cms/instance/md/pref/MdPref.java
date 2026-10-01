@@ -18,13 +18,14 @@ public final class MdPref {
     public static final String STATE_ACTIVE = "A";
     public static final String STATE_PASSIVE = "P";
 
-    // Forms
-    public static final String FORM_USERS = "iam.users";
-    public static final String FORM_PROFILE = "iam.profile";
-    public static final String FORM_ROLES = "rbac.roles";
-    public static final String FORM_ASSIGNMENTS = "rbac.assignments";
+    // Forms: <area>.<entity-or-screen>, the area of md is md (ADR-0028)
+    public static final String FORM_USERS = "md.users";
+    public static final String FORM_PROFILE = "md.profile";
+    public static final String FORM_ROLES = "md.roles";
+    public static final String FORM_ASSIGNMENTS = "md.assignments";
     public static final String FORM_CUSTOM_FIELDS = "md.custom_fields";
-    public static final String FORM_SETTINGS = "platform.settings";
-    public static final String FORM_ORG_UNITS = "iam.org_units";
-    public static final String FORM_NAVIGATION = "platform.navigation";
+    public static final String FORM_SETTINGS = "md.settings";
+    public static final String FORM_ORG_UNITS = "md.org_units";
+    public static final String FORM_NAVIGATION = "md.navigation";
+    public static final String FORM_MODULES = "md.modules";
 }

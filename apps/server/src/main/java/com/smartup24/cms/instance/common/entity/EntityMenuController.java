@@ -40,7 +40,7 @@ public class EntityMenuController {
             summary = "Get the entity menu",
             description = "The menu items of the declared entities, each filtered by the caller's right on its entity.")
     @GetMapping("/menu")
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<List<MenuItem>> menu() {
         return ResponseEntity.ok(registry.all().stream()
                 .filter(entity -> entity.menu() != null)

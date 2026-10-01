@@ -49,9 +49,9 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
     @Test
     void permissionsNeverDelegateUnrestrictedIndexAccessToNonAdmins() throws Exception {
         for (var grants : List.of(
-                Set.of("platform.search.view"),
-                Set.of("platform.settings.view"),
-                Set.of("platform.search.view", "platform.settings.view", "platform.settings.update"))) {
+                Set.of("search.view"),
+                Set.of("md.settings.view"),
+                Set.of("search.view", "md.settings.view", "md.settings.update"))) {
             authenticate(grants, false);
             mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isForbidden());
             mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"query\"}"))
@@ -63,7 +63,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void explicitEmptyLimitCannotMoveValidationAheadOfTheServiceAdminCheck() throws Exception {
-        authenticate(Set.of("platform.search.view"), false);
+        authenticate(Set.of("search.view"), false);
         mvc.perform(auth(get("/api/v1/search")).param("q", "delivery").param("limit", ""))
                 .andExpect(status().isForbidden());
         assertThat(paths).isEmpty();
@@ -71,7 +71,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void searchAdminCanPreviewCurrentPolicyButCannotReadConfigurationOrSubmitDraft() throws Exception {
-        authenticate(Set.of("platform.search.view"), true);
+        authenticate(Set.of("search.view"), true);
         mvc.perform(auth(get("/api/v1/search/status"))).andExpect(status().isOk());
         mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"поставка 世界\",\"entity\":\"TASK\"}"))
                 .andExpect(status().isOk())
@@ -131,7 +131,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void settingsReadPermissionAllowsDraftsButDoesNotGrantSave() throws Exception {
-        authenticate(Set.of("platform.search.view", "platform.settings.view"), true);
+        authenticate(Set.of("search.view", "md.settings.view"), true);
         long version = readSettings().path("version").asLong();
         var policy = new SearchQueryPolicy(
                 3, 120, 20, "RU", SearchQueryPolicy.defaults().fields());
@@ -149,7 +149,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
 
     @Test
     void exactIdPreviewRemainsAnIntentionalPostgresLookupDuringAnEngineOutage() throws Exception {
-        authenticate(Set.of("platform.search.view"), true);
+        authenticate(Set.of("search.view"), true);
         healthStatus = 503;
         mvc.perform(auth(post("/api/v1/search/preview")).content("{\"q\":\"#999999999\",\"entity\":\"TASK\"}"))
                 .andExpect(status().isOk())
@@ -181,7 +181,7 @@ class SearchManagementAuthorizationTest extends SearchSettingsIntegrationTestSup
                 "fixture@example.invalid",
                 actorId,
                 false,
-                Set.of("platform.search.view", "platform.settings.view", "platform.settings.update"),
+                Set.of("search.view", "md.settings.view", "md.settings.update"),
                 1,
                 false,
                 0,

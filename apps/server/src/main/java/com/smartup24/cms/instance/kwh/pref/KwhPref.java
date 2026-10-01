@@ -5,5 +5,5 @@ public final class KwhPref {
     private KwhPref() {}
 
     public static final String MODULE_CODE = "kwh";
-    public static final String FORM_WEBHOOKS = "platform.webhooks";
+    public static final String FORM_WEBHOOKS = "webhook.subscriptions";
 }

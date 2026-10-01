@@ -99,7 +99,7 @@ class MdOrgUnitControllerTest {
     @Test
     void exposesExplicitUserAssignmentsToViewers() throws Exception {
         MdScopeService scopeService = mock(MdScopeService.class);
-        SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
+        SecurityContext.setPrincipal(principal(Set.of("md.org_units.view")));
         when(scopeService.getUserAssignments(42L))
                 .thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(7L), 9L, 4L));
 
@@ -114,7 +114,7 @@ class MdOrgUnitControllerTest {
     @Test
     void serializesNullLegacyOrgUnitIdInsteadOfOmittingIt() throws Exception {
         MdScopeService scopeService = mock(MdScopeService.class);
-        SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
+        SecurityContext.setPrincipal(principal(Set.of("md.org_units.view")));
         when(scopeService.getUserAssignments(42L))
                 .thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(), null, 1L));
 
@@ -139,7 +139,7 @@ class MdOrgUnitControllerTest {
     @Test
     void exposesRoleScopeRuleToViewers() throws Exception {
         MdScopeService scopeService = mock(MdScopeService.class);
-        SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
+        SecurityContext.setPrincipal(principal(Set.of("md.org_units.view")));
         when(scopeService.getRoleScopeRule(42L))
                 .thenReturn(new MdOrgUnitDtos.RoleRule(42L, MdScopeService.RULE_ALL, 3L));
 
@@ -174,7 +174,7 @@ class MdOrgUnitControllerTest {
 
     @Test
     void assignmentPutRejectsAnAbsentOrNullIdList() throws Exception {
-        SecurityContext.setPrincipal(principal(Set.of("iam.org_units.assign")));
+        SecurityContext.setPrincipal(principal(Set.of("md.org_units.assign")));
         MockMvc mvc = mvc(mock(MdScopeService.class));
 
         for (String body : List.of("{}", "{\"orgUnitIds\":null}")) {
@@ -189,7 +189,7 @@ class MdOrgUnitControllerTest {
 
     @Test
     void assignmentAndRuleChangesNameTheRevisionAndAnswerTheNewOne() throws Exception {
-        SecurityContext.setPrincipal(principal(Set.of("iam.org_units.assign")));
+        SecurityContext.setPrincipal(principal(Set.of("md.org_units.assign")));
         MdScopeService scopeService = mock(MdScopeService.class);
         when(scopeService.assignUserOrgUnits(42L, List.of(7L), 4L)).thenReturn(5L);
         when(scopeService.setRoleRule(8L, "UNITS", 2L)).thenReturn(3L);

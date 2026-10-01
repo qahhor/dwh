@@ -120,7 +120,7 @@ class TaskFileDataScopeControllerTest {
     void fileEndpointReturnsNotFoundForOutOfScopeIdentifier() throws Exception {
         MfFileService service = mock(MfFileService.class);
         UUID id = UUID.fromString("6db360cf-26ba-4729-b8c9-f5adcf2df74c");
-        SecurityContext.setPrincipal(principal(Set.of("platform.files.view")));
+        SecurityContext.setPrincipal(principal(Set.of("mf.files.view")));
         when(service.getFileMetadata(id, 10L))
                 .thenThrow(ApiException.notFound(ErrorCode.FILE_NOT_FOUND, "Файл не найден"));
 
@@ -134,7 +134,7 @@ class TaskFileDataScopeControllerTest {
     void fileEndpointPassesAuthenticatedUserToScopedRead() throws Exception {
         MfFileService service = mock(MfFileService.class);
         UUID id = UUID.fromString("6db360cf-26ba-4729-b8c9-f5adcf2df74c");
-        SecurityContext.setPrincipal(principal(Set.of("platform.files.view")));
+        SecurityContext.setPrincipal(principal(Set.of("mf.files.view")));
         when(service.getFileMetadata(id, 10L)).thenReturn(file(id));
 
         fileMvc(service)
