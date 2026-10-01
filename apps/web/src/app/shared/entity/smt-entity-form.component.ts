@@ -9,8 +9,9 @@ import {
   input,
   model,
   TemplateRef,
+  type Type,
 } from '@angular/core';
-import { NgTemplateOutlet } from '@angular/common';
+import { NgComponentOutlet, NgTemplateOutlet } from '@angular/common';
 import type {
   FormFieldMeta,
   FormFieldType,
@@ -110,6 +111,7 @@ interface DrawnSection {
   selector: 'smt-entity-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    NgComponentOutlet,
     NgTemplateOutlet,
     SMTControlComponent,
     SMTDynamicFieldComponent,
@@ -139,6 +141,8 @@ interface DrawnSection {
               >
                 @if (replacement(field.meta.key); as custom) {
                   <ng-container *ngTemplateOutlet="custom; context: contextOf(field.meta)" />
+                } @else if (controlOf(field.meta.key); as control) {
+                  <ng-container *ngComponentOutlet="control; inputs: controlInputs(field.meta)" />
                 } @else {
                   @switch (field.control) {
                     @case ('markdown') {
@@ -294,6 +298,12 @@ export class SMTEntityFormComponent {
   /** The sections to draw, by key; every section when empty. */
   readonly sections = input<readonly string[]>([]);
 
+  /**
+   * Controls of the entity's own by field key (`provideEntityOverrides`, ADR-0032 7.2): a component that gets the
+   * inputs `field`, `value`, `problem`, `disabled` and `set`. A template given with `smtEntityField` comes first.
+   */
+  readonly controls = input<Readonly<Record<string, Type<unknown>>>>({});
+
   /** The record's values by field key. */
   readonly value = model<FormValues>({});
 
@@ -318,6 +328,9 @@ export class SMTEntityFormComponent {
       }))
       .filter((section) => section.fields.length > 0);
   });
+
+  /** One setter per field, so the control's input keeps its identity between checks. */
+  private readonly setters = new Map<string, (value: unknown) => void>();
 
   set(key: string, value: unknown): void {
     this.value.update((values) => ({ ...values, [key]: value }));
@@ -371,6 +384,21 @@ export class SMTEntityFormComponent {
     return this.replacements().find((directive) => directive.key() === key)?.template ?? null;
   }
 
+  controlOf(key: string): Type<unknown> | null {
+    return this.controls()[key] ?? null;
+  }
+
+  /** The inputs of a field's own control: the field, its value and problem, whether it is locked, and the setter. */
+  controlInputs(field: FormFieldMeta): Record<string, unknown> {
+    return {
+      field,
+      value: this.value()[field.key] ?? null,
+      problem: this.problemOf(field.key),
+      disabled: this.locked(field),
+      set: this.setterOf(field.key),
+    };
+  }
+
   contextOf(field: FormFieldMeta): SMTEntityFieldContext {
     return {
       $implicit: field,
@@ -378,6 +406,15 @@ export class SMTEntityFormComponent {
       problem: this.problemOf(field.key),
       set: (value) => this.set(field.key, value),
     };
+  }
+
+  private setterOf(key: string): (value: unknown) => void {
+    let setter = this.setters.get(key);
+    if (!setter) {
+      setter = (value) => this.set(key, value);
+      this.setters.set(key, setter);
+    }
+    return setter;
   }
 
   private draw(field: FormFieldMeta, translate: (key: string) => string): DrawnField {

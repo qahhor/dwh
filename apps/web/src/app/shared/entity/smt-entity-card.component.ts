@@ -4,6 +4,7 @@ import { fieldLabel } from '@core/services/form-meta.service';
 import { I18nService } from '@core/services/i18n.service';
 import { RefLookups } from '../lookups/ref-lookup';
 import { UiMarkdownViewComponent } from '../ui/ui-markdown-view.component';
+import { EntitiesApi } from './entities.api';
 import { fieldText } from './entity-values';
 
 interface CardLine {
@@ -11,6 +12,8 @@ interface CardLine {
   label: string;
   text: string;
   markdown: boolean;
+  /** A file field's address, read through the record (ADR-0032 4.7); null for any other field. */
+  href: string | null;
 }
 
 /**
@@ -32,6 +35,10 @@ interface CardLine {
             <dd>
               @if (line.markdown) {
                 <ui-markdown-view [content]="line.text" />
+              } @else if (line.href) {
+                <a class="entity-card-file" [href]="line.href" target="_blank" rel="noopener noreferrer">{{
+                  line.text
+                }}</a>
               } @else {
                 {{ line.text }}
               }
@@ -66,6 +73,10 @@ interface CardLine {
         min-width: 0;
         overflow-wrap: anywhere;
       }
+      .entity-card-file {
+        color: var(--primary-text);
+        text-decoration: underline;
+      }
     `,
   ],
 })
@@ -74,6 +85,8 @@ export class SMTEntityCardComponent {
 
   private readonly refLookups = inject(RefLookups);
 
+  private readonly entities = inject(EntitiesApi);
+
   readonly meta = input.required<FormMeta>();
 
   /** The record's values by field key (`recordValues`). */
@@ -81,6 +94,9 @@ export class SMTEntityCardComponent {
 
   /** The sections to show, by key; every section when empty. */
   readonly sections = input<readonly string[]>([]);
+
+  /** The record shown, when it exists: its file fields then open the file through it (ADR-0032 4.7). */
+  readonly recordId = input<number | null>(null);
 
   readonly lines = computed<CardLine[]>(() => {
     this.i18n.currentLang();
@@ -95,6 +111,7 @@ export class SMTEntityCardComponent {
           label: fieldLabel(field, translate),
           text: fieldText(field, value, translate, this.refLookups),
           markdown: field.type === 'markdown',
+          href: this.fileHref(field, value),
         },
       ];
     });
@@ -110,4 +127,11 @@ export class SMTEntityCardComponent {
         section.fields.map((key) => byKey.get(key)).filter((field): field is FormFieldMeta => !!field),
       );
   });
+
+  private fileHref(field: FormFieldMeta, value: unknown): string | null {
+    const recordId = this.recordId();
+    if ((field.type !== 'file' && field.type !== 'image') || recordId === null) return null;
+    const id = typeof value === 'object' && value !== null && 'id' in value ? (value as { id: unknown }).id : value;
+    return typeof id === 'string' && id !== '' ? this.entities.fileUrl(this.meta().code, recordId, id) : null;
+  }
 }

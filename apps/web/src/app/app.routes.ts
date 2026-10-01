@@ -6,6 +6,7 @@ import { recordNavigationGuard } from './core/guards/record-navigation.guard';
 import { uplFormatMatcher, uplSourceMatcher } from './features/upl/upl-routes';
 
 import { moduleActiveGuard } from './core/guards/module-active.guard';
+import { entityGuard } from './shared/entity/page/entity.guard';
 
 export const routes: Routes = [
   {
@@ -135,6 +136,12 @@ export const routes: Routes = [
         path: 'notes',
         canActivate: [moduleActiveGuard('notes'), permissionGuard('notes', 'view')],
         loadComponent: () => import('./features/notes/notes.component').then((m) => m.NotesComponent),
+      },
+      {
+        // The general screen of every declared entity (ADR-0032 7.1): a new entity needs no route of its own.
+        path: 'e/:code',
+        canActivate: [entityGuard],
+        loadChildren: () => import('./shared/entity/page/entity.routes').then((m) => m.ENTITY_ROUTES),
       },
       {
         path: 'settings/modules',

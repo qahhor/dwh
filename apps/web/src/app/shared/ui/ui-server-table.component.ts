@@ -84,7 +84,9 @@ import { UiPaginationComponent } from './ui-pagination.component';
           />
         }
         @if (views(); as views) {
-          <ui-list-views [state]="views" />
+          @if (savedViews()) {
+            <ui-list-views [state]="views" />
+          }
           @if (exportable() && filterMeta(); as meta) {
             <ui-export-button [meta]="meta" [views]="views" [search]="exportSearch()" [options]="exportOptions()" />
           }
@@ -227,6 +229,11 @@ export class UiServerTableComponent<T> {
   readonly columnsId = input('');
   /** Saved views of the list; when set, they own the column choice instead of `columnsId`. */
   readonly views = input<ListViewState | null>(null);
+  /**
+   * Whether the views menu is offered with `views`; false keeps the filter and the column choice but not saving them
+   * (an entity that does not declare saved views, ADR-0019).
+   */
+  readonly savedViews = input(true);
   /** The list's field metadata; with `views`, it turns on the filter builder. */
   readonly filterMeta = input<QueryListMeta | null>(null);
   /** Offers "Export to Excel" of the list as on screen (ADR-0018); needs `views` and `filterMeta`. */

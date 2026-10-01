@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FormMeta } from '@core/models/form-meta.models';
 import { ApiService } from '@core/services/api.service';
 import { NOTES_FORM_META } from '@testing/form-meta';
+import { translateTest } from '@testing/i18n-test.stub';
 import { SMTModalService, type SMTModalConfirmConfig } from '../ui-kit/components/modal';
 import { ListViewState, ListViewsApi } from '../list-views/list-views';
 import { SMTEntityToolbarComponent } from './smt-entity-toolbar.component';
@@ -68,6 +69,19 @@ describe('SMTEntityToolbarComponent', () => {
     expect(root.querySelector('ui-list-views')).not.toBeNull();
     expect(root.querySelector('[data-testid="export-button"]')).not.toBeNull();
     expect(root.querySelector('[data-testid="entity-bulk-delete"]')?.textContent).toContain('1');
+  });
+
+  it('leaves the views, the export and clearing the choice to the table when asked (ADR-0032 7.1)', async () => {
+    const { fixture, root } = await render(NOTES_FORM_META, [1]);
+    fixture.componentRef.setInput('listTools', false);
+    fixture.componentRef.setInput('clearable', false);
+    fixture.detectChanges();
+
+    expect(root.querySelector('ui-list-views')).toBeNull();
+    expect(root.querySelector('[data-testid="export-button"]')).toBeNull();
+    expect(root.querySelector('[data-testid="entity-archive-toggle"]')).not.toBeNull();
+    expect(root.querySelector('[data-testid="entity-bulk-delete"]')).not.toBeNull();
+    expect(root.textContent).not.toContain(translateTest('ui.entity_toolbar.clear_selection'));
   });
 
   it('offers nothing an entity does not declare, and no delete without its right', async () => {
