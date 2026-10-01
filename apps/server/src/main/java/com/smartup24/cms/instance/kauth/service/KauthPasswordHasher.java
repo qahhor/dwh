@@ -5,7 +5,7 @@ import com.smartup24.cms.instance.md.service.PasswordHasher;
 import org.springframework.stereotype.Component;
 
 /**
- * Адаптер хэшера паролей инстанса к единой библиотеке platform-common.
+ * Adapts the instance password hasher to the shared platform-common library.
  */
 @Component
 public class KauthPasswordHasher implements PasswordHasher {

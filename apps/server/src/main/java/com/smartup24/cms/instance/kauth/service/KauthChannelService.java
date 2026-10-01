@@ -18,23 +18,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Каналы связи пользователя: привязка, подтверждение, выбор для второго фактора
+ * A user's contact channels: linking, confirming, choosing one for the second factor
  * (FR-AUTH-5).
  *
- * Таблица {@code kauth_user_channels} существовала с V001, но ни одного
- * эндпоинта над ней не было: право {@code iam.profile:manage_channels} висело в
- * каталоге мёртвым, привязать канал было нечем, а вход по второму фактору
- * отправлял код в никуда.
+ * The {@code kauth_user_channels} table existed since V001, but there was no
+ * endpoint over it: the {@code iam.profile:manage_channels} permission sat dead in
+ * the catalog, nothing could link a channel, and second-factor sign-in
+ * sent the code nowhere.
  *
- * Владение адресом доказывается кодом: канал становится подтверждённым только
- * после того, как пользователь вернул код, пришедший на этот адрес. Неподтверждённый
- * канал для второго фактора не используется — иначе опечатка в адресе означала бы
- * отправку кода входа постороннему.
+ * Ownership of an address is proved by a code: a channel becomes confirmed only
+ * after the user returns the code sent to that address. An unconfirmed
+ * channel is not used for the second factor; otherwise a typo in the address would mean
+ * sending a sign-in code to a stranger.
  */
 @Service
 public class KauthChannelService {
 
-    /** Порядок предпочтения канала для кода входа. */
+    /** Channel order of preference for the sign-in code. */
     static final List<String> OTP_CHANNEL_PRIORITY =
             List.of(KauthPref.CHANNEL_TELEGRAM, KauthPref.CHANNEL_SMS, KauthPref.CHANNEL_EMAIL);
 
@@ -75,9 +75,9 @@ public class KauthChannelService {
     }
 
     /**
-     * Привязка канала: запись создаётся неподтверждённой, на адрес уходит код.
+     * Links a channel: the record is created unconfirmed and a code is sent to the address.
      *
-     * @return токен, с которым надо прийти в {@link #confirmChannel}
+     * @return the token to bring to {@link #confirmChannel}
      */
     @Transactional
     public String bindChannel(KauthPrincipal principal, String channel, String address) {
@@ -104,7 +104,7 @@ public class KauthChannelService {
 
         otpSender.sendVerificationCode(record, code);
 
-        // Адрес — персональные данные, в журнал идёт только факт и канал.
+        // The address is personal data; only the fact and the channel go to the log.
         auditLogService.logChange(
                 "kauth_user_channels",
                 userId + ":" + normalized,
@@ -117,9 +117,10 @@ public class KauthChannelService {
     }
 
     /**
-     * Подтверждение владения адресом. Пока не подтверждён — код входа туда не уйдёт.
+     * Confirms ownership of an address. Until it is confirmed, no sign-in code goes there.
      *
-     * <p>Отказ ({@link ApiException}) фиксирует транзакцию: откат возвращал списанную попытку (план 10/10, 0.6).
+     * <p>A refusal ({@link ApiException}) commits the transaction: a rollback used to restore the spent attempt
+     * (plan 10/10, item 0.6).
      */
     @Transactional(noRollbackFor = ApiException.class)
     public void confirmChannel(KauthPrincipal principal, String verifyToken, String code) {
@@ -136,7 +137,7 @@ public class KauthChannelService {
         if (otp.expiresAt().isBefore(Instant.now())) {
             throw new ApiException(ErrorCode.OTP_EXPIRED);
         }
-        // Попытка берётся до сравнения: сравнение до списания пропускало параллельные подборы.
+        // The attempt is spent before comparing: comparing first let parallel guessing through.
         if (!otpCodeRepository.claimAttempt(otp.id())) {
             throw ApiException.badRequest(ErrorCode.OTP_INVALID, "error.auth.verification_token_invalid");
         }
@@ -179,9 +180,9 @@ public class KauthChannelService {
     }
 
     /**
-     * Канал для кода входа: подтверждённый, по порядку предпочтения.
-     * Отсутствие такого канала — отказ входа с внятной причиной, а не код,
-     * отправленный в никуда.
+     * The channel for the sign-in code: a confirmed one, in order of preference.
+     * Without such a channel the sign-in is refused with a clear reason, rather than
+     * a code being sent nowhere.
      */
     @Transactional(readOnly = true, noRollbackFor = ApiException.class)
     public KauthChannelRepository.ChannelRecord resolveOtpChannel(Long userId) {

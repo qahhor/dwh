@@ -7,17 +7,6 @@ apps/server/src/main/java/com/smartup24/cms/instance/fnd/config/FndDwhMaintenanc
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/jobs/FndLoadCleanupJob.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/migration/MigrationCatalog.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/fnd/migration/SchemaVersionMismatchException.java 4
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/controller/KauthChannelController.java 6
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/controller/KauthPasswordController.java 15
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/repository/KauthApiTokenRepository.java 1
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/repository/KauthOtpCodeRepository.java 5
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/security/KauthAuthenticationFilter.java 8
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/service/KauthAuthService.java 8
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/service/KauthChannelService.java 19
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/service/KauthOtpSender.java 14
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/service/KauthPasswordHasher.java 1
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/service/KauthSessionCleanupWorker.java 3
-apps/server/src/main/java/com/smartup24/cms/instance/kauth/service/KauthUserSessionInvalidator.java 3
 apps/server/src/main/java/com/smartup24/cms/instance/kwh/service/KwhWebhookService.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/md/controller/MdAssignmentController.java 5
 apps/server/src/main/java/com/smartup24/cms/instance/md/controller/MdListViewController.java 2

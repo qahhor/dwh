@@ -39,11 +39,11 @@ public class KauthOtpCodeRepository {
     }
 
     /**
-     * Код второго фактора, привязанный к своему токену (FR-AUTH-5).
+     * A second-factor code bound to its token (FR-AUTH-5).
      *
-     * Токен хранится хешем и служит единственным способом найти этот код.
-     * До V015 его не было вовсе, и код искали по идентификатору пользователя,
-     * который проверка возвращала захардкоженным.
+     * The token is stored as a hash and is the only way to find this code.
+     * Before V015 there was no token at all, and the code was looked up by a user id
+     * that the check returned hard-coded.
      */
     public OtpRecord create(
             Long userId,
@@ -74,7 +74,7 @@ public class KauthOtpCodeRepository {
                 .orElseThrow(ApiException::invalidCredentials);
     }
 
-    /** Единственный правильный способ найти код: по хешу выданного токена. */
+    /** The only correct way to find a code: by the hash of the issued token. */
     public Optional<OtpRecord> findActiveByTokenHash(String otpTokenHash, String purpose) {
         return jdbcClient
                 .sql(SELECT + " where c.otp_token_hash = :otpTokenHash and c.purpose = :purpose and " + ACTIVE)
