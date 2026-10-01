@@ -31,9 +31,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * The {@link ConstraintCode} enum and the {@code pg_constraint} constraints of the {@code fnd_*} tables match
- * both ways, with names by the naming rule; the facades turn a violation of every class (uk/fk/ck/ex) into a
- * {@link ConstraintViolationException} with its code, and the transaction is rolled back.
+ * The {@link ConstraintCode} enums of the modules split out of the former foundation and the {@code pg_constraint}
+ * constraints of the {@code fnd_*} tables match both ways, with names by the naming rule, and each constraint is a
+ * code of the module that owns its table (plan 10/10, item 4.2); the facades turn a violation of every class
+ * (uk/fk/ck/ex) into a {@link ConstraintViolationException} with its code, and the transaction is rolled back.
  */
 class ConstraintCodeMappingTest extends EmbeddedPostgresTest {
 
@@ -79,7 +80,8 @@ class ConstraintCodeMappingTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("AC-9а: каждое ограничение u/f/c/x таблиц fnd_* есть в enum, каждый элемент enum с именем — в базе")
     void enumAndConstraintsMatchBothWays() {
-        // The fnd_test_* tables come from the version standard tests (FndVersioningTest): fixtures, not the core schema
+        // The fnd_test_* tables come from the version standard tests (VersioningServiceTest): fixtures, not the core
+        // schema
         Set<String> database = Set.copyOf(jdbc.sql("""
                         select con.conname from pg_constraint con
                           join pg_class rel on rel.oid = con.conrelid
@@ -118,6 +120,37 @@ class ConstraintCodeMappingTest extends EmbeddedPostgresTest {
                                 .equalsIgnoreCase(code.constraintName().get()))
                         .toList())
                 .as("имя элемента enum = имя ограничения в верхнем регистре")
+                .isEmpty();
+    }
+
+    @Test
+    @DisplayName("4.2: каждое ограничение таблицы fnd_* — код модуля-владельца таблицы")
+    void eachConstraintIsACodeOfTheTablesOwner() {
+        List<Map<String, Object>> constraints = jdbc.sql("""
+                        select rel.relname as table_name, con.conname as constraint_name from pg_constraint con
+                          join pg_class rel on rel.oid = con.conrelid
+                          join pg_namespace ns on ns.oid = rel.relnamespace
+                         where ns.nspname = 'public' and rel.relname like 'fnd\\_%'
+                           and rel.relname not like 'fnd\\_test\\_%'
+                           and con.contype in ('u', 'f', 'c', 'x')
+                        """).query().listOfRows();
+        List<String> misplaced = constraints.stream()
+                .filter(row -> {
+                    String table = (String) row.get("table_name");
+                    String constraint = (String) row.get("constraint_name");
+                    return ConstraintCodeCatalog.BY_TABLE_PREFIX.entrySet().stream()
+                            .filter(owner -> table.startsWith(owner.getKey()))
+                            .noneMatch(owner -> owner.getValue().stream()
+                                    .anyMatch(code -> code.constraintName()
+                                            .filter(constraint::equals)
+                                            .isPresent()));
+                })
+                .map(row -> row.get("table_name") + "." + row.get("constraint_name"))
+                .sorted()
+                .toList();
+        assertThat(constraints).as("ограничения в базе").isNotEmpty();
+        assertThat(misplaced)
+                .as("ограничение не в enum модуля-владельца таблицы")
                 .isEmpty();
     }
 
