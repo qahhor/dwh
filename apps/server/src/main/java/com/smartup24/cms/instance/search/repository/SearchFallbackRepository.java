@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.search.repository;
 
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -131,16 +132,21 @@ public class SearchFallbackRepository {
                 .list();
     }
 
+    /** A note is its owner's alone (ADR-0013): the search shows the caller only their own notes. */
     private List<FallbackHit> searchNotes(String[] patterns, String primaryPattern, int limit) {
+        Long owner = SecurityContext.getCurrentUserId();
+        if (owner == null) return List.of();
         return jdbcClient
                 .sql("""
                 select id, title, content_md
                 from ms_note_pub_notes
-                where title ilike any(:patterns)
-                   or content_md ilike any(:patterns)
+                where created_by = :owner
+                  and (title ilike any(:patterns)
+                   or content_md ilike any(:patterns))
                 order by (title ilike :primary) desc, is_pinned desc, id desc
                 limit :limit
                 """)
+                .param("owner", owner)
                 .param("patterns", patterns)
                 .param("primary", primaryPattern)
                 .param("limit", limit)
@@ -202,12 +208,15 @@ public class SearchFallbackRepository {
     }
 
     private List<FallbackHit> exactNote(long id) {
+        Long owner = SecurityContext.getCurrentUserId();
+        if (owner == null) return List.of();
         return jdbcClient
                 .sql("""
                 select id, title, content_md from ms_note_pub_notes
-                where id = :id order by id
+                where id = :id and created_by = :owner order by id
                 """)
                 .param("id", id)
+                .param("owner", owner)
                 .query((rs, rowNum) -> new FallbackHit(
                         "NOTE",
                         Long.toString(rs.getLong("id")),
