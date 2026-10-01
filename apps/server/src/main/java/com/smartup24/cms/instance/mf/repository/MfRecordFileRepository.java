@@ -48,6 +48,17 @@ public class MfRecordFileRepository {
                 .optional();
     }
 
+    /** The file attached to the record's field, if any. */
+    public Optional<UUID> current(String entity, long recordId, String fieldKey) {
+        return jdbc.sql("select file_id from mf_record_files where entity = :entity and record_id = :recordId"
+                        + " and field_key = :fieldKey limit 1")
+                .param("entity", entity)
+                .param("recordId", recordId)
+                .param("fieldKey", fieldKey)
+                .query(UUID.class)
+                .optional();
+    }
+
     /** Replaces the attachment of the record's field with {@code fileId}, or removes it when null. */
     public void replace(String entity, long recordId, String fieldKey, @Nullable UUID fileId) {
         jdbc.sql("delete from mf_record_files where entity = :entity and record_id = :recordId"
@@ -68,8 +79,9 @@ public class MfRecordFileRepository {
         }
     }
 
-    public void deleteRecord(String entity, long recordId) {
-        jdbc.sql("delete from mf_record_files where entity = :entity and record_id = :recordId")
+    /** Removes the record's attachments; how many there were. */
+    public int deleteRecord(String entity, long recordId) {
+        return jdbc.sql("delete from mf_record_files where entity = :entity and record_id = :recordId")
                 .param("entity", entity)
                 .param("recordId", recordId)
                 .update();

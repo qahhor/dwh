@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.query.QueryField;
@@ -100,7 +101,10 @@ class FieldTypesIntegrationTest {
                 List.of(new EntityEnumResolver(entities, enums)));
         repository = new QueryListRepository(jdbc);
         attachments = new MfAttachments(
-                new MfRecordFileRepository(jdbc), new MfFileRepository(jdbc, repository), mock(StorageProvider.class));
+                new MfRecordFileRepository(jdbc),
+                new MfFileRepository(jdbc, repository),
+                mock(StorageProvider.class),
+                mock(AuditLogService.class));
         values = new EntityFieldValues(enums, attachments, jdbc, java.time.Clock.systemUTC());
     }
 
