@@ -19,11 +19,12 @@ $root = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot "..\.."))
 # The management port is never published: the probe is read from inside the server container, as its healthcheck does.
 $readinessUrl = 'http://127.0.0.1:9090/actuator/health/readiness'
 
+# A simple function on purpose: its arguments (-T, -s, -o, -w) pass through to docker instead of binding as
+# PowerShell parameters.
 function Invoke-Compose {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
     $prefix = @('compose')
     if (-not [string]::IsNullOrWhiteSpace($ProjectName)) { $prefix += @('-p', $ProjectName) }
-    & docker @prefix @Arguments
+    & docker @prefix @args
 }
 
 function Get-ReadinessStatus {
