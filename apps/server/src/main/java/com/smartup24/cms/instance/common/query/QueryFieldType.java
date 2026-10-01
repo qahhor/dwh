@@ -15,7 +15,7 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 
-/** Тип поля реестра: от него зависят разбор значения, допустимые операции и редактор фильтра на клиенте. */
+/** A registry field type: it drives value parsing, the allowed operations and the client's filter editor. */
 public enum QueryFieldType {
     TEXT(EnumSet.of(EQ, NE, IN, CONTAINS, STARTS_WITH)),
     NUMBER(EnumSet.of(EQ, NE, IN, GT, GTE, LT, LTE, BETWEEN)),
@@ -30,7 +30,7 @@ public enum QueryFieldType {
         this.ops = ops;
     }
 
-    /** Операции типа; {@code empty}/{@code not_empty} добавляет само поле, если оно может быть пустым. */
+    /** The type's operations; the field itself adds {@code empty}/{@code not_empty} if it can be empty. */
     Set<QueryOp> ops() {
         return EnumSet.copyOf(ops);
     }

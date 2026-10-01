@@ -1,22 +1,6 @@
 # Files that still have comments in Russian, with the number of their comment lines that have
 # Cyrillic letters (plan 10/10, item 3.14, checked by CommentLanguageTest). The numbers only go down:
 # translate comments and lower the number (-Dcomment.baseline.update=true); a new file never goes here.
-apps/server/src/main/java/com/smartup24/cms/instance/common/bulk/BulkRunner.java 10
-apps/server/src/main/java/com/smartup24/cms/instance/common/provider/NotificationChannelStartupCheck.java 9
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryCompiler.java 9
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryCursor.java 4
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryField.java 16
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryFieldType.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryList.java 13
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryListRegistry.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryListRepository.java 3
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryMetaController.java 5
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryOp.java 2
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryPlan.java 9
-apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryValues.java 3
-apps/server/src/main/java/com/smartup24/cms/instance/common/security/ClientIpResolver.java 17
-apps/server/src/main/java/com/smartup24/cms/instance/common/security/ScopeFilter.java 10
-apps/server/src/main/java/com/smartup24/cms/instance/common/security/TrustedProxyProperties.java 4
 apps/server/src/main/java/com/smartup24/cms/instance/config/bootstrap/InstanceBootstrap.java 6
 apps/server/src/main/java/com/smartup24/cms/instance/config/bootstrap/InstanceBootstrapProperties.java 2
 apps/server/src/main/java/com/smartup24/cms/instance/config/db/MigrateModeRunner.java 3

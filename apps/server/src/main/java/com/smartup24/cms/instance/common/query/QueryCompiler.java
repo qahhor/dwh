@@ -20,10 +20,11 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Разбор и проверка запроса к списку по реестру. DSL фильтра — JSON-массив условий, соединённых «и»:
+ * Parses and validates a list query against the registry. The filter DSL is a JSON array of conditions joined by
+ * "and":
  * <pre>[{"field":"code","op":"starts_with","value":"sales."},{"field":"periodicity","op":"in","value":["month","year"]}]</pre>
- * Сортировка — ключ поля, с минусом для убывания ({@code -name}). Любая ошибка — 422 со списком полей,
- * по которому клиент подсветит условие: {@code filter[1].op}, {@code sort}, {@code limit}, {@code cursor}.
+ * Sorting is a field key, with a minus for descending ({@code -name}). Any error is a 422 with a list of fields
+ * the client uses to highlight the condition: {@code filter[1].op}, {@code sort}, {@code limit}, {@code cursor}.
  */
 public final class QueryCompiler {
 
@@ -38,7 +39,7 @@ public final class QueryCompiler {
     public static final String SORT_INVALID = "QUERY_SORT_INVALID";
     public static final String SEARCH_INVALID = "QUERY_SEARCH_INVALID";
 
-    /** Больше условий человек в фильтре не собирает; ограничение защищает базу от гигантских запросов. */
+    /** No person builds a filter with more conditions; the limit protects the database from huge queries. */
     public static final int MAX_CONDITIONS = 20;
 
     public static final int MAX_IN_VALUES = 100;
@@ -65,8 +66,8 @@ public final class QueryCompiler {
     }
 
     /**
-     * @param search свободный поиск {@code q}: подстрока в любом поле с {@code searchable}, без учёта регистра;
-     *               пустой — без поиска
+     * @param search free-text search {@code q}: a case-insensitive substring in any {@code searchable} field;
+     *               blank means no search
      */
     public static QueryPlan compile(
             QueryList list,
@@ -79,9 +80,10 @@ public final class QueryCompiler {
     }
 
     /**
-     * @param narrowing параметры модуля, сужающие список помимо DSL (например, прежние плоские фильтры), в
-     *                  канонической строке. Они входят в отпечаток курсора: курсор от другого набора
-     *                  параметров отвергается так же, как от другого фильтра. {@code null} — таких параметров нет
+     * @param narrowing module parameters that narrow the list beyond the DSL (for example, the former flat
+     *                  filters), as a canonical string. They are part of the cursor fingerprint: a cursor from
+     *                  another parameter set is rejected just like one from another filter. {@code null} means
+     *                  there are no such parameters
      */
     public static QueryPlan compile(
             QueryList list,

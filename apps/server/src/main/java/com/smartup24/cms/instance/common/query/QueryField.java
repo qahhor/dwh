@@ -9,19 +9,22 @@ import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Поле списка в реестре. {@code sql} — выражение над {@code from} списка; оно пишется в коде модуля
- * и в запрос попадает только через реестр, значения — только параметрами. Клиенту уходит всё, кроме {@code sql}.
+ * A list field in the registry. {@code sql} is an expression over the list's {@code from}; it is written in module
+ * code and reaches the query only through the registry, with values only as parameters. The client receives
+ * everything except {@code sql}.
  *
- * @param key            имя поля в DSL и в ответе ({@code lastPublishedVersion})
- * @param labelKey       ключ словаря для заголовка
- * @param enumLabelPrefix префикс ключей словаря для значений перечисления ({@code upl.periodicity.})
- * @param sortable       можно сортировать; такое поле не бывает пустым, иначе keyset-курсор теряет строки
- * @param searchable     участвует в свободном поиске {@code q} (только текст)
- * @param requiredForm   право, без которого поле не существует для смотрящего (ADR-0016, 2.9); null — поле открыто
- * @param requiredAction действие этого права
- * @param label          готовая подпись вместо ключа словаря: у дополнительного поля есть только имя (ADR-0019, 2.3)
- * @param attribute      код дополнительного поля: значение лежит в {@code attributes[attribute]} строки, а не в {@code key}
- * @param ref            ссылка на другой список: значение — ключ его строки, выбирается по названию (ADR-0019, 2.4)
+ * @param key            field name in the DSL and in the response ({@code lastPublishedVersion})
+ * @param labelKey       dictionary key for the caption
+ * @param enumLabelPrefix dictionary key prefix for enum values ({@code upl.periodicity.})
+ * @param sortable       sortable; such a field is never empty, otherwise the keyset cursor loses rows
+ * @param searchable     takes part in free-text search {@code q} (text only)
+ * @param requiredForm   permission without which the field does not exist for the viewer (ADR-0016); null means
+ *                       the field is open
+ * @param requiredAction the action of that permission
+ * @param label          a ready caption instead of a dictionary key: a custom field has only a name (ADR-0019)
+ * @param attribute      custom field code: the value lives in the row's {@code attributes[attribute]}, not in
+ *                       {@code key}
+ * @param ref            reference to another list: the value is that list's row key, chosen by name (ADR-0019)
  */
 public record QueryField(
         String key,
@@ -246,8 +249,8 @@ public record QueryField(
     }
 
     /**
-     * Поле только для тех, у кого есть право: без него поле не показывается в метаданных, не принимается
-     * в фильтре, сортировке и поиске, а его значение не уходит в ответе списка.
+     * A field only for holders of the permission: without it the field is not shown in metadata, not accepted
+     * in filter, sort or search, and its value is not sent in the list response.
      */
     public QueryField requires(String form, String action) {
         return new QueryField(
@@ -269,14 +272,14 @@ public record QueryField(
                 ref);
     }
 
-    /** Видит ли поле тот, кто сейчас спрашивает. */
+    /** Whether the current requester can see the field. */
     public boolean visibleToViewer() {
         // The constructor keeps form and action together.
         return requiredForm == null
                 || SecurityContext.hasPermission(requiredForm, Objects.requireNonNull(requiredAction));
     }
 
-    /** Операции, которые поле принимает в фильтре; пусто — поле не фильтруется. */
+    /** Operations the field accepts in a filter; empty means the field is not filterable. */
     public Set<QueryOp> ops() {
         if (!filterable) {
             return EnumSet.noneOf(QueryOp.class);
