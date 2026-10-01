@@ -18,9 +18,10 @@ import org.springframework.stereotype.Component;
  * modules' services, and those the registry of lists.
  *
  * <p>The list of an entity: its code is the entity's list code, its right {@code <form>.view}; it reads
- * {@code <table> <alias>}; it selects the system columns and every field as {@code <sql> as "<key>"}, and the
- * record's {@code attributes} as text when the entity takes custom fields, so a row is read by the record's keys; its
- * fields are the list parts of the entity's fields in declaration order.
+ * {@code <table> <alias>}; it selects the system columns, every field as {@code <sql> as "<key>"} and the record's
+ * {@code attributes} as text — columns every entity table has (ADR-0032, 14.1) — so a row is read by the record's
+ * keys; its fields are the list parts of the entity's fields in declaration order. Only an entity that takes custom
+ * fields offers them in the list ({@code customEntity}, {@code attributesSql}).
  */
 @Component
 public class EntityLists implements QueryListSource {
@@ -51,7 +52,7 @@ public class EntityLists implements QueryListSource {
                 Objects.requireNonNull(entity.listCode(), entity.code()),
                 entity.form(),
                 "view",
-                select(model, attributes),
+                select(model),
                 model.table() + " " + alias,
                 alias + ".id",
                 model.listFields(),
@@ -64,7 +65,7 @@ public class EntityLists implements QueryListSource {
                 false);
     }
 
-    private static String select(EntityModel model, @Nullable String attributes) {
+    private static String select(EntityModel model) {
         String alias = model.alias();
         List<String> columns = new ArrayList<>();
         for (SystemColumn column : SystemColumn.values()) {
@@ -74,9 +75,7 @@ public class EntityLists implements QueryListSource {
             if (field.source() instanceof FieldSource.SystemValue) continue;
             columns.add(field.source().sql(alias) + " as \"" + field.key() + "\"");
         }
-        if (attributes != null) {
-            columns.add(attributes + "::text as \"" + ATTRIBUTES + "\"");
-        }
+        columns.add(alias + "." + ATTRIBUTES + "::text as \"" + ATTRIBUTES + "\"");
         return String.join(", ", columns);
     }
 }

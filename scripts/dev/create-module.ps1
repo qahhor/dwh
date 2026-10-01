@@ -6,8 +6,10 @@
     1. Two Flyway migrations: the table (ADR-0020 naming and types, a revision column for If-Match) and the seed
        (the right's catalog, grants to the system roles, the module registry). DDL and seed data never share a file.
     2. Java: the api package (the view and the request records), repository (JsonColumns, revision), service
-       (ApiException with catalog keys, keyset pages), controller (201 + Location, If-Match, 204), the list in the
-       field registry (Query) and the entity declaration (Entity) with its records bean (ADR-0019).
+       (ApiException with catalog keys, keyset pages), controller (201 + Location, If-Match, 204) and the entity
+       declaration (Entity) with its records bean (ADR-0019). Every field is declared once, as an EntityField: the
+       form and the list in the field registry are derived from it (ADR-0032, plan 10/10, item 5.1).
+    The area of the module's right is registered in PermissionAreas, so the right has its owning module (ADR-0028).
     3. Catalog keys in ru/uz/en (apps/server/src/main/resources/i18n): the error, the menu item and the labels.
     What is left to do by hand is printed at the end; scripts/dev/test-create-module.ps1 checks the output compiles
     and passes the architecture tests.
@@ -86,6 +88,11 @@ $tableName = "${prefixLower}_${cleanCode}"
 $pkg = "com.smartup24.cms.instance.${prefixLower}.${cleanCode}"
 $javaBase = Join-Path $Root "apps\server\src\main\java\com\smartup24\cms\instance\${prefixLower}\${cleanCode}"
 if (Test-Path $javaBase) { throw "The module already exists: $javaBase" }
+
+# The right's form is the module code, so the code must not be a permission area already (ADR-0028).
+$areasFile = Join-Path $Root "apps\server\src\main\java\com\smartup24\cms\instance\md\pref\PermissionAreas.java"
+$areasText = [System.IO.File]::ReadAllText($areasFile, (New-Object System.Text.UTF8Encoding $false))
+if ($areasText.Contains("`"$cleanCode`"")) { throw "The permission area $cleanCode is taken (PermissionAreas)" }
 
 Write-Host "=== SmartupCMS module generator ===" -ForegroundColor Cyan
 Write-Host "Module: $cleanCode ($pkg), table $tableName"
@@ -171,7 +178,7 @@ on conflict (code) do nothing;
 
 Write-Host "-> Migrations: $tableMigration, $seedMigration" -ForegroundColor Yellow
 
-# 2. Java: api, repository, service (list, entity, service) and controller, as in ms/note
+# 2. Java: api, repository, service (entity, service) and controller, as in ms/note
 $apiDir = Join-Path $javaBase "api"
 $repoDir = Join-Path $javaBase "repository"
 $serviceDir = Join-Path $javaBase "service"
@@ -184,7 +191,7 @@ Write-Utf8 (Join-Path $javaBase "package-info.java") @"
 /**
  * Module {@code ${prefixLower}.${cleanCode}}: $titleComment.
  *
- * <p>Declared through {@code EntityDefinition} by scripts/dev/create-module.ps1 (ADR-0019). Describe here what the
+ * <p>Declared with {@code Entity.define} by scripts/dev/create-module.ps1 (ADR-0019, ADR-0032). Describe here what the
  * module is for, and give it a row in docs/architecture/module-map.md (plan 10/10, item 4.3).
  */
 package ${pkg};
@@ -196,7 +203,6 @@ $updateClass = "${prefixUpper}${capitalName}UpdateRequest"
 $repoClass = "${prefixUpper}${capitalName}Repository"
 $serviceClass = "${prefixUpper}${capitalName}Service"
 $ctrlClass = "${prefixUpper}${capitalName}Controller"
-$queryClass = "${prefixUpper}${capitalName}Query"
 $entityClass = "${prefixUpper}${capitalName}Entity"
 $listCode = "${prefixLower}.${cleanCode}"
 $notFoundKey = "error.${cleanCode}.not_found"
@@ -263,9 +269,12 @@ import tools.jackson.databind.ObjectMapper;
 @Repository
 public class ${repoClass} {
 
+    /** The row as the entity's derived list reads it (ADR-0032, 3.4): every column under the record's key. */
     public static final String COLUMNS = """
-            t.id, t.name, t.code, t.status, t.attributes::text as attributes_str,
-            t.created_by, t.modified_by, t.created_at, t.modified_at, t.revision""";
+            t.id as "id", t.revision as "revision", t.created_at as "createdAt", t.created_by as "createdBy",
+            t.modified_at as "modifiedAt", t.modified_by as "modifiedBy", t.name as "name", t.code as "code",
+            t.status as "status", t.attributes::text as "attributes"
+            """;
 
     private final JdbcClient jdbcClient;
     private final JsonColumns jsonColumns;
@@ -346,11 +355,11 @@ public class ${repoClass} {
                 rs.getString("name"),
                 rs.getString("code"),
                 rs.getString("status"),
-                jsonColumns.readObject(rs.getString("attributes_str")),
-                rs.getLong("created_by"),
-                rs.getLong("modified_by"),
-                instant(rs.getTimestamp("created_at")),
-                instant(rs.getTimestamp("modified_at")),
+                jsonColumns.readObject(rs.getString("attributes")),
+                rs.getLong("createdBy"),
+                rs.getLong("modifiedBy"),
+                instant(rs.getTimestamp("createdAt")),
+                instant(rs.getTimestamp("modifiedAt")),
                 rs.getLong("revision"));
     }
 
@@ -360,118 +369,73 @@ public class ${repoClass} {
 }
 "@
 
-Write-Utf8 (Join-Path $serviceDir "${queryClass}.java") @"
-package ${pkg}.service;
-
-import com.smartup24.cms.instance.common.query.QueryField;
-import com.smartup24.cms.instance.common.query.QueryFieldType;
-import com.smartup24.cms.instance.common.query.QueryList;
-import ${pkg}.repository.${repoClass};
-import java.util.List;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-/**
- * The $cleanCode list in the field registry (ADR-0016): GET /api/v1/$cleanCode and /api/v1/query-meta/$listCode. A
- * table that grows without bound reports an estimate instead of a count: add withEstimatedTotal() (plan 10/10, item
- * 3.5).
- */
-@Configuration
-public class ${queryClass} {
-
-    public static final QueryList LIST = new QueryList(
-            "$listCode",
-            "$cleanCode",
-            "view",
-            ${repoClass}.COLUMNS,
-            "$tableName t",
-            "t.id",
-            List.of(
-                    QueryField.of("name", "${cleanCode}.col.name", QueryFieldType.TEXT, "t.name")
-                            .asSortable()
-                            .asSearchable(),
-                    QueryField.of("code", "${cleanCode}.col.code", QueryFieldType.TEXT, "t.code")
-                            .asSortable()
-                            .asSearchable(),
-                    QueryField.enumeration(
-                            "status", "${cleanCode}.col.status", "t.status", ${entityClass}.STATUSES, "${cleanCode}.status."),
-                    QueryField.of("modifiedAt", "${cleanCode}.col.modified_at", QueryFieldType.INSTANT, "t.modified_at")
-                            .asSortable()),
-            "modifiedAt",
-            true,
-            QueryList.DEFAULT_LIMIT,
-            QueryList.MAX_LIMIT);
-
-    @Bean
-    public QueryList ${prefixLower}${capitalName}QueryList() {
-        return LIST;
-    }
-}
-"@
-
 Write-Utf8 (Join-Path $serviceDir "${entityClass}.java") @"
 package ${pkg}.service;
 
+import static com.smartup24.cms.instance.common.entity.field.EntityFields.instant;
+import static com.smartup24.cms.instance.common.entity.field.EntityFields.select;
+import static com.smartup24.cms.instance.common.entity.field.EntityFields.sortable;
+import static com.smartup24.cms.instance.common.entity.field.EntityFields.text;
+
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.entity.Entity;
 import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityRights;
-import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
 import com.smartup24.cms.instance.common.entity.EntityRecords;
-import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.FormFieldType;
+import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * The $cleanCode entity, declared once (ADR-0019): its form and rules (GET /api/v1/form-meta/$listCode), the names
- * of its right, its menu item, and history, export, saved views and bulk delete. A new field goes here, into the list
- * and into the repository.
+ * The $cleanCode entity, every field declared once (ADR-0019, ADR-0032): its form and rules (GET
+ * /api/v1/form-meta/$listCode) and its list in the field registry (GET /api/v1/$cleanCode, /api/v1/query-meta/$listCode)
+ * are derived from the fields, with the names of its right, its menu item, and history, export, saved views and bulk
+ * delete. A new field goes here and into the repository.
  */
 @Configuration
 public class ${entityClass} {
 
     public static final List<String> STATUSES = List.of("active", "archived");
 
-    public static final EntityDefinition DEFINITION = new EntityDefinition(
-            "$listCode",
-            "$cleanCode",
-            "$listCode",
-            null,
-            "$tableName",
-            new EntityRights(
-                    "$prefixLower",
+    public static final EntityDefinition DEFINITION = Entity.define("$listCode", "$cleanCode")
+            .table("$tableName", "t")
+            .rights(
+                    "${prefixLower}.${cleanCode}",
                     "${cleanCode}.rights.form",
                     Map.of(
                             "view", "${cleanCode}.rights.view",
                             "create", "${cleanCode}.rights.create",
                             "update", "${cleanCode}.rights.update",
-                            "delete", "${cleanCode}.rights.delete")),
-            new EntityMenu("/$cleanCode", "nav.$cleanCode", "$Icon", "workspace", 100, "$cleanCode"),
-            List.of(
-                    FormField.of("name", "${cleanCode}.col.name", FormFieldType.TEXT)
-                            .asRequired()
-                            .length(1, 255),
-                    FormField.of("code", "${cleanCode}.col.code", FormFieldType.TEXT)
-                            .asRequired()
-                            .length(1, 64)
-                            .matching("[a-z0-9_-]+"),
-                    FormField.select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status.")),
-            List.of(new FormSection("main", "entity.section.main", List.of("name", "code", "status"))),
-            List.of(
-                    new EntityAction("create", "create"),
-                    new EntityAction("update", "update"),
-                    new EntityAction("delete", "delete")),
-            Set.of(
+                            "delete", "${cleanCode}.rights.delete"))
+            .menu(new EntityMenu("/$cleanCode", "nav.$cleanCode", "$Icon", "workspace", 100, "$cleanCode"))
+            .field(text("name", "${cleanCode}.col.name")
+                    .column("name")
+                    .required()
+                    .length(1, 255)
+                    .list(sortable().searchable()))
+            .field(text("code", "${cleanCode}.col.code")
+                    .column("code")
+                    .required()
+                    .length(1, 64)
+                    .matching("[a-z0-9_-]+")
+                    .list(sortable().searchable()))
+            .field(select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status.")
+                    .column("status"))
+            .field(instant("modifiedAt", "${cleanCode}.col.modified_at")
+                    .system(SystemColumn.MODIFIED_AT)
+                    .list(sortable()))
+            .section("main", "entity.section.main", "name", "code", "status")
+            .actions("create", "update", "delete")
+            .defaultSort("modifiedAt", Entity.Sort.DESC)
+            .capabilities(
                     EntityCapability.SAVED_VIEWS,
                     EntityCapability.EXPORT,
                     EntityCapability.HISTORY,
-                    EntityCapability.BULK));
+                    EntityCapability.BULK)
+            .build();
 
     /** Named apart from the bean of this configuration class itself (${prefixLower}${capitalName}Entity). */
     @Bean
@@ -516,6 +480,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
+import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import ${pkg}.api.${viewClass};
 import ${pkg}.repository.${repoClass};
 import ${pkg}.repository.${repoClass}.ItemRecord;
@@ -526,24 +491,28 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Saves are checked by the entity declaration (${entityClass}); every change is audited under $tableName. Errors are
- * ApiException with a catalog key (ADR-0021); a change names the revision it was made from (ADR-0024).
+ * Saves are checked by the entity declaration (${entityClass}); the list is the one the registry derives from it
+ * (ADR-0032, 3.4); every change is audited under $tableName. Errors are ApiException with a catalog key (ADR-0021); a
+ * change names the revision it was made from (ADR-0024).
  */
 @Service
 public class ${serviceClass} {
 
     private final ${repoClass} repository;
     private final AuditLogService auditLogService;
+    private final QueryListRegistry lists;
 
-    public ${serviceClass}(${repoClass} repository, AuditLogService auditLogService) {
+    public ${serviceClass}(${repoClass} repository, AuditLogService auditLogService, QueryListRegistry lists) {
         this.repository = repository;
         this.auditLogService = auditLogService;
+        this.lists = lists;
     }
 
     /** A page of the list ($listCode): filter, sort, search and the keyset cursor; the total as the list reports it. */
     @Transactional(readOnly = true)
     public KeysetPage<${viewClass}> page(Integer limit, String cursor, String filter, String sort, String search) {
-        var page = repository.page(QueryCompiler.compile(${queryClass}.LIST, filter, sort, limit, cursor, search));
+        var list = lists.get(${entityClass}.DEFINITION.code());
+        var page = repository.page(QueryCompiler.compile(list, filter, sort, limit, cursor, search));
         return new KeysetPage<>(
                 page.items().stream().map(${serviceClass}::view).toList(),
                 page.nextCursor(),
@@ -733,6 +702,16 @@ public class ${ctrlClass} {
 
 Write-Host "-> Java: $pkg (api, repository, service, controller)" -ForegroundColor Yellow
 
+# The area of the right and its owning module (ADR-0028): the form $cleanCode belongs to ${prefixLower}.${cleanCode}, the
+# module its EntityRights name (EntityActionPermissionContractTest, PermissionCodesTest).
+$anchor = "NAMED_AREAS = Map.of("
+$index = $areasText.IndexOf($anchor)
+if ($index -lt 0) { throw "PermissionAreas.NAMED_AREAS not found in $areasFile" }
+$areasNewline = if ($areasText.Contains("`r`n")) { "`r`n" } else { "`n" }
+$areasText = $areasText.Insert($index + $anchor.Length, "$areasNewline            `"$cleanCode`", `"${prefixLower}.${cleanCode}`",")
+[System.IO.File]::WriteAllText($areasFile, $areasText, (New-Object System.Text.UTF8Encoding $false))
+Write-Host "-> Permission area: $cleanCode -> ${prefixLower}.${cleanCode} (PermissionAreas)" -ForegroundColor Yellow
+
 # 3. Catalog keys in ru/uz/en: the error key is required by ErrorTextsTest; the labels by the screen
 $labels = [ordered]@{
     "nav.$cleanCode"                 = @{ ru = $ModuleTitle; en = $TitleEn; uz = $TitleUz }
@@ -776,6 +755,6 @@ Write-Host "  2. Check the uz/en texts of the added keys; then in apps/web: npm 
 Write-Host "  3. API description: mvn -B -pl apps/server test -Dtest=OpenApiContractTest -Dopenapi.update=true; in apps/web: npm run api:types"
 Write-Host "  4. Screen: a route to /$cleanCode with smt-entity-form, smt-entity-card and smt-entity-toolbar; PUT sends ifMatch: revision"
 Write-Host "  5. Tests as for notes (MsNoteControllerTest); a line for $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
-Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and ownerOf; a growing table: LARGE_TABLES, withEstimatedTotal(), a RetentionPolicy"
+Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and its table prefix; a growing table: LARGE_TABLES, a RetentionPolicy"
 Write-Host "     the purpose in package-info.java and a row in docs/architecture/module-map.md (ModuleMapTest)"
 Write-Host "  6. mvn -B verify (Checkstyle, Spotless, architecture tests); scripts/dev/test-create-module.ps1 checks this generator"

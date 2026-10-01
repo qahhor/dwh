@@ -70,7 +70,9 @@ class EntityListsTest {
         assertThat(list.select())
                 .isEqualTo("t.id as \"id\", t.revision as \"revision\", t.created_at as \"createdAt\","
                         + " t.created_by as \"createdBy\", t.modified_at as \"modifiedAt\","
-                        + " t.modified_by as \"modifiedBy\", t.name as \"name\", t.status as \"status\"");
+                        + " t.modified_by as \"modifiedBy\", t.name as \"name\", t.status as \"status\","
+                        + " t.attributes::text as \"attributes\"");
+        assertThat(list.attributesSql()).as("no custom fields offered").isNull();
         assertThat(list.fields()).extracting(QueryField::key).containsExactly("name", "status", "modifiedAt");
     }
 
