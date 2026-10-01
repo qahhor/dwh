@@ -66,7 +66,47 @@ class EntityFeaturesTest {
     }
 
     static EntityRegistry notesRegistry() {
-        return new EntityRegistry(List.of(NOTES), List.of(), List.of(records(NOTES.code())));
+        return registry(List.of(NOTES), List.of(), records(NOTES.code()));
+    }
+
+    /**
+     * A registry whose entities with a table keep their records in these fakes, as the general runtime keeps them
+     * (ADR-0032, 6.5): the fakes stand in for its {@link EntityRecordStore}.
+     */
+    static EntityRegistry registry(
+            List<EntityDefinition> entities, List<FormFieldExtender> extenders, EntityRecords... records) {
+        EntityRecordStore store = store(records);
+        return new EntityRegistry(entities, extenders, List.of(), List.of(), List.of(), () -> store);
+    }
+
+    /** A store that answers for each entity with the fake records named after it. */
+    static EntityRecordStore store(EntityRecords... records) {
+        Map<String, EntityRecords> byEntity = new java.util.HashMap<>();
+        for (EntityRecords one : records) {
+            byEntity.put(one.entity(), one);
+        }
+        return new EntityRecordStore() {
+            @Override
+            public void requireVisible(EntityDefinition entity, long id) {
+                byEntity.get(entity.code()).requireVisible(id);
+            }
+
+            @Override
+            public KeysetPage<?> page(
+                    EntityDefinition entity, int limit, String cursor, String filter, String sort, String search) {
+                return byEntity.get(entity.code()).page(limit, cursor, filter, sort, search);
+            }
+
+            @Override
+            public void delete(EntityDefinition entity, long id) {
+                byEntity.get(entity.code()).delete(id);
+            }
+
+            @Override
+            public void archive(EntityDefinition entity, long id) {
+                byEntity.get(entity.code()).archive(id);
+            }
+        };
     }
 
     @AfterEach
@@ -118,14 +158,36 @@ class EntityFeaturesTest {
                 .hasMessageContaining("delete action");
     }
 
+    /**
+     * ADR-0032, 6.5: the runtime keeps the records of an entity with a table, so a module bean of them is refused; an
+     * entity without a table that promises history, export or bulk actions needs its module's records at start.
+     */
     @Test
-    void anEntityPromisingRecordFeaturesNeedsItsRecordsAtStart() {
-        assertThatThrownBy(() -> new EntityRegistry(List.of(NOTES)))
+    void recordsComeFromTheRuntimeForATableAndFromTheModuleOtherwise() {
+        assertThat(new EntityRegistry(List.of(NOTES)).records(NOTES.code())).isPresent();
+        assertThatThrownBy(() -> new EntityRegistry(
+                        List.of(NOTES), List.of(), List.of(records(NOTES.code())), List.of(), List.of(), () -> null))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("EntityRecords");
-        assertThatThrownBy(() -> new EntityRegistry(List.of(NOTES), List.of(), List.of(records("ms.unknown"))))
+                .hasMessageContaining("general runtime");
+        assertThatThrownBy(() -> new EntityRegistry(
+                        List.of(NOTES), List.of(), List.of(records("ms.unknown")), List.of(), List.of(), () -> null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("undeclared");
+        FormField title = FormField.of("title", "t", FieldType.TEXT);
+        EntityDefinition formOnly = new EntityDefinition(
+                "x.form",
+                "x",
+                null,
+                "x_audit",
+                null,
+                null,
+                List.of(title),
+                List.of(new FormSection("main", "m", List.of("title"))),
+                List.of(),
+                Set.of(EntityCapability.HISTORY));
+        assertThatThrownBy(() -> new EntityRegistry(List.of(formOnly)))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("EntityRecords");
     }
 
     @Test
@@ -152,8 +214,7 @@ class EntityFeaturesTest {
     void historyNamesEveryFieldIncludingCustomFieldsAddedLater() {
         List<FormField> custom = new ArrayList<>();
         FormFieldExtender extender = entity -> List.copyOf(custom);
-        RecordHistorySource source = new EntityRegistry(
-                        List.of(NOTES), List.of(extender), List.of(records(NOTES.code())))
+        RecordHistorySource source = registry(List.of(NOTES), List.of(extender), records(NOTES.code()))
                 .historySources()
                 .getFirst();
         assertThat(source.fieldLabels())
@@ -181,8 +242,7 @@ class EntityFeaturesTest {
     @Test
     void bulkDeleteRunsTheModuleDeleteRecordByRecordWithTheDeclaredRight() {
         FakeRecords records = records(NOTES.code());
-        EntityBulkController controller =
-                new EntityBulkController(new EntityRegistry(List.of(NOTES), List.of(), List.of(records)));
+        EntityBulkController controller = new EntityBulkController(registry(List.of(NOTES), List.of(), records));
         SecurityContext.setPrincipal(principal(Set.of("notes.view", "notes.delete")));
 
         BulkResult result = controller
@@ -199,8 +259,7 @@ class EntityFeaturesTest {
     @Test
     void bulkArchiveRunsTheModuleArchiveRecordByRecord() {
         FakeRecords records = records(NOTES.code());
-        EntityBulkController controller =
-                new EntityBulkController(new EntityRegistry(List.of(NOTES), List.of(), List.of(records)));
+        EntityBulkController controller = new EntityBulkController(registry(List.of(NOTES), List.of(), records));
         SecurityContext.setPrincipal(principal(Set.of("notes.view", "notes.delete")));
 
         BulkResult result = controller

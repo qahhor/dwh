@@ -1,8 +1,8 @@
 # Разработка модулей SmartupCMS
 
-**Версия:** 2.2
+**Версия:** 2.3
 
-**Обновлено:** 2026-10-01
+**Обновлено:** 2026-10-02
 
 **Основание:** [каноническое ТЗ](../technical-specification.md),
 [ADR-0014](../adr/ADR-0014-unified-open-source-runtime.md) и
@@ -56,10 +56,10 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 
 | Правило | Как | Основание и проверка |
 |---|---|---|
-| Ошибка | `ApiException` с `ErrorCode`, ключом `error.<модуль>.<имя>` и параметрами: `ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id))`; ключ — в каталогах ru, uz и en (`apps/server/src/main/resources/i18n`); предложений в коде нет | [ADR-0021](../adr/ADR-0021-error-model.md); `ErrorTextsTest`, `ErrorModelTest` |
+| Ошибка | `ApiException` с `ErrorCode`, ключом `error.<модуль>.<имя>` и параметрами: `ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.record_not_found")`; ключ — в каталогах ru, uz и en (`apps/server/src/main/resources/i18n`); предложений в коде нет | [ADR-0021](../adr/ADR-0021-error-model.md); `ErrorTextsTest`, `ErrorModelTest` |
 | DTO | запросы и ответы — records в пакете `api` модуля; контроллер не видит `repository` | [ADR-0022](../adr/ADR-0022-openapi-from-code.md); `ModuleBoundariesTest` |
 | Описание API | springdoc строит его по контроллерам; после изменения контроллера или DTO — `mvn -B test -pl apps/server -Dtest=OpenApiContractTest -Dopenapi.update=true`, затем в `apps/web` — `npm run api:types` | [ADR-0022](../adr/ADR-0022-openapi-from-code.md); `OpenApiContractTest`, `scripts/api/test-api-contract.ps1` |
-| Статусы | создание — `201` и `Location` (`Created.at(...)`) с `@ResponseStatus(HttpStatus.CREATED)`; удаление — `204` с `@ResponseStatus(HttpStatus.NO_CONTENT)`; переключатель принимает состояние (`PUT …/pin {pinned}`) | [ADR-0023](../adr/ADR-0023-uniform-rest.md); `ResponseStatusDeclaredTest`, Spectral |
+| Статусы | создание — `201` и `Location` (`Created.at(...)`) с `@ResponseStatus(HttpStatus.CREATED)`; удаление — `204` с `@ResponseStatus(HttpStatus.NO_CONTENT)`; переключатель принимает состояние (`PUT …/archived {archived}`) | [ADR-0023](../adr/ADR-0023-uniform-rest.md); `ResponseStatusDeclaredTest`, Spectral |
 | Блокировка | таблица с `revision`; ответ — record, реализующий `Revisioned` (заголовок `ETag`); `PUT`/`PATCH` принимает `@RequestHeader(Revisions.IF_MATCH)` и передаёт `Revisions.required(ifMatch)`; репозиторий пишет `where id = :id and revision = :expected` и на пустой результат бросает `Revisions.conflict()`: без ревизии — 428, устаревшая — 409 | [ADR-0024](../adr/ADR-0024-optimistic-locking.md); `ChangesNameTheirRevisionTest` |
 | Страницы | растущая коллекция — `KeysetPage`: список реестра полей (`QueryList`, ADR-0016) или `TimePage` вне реестра; `limit` выше максимума — 422; для таблицы без предела — `QueryList.withEstimatedTotal()` (`totalExact: false`) | план 10/10, пункт 3.5; `CollectionsArePagedTest` |
 | JSON-колонки | `JsonColumns` (`common.json`) с общим `ObjectMapper`; своих `toJson`/`parseJson` нет | план 10/10, пункт 3.11; Checkstyle |
@@ -72,53 +72,59 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 
 ## Сущность как объявление: чек-лист
 
-Запись, которую пользователь создаёт, ищет и меняет, объявляется один раз
-([ADR-0019](../adr/ADR-0019-low-code-entity-model.md)). Каркас даёт
+Запись, которую пользователь создаёт, ищет и меняет, — это **объявление и
+хуки** ([ADR-0019](../adr/ADR-0019-low-code-entity-model.md),
+[ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §6; план 10/10, пункт
+5.4). REST, проверку, скоуп, ревизию, аудит, события, историю, выгрузку и
+массовые действия строит платформа: общий runtime `/api/v1/entities/{код}`
+обслуживает каждую сущность с таблицей. Контроллер, сервис и репозиторий
+CRUD модуль **не пишет** — серверная часть сущности ≤ 2 файлов. Каркас даёт
 `scripts/dev/create-module.ps1 -ModuleName <код> -ModuleTitle "<Название>" [-TitleEn … -TitleUz …]`:
-две миграции (таблица и данные), пакет `api` (ответ и запросы), репозиторий,
-объявление, сервис и контроллер по серверным правилам выше, ключи ошибки,
-меню и подписей в каталогах ru/uz/en, область права в `PermissionAreas` и
-тест контракта сущности (наследник `EntityContractTestKit`). В конце он
-печатает, что осталось сделать руками.
-`scripts/dev/test-create-module.ps1` проверяет, что результат генератора
-собирается, проходит архитектурные тесты и стартует. Образец в коде — заметки
-(`ms.note`).
+две миграции (таблица и данные), объявление (`<Prefix><Name>Entity`), хуки
+(`<Prefix><Name>Hooks`), ключи меню и подписей в каталогах ru/uz/en, область
+права в `PermissionAreas` и тест контракта сущности (наследник
+`EntityContractTestKit`). В конце он печатает, что осталось сделать руками.
+`scripts/dev/test-create-module.ps1` проверяет, что результат генератора —
+два серверных файла, собирается, проходит архитектурные тесты и стартует.
+Образец в коде — заметки (`ms.note`: один файл `MsNoteEntity`, хуки им не
+нужны).
 
-1. **Миграция:** таблица со стандартными полями (`attributes jsonb`, аудит
-   создания и изменения, `revision`) по [ADR-0020](../adr/ADR-0020-database-naming.md);
+1. **Миграция:** таблица со стандартными полями (`id`, `attributes jsonb`,
+   `created_by`/`modified_by`/`created_at`/`modified_at`, `revision`) по
+   [ADR-0020](../adr/ADR-0020-database-naming.md) и ADR-0032 §14.1;
    отдельным файлом — права в каталоге, выдача системным ролям, модуль в
-   `md_installed_modules`; оба файла — в манифест миграций.
+   `md_installed_modules`; оба файла — в манифест миграций. Колонка
+   необязательного поля допускает `null`: `null` в теле очищает значение.
 2. **Объявление** (`<Prefix><Name>Entity`): `Entity.define(код, форма)` —
    таблица и псевдоним, **обязательный скоуп** (`.scope(EntityScope.owner(...)
    | orgUnit(...) | all() | custom(...))`, без него объявление не собирается;
-   предикат списка и чтения по id даёт `EntityScopes`, ADR-0032 §5.1; план
-   10/10, пункт 5.3), **каждое поле один раз** как `EntityField`
-   ([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §3; план 10/10,
-   пункт 5.1) с правами на поле при нужде (`.requires(форма, действие)`,
-   `.readonlyUnless(форма, действие)`, проверка записи —
-   `EntityFieldRights.checkWrite`), секции, действия с правом каждое, ключи
-   названий права для матрицы (`EntityRights`, `<код>.rights.*` по ADR-0031),
-   пункт меню (`EntityMenu`), сортировка списка по умолчанию, возможности
-   (`HISTORY` — аудит под таблицей сущности, `EXPORT`, `SAVED_VIEWS`, `BULK`
-   с действием `delete`, `archivable()` — `ARCHIVE` с колонками
-   `archived_at`/`archived_by` и частичными уникальными индексами
-   `where archived_at is null`, `customFields(тип)`) и бин `EntityRecords`:
-   видимость записи в скоупе зрителя, страница списка, удаление и архив одной
-   записи. Поле:
+   ADR-0032 §5.1), **каждое поле один раз** как `EntityField` (§3) с правами
+   на поле при нужде (`.requires(форма, действие)`,
+   `.readonlyUnless(форма, действие)`), секции, действия с правом каждое,
+   ключи названий права для матрицы (`EntityRights`, `<код>.rights.*` по
+   ADR-0031), пункт меню (`EntityMenu`, его `module` выключает и сущность),
+   сортировка списка по умолчанию, возможности (`HISTORY` — аудит под
+   таблицей сущности, `EXPORT`, `SAVED_VIEWS`, `BULK` с действием `delete`,
+   `archivable()` — `ARCHIVE` с колонками `archived_at`/`archived_by` и
+   частичными уникальными индексами `where archived_at is null`,
+   `customFields(тип)`) и кросс-полевые правила (`.rule("period",
+   Rules.notBefore("endsOn", "startsOn"))`). Поле:
 
    ```java
    .field(text("title", "notes.col.title").column("title").required().length(1, 255)
            .list(sortable().searchable()))
-   .field(select("color", "notes.col.color", COLORS, "notes.color_").column("color"))
+   .field(select("color", "notes.col.color", COLORS, "notes.color_").column("color")
+           .required().defaultValue(FieldDefault.fixed("default")))
+   .field(ref("noteId", "orders.col.note").column("note_id").target("ms.notes", "title"))
    .field(instant("modifiedAt", "notes.col.modified_at").system(SystemColumn.MODIFIED_AT).list(sortable()))
-   .field(text("rank", "notes.col.rank").expression(RANK).listOnly(sortable().notFilterable().hidden()))
    ```
 
    Поле формы и поле списка выводятся из этого объявления: список сущности
    (`query-meta/<код>`) строит `EntityLists`, отдельный бин `QueryList` для
-   сущности не пишется (реестр не стартует с двумя объявлениями одного
-   списка, `EntityFieldsSingleSourceTest`). Строки списка читаются по ключам
-   записи (`"title"`, `"createdAt"`, `"attributes"`) общим `EntityRowMapper`.
+   сущности не пишется (`EntityFieldsSingleSourceTest`). Ссылка называет цель
+   **кодом сущности** (`.target(код, поле подписи)`): новое значение — строка
+   цели, которую автор видит в её скоупе (иначе 422 `not_found`), и не
+   архивная (иначе 422 `archived`).
 
    Типы ERP/SFA (план 10/10, пункт 5.2; ADR-0032, §4): `email`, `phone`,
    `url`, `money(..., валюты).money(колонка суммы, колонка валюты)`,
@@ -128,51 +134,67 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
    корень)`, вычисляемое `computed(sql)` любого скалярного типа. Признаки
    формы: `readonly()`, `readonlyOnUpdate()`, `readonlyWhen(условие)`,
    `defaultValue(FieldDefault.fixed/now/today/currentUser/currentOrgUnit/sequence)`,
-   `visibleWhen(FieldCondition.eq(...))`. Значения сохранения готовит и
-   проверяет `EntityFieldValues.prepare` (умолчания, readonly по объявлению
-   и по праву `readonlyUnless`, скрытые поля, элемент справочника и его
-   архив, файл); файл поля прикрепляет `EntityFiles.attach`.
-   Ключ поля не называет секрет (ADR-0029).
-3. **Сервис** берёт список из реестра (`QueryListRegistry.get(<код>)`),
-   проверяет каждое сохранение `EntityValidator.check` по объявлению (при
-   изменении — частично) и пишет аудит в `auditTable` строкой
-   `EntityAuditRow.of` — все объявленные и дополнительные поля под ключами
-   формы, так история покажет каждое с подписью. Чужая запись — 404, как
-   несуществующая, на любом пути (чтение, изменение, удаление, действия).
-4. Отдельный пункт «список реестра» для сущности не нужен: список, который
+   `visibleWhen(FieldCondition.eq(...))`. Все типы пишет runtime: колонки
+   денег, строки таблицы связи, прикрепления файлов. Ключ поля не называет
+   секрет (ADR-0029).
+3. **Хуки** (`<Prefix><Name>Hooks implements EntityHooks`, `@Component`) — то,
+   что объявление сказать не может (ADR-0032, §6.5): `beforeSave` видит уже
+   проверенные значения, может изменить записываемое поле
+   (`save.values().set(...)`) и добавить ошибку (`save.reject(...)` — один 422);
+   `afterSave`/`afterDelete` — в той же транзакции; `afterCommit` — после
+   коммита (сбой пишется в журнал и не меняет ответ; то, что нельзя повторить,
+   ставится в очередь или outbox). Данные своего модуля хук пишет через свой
+   репозиторий, чужие — через сервис другого модуля, SQL в хуке нет. Действие
+   записи сверх `create`/`update`/`archive`/`delete` —
+   `EntityActionHandler` (`POST …/{id}/actions/{код}` с `If-Match`).
+4. **Что делает runtime без кода модуля** (порядок §6.3): право и `If-Match`
+   до транзакции; запись со скоупом `for update` (вне скоупа — 404, как
+   несуществующая); тело по полям (неизвестное свойство, системное — `id`,
+   `revision`, `createdBy`…, неверный тип JSON — 422); значения по умолчанию,
+   readonly, правила полей, ссылки, справочники, файлы, правила `EntityRule`
+   и доп. поля — одним 422; хуки; запись с ревизией + 1; аудит всех полей;
+   `EntityChanged` в транзакции (вебхук `<форма>.updated` пишется в outbox
+   без кода модуля); `afterCommit`. С `Idempotency-Key` всё это — в
+   транзакции фильтра идемпотентности.
+5. Отдельный пункт «список реестра» для сущности не нужен: список, который
    не является сущностью (журнал, отчёт), остаётся бином `QueryList`
    (ADR-0016).
-5. **Контроллер** — страница списка, чтение, создание (201 + `Location`),
-   изменение (`If-Match`), удаление (204); на каждом методе
-   `@RequiresPermission` с формой и действием из объявления. Запросы и ответ —
-   из пакета `api`.
 6. **Переводы** в `apps/server/src/main/resources/i18n` (ru, uz, en):
-   `nav.<код>`, подписи полей и вариантов, ключи ошибок; затем
+   `nav.<код>`, подписи полей и вариантов, ключи ошибок хуков; затем
    `npm run i18n:sync-ru`. Ключ экрана — `<модуль>.<экран>.<элемент>` по-английски
    в snake_case, без транслита и хэшей
    ([ADR-0031](../adr/ADR-0031-semantic-translation-keys.md)); это проверяет
    `npm run i18n:audit`.
-7. **Экран:** маршрут в `app.routes.ts`; форма — `smt-entity-form`, просмотр —
+7. **Экран:** маршрут в `app.routes.ts`; данные — `/api/v1/entities/<код>`
+   (`PATCH` с `ifMatch: revision`); форма — `smt-entity-form`, просмотр —
    `smt-entity-card`, виды, экспорт и массовое удаление — `smt-entity-toolbar`;
-   кнопки — по `actions` из `form-meta`, а не по своим проверкам прав. Пункт
-   меню появится сам (`GET /entities/menu`).
-8. **Проверки:** `EntityActionPermissionContractTest` сверяет действия
-   объявления с `@RequiresPermission` и владельца формы с `EntityRights`
+   кнопки — по `actions` из `form-meta` и записи, а не по своим проверкам прав.
+   Пункт меню появится сам (`GET /entities/menu`).
+8. **Проверки:** `EntityActionPermissionContractTest` — у каждой пары
+   объявления (`view`, право каждого действия) есть название в `EntityRights`
+   и она попадает в каталог прав (`MdFormCatalogSynchronizer` берёт пары
+   объявлений, ADR-0032 §6.10), форма принадлежит модулю `EntityRights`
    (генератор записывает область `<код>` → `<префикс>.<код>` в
-   `PermissionAreas`, а модуль — в `EntityRights`),
-   `PermissionCodesTest` — что код формы подчиняется правилу ADR-0028,
-   `MdFormCatalogTest` — что у каждой пары права есть название; объявление без того, что обещают его возможности, не
-   даёт приложению стартовать. **Контракт сущности** — один наследник
-   `EntityContractTestKit` (раздел ниже); без него `EntityContractCoverageTest`
-   валит сборку. Свои правила модуля (хуки, расчёты) — отдельными тестами,
-   как у заметок (`MsNoteControllerTest`, `MsNoteIntegrationTest`). Новый модуль получает
-   строку порога покрытия в `apps/server/coverage-floors.csv` (без неё
+   `PermissionAreas`); `PermissionCodesTest` — код формы по ADR-0028;
+   `MdFormCatalogTest` — у каждой пары права есть название; объявление без
+   того, что обещают его возможности, хуки и обработчики необъявленной
+   сущности, действие без обработчика не дают приложению стартовать.
+   **Контракт сущности** — один наследник `EntityContractTestKit` (раздел
+   ниже); без него `EntityContractCoverageTest` валит сборку. Хуки и правила
+   модуля — отдельными тестами. Новый модуль получает строку порога покрытия
+   в `apps/server/coverage-floors.csv` (без неё
    `scripts/quality/test-coverage-floors.ps1` падает) и своё имя в
    `ModuleBoundariesTest.MODULES` с префиксом таблиц в `ownerOf`, чтобы
    границы проверялись и для него.
 
-Не нужно: записи в `MdFormCatalog`, свой источник истории, свой экспортёр,
-свой endpoint массовых действий, пункт меню в `app-shell.models.ts`.
+Не нужно: контроллер, сервис и репозиторий CRUD, записи в `MdFormCatalog`,
+`@RequiresPermission` на CRUD, свой аудит, вызов `WebhookService`, свой
+источник истории, свой экспортёр, свой endpoint массовых действий, бин
+`EntityRecords` (он только для сущности без таблицы), пункт меню в
+`app-shell.models.ts`. Описание API строится из объявления
+(`EntityOpenApiCustomizer`: пути `/api/v1/entities/<код>…`, схемы
+`<Код>Record`/`Create`/`Patch`/`Page`) — после нового поля перегенерируйте
+`docs/api/openapi.json` и типы веба.
 
 ### Контракт сущности: тест-кит
 
@@ -184,25 +206,22 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
 ```java
 class MsNoteContractTest extends EntityContractTestKit {
     @Override protected String entity() { return MsNoteEntity.CODE; }
-
-    @Override protected EntityTransport transport() {
-        // До runtime (пункт 5.4) — свой контроллер модуля и его действия.
-        return EntityTransport.module("/api/v1/notes")
-                .action("pin", HttpMethod.PUT, id -> "/api/v1/notes/" + id + "/pin", Map.of("pinned", true));
-    }
 }
 ```
 
 Кит (`apps/server/src/test/java/.../support/entity`) выводит случаи из
-объявления и гоняет их по всему приложению на встроенном PostgreSQL сборки:
-метаданные, CRUD (201 + `Location` + `ETag`, чтение как записано, список,
-повтор с тем же `Idempotency-Key`), ревизия (428/409), архив, права (без
-`view` — отказ на всех путях, с одним `view` изменения — 403, `actions` в
-`form-meta` по правам), скоуп (чужая запись — 404, тот же ответ, что у
-несуществующего id, на каждом пути по id; её нет в списке, массовом действии
-и выгрузке), права на поля, проверка каждого правила каждого поля (422 с
-адресом и кодом), аудит (все объявленные поля в истории с подписями) и
-выгрузка (строки списка зрителя, только его колонки). Пользователей, роли,
+объявления и гоняет их по всему приложению на встроенном PostgreSQL сборки
+через runtime `/api/v1/entities/{code}`: метаданные, CRUD (201 + `Location` +
+`ETag`, чтение как записано, список, повтор с тем же `Idempotency-Key`),
+ревизия (428/409), архив, права (без `view` — 404 на всех путях, с одним
+`view` изменения — 403, `actions` в `form-meta` и в записи по правам), скоуп
+(чужая запись — 404, тот же ответ, что у несуществующего id, на каждом пути
+по id; её нет в списке, массовом действии и выгрузке), права на поля,
+проверка каждого правила каждого поля (422 с адресом и кодом), строгое тело
+(неизвестное и системное свойство — `unknown_field`, неверный тип JSON —
+`invalid`), аудит (все объявленные поля в истории с подписями), выгрузка
+(строки списка зрителя, только его колонки) и события (строка `kwh_outbox`
+на изменение, без полей с правом; отказ — ни строки). Пользователей, роли,
 оргединицы и сессии кит создаёт сам (`TestUsers`, `TestSession`).
 
 Что переопределяет автор:
@@ -210,7 +229,7 @@ class MsNoteContractTest extends EntityContractTestKit {
 | Метод | Когда |
 |---|---|
 | `entity()` | всегда: код сущности |
-| `transport()` | пока сущность обслуживает свой контроллер: `EntityTransport.module(путь)`, свои действия — `.action(код, метод, путь, тело)`, `PATCH` — `.updateWith(PATCH)`, удаление без `If-Match` — `.deleteWithoutIfMatch()`. По умолчанию — runtime `/api/v1/entities/{code}` |
+| `transport()` | только у сущности со своим контроллером (`EntityTransport.module(путь)`); по умолчанию — runtime `/api/v1/entities/{code}` |
 | `fixture(ctx)` | значения, которые кит не придумает: ссылка, файл, элемент справочника, текст по шаблону, — `EntityFixture.valid(Map.of(...))`; своё изменение — `.update(...)`; свои недопустимые значения — `.invalid(поле, значение, код)` |
 
 Падение случая называет группу и правило («скоуп: … read is 404»). Чинится

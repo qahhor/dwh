@@ -35,12 +35,13 @@ describe('NotesComponent', () => {
     const notes = options.notes ?? (() => of(page([note])));
     const api = {
       get: vi.fn<(path: string, params?: unknown, options?: unknown) => Observable<unknown>>((path) =>
-        path === '/notes'
+        path === '/entities/ms.notes'
           ? notes()
           : of(path === '/form-meta/ms.notes' ? meta : path === '/query-meta/ms.notes' ? null : []),
       ),
       post: vi.fn(() => of(note)),
       put: vi.fn(() => of(note)),
+      patch: vi.fn(() => of(note)),
       delete: vi.fn(() => of(undefined)),
     };
     const toast = { success: vi.fn(), error: vi.fn() };
@@ -68,7 +69,7 @@ describe('NotesComponent', () => {
       await fixture.whenStable();
       fixture.detectChanges();
     }
-    const noteCalls = () => api.get.mock.calls.filter(([path]) => path === '/notes');
+    const noteCalls = () => api.get.mock.calls.filter(([path]) => path === '/entities/ms.notes');
     return {
       fixture,
       component: fixture.componentInstance,
@@ -88,7 +89,7 @@ describe('NotesComponent', () => {
     expect(screen.querySelector('.note-title').textContent).toContain('Модульный манифест');
     expect(screen.querySelector('.note-content').textContent).toContain('Чистая архитектура');
     expect(screen.querySelector('.count-badge').textContent.trim()).toBe('1');
-    expect(noteCalls()).toEqual([['/notes', { limit: 50 }, { notifyError: false }]]);
+    expect(noteCalls()).toEqual([['/entities/ms.notes', { limit: 50 }, { notifyError: false }]]);
   });
 
   it('says there are no notes only once the list has answered', async () => {
@@ -186,13 +187,17 @@ describe('NotesComponent', () => {
     (screen.querySelector('.card-actions button') as HTMLButtonElement).click();
     await settle();
 
-    expect(api.put).toHaveBeenCalledWith('/notes/1/pin', { pinned: !note.isPinned }, { notifyError: false });
+    expect(api.patch).toHaveBeenCalledWith(
+      '/entities/ms.notes/1',
+      { isPinned: !note.isPinned },
+      { notifyError: false, ifMatch: note.revision },
+    );
     expect(noteCalls()).toHaveLength(2);
   });
 
   it('reports a pin that failed', async () => {
     const { api, toast, component } = await setup();
-    api.put.mockReturnValueOnce(throwError(() => ({ status: 409 })));
+    api.patch.mockReturnValueOnce(throwError(() => ({ status: 409 })));
 
     component.togglePin(note);
 
@@ -207,7 +212,7 @@ describe('NotesComponent', () => {
     await settle();
 
     expect(api.put).toHaveBeenCalledWith(
-      '/notes/1/archived',
+      '/entities/ms.notes/1/archived',
       { archived: true },
       { notifyError: false, ifMatch: undefined },
     );
@@ -217,7 +222,7 @@ describe('NotesComponent', () => {
     api.put.mockReturnValueOnce(throwError(() => ({ status: 409 })));
     component.toggleArchive({ ...note, archived: true, revision: 3 });
     expect(api.put).toHaveBeenLastCalledWith(
-      '/notes/1/archived',
+      '/entities/ms.notes/1/archived',
       { archived: false },
       { notifyError: false, ifMatch: 3 },
     );
@@ -231,7 +236,7 @@ describe('NotesComponent', () => {
     await settle();
 
     expect(modal.confirm).toHaveBeenCalledWith(expect.objectContaining({ destructive: true }));
-    expect(api.delete).toHaveBeenCalledWith('/notes/1', { notifyError: false });
+    expect(api.delete).toHaveBeenCalledWith('/entities/ms.notes/1', { notifyError: false });
     expect(toast.success).toHaveBeenCalled();
     expect(noteCalls()).toHaveLength(2);
   });

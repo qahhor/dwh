@@ -142,6 +142,14 @@ final class KitAccessChecks {
             assertThat(new TreeSet<>((List<?>) TestSession.object(meta).get("actions")))
                     .as("actions offered to %s", user == world.owner ? "a holder of every right" : "a viewer")
                     .isEqualTo(expected);
+            if (user == world.owner && world.transport.strictBody()) {
+                // The runtime answers each record with the actions its viewer may take (ADR-0032, 6.2).
+                Created record = world.create(world.owner);
+                assertThat(new TreeSet<>(
+                                (List<?>) world.readOk(world.owner, record.id()).get("actions")))
+                        .as("actions of a record read by its owner")
+                        .isEqualTo(expected);
+            }
         }
     }
 

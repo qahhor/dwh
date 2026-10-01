@@ -6,7 +6,6 @@ import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongFunction;
 import org.junit.jupiter.api.DisplayName;
@@ -60,16 +59,14 @@ class EntityContractTestKitSelfTest extends EmbeddedPostgresTest {
                         + " without its right");
     }
 
-    /** The note kit with the read of one record sent to a probe instead of the notes controller. */
+    /** The note kit on the runtime, with the read of one record sent to a probe instead. */
     private static EntityContractTestKit notes(LongFunction<String> read) {
-        EntityTransport notes = EntityTransport.module("/api/v1/notes")
-                .action("pin", HttpMethod.PUT, id -> "/api/v1/notes/" + id + "/pin", Map.of("pinned", true));
-        return kit(MsNoteEntity.CODE, new ReadElsewhere(notes, read));
+        return kit(MsNoteEntity.CODE, new ReadElsewhere(EntityTransport.runtime(MsNoteEntity.CODE), read));
     }
 
-    /** The kit of the probe entity with field rights; its read leaks the hidden field when asked to. */
+    /** The kit of the probe entity with field rights on the runtime; its read leaks the hidden field when asked to. */
     private static EntityContractTestKit secretNotes(boolean leaky) {
-        EntityTransport secret = EntityTransport.module(KitProbes.PATH + "/secret-notes");
+        EntityTransport secret = EntityTransport.runtime(KitProbes.SECRET_CODE);
         return kit(
                 KitProbes.SECRET_CODE,
                 leaky ? new ReadElsewhere(secret, id -> KitProbes.PATH + "/secret-notes/" + id + "/leaky") : secret);

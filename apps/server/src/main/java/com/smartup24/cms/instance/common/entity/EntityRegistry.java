@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.common.entity;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.instance.common.entity.hook.EntityActionHandler;
+import com.smartup24.cms.instance.common.entity.hook.EntityHooks;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
@@ -15,6 +17,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Supplier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -23,9 +27,12 @@ import org.springframework.stereotype.Component;
  * the extenders' fields follow the declared ones in a section of their own, and a custom field whose key a
  * declared field already uses is left out.
  *
- * <p>What an entity's capabilities promise is built here from its declaration and its module's
- * {@link EntityRecords} (roadmap item 56): the history source, the list export and the bulk delete. An entity
- * that declares one of them without the records bean fails the start, not the first request.
+ * <p>What an entity's capabilities promise is built here from its declaration (roadmap item 56): the history source,
+ * the list export and the bulk actions. The records behind them are the general runtime's for an entity with a table
+ * ({@link EntityRecordStore}, ADR-0032, 6.5) and the module's {@link EntityRecords} bean for an entity without one. The
+ * hooks ({@link EntityHooks}) and the action handlers ({@link EntityActionHandler}) of the entities are collected here
+ * too. What does not fit — a records bean for an entity the runtime serves, hooks of an undeclared entity, a second
+ * one, a declared action without its handler — fails the start, not the first request ({@link EntityRegistryChecks}).
  */
 @Component
 public class EntityRegistry {
@@ -38,40 +45,70 @@ public class EntityRegistry {
 
     private final Map<String, EntityDefinition> entities = new TreeMap<>();
     private final Map<String, EntityRecords> records = new TreeMap<>();
+    private final Map<String, EntityHooks> hooks;
+    private final Map<String, EntityActionHandler> handlers;
     private final List<FormFieldExtender> extenders;
 
     @Autowired
     public EntityRegistry(
-            List<EntityDefinition> declared, List<FormFieldExtender> extenders, List<EntityRecords> records) {
+            List<EntityDefinition> declared,
+            List<FormFieldExtender> extenders,
+            List<EntityRecords> records,
+            List<EntityHooks> hooks,
+            List<EntityActionHandler> handlers,
+            ObjectProvider<EntityRecordStore> store) {
+        this(declared, extenders, records, hooks, handlers, (Supplier<EntityRecordStore>) store::getObject);
+    }
+
+    /** The registry over a store given directly; the runtime is created after the registry, so it is asked lazily. */
+    public EntityRegistry(
+            List<EntityDefinition> declared,
+            List<FormFieldExtender> extenders,
+            List<EntityRecords> records,
+            List<EntityHooks> hooks,
+            List<EntityActionHandler> handlers,
+            Supplier<EntityRecordStore> store) {
         for (EntityDefinition entity : declared) {
             if (entities.put(entity.code(), entity) != null) {
                 throw new IllegalStateException("Duplicate entity " + entity.code());
             }
         }
+        EntityRegistryChecks.references(entities);
         for (EntityRecords one : records) {
-            if (!entities.containsKey(one.entity())) {
+            EntityDefinition entity = entities.get(one.entity());
+            if (entity == null) {
                 throw new IllegalStateException("Records of an undeclared entity " + one.entity());
+            }
+            if (entity.model() != null) {
+                throw new IllegalStateException("Entity " + one.entity()
+                        + " has a table: the general runtime keeps its records (ADR-0032, 6.5)");
             }
             if (this.records.put(one.entity(), one) != null) {
                 throw new IllegalStateException("Duplicate records of entity " + one.entity());
             }
         }
+        LazyStore lazy = new LazyStore(store);
         for (EntityDefinition entity : entities.values()) {
-            if (!this.records.containsKey(entity.code())
-                    && entity.capabilities().stream().anyMatch(NEED_RECORDS::contains)) {
+            if (entity.model() != null) {
+                this.records.put(entity.code(), lazy.of(entity));
+            } else if (entity.capabilities().stream().anyMatch(NEED_RECORDS::contains)
+                    && !this.records.containsKey(entity.code())) {
                 throw new IllegalStateException("Entity " + entity.code()
                         + " declares history, export or bulk actions without its EntityRecords");
             }
         }
+        this.hooks = EntityRegistryChecks.hooks(entities, hooks);
+        this.handlers = EntityRegistryChecks.handlers(entities, handlers);
         this.extenders = List.copyOf(extenders);
     }
 
+    /** A registry without records, hooks or a runtime: declarations and their forms only. */
     public EntityRegistry(List<EntityDefinition> declared, List<FormFieldExtender> extenders) {
-        this(declared, extenders, List.of());
+        this(declared, extenders, List.of(), List.of(), List.of(), EntityRegistry::noStore);
     }
 
     public EntityRegistry(List<EntityDefinition> declared) {
-        this(declared, List.of(), List.of());
+        this(declared, List.of());
     }
 
     public Optional<EntityDefinition> find(String code) {
@@ -92,6 +129,16 @@ public class EntityRegistry {
 
     public Optional<EntityRecords> records(String code) {
         return Optional.ofNullable(records.get(code));
+    }
+
+    /** The hooks of the entity, if its module has them (ADR-0032, 6.5). */
+    public Optional<EntityHooks> hooks(String code) {
+        return Optional.ofNullable(hooks.get(code));
+    }
+
+    /** The handler of a declared record action (ADR-0032, 6.7). */
+    public Optional<EntityActionHandler> handler(String code, String action) {
+        return Optional.ofNullable(handlers.get(EntityRegistryChecks.handlerKey(code, action)));
     }
 
     /** The entity with its custom fields added in the {@value #CUSTOM_SECTION} section. */
@@ -216,5 +263,40 @@ public class EntityRegistry {
                 return records.page(limit, cursor, filter, sort, search);
             }
         };
+    }
+
+    private static EntityRecordStore noStore() {
+        throw new IllegalStateException("This registry has no entity runtime");
+    }
+
+    /** The runtime's store, asked for at the first use: it is created after the registry. */
+    private static final class LazyStore implements EntityRecordStore {
+
+        private final Supplier<EntityRecordStore> store;
+
+        private LazyStore(Supplier<EntityRecordStore> store) {
+            this.store = store;
+        }
+
+        @Override
+        public void requireVisible(EntityDefinition entity, long id) {
+            store.get().requireVisible(entity, id);
+        }
+
+        @Override
+        public KeysetPage<?> page(
+                EntityDefinition entity, int limit, String cursor, String filter, String sort, String search) {
+            return store.get().page(entity, limit, cursor, filter, sort, search);
+        }
+
+        @Override
+        public void delete(EntityDefinition entity, long id) {
+            store.get().delete(entity, id);
+        }
+
+        @Override
+        public void archive(EntityDefinition entity, long id) {
+            store.get().archive(entity, id);
+        }
     }
 }

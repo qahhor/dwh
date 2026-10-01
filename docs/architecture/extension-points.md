@@ -1,6 +1,6 @@
 # Точки расширения SmartupCMS
 
-**Версия:** 1.5
+**Версия:** 1.6
 
 **Обновлено:** 2026-10-02
 
@@ -26,11 +26,16 @@ SmartupCMS расширяется **модулями в коде**: модуль
 | `EntityDefinition` (`@Bean`) через `Entity.define(...)` | `S/common/entity/Entity.java`, `S/common/entity/EntityDefinition.java` | Одно объявление сущности: таблица и псевдоним (`table`), обязательный скоуп (`scope`: `EntityScope.owner`/`orgUnit`/`all`/`custom`; без него `build()` отказывает; предикат — `EntityScopes`, правило оргединиц — `common.security.DataScopes`, его реализует `md`; ADR-0032 §5.1), поля (`field`, см. ниже), секции формы, действия с правом каждое, названия права (`EntityRights`), пункт меню (`EntityMenu`), сортировка списка по умолчанию, возможности (`EntityCapability`; `archivable()` — `ARCHIVE`: список без архивных записей, фильтр `archived`, чтение по id с `archived: true`, массовое `archive`; ADR-0032 §5.4). Отдаётся `GET /api/v1/form-meta/{code}`; список сущности (`query-meta/{code}`) выводится из тех же полей. `new EntityDefinition(...)` вне `common.entity` запрещён (`EntityFieldsSingleSourceTest`). |
 | `EntityField` | `S/common/entity/field/EntityField.java`, построитель `EntityFields` | Поле объявляется **один раз** (ADR-0032, §3; план 10/10, пункт 5.1): тип (`FieldType`: `TEXT`, `TEXTAREA`, `MARKDOWN`, `NUMBER`, `DATE`, `DATETIME`, `TIME`, `BOOLEAN`, `SELECT`, `REF`, с пункта 5.2 — `EMAIL`, `PHONE`, `URL`, `MONEY`, `ENUM`, `MULTI_REF`, `FILE`, `IMAGE`, `JSON`), источник значения (`FieldSource`: колонка, выражение, вычисляемое `computed` — в форме только для чтения, атрибут в `attributes` — скалярные типы с приведением, системная колонка, пара колонок денег `money(amount, currency)`, таблица связи `link(table, owner, target)`), признаки формы (`FormPart`: обязательность, `FieldRules` — длина, диапазон, шаблон, масштаб, число элементов, размер и типы файла; `readonly()`/`readonlyOnUpdate()`/`readonlyWhen(...)`, `defaultValue(FieldDefault...)`, `visibleWhen(FieldCondition...)`), признаки списка (`ListPart`), права на поле (`FieldAccess`: `.requires(...)` — поля нет в `form-meta`, списке, выгрузке, истории, чтении и данных вебхука, запись — 422 `unknown_field`; `.readonlyUnless(...)` — поле только для чтения, изменённое значение — 422 `readonly`; применяет `EntityFieldRights`, пункт 5.3), параметры типа (`FieldOptions`: варианты, ссылка, валюты, справочник `ENUM`, корень JSON). Что нужно каждому типу, проверяет `FieldTypeRules` при старте (ключ с `password`/`secret`/`apiKey` отвергается — секреты живут в запечатанных колонках, ADR-0029). Из поля выводятся `FormField` формы и `QueryField` списка (у денег — ещё скрытое поле валюты `<key>Currency`); у типов пункта 5.2 поле списка называет тип в `format`. Поле только для чтения, если так говорит объявление **или** у зрителя нет права `readonlyUnless`: `form-meta` отдаёт `readonly: true` (нет права, `readonly()`, вычисляемое), `readonlyOnUpdate: true` (после создания) и `readonlyWhen` (условие на существующей записи); ошибка одна — `readonly`, ключ `error.field.readonly`. Каждый тип проверяют `FieldTypeMatrixTest` и `field-type-matrix.spec.ts`. |
 | `EntityLists` | `S/common/entity/EntityLists.java` | Список сущности, выведенный из её полей: код = код сущности, право `<форма>.view`, `select` — системные колонки, поля под ключами записи (`<sql> as "<key>"`) и `attributes`. Реестр списков получает его через `QueryListSource`; бин `QueryList` с тем же кодом не даёт приложению стартовать. |
-| `EntityRecords` (`@Bean`) | `S/common/entity/EntityRecords.java` | То, что знает только модуль: видимость записи в скоупе зрителя, страница списка, удаление одной записи. Из него и объявления платформа строит историю, экспорт и `POST /api/v1/entities/{code}/bulk`. |
-| `EntityValidator` | `S/common/entity/EntityValidator.java` | Проверка сохранения по объявлению: 422 с ошибкой на каждом поле (ветка на каждый тип, типы пункта 5.2 — `FieldValueRules`); скрытое условием и вычисляемое поле не проверяются; `readonlyProblems` — поля только для чтения, которые сохранение изменило бы. Вызывается сервисом модуля. |
-| `EntityFieldValues` | `S/common/entity/EntityFieldValues.java` | Подготовка сохранения в порядке runtime (ADR-0032, §4.2–4.4): отказ на изменение поля только для чтения — по объявлению или по праву `readonlyUnless`, поле без права `requires` — 422 `unknown_field` (`EntityFieldRights`), хранимая форма значения (почта в нижнем регистре, телефон E.164), значения по умолчанию при создании (`fixed`, `now`, `today`, `current_user`, `current_org_unit` — основная оргединица автора через `DataScopes.homeUnit`, `sequence`), `null` у скрытого поля, проверка правил и проверки по БД — элемент справочника `ENUM` (новое значение не в архиве — 422 `archived`), файл, который можно прикрепить, его тип и размер. Вызовет runtime пункта 5.4; модуль может вызвать сам. |
+| Общий runtime `/api/v1/entities/{code}` | `S/common/entity/runtime/EntityController.java`, `EntityRuntime`, `EntityWrites`, `S/common/entity/store/EntityStoreRepository.java` | CRUD каждой сущности с таблицей **без кода модуля** (ADR-0032, §6; план 10/10, пункт 5.4): список (`q`, `filter`, `sort`, `limit`, `cursor`), чтение, создание (201 + `Location` + `ETag`), `PATCH` с `If-Match`, `DELETE` (необязательный `If-Match`), `PUT …/{id}/archived`, `POST …/{id}/actions/{action}`. Порядок §6.3 фиксирован: право и `If-Match` до транзакции, запись со скоупом `for update` (вне скоупа — 404), тело по полям (неизвестное, системное свойство, неверный тип JSON — 422), значения по умолчанию, readonly, правила полей, ссылки в скоупе цели, `EntityRule`, доп. поля — один 422; хуки, запись, аудит платформой, `EntityChanged` в транзакции, `afterCommit` после коммита. Транзакция — фильтра идемпотентности, если в запросе есть ключ. Тело — до 512 КБ (`EntityBodyLimitFilter`). |
+| `EntityHooks` (`@Bean`) | `S/common/entity/hook/EntityHooks.java` | Второй файл автора сущности (ADR-0032, §6.5): `beforeSave` (может изменить значения через `EntityValues.set` и добавить ошибки `reject`), `afterSave`, `beforeDelete`, `afterDelete` — в транзакции, `afterCommit` — после коммита (сбой пишется в журнал и не меняет ответ). Один бин на сущность с таблицей, иначе приложение не стартует. |
+| `EntityRule` | `S/common/entity/hook/EntityRule.java`, `Rules` | Кросс-полевое правило — чистая функция значений (ADR-0032, §6.6): `Entity.rule("period", Rules.notBefore("endsOn", "startsOn"))`; готовые — `notBefore`, `requiredIf`, `atLeastOne`. Ошибки — в том же 422, что и ошибки полей. |
+| `EntityActionHandler` (`@Bean`) | `S/common/entity/hook/EntityActionHandler.java` | Обработчик действия записи (ADR-0032, §6.7): `POST …/{id}/actions/{action}` с `If-Match`, запись читается со скоупом `for update`, обработчик меняет значения (`EntityActionCall`), runtime пишет, повышает ревизию, пишет аудит с `_action` и событие. Объявленное действие без обработчика не даёт приложению стартовать. |
+| `EntityChanged` | `S/common/entity/event/EntityChanged.java` | Событие изменения записи (ADR-0032, §6.9): публикуется runtime в транзакции изменения; вебхуки (`S/webhook/service/EntityWebhookListener.java`) пишут `kwh_outbox` в той же транзакции, модуль слушает `@EventListener`/`@TransactionalEventListener`. |
+| `EntityRecords` (`@Bean`) | `S/common/entity/EntityRecords.java` | Только для сущности **без таблицы**: видимость записи, страница, удаление. Записи сущности с таблицей держит runtime (`EntityRecordStore`); бин `EntityRecords` для неё не даёт приложению стартовать. |
+| `EntityValidator` | `S/common/entity/EntityValidator.java` | Проверка сохранения по объявлению: 422 с ошибкой на каждом поле (ветка на каждый тип, типы пункта 5.2 — `FieldValueRules`); скрытое условием и вычисляемое поле не проверяются; `readonlyProblems` — поля только для чтения, которые сохранение изменило бы. Вызывает runtime (через `EntityFieldValues`) и `EntityValues.set` хука. |
+| `EntityFieldValues` | `S/common/entity/EntityFieldValues.java` | Подготовка сохранения в порядке runtime (ADR-0032, §4.2–4.4): отказ на изменение поля только для чтения — по объявлению или по праву `readonlyUnless`, поле без права `requires` — 422 `unknown_field` (`EntityFieldRights`), хранимая форма значения (почта в нижнем регистре, телефон E.164), значения по умолчанию при создании (`fixed`, `now`, `today`, `current_user`, `current_org_unit` — основная оргединица автора через `DataScopes.homeUnit`, `sequence`), `null` у скрытого поля, проверка правил и проверки по БД — элемент справочника `ENUM` (новое значение не в архиве — 422 `archived`), файл, который можно прикрепить, его тип и размер. Вызывает runtime (`prepareAll` — без отказа, чтобы ответить одним 422). |
 | `Entity.reference(code, name)` и `EntityEnums` | `S/common/entity/Entity.java`, `S/common/entity/EntityEnums.java` | Сущность-справочник для `ENUM` (ADR-0032, §4.5): колонка кода, колонка названия, порядок `sort_order`, до 500 элементов. Элементы читаются целиком и кэшируются (`entityEnums`, очистка по кластеру — `EntityEnums.evict`); `EntityEnumResolver` даёт полю списка коды и названия во время запроса, `form-meta` — `options` (у справочника с `archivable()` — только действующие элементы) и `optionLabels` (названия всех, чтобы старое значение было подписано). |
-| `EntityFiles` | `S/common/entity/EntityFiles.java` | Файлы полей `FILE`/`IMAGE` (ADR-0032, §4.7): какой файл можно положить в поле (свой загруженный или уже прикреплённый к записи), прикрепление к полю записи, снятие прикреплений удалённой записи, чтение файла через запись. Реализует модуль `mf` (`MfAttachments`, таблица `mf_record_files`); `GET /api/v1/entities/{code}/{id}/files/{fileId}` отдаёт файл, если запись видна зрителю (`EntityRecords.requireVisible`) и файл прикреплён к ней. |
+| `EntityFiles` | `S/common/entity/EntityFiles.java` | Файлы полей `FILE`/`IMAGE` (ADR-0032, §4.7): какой файл можно положить в поле (свой загруженный или уже прикреплённый к записи), прикрепление к полю записи, снятие прикреплений удалённой записи, чтение файла через запись. Реализует модуль `mf` (`MfAttachments`, таблица `mf_record_files`); `GET /api/v1/entities/{code}/{id}/files/{fileId}` отдаёт файл, если запись видна зрителю (чтение runtime в скоупе) и файл прикреплён к ней. Прикрепления пишет и снимает runtime. |
 | `EntityRowMapper`, `EntitySelect` | `S/common/entity/EntityRowMapper.java`, `S/common/entity/EntitySelect.java` | Как поле попадает в строку списка и обратно в значения записи: деньги — `{"amount":"1250.00","currency":"UZS"}`, несколько ссылок — массив ключей, файл — id, имя, размер и тип из `mf_pub_files`, JSON — как есть. Один `RowMapper` на все сущности. |
 | `FormFieldExtender` | `S/common/entity/FormFieldExtender.java` | Поля, добавляемые в форму во время запроса. Реализация — дополнительные поля (`S/md/service/MdCustomFieldFormFields.java`). |
 
@@ -40,9 +45,9 @@ SmartupCMS расширяется **модулями в коде**: модуль
 |---|---|---|
 | `CUSTOM_FIELDS` | `customEntity` (тип сущности дополнительных полей) | Дополнительные поля администратора в форме, списке, фильтре и экспорте |
 | `SAVED_VIEWS` | `listCode` | Сохранённые виды списка |
-| `EXPORT` | `listCode`, `EntityRecords.page` | Выгрузка списка в Excel (журнал «Мои выгрузки») |
-| `HISTORY` | `auditTable`, `EntityRecords.requireVisible` | Вкладка истории изменений |
-| `BULK` | действие `delete`, `EntityRecords.delete` | Удаление выбранных записей |
+| `EXPORT` | `listCode` (страницы даёт runtime) | Выгрузка списка в Excel (журнал «Мои выгрузки») |
+| `HISTORY` | `auditTable` (аудит пишет runtime) | Вкладка истории изменений |
+| `BULK` | действие `delete` | Удаление (и архив) выбранных записей через одиночную операцию runtime |
 
 Объявление, которому не хватает нужного, не даёт приложению стартовать.
 
@@ -51,10 +56,11 @@ SmartupCMS расширяется **модулями в коде**: модуль
 (`apps/server/src/test/java/com/smartup24/cms/instance/support/entity`), его
 требует `EntityContractCoverageTest`. Кит выводит случаи из объявления: CRUD,
 ревизия, архив, права, скоуп «404, а не 403», права на поля, проверка по типам
-полей, аудит и выгрузка. Транспорт записей подключаемый: `EntityTransport.module(путь)`
-— свой контроллер модуля, `EntityTransport.runtime(code)` — общий runtime
-`/api/v1/entities/{code}` пункта 5.4 (по умолчанию); данные, которые кит не
-придумает, — `EntityFixture`. Общие помощники тестов — `TestUsers` (пользователь
+полей, аудит, выгрузка и события (строка `kwh_outbox` на изменение, без
+полей с правом; отказ — ни строки). Транспорт по умолчанию — общий runtime
+`EntityTransport.runtime(code)`; `EntityTransport.module(путь)` остаётся для
+сущности со своим контроллером; данные, которые кит не придумает, —
+`EntityFixture`. Общие помощники тестов — `TestUsers` (пользователь
 с заданными правами в своей оргединице) и `TestSession` (вход через настоящий
 `/auth/login`).
 
@@ -73,10 +79,10 @@ SmartupCMS расширяется **модулями в коде**: модуль
 
 | Точка | Где | Что даёт |
 |---|---|---|
-| `@RequiresPermission(form, action)` | `S/common/annotation/RequiresPermission.java` | Единственный источник существования права: при старте пары попадают в каталог (`S/md/service/MdFormCatalogSynchronizer.java`). Код формы — `<область>.<сущность>`, область называет модуль-владельца (`S/md/pref/PermissionAreas.java`, ADR-0028). |
+| `@RequiresPermission(form, action)` и объявление сущности | `S/common/annotation/RequiresPermission.java`, `S/md/service/MdFormCatalogSynchronizer.java` | Источники существования права: пары аннотаций и пары объявлений (`view`, право каждого действия, формы `FieldAccess`; ADR-0032, §6.10) при старте попадают в каталог. Код формы — `<область>.<сущность>`, область называет модуль-владельца (`S/md/pref/PermissionAreas.java`, ADR-0028). |
 | `EntityRights` | в объявлении | Ключи названий формы и действий в матрице прав (ADR-0031): каталог хранит русские слова, API отдаёт и ключи; тесты не дают выпустить пару без названия и ключ без перевода в ru/uz/en. |
 | `EntityMenu` | в объявлении | Пункт бокового меню: маршрут, подпись, иконка, раздел, порядок, модуль-выключатель. Отдаётся `GET /api/v1/entities/menu` по правам зрителя. |
-| Модуль-выключатель | `md_installed_modules`, `S/md/service/ModuleRegistryService.java` | Администратор включает и выключает модуль; экран охраняет `moduleActiveGuard`. |
+| Модуль-выключатель | `md_installed_modules`, `S/md/service/ModuleRegistryService.java`, `S/common/module/InstalledModules.java` | Администратор включает и выключает модуль; экран охраняет `moduleActiveGuard`, runtime отвечает на сущность выключенного модуля (`EntityMenu.module`) как на неизвестную — 404. |
 | Переводы | `apps/server/src/main/resources/i18n/{ru,uz,en}.json` | Ключи модуля (`nav.<код>`, подписи полей). Русский — канонический каталог; другие языки администратор добавляет в редакторе языков. |
 
 ## 4. Фоновые задания, события, интеграции
@@ -86,7 +92,7 @@ SmartupCMS расширяется **модулями в коде**: модуль
 | `JobHandler` (`@Bean`) | `S/jobs/api/JobHandler.java` | Задание по расписанию: `code()` и `run(args)`; расписание — строка в `fnd_job_schedule` (пример — `V121__upl_apply_recovery_job.sql`), разовый запуск — `JobQueue.enqueueOnce`. Очередь выполняет `S/config/jobs/JobQueueWorker.java`; обработчик работает вне транзакции очереди (свои короткие транзакции открывает сам) и может быть повторён после сбоя — он проверяет состояние, которое меняет. Обработчику, закрывающему свою запись при сбое, нужен `run(args, JobAttempt)`: пока попытка не последняя, временный сбой (`JobFailures.isTransient`; своё исключение модуль помечает `common.error.TransientFailure`) он пробрасывает для повтора, а сбой, который повтор не исправит, сообщает `JobNotRetryableException`. |
 | События Spring | например, `S/ms/task/service/MsTaskService.java` → `S/ms/notify/listener/MsTaskNotificationListener.java` | Модули общаются событиями, а не вызовами соседних сервисов. |
 | Поиск | `S/search/service/SearchChangePublisher.java` | `changed(entityType, id)` в транзакции владельца ставит запись на переиндексацию. |
-| Вебхуки | `S/webhook/service/WebhookService.java` | `publishEvent(type, payload)` доставляет событие подписчикам с подписью HMAC-SHA256. |
+| Вебхуки | `S/webhook/service/WebhookService.java`, `S/webhook/service/EntityWebhookListener.java` | `publishEvent(type, payload)` доставляет событие подписчикам с подписью HMAC-SHA256. События сущностей на runtime (`<форма>.created`/`updated`/`deleted`/`archived`/`restored`/`<действие>`, например `notes.updated`) приходят без кода модуля: конверт `{id, type, occurredAt, entity, recordId, revision, changedFields, data}`, `data` — запись без полей с правом. |
 | Провайдеры | `libs/provider-spi` (`StorageProvider`, `MailProvider`, `SmsProvider`, `MessengerProvider`) | Хранилище и каналы доставки; активный провайдер выбирает `S/common/provider/ProviderRegistry.java`. |
 
 ### Контракты очереди, хранилища, единиц и платформы
@@ -169,10 +175,13 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 
 1. **Поиск не подключается декларативно.** Коллекции Typesense заданы для
    задач, проектов и пользователей; новой сущности нужен код в модуле `search`.
-2. **Вебхуки без источников.** Подписки и доставка работают, но модули пока
-   не вызывают `publishEvent`.
-3. **Модель сущности внедрена на заметках.** Задачи, проекты и пользователи ещё
-   не переведены на `EntityDefinition` и `smt-entity-*`.
+2. **Вебхуки — только у сущностей на runtime.** События сущностей приходят из
+   `EntityChanged`; модули вне runtime (задачи, проекты) `publishEvent` пока не
+   вызывают. Каталог событий подписки (`GET /api/v1/webhooks/events`) и подпись
+   метки времени (В9) — не сделаны.
+3. **Runtime обслуживает заметки.** Задачи, проекты и пользователи ещё
+   не переведены на `EntityDefinition` и runtime (пункт 5.6); подписи ссылок
+   (`labels`) в ответе runtime — с общим экраном (пункт 5.5).
 4. **Встраивание внешнего приложения — только iframe** из пункта меню, без SSO
    и передачи сессии.
 5. **Маршрут экрана добавляется в `app.routes.ts` вручную** — динамической

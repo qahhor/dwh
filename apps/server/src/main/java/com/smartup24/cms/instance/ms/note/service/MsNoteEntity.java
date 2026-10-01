@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.instance.common.entity.EntityScope;
+import com.smartup24.cms.instance.common.entity.field.FieldDefault;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +21,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * The note entity, every field declared once (ADR-0032, 3.2; plan 10/10, item 5.1): {@code form-meta/ms.notes}
- * gives the screen its form, {@link MsNoteService} checks every save by the same fields, and the list
- * {@code ms.notes} ({@code GET /api/v1/notes}, {@code query-meta/ms.notes}) is derived from them. The title fits its
- * column (255); the colours are the ones the screen offers. History, export and bulk delete come from the declaration
- * and {@link MsNoteRecords} (roadmap item 56); the names of its right and its menu item too (roadmap item 57).
+ * The note entity — the whole server side of notes (ADR-0032, 3.2 and 6; plan 10/10, items 5.1 and 5.4): the general
+ * runtime serves its records at {@code /api/v1/entities/ms.notes} — list, read, create, change, archive, delete — with
+ * its scope, field rules, audit and events; {@code form-meta/ms.notes} gives the screen its form and
+ * {@code query-meta/ms.notes} its list, history, export and bulk actions come from the capabilities. Notes need no
+ * hooks: pinning is a change of {@code isPinned} with the right {@code update}. The title fits its column (255); the
+ * colours are the ones the screen offers.
  *
  * <p>Pinned notes come first, then the most recently changed: the hidden sort key {@code rank} joins the pin flag and
  * the change time into one text value, so the registry's keyset on one field and the row id keeps that order.
@@ -65,7 +67,10 @@ public class MsNoteEntity {
                     .column("content_md")
                     .length(null, MAX_CONTENT)
                     .list(searchable().hidden()))
-            .field(select("color", "notes.col.color", COLORS, "notes.color_").column("color"))
+            .field(select("color", "notes.col.color", COLORS, "notes.color_")
+                    .column("color")
+                    .required()
+                    .defaultValue(FieldDefault.fixed("default")))
             .field(bool("isPinned", "notes.col.pinned").column("is_pinned"))
             .field(instant("modifiedAt", "notes.col.modified_at")
                     .system(SystemColumn.MODIFIED_AT)
@@ -79,7 +84,6 @@ public class MsNoteEntity {
             .section("main", "entity.section.main", "title", "contentMd")
             .section("settings", "entity.section.settings", "color", "isPinned")
             .actions("create", "update")
-            .action("pin", "update")
             .archivable()
             .actions("delete")
             .defaultSort("rank", Entity.Sort.DESC)

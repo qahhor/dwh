@@ -189,7 +189,7 @@ export const fixtures = {
       { key: 'main', labelKey: 'entity.section.main', fields: ['title', 'contentMd'] },
       { key: 'settings', labelKey: 'entity.section.settings', fields: ['color', 'isPinned'] },
     ],
-    actions: ['create', 'update', 'pin', 'delete'],
+    actions: ['create', 'update', 'archive', 'delete'],
     capabilities: ['bulk', 'custom_fields', 'export', 'history', 'saved_views'],
   },
   '/query-meta/ms.notes': {
@@ -201,7 +201,7 @@ export const fixtures = {
     ],
   },
   '/list-views/ms.notes': [],
-  '/notes': page(range(1, 6).map(note), null, 6),
+  '/entities/ms.notes': page(range(1, 6).map(note), null, 6),
   '/history/ms.notes/1': page([
     { id: 2, event: 'U', changedAt: at(2), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [{ field: 'title', labelKey: 'notes.col.title', oldValue: 'Планёрка', newValue: 'Планёрка филиала 1' }] },
     { id: 1, event: 'I', changedAt: at(1), changedByName: 'Иван Петров', changedByLogin: 'ipetrov', isApi: false, changes: [] },

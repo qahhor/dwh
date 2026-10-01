@@ -77,7 +77,7 @@ class EntityFileControllerTest {
             }
         };
         EntityRegistry registry =
-                new EntityRegistry(List.of(FieldTypesFixture.DEFINITION), List.of(), List.of(records));
+                EntityFeaturesTest.registry(List.of(FieldTypesFixture.DEFINITION), List.of(), records);
         return new EntityFileController(registry, files);
     }
 

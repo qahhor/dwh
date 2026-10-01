@@ -44,6 +44,11 @@ public record QueryRef(
         return new QueryRef(path, labelField, "id", false);
     }
 
+    /** The runtime list of an entity (ADR-0032, 4.6): {@code /entities/ms.notes}. */
+    public static String entityPath(String entity) {
+        return "/entities/" + entity;
+    }
+
     /** The same reference with one row read from {@code {readPath}/{key}}. */
     public QueryRef readBy(String readPath) {
         return new QueryRef(path, labelField, keyField, paged, readPath);
@@ -51,7 +56,8 @@ public record QueryRef(
 
     private static void requirePath(String path) {
         Objects.requireNonNull(path, "path");
-        if (!path.matches("^/[a-z0-9/_-]+$")) {
+        // A dot only in an entity's code: /entities/md.users (ADR-0032, 4.6).
+        if (!path.matches("^/[a-z0-9/_.-]+$")) {
             throw new IllegalArgumentException("Bad reference path: " + path);
         }
     }

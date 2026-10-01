@@ -11,28 +11,17 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
-import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.common.query.QueryListRegistry;
-import com.smartup24.cms.instance.common.query.QueryListRepository;
-import com.smartup24.cms.instance.common.query.QueryPlan;
-import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.ms.note.service.MsNoteEntity;
-import com.smartup24.cms.instance.ms.note.service.MsNoteService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import jakarta.servlet.http.Cookie;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import org.dhatim.fastexcel.reader.ReadableWorkbook;
 import org.dhatim.fastexcel.reader.Row;
@@ -57,8 +46,9 @@ import tools.jackson.databind.ObjectMapper;
  * holders of that right change. For a person without it the text does not exist — {@code form-meta},
  * {@code query-meta}, the export (its columns and its rows, read as the list reads them) and the history leave it out,
  * and asking the export for its column is refused as for an unknown one — while the colour is read-only. A holder of
- * the right sees and writes both. The write itself is refused by {@code EntityFieldRights}, covered in
- * {@link EntityFieldRightsTest}.
+ * the right sees and writes both. The general runtime serves the entity like any other (ADR-0032, 6; plan 10/10, item
+ * 5.4): its history and export read its records through the runtime. The write itself is refused by
+ * {@code EntityFieldRights}, covered in {@link EntityFieldRightsTest} and by the entity contract kit.
  */
 @Import(EntityFieldRightsIntegrationTest.Fixture.class)
 class EntityFieldRightsIntegrationTest extends EmbeddedPostgresTest {
@@ -100,41 +90,6 @@ class EntityFieldRightsIntegrationTest extends EmbeddedPostgresTest {
         @Bean
         EntityDefinition secretNotesEntity() {
             return SECRET;
-        }
-
-        /** Records read as the list reads them: by the record's keys, the viewer's fields only, in the owner's scope. */
-        @Bean
-        EntityRecords secretNotesRecords(
-                MsNoteService notes, QueryListRegistry lists, EntityScopes scopes, JdbcClient jdbc) {
-            return new EntityRecords() {
-                @Override
-                public String entity() {
-                    return CODE;
-                }
-
-                @Override
-                public void requireVisible(long id) {
-                    notes.getNote(id, SecurityContext.getCurrentUserId());
-                }
-
-                @Override
-                public KeysetPage<?> page(int limit, String cursor, String filter, String sort, String search) {
-                    QueryPlan plan = QueryCompiler.compile(lists.get(CODE), filter, sort, limit, cursor, search);
-                    long viewer = Objects.requireNonNull(SecurityContext.getCurrentUserId());
-                    return new QueryListRepository(jdbc)
-                            .page(plan, (rs, row) -> record(plan, rs), scopes.listPredicate(SECRET, plan, viewer))
-                            .map(record -> EntityFieldRights.project(SECRET, record));
-                }
-            };
-        }
-
-        private static Map<String, Object> record(QueryPlan plan, ResultSet rs) throws SQLException {
-            Map<String, Object> record = new LinkedHashMap<>();
-            record.put("id", rs.getLong("id"));
-            for (String key : List.of("title", "contentMd", "color")) {
-                if (plan.shows(key)) record.put(key, rs.getString(key));
-            }
-            return record;
         }
     }
 
@@ -265,7 +220,8 @@ class EntityFieldRightsIntegrationTest extends EmbeddedPostgresTest {
     }
 
     private long note(Session s, String title, String content) throws Exception {
-        MockHttpServletResponse created = send(s, post("/api/v1/notes"), Map.of("title", title, "contentMd", content));
+        MockHttpServletResponse created =
+                send(s, post("/api/v1/entities/ms.notes"), Map.of("title", title, "contentMd", content));
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         return ((Number) object(created).get("id")).longValue();
     }

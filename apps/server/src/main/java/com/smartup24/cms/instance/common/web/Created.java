@@ -13,7 +13,7 @@ public final class Created {
 
     private Created() {}
 
-    /** {@code Created.at("/api/v1/notes/{id}", note.id(), note)}: the variables fill the template in order. */
+    /** {@code Created.at("/api/v1/tasks/{id}", task.id(), task)}: the variables fill the template in order. */
     public static <T> ResponseEntity<T> at(String pathTemplate, Object id, T body) {
         return ResponseEntity.created(location(pathTemplate, id)).body(body);
     }

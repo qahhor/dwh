@@ -94,7 +94,9 @@ class EntityDefinitionTest {
     void requiredFieldIsRequiredOnCreateAndWhenAnUpdateClearsIt() {
         assertThat(EntityValidator.problems(NOTES, Map.of(), false))
                 .extracting(FieldErrorItem::field, FieldErrorItem::code)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple("title", EntityValidator.REQUIRED));
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("title", EntityValidator.REQUIRED),
+                        org.assertj.core.groups.Tuple.tuple("color", EntityValidator.REQUIRED));
         assertThat(EntityValidator.problems(NOTES, Map.of(), true)).isEmpty();
         assertThat(EntityValidator.problems(NOTES, Map.of("title", "  "), true))
                 .extracting(FieldErrorItem::code)
@@ -167,8 +169,7 @@ class EntityDefinitionTest {
         FormFieldExtender extender = entity -> List.of(
                 FormField.of("cfBudget", "", FieldType.NUMBER).custom("Бюджет", "budget"),
                 FormField.of("title", "", FieldType.TEXT).custom("Дубль", "title"));
-        EntityRegistry registry = new EntityRegistry(
-                List.of(NOTES), List.of(extender), List.of(EntityFeaturesTest.records(NOTES.code())));
+        EntityRegistry registry = new EntityRegistry(List.of(NOTES), List.of(extender));
 
         EntityDefinition resolved = registry.find(NOTES.code()).orElseThrow();
 
@@ -177,7 +178,7 @@ class EntityDefinitionTest {
         assertThat(resolved.layout().getLast().key()).isEqualTo(EntityRegistry.CUSTOM_SECTION);
         assertThat(resolved.layout().getLast().fields()).containsExactly("cfBudget");
         // A custom field is the custom field service's to check, not the declared validator's.
-        assertThat(EntityValidator.problems(resolved, Map.of("title", "ok", "cfBudget", "x"), false))
+        assertThat(EntityValidator.problems(resolved, Map.of("title", "ok", "color", "blue", "cfBudget", "x"), false))
                 .isEmpty();
         assertThat(registry.find("unknown")).isEmpty();
         assertThatThrownBy(() -> new EntityRegistry(List.of(NOTES, NOTES))).isInstanceOf(IllegalStateException.class);
@@ -190,7 +191,7 @@ class EntityDefinitionTest {
 
         FormMetaController.FormMeta meta = controller.get(NOTES.code()).getBody();
 
-        assertThat(meta.actions()).containsExactly("update", "pin");
+        assertThat(meta.actions()).containsExactly("update");
         assertThat(meta.listCode()).isEqualTo("ms.notes");
         assertThat(meta.capabilities())
                 .containsExactly("archive", "bulk", "custom_fields", "export", "history", "saved_views");
