@@ -142,6 +142,7 @@ legal and ownership decisions.
 - [Project overview and quick start](../README.md)
 - [AI project context](ai-context.md) — concise handoff for AI-assisted work;
   subordinate to this authority model and the canonical specification.
+- [План 10/10](plan-10-10.md) — фазы качества, критерии приёмки и статус; цель ссылок «plan 10/10, item N».
 - [Contribution guide](../CONTRIBUTING.md)
 
 Dated audit reports and agent plans were removed from the tree; git history
