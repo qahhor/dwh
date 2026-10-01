@@ -40,7 +40,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
         if (options.getHandler) return options.getHandler(path);
         if (path === '/iam/users/10/effective-permissions') return of(mockEffectivePermissions);
         if (path === '/iam/users/10/permissions') return of(mockPersonalGrants);
-        if (path === '/iam/roles/forms') return of(mockFormCatalog);
+        if (path === '/iam/forms') return of(mockFormCatalog);
         return of([]);
       }),
       put: vi.fn((path: string, body: any, _options?: unknown) => {
@@ -76,7 +76,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
 
     expect(api.get).toHaveBeenCalledWith('/iam/users/10/effective-permissions');
     expect(api.get).toHaveBeenCalledWith('/iam/users/10/permissions');
-    expect(api.get).toHaveBeenCalledWith('/iam/roles/forms');
+    expect(api.get).toHaveBeenCalledWith('/iam/forms');
 
     expect(component.effectiveItems().length).toBe(3);
     expect(component.personalGrants().length).toBe(1);
@@ -259,7 +259,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
 
     expect(api.get).toHaveBeenCalledWith('/iam/users/11/effective-permissions');
     expect(api.get).toHaveBeenCalledWith('/iam/users/11/permissions');
-    expect(api.get.mock.calls.filter(([path]) => path === '/iam/roles/forms')).toHaveLength(1);
+    expect(api.get.mock.calls.filter(([path]) => path === '/iam/forms')).toHaveLength(1);
     expect(component.hasUnsavedChanges()).toBe(false);
     expect(component.effectiveItems()).toEqual([]);
     expect(component.personalGrants()).toEqual([]);

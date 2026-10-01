@@ -6,7 +6,8 @@
 //   - a call with a literal path (request.get('/api/v1/...'), api.post(`/api/v1/x/${id}`)): by method and path;
 //   - any other literal API path (a route glob, a URL a test waits for): when every method reaching it reaches a
 //     deprecated operation, as the method is not visible there;
-//   - a query parameter named in a literal path (?project_id=) or in a `params: { ... }` object.
+//   - a query parameter named in a literal path (?project_id=) or in a `params: { ... }` object;
+//   - a call with a literal path that no operation answers any more (a removed form), by method and path.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -18,10 +19,14 @@ import {
   requestedPath,
   resolveAnyMethod,
   typeScriptSources,
+  unknownCalls,
 } from '../../scripts/api/api-deprecations.mjs';
 
 const e2eRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const api = await loadDeprecatedApi();
+
+/** Files that call another service (Mailpit also answers under /api/v1): their calls are not the server's. */
+const OTHER_SERVICES = new Set(['support/mailpit.ts']);
 
 /** A quoted literal that holds an API path, with an optional route-glob prefix ('**' + '/api/v1/...'). */
 const API_LITERAL = /(['"`])(?:\*\*)?(\/api\/v1\/(?:(?!\1)[^\s*])*)\*?\1/g;
@@ -35,6 +40,7 @@ for (const file of await typeScriptSources(e2eRoot, { withSpecs: true })) {
   const relative = path.relative(e2eRoot, file).replace(/\\/g, '/');
   const calls = deprecatedCalls(api, text, relative);
   problems.push(...calls.problems);
+  if (!OTHER_SERVICES.has(relative)) problems.push(...unknownCalls(api, text, relative));
   const reported = new Set(calls.problems.map((problem) => problem.split(' ')[0]));
 
   for (const match of text.matchAll(API_LITERAL)) {
@@ -63,10 +69,10 @@ for (const file of await typeScriptSources(e2eRoot, { withSpecs: true })) {
 }
 
 if (problems.length > 0) {
-  console.error(`The e2e suite uses deprecated API forms (ADR-0023):\n  ${problems.join('\n  ')}`);
+  console.error(`The e2e suite uses deprecated or removed API forms (ADR-0023):\n  ${problems.join('\n  ')}`);
   process.exit(1);
 }
 console.log(
-  `E2E API deprecation audit: no use of ${api.deprecatedCount} deprecated operations and ` +
-    `${api.parameters.size} deprecated parameters.`,
+  `E2E API deprecation audit: no use of ${api.deprecatedCount} deprecated operations, ` +
+    `${api.parameters.size} deprecated parameters or a path no operation answers.`,
 );
