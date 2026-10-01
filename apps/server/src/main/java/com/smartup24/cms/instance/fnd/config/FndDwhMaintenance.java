@@ -8,14 +8,14 @@ import java.time.Duration;
 import javax.sql.DataSource;
 
 /**
- * Соединение с {@code pg-dwh} для заданий обслуживания, которые проходят весь raw (очистка, сверка).
- * Пул ограничивает запрос {@code app.dwh.statement-timeout}; здесь предел поднимается до
- * {@code app.dwh.maintenance-statement-timeout}, но только внутри одной транзакции
- * ({@code set_config(..., true)}): в пул соединение возвращается с обычным пределом.
+ * Connection to {@code pg-dwh} for maintenance jobs that scan the whole raw layer (cleanup, reconciliation).
+ * The pool limits a statement by {@code app.dwh.statement-timeout}; here the limit is raised to
+ * {@code app.dwh.maintenance-statement-timeout}, but only within a single transaction
+ * ({@code set_config(..., true)}): the connection returns to the pool with the normal limit.
  */
 public class FndDwhMaintenance {
 
-    /** Работа с соединением; её {@link SQLException} становится {@link DwhUnavailableException}. */
+    /** Work with a connection; its {@link SQLException} becomes {@link DwhUnavailableException}. */
     @FunctionalInterface
     public interface Work<T> {
         T run(Connection connection) throws SQLException;
@@ -29,7 +29,7 @@ public class FndDwhMaintenance {
         this.timeoutMs = String.valueOf(timeout.toMillis());
     }
 
-    /** Выполняет работу в одной транзакции pg-dwh с пределом заданий обслуживания. */
+    /** Runs the work in one pg-dwh transaction with the maintenance job limit. */
     public <T> T inTransaction(Work<T> work) {
         try (Connection connection = dwh.getConnection()) {
             connection.setAutoCommit(false);

@@ -4,11 +4,12 @@ import com.smartup24.cms.instance.fnd.FndPref;
 import org.springframework.boot.ExitCodeGenerator;
 
 /**
- * Схема одной из БД не соответствует ожидаемой сборкой: старт прерывается, код выхода процесса — 3 (AC-4).
+ * The schema of one of the databases does not match the one the build expects: startup is aborted
+ * and the process exits with code 3.
  *
- * @param db       {@code oltp} или {@code dwh}
- * @param expected последняя версия миграций на classpath
- * @param actual   что нашлось в {@code flyway_schema_history} (версия, {@code failed:<v>} или {@code none})
+ * @param db       {@code oltp} or {@code dwh}
+ * @param expected the latest migration version on the classpath
+ * @param actual   what was found in {@code flyway_schema_history} (a version, {@code failed:<v>} or {@code none})
  */
 public class SchemaVersionMismatchException extends RuntimeException implements ExitCodeGenerator {
 
