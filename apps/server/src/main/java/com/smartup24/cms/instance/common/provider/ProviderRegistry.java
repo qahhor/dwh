@@ -37,10 +37,10 @@ public class ProviderRegistry {
             List<MailProvider> mailList,
             List<SmsProvider> smsList,
             List<MessengerProvider> messengerList,
-            @Value("${dwh.providers.storage:local_disk}") String activeStorageCode,
-            @Value("${dwh.providers.mail:console_mail}") String activeMailCode,
-            @Value("${dwh.providers.sms:console_sms}") String activeSmsCode,
-            @Value("${dwh.providers.messenger:console_messenger}") String activeMessengerCode) {
+            @Value("${smc.providers.storage:local_disk}") String activeStorageCode,
+            @Value("${smc.providers.mail:console_mail}") String activeMailCode,
+            @Value("${smc.providers.sms:console_sms}") String activeSmsCode,
+            @Value("${smc.providers.messenger:console_messenger}") String activeMessengerCode) {
 
         this.storageProviders = storageList.stream()
                 .collect(Collectors.toMap(StorageProvider::getProviderCode, Function.identity(), (a, b) -> a));

@@ -21,7 +21,7 @@ public class SearchGenerationService {
             SearchGenerationRepository generations,
             SearchSettingsRepository settings,
             SearchJobAudit audit,
-            @Value("${dwh.search.maximum-generations:4}") int maximum) {
+            @Value("${smc.search.maximum-generations:4}") int maximum) {
         this.generations = generations;
         this.settings = settings;
         this.audit = audit;

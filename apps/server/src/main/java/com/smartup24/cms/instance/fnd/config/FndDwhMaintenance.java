@@ -9,8 +9,8 @@ import javax.sql.DataSource;
 
 /**
  * Connection to {@code pg-dwh} for maintenance jobs that scan the whole raw layer (cleanup, reconciliation).
- * The pool limits a statement by {@code app.dwh.statement-timeout}; here the limit is raised to
- * {@code app.dwh.maintenance-statement-timeout}, but only within a single transaction
+ * The pool limits a statement by {@code warehouse.statement-timeout}; here the limit is raised to
+ * {@code warehouse.maintenance-statement-timeout}, but only within a single transaction
  * ({@code set_config(..., true)}): the connection returns to the pool with the normal limit.
  */
 public class FndDwhMaintenance {

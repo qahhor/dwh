@@ -27,7 +27,7 @@ class BackupStatusReaderTest {
                     .addFirst(new MapPropertySource(
                             "test",
                             Map.of(
-                                    "dwh.backup.status-file",
+                                    "smc.backup.status-file",
                                     directory.resolve("status.json").toString())));
             context.registerBean(ObjectMapper.class, () -> new ObjectMapper());
             context.register(BackupStatusReader.class);

@@ -52,8 +52,8 @@ public class SystemInfoService {
             TypesenseProperties typesense,
             InstanceBootstrapProperties bootstrap,
             ObjectProvider<BuildProperties> buildProperties,
-            @Value("${dwh.system.health-timeout:2s}") Duration healthTimeout,
-            @Value("${dwh.backup.max-age:0s}") Duration backupMaxAge) {
+            @Value("${smc.system.health-timeout:2s}") Duration healthTimeout,
+            @Value("${smc.backup.max-age:0s}") Duration backupMaxAge) {
         this.jdbc = jdbc;
         this.providers = providers;
         this.backupStatusReader = backupStatusReader;

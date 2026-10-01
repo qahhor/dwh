@@ -68,7 +68,7 @@ public class FndDwhConfig {
     @Bean
     public HealthIndicator dwhHealthIndicator(
             @Qualifier(FndPref.DWH) DataSource dwhDataSource,
-            @Value("${dwh.system.health-timeout:2s}") String timeout) {
+            @Value("${smc.system.health-timeout:2s}") String timeout) {
         // Parsed here: the context of the pg-dwh configuration test has no conversion service.
         Duration deadline = DurationStyle.detectAndParse(timeout);
         JdbcClient jdbc = JdbcClient.create(dwhDataSource);

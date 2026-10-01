@@ -21,12 +21,12 @@ public class IdempotencyCleanupWorker {
     private final int retentionDays;
 
     public IdempotencyCleanupWorker(
-            IdempotencyService idempotencyService, @Value("${dwh.idempotency.retention-days:14}") int retentionDays) {
+            IdempotencyService idempotencyService, @Value("${smc.idempotency.retention-days:14}") int retentionDays) {
         this.idempotencyService = idempotencyService;
         this.retentionDays = retentionDays;
     }
 
-    @Scheduled(cron = "${dwh.idempotency.cleanup-cron:0 15 2 * * *}", zone = "UTC")
+    @Scheduled(cron = "${smc.idempotency.cleanup-cron:0 15 2 * * *}", zone = "UTC")
     public void cleanupOldKeys() {
         try {
             int deleted = idempotencyService.cleanupOldKeys(retentionDays);

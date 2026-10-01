@@ -31,7 +31,7 @@ public class ReadinessHealthConfiguration {
 
     private final Duration deadline;
 
-    public ReadinessHealthConfiguration(@Value("${dwh.system.health-timeout:2s}") Duration deadline) {
+    public ReadinessHealthConfiguration(@Value("${smc.system.health-timeout:2s}") Duration deadline) {
         this.deadline = deadline.isZero() || deadline.isNegative() ? Duration.ofSeconds(2) : deadline;
     }
 
@@ -78,7 +78,7 @@ public class ReadinessHealthConfiguration {
 
     @Bean
     HealthIndicator clamavHealthIndicator(
-            ObjectProvider<ClamAvFileScanner> scanner, @Value("${dwh.files.scanner.required:false}") boolean required) {
+            ObjectProvider<ClamAvFileScanner> scanner, @Value("${smc.files.scanner.required:false}") boolean required) {
         return () -> {
             if (!required) {
                 return Health.up().withDetail("required", false).build();

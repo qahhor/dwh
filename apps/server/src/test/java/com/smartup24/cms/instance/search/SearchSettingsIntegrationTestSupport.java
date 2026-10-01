@@ -44,6 +44,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.*;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.*;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -56,13 +57,15 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 @AutoConfigureMockMvc(print = MockMvcPrint.NONE)
+// The development secrets of application.yml are refused outside the dev and test profiles (ADR-0027).
+@ActiveProfiles("test")
 @WebMvcTest(
         controllers = SearchController.class,
         properties = {
             "logging.level.org.springframework.boot.security.autoconfigure=ERROR",
-            "dwh.typesense.enabled=false",
-            "dwh.typesense.url=http://127.0.0.1:1",
-            "dwh.rate-limit.expensive-per-minute=600",
+            "smc.typesense.enabled=false",
+            "smc.typesense.url=http://127.0.0.1:1",
+            "smc.rate-limit.expensive-per-minute=600",
             "spring.datasource.url=jdbc:postgresql://127.0.0.1:1/unused",
             "server.port=0",
             "management.server.port=0"

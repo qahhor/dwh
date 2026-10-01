@@ -25,7 +25,7 @@ public class KauthSessionCleanupWorker {
         this.sessionService = sessionService;
     }
 
-    @Scheduled(fixedDelayString = "${dwh.session.cleanup-interval:1h}", initialDelayString = "PT1M")
+    @Scheduled(fixedDelayString = "${smc.session.cleanup-interval:1h}", initialDelayString = "PT1M")
     public void cleanupInactiveSessions() {
         try {
             Instant cutoff = Instant.now().minus(Duration.ofHours(12));

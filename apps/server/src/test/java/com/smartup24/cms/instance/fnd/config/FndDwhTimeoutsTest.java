@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The pg-dwh pool never runs "without a timeout". The server cuts off a long query and an abandoned transaction
- * by {@code app.dwh.statement-timeout}; maintenance jobs get their own limit only inside the transaction and
+ * by {@code warehouse.statement-timeout}; maintenance jobs get their own limit only inside the transaction and
  * return the connection to the pool with the usual one.
  */
 class FndDwhTimeoutsTest {

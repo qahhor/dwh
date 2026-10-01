@@ -3,12 +3,14 @@ package com.smartup24.cms.instance.config.security;
 import com.smartup24.cms.instance.search.SearchOwnerRateLimits;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Request rate limits (FR-SEC-2, ADR-0008). Values are per minute.
  * All values are set by the instance configuration.
  */
-@ConfigurationProperties(prefix = "dwh.rate-limit")
+@Validated
+@ConfigurationProperties(prefix = "smc.rate-limit")
 public record RateLimitProperties(
         boolean enabled,
         int ipPerMinute,

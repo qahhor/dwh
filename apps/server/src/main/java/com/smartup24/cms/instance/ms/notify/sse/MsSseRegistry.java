@@ -32,8 +32,8 @@ public class MsSseRegistry {
     private final int maxPerUser;
 
     public MsSseRegistry(
-            @Value("${dwh.sse.timeout-ms:1800000}") long timeoutMs,
-            @Value("${dwh.sse.max-connections-per-user:5}") int maxPerUser) {
+            @Value("${smc.sse.timeout-ms:1800000}") long timeoutMs,
+            @Value("${smc.sse.max-connections-per-user:5}") int maxPerUser) {
         this.timeoutMs = timeoutMs;
         this.maxPerUser = maxPerUser;
     }

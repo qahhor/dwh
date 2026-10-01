@@ -23,7 +23,7 @@ class StorageProviderSelectionTest {
 
     @Test
     void selectsExactlyOneLocalProviderByDefault() {
-        runner.withPropertyValues("dwh.storage.local-path=" + storagePath).run(context -> {
+        runner.withPropertyValues("smc.storage.local-path=" + storagePath).run(context -> {
             assertThat(context).hasNotFailed();
             assertThat(context.getBeansOfType(StorageProvider.class))
                     .hasSize(1)
@@ -35,12 +35,12 @@ class StorageProviderSelectionTest {
     @Test
     void selectsExactlyOneS3ProviderWhenConfigured() {
         runner.withPropertyValues(
-                        "dwh.providers.storage=s3",
-                        "dwh.storage.s3.endpoint=http://127.0.0.1:19000",
-                        "dwh.storage.s3.region=us-east-1",
-                        "dwh.storage.s3.access-key=test-access",
-                        "dwh.storage.s3.secret-key=test-secret",
-                        "dwh.storage.s3.bucket=test-bucket")
+                        "smc.providers.storage=s3",
+                        "smc.storage.s3.endpoint=http://127.0.0.1:19000",
+                        "smc.storage.s3.region=us-east-1",
+                        "smc.storage.s3.access-key=test-access",
+                        "smc.storage.s3.secret-key=test-secret",
+                        "smc.storage.s3.bucket=test-bucket")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context.getBeansOfType(StorageProvider.class))
@@ -52,9 +52,9 @@ class StorageProviderSelectionTest {
 
     @Test
     void failsFastWhenS3SecretsAreMissing() {
-        runner.withPropertyValues("dwh.providers.storage=s3")
+        runner.withPropertyValues("smc.providers.storage=s3")
                 .run(context -> assertThat(context.getStartupFailure())
                         .isNotNull()
-                        .hasRootCauseMessage("DWH_S3_ENDPOINT must be an absolute HTTP(S) URI"));
+                        .hasRootCauseMessage("SMC_S3_ENDPOINT must be an absolute HTTP(S) URI"));
     }
 }

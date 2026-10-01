@@ -71,7 +71,7 @@ class AuthenticationGenerationHttpTest {
         web.setServletContext(new MockServletContext());
         web.getEnvironment()
                 .getPropertySources()
-                .addFirst(new MapPropertySource("http-test", Map.of("dwh.rate-limit.enabled", "true")));
+                .addFirst(new MapPropertySource("http-test", Map.of("smc.rate-limit.enabled", "true")));
         web.register(HttpConfiguration.class);
         web.refresh();
         mvc = MockMvcBuilders.webAppContextSetup(web).apply(springSecurity()).build();

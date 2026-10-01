@@ -18,7 +18,7 @@ public class FileScannerStartupCheck implements ApplicationRunner {
     private final boolean required;
 
     public FileScannerStartupCheck(
-            List<FileScanner> scanners, @Value("${dwh.files.scanner.required:false}") boolean required) {
+            List<FileScanner> scanners, @Value("${smc.files.scanner.required:false}") boolean required) {
         this.scanners = List.copyOf(scanners);
         this.required = required;
     }

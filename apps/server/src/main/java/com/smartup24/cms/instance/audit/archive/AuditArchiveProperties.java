@@ -7,6 +7,7 @@ import java.util.Locale;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.util.unit.DataSize;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Archiving of the audit log (decision of 2026-09-27): closed partitions go into one gzip file every
@@ -16,6 +17,7 @@ import org.springframework.util.unit.DataSize;
  * @param target      {@code local} (a directory on the server) or {@code s3}
  * @param localPath   the directory of a local target, and the staging area of both targets
  */
+@Validated
 @ConfigurationProperties(prefix = "smc.audit.archive")
 public record AuditArchiveProperties(
         @DefaultValue("true") boolean enabled,
