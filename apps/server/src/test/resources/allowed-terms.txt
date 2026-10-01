@@ -1,3 +1,5 @@
 # Lines where a forbidden term is an identifier, not a unit of measure or a buyer name.
 # Format: path-from-apps/server:line:term # reason.
-src/main/resources/db/migration/V147__permission_codes_by_module.sql:30:kwh # the webhook module code (item 4.3 renames the module), not kilowatt-hours
+src/main/resources/db/migration/V147__permission_codes_by_module.sql:30:kwh # the old code of the webhook module (renamed by item 4.3), not kilowatt-hours
+src/main/resources/db/migration/V155__webhook_module_code.sql:4:kwh # the old code of the webhook module (item 4.3), not kilowatt-hours
+src/main/resources/db/migration/V155__webhook_module_code.sql:10:kwh # the old code of the webhook module (item 4.3), not kilowatt-hours
