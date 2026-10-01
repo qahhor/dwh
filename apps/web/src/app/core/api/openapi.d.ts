@@ -532,6 +532,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/entities/{code}/{id}/files/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download a file of a record
+         * @description The content of a file attached to a file or image field of a record the viewer may see.
+         */
+        get: operations["download"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -3321,6 +3341,17 @@ export interface components {
         Component: {
             status?: string;
         };
+        ConditionClauseMeta: {
+            field?: string;
+            op?: string;
+            values?: string[];
+        };
+        ConditionItemMeta: {
+            any?: components["schemas"]["ConditionClauseMeta"][];
+            field?: string;
+            op?: string;
+            values?: string[];
+        };
         ConfirmChannelRequest: {
             code: string;
             verifyToken: string;
@@ -3507,6 +3538,10 @@ export interface components {
             /** Format: int64 */
             rejected?: number;
         };
+        DefaultValueMeta: {
+            kind?: string;
+            value?: string;
+        };
         DependencyMetadata: {
             enabled?: boolean;
             errorCode?: string;
@@ -3598,7 +3633,11 @@ export interface components {
             attribute?: string;
             defaultVisible?: boolean;
             enumLabelPrefix?: string;
+            enumLabels?: {
+                [key: string]: string;
+            };
             enumValues?: string[];
+            format?: string;
             key?: string;
             label?: string;
             labelKey?: string;
@@ -3655,21 +3694,38 @@ export interface components {
         };
         FormFieldMeta: {
             attribute?: string;
+            computed?: boolean;
+            contentTypes?: string[];
+            currencies?: string[];
+            defaultValue?: components["schemas"]["DefaultValueMeta"];
+            jsonRoot?: string;
             key?: string;
             label?: string;
             labelKey?: string;
             max?: number;
+            /** Format: int64 */
+            maxBytes?: number;
+            /** Format: int32 */
+            maxItems?: number;
             /** Format: int32 */
             maxLength?: number;
             min?: number;
             /** Format: int32 */
             minLength?: number;
             optionLabelPrefix?: string;
+            optionLabels?: {
+                [key: string]: string;
+            };
             options?: string[];
             pattern?: string;
+            readonly?: string;
+            readonlyWhen?: components["schemas"]["ConditionItemMeta"][];
             ref?: components["schemas"]["QueryRef"];
             required?: boolean;
+            /** Format: int32 */
+            scale?: number;
             type?: string;
+            visibleWhen?: components["schemas"]["ConditionItemMeta"][];
         };
         FormMeta: {
             actions?: string[];
@@ -5928,6 +5984,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkResult"];
+                };
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    download: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+                id: number;
+                fileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
