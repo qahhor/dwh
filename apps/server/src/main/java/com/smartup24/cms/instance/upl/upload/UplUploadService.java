@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.upl.upload;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.api.FndVersions;
+import com.smartup24.cms.instance.common.versioning.Versions;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.mf.api.StoredFile;
 import com.smartup24.cms.instance.mf.service.MfFileService;
@@ -34,7 +34,7 @@ public class UplUploadService {
     private static final String XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     private final UplSourceService sources;
-    private final FndVersions versioning;
+    private final Versions versioning;
     private final MfFileService files;
     private final UplPackageService packages;
     private final JobQueue jobs;
@@ -42,7 +42,7 @@ public class UplUploadService {
 
     public UplUploadService(
             UplSourceService sources,
-            FndVersions versioning,
+            Versions versioning,
             MfFileService files,
             UplPackageService packages,
             JobQueue jobs,

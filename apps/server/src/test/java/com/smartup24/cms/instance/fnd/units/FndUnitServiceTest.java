@@ -4,17 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.common.versioning.Version;
+import com.smartup24.cms.instance.common.versioning.VersioningService;
 import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
 import com.smartup24.cms.instance.fnd.api.FndConversion;
 import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
-import com.smartup24.cms.instance.fnd.api.FndVersion;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
+import com.smartup24.cms.instance.units.api.UnitError;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -41,10 +42,10 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
     private FndUnitService units;
 
     @Autowired
-    private FndVersioning versioning;
+    private VersioningService versioning;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -52,7 +53,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    private FndActor actor;
+    private AuditActor actor;
 
     /** The instance configurations A and B. */
     static Stream<DepartmentFixture> departments() {
@@ -93,22 +94,22 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
                 .contains("Единица TEST");
 
         assertThat(codeOf(() -> units.registerUnit("", Map.of("uz", "TEST"), base, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNITS_CK_CODE);
+                .isEqualTo(UnitError.FND_UNITS_CK_CODE);
         assertThat(codeOf(() -> units.registerUnit("u".repeat(33), Map.of("uz", "TEST"), base, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNITS_CK_CODE);
+                .isEqualTo(UnitError.FND_UNITS_CK_CODE);
         assertThat(codeOf(() -> units.registerUnit("u test", Map.of("uz", "TEST"), base, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNITS_CK_CODE);
+                .isEqualTo(UnitError.FND_UNITS_CK_CODE);
         assertThat(codeOf(() -> units.registerUnit(other, Map.of("ru", "TEST"), base, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNITS_CK_NAME_UZ);
+                .isEqualTo(UnitError.FND_UNITS_CK_NAME_UZ);
         assertThat(codeOf(() -> units.registerUnit(other, Map.of("uz", "TEST"), "u_unknown_test", actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNITS_FK_BASE_UNIT);
+                .isEqualTo(UnitError.FND_UNITS_FK_BASE_UNIT);
         assertThat(codeOf(() -> units.registerUnit(base, Map.of("uz", "TEST"), base, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNITS_UK_CODE);
+                .isEqualTo(UnitError.FND_UNITS_UK_CODE);
         // A unit without a base unit is rejected both by the facade and by plain SQL (base_unit_code not null, V107)
         assertThat(codeOf(() -> units.registerUnit(other, Map.of("uz", "TEST"), null, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
+                .isEqualTo(UnitError.FND_UNIT_BASE_REQUIRED);
         assertThat(codeOf(() -> units.registerUnit(other, Map.of("uz", "TEST"), " ", actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
+                .isEqualTo(UnitError.FND_UNIT_BASE_REQUIRED);
         assertThat(jdbc.sql("select is_nullable from information_schema.columns"
                                 + " where table_name = 'fnd_units' and column_name = 'base_unit_code'")
                         .query(String.class)
@@ -126,11 +127,11 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         FndCoefficientRef ref =
                 units.publishCoefficient(first.from(), first.to(), first.factor(), first.validFrom(), actor);
 
-        FndVersion version = versioning
+        Version version = versioning
                 .find(FndUnitService.COEFFICIENT_VERSIONS, ref.coefficientId(), ref.version())
                 .orElseThrow();
         assertThat(ref.version()).isEqualTo(1);
-        assertThat(version.status()).isEqualTo(FndVersion.PUBLISHED);
+        assertThat(version.status()).isEqualTo(Version.PUBLISHED);
         assertThat(version.publishedBy()).isEqualTo(actor.name());
         assertThat(factorOf(ref)).isEqualByComparingTo(first.factor());
         assertThat(jdbc.sql("select data_type from information_schema.columns where table_name ="
@@ -142,12 +143,12 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         String derived = dept.derivedUnit().code();
         String other = dept.otherUnit().code();
         assertThat(codeOf(() -> units.publishCoefficient(derived, other, BigDecimal.ZERO, first.validFrom(), actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNIT_COEFFICIENT_VERSIONS_CK_FACTOR_POSITIVE);
+                .isEqualTo(UnitError.FND_UNIT_COEFFICIENT_VERSIONS_CK_FACTOR_POSITIVE);
         assertThat(codeOf(
                         () -> units.publishCoefficient(derived, other, new BigDecimal("-1"), first.validFrom(), actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNIT_COEFFICIENT_VERSIONS_CK_FACTOR_POSITIVE);
+                .isEqualTo(UnitError.FND_UNIT_COEFFICIENT_VERSIONS_CK_FACTOR_POSITIVE);
         assertThat(codeOf(() -> units.publishCoefficient(derived, derived, BigDecimal.TEN, first.validFrom(), actor)))
-                .isEqualTo(ConstraintErrorCode.FND_UNIT_COEFFICIENTS_CK_DISTINCT);
+                .isEqualTo(UnitError.FND_UNIT_COEFFICIENTS_CK_DISTINCT);
     }
 
     @ParameterizedTest(name = "конфигурация {0}")
@@ -233,7 +234,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         assertThat(identity.coefficient()).isNull();
 
         assertThat(codeOf(() -> units.toBase(BigDecimal.ONE, "u_unknown_test", inForce)))
-                .isEqualTo(ConstraintErrorCode.FND_UNIT_UNKNOWN);
+                .isEqualTo(UnitError.FND_UNIT_UNKNOWN);
     }
 
     @ParameterizedTest(name = "конфигурация {0}")
@@ -286,7 +287,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
                 .single();
     }
 
-    private ConstraintErrorCode codeOf(Runnable action) {
+    private ConstraintCode codeOf(Runnable action) {
         Throwable error = catchThrowable(action::run);
         assertThat(error).isInstanceOf(ConstraintViolationException.class);
         return ((ConstraintViolationException) error).code();

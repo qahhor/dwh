@@ -4,17 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import com.zaxxer.hikari.HikariDataSource;
 import java.time.Duration;
 import java.time.Instant;
@@ -49,7 +50,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
     private FndLoadService loads;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -64,7 +65,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    private FndActor actor;
+    private AuditActor actor;
 
     @BeforeEach
     void cleanDwh() {
@@ -112,14 +113,14 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
         loads.apply(loadId, 3, 3, 0, actor);
         assertThat(codeOf(() -> rawWriter.write(loadId, fileId, List.of(new FndRawRow(4, null, null, Map.of())))))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+                .isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
 
         long failed = newLoad();
         loads.fail(failed, "сбой TEST", actor);
         assertThat(codeOf(() -> rawWriter.write(failed, fileId, List.of(new FndRawRow(1, null, null, Map.of())))))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+                .isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
         assertThat(codeOf(() -> rawWriter.write(-1, fileId, List.of(new FndRawRow(1, null, null, Map.of())))))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+                .isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
 
         // The facade can only write, count and read: the contract has no updates or deletes
         // Synthetic methods (a default method's lambda, coverage probes) are not part of the contract.
@@ -183,14 +184,14 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
 
         for (String forbidden : List.of("raw", "core", "public", "MART")) {
             assertThat(codeOf(() -> martReader.read(forbidden, "rows", Map.of())))
-                    .isEqualTo(ConstraintErrorCode.DWH_READ_FORBIDDEN);
+                    .isEqualTo(WarehouseError.DWH_READ_FORBIDDEN);
         }
         for (String table : List.of("items; drop table cache.items", "cache.items", "\"items\"", "items rows")) {
             assertThat(codeOf(() -> martReader.read("cache", table, Map.of())))
-                    .isEqualTo(ConstraintErrorCode.DWH_READ_FORBIDDEN);
+                    .isEqualTo(WarehouseError.DWH_READ_FORBIDDEN);
         }
         assertThat(codeOf(() -> martReader.read("cache", "items", Map.of("item_key; drop", "x"))))
-                .isEqualTo(ConstraintErrorCode.DWH_READ_FORBIDDEN);
+                .isEqualTo(WarehouseError.DWH_READ_FORBIDDEN);
     }
 
     @Test
@@ -276,7 +277,7 @@ class FndDwhFacadesTest extends EmbeddedPostgresTest {
         };
     }
 
-    private ConstraintErrorCode codeOf(Runnable action) {
+    private ConstraintCode codeOf(Runnable action) {
         Throwable error = catchThrowable(action::run);
         assertThat(error).isInstanceOf(ConstraintViolationException.class);
         return ((ConstraintViolationException) error).code();

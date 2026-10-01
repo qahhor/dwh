@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndActorContext;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
@@ -42,10 +42,10 @@ public class UplApplyRecoveryJob implements JobHandler {
 
     private final UplPackageRepository repo;
     private final FndLoads loads;
-    private final FndActorContext actors;
+    private final AuditActorContext actors;
     private final JobQueries jobs;
 
-    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, FndActorContext actors, JobQueries jobs) {
+    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, AuditActorContext actors, JobQueries jobs) {
         this.repo = repo;
         this.loads = loads;
         this.actors = actors;
@@ -64,7 +64,7 @@ public class UplApplyRecoveryJob implements JobHandler {
         int staleMinutes = args.get("staleMinutes") instanceof Number minutes
                 ? Math.max(1, minutes.intValue())
                 : DEFAULT_STALE_MINUTES;
-        FndActor actor = actors.system();
+        AuditActor actor = actors.system();
         actors.apply(actor);
         List<PackageRow> stale = repo.lockStaleApplies(staleMinutes);
         // Read after the lock: a job that closes a locked package waits for this transaction

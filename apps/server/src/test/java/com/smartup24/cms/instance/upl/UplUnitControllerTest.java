@@ -6,9 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.jayway.jsonpath.JsonPath;
-import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.api.UplUnitController;
@@ -47,7 +47,7 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
     private FndUnitService units;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     private MockMvc mvc;
     private String adminLogin;

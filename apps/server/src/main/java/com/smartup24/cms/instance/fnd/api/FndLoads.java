@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.fnd.api;
 
+import com.smartup24.cms.instance.common.actor.AuditActor;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -25,16 +26,16 @@ public interface FndLoads {
             LocalDate periodFrom,
             LocalDate periodTo,
             String formatVersion,
-            FndActor actor);
+            AuditActor actor);
 
     /**
      * Applies a load. The row counters must add up ({@code accepted + rejected = total}); the previously applied load
      * of the same source for the same period becomes {@code superseded}.
      */
-    void apply(long loadId, int rowsTotal, int rowsAccepted, int rowsRejected, FndActor actor);
+    void apply(long loadId, int rowsTotal, int rowsAccepted, int rowsRejected, AuditActor actor);
 
     /** Marks a load failed and writes the reason to the log; a call without a reason is rejected. */
-    void fail(long loadId, String reason, FndActor actor);
+    void fail(long loadId, String reason, AuditActor actor);
 
     /** Writes a package log row; log rows are append-only. */
     void log(
@@ -42,7 +43,7 @@ public interface FndLoads {
             String event,
             String fromStatus,
             String toStatus,
-            FndActor actor,
+            AuditActor actor,
             String note,
             String fileSha);
 

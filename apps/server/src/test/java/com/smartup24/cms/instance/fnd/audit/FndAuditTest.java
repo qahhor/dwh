@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
+import com.smartup24.cms.instance.common.actor.ActorError;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.error.ConstraintErrors;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +32,7 @@ class FndAuditTest extends EmbeddedPostgresTest {
     private static final String UNIT = "u_audit_test";
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -40,13 +40,13 @@ class FndAuditTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    private FndActor system;
-    private FndActor user;
+    private AuditActor system;
+    private AuditActor user;
 
     @BeforeEach
     void cleanUnits() {
         system = actors.system();
-        user = FndActor.user(userId());
+        user = AuditActor.user(userId());
         tx.executeWithoutResult(status -> {
             actors.apply(system);
             jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
@@ -135,7 +135,8 @@ class FndAuditTest extends EmbeddedPostgresTest {
                             .query(String.class)
                             .single();
                 }
-                FndSqlErrors.translating(
+                ConstraintErrors.translating(
+                        List.of(ActorError.AUDIT_ACTOR_MISSING),
                         () -> jdbc.sql("update fnd_units set name_i18n = cast(:n as jsonb)" + " where id = :id")
                                 .param("n", "{\"uz\": \"X\"}")
                                 .param("id", id)
@@ -144,7 +145,7 @@ class FndAuditTest extends EmbeddedPostgresTest {
             assertThat(error).as("актор [%s]", badActor).isInstanceOf(ConstraintViolationException.class);
             assertThat(((ConstraintViolationException) error).code())
                     .as("актор [%s]", badActor)
-                    .isEqualTo(ConstraintErrorCode.AUDIT_ACTOR_MISSING);
+                    .isEqualTo(ActorError.AUDIT_ACTOR_MISSING);
         }
         assertThat(jdbc.sql("select name_i18n ->> 'uz' from fnd_units where id = :id")
                         .param("id", id)
@@ -193,14 +194,14 @@ class FndAuditTest extends EmbeddedPostgresTest {
                 .single();
     }
 
-    private <T> T inTx(FndActor actor, Supplier<T> action) {
+    private <T> T inTx(AuditActor actor, Supplier<T> action) {
         return tx.execute(status -> {
             actors.apply(actor);
             return action.get();
         });
     }
 
-    private void inTx(FndActor actor, Runnable action) {
+    private void inTx(AuditActor actor, Runnable action) {
         inTx(actor, () -> {
             action.run();
             return null;

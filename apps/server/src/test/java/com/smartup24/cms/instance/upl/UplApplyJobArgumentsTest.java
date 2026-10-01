@@ -5,9 +5,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
@@ -30,7 +30,7 @@ class UplApplyJobArgumentsTest {
             mock(UplXlsxParser.class),
             mock(FndLoadService.class),
             mock(FndRawWriter.class),
-            mock(FndActors.class),
+            mock(MdAuditActors.class),
             mock(TransactionTemplate.class));
 
     @Test

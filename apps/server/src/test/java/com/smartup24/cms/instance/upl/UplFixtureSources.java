@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.upl;
 
-import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.Format;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture.FormatColumn;
@@ -41,12 +41,12 @@ public final class UplFixtureSources {
     }
 
     /** The fixture's units of measure in the instance database: base units first, then the units derived from them. */
-    public static void registerUnits(FndUnitService units, FndActors actors, DepartmentFixture dept) {
+    public static void registerUnits(FndUnitService units, MdAuditActors actors, DepartmentFixture dept) {
         dept.units().stream().filter(u -> u.code().equals(u.base())).forEach(u -> ensureUnit(units, actors, u));
         dept.units().stream().filter(u -> !u.code().equals(u.base())).forEach(u -> ensureUnit(units, actors, u));
     }
 
-    private static void ensureUnit(FndUnitService units, FndActors actors, Unit u) {
+    private static void ensureUnit(FndUnitService units, MdAuditActors actors, Unit u) {
         if (units.findUnit(u.code()).isEmpty()) {
             units.registerUnit(u.code(), Map.of("uz", u.nameUz()), u.base(), actors.system());
         }

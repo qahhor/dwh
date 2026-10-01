@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 
-import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.jobs.config.JobProperties;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -58,7 +58,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     private JobRunner jobs;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;

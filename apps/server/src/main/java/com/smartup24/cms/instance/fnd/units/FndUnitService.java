@@ -1,17 +1,19 @@
 package com.smartup24.cms.instance.fnd.units;
 
+import com.smartup24.cms.instance.common.actor.ActorError;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintErrors;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.common.json.JsonColumns;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.common.versioning.Versions;
 import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
 import com.smartup24.cms.instance.fnd.api.FndConversion;
 import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
-import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
 import com.smartup24.cms.instance.fnd.api.FndUnit;
 import com.smartup24.cms.instance.fnd.api.FndUnits;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
+import com.smartup24.cms.instance.units.api.UnitError;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -33,15 +35,17 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 public class FndUnitService implements FndUnits {
 
-    /** The coefficient versions table, following the foundation's versioning standard ({@link FndVersioning}). */
+    private static final List<ConstraintCode> CODES = ConstraintErrors.codes(UnitError.values(), ActorError.values());
+
+    /** The coefficient versions table, following the versioning standard ({@link Versions}). */
     public static final String COEFFICIENT_VERSIONS = "fnd_unit_coefficient_versions";
 
     private final JdbcClient jdbc;
-    private final FndActors actors;
-    private final FndVersioning versioning;
+    private final AuditActorContext actors;
+    private final Versions versioning;
     private final JsonColumns jsonColumns;
 
-    public FndUnitService(JdbcClient jdbc, FndActors actors, FndVersioning versioning, ObjectMapper json) {
+    public FndUnitService(JdbcClient jdbc, AuditActorContext actors, Versions versioning, ObjectMapper json) {
         this.jdbc = jdbc;
         this.actors = actors;
         this.versioning = versioning;
@@ -56,19 +60,21 @@ public class FndUnitService implements FndUnits {
      */
     @Transactional
     @Override
-    public long registerUnit(String code, Map<String, String> nameI18n, String baseUnitCode, FndActor actor) {
+    public long registerUnit(String code, Map<String, String> nameI18n, String baseUnitCode, AuditActor actor) {
         if (baseUnitCode == null || baseUnitCode.isBlank()) {
-            throw new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
+            throw new ConstraintViolationException(UnitError.FND_UNIT_BASE_REQUIRED);
         }
         actors.apply(actor);
         String names = jsonColumns.object(nameI18n);
-        return FndSqlErrors.translating(() -> jdbc.sql("insert into fnd_units (code, name_i18n, base_unit_code)"
-                        + " values (:code, cast(:names as jsonb), :base) returning id")
-                .param("code", code)
-                .param("names", names)
-                .param("base", baseUnitCode)
-                .query(Long.class)
-                .single());
+        return ConstraintErrors.translating(
+                CODES,
+                () -> jdbc.sql("insert into fnd_units (code, name_i18n, base_unit_code)"
+                                + " values (:code, cast(:names as jsonb), :base) returning id")
+                        .param("code", code)
+                        .param("names", names)
+                        .param("base", baseUnitCode)
+                        .query(Long.class)
+                        .single());
     }
 
     /** A unit by its code, as the instance sees it. */
@@ -110,18 +116,20 @@ public class FndUnitService implements FndUnits {
     @Transactional
     @Override
     public FndCoefficientRef publishCoefficient(
-            String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, FndActor actor) {
+            String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, AuditActor actor) {
         if (factor == null) {
             throw new IllegalArgumentException("Множитель не задан");
         }
         actors.apply(actor);
         long coefficientId = coefficientId(fromUnit, toUnit)
-                .orElseGet(() -> FndSqlErrors.translating(() -> jdbc.sql(
-                                "insert into fnd_unit_coefficients (from_unit, to_unit) values (:from, :to) returning id")
-                        .param("from", fromUnit)
-                        .param("to", toUnit)
-                        .query(Long.class)
-                        .single()));
+                .orElseGet(() -> ConstraintErrors.translating(
+                        CODES,
+                        () -> jdbc.sql(
+                                        "insert into fnd_unit_coefficients (from_unit, to_unit) values (:from, :to) returning id")
+                                .param("from", fromUnit)
+                                .param("to", toUnit)
+                                .query(Long.class)
+                                .single()));
         int version = versioning.createDraft(COEFFICIENT_VERSIONS, coefficientId, actor);
         versioning.updateDraft(COEFFICIENT_VERSIONS, coefficientId, version, 0, Map.of("factor", factor), actor);
         versioning.publish(COEFFICIENT_VERSIONS, coefficientId, version, validFrom, null, actor);
@@ -162,12 +170,12 @@ public class FndUnitService implements FndUnits {
     @Override
     public FndConversion toBase(BigDecimal value, String unitCode, LocalDate date) {
         requireUnitCode(unitCode);
-        FndUnit unit = findUnit(unitCode)
-                .orElseThrow(() -> new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_UNKNOWN));
+        FndUnit unit =
+                findUnit(unitCode).orElseThrow(() -> new ConstraintViolationException(UnitError.FND_UNIT_UNKNOWN));
         String base = unit.baseUnitCode();
         if (base == null) {
             // The schema (V107) forbids this; the branch guards against data created without going through the facade
-            throw new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
+            throw new ConstraintViolationException(UnitError.FND_UNIT_BASE_REQUIRED);
         }
         if (base.equals(unitCode)) {
             return new FndConversion(value, unitCode, null, date);

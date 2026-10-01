@@ -73,7 +73,7 @@ class AuditCoverageTest {
             // audit_log row per insert, update or delete
             "FndLoadService",
             "FndUnitService",
-            "FndVersioning",
+            "VersioningService",
             "UplSourceService",
             "UplPackageService");
 

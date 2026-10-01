@@ -2,9 +2,8 @@ package com.smartup24.cms.instance.fnd.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.FndActor;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
@@ -12,6 +11,7 @@ import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.jobs.config.JobProperties;
 import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.jobs.runner.JobSwitch;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -49,7 +49,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     private JobRunner jobs;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -61,7 +61,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    private FndActor actor;
+    private AuditActor actor;
 
     @BeforeEach
     void cleanState() {

@@ -1,12 +1,14 @@
 package com.smartup24.cms.instance.fnd.load;
 
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.common.actor.ActorError;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintErrors;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndLoads;
-import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -30,10 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class FndLoadService implements FndLoads {
 
-    private final JdbcClient jdbc;
-    private final FndActors actors;
+    private static final List<ConstraintCode> CODES =
+            ConstraintErrors.codes(WarehouseError.values(), ActorError.values());
 
-    public FndLoadService(JdbcClient jdbc, FndActors actors) {
+    private final JdbcClient jdbc;
+    private final AuditActorContext actors;
+
+    public FndLoadService(JdbcClient jdbc, AuditActorContext actors) {
         this.jdbc = jdbc;
         this.actors = actors;
     }
@@ -47,21 +52,23 @@ public class FndLoadService implements FndLoads {
             LocalDate periodFrom,
             LocalDate periodTo,
             String formatVersion,
-            FndActor actor) {
+            AuditActor actor) {
         actors.apply(actor);
-        return FndSqlErrors.translating(() -> jdbc.sql("""
+        return ConstraintErrors.translating(
+                CODES,
+                () -> jdbc.sql("""
                         insert into fnd_loads (source_code, package_ref, period_from, period_to,
                                                format_version, status)
                         values (:source, :package, :from, :to, :format, 'pending')
                         returning id
                         """)
-                .param("source", sourceCode)
-                .param("package", packageRef)
-                .param("from", periodFrom)
-                .param("to", periodTo)
-                .param("format", formatVersion)
-                .query(Long.class)
-                .single());
+                        .param("source", sourceCode)
+                        .param("package", packageRef)
+                        .param("from", periodFrom)
+                        .param("to", periodTo)
+                        .param("format", formatVersion)
+                        .query(Long.class)
+                        .single());
     }
 
     /**
@@ -71,45 +78,50 @@ public class FndLoadService implements FndLoads {
      */
     @Transactional
     @Override
-    public void apply(long loadId, int rowsTotal, int rowsAccepted, int rowsRejected, FndActor actor) {
+    public void apply(long loadId, int rowsTotal, int rowsAccepted, int rowsRejected, AuditActor actor) {
         FndLoad load = lockPending(loadId);
         actors.apply(actor);
-        int updated = FndSqlErrors.translating(() -> jdbc.sql("""
+        int updated = ConstraintErrors.translating(
+                CODES,
+                () -> jdbc.sql("""
                         update fnd_loads
                            set status = 'applied', applied_at = now(), applied_by = :actor,
                                rows_total = :total, rows_accepted = :accepted, rows_rejected = :rejected
                          where id = :id and status = 'pending'
                         """)
-                .param("actor", actor.name())
-                .param("total", rowsTotal)
-                .param("accepted", rowsAccepted)
-                .param("rejected", rowsRejected)
-                .param("id", loadId)
-                .update());
+                        .param("actor", actor.name())
+                        .param("total", rowsTotal)
+                        .param("accepted", rowsAccepted)
+                        .param("rejected", rowsRejected)
+                        .param("id", loadId)
+                        .update());
         requireUpdated(updated);
-        FndSqlErrors.translating(() -> jdbc.sql("""
+        ConstraintErrors.translating(
+                CODES,
+                () -> jdbc.sql("""
                         update fnd_loads
                            set status = 'superseded', superseded_by = :id
                          where id <> :id and status = 'applied'
                            and source_code = :source and period_from = :from and period_to = :to
                         """)
-                .param("id", loadId)
-                .param("source", load.sourceCode())
-                .param("from", load.periodFrom())
-                .param("to", load.periodTo())
-                .update());
+                        .param("id", loadId)
+                        .param("source", load.sourceCode())
+                        .param("from", load.periodFrom())
+                        .param("to", load.periodTo())
+                        .update());
     }
 
     /** Marks a load failed and writes the reason to the log; a call without a reason is rejected. */
     @Transactional
     @Override
-    public void fail(long loadId, String reason, FndActor actor) {
+    public void fail(long loadId, String reason, AuditActor actor) {
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("Причина сбоя не задана: загрузка без причины не отмечается");
         }
         FndLoad load = lockPending(loadId);
         actors.apply(actor);
-        int updated = FndSqlErrors.translating(
+        int updated = ConstraintErrors.translating(
+                CODES,
                 () -> jdbc.sql("update fnd_loads set status = 'failed'" + " where id = :id and status = 'pending'")
                         .param("id", loadId)
                         .update());
@@ -129,11 +141,11 @@ public class FndLoadService implements FndLoads {
             String event,
             String fromStatus,
             String toStatus,
-            FndActor actor,
+            AuditActor actor,
             String note,
             String fileSha) {
         if (actor == null) {
-            throw new ConstraintViolationException(ConstraintErrorCode.AUDIT_ACTOR_MISSING);
+            throw new ConstraintViolationException(ActorError.AUDIT_ACTOR_MISSING);
         }
         actors.apply(actor);
         Long loadId = jdbc.sql("select id from fnd_loads where package_ref = :package"
@@ -142,20 +154,22 @@ public class FndLoadService implements FndLoads {
                 .query(Long.class)
                 .optional()
                 .orElse(null);
-        FndSqlErrors.translating(() -> jdbc.sql("""
+        ConstraintErrors.translating(
+                CODES,
+                () -> jdbc.sql("""
                         insert into fnd_load_log (package_ref, load_id, event, from_status, to_status,
                                                   actor, note, file_sha)
                         values (:package, :load, :event, :from, :to, :actor, :note, :sha)
                         """)
-                .param("package", packageRef)
-                .param("load", loadId)
-                .param("event", event)
-                .param("from", fromStatus)
-                .param("to", toStatus)
-                .param("actor", actor.name())
-                .param("note", note)
-                .param("sha", fileSha)
-                .update());
+                        .param("package", packageRef)
+                        .param("load", loadId)
+                        .param("event", event)
+                        .param("from", fromStatus)
+                        .param("to", toStatus)
+                        .param("actor", actor.name())
+                        .param("note", note)
+                        .param("sha", fileSha)
+                        .update());
     }
 
     /** The current data versions of a source: applied loads only. */
@@ -191,9 +205,9 @@ public class FndLoadService implements FndLoads {
                 .param("id", loadId)
                 .query(FndLoadService::mapLoad)
                 .optional()
-                .orElseThrow(() -> new ConstraintViolationException(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION));
+                .orElseThrow(() -> new ConstraintViolationException(WarehouseError.FND_LOAD_STATUS_TRANSITION));
         if (!FndLoad.PENDING.equals(load.status())) {
-            throw new ConstraintViolationException(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+            throw new ConstraintViolationException(WarehouseError.FND_LOAD_STATUS_TRANSITION);
         }
         return load;
     }
@@ -201,7 +215,7 @@ public class FndLoadService implements FndLoads {
     /** A status transition is one UPDATE conditioned on the current status: 0 rows means the state already moved on. */
     private static void requireUpdated(int updated) {
         if (updated != 1) {
-            throw new ConstraintViolationException(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+            throw new ConstraintViolationException(WarehouseError.FND_LOAD_STATUS_TRANSITION);
         }
     }
 

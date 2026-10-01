@@ -4,18 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.smartup24.cms.core.error.ErrorCode;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.common.versioning.VersioningService;
 import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
+import com.smartup24.cms.instance.support.ConstraintCodeCatalog;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
+import com.smartup24.cms.instance.units.api.UnitError;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,7 +33,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * The {@link ConstraintErrorCode} enum and the {@code pg_constraint} constraints of the {@code fnd_*} tables match
+ * The {@link ConstraintCode} enum and the {@code pg_constraint} constraints of the {@code fnd_*} tables match
  * both ways, with names by the naming rule; the facades turn a violation of every class (uk/fk/ck/ex) into a
  * {@link ConstraintViolationException} with its code, and the transaction is rolled back.
  */
@@ -43,13 +45,13 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
     private FndUnitService units;
 
     @Autowired
-    private FndVersioning versioning;
+    private VersioningService versioning;
 
     @Autowired
     private FndLoadService loads;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -57,7 +59,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    private FndActor actor;
+    private AuditActor actor;
 
     @BeforeEach
     void clean() {
@@ -88,8 +90,8 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                            and rel.relname not like 'fnd\\_test\\_%'
                            and con.contype in ('u', 'f', 'c', 'x')
                         """).query(String.class).list());
-        Set<String> enumerated = Arrays.stream(ConstraintErrorCode.values())
-                .map(ConstraintErrorCode::constraintName)
+        Set<String> enumerated = ConstraintCodeCatalog.all().stream()
+                .map(ConstraintCode::constraintName)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toSet());
 
@@ -104,15 +106,15 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                         .filter(name -> !enumerated.contains(name))
                         .sorted()
                         .toList())
-                .as("ограничения базы без элемента ConstraintErrorCode")
+                .as("ограничения базы без элемента ConstraintCode")
                 .isEmpty();
         assertThat(enumerated.stream()
                         .filter(name -> !database.contains(name))
                         .sorted()
                         .toList())
-                .as("элементы ConstraintErrorCode без ограничения в базе")
+                .as("элементы ConstraintCode без ограничения в базе")
                 .isEmpty();
-        assertThat(Arrays.stream(ConstraintErrorCode.values())
+        assertThat(ConstraintCodeCatalog.all().stream()
                         .filter(code -> code.constraintName().isPresent())
                         .filter(code -> !code.name()
                                 .equalsIgnoreCase(code.constraintName().get()))
@@ -131,7 +133,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
         // uk: a duplicate unit code
         ConstraintViolationException uk =
                 violation(() -> units.registerUnit("u_map_a", Map.of("uz", "Dubl TEST"), base, actor));
-        assertThat(uk.code()).isEqualTo(ConstraintErrorCode.FND_UNITS_UK_CODE);
+        assertThat(uk.code()).isEqualTo(UnitError.FND_UNITS_UK_CODE);
         assertThat(uk.getMessageKey()).isEqualTo("error.fnd.fnd_units_uk_code");
         assertThat(uk.getErrorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
         assertThat(uk.getCause())
@@ -141,7 +143,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
         // fk: a base unit that does not exist
         ConstraintViolationException fk =
                 violation(() -> units.registerUnit("u_map_b", Map.of("uz", "Birlik B TEST"), "u_map_missing", actor));
-        assertThat(fk.code()).isEqualTo(ConstraintErrorCode.FND_UNITS_FK_BASE_UNIT);
+        assertThat(fk.code()).isEqualTo(UnitError.FND_UNITS_FK_BASE_UNIT);
         assertThat(units.findUnit("u_map_b")).as("транзакция откатана").isEmpty();
 
         // ck: the row counters do not add up
@@ -153,7 +155,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                 "v1",
                 actor);
         ConstraintViolationException ck = violation(() -> loads.apply(loadId, 10, 2, 1, actor));
-        assertThat(ck.code()).isEqualTo(ConstraintErrorCode.FND_LOADS_CK_ROWS);
+        assertThat(ck.code()).isEqualTo(WarehouseError.FND_LOADS_CK_ROWS);
         assertThat(loads.find(loadId).orElseThrow().status())
                 .as("транзакция откатана")
                 .isEqualTo("pending");
@@ -192,7 +194,7 @@ class FndConstraintMappingTest extends EmbeddedPostgresTest {
                 LocalDate.parse("2026-06-01"),
                 null,
                 actor));
-        assertThat(ex.code()).isEqualTo(ConstraintErrorCode.FND_UNIT_COEFFICIENT_VERSIONS_EX_VALID);
+        assertThat(ex.code()).isEqualTo(UnitError.FND_UNIT_COEFFICIENT_VERSIONS_EX_VALID);
         List<String> statuses = jdbc.sql("select status from fnd_unit_coefficient_versions"
                         + " where coefficient_id = :id order by version")
                 .param("id", first.coefficientId())

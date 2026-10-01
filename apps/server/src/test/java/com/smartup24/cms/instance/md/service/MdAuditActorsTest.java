@@ -1,8 +1,9 @@
-package com.smartup24.cms.instance.fnd;
+package com.smartup24.cms.instance.md.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.fnd.migration.FndMigrator;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestDatabases;
@@ -15,13 +16,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * The technical account {@code system} is created by the foundation code, not by a migration: after the
  * migrations {@code md_users} is empty on a fresh database (only the initial setup creates users).
  */
-class FndSystemUserTest extends EmbeddedPostgresTest {
+class MdAuditActorsTest extends EmbeddedPostgresTest {
 
     @Autowired
     private JdbcClient jdbc;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Test
     void migrationsCreateNoUsers() {
@@ -41,7 +42,7 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
         FndMigrator.migrateOltp(TestDatabases.database("fnd_no_user_seed"));
 
         JdbcClient fresh = JdbcClient.create(TestDatabases.database("fnd_no_user_seed"));
-        FndActors freshActors = new FndActors(fresh);
+        MdAuditActors freshActors = new MdAuditActors(fresh);
 
         assertThatThrownBy(freshActors::system)
                 .isInstanceOf(IllegalStateException.class)
@@ -54,8 +55,8 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
     void ensureUserCreatesOnceAndIsIdempotent() {
         String login = "system-test-" + UUID.randomUUID().toString().substring(0, 8);
         try {
-            long first = FndActors.ensureUser(jdbc, login, "TEST system", login + "@localhost");
-            long second = FndActors.ensureUser(jdbc, login, "TEST system", login + "@localhost");
+            long first = MdAuditActors.ensureUser(jdbc, login, "TEST system", login + "@localhost");
+            long second = MdAuditActors.ensureUser(jdbc, login, "TEST system", login + "@localhost");
 
             assertThat(second).isEqualTo(first);
             assertThat(jdbc.sql("select count(*) from md_users where login = :login")
@@ -83,7 +84,7 @@ class FndSystemUserTest extends EmbeddedPostgresTest {
     @Test
     void systemActorResolvesToSystemLogin() {
         long expected = jdbc.sql("select id from md_users where login = :login")
-                .param("login", FndPref.SYSTEM_ACTOR)
+                .param("login", AuditActor.SYSTEM)
                 .query(Long.class)
                 .single();
 

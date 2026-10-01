@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd;
+package com.smartup24.cms.instance.md.service;
 
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -14,11 +14,11 @@ import org.springframework.stereotype.Component;
 @Component
 @Profile("!migrate")
 @Order(20)
-public class FndSystemUserBootstrap implements ApplicationRunner {
+public class MdSystemAccountBootstrap implements ApplicationRunner {
 
-    private final FndActors actors;
+    private final MdAuditActors actors;
 
-    public FndSystemUserBootstrap(FndActors actors) {
+    public MdSystemAccountBootstrap(MdAuditActors actors) {
         this.actors = actors;
     }
 

@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.support;
 
-import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.migration.FndMigrator;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
@@ -74,7 +74,7 @@ public final class TestDatabases {
             FndMigrator.migrateOltp(oltp());
             // Test contexts start without the first administrator's parameters: a non-empty md_users keeps the
             // framework's InstanceBootstrap a no-op (a migration seed used to do this; now the foundation code does).
-            FndActors.ensureSystemUser(JdbcClient.create(oltp()));
+            MdAuditActors.ensureSystemUser(JdbcClient.create(oltp()));
             FndMigrator.migrateDwh(dwh());
             migrated = true;
         }

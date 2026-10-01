@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.fnd.dwh;
 
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -67,7 +67,7 @@ public class FndMartReader {
      */
     public List<Map<String, Object>> read(String schema, String table, Map<String, Object> filters) {
         if (!ALLOWED_SCHEMAS.contains(schema) || !NAME.matcher(table).matches()) {
-            throw new ConstraintViolationException(ConstraintErrorCode.DWH_READ_FORBIDDEN);
+            throw new ConstraintViolationException(WarehouseError.DWH_READ_FORBIDDEN);
         }
         StringBuilder sql =
                 new StringBuilder("select * from ").append(schema).append('.').append(table);
@@ -76,7 +76,7 @@ public class FndMartReader {
             List<String> conditions = new ArrayList<>();
             filters.forEach((column, value) -> {
                 if (!NAME.matcher(column).matches()) {
-                    throw new ConstraintViolationException(ConstraintErrorCode.DWH_READ_FORBIDDEN);
+                    throw new ConstraintViolationException(WarehouseError.DWH_READ_FORBIDDEN);
                 }
                 conditions.add(column + " = ?");
                 values.add(value);

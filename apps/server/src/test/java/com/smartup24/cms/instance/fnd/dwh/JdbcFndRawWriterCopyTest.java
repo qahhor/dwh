@@ -3,7 +3,6 @@ package com.smartup24.cms.instance.fnd.dwh;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
@@ -13,6 +12,7 @@ import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.config.DwhDataSourceProperties;
 import com.smartup24.cms.instance.fnd.config.FndDwhConfig;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestDatabases;
 import com.zaxxer.hikari.HikariDataSource;
@@ -51,7 +51,7 @@ class JdbcFndRawWriterCopyTest extends EmbeddedPostgresTest {
     private FndLoadService loads;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;

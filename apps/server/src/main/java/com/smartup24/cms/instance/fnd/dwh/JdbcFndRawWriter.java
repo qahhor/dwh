@@ -1,15 +1,15 @@
 package com.smartup24.cms.instance.fnd.dwh;
 
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.common.json.JsonColumns;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawSource;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.config.DwhDataSourceProperties;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -249,7 +249,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
                 .optional()
                 .orElse(null);
         if (!FndLoad.PENDING.equals(status)) {
-            throw new ConstraintViolationException(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+            throw new ConstraintViolationException(WarehouseError.FND_LOAD_STATUS_TRANSITION);
         }
     }
 

@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
-import com.smartup24.cms.instance.fnd.FndPref;
+import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.fnd.config.FndDwhMaintenance;
 import com.smartup24.cms.instance.jobs.api.JobHandler;
 import java.sql.ResultSet;
@@ -105,7 +105,7 @@ public class FndXdbCheckJob implements JobHandler {
 
     private Long systemUserId() {
         return oltp.sql("select id from md_users where login = :login")
-                .param("login", FndPref.SYSTEM_ACTOR)
+                .param("login", AuditActor.SYSTEM)
                 .query(Long.class)
                 .optional()
                 .orElse(null);

@@ -1,16 +1,13 @@
-package com.smartup24.cms.instance.fnd.versioning;
+package com.smartup24.cms.instance.common.versioning;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
-import com.smartup24.cms.instance.fnd.api.FndVersion;
-import com.smartup24.cms.instance.fnd.api.StaleVersionException;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -34,20 +31,20 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * {@code fnd_test_things} + {@code fnd_test_thing_versions}: the test creates it and the core migrations do not
  * contain it, since the core knows no application reference book.
  */
-class FndVersioningTest extends EmbeddedPostgresTest {
+class VersioningServiceTest extends EmbeddedPostgresTest {
 
     private static final String VERSIONS = "fnd_test_thing_versions";
 
     @Autowired
-    private FndVersioning versioning;
+    private VersioningService versioning;
 
     @Autowired
     private JdbcClient jdbc;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
-    private FndActor actor;
+    private AuditActor actor;
     private long thing;
     private long otherThing;
 
@@ -146,8 +143,8 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         assertThat(versioning.createDraft(VERSIONS, thing, actor)).isEqualTo(1);
         versioning.publish(VERSIONS, thing, 1, LocalDate.parse("2026-01-01"), null, actor);
 
-        FndVersion published = versioning.find(VERSIONS, thing, 1).orElseThrow();
-        assertThat(published.status()).isEqualTo(FndVersion.PUBLISHED);
+        Version published = versioning.find(VERSIONS, thing, 1).orElseThrow();
+        assertThat(published.status()).isEqualTo(Version.PUBLISHED);
         assertThat(published.publishedAt()).isNotNull();
         assertThat(published.publishedBy()).isEqualTo(actor.name());
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-15")))
@@ -161,10 +158,10 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .contains(1);
 
         assertThat(codeOf(() -> versioning.createDraft(VERSIONS, thing, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS);
+                .isEqualTo(VersionError.FND_VERSION_DRAFT_EXISTS);
         assertThat(codeOf(
                         () -> versioning.publish(VERSIONS, otherThing, 2, LocalDate.parse("2026-01-01"), null, actor)))
-                .isEqualTo(ConstraintErrorCode.FND_VERSION_UNKNOWN);
+                .isEqualTo(VersionError.FND_VERSION_UNKNOWN);
     }
 
     @Test
@@ -175,18 +172,18 @@ class FndVersioningTest extends EmbeddedPostgresTest {
 
         for (String tooEarly : List.of("2026-01-01", "2025-12-01")) {
             assertThat(codeOf(() -> versioning.publish(VERSIONS, thing, 2, LocalDate.parse(tooEarly), null, actor)))
-                    .isEqualTo(ConstraintErrorCode.FND_VERSION_NOT_AFTER_PREVIOUS);
-            FndVersion first = versioning.find(VERSIONS, thing, 1).orElseThrow();
+                    .isEqualTo(VersionError.FND_VERSION_NOT_AFTER_PREVIOUS);
+            Version first = versioning.find(VERSIONS, thing, 1).orElseThrow();
             assertThat(first.validTo()).isNull();
-            assertThat(first.status()).isEqualTo(FndVersion.PUBLISHED);
+            assertThat(first.status()).isEqualTo(Version.PUBLISHED);
             assertThat(versioning.find(VERSIONS, thing, 2).orElseThrow().status())
-                    .isEqualTo(FndVersion.DRAFT);
+                    .isEqualTo(Version.DRAFT);
         }
 
         versioning.publish(VERSIONS, thing, 2, LocalDate.parse("2026-07-01"), null, actor);
-        FndVersion first = versioning.find(VERSIONS, thing, 1).orElseThrow();
+        Version first = versioning.find(VERSIONS, thing, 1).orElseThrow();
         assertThat(first.validTo()).isEqualTo(LocalDate.parse("2026-06-30"));
-        assertThat(first.status()).isEqualTo(FndVersion.PUBLISHED);
+        assertThat(first.status()).isEqualTo(Version.PUBLISHED);
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-06-30")))
                 .contains(1);
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-07-01")))
@@ -227,17 +224,17 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         for (String[] range :
                 new String[][] {{"2026-06-30", null}, {"2026-03-01", "2026-04-01"}, {"2025-01-01", "2026-01-01"}}) {
             Throwable error =
-                    catchThrowable(() -> insertVersionDirectly(thing, 2, range[0], range[1], FndVersion.PUBLISHED));
+                    catchThrowable(() -> insertVersionDirectly(thing, 2, range[0], range[1], Version.PUBLISHED));
             assertThat(error)
                     .as("интервал %s..%s", range[0], range[1])
                     .isInstanceOf(DataAccessException.class)
                     .hasMessageContaining(VERSIONS + "_ex_valid");
         }
-        insertVersionDirectly(thing, 2, "2026-07-01", null, FndVersion.PUBLISHED);
+        insertVersionDirectly(thing, 2, "2026-07-01", null, Version.PUBLISHED);
 
         // draft and superseded rows are outside the exclusion: both fit into an occupied interval
-        insertVersionDirectly(thing, 3, "2026-02-01", "2026-03-01", FndVersion.DRAFT);
-        insertVersionDirectly(thing, 4, "2026-02-01", "2026-03-01", FndVersion.SUPERSEDED);
+        insertVersionDirectly(thing, 3, "2026-02-01", "2026-03-01", Version.DRAFT);
+        insertVersionDirectly(thing, 4, "2026-02-01", "2026-03-01", Version.SUPERSEDED);
         assertThat(jdbc.sql("select count(*) from " + VERSIONS + " where thing_id = :h")
                         .param("h", thing)
                         .query(Long.class)
@@ -259,13 +256,13 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-01-01")))
                 .contains(1);
 
-        assertThatThrownBy(() -> insertVersionDirectly(otherThing, 0, "2026-01-01", null, FndVersion.DRAFT))
+        assertThatThrownBy(() -> insertVersionDirectly(otherThing, 0, "2026-01-01", null, Version.DRAFT))
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining(VERSIONS + "_ck_version_positive");
-        assertThatThrownBy(() -> insertVersionDirectly(otherThing, -1, "2026-01-01", null, FndVersion.DRAFT))
+        assertThatThrownBy(() -> insertVersionDirectly(otherThing, -1, "2026-01-01", null, Version.DRAFT))
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining(VERSIONS + "_ck_version_positive");
-        assertThatThrownBy(() -> insertVersionDirectly(thing, 3, "2027-01-01", null, FndVersion.DRAFT))
+        assertThatThrownBy(() -> insertVersionDirectly(thing, 3, "2027-01-01", null, Version.DRAFT))
                 .isInstanceOf(DataAccessException.class)
                 .hasMessageContaining("fnd_version_gap");
 
@@ -287,7 +284,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         assertThatThrownBy(() -> versioning.updateDraft(VERSIONS, thing, 1, 0, Map.of("payload", "TEST-2"), actor))
                 .isInstanceOf(StaleVersionException.class)
                 .extracting(e -> ((ConstraintViolationException) e).code())
-                .isEqualTo(ConstraintErrorCode.STALE_VERSION);
+                .isEqualTo(VersionError.STALE_VERSION);
         assertThat(payloadOf(thing, 1)).isEqualTo("TEST-1");
 
         versioning.updateDraft(VERSIONS, thing, 1, 1, Map.of("payload", "TEST-3"), actor);
@@ -304,7 +301,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         versioning.publish(VERSIONS, thing, 2, LocalDate.parse("2026-07-01"), null, actor);
 
         versioning.supersede(VERSIONS, thing, 2, actor);
-        assertThat(versioning.find(VERSIONS, thing, 2).orElseThrow().status()).isEqualTo(FndVersion.SUPERSEDED);
+        assertThat(versioning.find(VERSIONS, thing, 2).orElseThrow().status()).isEqualTo(Version.SUPERSEDED);
         assertThat(versioning.versionAt(VERSIONS, thing, LocalDate.parse("2026-08-01")))
                 .isEmpty();
 
@@ -344,7 +341,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                     .singleElement()
                     .isInstanceOfSatisfying(
                             ConstraintViolationException.class,
-                            e -> assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_VERSION_UNKNOWN));
+                            e -> assertThat(e.code()).isEqualTo(VersionError.FND_VERSION_UNKNOWN));
         } finally {
             pool.shutdownNow();
         }
@@ -412,8 +409,8 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                                 ConstraintViolationException.class,
                                 e -> assertThat(e.code())
                                         .isIn(
-                                                ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS,
-                                                ConstraintErrorCode.FND_VERSION_CONFLICT));
+                                                VersionError.FND_VERSION_DRAFT_EXISTS,
+                                                VersionError.FND_VERSION_CONFLICT));
             }
         } finally {
             pool.shutdownNow();
@@ -449,13 +446,13 @@ class FndVersioningTest extends EmbeddedPostgresTest {
         jdbc.sql("alter table " + VERSIONS + " disable trigger " + VERSIONS + "_bump_version")
                 .update();
         try {
-            ConstraintErrorCode code = codeOf(() -> FndSqlErrors.translatingVersions(
+            ConstraintCode code = codeOf(() -> VersionErrors.translatingVersions(
                     VERSIONS,
                     () -> jdbc.sql("insert into " + VERSIONS + " (thing_id, version, valid_from, status)"
                                     + " overriding system value values (:h, 1, current_date, 'draft')")
                             .param("h", thing)
                             .update()));
-            assertThat(code).isEqualTo(ConstraintErrorCode.FND_VERSION_CONFLICT);
+            assertThat(code).isEqualTo(VersionError.FND_VERSION_CONFLICT);
         } finally {
             jdbc.sql("alter table " + VERSIONS + " enable trigger " + VERSIONS + "_bump_version")
                     .update();
@@ -517,7 +514,7 @@ class FndVersioningTest extends EmbeddedPostgresTest {
                 .single();
     }
 
-    private ConstraintErrorCode codeOf(Runnable action) {
+    private ConstraintCode codeOf(Runnable action) {
         Throwable error = catchThrowable(action::run);
         assertThat(error).isInstanceOf(ConstraintViolationException.class);
         return ((ConstraintViolationException) error).code();

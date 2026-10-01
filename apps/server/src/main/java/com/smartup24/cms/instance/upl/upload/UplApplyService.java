@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndActorContext;
 import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.upl.UplPref;
@@ -32,7 +32,7 @@ public class UplApplyService {
     private final UplPackageService packages;
     private final UplPackageRepository repo;
     private final FndLoads loads;
-    private final FndActorContext actors;
+    private final AuditActorContext actors;
     private final JobQueue jobs;
     private final TransactionTemplate tx;
 
@@ -45,7 +45,7 @@ public class UplApplyService {
             UplPackageService packages,
             UplPackageRepository repo,
             FndLoads loads,
-            FndActorContext actors,
+            AuditActorContext actors,
             JobQueue jobs,
             TransactionTemplate tx) {
         this.packages = packages;
@@ -65,7 +65,7 @@ public class UplApplyService {
      */
     public PackageRow request(String publicId, long userId) {
         UUID id = packages.get(publicId).publicId();
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         return tx.execute(status -> {
             PackageRow row = repo.lockByPublicId(id)
                     .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.pkg_not_found"));

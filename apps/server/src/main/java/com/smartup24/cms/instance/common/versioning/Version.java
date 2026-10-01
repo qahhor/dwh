@@ -1,17 +1,18 @@
-package com.smartup24.cms.instance.fnd.api;
+package com.smartup24.cms.instance.common.versioning;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import org.jspecify.annotations.Nullable;
 
-/** A row of a versions table that follows the foundation's versioning standard. */
-public record FndVersion(
+/** A row of a versions table that follows the versioning standard (V102). */
+public record Version(
         long headerId,
         int version,
         LocalDate validFrom,
-        LocalDate validTo,
+        @Nullable LocalDate validTo,
         String status,
-        Instant publishedAt,
-        String publishedBy,
+        @Nullable Instant publishedAt,
+        @Nullable String publishedBy,
         int lockVersion) {
 
     public static final String DRAFT = "draft";

@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.fnd.api;
 
+import com.smartup24.cms.instance.common.actor.AuditActor;
 import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -17,7 +18,7 @@ import java.util.Optional;
 public interface FndUnits {
 
     /** Registers a unit; {@code baseUnitCode} points to an existing unit, and a base unit refers to itself. */
-    long registerUnit(String code, Map<String, String> nameI18n, String baseUnitCode, FndActor actor);
+    long registerUnit(String code, Map<String, String> nameI18n, String baseUnitCode, AuditActor actor);
 
     /** A unit by its code. */
     Optional<FndUnit> findUnit(String code);
@@ -27,7 +28,7 @@ public interface FndUnits {
 
     /** Publishes a coefficient value with the date it takes effect, as a new version of the unit pair. */
     FndCoefficientRef publishCoefficient(
-            String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, FndActor actor);
+            String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, AuditActor actor);
 
     /** Converts a value as of a date; no rounding is done. */
     FndConversion convert(BigDecimal value, String fromUnit, String toUnit, LocalDate date);

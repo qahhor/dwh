@@ -8,13 +8,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.common.versioning.StaleVersionException;
+import com.smartup24.cms.instance.common.versioning.VersionError;
 import com.smartup24.cms.instance.config.error.GlobalExceptionHandler;
 import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
 import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
-import com.smartup24.cms.instance.fnd.api.StaleVersionException;
+import com.smartup24.cms.instance.support.ConstraintCodeCatalog;
+import com.smartup24.cms.instance.units.api.UnitError;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -37,7 +41,7 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Plan 10/10, item 3.1: the foundation exceptions are part of the single error model. Every
- * {@link ConstraintErrorCode} carries a response code and the key {@code error.fnd.<code>} whose text exists in
+ * {@link ConstraintCode} carries a response code and the key {@code error.fnd.<code>} whose text exists in
  * ru, en and uz; the handler answers with problem+json, not 500.
  */
 class FndErrorModelTest {
@@ -53,7 +57,7 @@ class FndErrorModelTest {
     @DisplayName("3.1: каждый код основы — ключ error.fnd.<код>, текст есть в ru, en, uz")
     void everyCodeHasItsTextInEveryCatalog() {
         List<String> keys = new ArrayList<>();
-        for (ConstraintErrorCode code : ConstraintErrorCode.values()) {
+        for (ConstraintCode code : ConstraintCodeCatalog.all()) {
             assertThat(code.messageKey()).isEqualTo("error.fnd." + code.code());
             assertThat(ApiException.MESSAGE_KEY.matcher(code.messageKey()).matches())
                     .as(code.messageKey())
@@ -77,17 +81,16 @@ class FndErrorModelTest {
     @Test
     @DisplayName("3.1: код основы переводится в код ответа по смыслу")
     void codesMapToResponseCodesByMeaning() {
-        assertThat(ConstraintErrorCode.FND_UNITS_UK_CODE.errorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
-        assertThat(ConstraintErrorCode.FND_UNIT_COEFFICIENT_VERSIONS_EX_VALID.errorCode())
-                .isEqualTo(ErrorCode.CONFLICT);
-        assertThat(ConstraintErrorCode.FND_UNITS_FK_BASE_UNIT.errorCode()).isEqualTo(ErrorCode.CONFLICT);
-        assertThat(ConstraintErrorCode.FND_LOADS_CK_PERIOD.errorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
-        assertThat(ConstraintErrorCode.STALE_VERSION.errorCode()).isEqualTo(ErrorCode.CONFLICT);
-        assertThat(ConstraintErrorCode.FND_VERSION_UNKNOWN.errorCode()).isEqualTo(ErrorCode.NOT_FOUND);
-        assertThat(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION.errorCode())
+        assertThat(UnitError.FND_UNITS_UK_CODE.errorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
+        assertThat(UnitError.FND_UNIT_COEFFICIENT_VERSIONS_EX_VALID.errorCode()).isEqualTo(ErrorCode.CONFLICT);
+        assertThat(UnitError.FND_UNITS_FK_BASE_UNIT.errorCode()).isEqualTo(ErrorCode.CONFLICT);
+        assertThat(WarehouseError.FND_LOADS_CK_PERIOD.errorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+        assertThat(VersionError.STALE_VERSION.errorCode()).isEqualTo(ErrorCode.CONFLICT);
+        assertThat(VersionError.FND_VERSION_UNKNOWN.errorCode()).isEqualTo(ErrorCode.NOT_FOUND);
+        assertThat(WarehouseError.FND_LOAD_STATUS_TRANSITION.errorCode())
                 .isEqualTo(ErrorCode.STATUS_TRANSITION_FORBIDDEN);
-        assertThat(ConstraintErrorCode.DWH_UNAVAILABLE.errorCode()).isEqualTo(ErrorCode.SERVICE_UNAVAILABLE);
-        for (ConstraintErrorCode code : ConstraintErrorCode.values()) {
+        assertThat(WarehouseError.DWH_UNAVAILABLE.errorCode()).isEqualTo(ErrorCode.SERVICE_UNAVAILABLE);
+        for (ConstraintCode code : ConstraintCodeCatalog.all()) {
             if (code.constraintName().map(name -> name.contains("_ck_")).orElse(false)) {
                 assertThat(code.errorCode()).as(code.code()).isEqualTo(ErrorCode.VALIDATION_FAILED);
             }
@@ -101,14 +104,14 @@ class FndErrorModelTest {
     @DisplayName("3.1: код и причина исключения основы сохраняются рядом с ключом")
     void exceptionKeepsCodeAndCause() {
         SQLException sql = new SQLException("duplicate key value violates unique constraint");
-        ConstraintViolationException e = new ConstraintViolationException(ConstraintErrorCode.FND_UNITS_UK_CODE, sql);
+        ConstraintViolationException e = new ConstraintViolationException(UnitError.FND_UNITS_UK_CODE, sql);
 
         assertThat(e).isInstanceOf(ApiException.class);
-        assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_UNITS_UK_CODE);
+        assertThat(e.code()).isEqualTo(UnitError.FND_UNITS_UK_CODE);
         assertThat(e.getErrorCode()).isEqualTo(ErrorCode.CODE_ALREADY_EXISTS);
         assertThat(e.getMessageKey()).isEqualTo("error.fnd.fnd_units_uk_code");
         assertThat(e.getCause()).isSameAs(sql);
-        assertThat(new StaleVersionException().code()).isEqualTo(ConstraintErrorCode.STALE_VERSION);
+        assertThat(new StaleVersionException().code()).isEqualTo(VersionError.STALE_VERSION);
     }
 
     @Test
@@ -181,7 +184,7 @@ class FndErrorModelTest {
         @GetMapping("/fnd/constraint")
         String constraint() {
             throw new ConstraintViolationException(
-                    ConstraintErrorCode.FND_LOADS_CK_PERIOD, new SQLException("SQL: check constraint violated"));
+                    WarehouseError.FND_LOADS_CK_PERIOD, new SQLException("SQL: check constraint violated"));
         }
 
         @GetMapping("/fnd/dwh")

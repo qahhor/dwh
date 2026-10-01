@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndActorContext;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
@@ -57,7 +57,7 @@ public class UplApplyJob implements JobHandler {
     private final UplXlsxParser parser;
     private final FndLoads loads;
     private final FndRawWriter raw;
-    private final FndActorContext actors;
+    private final AuditActorContext actors;
     private final TransactionTemplate tx;
 
     public UplApplyJob(
@@ -67,7 +67,7 @@ public class UplApplyJob implements JobHandler {
             UplXlsxParser parser,
             FndLoads loads,
             FndRawWriter raw,
-            FndActorContext actors,
+            AuditActorContext actors,
             TransactionTemplate tx) {
         this.repo = repo;
         this.sources = sources;
@@ -110,7 +110,7 @@ public class UplApplyJob implements JobHandler {
             return;
         }
         Long rawRows = writeRaw(row, attempt);
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         tx.executeWithoutResult(status -> finish(row.id(), rawRows, actor));
     }
 
@@ -171,7 +171,7 @@ public class UplApplyJob implements JobHandler {
         }
     }
 
-    private void finish(long packageId, Long rawRows, FndActor actor) {
+    private void finish(long packageId, Long rawRows, AuditActor actor) {
         PackageRow row = repo.lockById(packageId)
                 .orElseThrow(() -> new IllegalStateException("Пакет " + packageId + " пропал во время применения"));
         if (!UplPackageModel.APPLYING.equals(row.status())) {

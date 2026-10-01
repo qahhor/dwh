@@ -4,18 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.common.actor.ActorError;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
 import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawSource;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
+import com.smartup24.cms.instance.warehouse.api.WarehouseError;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -77,7 +79,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     private FndRawWriter rawWriter;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -89,13 +91,13 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    private FndActor actor;
-    private FndActor user;
+    private AuditActor actor;
+    private AuditActor user;
 
     @BeforeEach
     void cleanLoads() {
         actor = actors.system();
-        user = FndActor.user(userId());
+        user = AuditActor.user(userId());
         tx.executeWithoutResult(status -> {
             actors.apply(actor);
             jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
@@ -132,7 +134,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         assertThat(loads.appliedLoadIds(source)).containsExactly(loadId);
 
         long another = loads.begin(source, UUID.randomUUID(), periodFrom, periodTo, format, user);
-        assertThat(codeOf(() -> loads.apply(another, 10, 2, 1, user))).isEqualTo(ConstraintErrorCode.FND_LOADS_CK_ROWS);
+        assertThat(codeOf(() -> loads.apply(another, 10, 2, 1, user))).isEqualTo(WarehouseError.FND_LOADS_CK_ROWS);
     }
 
     @ParameterizedTest(name = "конфигурация {0}")
@@ -169,13 +171,12 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         loads.apply(loadId, 1, 1, 0, user);
 
         assertThat(codeOf(() -> loads.apply(loadId, 1, 1, 0, user)))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+                .isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
         assertThat(codeOf(() -> loads.fail(loadId, "поздно", user)))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
-        assertThat(codeOf(() -> loads.apply(-1, 1, 1, 0, user)))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+                .isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
+        assertThat(codeOf(() -> loads.apply(-1, 1, 1, 0, user))).isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
         assertThat(codeOf(() -> loads.begin(source, packageRef, periodFrom, periodTo, format, user)))
-                .isEqualTo(ConstraintErrorCode.FND_LOADS_UK_PACKAGE_REF);
+                .isEqualTo(WarehouseError.FND_LOADS_UK_PACKAGE_REF);
         assertThatThrownBy(() -> jdbc.sql("update fnd_loads set status = 'unknown' where id = :id")
                         .param("id", loadId)
                         .update())
@@ -240,9 +241,9 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         assertThat((String) journal.get(2).get("note")).hasSize(4000).startsWith("ў");
 
         assertThat(codeOf(() -> loads.log(packageRef, "получен", null, null, user, null, "не-hex")))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_LOG_CK_FILE_SHA);
+                .isEqualTo(WarehouseError.FND_LOAD_LOG_CK_FILE_SHA);
         assertThat(codeOf(() -> loads.log(packageRef, "получен", null, null, null, null, null)))
-                .isEqualTo(ConstraintErrorCode.AUDIT_ACTOR_MISSING);
+                .isEqualTo(ActorError.AUDIT_ACTOR_MISSING);
         assertThatThrownBy(() -> jdbc.sql(
                                 "insert into fnd_load_log (package_ref, event, actor)" + " values (:p, 'получен', ' ')")
                         .param("p", packageRef)
@@ -339,7 +340,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         loads.apply(byJob, 1, 1, 0, actor);
 
         assertThat(loads.find(byUser).orElseThrow().appliedBy()).isEqualTo(String.valueOf(user.userId()));
-        assertThat(loads.find(byJob).orElseThrow().appliedBy()).isEqualTo(FndPref.SYSTEM_ACTOR);
+        assertThat(loads.find(byJob).orElseThrow().appliedBy()).isEqualTo(AuditActor.SYSTEM);
         assertThat(jdbc.sql("select distinct changed_by from audit_log where table_name = 'fnd_loads'"
                                 + " and row_pk = :id")
                         .param("id", String.valueOf(byUser))
@@ -416,7 +417,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                     .singleElement()
                     .isInstanceOfSatisfying(
                             ConstraintViolationException.class,
-                            e -> assertThat(e.code()).isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION));
+                            e -> assertThat(e.code()).isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION));
         } finally {
             pool.shutdownNow();
         }
@@ -471,7 +472,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
         assertThat(rawWriter.read(loadId)).isEmpty();
         // After apply a write is refused at once: the status is no longer pending
         assertThat(codeOf(() -> rawWriter.write(loadId, null, rows(1))))
-                .isEqualTo(ConstraintErrorCode.FND_LOAD_STATUS_TRANSITION);
+                .isEqualTo(WarehouseError.FND_LOAD_STATUS_TRANSITION);
     }
 
     // ---------- helpers ----------
@@ -496,7 +497,7 @@ class FndLoadServiceTest extends EmbeddedPostgresTest {
                 .toList();
     }
 
-    private ConstraintErrorCode codeOf(Runnable action) {
+    private ConstraintCode codeOf(Runnable action) {
         Throwable error = catchThrowable(action::run);
         assertThat(error).isInstanceOf(ConstraintViolationException.class);
         return ((ConstraintViolationException) error).code();
