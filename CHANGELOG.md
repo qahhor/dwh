@@ -764,6 +764,17 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (phase 3 review):** `PUT /iam/users/{id}/roles` and
+  `PUT /iam/users/{id}/permissions` answer 428 without `If-Match` carrying
+  the user's revision, like every other change of a revisioned record
+  (ADR-0024); their answer gains `revision` and an `ETag`. Deprecated until
+  2026-12-31: `GET /tasks/projects/stats` (the paged project list carries the
+  counts) and the whole list `GET /tasks/projects/{id}/members` (paged
+  successor `GET /tasks/projects/{id}/members/page`). Sign-in and OTP answer
+  a typed `LoginResponse` with `otpToken`; the old `otp_token` key is sent
+  beside it until the sunset. `GET …/format-versions?at=` with an empty
+  value answers 400.
+
 - **API-breaking (plan item 3.6):** `PUT`/`PATCH` of the records above,
   `PUT /iam/roles/{id}/permissions`, `PATCH /tasks/{id}` and
   `POST /tasks/{id}/status` answer 428 without the revision they were made
@@ -1075,6 +1086,41 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   default.
 
 ### Fixed
+
+- Phase 3 review (2026-10-01), found by four read-only reviews and a visual
+  pass over the screens:
+  - A stale user form undid an administrator's 2FA reset or an
+    anonymisation: some updates of the ten revisioned tables did not raise
+    `revision`. Every update now does (`RevisionedUpdatesRaiseRevisionTest`).
+  - One failed lease renewal stopped a job's heartbeat for good, so a second
+    node could run the same job; recovery closed UPL applies still waiting
+    in the queue; UPL jobs turned a passing outage into a rejection instead
+    of a retry.
+  - A malformed query key, a wrong `Content-Type` or `Accept`, a missing
+    multipart part and errors raised outside MVC answered 500 or Spring's
+    default JSON; they answer 4xx `application/problem+json`. Field errors
+    carry a `messageKey` and are rendered in the request's language. An
+    idempotent replay keeps its `Content-Type` and `ETag` (V140).
+  - A revision conflict showed "Ошибка сохранения" on notes and two toasts
+    on tasks; every editing screen now shows the server's text once with a
+    "Обновить" action. The roles screen no longer conflicts with its own
+    saves.
+  - The audit tab showed the planner's estimate (11 644) as an exact count
+    of a 94-row log: small lists are counted, an estimate reads "≈ N", and
+    a list not yet loaded shows no count.
+  - Retention settings now reach Compose deployments (`SMC_RETENTION_*`);
+    failed queue rows and finished search jobs are trimmed too (V139);
+    cache notices are sent inside the transaction; search settings reach
+    other nodes within two seconds.
+  - The module generator produced code that failed the build and stopped
+    the application; it now follows the notes module, and a nightly job
+    generates and checks a module.
+  - Guards made stricter: `UplXlsxParser` split and its size waiver
+    removed; `NoSwallowedErrorsTest` covers `libs` and broad catches;
+    `JsonMapper.builder` joins the one-mapper rule; the comment-language
+    ratchet counts lines per file and covers SQL, YAML and web TypeScript;
+    the brief-reference check exempts a frozen list of migrations and scans
+    every text file; the docs check requires every ADR in the index.
 
 - Task participant assignments (responsible, executors, observers through
   the older endpoints) and file attach/detach were never written to the
