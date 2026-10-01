@@ -13,6 +13,15 @@ export function unsafeIdProblem(translate: (key: string) => string): ProblemDeta
   };
 }
 
+/**
+ * The newest of the revisions the screen holds for one record (plan item 3.6): the panel's own read and the copy of
+ * its host screen. Revisions only grow, so the larger one is the latest the screen has seen.
+ */
+export function latestRevision(...revisions: (number | undefined)[]): number | undefined {
+  const known = revisions.filter((revision): revision is number => typeof revision === 'number');
+  return known.length ? Math.max(...known) : undefined;
+}
+
 /** Assignment ids without duplicates, in ascending order, so drafts compare by value. */
 export function normalizedIds(ids: readonly number[]): number[] {
   return [...new Set(ids)].sort((a, b) => a - b);

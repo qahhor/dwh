@@ -16,10 +16,14 @@ export interface UserAssignments {
   userId: number;
   orgUnitIds: number[];
   legacyOrgUnitId: number | null;
+  /** The user's revision: the units are part of the user, a change of them names it in If-Match (plan item 3.6). */
+  revision?: number;
 }
 export interface RoleRuleSnapshot {
   roleId: number;
   rule: ScopeRule;
+  /** The role's revision: the rule is part of the role, a change of it names it in If-Match (plan item 3.6). */
+  revision?: number;
 }
 export interface UserScope {
   rule: ScopeRule;

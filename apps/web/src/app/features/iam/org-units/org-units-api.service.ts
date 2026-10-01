@@ -48,9 +48,10 @@ export class OrgUnitsApiService {
           .pipe(map((value) => ({ ...value, legacyOrgUnitId: value.legacyOrgUnitId ?? null })))
       : this.invalidId();
   }
-  saveAssignments(userId: number, orgUnitIds: number[]): Observable<void> {
+  /** Replaces the units of a user from the user's revision; the save raises it by one (plan item 3.6). */
+  saveAssignments(userId: number, orgUnitIds: number[], revision: number | undefined): Observable<void> {
     return safeNumericRecordId(userId) && orgUnitIds.every(safeNumericRecordId)
-      ? this.api.put<void>(`${this.base}/users/${userId}`, { orgUnitIds }, this.inline)
+      ? this.api.put<void>(`${this.base}/users/${userId}`, { orgUnitIds }, { ...this.inline, ifMatch: revision })
       : this.invalidId();
   }
   scope(userId: number): Observable<UserScope> {
@@ -63,9 +64,10 @@ export class OrgUnitsApiService {
       ? this.api.get<RoleRuleSnapshot>(`${this.base}/roles/${roleId}/rule`, undefined, this.inline)
       : this.invalidId();
   }
-  saveRoleRule(roleId: number, rule: ScopeRule): Observable<void> {
+  /** Sets the scope rule of a role from the role's revision; the save raises it by one (plan item 3.6). */
+  saveRoleRule(roleId: number, rule: ScopeRule, revision: number | undefined): Observable<void> {
     return safeNumericRecordId(roleId)
-      ? this.api.put<void>(`${this.base}/roles/${roleId}/rule`, { rule }, this.inline)
+      ? this.api.put<void>(`${this.base}/roles/${roleId}/rule`, { rule }, { ...this.inline, ifMatch: revision })
       : this.invalidId();
   }
   private invalidId(): Observable<never> {

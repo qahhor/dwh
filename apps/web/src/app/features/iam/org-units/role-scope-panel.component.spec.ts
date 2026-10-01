@@ -30,10 +30,12 @@ class RolePanelHost {
 describe('RoleScopePanelComponent', () => {
   function setup(options: { target?: number; rule?: ScopeRule; permissions?: string[] } = {}) {
     const api = {
-      roleRule: vi.fn((_roleId: number) => of({ roleId: options.target ?? 5, rule: options.rule ?? 'ALL' })),
-      saveRoleRule: vi.fn((_roleId: number, _rule: ScopeRule) => of(undefined)),
+      roleRule: vi.fn((_roleId: number) =>
+        of({ roleId: options.target ?? 5, rule: options.rule ?? 'ALL', revision: 3 } as RoleRuleSnapshot),
+      ),
+      saveRoleRule: vi.fn((_roleId: number, _rule: ScopeRule, _revision?: number) => of(undefined)),
     };
-    const toast = { success: vi.fn() };
+    const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: OrgUnitsApiService, useValue: api },
@@ -93,6 +95,40 @@ describe('RoleScopePanelComponent', () => {
     expect(inScreen(grantOnly.fixture.nativeElement).querySelector('[data-action="save-rule"]')).toBeNull();
   });
 
+  it('saves from the newest revision of the role it knows and hands the raised one to the host', () => {
+    const { fixture, panel, api } = setup({ rule: 'UNITS' });
+    const raised: number[] = [];
+    panel.revisionChange.subscribe((revision) => raised.push(revision));
+    fixture.componentRef.setInput('revision', 7);
+    fixture.detectChanges();
+
+    panel.selectRule('SELF');
+    panel.save();
+    panel.confirmSave();
+
+    expect(api.saveRoleRule).toHaveBeenCalledWith(5, 'SELF', 7);
+    expect(raised).toEqual([8]);
+  });
+
+  it('offers a reload once when the role moved on, drops the draft and asks the host to read the role again', () => {
+    const { fixture, panel, api, toast } = setup({ rule: 'UNITS' });
+    const stale = vi.fn();
+    panel.staleRole.subscribe(stale);
+    api.saveRoleRule.mockReturnValueOnce(throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'x' })));
+
+    panel.selectRule('SELF');
+    panel.save();
+    panel.confirmSave();
+    fixture.detectChanges();
+
+    expect(panel.saveError()).toBeNull();
+    expect(toast.show).toHaveBeenCalledOnce();
+    (toast.show.mock.calls[0][4] as { run: () => void }).run();
+    expect(panel.selectedRule()).toBe('UNITS');
+    expect(api.roleRule).toHaveBeenCalledTimes(2);
+    expect(stale).toHaveBeenCalledOnce();
+  });
+
   it('requires confirmation naming previous and new rules plus widest-rule semantics', () => {
     const { fixture, panel, api } = setup({ rule: 'UNITS' });
     panel.selectRule('SUBTREE');
@@ -105,7 +141,7 @@ describe('RoleScopePanelComponent', () => {
     expect(dialog.textContent).toContain('Свои подразделения и подчинённые');
     expect(dialog.textContent).toContain('самое широкое правило');
     panel.confirmSave();
-    expect(api.saveRoleRule).toHaveBeenCalledWith(5, 'SUBTREE');
+    expect(api.saveRoleRule).toHaveBeenCalledWith(5, 'SUBTREE', 3);
   });
 
   it('shows all four typed rules and read-only explanations with view permission alone', () => {
@@ -294,7 +330,7 @@ describe('RoleScopePanelComponent', () => {
   it('lets a host cancel a dirty target change before committing the public input', () => {
     const api = {
       roleRule: vi.fn((roleId: number) => of({ roleId, rule: roleId === 6 ? ('UNITS' as const) : ('ALL' as const) })),
-      saveRoleRule: vi.fn((_roleId: number, _rule: ScopeRule) => of(undefined)),
+      saveRoleRule: vi.fn((_roleId: number, _rule: ScopeRule, _revision?: number) => of(undefined)),
     };
     TestBed.configureTestingModule({
       providers: [

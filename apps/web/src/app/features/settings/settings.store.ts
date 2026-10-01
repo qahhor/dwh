@@ -5,6 +5,7 @@ import { I18nService } from '@core/services/i18n.service';
 import { PermissionService } from '@core/services/permission.service';
 import { ThemeService } from '@core/services/theme.service';
 import { ToastService } from '@core/services/toast.service';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import { SettingsApi, SettingsValues } from './settings.api';
 
 /**
@@ -19,11 +20,17 @@ export class SettingsStore {
   private readonly i18n = inject(I18nService);
   private readonly permService = inject(PermissionService);
   private readonly themeService = inject(ThemeService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   /** Edited by the panels and saved as a whole; a reload replaces the edits, a failed one keeps them. */
   readonly systemSettings = linkedSignal<SettingsValues | undefined, SettingsValues>({
-    source: () => loadedValue(this.systemResource),
+    source: () => loadedValue(this.systemResource)?.values,
     computation: (loaded, previous) => (loaded ? { ...loaded } : (previous?.value ?? {})),
+  });
+  /** The revision of the system settings the next save names (plan item 3.6); a reload takes the server's. */
+  readonly systemRevision = linkedSignal<number | undefined, number | undefined>({
+    source: () => loadedValue(this.systemResource)?.revision,
+    computation: (loaded, previous) => loaded ?? previous?.value,
   });
   readonly userSettings = linkedSignal<SettingsValues | undefined, SettingsValues>({
     source: () => loadedValue(this.userResource),
@@ -120,12 +127,21 @@ export class SettingsStore {
     }
 
     this.isSaving.set(true);
-    this.settingsApi.saveSystemSettings(this.systemSettings()).subscribe({
+    const revision = this.systemRevision();
+    this.settingsApi.saveSystemSettings(this.systemSettings(), revision).subscribe({
       next: () => {
         this.isSaving.set(false);
+        // The save raised the revision of the set by one: the next save names the new one (plan item 3.6).
+        if (revision !== undefined) this.systemRevision.set(revision + 1);
         this.toast.success(this.i18n.translate('common.saved'));
       },
-      error: () => this.isSaving.set(false),
+      error: (err: unknown) => {
+        this.isSaving.set(false);
+        this.saveErrors.show(err, {
+          fallbackKey: 'common.operation_failed',
+          reload: () => this.systemResource.reload(),
+        });
+      },
     });
   }
 

@@ -22,6 +22,8 @@ import { ToastService } from '@core/services/toast.service';
 import { SMTButtonComponent } from '@shared/ui-kit/components/button';
 import { SMTDialogComponent, SMTDialogContentDirective } from '@shared/ui-kit/components/modal';
 import { SMTRadioGroupComponent, SMTRadioOption } from '@shared/ui-kit/components/forms/radio-group';
+import { isRevisionConflict, SaveErrorNotifier } from '@shared/ui/save-errors';
+import { latestRevision } from './org-unit-assignments';
 import { OrgUnitDraft } from './org-unit-draft';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { ScopeRule } from './org-units.models';
@@ -45,10 +47,17 @@ export class RoleScopePanelComponent implements OnChanges {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly roleId = input.required<number>();
+  /** The role's revision as the host screen holds it: the rule is saved from it (plan item 3.6). */
+  readonly revision = input<number | undefined>(undefined);
 
   readonly busyChange = output<boolean>();
+  /** The role's revision after a save of the rule, for the host screen to keep its copy in step. */
+  readonly revisionChange = output<number>();
+  /** The role changed since the screen read it: the host screen reads the roles again. */
+  readonly staleRole = output<void>();
 
   readonly selectedRule = signal<ScopeRule>('ALL');
   readonly loaded = signal(false);
@@ -59,6 +68,7 @@ export class RoleScopePanelComponent implements OnChanges {
   readonly savedRefreshFailed = signal(false);
   readonly confirmationOpen = signal(false);
   private readonly originalRule = signal<ScopeRule | null>(null);
+  private readonly loadedRevision = signal<number | undefined>(undefined);
 
   /** The rules as radio items, translated; each description says what the rule lets the role see. */
   readonly ruleOptions = computed<SMTRadioOption<ScopeRule>[]>(() =>
@@ -161,11 +171,12 @@ export class RoleScopePanelComponent implements OnChanges {
     )
       return;
     const epoch = this.viewEpoch;
+    const revision = latestRevision(this.revision(), this.loadedRevision());
     this.confirmationOpen.set(false);
     this.setPending(true);
     this.saveError.set(null);
     this.writes.add(
-      this.api.saveRoleRule(target, rule).subscribe({
+      this.api.saveRoleRule(target, rule, revision).subscribe({
         next: () => {
           this.setPending(false);
           if (!this.currentView(epoch, target)) {
@@ -175,13 +186,19 @@ export class RoleScopePanelComponent implements OnChanges {
           this.originalRule.set(rule);
           this.selectedRule.set(rule);
           this.loaded.set(true);
+          // The save raised the role's revision by one: the next change of the role names the new one.
+          if (revision !== undefined) {
+            this.loadedRevision.set(revision + 1);
+            this.revisionChange.emit(revision + 1);
+          }
           this.toast.success(this.i18n.translate('iam.data_scope.saved'));
           this.reload(true);
         },
         error: (error) => {
           this.setPending(false);
-          if (this.currentView(epoch, target)) this.saveError.set(error);
-          else this.loadDeferredTarget();
+          if (!this.currentView(epoch, target)) this.loadDeferredTarget();
+          else if (isRevisionConflict(error)) this.offerReload(error);
+          else this.saveError.set(error);
           this.changeDetector.markForCheck();
         },
       }),
@@ -209,6 +226,7 @@ export class RoleScopePanelComponent implements OnChanges {
         }
         this.originalRule.set(snapshot.rule);
         this.selectedRule.set(snapshot.rule);
+        this.loadedRevision.set(snapshot.revision);
         this.loaded.set(true);
         this.savedRefreshFailed.set(false);
         this.changeDetector.markForCheck();
@@ -287,6 +305,7 @@ export class RoleScopePanelComponent implements OnChanges {
   }
   private resetProtectedState(): void {
     this.originalRule.set(null);
+    this.loadedRevision.set(undefined);
     this.selectedRule.set('ALL');
     this.loaded.set(false);
     this.loading.set(false);
@@ -320,6 +339,17 @@ export class RoleScopePanelComponent implements OnChanges {
     this.pending.set(value);
     this.busyChange.emit(value);
     this.changeDetector.markForCheck();
+  }
+  /** The role moved on since the screen read it: the draft gives way to what the server has now. */
+  private offerReload(error: unknown): void {
+    this.saveErrors.show(error, {
+      fallbackKey: 'common.operation_failed',
+      reload: () => {
+        this.restoreDraft();
+        this.reload();
+        this.staleRole.emit();
+      },
+    });
   }
   private ruleKey(rule: ScopeRule): string {
     return `iam.data_scope.rule_${rule.toLowerCase()}`;
