@@ -140,6 +140,7 @@ final class ScopeByIdCases {
                     (f, id) -> Map.of("title", "TEST changed", "contentMd", "body", "color", "default"),
                     OK),
             write("MsNoteController#setPin", Kind.NOTE, (f, id) -> Map.of("pinned", true), OK),
+            write("MsNoteController#setArchived", Kind.NOTE, (f, id) -> Map.of("archived", true), OK),
             write("MsNoteController#deleteNote", Kind.NOTE, NO_CONTENT),
             history(MsNoteEntity.DEFINITION.code(), Kind.NOTE),
             // files (mf)

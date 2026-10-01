@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
+import java.util.function.LongConsumer;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * {@code POST /api/v1/entities/{code}/bulk} (roadmap item 56): the bulk actions an entity declares, over up to
  * {@value BulkRunner#MAX_IDS} records, reported record by record ({@link BulkRunner}). Today that is
- * {@code delete}, run through the module's own delete, so each record keeps its checks and audit. The right is
+ * {@code delete} and, for an archivable entity, {@code archive}, run through the module's own operation, so each record
+ * keeps its checks and audit. The right is
  * the one the entity's action declares; an entity without bulk actions, or one the viewer may not see, answers
  * the same 404 as {@code form-meta}.
  */
@@ -57,15 +59,17 @@ public class EntityBulkController {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.common.entity_not_found"));
         List<Long> ids = BulkRunner.checkedIds(body);
         String action = body.action() == null ? "" : body.action();
-        if (!EntityDefinition.DELETE.equals(action)) {
+        if (!EntityDefinition.DELETE.equals(action) && !EntityDefinition.ARCHIVE.equals(action)) {
             throw BulkRunner.unknownAction(action);
         }
-        EntityDefinition.EntityAction delete =
+        EntityDefinition.EntityAction declared =
                 entity.action(action).orElseThrow(() -> BulkRunner.unknownAction(action));
-        if (!SecurityContext.hasPermission(entity.form(), delete.permission())) {
-            throw ApiException.permissionDenied(entity.form(), delete.permission());
+        if (!SecurityContext.hasPermission(entity.form(), declared.permission())) {
+            throw ApiException.permissionDenied(entity.form(), declared.permission());
         }
         EntityRecords records = registry.records(code).orElseThrow();
-        return ResponseEntity.ok(BulkRunner.run(action, ids, records::delete, bulkItems));
+        // Archiving runs as the single archive does, record by record (ADR-0032, 5.4).
+        LongConsumer operation = EntityDefinition.DELETE.equals(action) ? records::delete : records::archive;
+        return ResponseEntity.ok(BulkRunner.run(action, ids, operation, bulkItems));
     }
 }

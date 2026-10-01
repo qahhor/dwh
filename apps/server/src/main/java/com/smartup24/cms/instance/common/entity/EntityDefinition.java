@@ -106,6 +106,9 @@ public record EntityDefinition(
     /** The action a bulk delete runs as, one record at a time. */
     public static final String DELETE = "delete";
 
+    /** The action that archives and restores a record (ADR-0032, 5.4). */
+    public static final String ARCHIVE = "archive";
+
     public EntityDefinition {
         Objects.requireNonNull(code, "code");
         Objects.requireNonNull(form, "form");
@@ -156,11 +159,25 @@ public record EntityDefinition(
         if (capabilities.contains(EntityCapability.BULK) && actions.stream().noneMatch(a -> DELETE.equals(a.code()))) {
             throw new IllegalArgumentException("Entity " + code + ": bulk delete needs the delete action");
         }
+        requireArchive(code, capabilities, actions, model);
         if (rights != null) {
             Set<String> named = rights.actionKeys().keySet();
             if (!named.contains("view") || actions.stream().anyMatch(action -> !named.contains(action.permission()))) {
                 throw new IllegalArgumentException("Entity " + code + ": name view and every action's right");
             }
+        }
+    }
+
+    /** The ARCHIVE capability goes with the {@code archive} action and a table that keeps the archived rows. */
+    private static void requireArchive(
+            String code, Set<EntityCapability> capabilities, List<EntityAction> actions, @Nullable EntityModel model) {
+        boolean archivable = capabilities.contains(EntityCapability.ARCHIVE);
+        if (archivable != actions.stream().anyMatch(a -> ARCHIVE.equals(a.code()))) {
+            throw new IllegalArgumentException(
+                    "Entity " + code + ": the archive capability goes with the archive action, and only then");
+        }
+        if (archivable && model == null) {
+            throw new IllegalArgumentException("Entity " + code + ": archived records live in the entity's table");
         }
     }
 

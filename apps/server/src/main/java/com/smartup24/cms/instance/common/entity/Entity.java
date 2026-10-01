@@ -16,13 +16,14 @@ import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The way a module declares an entity (ADR-0032, 3.2): its table, its fields — each once, as an {@link EntityField} —
- * its form layout, rights, menu item, actions and capabilities. {@link #build()} derives the form fields and the list
- * code from the fields; the list itself is derived by {@link EntityLists}.
+ * The way a module declares an entity (ADR-0032, 3.2): its table and its scope, its fields — each once, as an
+ * {@link EntityField} — its form layout, rights, menu item, actions and capabilities. {@link #build()} derives the form
+ * fields and the list code from the fields; the list itself is derived by {@link EntityLists}.
  *
  * <pre>{@code
  * Entity.define("ms.notes", "notes")
  *         .table("ms_notes", "n")
+ *         .scope(EntityScope.owner("created_by"))
  *         .field(text("title", "notes.col.title").column("title").required().length(1, 255)
  *                 .list(sortable().searchable()))
  *         .section("main", "entity.section.main", "title")
@@ -43,6 +44,7 @@ public final class Entity {
     private final String form;
     private @Nullable String table;
     private @Nullable String alias;
+    private @Nullable EntityScope scope;
     private @Nullable EntityRights rights;
     private @Nullable EntityMenu menu;
     private @Nullable String customEntity;
@@ -69,6 +71,27 @@ public final class Entity {
         this.table = name;
         this.alias = tableAlias;
         return this;
+    }
+
+    /** Which rows of its table a viewer sees (ADR-0032, 5.1): an entity with a table cannot be built without it. */
+    public Entity scope(EntityScope rows) {
+        this.scope = Objects.requireNonNull(rows, "scope");
+        return this;
+    }
+
+    /**
+     * The ARCHIVE capability (ADR-0032, 5.4): records are archived and restored instead of only deleted, with the
+     * action {@code archive} that needs the right's {@code delete} — the default of ADR-0032, 19 (question 11),
+     * taken as an assumption until the product owner answers it.
+     */
+    public Entity archivable() {
+        return archivable(EntityDefinition.DELETE);
+    }
+
+    /** The ARCHIVE capability whose action needs {@code permission} of the right. */
+    public Entity archivable(String permission) {
+        capabilities.add(EntityCapability.ARCHIVE);
+        return action(EntityDefinition.ARCHIVE, permission);
     }
 
     /** The owning module and the dictionary keys of the right's and its actions' names (ADR-0031). */
@@ -139,14 +162,21 @@ public final class Entity {
     public EntityDefinition build() {
         @Nullable EntityModel model = null;
         if (table != null) {
+            if (scope == null) {
+                throw new IllegalArgumentException(
+                        "Entity " + code + " declares which rows a viewer sees: .scope(...) (ADR-0032, 5.1)");
+            }
             model = new EntityModel(
                     table,
                     Objects.requireNonNull(alias, "alias"),
                     fields,
                     Objects.requireNonNull(defaultSort, "Entity " + code + " names its list's default sort"),
-                    defaultDescending);
+                    defaultDescending,
+                    scope);
         } else if (fields.stream().anyMatch(field -> field.list() != null)) {
             throw new IllegalArgumentException("Entity " + code + ": a list field needs the entity's table");
+        } else if (scope != null) {
+            throw new IllegalArgumentException("Entity " + code + ": a scope restricts the rows of its table");
         }
         List<FormField> formFields = fields.stream()
                 .flatMap(field -> Stream.ofNullable(field.formField()))

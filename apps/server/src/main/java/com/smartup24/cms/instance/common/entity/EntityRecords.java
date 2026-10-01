@@ -27,4 +27,9 @@ public interface EntityRecords {
     default void delete(long id) {
         throw new UnsupportedOperationException(entity() + " has no delete");
     }
+
+    /** Archives one record as the single archive does, with its checks and audit (ADR-0032, 5.4). */
+    default void archive(long id) {
+        throw new UnsupportedOperationException(entity() + " has no archive");
+    }
 }

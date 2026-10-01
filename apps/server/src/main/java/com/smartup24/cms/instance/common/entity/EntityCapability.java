@@ -13,7 +13,12 @@ public enum EntityCapability {
     /** The record history tab. */
     HISTORY,
     /** Bulk actions on its list. */
-    BULK;
+    BULK,
+    /**
+     * Records are archived and restored (ADR-0032, 5.4): the table has {@code archived_at} and {@code archived_by}, the
+     * list leaves archived records out unless its {@code archived} field is filtered, a read by id still finds them.
+     */
+    ARCHIVE;
 
     public String wire() {
         return name().toLowerCase(Locale.ROOT);

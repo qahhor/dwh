@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.common.entity;
 import com.smartup24.cms.instance.common.entity.field.EntityField;
 import com.smartup24.cms.instance.common.entity.field.FieldSource;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
+import com.smartup24.cms.instance.common.query.QueryField;
+import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
 import com.smartup24.cms.instance.common.query.QueryListSource;
 import java.util.ArrayList;
@@ -22,12 +24,19 @@ import org.springframework.stereotype.Component;
  * {@code attributes} as text — columns every entity table has (ADR-0032, 14.1) — so a row is read by the record's
  * keys; its fields are the list parts of the entity's fields in declaration order. Only an entity that takes custom
  * fields offers them in the list ({@code customEntity}, {@code attributesSql}).
+ *
+ * <p>An entity with the ARCHIVE capability (ADR-0032, 5.4; plan 10/10, item 5.3) also selects
+ * {@code archived_at as "archivedAt"} and has the hidden, filterable field {@code archived}: the list leaves archived
+ * records out ({@link EntityScopes#listPredicate}) until a filter on that field asks for them.
  */
 @Component
 public class EntityLists implements QueryListSource {
 
     /** The property of the custom field values in a row. */
     public static final String ATTRIBUTES = EntityModel.ATTRIBUTES;
+
+    /** The dictionary key of the archived field's label. */
+    public static final String ARCHIVED_LABEL = "entity.col.archived";
 
     private final List<QueryList> lists;
 
@@ -48,14 +57,16 @@ public class EntityLists implements QueryListSource {
         EntityModel model = Objects.requireNonNull(entity.model(), entity.code());
         String alias = model.alias();
         @Nullable String attributes = entity.customEntity() == null ? null : alias + "." + ATTRIBUTES;
+        List<QueryField> fields = new ArrayList<>(model.listFields());
+        fields.addAll(platformFields(entity));
         return new QueryList(
                 Objects.requireNonNull(entity.listCode(), entity.code()),
                 entity.form(),
                 "view",
-                select(model),
+                select(entity, model),
                 model.table() + " " + alias,
                 alias + ".id",
-                model.listFields(),
+                fields,
                 model.defaultSort(),
                 model.defaultDescending(),
                 QueryList.DEFAULT_LIMIT,
@@ -65,7 +76,23 @@ public class EntityLists implements QueryListSource {
                 false);
     }
 
-    private static String select(EntityModel model) {
+    /**
+     * The list fields the platform adds after the declared ones: {@code archived} of an archivable entity, a hidden
+     * filterable flag that is true for an archived record.
+     */
+    public static List<QueryField> platformFields(EntityDefinition entity) {
+        EntityModel model = entity.model();
+        if (model == null || !entity.capabilities().contains(EntityCapability.ARCHIVE)) return List.of();
+        return List.of(QueryField.of(EntityModel.ARCHIVED, ARCHIVED_LABEL, QueryFieldType.BOOLEAN, archivedSql(model))
+                .asHidden());
+    }
+
+    /** Whether a record is archived, over the entity's alias. */
+    static String archivedSql(EntityModel model) {
+        return "(" + model.alias() + ".archived_at is not null)";
+    }
+
+    private static String select(EntityDefinition entity, EntityModel model) {
         String alias = model.alias();
         List<String> columns = new ArrayList<>();
         for (SystemColumn column : SystemColumn.values()) {
@@ -76,6 +103,9 @@ public class EntityLists implements QueryListSource {
             columns.add(field.source().sql(alias) + " as \"" + field.key() + "\"");
         }
         columns.add(alias + "." + ATTRIBUTES + "::text as \"" + ATTRIBUTES + "\"");
+        if (entity.capabilities().contains(EntityCapability.ARCHIVE)) {
+            columns.add(alias + ".archived_at as \"" + EntityModel.ARCHIVED_AT + "\"");
+        }
         return String.join(", ", columns);
     }
 }

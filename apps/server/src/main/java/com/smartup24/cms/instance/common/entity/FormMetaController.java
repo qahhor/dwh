@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import io.swagger.v3.oas.annotations.Operation;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,6 +42,7 @@ public class FormMetaController {
             @Nullable String label,
             String type,
             boolean required,
+            boolean readonly,
             @Nullable Integer minLength,
             @Nullable Integer maxLength,
             @Nullable BigDecimal min,
@@ -51,13 +53,15 @@ public class FormMetaController {
             @Nullable QueryRef ref,
             @Nullable String attribute) {
 
-        static FormFieldMeta of(FormField field) {
+        /** The field for this viewer: read-only when they lack its {@code readonlyUnless} right (ADR-0032, 5.2). */
+        static FormFieldMeta of(FormField field, boolean readonly) {
             return new FormFieldMeta(
                     field.key(),
                     field.labelKey(),
                     field.label(),
                     field.type().wire(),
                     field.required(),
+                    readonly,
                     field.minLength(),
                     field.maxLength(),
                     field.min(),
@@ -94,13 +98,28 @@ public class FormMetaController {
         return ResponseEntity.ok(of(entity));
     }
 
+    /**
+     * The form as the viewer may use it (ADR-0032, 5.2): a field whose {@code requires} they lack is absent, from its
+     * section too, and a section left empty goes; a field whose {@code readonlyUnless} they lack is read-only.
+     */
     static FormMeta of(EntityDefinition entity) {
+        Set<String> hidden = EntityFieldRights.hidden(entity);
+        Set<String> readonly = EntityFieldRights.readonly(entity);
         return new FormMeta(
                 entity.code(),
                 entity.listCode(),
-                entity.fields().stream().map(FormFieldMeta::of).toList(),
+                entity.fields().stream()
+                        .filter(field -> !hidden.contains(field.key()))
+                        .map(field -> FormFieldMeta.of(field, readonly.contains(field.key())))
+                        .toList(),
                 entity.layout().stream()
-                        .map(s -> new FormSectionMeta(s.key(), s.labelKey(), s.fields()))
+                        .map(s -> new FormSectionMeta(
+                                s.key(),
+                                s.labelKey(),
+                                s.fields().stream()
+                                        .filter(key -> !hidden.contains(key))
+                                        .toList()))
+                        .filter(section -> !section.fields().isEmpty())
                         .toList(),
                 entity.actions().stream()
                         .filter(action -> SecurityContext.hasPermission(entity.form(), action.permission()))

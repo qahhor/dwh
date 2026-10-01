@@ -535,6 +535,42 @@ default 1`, `If-Match` на изменение, 428 без него, 409 при 
   списка; массовое действие `archive` — через `BulkRunner`.
 - Жёсткое удаление остаётся, только если объявлено действие `delete`.
 
+### 5.5. Шаг 2 выполнен: как реализовано и отступления (2026-10-01)
+
+Шаг 2 (пункт 5.3) выполнен в ветке `claude/p5-scope-rights`. Runtime (шаг 3)
+ещё нет, поэтому платформа даёт строительные блоки, а заметки применяют их в
+своём контроллере и сервисе: `EntityScope` в `EntityModel.scope`
+(`Entity.scope(...)`), `EntityScopes` (предикат списка, подсчёта, выгрузки и
+чтения по id; правило оргединиц — `common.security.DataScopes`, его реализует
+`MdScopeService`), `EntityFieldRights` (права на поле во всех путях),
+`Entity.archivable()` и возможность `ARCHIVE`. Заметки: скоуп
+`owner(created_by)`, архив (`V164`), `PUT /api/v1/notes/{id}/archived` с
+`If-Match`, `DELETE` с необязательным `If-Match`. Критерии: «скоуп у 100%
+сущностей» — построитель и `EntityScopeDeclaredTest`; «права на поля: form-meta,
+чтение, запись, выгрузка» — `EntityFieldRightsTest` и
+`EntityFieldRightsIntegrationTest`; «устаревшая версия → 409» —
+`RecordRevisionIntegrationTest` (сохранение) и `MsNoteArchiveIntegrationTest`
+(архив, удаление).
+
+Отступления от §5.1–5.4 (решение не меняется, уточняется исполнение):
+
+| № | В дизайне | Сделано | Почему |
+|---|---|---|---|
+| О15 | `build()` без `.scope(...)` не собирается | так у сущности **с таблицей**; сущность без таблицы (только форма) скоупа не принимает — строк у неё нет; модель отвергает пустой скоуп | скоуп ограничивает строки таблицы; форма без таблицы не может обещать `EXPORT`, `SAVED_VIEWS`, `BULK`, `ARCHIVE` (проверяет `EntityScopeDeclaredTest`) |
+| О16 | `EntityScopeDeclaredTest` перечисляет сущности | интеграционный тест: перечень «код → скоуп» и проверка таблицы — колонки скоупа, `id`, `revision`, для `ARCHIVE` — `archived_at timestamptz`, `archived_by bigint` с FK на `md_users` и индексом, уникальные индексы только `where archived_at is null` (правило проверено на пробной таблице) | часть `EntitySchemaContractTest` (§11.4, шаг 4) нужна уже сейчас, иначе «колонка ревизии и архива обязательна» не проверяется ничем |
+| О17 | `ScopeProvider` — отдельный тип | вложен: `EntityScope.ScopeProvider` | живёт только вместе с `EntityScope.custom` |
+| О18 | `DataScopes.filterFor(long …)` | `MdScopeService.filterFor` переведён с `Long` (null → без ограничения) на `long`; `unitVisible` — новый `MdScopeRepository.isUnitAvailable` (`SELF` — свои единицы пользователя) | null-пользователь больше не означает «видно всё» (fail-closed); старую сигнатуру никто не вызывал |
+| О19 | 404 `error.common.record_not_found` вне скоупа | у заметок по-прежнему `error.note.not_found`; предикат теперь из объявления (`EntityScopes.rows`) | ключ меняется вместе с переводом заметок на runtime (шаг 5), сейчас его ждут веб и тесты модуля |
+| О20 | права на поле во всех путях | `form-meta` (поля нет, пустая секция уходит, `readonly: true`), `query-meta`/фильтр/сортировка/`q` (как у `QueryField.requires`), выгрузка (колонки по полям зрителя), история (`hiddenFields()`), чтение (`EntityFieldRights.project`), запись (`EntityFieldRights.checkWrite`: 422 `unknown_field` — `error.field.unknown`, `readonly` — `error.field.readonly`), вебхук (`EntityFieldRights.forEveryone`) | общего чтения и записи по объявлению до runtime нет: проекцию и проверку записи вызывает модуль (заметки — `checkWrite` при сохранении), вебхук и поиск сущностей подключаются в шагах 5 и 10; путь чтения проверен сущностью-фикстурой поверх `ms_notes` в интеграционном тесте |
+| О21 | `readonly`: значение, отличное от текущего, — 422 | при создании текущего нет: любое непустое значение поля только для чтения — 422 `readonly` | значения по умолчанию (§4.3) придут с шагом 6; до них клиенту нечего отправлять в такое поле |
+| О22 | пары `FieldAccess` попадают в каталог прав из объявления (§6.10) | не сделано: форма и действие из `requires`/`readonlyUnless` должны уже быть в каталоге (ADR-0028) | синхронизация каталога из объявлений — часть §6.10 (шаги 3–5) |
+| О23 | архив — `PUT /api/v1/entities/{code}/{id}/archived` | у заметок — `PUT /api/v1/notes/{id}/archived` (ответ — заметка с `archived` и `archivedAt`); право — `delete` формы (**предположение**: значение по умолчанию вопроса В11, §19, до ответа владельца продукта); событие — строка аудита `U` с полем `archived` (подпись `entity.col.archived`) | маршрут runtime появится в шаге 3; `EntityChanged` с `archived`/`restored` — шаг 3 |
+| О24 | ссылка на архивную запись: новое значение — 422 `archived` | выбор ссылки предлагает только действующие записи (список по умолчанию), чтение по id отдаёт архивную с `archived: true`, веб подписывает её «в архиве»; 422 `archived` при сохранении **не сделан** | проверка цели ссылки (существует, видна, не в архиве) — часть типов ссылок §4.2 (шаг 6) и runtime; ни одна сущность пока не ссылается на архивируемую |
+| О25 | поиск убирает архивную запись из индекса | заметки уходят из глобального поиска через опубликованное представление `ms_note_pub_notes` (`where archived_at is null`, `V164`) | индекса сущностей ещё нет (шаг 10); поиск заметок читает БД через представление |
+| О26 | частичный индекс под горячие выборки — по нагрузке | у `ms_notes` только индекс FK `archived_by`; уникальных кодов у заметок нет | нагрузки на архив заметок нет; правило уникальности проверяет `EntityScopeDeclaredTest` |
+| О27 | — | генератор (`create-module.ps1`) объявляет `.scope(EntityScope.all())` | без скоупа объявление сгенерированного модуля не собиралось бы |
+| О28 | снимок метаданных заметок не меняется | меняется намеренно: `readonly` у каждого поля формы, действие и возможность `archive`, поле списка `archived` | `form-meta` и `query-meta` получили новые признаки прав и архива |
+
 ## 6. Общий runtime (5.4)
 
 ### 6.1. Маршруты
@@ -1308,7 +1344,7 @@ create index ex_orders_org_unit_id_idx on ex_orders (org_unit_id);
 |---|---|---|---|---|
 | 0 | 5.0 | гигиена модели (параллельный исполнитель) | — | контракт «поле формы ↔ поле списка», история всех полей, 404 чужой записи, доп. поле без перезагрузки |
 | 1 | 5.1 | **выполнен** (§3.6): `EntityField`, `Entity`, вывод `FormField`/`QueryList`, `QueryListSource`; заметки — одно объявление; схемы `FormFieldMeta` в OpenAPI | 0 | «0 параллельных объявлений» — `EntityFieldsSingleSourceTest`; «снимок `query-meta` заметок не изменился» — `EntityMetaSnapshotTest` |
-| 2 | 5.3 | `EntityScope` (обязателен), `DataScopes`, `FieldAccess`, обязательная ревизия, `ARCHIVE` | 1 | «скоуп у 100% сущностей» — построитель + `EntityScopeDeclaredTest`; «права на поля: form-meta, чтение, запись, выгрузка» — тест прав на поля; «устаревшая версия → 409» — `RecordRevisionIntegrationTest` + кит |
+| 2 | 5.3 | **выполнен** (§5.5): `EntityScope` (обязателен), `DataScopes`, `FieldAccess`, обязательная ревизия, `ARCHIVE` | 1 | «скоуп у 100% сущностей» — построитель + `EntityScopeDeclaredTest`; «права на поля: form-meta, чтение, запись, выгрузка» — тест прав на поля; «устаревшая версия → 409» — `RecordRevisionIntegrationTest` + кит |
 | 3 | 5.4 (а) | `EntityController`, `EntityRuntime`, `EntityStoreRepository`, порядок §6.3, `EntityHooks`, `EntityRule`, аудит, `EntityChanged` → Spring; флаг выключен вне тестов | 2 | — (промежуточный) |
 | 4 | 6.2 (ядро) | кит, `TestSessions`/`TestUsers`, контракт заметок, `EntityContractCoverageTest`, `EntitySchemaContractTest`; генератор под модель | 3 | «модуль проходит кит одним наследованием» — `MsNotesContractTest` |
 | 5 | 5.4 (б) | флаг включён по умолчанию и удалён; заметки на runtime: контроллер, сервис, репозиторий и `MsNoteRecords` удалены; веб заметок на `EntityApi`; вебхуки и поиск слушают `EntityChanged`; `EntityOpenApiCustomizer`; правки Spectral | 4 | «заметки — ≤ 2 серверных файла» — подсчёт файлов `ms/note` без `package-info.java` в `EntityFileBudgetTest` (действие `pin` заменяется `PATCH {isPinned}` с тем же правом `update`, поэтому заметкам хватает объявления); «вебхук `notes.updated` без кода модуля» — интеграционный тест outbox; «все эндпоинты сущностей в OpenAPI» — `OpenApiContractTest`; «тест-кит зелёный для каждой сущности» — `EntityContractCoverageTest` |

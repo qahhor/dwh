@@ -23,8 +23,8 @@ export const NOTES_FORM_META: FormMeta = {
     { key: 'main', labelKey: 'entity.section.main', fields: ['title', 'contentMd'] },
     { key: 'settings', labelKey: 'entity.section.settings', fields: ['color', 'isPinned'] },
   ],
-  actions: ['create', 'update', 'pin', 'delete'],
-  capabilities: ['bulk', 'custom_fields', 'export', 'history', 'saved_views'],
+  actions: ['create', 'update', 'pin', 'archive', 'delete'],
+  capabilities: ['archive', 'bulk', 'custom_fields', 'export', 'history', 'saved_views'],
 };
 
 /** The note form with one custom field, as the registry adds it. */

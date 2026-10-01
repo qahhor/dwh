@@ -35,6 +35,20 @@
         <span class="material-symbols-outlined" aria-hidden="true">edit</span>
       </button>
     }
+    @if (canArchive()) {
+      <button
+        type="button"
+        class="icon-btn"
+        data-testid="note-archive"
+        [attr.aria-label]="note().archived ? ('notes.card.restore' | t) : ('notes.card.archive' | t)"
+        [title]="note().archived ? ('notes.card.restore' | t) : ('notes.card.archive' | t)"
+        (click)="toggleArchive.emit()"
+      >
+        <span class="material-symbols-outlined" aria-hidden="true">{{
+          note().archived ? 'unarchive' : 'archive'
+        }}</span>
+      </button>
+    }
     @if (canDelete()) {
       <button
         type="button"

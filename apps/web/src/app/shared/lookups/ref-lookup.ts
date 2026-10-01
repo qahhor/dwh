@@ -4,6 +4,7 @@ import type { QueryRefMeta } from '@core/models/query-meta.models';
 import type { KeysetPage } from '@core/models/common.models';
 import { Injectable, inject, signal } from '@angular/core';
 import { ApiService } from '@core/services/api.service';
+import { I18nService } from '@core/services/i18n.service';
 import { LookupSources } from './lookup-sources';
 
 type Row = Record<string, unknown>;
@@ -78,7 +79,8 @@ export function refLookup(api: ApiService, ref: QueryRefMeta): SMTLookupSource<R
 export class RefLookups {
   private readonly api = inject(ApiService);
   private readonly lookups = inject(LookupSources);
-  private readonly names = signal<ReadonlyMap<string, string>>(new Map());
+  private readonly i18n = inject(I18nService);
+  private readonly names = signal<ReadonlyMap<string, RefName>>(new Map());
   private readonly sources = new Map<string, SMTLookupSource<Row, SMTLookupKey>>();
   private readonly asked = new Set<string>();
 
@@ -94,13 +96,16 @@ export class RefLookups {
 
   /**
    * The name of the referenced row, read once and kept; null until it has come. A signal is read, so a view that
-   * shows it is drawn again when the name arrives; the read itself starts after the current render.
+   * shows it is drawn again when the name arrives; the read itself starts after the current render. An archived
+   * row still reads by its key and is named with its mark (ADR-0032 5.4), so an old reference keeps its meaning.
    */
   name(ref: QueryRefMeta, key: unknown): string | null {
     if (key === null || key === undefined || key === '') return null;
     const id = `${targetOf(ref)}#${String(key)}`;
     const known = this.names().get(id);
-    if (known !== undefined) return known;
+    if (known !== undefined) {
+      return known.archived ? `${known.label} (${this.i18n.translate('ui.entity.archived_mark')})` : known.label;
+    }
     if (!this.asked.has(id)) {
       this.asked.add(id);
       queueMicrotask(() => this.read(ref, key as SMTLookupKey, id));
@@ -113,7 +118,10 @@ export class RefLookups {
     source.resolve?.([key]).subscribe({
       next: (rows) => {
         const row = rows.find((candidate) => String(source.key(candidate)) === String(key));
-        if (row) this.names.update((names) => new Map(names).set(id, source.option(row).label));
+        if (row) {
+          const name = { label: source.option(row).label, archived: row['archived'] === true };
+          this.names.update((names) => new Map(names).set(id, name));
+        }
       },
       // The value stays shown as it is; a failed read is not a reason to bother the person.
       error: () => this.asked.delete(id),
@@ -130,6 +138,12 @@ export class RefLookups {
     const source = ref.keyField === 'id' ? sources[ref.path] : undefined;
     return (source as SMTLookupSource<Row, SMTLookupKey> | undefined) ?? null;
   }
+}
+
+/** A referenced row's name and whether the row is archived. */
+interface RefName {
+  label: string;
+  archived: boolean;
 }
 
 /** One source per target list and key: two fields that point to the same list share their names. */

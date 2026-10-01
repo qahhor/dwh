@@ -78,6 +78,47 @@ describe('SMTEntityToolbarComponent', () => {
     expect(root.querySelector('[data-testid="entity-bulk-delete"]')).toBeNull();
   });
 
+  // ADR-0032 5.4: an archivable entity's list shows its archive by a switch, and the chosen records go to it.
+  it('switches the list to the archive and back by its filter', async () => {
+    const { fixture, root } = await render(NOTES_FORM_META);
+    const views = fixture.componentInstance.views()!;
+    views.filter.set([{ field: 'isPinned', op: 'eq', value: true }]);
+    fixture.detectChanges();
+
+    const toggle = root.querySelector('[data-testid="entity-archive-toggle"]') as HTMLButtonElement;
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    toggle.click();
+    fixture.detectChanges();
+    expect(views.filter()).toEqual([
+      { field: 'isPinned', op: 'eq', value: true },
+      { field: 'archived', op: 'eq', value: true },
+    ]);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+
+    toggle.click();
+    fixture.detectChanges();
+    expect(views.filter()).toEqual([{ field: 'isPinned', op: 'eq', value: true }]);
+  });
+
+  it('archives the chosen records at once, and offers neither without the capability or the right', async () => {
+    const { fixture, root, api, done } = await render(NOTES_FORM_META, [1, 2]);
+
+    (root.querySelector('[data-testid="entity-bulk-archive"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(api.post).toHaveBeenCalledWith(
+      '/entities/ms.notes/bulk',
+      { action: 'archive', ids: [1, 2] },
+      { notifyError: false },
+    );
+    expect(done).toHaveBeenCalled();
+    expect(fixture.componentInstance.selected()).toEqual([]);
+    TestBed.resetTestingModule();
+
+    const plain = await render({ ...NOTES_FORM_META, capabilities: ['bulk'], actions: ['delete'] }, [1]);
+    expect(plain.root.querySelector('[data-testid="entity-archive-toggle"]')).toBeNull();
+    expect(plain.root.querySelector('[data-testid="entity-bulk-archive"]')).toBeNull();
+  });
+
   it('deletes the chosen records after confirmation and reports the failures', async () => {
     const { fixture, root, api, modal, done } = await render({ ...NOTES_FORM_META, capabilities: ['bulk'] }, [1, 2]);
 

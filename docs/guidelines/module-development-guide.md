@@ -88,14 +88,22 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
    отдельным файлом — права в каталоге, выдача системным ролям, модуль в
    `md_installed_modules`; оба файла — в манифест миграций.
 2. **Объявление** (`<Prefix><Name>Entity`): `Entity.define(код, форма)` —
-   таблица и псевдоним, **каждое поле один раз** как `EntityField`
+   таблица и псевдоним, **обязательный скоуп** (`.scope(EntityScope.owner(...)
+   | orgUnit(...) | all() | custom(...))`, без него объявление не собирается;
+   предикат списка и чтения по id даёт `EntityScopes`, ADR-0032 §5.1; план
+   10/10, пункт 5.3), **каждое поле один раз** как `EntityField`
    ([ADR-0032](../adr/ADR-0032-low-code-platform-v2.md), §3; план 10/10,
-   пункт 5.1), секции, действия с правом каждое, ключи названий права для
-   матрицы (`EntityRights`, `<код>.rights.*` по ADR-0031), пункт меню
-   (`EntityMenu`), сортировка списка по умолчанию, возможности (`HISTORY` —
-   аудит под таблицей сущности, `EXPORT`, `SAVED_VIEWS`, `BULK` с действием
-   `delete`, `customFields(тип)`) и бин `EntityRecords`: видимость записи в
-   скоупе зрителя, страница списка, удаление одной записи. Поле:
+   пункт 5.1) с правами на поле при нужде (`.requires(форма, действие)`,
+   `.readonlyUnless(форма, действие)`, проверка записи —
+   `EntityFieldRights.checkWrite`), секции, действия с правом каждое, ключи
+   названий права для матрицы (`EntityRights`, `<код>.rights.*` по ADR-0031),
+   пункт меню (`EntityMenu`), сортировка списка по умолчанию, возможности
+   (`HISTORY` — аудит под таблицей сущности, `EXPORT`, `SAVED_VIEWS`, `BULK`
+   с действием `delete`, `archivable()` — `ARCHIVE` с колонками
+   `archived_at`/`archived_by` и частичными уникальными индексами
+   `where archived_at is null`, `customFields(тип)`) и бин `EntityRecords`:
+   видимость записи в скоупе зрителя, страница списка, удаление и архив одной
+   записи. Поле:
 
    ```java
    .field(text("title", "notes.col.title").column("title").required().length(1, 255)

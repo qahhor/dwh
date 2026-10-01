@@ -5707,7 +5707,7 @@
     },
     "/api/v1/notes/{id}" : {
       "delete" : {
-        "description" : "Removes a note of the caller.",
+        "description" : "Removes a note of the caller; with If-Match, only from the revision it names.",
         "operationId" : "deleteNote",
         "parameters" : [ {
           "in" : "path",
@@ -5716,6 +5716,13 @@
           "schema" : {
             "type" : "integer",
             "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
           }
         }, {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
@@ -5730,6 +5737,26 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
           },
           "default" : {
             "content" : {
@@ -5879,6 +5906,99 @@
           }
         },
         "summary" : "Update a note",
+        "tags" : [ "ms-note-controller" ]
+      }
+    },
+    "/api/v1/notes/{id}/archived" : {
+      "put" : {
+        "description" : "Moves a note of the caller to the archive or back; names the revision it was read at.",
+        "operationId" : "setArchived",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ArchivedRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NoteView"
+                }
+              }
+            },
+            "description" : "OK",
+            "headers" : {
+              "ETag" : {
+                "description" : "The revision of the record, the value a following change sends in If-Match",
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "summary" : "Archive or restore a note",
         "tags" : [ "ms-note-controller" ]
       }
     },
@@ -10104,6 +10224,14 @@
           }
         }
       },
+      "ArchivedRequest" : {
+        "type" : "object",
+        "properties" : {
+          "archived" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "AssignRolesDto" : {
         "type" : "object",
         "properties" : {
@@ -11459,6 +11587,9 @@
           "pattern" : {
             "type" : "string"
           },
+          "readonly" : {
+            "type" : "boolean"
+          },
           "ref" : {
             "$ref" : "#/components/schemas/QueryRef"
           },
@@ -12623,6 +12754,13 @@
       "NoteView" : {
         "type" : "object",
         "properties" : {
+          "archived" : {
+            "type" : "boolean"
+          },
+          "archivedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
           "attributes" : {
             "type" : "object",
             "additionalProperties" : { }

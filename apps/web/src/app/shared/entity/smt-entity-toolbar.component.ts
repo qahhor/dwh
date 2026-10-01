@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import type { FormMeta } from '@core/models/form-meta.models';
-import type { QueryListMeta } from '@core/models/query-meta.models';
+import type { QueryCondition, QueryListMeta } from '@core/models/query-meta.models';
 import { EntitiesApi } from './entities.api';
 import { canDo, hasCapability } from '@core/services/form-meta.service';
 import { I18nService, TranslatePipe } from '@core/services/i18n.service';
@@ -15,8 +15,9 @@ import { SMTModalService } from '../ui-kit/components/modal';
 
 /**
  * What an entity's declaration promises its list screen (ADR-0019, roadmap item 56), drawn from `form-meta`
- * with no wiring per screen: saved views, the export of the list as it stands, and deleting the chosen records
- * at once — each only when the entity declares it and, for the delete, when the viewer holds its right. The
+ * with no wiring per screen: saved views, the export of the list as it stands, the archive switch and archiving the
+ * chosen records (ADR-0032 5.4), and deleting the chosen records at once — each only when the entity declares it
+ * and, for the archive and the delete, when the viewer holds its right. The
  * screen keeps its own list; it hands over its view state, list metadata and search, and the chosen ids.
  */
 @Component({
@@ -32,6 +33,34 @@ import { SMTModalService } from '../ui-kit/components/modal';
       @if (showExport()) {
         <ui-export-button [views]="state" [meta]="listMeta()" [search]="search()" />
       }
+      @if (showArchive()) {
+        <button
+          smt-button
+          type="button"
+          smtSize="sm"
+          smtIcon="inventory_2"
+          data-testid="entity-archive-toggle"
+          [smtVariant]="showingArchive() ? 'secondary' : 'ghost'"
+          [attr.aria-pressed]="showingArchive()"
+          (click)="toggleArchive()"
+        >
+          {{ 'ui.entity_toolbar.archive_toggle' | t }}
+        </button>
+      }
+    }
+    @if (canBulkArchive() && selected().length > 0) {
+      <button
+        smt-button
+        type="button"
+        smtVariant="secondary"
+        smtSize="sm"
+        smtIcon="inventory_2"
+        data-testid="entity-bulk-archive"
+        [smtLoading]="busy()"
+        (click)="archiveSelected()"
+      >
+        {{ 'ui.entity_toolbar.archive_selected' | t: { n: selected().length } }}
+      </button>
     }
     @if (canBulkDelete() && selected().length > 0) {
       <button
@@ -90,6 +119,36 @@ export class SMTEntityToolbarComponent {
   /** Whether the screen should offer choosing records: the entity has bulk actions the viewer may take. */
   readonly canBulkDelete = computed(() => hasCapability(this.meta(), 'bulk') && canDo(this.meta(), 'delete'));
 
+  /** The archive switch of an archivable entity's list (ADR-0032 5.4): the list shows archived records instead. */
+  readonly showArchive = computed(() => hasCapability(this.meta(), 'archive'));
+
+  readonly showingArchive = computed(() => (this.views()?.filter() ?? []).some(isArchiveFilter));
+
+  /** Archiving the chosen records, offered while the list shows the records in use. */
+  readonly canBulkArchive = computed(
+    () =>
+      hasCapability(this.meta(), 'bulk') &&
+      hasCapability(this.meta(), 'archive') &&
+      canDo(this.meta(), 'archive') &&
+      !this.showingArchive(),
+  );
+
+  /** Shows the archive, or the records in use again; the filter travels with a saved view. */
+  toggleArchive(): void {
+    const state = this.views();
+    if (!state) return;
+    const others = state.filter().filter((condition) => !isArchiveFilter(condition));
+    state.filter.set(this.showingArchive() ? others : [...others, ARCHIVED]);
+  }
+
+  /** Archives the chosen records; an archived record can be restored, so nothing is asked first. */
+  archiveSelected(): void {
+    const meta = this.meta();
+    const ids = this.selected().slice(0, BULK_MAX_IDS);
+    if (!meta || ids.length === 0 || this.busy()) return;
+    this.track(this.entities.bulkArchive(meta.code, ids)).subscribe();
+  }
+
   deleteSelected(): void {
     const meta = this.meta();
     const ids = this.selected().slice(0, BULK_MAX_IDS);
@@ -108,8 +167,13 @@ export class SMTEntityToolbarComponent {
   }
 
   private runDelete(code: string, ids: number[]): Observable<BulkResult> {
+    return this.track(this.entities.bulkDelete(code, ids));
+  }
+
+  /** A bulk action's run: busy while it goes, then the choice is cleared and the failures are reported. */
+  private track(run: Observable<BulkResult>): Observable<BulkResult> {
     this.busy.set(true);
-    return this.entities.bulkDelete(code, ids).pipe(
+    return run.pipe(
       tap({
         next: (result) => {
           this.busy.set(false);
@@ -121,4 +185,11 @@ export class SMTEntityToolbarComponent {
       }),
     );
   }
+}
+
+/** The filter of the archive switch: the list shows archived records only (ADR-0032 5.4). */
+const ARCHIVED: QueryCondition = { field: 'archived', op: 'eq', value: true };
+
+function isArchiveFilter(condition: QueryCondition): boolean {
+  return condition.field === ARCHIVED.field && condition.op === ARCHIVED.op && condition.value === true;
 }

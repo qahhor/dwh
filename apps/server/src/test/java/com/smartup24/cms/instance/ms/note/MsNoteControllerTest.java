@@ -41,7 +41,8 @@ class MsNoteControllerTest {
                 () -> controller.createNote(create),
                 () -> controller.updateNote(1L, "\"1\"", update),
                 () -> controller.setPin(1L, new MsNoteController.PinRequest(true)),
-                () -> controller.deleteNote(1L));
+                () -> controller.setArchived(1L, "\"1\"", new MsNoteController.ArchivedRequest(true)),
+                () -> controller.deleteNote(1L, null));
 
         for (Runnable call : calls) {
             assertThatThrownBy(call::run).isInstanceOfSatisfying(ApiException.class, error -> {
@@ -62,19 +63,32 @@ class MsNoteControllerTest {
         controller.getNote(3L);
         when(service.createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L))
                 .thenReturn(new MsNoteService.NoteView(
-                        11L, "Title", "Body", "blue", true, Map.of("x", 1), 7L, Instant.EPOCH, Instant.EPOCH, 1L));
+                        11L,
+                        "Title",
+                        "Body",
+                        "blue",
+                        true,
+                        Map.of("x", 1),
+                        7L,
+                        Instant.EPOCH,
+                        Instant.EPOCH,
+                        1L,
+                        false,
+                        null));
         var created = controller.createNote(create);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(created.getHeaders().getLocation()).hasToString("/api/v1/notes/11");
         controller.updateNote(3L, "\"1\"", update);
         controller.setPin(3L, new MsNoteController.PinRequest(false));
-        assertThat(controller.deleteNote(3L).getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        controller.setArchived(3L, "\"2\"", new MsNoteController.ArchivedRequest(true));
+        assertThat(controller.deleteNote(3L, "\"4\"").getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
         verify(service).getNotes(7L, 20, "c", "[]", "-title", "q");
         verify(service).getNote(3L, 7L);
         verify(service).createNote("Title", "Body", "blue", true, Map.of("x", 1), 7L);
         verify(service).updateNote(3L, "New", "Text", "red", false, Map.of(), 7L, 1L);
         verify(service).setPinned(3L, 7L, false);
-        verify(service).deleteNote(3L, 7L);
+        verify(service).setArchived(3L, 7L, true, 2L);
+        verify(service).deleteNote(3L, 7L, 4L);
     }
 }

@@ -99,6 +99,7 @@ public final class EntityFields {
         private @Nullable ListPart list;
         private boolean listOnly;
         private boolean formOnly;
+        private FieldAccess access = FieldAccess.OPEN;
 
         private Builder(String key, String labelKey, FieldType type, FieldOptions options) {
             this.key = key;
@@ -170,6 +171,18 @@ public final class EntityFields {
             return this;
         }
 
+        /** The field exists only for holders of {@code form.action} (ADR-0032, 5.2). */
+        public Builder requires(String form, String action) {
+            this.access = access.requires(form, action);
+            return this;
+        }
+
+        /** Only holders of {@code form.action} change the field; the others see it read-only (ADR-0032, 5.2). */
+        public Builder readonlyUnless(String form, String action) {
+            this.access = access.readonlyUnless(form, action);
+            return this;
+        }
+
         public EntityField build() {
             FieldSource from = source;
             if (from == null) {
@@ -183,6 +196,9 @@ public final class EntityFields {
                 throw new IllegalArgumentException("Entity field " + key + ": form rules need a form field");
             }
             ListPart listed = formOnly ? null : (list == null ? ListPart.LISTED : list);
+            if (form == null && access.guardsWriting()) {
+                throw new IllegalArgumentException("Entity field " + key + ": only a form field is written");
+            }
             return new EntityField(
                     key,
                     labelKey,
@@ -191,7 +207,7 @@ public final class EntityFields {
                     from,
                     form,
                     listed,
-                    FieldAccess.OPEN,
+                    access,
                     options,
                     listed != null,
                     from.writable(),

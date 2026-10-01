@@ -168,7 +168,7 @@ describe('NotesComponent', () => {
   it('opens the form for a new note and for a note to edit, and reloads after saving', async () => {
     const { component, settle, noteCalls, screen } = await setup();
 
-    (screen.querySelector('.view-header__actions button[smt-button]') as HTMLButtonElement).click();
+    (screen.querySelector('.view-header__actions button[smt-button][smtIcon="add"]') as HTMLButtonElement).click();
     await settle();
     expect(component.editing()).toBe('new');
     expect(screen.querySelector('app-note-form-dialog')).not.toBeNull();
@@ -196,6 +196,31 @@ describe('NotesComponent', () => {
 
     component.togglePin(note);
 
+    expect(toast.error).toHaveBeenCalled();
+  });
+
+  // ADR-0032 5.4: a note goes to the archive from the revision on screen, and the list is read again.
+  it('archives a note from its revision and reloads the list; a refused archive is reported', async () => {
+    const { api, toast, component, settle, noteCalls, screen } = await setup();
+
+    (screen.querySelector('[data-testid="note-archive"]') as HTMLButtonElement).click();
+    await settle();
+
+    expect(api.put).toHaveBeenCalledWith(
+      '/notes/1/archived',
+      { archived: true },
+      { notifyError: false, ifMatch: undefined },
+    );
+    expect(toast.success).toHaveBeenCalled();
+    expect(noteCalls()).toHaveLength(2);
+
+    api.put.mockReturnValueOnce(throwError(() => ({ status: 409 })));
+    component.toggleArchive({ ...note, archived: true, revision: 3 });
+    expect(api.put).toHaveBeenLastCalledWith(
+      '/notes/1/archived',
+      { archived: false },
+      { notifyError: false, ifMatch: 3 },
+    );
     expect(toast.error).toHaveBeenCalled();
   });
 

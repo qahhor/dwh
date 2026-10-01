@@ -12,6 +12,8 @@ export interface FormFieldMeta {
   label?: string | null;
   type: FormFieldType;
   required: boolean;
+  /** The viewer may see the field but not change it (ADR-0032 5.2): the server refuses a changed value. */
+  readonly?: boolean;
   minLength?: number | null;
   maxLength?: number | null;
   min?: number | null;

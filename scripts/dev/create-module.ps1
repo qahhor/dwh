@@ -383,6 +383,7 @@ import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
 import com.smartup24.cms.instance.common.entity.EntityRecords;
+import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Map;
@@ -402,6 +403,9 @@ public class ${entityClass} {
 
     public static final EntityDefinition DEFINITION = Entity.define("$listCode", "$cleanCode")
             .table("$tableName", "t")
+            // Every row for whoever holds the right (ADR-0032, 5.1): a personal or org-unit record declares
+            // EntityScope.owner(...) or EntityScope.orgUnit(...) and reads through EntityScopes.
+            .scope(EntityScope.all())
             .rights(
                     "${prefixLower}.${cleanCode}",
                     "${cleanCode}.rights.form",

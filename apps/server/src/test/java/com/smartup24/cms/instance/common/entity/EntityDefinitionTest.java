@@ -192,7 +192,8 @@ class EntityDefinitionTest {
 
         assertThat(meta.actions()).containsExactly("update", "pin");
         assertThat(meta.listCode()).isEqualTo("ms.notes");
-        assertThat(meta.capabilities()).containsExactly("bulk", "custom_fields", "export", "history", "saved_views");
+        assertThat(meta.capabilities())
+                .containsExactly("archive", "bulk", "custom_fields", "export", "history", "saved_views");
         FormMetaController.FormFieldMeta title = meta.fields().getFirst();
         assertThat(title.type()).isEqualTo("text");
         assertThat(title.required()).isTrue();
