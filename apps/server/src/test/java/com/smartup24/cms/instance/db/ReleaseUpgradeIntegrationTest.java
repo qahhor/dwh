@@ -99,7 +99,7 @@ class ReleaseUpgradeIntegrationTest {
                 values ('upgrade_probe', '1', 'I', now()),
                        ('upgrade_probe', '2', 'I', timestamptz '2026-08-15 10:00:00+00')
                 """).update();
-        for (String body : new String[] {"{\"rawSecretToken\": \"dwh_probe\"}", "{\"kept\": \"yes\"}"}) {
+        for (String body : new String[] {"{\"rawSecretToken\": \"smc_probe\"}", "{\"kept\": \"yes\"}"}) {
             jdbc.sql("""
                             insert into idempotency_keys (key, user_id, request_hash, response_status, response_body)
                             values (:key, :userId, 'hash', 201, cast(:body as jsonb))

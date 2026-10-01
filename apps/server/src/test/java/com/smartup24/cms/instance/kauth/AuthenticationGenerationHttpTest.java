@@ -490,6 +490,35 @@ class AuthenticationGenerationHttpTest {
         mvc.perform(csrf(post("/api/v1/auth/logout"), fresh)).andExpect(status().isNoContent());
     }
 
+    @Test
+    @DisplayName("4.7: сервер выдаёт SMC_SESSION и smc_-токены; старая cookie DWH_SESSION работает и заменяется")
+    void newNamesAreIssuedAndTheOldCookieKeepsTheSession() throws Exception {
+        Long id = f.user(false, false);
+        grantTokenPermission(id);
+        var cookies = login(id, OLD_PASSWORD);
+        assertThat(cookies.session.getName()).isEqualTo("SMC_SESSION");
+        assertThat(createApiToken(cookies)).startsWith(KauthPref.API_TOKEN_PREFIX);
+
+        var legacy = new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, cookies.session.getValue());
+        var moved = mvc.perform(get("/api/v1/auth/me").cookie(legacy))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse();
+        assertThat(lastCookie(moved, KauthPref.SESSION_COOKIE_NAME).getValue()).isEqualTo(cookies.session.getValue());
+        assertThat(lastCookie(moved, KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
+                .isZero();
+
+        var logout = mvc.perform(csrf(post("/api/v1/auth/logout"), cookies))
+                .andExpect(status().isNoContent())
+                .andReturn()
+                .getResponse();
+        assertThat(lastCookie(logout, KauthPref.SESSION_COOKIE_NAME).getMaxAge())
+                .isZero();
+        assertThat(lastCookie(logout, KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
+                .isZero();
+        mvc.perform(get("/api/v1/auth/me").cookie(legacy)).andExpect(status().isUnauthorized());
+    }
+
     private Cookie anonymousCsrf() throws Exception {
         var response = mvc.perform(get("/api/v1/auth/me"))
                 .andExpect(status().isUnauthorized())

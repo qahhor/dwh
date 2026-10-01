@@ -42,13 +42,13 @@ class KauthAuthenticationFilterTest {
     @Test
     void doFilter_whenApiTokenUserLookupFailsWithDataAccessException_rethrowsException() {
         var request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer dwh_test_token");
+        request.addHeader("Authorization", "Bearer smc_test_token");
         var response = new MockHttpServletResponse();
         var chain = mock(FilterChain.class);
 
         var tokenRecord = new KauthApiTokenRepository.ApiTokenRecord(
-                1L, 10L, "token", "dwh_", "hash", null, Instant.now(), null, null, 0L);
-        when(apiTokenService.validateToken("dwh_test_token")).thenReturn(Optional.of(tokenRecord));
+                1L, 10L, "token", "smc_", "hash", null, Instant.now(), null, null, 0L);
+        when(apiTokenService.validateToken("smc_test_token")).thenReturn(Optional.of(tokenRecord));
         when(userService.getUserIdentity(10L)).thenThrow(new QueryTimeoutException("DB connection failure"));
 
         assertThatThrownBy(() -> filter.doFilter(request, response, chain))

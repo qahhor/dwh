@@ -30,7 +30,7 @@ describe('I18nService', () => {
   }
 
   it('initializes the registry, Russian fallback, and saved language', async () => {
-    localStorage.setItem('dwh_lang', 'de');
+    localStorage.setItem('smc_lang', 'de');
     const { service } = createService();
 
     await service.initialize();
@@ -42,13 +42,13 @@ describe('I18nService', () => {
   });
 
   it('falls back to Russian when the saved language is unavailable', async () => {
-    localStorage.setItem('dwh_lang', 'xx');
+    localStorage.setItem('smc_lang', 'xx');
     const { service } = createService();
 
     await service.initialize();
 
     expect(service.currentLang()).toBe('ru');
-    expect(localStorage.getItem('dwh_lang')).toBe('ru');
+    expect(localStorage.getItem('smc_lang')).toBe('ru');
     expect(service.translate('common.save')).toBe('Сохранить');
   });
 
@@ -72,7 +72,7 @@ describe('I18nService', () => {
 
     expect(service.currentLang()).toBe('ru');
     expect(service.translate('common.save')).toBe('Сохранить');
-    expect(localStorage.getItem('dwh_lang')).toBe('ru');
+    expect(localStorage.getItem('smc_lang')).toBe('ru');
   });
 
   it('refreshes an active dictionary after an administrator saves it', async () => {

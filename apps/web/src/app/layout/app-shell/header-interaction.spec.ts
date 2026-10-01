@@ -67,8 +67,8 @@ describe('Header interactions with HTTP state', () => {
   afterEach(() => {
     fixture.destroy();
     vi.unstubAllGlobals();
-    localStorage.removeItem('dwh_lang');
-    localStorage.removeItem('dwh_theme');
+    localStorage.removeItem('smc_lang');
+    localStorage.removeItem('smc_theme');
     document.documentElement.removeAttribute('data-theme');
     document.documentElement.lang = 'ru';
   });

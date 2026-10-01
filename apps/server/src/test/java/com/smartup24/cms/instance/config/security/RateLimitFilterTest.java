@@ -187,7 +187,7 @@ class RateLimitFilterTest {
                                 r.setRemoteAddr("10.9.9.2");
                                 return r;
                             })
-                            .cookie(new Cookie("DWH_SESSION", "session-7")))
+                            .cookie(new Cookie("SMC_SESSION", "session-7")))
                     .andExpect(status().isOk());
         }
         mvc.perform(get("/api/v1/security-test")
@@ -195,7 +195,7 @@ class RateLimitFilterTest {
                             r.setRemoteAddr("10.9.9.2");
                             return r;
                         })
-                        .cookie(new Cookie("DWH_SESSION", "session-7")))
+                        .cookie(new Cookie("SMC_SESSION", "session-7")))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.code").value("rate_limited"));
 
@@ -213,14 +213,14 @@ class RateLimitFilterTest {
                             r.setRemoteAddr("10.9.9.3");
                             return r;
                         })
-                        .cookie(new Cookie("DWH_SESSION", "session-8")))
+                        .cookie(new Cookie("SMC_SESSION", "session-8")))
                 .andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/search/rebuild")
                         .with(r -> {
                             r.setRemoteAddr("10.9.9.3");
                             return r;
                         })
-                        .cookie(new Cookie("DWH_SESSION", "session-8")))
+                        .cookie(new Cookie("SMC_SESSION", "session-8")))
                 .andExpect(status().isTooManyRequests());
     }
 
@@ -258,20 +258,20 @@ class RateLimitFilterTest {
     void expensivePathFamiliesUseIndependentBuckets() throws Exception {
         mockAuthenticatedUser(9L, "session-9");
 
-        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("DWH_SESSION", "session-9")))
+        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("SMC_SESSION", "session-9")))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("DWH_SESSION", "session-9")))
+        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("SMC_SESSION", "session-9")))
                 .andExpect(status().isTooManyRequests());
 
         for (int request = 0; request < 20; request++) {
             mvc.perform(get("/api/v1/search")
                             .param("q", "private-query-value")
-                            .cookie(new Cookie("DWH_SESSION", "session-9")))
+                            .cookie(new Cookie("SMC_SESSION", "session-9")))
                     .andExpect(status().isNotFound());
         }
         mvc.perform(get("/api/v1/search")
                         .param("q", "private-query-value")
-                        .cookie(new Cookie("DWH_SESSION", "session-9")))
+                        .cookie(new Cookie("SMC_SESSION", "session-9")))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().string("Retry-After", matchesPattern("[1-9][0-9]*")));
     }
@@ -382,10 +382,10 @@ class RateLimitFilterTest {
     void retryAfterRoundsUp() throws Exception {
         mockAuthenticatedUser(15L, "session-15");
 
-        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("DWH_SESSION", "session-15")))
+        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("SMC_SESSION", "session-15")))
                 .andExpect(status().isNotFound());
         timeMeter.advanceNanos(1);
-        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("DWH_SESSION", "session-15")))
+        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("SMC_SESSION", "session-15")))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().string("Retry-After", "60"));
     }
@@ -395,14 +395,14 @@ class RateLimitFilterTest {
     void expensiveAuditEndpointsUseIndependentBuckets() throws Exception {
         mockAuthenticatedUser(10L, "session-10");
 
-        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("DWH_SESSION", "session-10")))
+        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("SMC_SESSION", "session-10")))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/audit/stats").cookie(new Cookie("DWH_SESSION", "session-10")))
+        mvc.perform(get("/api/v1/audit/stats").cookie(new Cookie("SMC_SESSION", "session-10")))
                 .andExpect(status().isNotFound());
-        mvc.perform(get("/api/v1/audit/security-events").cookie(new Cookie("DWH_SESSION", "session-10")))
+        mvc.perform(get("/api/v1/audit/security-events").cookie(new Cookie("SMC_SESSION", "session-10")))
                 .andExpect(status().isNotFound());
 
-        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("DWH_SESSION", "session-10")))
+        mvc.perform(get("/api/v1/audit/logs").cookie(new Cookie("SMC_SESSION", "session-10")))
                 .andExpect(status().isTooManyRequests());
     }
 

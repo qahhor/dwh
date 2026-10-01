@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.config.openapi;
 
 import com.smartup24.cms.core.error.ProblemDetailRecord;
 import com.smartup24.cms.instance.common.web.ApiDeprecations;
+import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import io.swagger.v3.core.converter.ModelConverters;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -58,14 +59,19 @@ public class ApiDocsConfig {
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
-                                        .description("Personal API token (dwh_...)"))
+                                        .description("Personal API token (" + KauthPref.API_TOKEN_PREFIX
+                                                + "...; tokens issued as "
+                                                + KauthPref.LEGACY_API_TOKEN_PREFIX + "... are accepted until "
+                                                + ApiDeprecations.SUNSET + ")"))
                         .addSecuritySchemes(
                                 SESSION,
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.APIKEY)
                                         .in(SecurityScheme.In.COOKIE)
-                                        .name("DWH_SESSION")
-                                        .description("HTTP-only session cookie of the web application")))
+                                        .name(KauthPref.SESSION_COOKIE_NAME)
+                                        .description("HTTP-only session cookie of the web application; the old name "
+                                                + KauthPref.LEGACY_SESSION_COOKIE_NAME + " is read until "
+                                                + ApiDeprecations.SUNSET)))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER))
                 .addSecurityItem(new SecurityRequirement().addList(SESSION));
     }

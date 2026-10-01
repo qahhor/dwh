@@ -168,7 +168,7 @@ class TaskConcurrencyIntegrationTest {
     void p01_kauthApiTokenActivityCoalescing() {
         Long user = user("TokenUser", rootUnit);
         var token = apiTokenRepository.create(
-                user, 0L, "Token " + SEQUENCE.incrementAndGet(), "dwh_", "hash-" + SEQUENCE.incrementAndGet(), null);
+                user, 0L, "Token " + SEQUENCE.incrementAndGet(), "smc_", "hash-" + SEQUENCE.incrementAndGet(), null);
 
         assertThat(token.lastUsedAt()).isNull();
 

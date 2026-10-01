@@ -198,7 +198,7 @@ async function authenticate(client, configuration) {
   if (login.user?.forcePasswordChange) {
     throw new Error('Benchmark credential must complete mandatory password change before the run');
   }
-  if (!client.cookies.has('DWH_SESSION') || !client.cookies.has('XSRF-TOKEN')) {
+  if (!client.cookies.has('SMC_SESSION') || !client.cookies.has('XSRF-TOKEN')) {
     throw new Error('Benchmark authentication did not establish the required session and CSRF cookies');
   }
 }

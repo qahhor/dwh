@@ -166,7 +166,7 @@ async function createApiToken(context: BrowserContext, name: string): Promise<st
   }
   const body = await response.json() as { rawSecretToken?: unknown };
   await response.dispose();
-  if (typeof body.rawSecretToken !== 'string' || !body.rawSecretToken.startsWith('dwh_')) {
+  if (typeof body.rawSecretToken !== 'string' || !body.rawSecretToken.startsWith('smc_')) {
     throw new Error('API token setup returned no usable raw token');
   }
   return body.rawSecretToken;

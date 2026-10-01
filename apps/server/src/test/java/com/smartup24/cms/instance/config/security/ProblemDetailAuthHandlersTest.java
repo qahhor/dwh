@@ -53,7 +53,7 @@ class ProblemDetailAuthHandlersTest {
         when(request.getRequestURI()).thenReturn("/api/v1/security-test");
         when(request.getHeader("X-XSRF-TOKEN")).thenReturn(csrfSentinel);
         when(request.getCookies()).thenReturn(new jakarta.servlet.http.Cookie[] {
-            new jakarta.servlet.http.Cookie("DWH_SESSION", cookieSentinel)
+            new jakarta.servlet.http.Cookie("SMC_SESSION", cookieSentinel)
         });
         when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
 
@@ -75,7 +75,7 @@ class ProblemDetailAuthHandlersTest {
                     .doesNotContain(csrfSentinel)
                     .doesNotContain(cookieSentinel)
                     .contains("csrfHeaderPresent=true")
-                    .contains("cookieNames=[DWH_SESSION]");
+                    .contains("cookieNames=[SMC_SESSION]");
         } finally {
             logger.detachAppender(appender);
             appender.stop();

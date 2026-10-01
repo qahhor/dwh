@@ -29,7 +29,7 @@ describe('Login form interactions', () => {
   };
 
   beforeEach(async () => {
-    localStorage.setItem('dwh_theme', 'dark');
+    localStorage.setItem('smc_theme', 'dark');
     await TestBed.configureTestingModule({
       imports: [LoginComponent],
       providers: [
@@ -49,7 +49,7 @@ describe('Login form interactions', () => {
     try {
       http.verify();
     } finally {
-      localStorage.removeItem('dwh_theme');
+      localStorage.removeItem('smc_theme');
       document.documentElement.removeAttribute('data-theme');
     }
   });
