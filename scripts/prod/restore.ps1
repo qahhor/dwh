@@ -75,13 +75,13 @@ psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "create database \"$P
 '@
 # The application role owns the DWH (ADR-0001): the new database is its own.
 $dwhDatabaseReset = @'
-case "$DWH_DB_NAME$APP_DB_USER$POSTGRES_USER" in *[!A-Za-z0-9_]*) echo "Unsafe database identifier" >&2; exit 1;; esac
-previous="${DWH_DB_NAME}_pre_restore_$1"
-psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '$DWH_DB_NAME' and pid <> pg_backend_pid()"
-if psql -At -U "$POSTGRES_USER" -d postgres -c "select 1 from pg_database where datname = '$DWH_DB_NAME'" | grep -q 1; then
-    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "alter database \"$DWH_DB_NAME\" rename to \"$previous\""
+case "$WAREHOUSE_DB_NAME$APP_DB_USER$POSTGRES_USER" in *[!A-Za-z0-9_]*) echo "Unsafe database identifier" >&2; exit 1;; esac
+previous="${WAREHOUSE_DB_NAME}_pre_restore_$1"
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '$WAREHOUSE_DB_NAME' and pid <> pg_backend_pid()"
+if psql -At -U "$POSTGRES_USER" -d postgres -c "select 1 from pg_database where datname = '$WAREHOUSE_DB_NAME'" | grep -q 1; then
+    psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "alter database \"$WAREHOUSE_DB_NAME\" rename to \"$previous\""
 fi
-psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "create database \"$DWH_DB_NAME\" owner \"$APP_DB_USER\""
+psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "create database \"$WAREHOUSE_DB_NAME\" owner \"$APP_DB_USER\""
 '@
 Write-Host '[3/6] Preserving the current databases and creating clean targets...' -ForegroundColor Yellow
 Invoke-Compose exec -T postgres sh -ec $databaseReset restore $timestamp
@@ -92,7 +92,7 @@ Write-Host '[4/6] Streaming decrypted data directly into PostgreSQL...' -Foregro
 if ($LASTEXITCODE -ne 0) { throw 'Restore stream failed.' }
 if ($dwhDecryptArguments) {
     # --role makes the application role own what is restored, as migrations left it.
-    & docker @dwhDecryptArguments | & docker compose -f $ComposeFile --env-file $EnvFile exec -T postgres sh -ec 'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$DWH_DB_NAME"'
+    & docker @dwhDecryptArguments | & docker compose -f $ComposeFile --env-file $EnvFile exec -T postgres sh -ec 'exec pg_restore --exit-on-error --no-owner --no-acl --role="$APP_DB_USER" -U "$POSTGRES_USER" -d "$WAREHOUSE_DB_NAME"'
     if ($LASTEXITCODE -ne 0) { throw 'DWH restore stream failed.' }
 }
 

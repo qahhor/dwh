@@ -1,6 +1,11 @@
 package com.smartup24.cms.instance.fnd.migration;
 
+import com.smartup24.cms.instance.common.env.LegacyConfigNames;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 /**
@@ -9,16 +14,19 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
  * org.springframework.boot.loader.launch.PropertiesLauncher}; from the extracted image
  * ({@code -Djarmode=tools extract}, the layout of the framework's {@code Dockerfile}), run
  * {@code java -cp app.jar com.smartup24.cms.instance.fnd.migration.MigrateMain}.
- * Connections come from the environment only: {@code DWH_DB_URL/USER/PASSWORD} (OLTP)
- * and {@code DWH_DATA_DB_URL/USER/PASSWORD} (pg-dwh).
- * {@code DWH_MIGRATE_SCOPE} sets the scope: {@code all} (the default) migrates both databases; {@code dwh} migrates
- * only pg-dwh, leaving OLTP to the framework's standard {@code migrate} profile.
+ * Connections come from the environment only, under the names the server reads (ADR-0027):
+ * {@code DB_URL/DB_USER/DB_PASSWORD} (OLTP) and {@code WAREHOUSE_URL/WAREHOUSE_USERNAME/WAREHOUSE_PASSWORD}
+ * (pg-dwh). {@code SMC_MIGRATE_SCOPE} sets the scope: {@code all} (the default) migrates both databases;
+ * {@code warehouse} migrates only pg-dwh, leaving OLTP to the framework's standard {@code migrate} profile.
+ * The old names ({@code DWH_DB_*}, {@code DWH_DATA_DB_*}, {@code DWH_MIGRATE_SCOPE}, the scope {@code dwh}) are read
+ * until {@link LegacyConfigNames#SUNSET}, with a warning.
  */
 public final class MigrateMain {
 
-    private static final String SCOPE_KEY = "DWH_MIGRATE_SCOPE";
+    private static final String SCOPE_KEY = "SMC_MIGRATE_SCOPE";
     private static final String SCOPE_ALL = "all";
-    private static final String SCOPE_DWH = "dwh";
+    private static final String SCOPE_WAREHOUSE = "warehouse";
+    private static final String LEGACY_SCOPE_WAREHOUSE = "dwh";
 
     private MigrateMain() {}
 
@@ -29,17 +37,43 @@ public final class MigrateMain {
         // CHECKSTYLE.ON-ID: noSystemOut
     }
 
-    static String run(Map<String, String> env) {
+    static String run(Map<String, String> environment) {
+        List<String> warnings = new ArrayList<>();
+        Map<String, String> env = withCurrentNames(environment, warnings);
         String scope = env.getOrDefault(SCOPE_KEY, SCOPE_ALL);
-        if (!SCOPE_ALL.equals(scope) && !SCOPE_DWH.equals(scope)) {
-            throw new IllegalStateException(SCOPE_KEY + ": ожидается all или dwh, получено " + scope);
+        if (LEGACY_SCOPE_WAREHOUSE.equals(scope)) {
+            warnings.add(LegacyConfigNames.warning(SCOPE_KEY + "=" + scope, SCOPE_KEY + "=" + SCOPE_WAREHOUSE));
+            scope = SCOPE_WAREHOUSE;
+        }
+        if (!SCOPE_ALL.equals(scope) && !SCOPE_WAREHOUSE.equals(scope)) {
+            throw new IllegalStateException(SCOPE_KEY + ": ожидается all или warehouse, получено " + scope);
         }
         int oltp = SCOPE_ALL.equals(scope)
-                ? FndMigrator.migrateOltp(dataSource(env, "DWH_DB_URL", "DWH_DB_USER", "DWH_DB_PASSWORD"))
+                ? FndMigrator.migrateOltp(dataSource(env, "DB_URL", "DB_USER", "DB_PASSWORD"))
                 : 0;
-        int dwh =
-                FndMigrator.migrateDwh(dataSource(env, "DWH_DATA_DB_URL", "DWH_DATA_DB_USER", "DWH_DATA_DB_PASSWORD"));
-        return "migrations applied: scope=" + scope + " oltp=" + oltp + " dwh=" + dwh;
+        int dwh = FndMigrator.migrateDwh(dataSource(env, "WAREHOUSE_URL", "WAREHOUSE_USERNAME", "WAREHOUSE_PASSWORD"));
+        StringBuilder report = new StringBuilder();
+        warnings.forEach(warning -> report.append("WARN ").append(warning).append('\n'));
+        return report.append("migrations applied: scope=")
+                .append(scope)
+                .append(" oltp=")
+                .append(oltp)
+                .append(" dwh=")
+                .append(dwh)
+                .toString();
+    }
+
+    /** The environment with every old name also present under its current one, unless that is set already. */
+    private static Map<String, String> withCurrentNames(Map<String, String> environment, List<String> warnings) {
+        Map<String, String> env = new HashMap<>(environment);
+        environment.forEach((name, value) -> {
+            Optional<String> current = LegacyConfigNames.environmentVariable(name);
+            if (current.isPresent() && !environment.containsKey(current.get())) {
+                env.put(current.get(), value);
+                warnings.add(LegacyConfigNames.warning(name, current.get()));
+            }
+        });
+        return env;
     }
 
     private static DriverManagerDataSource dataSource(

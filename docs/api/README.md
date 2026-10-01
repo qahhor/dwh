@@ -100,7 +100,7 @@ GET /api/v1/notes?limit=50&cursor=<nextCursor прошлой страницы>
   выполняется, — 409 (`error.idempotency_request_in_progress`);
 - ключ не UUID — 400; тело больше 64 КБ — 413; `multipart` и пути
   `/api/v1/auth/**` ключ не принимают (400);
-- ключи хранятся 14 дней (`DWH_IDEMPOTENCY_RETENTION_DAYS`); ответ,
+- ключи хранятся 14 дней (`SMC_IDEMPOTENCY_RETENTION_DAYS`); ответ,
   содержащий секрет, не сохраняется.
 
 ## 6. Устаревшие формы — [ADR-0023](../adr/ADR-0023-uniform-rest.md), §2.5

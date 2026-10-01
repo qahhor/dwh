@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.fnd.jobs;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * Retry and lease of the job queue (plan 10/10, item 3.8); documented in docs/ops/operations-runbook.md.
@@ -13,7 +14,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param lease           how long a claim holds a job without renewal; the runner renews it every third of this while
  *                        the handler works, so only a dead node lets it run out and another node take the job again
  */
-@ConfigurationProperties(prefix = "dwh.fnd.jobs")
+@Validated
+@ConfigurationProperties(prefix = "smc.jobs")
 public record FndJobProperties(
         @DefaultValue("5") int maxAttempts,
         @DefaultValue("30s") Duration retryBackoff,
@@ -22,16 +24,16 @@ public record FndJobProperties(
 
     public FndJobProperties {
         if (maxAttempts < 1) {
-            throw new IllegalArgumentException("dwh.fnd.jobs.max-attempts must be at least 1");
+            throw new IllegalArgumentException("smc.jobs.max-attempts must be at least 1");
         }
         if (retryBackoff == null || retryBackoff.isNegative()) {
-            throw new IllegalArgumentException("dwh.fnd.jobs.retry-backoff must not be negative");
+            throw new IllegalArgumentException("smc.jobs.retry-backoff must not be negative");
         }
         if (retryBackoffMax == null || retryBackoffMax.compareTo(retryBackoff) < 0) {
-            throw new IllegalArgumentException("dwh.fnd.jobs.retry-backoff-max must not be shorter than retry-backoff");
+            throw new IllegalArgumentException("smc.jobs.retry-backoff-max must not be shorter than retry-backoff");
         }
         if (lease == null || lease.isNegative() || lease.isZero()) {
-            throw new IllegalArgumentException("dwh.fnd.jobs.lease must be positive");
+            throw new IllegalArgumentException("smc.jobs.lease must be positive");
         }
     }
 

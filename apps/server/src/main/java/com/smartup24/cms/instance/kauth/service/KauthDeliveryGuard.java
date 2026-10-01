@@ -43,8 +43,8 @@ public class KauthDeliveryGuard implements ApplicationRunner {
         List<String> stubbed = stubbedCodeChannels();
         if (!stubbed.isEmpty()) {
             throw new IllegalStateException("Two-factor sign-in depends on a stub delivery channel: "
-                    + String.join(", ", stubbed) + ". Configure the provider (DWH_PROVIDER_MAIL with SMTP_HOST, "
-                    + "DWH_PROVIDER_MESSENGER with TELEGRAM_BOT_TOKEN) or set SMC_DELIVERY_ENFORCE=false knowingly.");
+                    + String.join(", ", stubbed) + ". Configure the provider (SMC_PROVIDER_MAIL with SMTP_HOST, "
+                    + "SMC_PROVIDER_MESSENGER with TELEGRAM_BOT_TOKEN) or set SMC_DELIVERY_ENFORCE=false knowingly.");
         }
     }
 

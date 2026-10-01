@@ -182,26 +182,15 @@ export class CustomFieldsComponent {
 
   // --- Granular RBAC ---
   canCreate(): boolean {
-    return (
-      this.permService.hasPermission('md.custom_fields', 'create') ||
-      this.permService.hasPermission('system.custom_fields', 'create')
-    );
+    return this.permService.hasPermission('md.custom_fields', 'create');
   }
 
   canEdit(): boolean {
-    return (
-      this.permService.hasPermission('md.custom_fields', 'update') ||
-      this.permService.hasPermission('system.custom_fields', 'update') ||
-      this.canCreate()
-    );
+    return this.permService.hasPermission('md.custom_fields', 'update') || this.canCreate();
   }
 
   canDelete(): boolean {
-    return (
-      this.permService.hasPermission('md.custom_fields', 'delete') ||
-      this.permService.hasPermission('system.custom_fields', 'delete') ||
-      this.canCreate()
-    );
+    return this.permService.hasPermission('md.custom_fields', 'delete') || this.canCreate();
   }
 
   /** @deprecated Use canCreate/canEdit/canDelete for granular RBAC; kept for toolbar backward compat */

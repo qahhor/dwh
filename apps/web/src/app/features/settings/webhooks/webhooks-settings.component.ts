@@ -124,7 +124,7 @@ export class WebhooksSettingsComponent {
   readonly isLoading = computed(() => this.subscriptionsResource.isLoading());
   readonly loadError = computed(() => this.subscriptionsResource.error() !== undefined);
 
-  readonly canManageWebhooks = computed(() => this.permService.hasPermission('platform.webhooks', 'manage'));
+  readonly canManageWebhooks = computed(() => this.permService.hasPermission('webhook.subscriptions', 'manage'));
 
   /** Every subscription is loaded, so a header click sorts the whole list. */
   readonly sortValues = {

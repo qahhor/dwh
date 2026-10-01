@@ -38,7 +38,7 @@ public class ConsoleMailProvider implements MailProvider {
     public ProviderHealth checkHealth() {
         return ProviderHealth.unhealthy(
                 getProviderCode(),
-                "Заглушка: письма не доставляются. Задайте spring.mail.host и dwh.providers.mail=smtp",
+                "Заглушка: письма не доставляются. Задайте spring.mail.host и smc.providers.mail=smtp",
                 0);
     }
 }

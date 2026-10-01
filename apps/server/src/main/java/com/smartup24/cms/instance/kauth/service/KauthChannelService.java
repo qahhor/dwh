@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
  * (FR-AUTH-5).
  *
  * The {@code kauth_user_channels} table existed since V001, but there was no
- * endpoint over it: the {@code iam.profile:manage_channels} permission sat dead in
+ * endpoint over it: the {@code md.profile:manage_channels} permission sat dead in
  * the catalog, nothing could link a channel, and second-factor sign-in
  * sent the code nowhere.
  *

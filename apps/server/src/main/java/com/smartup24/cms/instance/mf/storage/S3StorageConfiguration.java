@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.s3.S3Configuration;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(S3StorageProperties.class)
-@ConditionalOnProperty(name = "dwh.providers.storage", havingValue = "s3")
+@ConditionalOnProperty(name = "smc.providers.storage", havingValue = "s3")
 public class S3StorageConfiguration {
 
     @Bean(destroyMethod = "close")

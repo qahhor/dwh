@@ -23,9 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Assignment of roles and personal permissions (form rbac.assignments).
+ * Assignment of roles and personal permissions (form md.assignments).
  * Deliberately separate from MdRoleController: that one manages the roles themselves
- * (rbac.roles), this one manages who is granted what (rbac.assignments), and the role
+ * (md.roles), this one manages who is granted what (md.assignments), and the role
  * matrix grants different permissions for these operations.
  */
 @RestController

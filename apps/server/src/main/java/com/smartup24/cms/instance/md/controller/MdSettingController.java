@@ -24,7 +24,7 @@ public class MdSettingController {
     }
 
     // A user's own settings are part of the profile, not of administering the instance: the right comes from the
-    // profile form, which every system role has. The platform.settings form stays with the administrator.
+    // profile form, which every system role has. The md.settings form stays with the administrator.
     @Operation(summary = "Get the effective settings", description = "The settings in force for the caller.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")

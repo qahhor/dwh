@@ -80,6 +80,20 @@ Current ADRs that are not superseded:
   — a module publishes read-only `<prefix>_pub_*` views of the columns other
   modules read; their repositories join the views, never the base tables, and
   change another module's data only through its service.
+- [ADR-0027 — configuration names: smc and warehouse](adr/ADR-0027-configuration-names.md)
+  — product settings are `smc.*` / `SMC_*`, warehouse settings `warehouse.*` /
+  `WAREHOUSE_*`; old `dwh` names are read with a warning until 2026-12-31;
+  published development secrets stop a start outside dev and test.
+- [ADR-0028 — permission codes by module](adr/ADR-0028-permission-codes.md)
+  — a form code is `<area>.<entity-or-screen>` and its area names the owning
+  module; a controller guards its endpoints with its own module's forms or
+  with forms the owner publishes to it; V147 moved the old `iam.*`, `rbac.*`
+  and `platform.*` grants.
+- [ADR-0029 — encryption of secrets in the database](adr/ADR-0029-stored-secrets-encryption.md)
+  — webhook signing keys and SSO client secrets are stored as AES-256-GCM
+  `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
+  refuses to start without the key outside dev and encrypts legacy plain
+  values at start.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -125,6 +139,7 @@ exception: `ErrorTextsTest` requires each of them in `ru`, `uz` and `en`.
 
 - [Operations architecture](ops/architecture-overview.md)
 - [Production deployment](ops/deployment-guide.md)
+- [Server configuration reference](ops/configuration-reference.md)
 - [Maintenance, backup, and restore](ops/maintenance-guide.md)
 - [Search and index maintenance](ops/search-and-index-maintenance.md)
 - [Operations runbook](ops/operations-runbook.md)

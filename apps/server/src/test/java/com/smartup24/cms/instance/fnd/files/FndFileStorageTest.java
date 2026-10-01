@@ -47,7 +47,7 @@ class FndFileStorageTest extends EmbeddedPostgresTest {
     @Autowired
     private TransactionTemplate tx;
 
-    @Value("${dwh.storage.local-path}")
+    @Value("${smc.storage.local-path}")
     private String storagePath;
 
     private long ownerA;

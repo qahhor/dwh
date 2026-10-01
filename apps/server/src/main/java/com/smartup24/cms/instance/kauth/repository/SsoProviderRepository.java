@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.kauth.repository;
 
+import com.smartup24.cms.instance.common.security.StoredSecretColumn;
+import com.smartup24.cms.instance.common.security.StoredSecrets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -7,12 +9,17 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class SsoProviderRepository {
+public class SsoProviderRepository implements StoredSecretColumn {
+
+    /** The client secret of a provider is encrypted at rest (ADR-0029); this is its encryption context. */
+    public static final String SECRET_COLUMN = "md_sso_providers.client_secret";
 
     private final JdbcClient jdbcClient;
+    private final StoredSecrets secrets;
 
-    public SsoProviderRepository(JdbcClient jdbcClient) {
+    public SsoProviderRepository(JdbcClient jdbcClient, StoredSecrets secrets) {
         this.jdbcClient = jdbcClient;
+        this.secrets = secrets;
     }
 
     public record SsoProviderRecord(
@@ -29,7 +36,26 @@ public class SsoProviderRepository {
             boolean isEnabled,
             boolean autoProvision,
             Instant createdAt,
-            Instant updatedAt) {}
+            Instant updatedAt) {
+
+        SsoProviderRecord withClientSecret(String secret) {
+            return new SsoProviderRecord(
+                    id,
+                    providerId,
+                    name,
+                    icon,
+                    clientId,
+                    secret,
+                    authorizationUrl,
+                    tokenUrl,
+                    userinfoUrl,
+                    scopes,
+                    isEnabled,
+                    autoProvision,
+                    createdAt,
+                    updatedAt);
+        }
+    }
 
     public List<SsoProviderRecord> findEnabledProviders() {
         return jdbcClient.sql("""
@@ -39,7 +65,9 @@ public class SsoProviderRepository {
                 from md_sso_providers
                 where is_enabled = true
                 order by id asc
-                """).query(SsoProviderRecord.class).list();
+                """).query(SsoProviderRecord.class).list().stream()
+                .map(this::opened)
+                .toList();
     }
 
     public Optional<SsoProviderRecord> findByProviderId(String providerId) {
@@ -53,6 +81,49 @@ public class SsoProviderRepository {
                 """)
                 .param("providerId", providerId)
                 .query(SsoProviderRecord.class)
+                .optional()
+                .map(this::opened);
+    }
+
+    @Override
+    public String secretColumn() {
+        return SECRET_COLUMN;
+    }
+
+    @Override
+    public Optional<String> anySealedSecret() {
+        return jdbcClient
+                .sql("select client_secret from md_sso_providers where client_secret like 'v1:%' limit 1")
+                .query(String.class)
                 .optional();
     }
+
+    @Override
+    public int sealPlainSecrets(StoredSecrets cipher) {
+        List<PlainSecret> plain = jdbcClient
+                .sql("select id, client_secret from md_sso_providers where client_secret not like 'v1:%'")
+                .query((rs, rowNum) -> new PlainSecret(rs.getLong("id"), rs.getString("client_secret")))
+                .list();
+        int sealed = 0;
+        for (PlainSecret row : plain) {
+            sealed += jdbcClient
+                    .sql("""
+                    update md_sso_providers
+                    set client_secret = :sealed,
+                        updated_at = now()
+                    where id = :id and client_secret = :plain
+                    """)
+                    .param("sealed", cipher.seal(row.value(), SECRET_COLUMN))
+                    .param("id", row.id())
+                    .param("plain", row.value())
+                    .update();
+        }
+        return sealed;
+    }
+
+    private SsoProviderRecord opened(SsoProviderRecord row) {
+        return row.withClientSecret(secrets.open(row.clientSecret(), SECRET_COLUMN));
+    }
+
+    private record PlainSecret(long id, String value) {}
 }

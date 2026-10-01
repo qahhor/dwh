@@ -26,14 +26,14 @@ import org.springframework.stereotype.Component;
  * File storage provider supporting local filesystem storage with S3 compatible semantics.
  */
 @Component
-@ConditionalOnProperty(name = "dwh.providers.storage", havingValue = "local_disk", matchIfMissing = true)
+@ConditionalOnProperty(name = "smc.providers.storage", havingValue = "local_disk", matchIfMissing = true)
 public class LocalStorageProvider implements StorageProvider {
 
     private static final Logger log = LoggerFactory.getLogger(LocalStorageProvider.class);
 
     private final Path basePath;
 
-    public LocalStorageProvider(@Value("${dwh.storage.local-path:./data/storage}") String storagePath) {
+    public LocalStorageProvider(@Value("${smc.storage.local-path:./data/storage}") String storagePath) {
         this.basePath = Paths.get(storagePath).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.basePath);

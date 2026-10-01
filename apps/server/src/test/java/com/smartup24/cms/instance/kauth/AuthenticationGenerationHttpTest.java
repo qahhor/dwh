@@ -71,7 +71,7 @@ class AuthenticationGenerationHttpTest {
         web.setServletContext(new MockServletContext());
         web.getEnvironment()
                 .getPropertySources()
-                .addFirst(new MapPropertySource("http-test", Map.of("dwh.rate-limit.enabled", "true")));
+                .addFirst(new MapPropertySource("http-test", Map.of("smc.rate-limit.enabled", "true")));
         web.register(HttpConfiguration.class);
         web.refresh();
         mvc = MockMvcBuilders.webAppContextSetup(web).apply(springSecurity()).build();
@@ -566,7 +566,7 @@ class AuthenticationGenerationHttpTest {
 
     private void grantTokenPermission(Long id) {
         f.jdbc.sql(
-                        "insert into md_user_permissions(user_id,form_code,action) values (:id,'iam.profile','manage_tokens')")
+                        "insert into md_user_permissions(user_id,form_code,action) values (:id,'md.profile','manage_tokens')")
                 .param("id", id)
                 .update();
         f.permissions.recalculateEffectivePermissions(id);

@@ -58,32 +58,26 @@ export class SettingsStore {
 
   canManageSystemSettings(): boolean {
     return (
-      this.permService.hasPermission('platform.settings', 'view') ||
-      this.permService.hasPermission('platform.settings', 'update') ||
-      this.permService.hasPermission('settings', 'view') ||
-      this.permService.hasPermission('settings', 'update')
+      this.permService.hasPermission('md.settings', 'view') || this.permService.hasPermission('md.settings', 'update')
     );
   }
 
   canUpdateSystemSettings(): boolean {
-    return (
-      this.permService.hasPermission('platform.settings', 'update') ||
-      this.permService.hasPermission('settings', 'update')
-    );
+    return this.permService.hasPermission('md.settings', 'update');
   }
 
   canViewSearchSettings(): boolean {
-    return this.permService.hasPermission('platform.search', 'view');
+    return this.permService.hasPermission('search', 'view');
   }
 
   canViewNavigationSettings(): boolean {
-    return this.permService.hasPermission('platform.navigation', 'view');
+    return this.permService.hasPermission('md.navigation', 'view');
   }
 
   canViewWebhookSettings(): boolean {
     return (
-      this.permService.hasPermission('platform.webhooks', 'view') ||
-      this.permService.hasPermission('platform.webhooks', 'manage')
+      this.permService.hasPermission('webhook.subscriptions', 'view') ||
+      this.permService.hasPermission('webhook.subscriptions', 'manage')
     );
   }
 

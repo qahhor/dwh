@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
  *
  * The bean is created only when {@code spring.mail.host} is set and not blank; otherwise
  * there is nothing to start and the console stub stays active. The active provider is chosen
- * by {@code dwh.providers.mail} (ADR-0011); this class only knows how to send.
+ * by {@code smc.providers.mail} (ADR-0011); this class only knows how to send.
  *
  * A send failure is not thrown to the caller: the calling code (the notification outbox)
  * has its own retry, and it relies on {@link MailSendResult#isSuccess()}.
@@ -37,8 +37,8 @@ public class SmtpMailProvider implements MailProvider {
 
     public SmtpMailProvider(
             JavaMailSender mailSender,
-            @Value("${dwh.mail.from:no-reply@localhost}") String from,
-            @Value("${dwh.mail.from-name:DWH Platform}") String fromName) {
+            @Value("${smc.mail.from:no-reply@localhost}") String from,
+            @Value("${smc.mail.from-name:SmartupCMS}") String fromName) {
         this.mailSender = mailSender;
         this.from = from;
         this.fromName = fromName;

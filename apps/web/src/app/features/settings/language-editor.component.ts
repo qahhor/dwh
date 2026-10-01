@@ -92,9 +92,7 @@ export class LanguageEditorComponent {
   constructor() {
     const permissionService = this.permissionService;
 
-    this.canEdit =
-      permissionService.hasPermission('platform.settings', 'update') ||
-      permissionService.hasPermission('settings', 'update');
+    this.canEdit = permissionService.hasPermission('md.settings', 'update');
   }
 
   load(): void {

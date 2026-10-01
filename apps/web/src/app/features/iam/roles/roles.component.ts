@@ -110,33 +110,21 @@ export class RolesComponent implements OnInit {
   }
 
   canCreateRole(): boolean {
-    return (
-      this.permService.canCreate('rbac.roles') ||
-      this.permService.canCreate('iam.roles') ||
-      this.permService.canCreate('md_roles')
-    );
+    return this.permService.canCreate('md.roles');
   }
 
   canUpdateRole(): boolean {
-    return (
-      this.permService.canUpdate('rbac.roles') ||
-      this.permService.canUpdate('iam.roles') ||
-      this.permService.canUpdate('md_roles')
-    );
+    return this.permService.canUpdate('md.roles');
   }
 
   canDeleteRole(): boolean {
-    return (
-      this.permService.canDelete('rbac.roles') ||
-      this.permService.canDelete('iam.roles') ||
-      this.permService.canDelete('md_roles')
-    );
+    return this.permService.canDelete('md.roles');
   }
 
   canViewOrgUnits(): boolean {
     return (
-      this.permService.hasPermission('iam.org_units', 'view') ||
-      this.permService.hasPermission('iam.org_units', 'assign') ||
+      this.permService.hasPermission('md.org_units', 'view') ||
+      this.permService.hasPermission('md.org_units', 'assign') ||
       this.scopePanelBusy()
     );
   }

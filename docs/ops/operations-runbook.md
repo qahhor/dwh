@@ -52,7 +52,7 @@ Check in order:
 1. `web` health and host reverse-proxy/TLS routing.
 2. `server` readiness and its PostgreSQL/Typesense connection errors.
    Readiness (`/actuator/health/readiness` on the management port) is DOWN
-   within the health timeout (`DWH_SYSTEM_HEALTH_TIMEOUT`, 2 s by default)
+   within the health timeout (`SMC_SYSTEM_HEALTH_TIMEOUT`, 2 s by default)
    when the main database stops answering; liveness ignores it, so the
    container is taken out of traffic, not restarted. pg-dwh, Typesense (if
    enabled) and ClamAV (if scanning is required) appear in
@@ -152,6 +152,12 @@ the CMS one; `backup-bootstrap` grants the backup role read access to both. Do n
 one-shot backup succeeds or a documented risk owner explicitly stops the
 release.
 
+A database backup is restorable only together with its `SMC_SECRETS_KEY`: the
+webhook signing keys and SSO client secrets in it are encrypted with that key
+(ADR-0029). A server started on a restored database with another key refuses
+to start and names the column it cannot open; put the original key back
+instead of generating a new one.
+
 Backup recovery is not proven until [an isolated restore drill](maintenance-guide.md#restore-drill)
 passes. Database success does not prove recovery of uploaded objects.
 Use `backup-objects.ps1` and `restore-combined.ps1` for the release drill; the
@@ -173,9 +179,9 @@ deliver externally. Inspect sanitized server logs and dead-letter state, then
 test provider DNS/TLS, credential scope, quota, and destination policy. Avoid
 retry storms: fix the cause before replaying failed deliveries.
 
-Webhooks are fail-closed unless `DWH_WEBHOOKS_ENABLED=true` and every destination
-host is present in `DWH_WEBHOOKS_ALLOWED_HOSTS`. Do not add wildcard hosts. Keep
-`DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` on Smartup-managed or
+Webhooks are fail-closed unless `SMC_WEBHOOKS_ENABLED=true` and every destination
+host is present in `SMC_WEBHOOKS_ALLOWED_HOSTS`. Do not add wildcard hosts. Keep
+`SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false` on Smartup-managed or
 internet-facing installations. A client-owned private target may opt in only
 after the destination and network boundary are reviewed. The API returns a
 signing secret only when the subscription is created; rotate by replacing the
@@ -243,11 +249,11 @@ Tasks enforce monotonic compare-and-set versioning via the `revision` column:
 
 - **API and Auth Rate Limiting**: Client IPs are resolved via trusted proxy validation (`ClientIpResolver`). Floods from an untrusted origin or brute-force attempts are rejected with HTTP 429 (`RATE_LIMITED`).
 - **File Upload Admission**: File uploads acquire a permit from an in-memory semaphore (default 10 permits). If the server reaches capacity under burst load, excess uploads return HTTP 429 immediately rather than exhausting server heap.
-- Triage: Inspect NGINX logs for authentic client IPs and evaluate whether `dwh.security.rate-limit.login.capacity` or `dwh.files.max-concurrent-uploads` require adjustment for enterprise scale.
+- Triage: Inspect NGINX logs for authentic client IPs and evaluate whether `smc.security.rate-limit.login.capacity` or `smc.files.max-concurrent-uploads` require adjustment for enterprise scale.
 
 ## Export streaming and memory bounding
 
-- Task exports (`/api/v1/reports/tasks-export-csv` and XML) stream directly to the client with `defaultRowFetchSize: 500` and a hard cap (`dwh.reports.export.max-rows`, default 50,000 rows).
+- Task exports (`/api/v1/reports/tasks-export-csv` and XML) stream directly to the client with `defaultRowFetchSize: 500` and a hard cap (`smc.reports.export.max-rows`, default 50,000 rows).
 - If a client disconnects mid-download, `ReportService` catches `ClientAbortException | IOException`, cleanly aborts the database cursor, and returns the Hikari connection to the pool without leaking resources.
 
 ## Background jobs and database timeouts
@@ -259,7 +265,7 @@ queue (`fnd_job_queue`, plan 10/10 item 3.8). Every server instance runs it:
   renews the lease while the job works; a renewal that fails (the database away
   for a moment) is logged as `job_lease_renewal_failed` and tried again. A job
   whose instance died is taken by another one once its lease runs out
-  (`DWH_JOBS_LEASE`, 5 minutes by default); the outcome of the old attempt is
+  (`SMC_JOBS_LEASE`, 5 minutes by default); the outcome of the old attempt is
   then not recorded (`job_outcome_not_recorded_lease_lost`), its run stays
   `failed` with `lease expired`;
 - upload parse and apply jobs retry transient failures (pg-dwh or storage
@@ -268,8 +274,8 @@ queue (`fnd_job_queue`, plan 10/10 item 3.8). Every server instance runs it:
   (`upl.apply_recovery`) never closes an apply whose `upl.apply` job is still
   queued, waiting for a retry or running;
 - a failed job is retried after 30 seconds, then 1, 2, 4 minutes and so on up
-  to one hour (`DWH_JOBS_RETRY_BACKOFF`, `DWH_JOBS_RETRY_BACKOFF_MAX`); after 5
-  attempts (`DWH_JOBS_MAX_ATTEMPTS`) it is marked failed. Each attempt is a row
+  to one hour (`SMC_JOBS_RETRY_BACKOFF`, `SMC_JOBS_RETRY_BACKOFF_MAX`); after 5
+  attempts (`SMC_JOBS_MAX_ATTEMPTS`) it is marked failed. Each attempt is a row
   in `fnd_job_runs` with its error;
 - scheduled jobs are enqueued under an advisory lock, so several instances
   enqueue each due job once;
@@ -293,7 +299,7 @@ The main database pool ends a statement that runs longer than
 durations such as `90s` or `5min`, `0` turns a limit off). Jobs hold no
 transaction while they work, so they need no longer limit. The `migrate`
 profile turns both off: every migration file sets its own. pg-dwh has its own
-limits (`APP_DWH_STATEMENT_TIMEOUT`, `APP_DWH_MAINTENANCE_STATEMENT_TIMEOUT`).
+limits (`WAREHOUSE_STATEMENT_TIMEOUT`, `WAREHOUSE_MAINTENANCE_STATEMENT_TIMEOUT`).
 A request that fails with SQL state `57014` (statement timeout) or a closed
 connection after `idle-in-transaction timeout` points at a query or code path
 to fix, not at a limit to raise.

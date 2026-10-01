@@ -289,8 +289,8 @@ export class FilesComponent implements OnInit, OnDestroy {
 
   canDeleteFile(file: FileDetail): boolean {
     return (
-      this.permService.hasPermission('platform.files', 'delete') &&
-      (this.permService.hasPermission('platform.files', 'manage_quotas') ||
+      this.permService.hasPermission('mf.files', 'delete') &&
+      (this.permService.hasPermission('mf.files', 'manage_quotas') ||
         (file.createdBy != null && file.createdBy === this.auth.currentUser()?.id))
     );
   }

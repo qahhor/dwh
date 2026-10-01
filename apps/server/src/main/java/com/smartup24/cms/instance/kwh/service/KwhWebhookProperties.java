@@ -4,8 +4,10 @@ import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
-@ConfigurationProperties(prefix = "dwh.webhooks")
+@Validated
+@ConfigurationProperties(prefix = "smc.webhooks")
 public class KwhWebhookProperties {
 
     private boolean enabled;
@@ -15,8 +17,8 @@ public class KwhWebhookProperties {
     private Duration readTimeout = Duration.ofSeconds(10);
 
     public void validate() {
-        requirePositive(connectTimeout, "DWH_WEBHOOKS_CONNECT_TIMEOUT");
-        requirePositive(readTimeout, "DWH_WEBHOOKS_READ_TIMEOUT");
+        requirePositive(connectTimeout, "SMC_WEBHOOKS_CONNECT_TIMEOUT");
+        requirePositive(readTimeout, "SMC_WEBHOOKS_READ_TIMEOUT");
     }
 
     private static void requirePositive(Duration value, String environmentName) {

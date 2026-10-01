@@ -24,9 +24,9 @@ import { inScreen } from '@testing/in-screen';
 type Fixture = ComponentFixture<SearchSettingsComponent>;
 type Overrides = Partial<Record<keyof SearchManagementService, unknown>>;
 
-const VIEW = ['platform.search.view'];
-const READ = [...VIEW, 'platform.settings.view'];
-const ADMIN = [...READ, 'platform.settings.update'];
+const VIEW = ['search.view'];
+const READ = [...VIEW, 'md.settings.view'];
+const ADMIN = [...READ, 'md.settings.update'];
 
 // Hand-copied from the strict backend JSON contract. Intentionally does not
 // derive field names from the frontend model or production helpers.

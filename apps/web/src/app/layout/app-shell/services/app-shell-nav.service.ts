@@ -59,33 +59,23 @@ export class AppShellNavService {
     }),
   );
 
-  canViewTasks = () => this.permService.canView('tasks.items') || this.permService.canView('tasks');
-  canViewProjects = () => this.permService.canView('tasks.projects') || this.permService.canView('projects');
-  canViewAnalytics = () => this.permService.canView('analytics.dashboard') || this.permService.canView('analytics');
-  canViewUsers = () => this.permService.canView('iam.users') || this.permService.canView('md_users');
-  canViewRoles = () =>
-    this.permService.canView('rbac.roles') ||
-    this.permService.canView('iam.roles') ||
-    this.permService.canView('md_roles') ||
-    this.permService.canView('md.roles');
-  canViewOrgUnits = () => this.permService.canView('iam.org_units');
-  canViewCustomFields = () =>
-    this.permService.canView('md.custom_fields') ||
-    this.permService.canView('system.custom_fields') ||
-    this.permService.canView('md_custom_fields');
-  canViewFiles = () => this.permService.canView('platform.files') || this.permService.canView('files');
-  canViewNotifications = () => this.permService.canView('notify.inbox') || this.permService.canView('notifications');
-  canViewAnnouncements = () => this.permService.canUpdate('platform.announcements');
-  canViewAudit = () =>
-    this.permService.canView('audit.log') ||
-    this.permService.canView('audit.logs') ||
-    this.permService.canView('audit');
+  canViewTasks = () => this.permService.canView('tasks.items');
+  canViewProjects = () => this.permService.canView('tasks.projects');
+  canViewAnalytics = () => this.permService.canView('analytics.dashboard');
+  canViewUsers = () => this.permService.canView('md.users');
+  canViewRoles = () => this.permService.canView('md.roles');
+  canViewOrgUnits = () => this.permService.canView('md.org_units');
+  canViewCustomFields = () => this.permService.canView('md.custom_fields');
+  canViewFiles = () => this.permService.canView('mf.files');
+  canViewNotifications = () => this.permService.canView('notify.inbox');
+  canViewAnnouncements = () => this.permService.canUpdate('notify.announcements');
+  canViewAudit = () => this.permService.canView('audit.log');
   canViewSettings = () => true;
-  canViewSystem = () => this.permService.canView('platform.settings');
+  canViewSystem = () => this.permService.canView('md.settings');
   canViewSources = () => this.permService.canView('upl.sources') && this.moduleService.isModuleActive('upl');
   canViewPackages = () => this.permService.canView('upl.packages') && this.moduleService.isModuleActive('upl');
-  canViewModules = () => this.permService.canView('platform.modules');
-  canViewNavigationSettings = () => this.permService.canView('platform.navigation');
+  canViewModules = () => this.permService.canView('md.modules');
+  canViewNavigationSettings = () => this.permService.canView('md.navigation');
 
   // Arrow fields, because the sidebar receives them as function inputs.
   readonly hasVisibleItems = (section: NavSection): boolean => section.items.some((item) => item.permission());

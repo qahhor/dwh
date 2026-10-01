@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.kwh.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.instance.common.security.StoredSecrets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +16,13 @@ public class KwhOutboxRepository {
     private final JdbcClient jdbcClient;
     private final ObjectMapper objectMapper;
     private final JsonColumns jsonColumns;
+    private final StoredSecrets secrets;
 
-    public KwhOutboxRepository(JdbcClient jdbcClient, ObjectMapper objectMapper) {
+    public KwhOutboxRepository(JdbcClient jdbcClient, ObjectMapper objectMapper, StoredSecrets secrets) {
         this.jdbcClient = jdbcClient;
         this.objectMapper = objectMapper;
         this.jsonColumns = new JsonColumns(objectMapper, "kwh_outbox");
+        this.secrets = secrets;
     }
 
     public void enqueue(Long subscriptionId, String eventType, Map<String, Object> payload) {
@@ -164,7 +167,7 @@ public class KwhOutboxRepository {
                         ? rs.getTimestamp("claimed_at").toInstant()
                         : null,
                 rs.getString("target_url"),
-                rs.getString("secret_token"));
+                secrets.open(rs.getString("secret_token"), KwhSubscriptionRepository.SECRET_COLUMN));
     }
 
     public record KwhOutboxRecord(

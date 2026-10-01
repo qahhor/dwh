@@ -34,6 +34,15 @@ generate_hex_token() {
     fi
 }
 
+# The key of the secrets kept in the database (ADR-0029): base64 of 32 random bytes.
+generate_base64_key() {
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -base64 32
+    else
+        head -c 32 /dev/urandom | base64 | tr -d '\n'
+    fi
+}
+
 # The first administrator password: 20 characters, the longest the password policy accepts.
 generate_secure_password() {
     if command -v openssl >/dev/null 2>&1; then
@@ -51,6 +60,7 @@ chmod 700 "$SECRETS_DIR"
 DB_PASSWORD="$(generate_hex_token)"
 BACKUP_DB_PASSWORD="$(generate_hex_token)"
 TYPESENSE_API_KEY="$(generate_hex_token)"
+SMC_SECRETS_KEY="$(generate_base64_key)"
 
 if [[ -z "$ADMIN_PASSWORD" ]]; then
     ADMIN_PASSWORD="$(generate_secure_password)"
@@ -141,48 +151,52 @@ ADMIN_PASSWORD=$ADMIN_PASSWORD
 
 TYPESENSE_API_KEY=$TYPESENSE_API_KEY
 
+# Encrypts the secrets kept in the database (ADR-0029). Keep a copy with the
+# backup identity, outside this host: a restore without it loses those secrets.
+SMC_SECRETS_KEY=$SMC_SECRETS_KEY
+
 # Storage configuration
-DWH_PROVIDER_STORAGE=$STORAGE_MODE
-DWH_S3_ENDPOINT=
-DWH_S3_REGION=auto
-DWH_S3_ACCESS_KEY=
+SMC_PROVIDER_STORAGE=$STORAGE_MODE
+SMC_S3_ENDPOINT=
+SMC_S3_REGION=auto
+SMC_S3_ACCESS_KEY=
 # S3 secret key (leave blank for local_disk)
-DWH_S3_SECRET_KEY=
+SMC_S3_SECRET_KEY=
 # Target bucket name
-DWH_S3_BUCKET=
-DWH_S3_PATH_STYLE=true
+SMC_S3_BUCKET=
+SMC_S3_PATH_STYLE=true
 
 # Malware protection (fail-closed)
 CLAMAV_IMAGE=clamav/clamav-debian:1.5.4@sha256:df80497be841a8ad57f95e04f978216241457f8f8ad608f1f682e3cd0fe63c45
-DWH_FILE_SCANNER_CLAMAV_HOST=clamav
-DWH_FILE_SCANNER_CLAMAV_PORT=3310
-DWH_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT=3s
-DWH_FILE_SCANNER_CLAMAV_READ_TIMEOUT=60s
+SMC_FILE_SCANNER_CLAMAV_HOST=clamav
+SMC_FILE_SCANNER_CLAMAV_PORT=3310
+SMC_FILE_SCANNER_CLAMAV_CONNECT_TIMEOUT=3s
+SMC_FILE_SCANNER_CLAMAV_READ_TIMEOUT=60s
 
-DWH_RATE_LIMIT_PUBLIC_READ_PER_MINUTE=600
+SMC_RATE_LIMIT_PUBLIC_READ_PER_MINUTE=600
 
 # Outbound webhooks (disabled by default)
-DWH_WEBHOOKS_ENABLED=false
-DWH_WEBHOOKS_ALLOWED_HOSTS=
-DWH_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
-DWH_WEBHOOKS_CONNECT_TIMEOUT=3s
-DWH_WEBHOOKS_READ_TIMEOUT=10s
+SMC_WEBHOOKS_ENABLED=false
+SMC_WEBHOOKS_ALLOWED_HOSTS=
+SMC_WEBHOOKS_ALLOW_PRIVATE_ADDRESSES=false
+SMC_WEBHOOKS_CONNECT_TIMEOUT=3s
+SMC_WEBHOOKS_READ_TIMEOUT=10s
 
 # Delivery channels: password reset links and two-factor codes. console_* only
 # writes to the log; the server refuses to start while two-factor users depend
-# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + DWH_PROVIDER_MAIL=smtp.
-# Telegram: TELEGRAM_BOT_TOKEN + DWH_PROVIDER_MESSENGER=telegram.
+# on it (SMC_DELIVERY_ENFORCE). Mail: SMTP_HOST + SMC_PROVIDER_MAIL=smtp.
+# Telegram: TELEGRAM_BOT_TOKEN + SMC_PROVIDER_MESSENGER=telegram.
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASSWORD=
 SMTP_STARTTLS=true
-DWH_MAIL_FROM=no-reply@localhost
-DWH_MAIL_FROM_NAME=SmartupCMS
-DWH_PROVIDER_MAIL=console_mail
+SMC_MAIL_FROM=no-reply@localhost
+SMC_MAIL_FROM_NAME=SmartupCMS
+SMC_PROVIDER_MAIL=console_mail
 TELEGRAM_BOT_TOKEN=
-DWH_PROVIDER_MESSENGER=console_messenger
-DWH_PROVIDER_SMS=console_sms
+SMC_PROVIDER_MESSENGER=console_messenger
+SMC_PROVIDER_SMS=console_sms
 SMC_DELIVERY_ENFORCE=true
 
 # Network & Reverse Proxy
@@ -192,7 +206,7 @@ HTTP_PORT=$HTTP_PORT
 # Encrypted automated backups
 BACKUP_AGE_RECIPIENT=$AGE_RECIPIENT
 BACKUP_INTERVAL_SECONDS=86400
-DWH_BACKUP_MAX_AGE=26h
+SMC_BACKUP_MAX_AGE=26h
 BACKUP_RETENTION_DAYS=14
 BACKUP_STORAGE_MODE=$BACKUP_STORAGE_MODE
 

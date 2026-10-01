@@ -126,7 +126,7 @@ class MdIamWireFormatTest {
         when(roles.create("Новая", null, "A", 5)).thenReturn(record);
         when(permissionService.getFormCatalog())
                 .thenReturn(List.of(new MdPermissionRepository.FormTreeItem(
-                        "iam.users", "iam", "Пользователи", "block", "Блокировка", false)));
+                        "md.users", "md", "Пользователи", "block", "Блокировка", false)));
         when(permissionService.getFormCatalogItems()).thenCallRealMethod();
         var roleService = new MdRoleService(roles, permissionService, audit, mock(MdScopeRepository.class));
         MockMvc mvc = mvc(new MdRoleController(roleService, permissionService));

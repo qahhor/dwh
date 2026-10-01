@@ -19,14 +19,14 @@ import org.springframework.web.client.RestClient;
 /**
  * FR-NOTIF-4: delivery through the Telegram Bot API.
  *
- * The bean is created only when {@code dwh.telegram.bot-token} is set and not blank: without
+ * The bean is created only when {@code smc.telegram.bot-token} is set and not blank: without
  * a token there is nowhere to send, and {@link ConsoleMessengerProvider} stays active.
  *
  * The token is a secret: it gets neither into the log nor into an error message
  * (it is unavoidable in the Telegram URL, so the URL is not exposed either).
  */
 @Component
-@ConditionalOnExpression("'${dwh.telegram.bot-token:}'.trim().length() > 0")
+@ConditionalOnExpression("'${smc.telegram.bot-token:}'.trim().length() > 0")
 public class TelegramBotMessengerProvider implements MessengerProvider {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramBotMessengerProvider.class);
@@ -36,8 +36,8 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
     private final String apiBase;
 
     public TelegramBotMessengerProvider(
-            @Value("${dwh.telegram.bot-token}") String botToken,
-            @Value("${dwh.telegram.api-url:https://api.telegram.org}") String apiUrl) {
+            @Value("${smc.telegram.bot-token}") String botToken,
+            @Value("${smc.telegram.api-url:https://api.telegram.org}") String apiUrl) {
         this.apiBase = apiUrl + "/bot" + botToken;
         var factory = new JdkClientHttpRequestFactory();
         factory.setReadTimeout(TIMEOUT);

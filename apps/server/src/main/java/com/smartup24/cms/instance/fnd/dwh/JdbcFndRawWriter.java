@@ -49,7 +49,7 @@ import tools.jackson.databind.ObjectMapper;
  *
  * <p>Plan 10/10, item 3.9: rows go through one {@code COPY ... from stdin} in text format, encoded into a small buffer
  * as the source pushes them; no row outlives its line. The copy may run for as long as the file takes to parse, so the
- * transaction lifts the pool's statement limit to {@code app.dwh.raw-write-timeout} for itself only.
+ * transaction lifts the pool's statement limit to {@code warehouse.raw-write-timeout} for itself only.
  */
 @Component
 public class JdbcFndRawWriter implements FndRawWriter {
@@ -57,7 +57,7 @@ public class JdbcFndRawWriter implements FndRawWriter {
     private static final Logger log = LoggerFactory.getLogger(JdbcFndRawWriter.class);
     /** Bytes collected before they go to the server: large enough to keep round trips rare, small enough to ignore. */
     private static final int BUFFER = 1 << 16;
-    /** For writers built by hand; the application takes {@code app.dwh.raw-write-timeout}. */
+    /** For writers built by hand; the application takes {@code warehouse.raw-write-timeout}. */
     private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(30);
 
     private static final String COPY =

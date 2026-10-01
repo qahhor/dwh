@@ -166,13 +166,13 @@ describe('AppShellNavService', () => {
     expect(sources!.permission()).toBe(row.allowed);
   });
 
-  it('offers the organization only with iam.org_units view', () => {
-    canView.mockImplementation((form) => form === 'iam.users');
+  it('offers the organization only with md.org_units view', () => {
+    canView.mockImplementation((form) => form === 'md.users');
     const orgUnits = () => section('iam')!.items.find((item) => item.id === 'org-units')!;
     expect(nav().canViewOrgUnits()).toBe(false);
     expect(orgUnits().permission()).toBe(false);
 
-    canView.mockImplementation((form) => form === 'iam.org_units');
+    canView.mockImplementation((form) => form === 'md.org_units');
     expect(nav().canViewOrgUnits()).toBe(true);
     expect(orgUnits().permission()).toBe(true);
   });

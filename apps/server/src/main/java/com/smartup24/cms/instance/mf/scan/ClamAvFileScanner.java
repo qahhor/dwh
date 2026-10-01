@@ -19,7 +19,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "dwh.files.scanner.clamav.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "smc.files.scanner.clamav.enabled", havingValue = "true")
 public class ClamAvFileScanner implements FileScanner {
 
     private static final Logger log = LoggerFactory.getLogger(ClamAvFileScanner.class);
@@ -35,10 +35,10 @@ public class ClamAvFileScanner implements FileScanner {
 
     public ClamAvFileScanner(
             MeterRegistry meterRegistry,
-            @Value("${dwh.files.scanner.clamav.host:clamav}") String host,
-            @Value("${dwh.files.scanner.clamav.port:3310}") int port,
-            @Value("${dwh.files.scanner.clamav.connect-timeout:3s}") Duration connectTimeout,
-            @Value("${dwh.files.scanner.clamav.read-timeout:60s}") Duration readTimeout) {
+            @Value("${smc.files.scanner.clamav.host:clamav}") String host,
+            @Value("${smc.files.scanner.clamav.port:3310}") int port,
+            @Value("${smc.files.scanner.clamav.connect-timeout:3s}") Duration connectTimeout,
+            @Value("${smc.files.scanner.clamav.read-timeout:60s}") Duration readTimeout) {
         if (host == null || host.isBlank()) throw new IllegalArgumentException("ClamAV host is required");
         if (port < 1 || port > 65_535) throw new IllegalArgumentException("ClamAV port is invalid");
         if (connectTimeout.isNegative() || connectTimeout.isZero()) {

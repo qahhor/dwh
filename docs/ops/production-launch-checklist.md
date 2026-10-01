@@ -29,7 +29,7 @@ owner. A commercial SLA cannot override a failed safety gate.
 - [ ] Explicit container CPU and RAM limits and reservations (`deploy.resources.limits`)
       are configured for all services (`server`, `postgres`, `typesense`, `clamav`,
       `web`, `backup`), and `/tmp` tmpfs is bounded (`size=1024m`).
-- [ ] Trusted proxy CIDRs (`DWH_SECURITY_TRUSTED_PROXIES`) are explicitly configured
+- [ ] Trusted proxy CIDRs (`SMC_SECURITY_TRUSTED_PROXIES`) are explicitly configured
       for the ingress topology; spoofed `X-Forwarded-For` headers cannot bypass rate limiting.
 - [ ] Only the web origin is published; PostgreSQL, Typesense, server, management
       endpoints, secret files, and Docker socket are unreachable externally.
@@ -71,15 +71,19 @@ owner. A commercial SLA cannot override a failed safety gate.
       identifiers return `404`, not entity metadata.
 - [ ] Idempotency filter strictly ignores secret-bearing endpoints (auth login, password reset)
       and enforces 24-hour retention with hourly background cleanup.
-- [ ] File upload admission control is active (`DWH_FILES_MAX_CONCURRENT_UPLOADS: 10`)
+- [ ] File upload admission control is active (`SMC_FILES_MAX_CONCURRENT_UPLOADS: 10`)
       and task export streaming bounds (`LIMIT :maxExportRows`) are enforced.
 - [ ] Session revocation, password recovery, CSRF, rate limits, and audit events
       pass the release test suite.
-- [ ] Mail (`SMTP_HOST`, `DWH_PROVIDER_MAIL=smtp`) or Telegram
-      (`TELEGRAM_BOT_TOKEN`, `DWH_PROVIDER_MESSENGER=telegram`) is configured:
+- [ ] Mail (`SMTP_HOST`, `SMC_PROVIDER_MAIL=smtp`) or Telegram
+      (`TELEGRAM_BOT_TOKEN`, `SMC_PROVIDER_MESSENGER=telegram`) is configured:
       password reset and two-factor codes travel only through them, and the
       server refuses to start while two-factor users depend on a `console_*`
       stub (`SMC_DELIVERY_ENFORCE`).
+- [ ] `SMC_SECRETS_KEY` is a key of this installation (base64 of 32 bytes) and
+      a copy is stored outside the host with the backup age identity: stored
+      webhook and SSO secrets are encrypted with it (ADR-0029), and a restore
+      without it loses them.
 - [ ] `SMC_PUBLIC_URL` is the public HTTPS address of the web application:
       password reset links are built from it (never from the request's Host
       header), and with it empty no reset link is sent.
@@ -98,14 +102,14 @@ owner. A commercial SLA cannot override a failed safety gate.
       states pass for critical workflows.
 - [ ] A representative upload/download succeeds at the configured production
       size limit and interrupted upload behavior is understood.
-- [ ] `DWH_FILE_SCANNER_REQUIRED=true`; the ClamAV EICAR test is rejected,
+- [ ] `SMC_FILE_SCANNER_REQUIRED=true`; the ClamAV EICAR test is rejected,
       scanner outage fails closed, and quarantine objects are removed.
 - [ ] No unsafe placeholder provider or disabled module is presented as a
       working production capability.
 
 ## Operations
 
-- [ ] `DWH_BACKUP_MAX_AGE` contains the approved non-zero recovery-point age;
+- [ ] `SMC_BACKUP_MAX_AGE` contains the approved non-zero recovery-point age;
       the System page reports a current backup after a verified run and becomes
       stale when a controlled test exceeds the threshold.
 - [ ] Health, latency/error, capacity, certificate, backup age/failure, database,

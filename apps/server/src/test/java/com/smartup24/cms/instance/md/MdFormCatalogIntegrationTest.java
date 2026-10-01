@@ -30,7 +30,7 @@ import tools.jackson.databind.ObjectMapper;
  * Before this work the catalog was filled by migrations only, and the registration method in the code
  * was called from nowhere. On a live stand this left four pairs without a single endpoint behind them:
  * notify.preferences.view / .update,
- * iam.profile.manage_channels, platform.files.manage_quotas. An administrator
+ * md.profile.manage_channels, mf.files.manage_quotas. An administrator
  * saw them in the permission matrix and could grant them, and the permission opened nothing.
  */
 class MdFormCatalogIntegrationTest {
@@ -111,7 +111,7 @@ class MdFormCatalogIntegrationTest {
         permissionService.syncFormCatalog(realPairs());
 
         assertThat(permissionService.getFormCatalog())
-                .filteredOn(item -> "iam.users".equals(item.formCode()) && "block".equals(item.action()))
+                .filteredOn(item -> "md.users".equals(item.formCode()) && "block".equals(item.action()))
                 .singleElement()
                 .satisfies(item -> {
                     assertThat(item.formName()).isEqualTo("Пользователи");

@@ -49,7 +49,7 @@ public class EntityBulkController {
             description =
                     "Applies a bulk action of an entity to the selected records; the entity's own right is checked.")
     @PostMapping("/{code}/bulk")
-    @RequiresPermission(form = "iam.profile", action = "view")
+    @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<BulkResult> bulk(@PathVariable String code, @RequestBody BulkRequest body) {
         EntityDefinition entity = registry.find(code)
                 .filter(found -> found.capabilities().contains(EntityCapability.BULK))

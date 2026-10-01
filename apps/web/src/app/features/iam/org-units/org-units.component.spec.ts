@@ -42,7 +42,7 @@ describe('OrgUnitsComponent lifecycle', () => {
       ],
     });
     const permissions = TestBed.inject(PermissionService);
-    permissions.setPermissions(writable ? ['iam.org_units.*'] : ['iam.org_units.view']);
+    permissions.setPermissions(writable ? ['md.org_units.*'] : ['md.org_units.view']);
     const fixture = TestBed.createComponent(OrgUnitsComponent);
     fixture.detectChanges();
     const page = fixture.componentInstance;
@@ -54,7 +54,7 @@ describe('OrgUnitsComponent lifecycle', () => {
       fixture.detectChanges();
       return page.editor()!;
     };
-    const grant = (...names: string[]) => permissions.setPermissions(names.map((name) => `iam.org_units.${name}`));
+    const grant = (...names: string[]) => permissions.setPermissions(names.map((name) => `md.org_units.${name}`));
     return { fixture, page, api, toast, screen, edit, grant };
   }
 

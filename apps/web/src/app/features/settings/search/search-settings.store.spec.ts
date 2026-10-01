@@ -15,7 +15,7 @@ import { SearchManagementService } from '@core/services/search-management.servic
 import { translateTest } from '@testing/i18n-test.stub';
 import { SearchSettingsStore } from './search-settings.store';
 
-const ADMIN = ['platform.search.view', 'platform.settings.view', 'platform.settings.update'];
+const ADMIN = ['search.view', 'md.settings.view', 'md.settings.update'];
 
 const policy: SearchQueryPolicy = {
   globalLimit: 10,

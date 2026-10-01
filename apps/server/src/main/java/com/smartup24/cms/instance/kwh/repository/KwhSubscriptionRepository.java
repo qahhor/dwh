@@ -1,5 +1,7 @@
 package com.smartup24.cms.instance.kwh.repository;
 
+import com.smartup24.cms.instance.common.security.StoredSecretColumn;
+import com.smartup24.cms.instance.common.security.StoredSecrets;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
@@ -8,12 +10,17 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class KwhSubscriptionRepository {
+public class KwhSubscriptionRepository implements StoredSecretColumn {
+
+    /** The signing key of a subscription is encrypted at rest (ADR-0029); this is its encryption context. */
+    public static final String SECRET_COLUMN = "kwh_subscriptions.secret_token";
 
     private final JdbcClient jdbcClient;
+    private final StoredSecrets secrets;
 
-    public KwhSubscriptionRepository(JdbcClient jdbcClient) {
+    public KwhSubscriptionRepository(JdbcClient jdbcClient, StoredSecrets secrets) {
         this.jdbcClient = jdbcClient;
+        this.secrets = secrets;
     }
 
     public SubscriptionRecord create(
@@ -26,7 +33,7 @@ public class KwhSubscriptionRepository {
                 """)
                 .param("name", name)
                 .param("targetUrl", targetUrl)
-                .param("secretToken", secretToken)
+                .param("secretToken", secrets.seal(secretToken, SECRET_COLUMN))
                 .param("events", subscribedEvents.toArray(new String[0]))
                 .param("createdBy", createdBy)
                 .query(this::mapRecord)
@@ -97,6 +104,45 @@ public class KwhSubscriptionRepository {
                 .update();
     }
 
+    @Override
+    public String secretColumn() {
+        return SECRET_COLUMN;
+    }
+
+    @Override
+    public Optional<String> anySealedSecret() {
+        return jdbcClient
+                .sql("select secret_token from kwh_subscriptions where secret_token like 'v1:%' limit 1")
+                .query(String.class)
+                .optional();
+    }
+
+    @Override
+    public int sealPlainSecrets(StoredSecrets cipher) {
+        List<PlainSecret> plain = jdbcClient
+                .sql("select id, secret_token from kwh_subscriptions where secret_token not like 'v1:%'")
+                .query((rs, rowNum) -> new PlainSecret(rs.getLong("id"), rs.getString("secret_token")))
+                .list();
+        int sealed = 0;
+        for (PlainSecret row : plain) {
+            // The stored form changes, so the revision moves on as for any write of the row (ADR-0024).
+            sealed += jdbcClient
+                    .sql("""
+                    update kwh_subscriptions
+                    set secret_token = :sealed,
+                        revision = revision + 1
+                    where id = :id and secret_token = :plain
+                    """)
+                    .param("sealed", cipher.seal(row.value(), SECRET_COLUMN))
+                    .param("id", row.id())
+                    .param("plain", row.value())
+                    .update();
+        }
+        return sealed;
+    }
+
+    private record PlainSecret(long id, String value) {}
+
     private SubscriptionRecord mapRecord(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         String[] arr = (String[]) rs.getArray("subscribed_events").getArray();
         List<String> events = arr != null ? List.of(arr) : List.of();
@@ -105,7 +151,7 @@ public class KwhSubscriptionRepository {
                 rs.getLong("id"),
                 rs.getString("name"),
                 rs.getString("target_url"),
-                rs.getString("secret_token"),
+                secrets.open(rs.getString("secret_token"), SECRET_COLUMN),
                 events,
                 rs.getString("state"),
                 rs.getTimestamp("created_at").toInstant(),

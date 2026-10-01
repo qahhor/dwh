@@ -10,20 +10,20 @@ import { UserEffectivePermissionsPanelComponent } from './user-effective-permiss
 describe('UserEffectivePermissionsPanelComponent', () => {
   const mockEffectivePermissions = {
     items: [
-      { form: 'iam.users', action: 'view', source: 'role' },
-      { form: 'iam.users', action: 'create', source: 'personal' },
+      { form: 'md.users', action: 'view', source: 'role' },
+      { form: 'md.users', action: 'create', source: 'personal' },
       { form: 'tasks', action: 'view', source: 'role' },
     ],
   };
 
   const mockPersonalGrants = {
-    grants: [{ form: 'iam.users', action: 'create' }],
+    grants: [{ form: 'md.users', action: 'create' }],
   };
 
   const mockFormCatalog = [
-    { formCode: 'iam.users', module: 'md', formName: 'Пользователи', action: 'view', actionName: 'Просмотр' },
-    { formCode: 'iam.users', module: 'md', formName: 'Пользователи', action: 'create', actionName: 'Создание' },
-    { formCode: 'iam.users', module: 'md', formName: 'Пользователи', action: 'update', actionName: 'Редактирование' },
+    { formCode: 'md.users', module: 'md', formName: 'Пользователи', action: 'view', actionName: 'Просмотр' },
+    { formCode: 'md.users', module: 'md', formName: 'Пользователи', action: 'create', actionName: 'Создание' },
+    { formCode: 'md.users', module: 'md', formName: 'Пользователи', action: 'update', actionName: 'Редактирование' },
     { formCode: 'tasks', module: 'ms.task', formName: 'Задачи', action: 'view', actionName: 'Просмотр' },
   ];
 
@@ -120,19 +120,19 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     expect(component.hasUnsavedChanges()).toBe(false);
 
     // Select form and action to add
-    component.onFormSelect('iam.users');
+    component.onFormSelect('md.users');
     expect(component.availableActionsForSelectedForm().length).toBe(3);
 
     component.selectedAction.set('update');
     component.addPersonalGrant();
 
-    expect(component.personalGrants()).toContainEqual({ form: 'iam.users', action: 'update' });
+    expect(component.personalGrants()).toContainEqual({ form: 'md.users', action: 'update' });
     expect(component.hasUnsavedChanges()).toBe(true);
     expect(component.personalCount()).toBe(2);
 
     // Remove personal grant
-    component.removePersonalGrant('iam.users', 'update');
-    expect(component.personalGrants()).not.toContainEqual({ form: 'iam.users', action: 'update' });
+    component.removePersonalGrant('md.users', 'update');
+    expect(component.personalGrants()).not.toContainEqual({ form: 'md.users', action: 'update' });
   });
 
   it('picks the form and the action of a grant through the labelled pickers', async () => {
@@ -150,10 +150,10 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     form.click();
     fixture.detectChanges();
     options()
-      .find((option) => option.textContent?.includes('Пользователи (iam.users)'))!
+      .find((option) => option.textContent?.includes('Пользователи (md.users)'))!
       .click();
     fixture.detectChanges();
-    expect(component.selectedFormCode()).toBe('iam.users');
+    expect(component.selectedFormCode()).toBe('md.users');
     expect(action().disabled).toBe(false);
 
     action().click();
@@ -181,7 +181,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     const revisions: number[] = [];
     component.revisionChange.subscribe((revision) => revisions.push(revision));
 
-    component.onFormSelect('iam.users');
+    component.onFormSelect('md.users');
     component.selectedAction.set('update');
     component.addPersonalGrant();
 
@@ -191,8 +191,8 @@ describe('UserEffectivePermissionsPanelComponent', () => {
       '/iam/users/10/permissions',
       {
         grants: [
-          { form: 'iam.users', action: 'create' },
-          { form: 'iam.users', action: 'update' },
+          { form: 'md.users', action: 'create' },
+          { form: 'md.users', action: 'update' },
         ],
       },
       { notifyError: false, ifMatch: 7 },
@@ -209,7 +209,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
     fixture.componentRef.setInput('revision', 7);
     const stale = vi.fn();
     component.staleUser.subscribe(stale);
-    component.onFormSelect('iam.users');
+    component.onFormSelect('md.users');
     component.selectedAction.set('update');
     component.addPersonalGrant();
 
@@ -250,7 +250,7 @@ describe('UserEffectivePermissionsPanelComponent', () => {
   it('asks again for another user, drops the previous draft and keeps the catalog', async () => {
     const { fixture, api } = await createFixture();
     const component = fixture.componentInstance;
-    component.removePersonalGrant('iam.users', 'create');
+    component.removePersonalGrant('md.users', 'create');
     expect(component.hasUnsavedChanges()).toBe(true);
 
     fixture.componentRef.setInput('userId', 11);

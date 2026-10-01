@@ -56,6 +56,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -66,6 +67,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * 401/403. From the result matrix of the technical specification, security block: "a mutating request without
  * a CSRF token gives 403".
  */
+// The development secrets of application.yml are refused outside the dev and test profiles (ADR-0027).
+@ActiveProfiles("test")
 @WebMvcTest(
         controllers = {
             SecurityTestController.class,

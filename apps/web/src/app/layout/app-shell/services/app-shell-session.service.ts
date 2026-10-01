@@ -33,7 +33,7 @@ export class AppShellSessionService {
   private readonly announcementRevision = signal(0);
 
   readonly canReadNotifications = computed(() => this.nav.canViewNotifications());
-  readonly canReadAnnouncements = computed(() => this.permService.canView('platform.announcements'));
+  readonly canReadAnnouncements = computed(() => this.permService.canView('notify.announcements'));
 
   constructor() {
     effect(() => {

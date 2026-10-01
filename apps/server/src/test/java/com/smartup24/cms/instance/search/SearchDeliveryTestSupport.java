@@ -130,7 +130,10 @@ abstract class SearchDeliveryTestSupport {
                 "update search_index_state set active_generation_id=null,initialized=false,version=1,worker_owner=null",
                 "delete from search_generations",
                 "delete from search_projection_versions",
-                "truncate ms_tasks,ms_task_projects,md_users cascade"))
+                "truncate ms_tasks,ms_task_projects,md_users cascade",
+                // The cascade follows search_settings.updated_by to md_users (plan 10/10, item 4.6) and takes the
+                // singleton settings row along; it comes back as the migration seeds it.
+                "insert into search_settings(id) values(1) on conflict (id) do nothing"))
             jdbc.sql(sql).update();
         publisher = SearchRevisionIntegrationTest.proxied(new SearchChangePublisher(jdbc), manager);
         reader = new SearchProjectionReader(jdbc, mapper);

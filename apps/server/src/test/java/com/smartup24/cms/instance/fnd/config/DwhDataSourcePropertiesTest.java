@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 /**
- * A connection timeout to pg-dwh is required: without {@code app.dwh.connect-timeout} the start fails.
+ * A connection timeout to pg-dwh is required: without {@code warehouse.connect-timeout} the start fails.
  * The context starts with {@link FndDwhConfig} only; the Hikari pool opens no connection at start
  * ({@code initializationFailTimeout = -1}), so no database is needed.
  */
@@ -19,10 +19,10 @@ class DwhDataSourcePropertiesTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withUserConfiguration(FndDwhConfig.class)
-            .withPropertyValues("app.dwh.url=" + URL, "app.dwh.username=TEST", "app.dwh.password=TEST");
+            .withPropertyValues("warehouse.url=" + URL, "warehouse.username=TEST", "warehouse.password=TEST");
 
     @Test
-    @DisplayName("AC-36: без app.dwh.connect-timeout контекст не стартует, причина называет таймаут")
+    @DisplayName("AC-36: без warehouse.connect-timeout контекст не стартует, причина называет таймаут")
     void missingTimeoutFailsStartup() {
         runner.run(context -> {
             assertThat(context.getStartupFailure())
@@ -35,7 +35,7 @@ class DwhDataSourcePropertiesTest {
     @Test
     @DisplayName("AC-36: с таймаутом свойства связаны, пул pg-dwh создан")
     void timeoutBindsAndPoolIsCreated() {
-        runner.withPropertyValues("app.dwh.connect-timeout=2s").run(context -> {
+        runner.withPropertyValues("warehouse.connect-timeout=2s").run(context -> {
             assertThat(context.getStartupFailure()).isNull();
             assertThat(context.getBean(DwhDataSourceProperties.class).connectTimeout())
                     .isEqualTo(Duration.ofSeconds(2));
@@ -46,7 +46,7 @@ class DwhDataSourcePropertiesTest {
     @Test
     @DisplayName("AC-36: нулевой таймаут — старт красный")
     void zeroTimeoutFailsStartup() {
-        runner.withPropertyValues("app.dwh.connect-timeout=0s").run(context -> {
+        runner.withPropertyValues("warehouse.connect-timeout=0s").run(context -> {
             assertThat(context.getStartupFailure()).isNotNull();
             assertThat(causeChain(context.getStartupFailure())).contains("должен быть положительным");
         });

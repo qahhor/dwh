@@ -37,7 +37,7 @@ public class ModuleRegistryController {
 
     @Operation(summary = "List modules", description = "Every registered module with its state.")
     @GetMapping
-    @RequiresPermission(form = "platform.modules", action = "view")
+    @RequiresPermission(form = "md.modules", action = "view")
     public ResponseEntity<List<InstalledModuleView>> getAllModules() {
         return ResponseEntity.ok(moduleService.getAllModules());
     }
@@ -51,7 +51,7 @@ public class ModuleRegistryController {
 
     @Operation(summary = "Get a module", description = "One registered module.")
     @GetMapping("/{code}")
-    @RequiresPermission(form = "platform.modules", action = "view")
+    @RequiresPermission(form = "md.modules", action = "view")
     public ResponseEntity<InstalledModuleView> getModule(@PathVariable String code) {
         return moduleService
                 .getModule(code)
@@ -65,7 +65,7 @@ public class ModuleRegistryController {
             summary = "Switch a module on or off",
             description = "Sets the state of a module; the body states the result, so a repeat changes nothing.")
     @PutMapping("/{code}/enabled")
-    @RequiresPermission(form = "platform.modules", action = "manage")
+    @RequiresPermission(form = "md.modules", action = "manage")
     public ResponseEntity<InstalledModuleView> setEnabled(
             @PathVariable String code, @RequestBody ToggleStatusRequest body) {
         return ResponseEntity.ok(moduleService.toggleModuleStatus(code, body.enabled()));
@@ -77,7 +77,7 @@ public class ModuleRegistryController {
             description =
                     "Flips the state of a module. Deprecated for PUT /api/v1/modules/{code}/enabled; answers until its sunset.")
     @PostMapping("/{code}/toggle")
-    @RequiresPermission(form = "platform.modules", action = "manage")
+    @RequiresPermission(form = "md.modules", action = "manage")
     public ResponseEntity<InstalledModuleView> toggleModule(
             @PathVariable String code,
             @RequestBody(required = false) ToggleStatusRequest body,
@@ -95,7 +95,7 @@ public class ModuleRegistryController {
             description =
                     "Registers a module or replaces its registration; the same call twice leaves the same module.")
     @PutMapping("/{code}")
-    @RequiresPermission(form = "platform.modules", action = "manage")
+    @RequiresPermission(form = "md.modules", action = "manage")
     public ResponseEntity<InstalledModuleView> putModule(
             @PathVariable String code,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
@@ -121,7 +121,7 @@ public class ModuleRegistryController {
             description =
                     "Registers a module, replacing an existing registration. Deprecated for PUT /api/v1/modules/{code}; answers until its sunset.")
     @PostMapping
-    @RequiresPermission(form = "platform.modules", action = "manage")
+    @RequiresPermission(form = "md.modules", action = "manage")
     public ResponseEntity<InstalledModuleView> registerModule(@RequestBody RegisterModuleRequest body) {
         return ResponseEntity.ok(moduleService.registerModule(
                 body.code(),

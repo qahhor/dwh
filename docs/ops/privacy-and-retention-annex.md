@@ -84,8 +84,8 @@ Data is retained only as long as operationally necessary or legally mandated. Au
 
 ### 4.2. Idempotency records
 - Used to protect mutation endpoints (e.g. task creation).
-- Kept for 14 days (`DWH_IDEMPOTENCY_RETENTION_DAYS`).
-- `IdempotencyCleanupWorker` purges older records daily at 02:15 UTC (`DWH_IDEMPOTENCY_CLEANUP_CRON`).
+- Kept for 14 days (`SMC_IDEMPOTENCY_RETENTION_DAYS`).
+- `IdempotencyCleanupWorker` purges older records daily at 02:15 UTC (`SMC_IDEMPOTENCY_CLEANUP_CRON`).
 
 ### 4.2a. Sessions
 - `KauthSessionCleanupWorker` runs hourly and closes every session idle for more than 12 hours
@@ -137,7 +137,7 @@ In the event of a suspected security event, service degradation, or data breach,
    - Take read-only snapshot of `security_events` table for the affected period.
    - Do not delete containers, truncate tables, or wipe disk volumes before evidence collection.
 2. **Containment**:
-   - If a specific user account is compromised: close all of the user's sessions with `DELETE /api/v1/iam/users/{userId}/sessions` (right `iam.users` / `block`; the list is `GET` on the same path, a user's own sessions are under `/api/v1/iam/profile/sessions`) and lock the user account.
+   - If a specific user account is compromised: close all of the user's sessions with `DELETE /api/v1/iam/users/{userId}/sessions` (right `md.users` / `block`; the list is `GET` on the same path, a user's own sessions are under `/api/v1/iam/profile/sessions`) and lock the user account.
    - If an IP is malicious: add host firewall rule (`iptables` / Cloudflare WAF block).
    - If an application vulnerability is suspected: halt external traffic at NGINX ingress (`503 Service Unavailable` maintenance page).
 3. **Remediation & Rollback**:

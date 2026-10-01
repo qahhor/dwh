@@ -37,14 +37,14 @@ bootstrap() {
     docker run --rm --network "$network" --entrypoint /usr/local/bin/bootstrap-role \
         -e PGHOST="$postgres" -e PGDATABASE=smartupcms -e PGUSER=postgres -e PGPASSWORD_FILE=/secrets/admin \
         -e APP_DB_USER=smartupcms -e APP_DB_PASSWORD_FILE=/secrets/app \
-        -e BACKUP_DB_PASSWORD_FILE=/secrets/backup -e DWH_DB_NAME=smartupcms_dwh \
+        -e BACKUP_DB_PASSWORD_FILE=/secrets/backup -e WAREHOUSE_DB_NAME=smartupcms_dwh \
         -v "$work/secrets:/secrets:ro" "$image" >/dev/null
 }
 
 backup_once() {
     docker run --rm --network "$network" -e BACKUP_RUN_ONCE=true \
         -e PGHOST="$postgres" -e PGDATABASE=smartupcms -e PGUSER=smartupcms_backup \
-        -e PGPASSWORD_FILE=/secrets/backup -e AGE_RECIPIENT="$recipient" -e DWH_DB_NAME=smartupcms_dwh \
+        -e PGPASSWORD_FILE=/secrets/backup -e AGE_RECIPIENT="$recipient" -e WAREHOUSE_DB_NAME=smartupcms_dwh \
         -v "$work/secrets:/secrets:ro" -v "$work/backups:/backups" -v "$work/status:/status" "$image"
 }
 

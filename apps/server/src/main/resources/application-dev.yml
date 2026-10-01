@@ -4,11 +4,11 @@ smc:
   public-url: http://localhost:4200
   delivery:
     enforce: false
+  # smc.secrets.key stays empty here: the dev profile encrypts stored secrets with a fixed development key, which no
+  # other profile accepts (ADR-0029).
   audit:
     archive:
       local-path: ${java.io.tmpdir}/smartupcms-audit-archive
-
-dwh:
   schema-gate:
     enabled: true
   instance:
