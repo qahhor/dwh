@@ -107,8 +107,8 @@ Modules declare how long their journal tables live (`RetentionPolicy` beans, pla
 | `otp-codes` | `kauth_otp_codes` | `expires_at` past the cutoff | 7 | `KauthRetentionPolicies` |
 | `password-reset-codes` | `kauth_password_reset_codes` | `expires_at` past the cutoff | 7 | `KauthRetentionPolicies` |
 | `closed-sessions` | `kauth_sessions` | closed, `closed_at` past the cutoff | 90 | `KauthRetentionPolicies` |
-| `webhook-logs` | `kwh_logs` | `sent_at` past the cutoff | 90 | `KwhRetentionPolicies` |
-| `webhook-outbox` | `kwh_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `KwhRetentionPolicies` |
+| `webhook-logs` | `kwh_logs` | `sent_at` past the cutoff | 90 | `WebhookRetentionPolicies` |
+| `webhook-outbox` | `kwh_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `WebhookRetentionPolicies` |
 | `inbox` | `ms_notifications` | `created_at` past the cutoff | 180 | `MsNotifyRetentionPolicies` |
 | `notification-outbox` | `ms_notification_outbox` | `SENT` or `DEAD_LETTER`, `processed_at` past the cutoff | 30 | `MsNotifyRetentionPolicies` |
 | `job-runs` | `fnd_job_runs` | finished, `finished_at` past the cutoff | 90 | `JobRetentionPolicies` |
