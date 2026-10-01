@@ -1,7 +1,9 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { LANGUAGE_STORAGE_KEY, THEME_STORAGE_KEY, readStoredValue } from './storage-keys';
 
 describe('product storage keys (plan 10/10, item 4.7)', () => {
+  // Other specs of the same run may have saved a theme or a language already.
+  beforeEach(() => localStorage.clear());
   afterEach(() => localStorage.clear());
 
   it('moves a value saved under the old key to the new one', () => {
