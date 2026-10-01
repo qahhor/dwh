@@ -11,6 +11,9 @@ import java.util.Map;
  * <p>{@code code} is the machine-readable contract. {@code messageKey} and {@code params} name the text in the i18n
  * catalogs (plan 10/10, item 3.1), so a client in another language can render it itself; {@code detail} is that text
  * already rendered by the server in the request's language.
+ *
+ * <p>{@code type} is {@link #TYPE_PREFIX} followed by the code (ADR-0021, addendum of 2026-10-01): an identifier, not
+ * an address to fetch; clients branch on {@code code}.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ProblemDetailRecord(
@@ -25,6 +28,14 @@ public record ProblemDetailRecord(
         String messageKey,
         Map<String, Object> params) {
 
+    /** The prefix of every problem type URI (plan 10/10, item 4.7). */
+    public static final String TYPE_PREFIX = "urn:smartupcms:problem:";
+
+    /** The problem type URI of {@code code}. */
+    public static String typeOf(String code) {
+        return TYPE_PREFIX + code;
+    }
+
     public static ProblemDetailRecord of(ErrorCode errorCode, String detail, String instance) {
         return of(errorCode, null, null, detail, instance);
     }
@@ -32,7 +43,7 @@ public record ProblemDetailRecord(
     public static ProblemDetailRecord of(
             ErrorCode errorCode, String messageKey, Map<String, Object> params, String detail, String instance) {
         return new ProblemDetailRecord(
-                "https://api.dwh.internal/errors/" + errorCode.getCode(),
+                typeOf(errorCode.getCode()),
                 errorCode.name(),
                 errorCode.getDefaultStatus(),
                 errorCode.getCode(),
@@ -63,7 +74,7 @@ public record ProblemDetailRecord(
             String instance,
             List<FieldErrorItem> errors) {
         return new ProblemDetailRecord(
-                "https://api.dwh.internal/errors/" + ErrorCode.VALIDATION_FAILED.getCode(),
+                typeOf(ErrorCode.VALIDATION_FAILED.getCode()),
                 "Validation Failed",
                 422,
                 ErrorCode.VALIDATION_FAILED.getCode(),

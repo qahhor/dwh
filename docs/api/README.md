@@ -12,7 +12,7 @@
 
 ```json
 {
-  "type": "https://api.dwh.internal/errors/not_found",
+  "type": "urn:smartupcms:problem:not_found",
   "title": "NOT_FOUND",
   "status": 404,
   "code": "not_found",
@@ -26,6 +26,9 @@
 
 - `code` — контракт (`ErrorCode`, в нижнем регистре); по нему клиент решает,
   что делать. `status` совпадает со статусом ответа.
+- `type` — `urn:smartupcms:problem:<code>`: идентификатор, а не адрес для
+  запроса; клиент не разбирает его и не ветвится по нему (до 2026-10-01 —
+  `https://api.dwh.internal/errors/<code>`, ADR-0021 §6).
 - `messageKey` и `params` — ключ каталога i18n и значения его
   `{плейсхолдеров}`: клиент рендерит текст сам на текущем языке интерфейса.
 - `detail` — тот же текст, собранный сервером на языке запроса: первый язык
