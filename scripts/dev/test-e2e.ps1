@@ -2,11 +2,17 @@
 # SmartupCMS - Browser E2E verification for an already running local stack
 # ============================================================================
 # CI runs this script too (ci.yml, job e2e): -SkipInstall after its own install, -Shard to split the suite.
+# The stack carries the mail stub (plan 10/10, item 0.8); start it with both Compose files:
+#   docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.compose.yml up -d --wait
+# -CheckReadiness ends the run with scripts/dev/test-readiness-dependency.ps1, which stops and restarts postgres.
 [CmdletBinding()]
 param(
     [switch]$SkipInstall,
     [string]$InstanceBaseUrl = $env:INSTANCE_BASE_URL,
     [string]$InstanceHealthUrl = $env:INSTANCE_HEALTH_URL,
+    # Mailpit's HTTP API, published by scripts/dev/e2e-mail.compose.yml (MAILPIT_HTTP_PORT, default 8025).
+    [string]$MailpitUrl = $env:MAILPIT_URL,
+    [switch]$CheckReadiness,
     # A part of the suite, as Playwright takes it: "1/2" runs the first half of the spec files.
     [ValidatePattern('^\d+/\d+$')]
     [string]$Shard
@@ -18,7 +24,9 @@ $e2eDirectory = Join-Path $root "e2e"
 
 if ([string]::IsNullOrWhiteSpace($InstanceBaseUrl)) { $InstanceBaseUrl = "http://localhost:4200" }
 if ([string]::IsNullOrWhiteSpace($InstanceHealthUrl)) { $InstanceHealthUrl = $InstanceBaseUrl.TrimEnd('/') + '/healthz' }
+if ([string]::IsNullOrWhiteSpace($MailpitUrl)) { $MailpitUrl = "http://localhost:8025" }
 $env:INSTANCE_BASE_URL = $InstanceBaseUrl
+$env:MAILPIT_URL = $MailpitUrl
 
 function Invoke-CheckedStep {
     param(
@@ -56,6 +64,7 @@ Write-Host "============================================================" -Foreg
 
 Assert-HttpReady "SmartupCMS web origin" ($InstanceBaseUrl.TrimEnd('/') + '/')
 Assert-HttpReady "SmartupCMS health through the web origin" $InstanceHealthUrl
+Assert-HttpReady "Mailpit mail stub (scripts/dev/e2e-mail.compose.yml)" ($MailpitUrl.TrimEnd('/') + '/readyz')
 
 Write-Host "`nValidate PowerShell dotenv parser" -ForegroundColor Yellow
 & (Join-Path $PSScriptRoot "test-dotenv-parser.ps1")
@@ -77,6 +86,10 @@ try {
     }
 } finally {
     Pop-Location
+}
+
+if ($CheckReadiness) {
+    Invoke-CheckedStep "Verify readiness follows the main database" { & (Join-Path $PSScriptRoot "test-readiness-dependency.ps1") }
 }
 
 Write-Host "`nAll browser E2E scenarios passed." -ForegroundColor Green

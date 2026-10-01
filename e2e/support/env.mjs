@@ -50,5 +50,9 @@ export function loadE2eEnv({
       login: source.ADMIN_LOGIN?.trim() || 'admin',
       password: required(source, 'ADMIN_PASSWORD'),
     }),
+    // The mail stub of the e2e stack (scripts/dev/e2e-mail.compose.yml): its HTTP API holds every message sent.
+    mailpit: Object.freeze({
+      baseURL: source.MAILPIT_URL?.trim() || 'http://localhost:8025',
+    }),
   });
 }
