@@ -326,7 +326,7 @@ describe('ProjectsComponent', () => {
     const alice = { projectId: 1, userId: 10, userName: 'Alice', userEmail: 'a@example.com', accessKind: 'MANAGER' };
     const { component, settle, screen } = await setup({
       items: [project(1)],
-      read: (url) => (url === '/tasks/projects/1/members' ? of([alice]) : undefined),
+      read: (url) => (url === '/tasks/projects/1/members/page' ? of({ items: [alice], nextCursor: null }) : undefined),
     });
 
     (screen.querySelector('.members-btn') as HTMLButtonElement).click();

@@ -28,13 +28,14 @@ export class CustomFieldsApi {
     return this.api.get<CustomField[]>('/custom-fields', entityType ? { entityType } : undefined);
   }
 
+  /** The screen shows a failure itself. */
   create(field: NewCustomField): Observable<CustomField> {
-    return this.api.post<CustomField>('/custom-fields', field);
+    return this.api.post<CustomField>('/custom-fields', field, { notifyError: false });
   }
 
-  /** Saves the field changed from `revision` (plan item 3.6): a stale revision is 409. */
+  /** Saves the field changed from `revision` (plan item 3.6): a stale revision is 409; the screen shows a failure. */
   update(id: number, changes: CustomFieldChanges, revision: number | undefined): Observable<CustomField> {
-    return this.api.patch<CustomField>(`/custom-fields/${id}`, changes, { ifMatch: revision });
+    return this.api.patch<CustomField>(`/custom-fields/${id}`, changes, { notifyError: false, ifMatch: revision });
   }
 
   /** The confirmation shows the failure, so no general error toast. */

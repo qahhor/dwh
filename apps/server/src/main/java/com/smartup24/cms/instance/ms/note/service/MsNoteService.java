@@ -98,11 +98,7 @@ public class MsNoteService {
                 cursor,
                 search);
         var page = noteRepository.pageByOwner(plan, userId);
-        return new KeysetPage<>(
-                page.items().stream().map(NoteView::from).toList(),
-                page.nextCursor(),
-                page.hasMore(),
-                page.totalEstimated());
+        return page.map(NoteView::from);
     }
 
     @Transactional(readOnly = true)

@@ -4,6 +4,7 @@ import { ToastService } from '@core/services/toast.service';
 import { I18nService } from '@core/services/i18n.service';
 import { Role } from '@core/models/rbac.models';
 import { safeNumericRecordId } from '@core/services/search-target';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 
 /** The create dialog's fields. */
 export interface NewRoleForm {
@@ -23,6 +24,7 @@ export class RoleFormsService {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly uiI18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly isCreateModalOpen = signal<boolean>(false);
   readonly isEditModalOpen = signal<boolean>(false);
@@ -89,7 +91,8 @@ export class RoleFormsService {
     this.isEditModalOpen.set(true);
   }
 
-  submitEditRole(onSuccess: () => void) {
+  /** `onReload` reads the roles again after a save refused over a newer revision; the dialog closes first. */
+  submitEditRole(onSuccess: () => void, onReload?: () => void) {
     if (!this.editingRole) return;
     this.isEditSubmitted = true;
     if (!this.editRoleForm.name.trim()) {
@@ -99,7 +102,10 @@ export class RoleFormsService {
 
     this.isSubmittingRole.set(true);
     this.api
-      .patch(`/iam/roles/${this.editingRole.id}`, this.editRoleForm, { ifMatch: this.editingRole.revision })
+      .patch(`/iam/roles/${this.editingRole.id}`, this.editRoleForm, {
+        notifyError: false,
+        ifMatch: this.editingRole.revision,
+      })
       .subscribe({
         next: () => {
           this.isSubmittingRole.set(false);
@@ -107,8 +113,17 @@ export class RoleFormsService {
           this.toast.success(this.uiI18n.translate('iam.dannye_roli_obnovleny'));
           onSuccess();
         },
-        error: () => {
+        error: (err: unknown) => {
           this.isSubmittingRole.set(false);
+          this.saveErrors.show(err, {
+            fallbackKey: 'common.operation_failed',
+            reload: onReload
+              ? () => {
+                  this.isEditModalOpen.set(false);
+                  onReload();
+                }
+              : undefined,
+          });
         },
       });
   }

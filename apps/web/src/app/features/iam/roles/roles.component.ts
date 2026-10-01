@@ -146,7 +146,11 @@ export class RolesComponent implements OnInit {
     return this.scopePanel()?.canLeave() ?? true;
   }
 
-  loadRoles() {
+  /**
+   * Reads the roles; the selected one is taken from the answer, so its revision is the list's (plan item 3.6).
+   * `reloadMatrix` also reads its matrix again, dropping the draft, as after a save refused over a newer revision.
+   */
+  loadRoles(reloadMatrix = false) {
     this.loadRoleUserCounts();
     this.rolesApi
       .list()
@@ -155,11 +159,26 @@ export class RolesComponent implements OnInit {
         next: (res) => {
           const list = res || [];
           this.roles.set(list);
-          if (!this.matrix.selectedRole() && list.length > 0) {
+          const selected = this.matrix.selectedRole();
+          const fresh = selected ? list.find((role) => role.id === selected.id) : undefined;
+          if (fresh && reloadMatrix) this.matrix.load(fresh);
+          else if (fresh) this.matrix.refreshSelected(fresh);
+          if (!selected && list.length > 0) {
             this.selectRole(list[0]);
           }
         },
       });
+  }
+
+  /** Saves the matrix and keeps the role list's copy of the role at the revision the save gave it. */
+  savePermissions(onSaved?: () => void): void {
+    this.matrix.savePermissions(
+      (role) => {
+        this.replaceRole(role);
+        onSaved?.();
+      },
+      () => this.loadRoles(true),
+    );
   }
 
   loadRoleUserCounts() {
@@ -206,7 +225,7 @@ export class RolesComponent implements OnInit {
 
   saveAndSwitch(): void {
     const nextRole = this.pendingRoleToSelect();
-    this.matrix.savePermissions(() => {
+    this.savePermissions(() => {
       this.isDiscardPermissionsModalOpen.set(false);
       this.pendingRoleToSelect.set(null);
       if (nextRole) {
@@ -276,9 +295,10 @@ export class RolesComponent implements OnInit {
   }
 
   submitEditRole() {
-    this.roleForms.submitEditRole(() => {
-      this.loadRoles();
-    });
+    this.roleForms.submitEditRole(
+      () => this.loadRoles(),
+      () => this.loadRoles(true),
+    );
   }
 
   openDeleteRoleModal(role: Role) {
@@ -300,6 +320,10 @@ export class RolesComponent implements OnInit {
       return;
     }
     this.deleteRole(target);
+  }
+
+  private replaceRole(role: Role): void {
+    this.roles.update((list) => list.map((item) => (item.id === role.id ? role : item)));
   }
 
   private afterRoleScopeLeave(action: () => void): void {

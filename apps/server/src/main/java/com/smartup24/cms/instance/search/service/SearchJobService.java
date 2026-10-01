@@ -1,7 +1,9 @@
 package com.smartup24.cms.instance.search.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
+import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.QueryCompiler;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import com.smartup24.cms.instance.search.repository.*;
@@ -18,6 +20,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class SearchJobService {
+    /** The most jobs one page of the history holds. */
+    static final int MAX_HISTORY_LIMIT = 100;
+
     private final SearchAccessPolicy access;
     private final SearchJobRepository jobs;
     private final SearchIndexStateRepository state;
@@ -110,8 +115,14 @@ public class SearchJobService {
 
     public JobPage history(int limit, String cursor) {
         access.requireSearchAccess();
-        if (limit < 1 || limit > 100)
-            throw new ApiException(ErrorCode.BAD_REQUEST, "error.search.job_page_size_invalid");
+        if (limit < 1 || limit > MAX_HISTORY_LIMIT) {
+            // Plan 10/10, item 3.5: a bad page request is 422 naming the field, as every paged list answers.
+            throw ApiException.validation(
+                    "error.common.query_limit_invalid",
+                    Map.of("max", MAX_HISTORY_LIMIT),
+                    List.of(new FieldErrorItem(
+                            "limit", QueryCompiler.INVALID_LIMIT, "limit must be between 1 and " + MAX_HISTORY_LIMIT)));
+        }
         Instant time = null;
         UUID id = null;
         if (cursor != null) {
@@ -124,7 +135,12 @@ public class SearchJobService {
                 time = Instant.parse(parts[0]);
                 id = UUID.fromString(parts[1]);
             } catch (RuntimeException invalid) {
-                throw new ApiException(ErrorCode.BAD_REQUEST, "error.search.job_cursor_invalid");
+                throw ApiException.validation(
+                        "error.common.query_cursor_invalid",
+                        List.of(new FieldErrorItem(
+                                "cursor",
+                                QueryCompiler.INVALID_CURSOR,
+                                "cursor is not valid: " + invalid.getMessage())));
             }
         }
         var rows = jobs.page(limit + 1, time, id);

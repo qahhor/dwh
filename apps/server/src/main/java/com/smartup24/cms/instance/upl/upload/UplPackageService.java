@@ -93,9 +93,8 @@ public class UplPackageService {
     /** A page of packages as the API answers it. */
     @Transactional(readOnly = true)
     public KeysetPage<PackageItem> items(Integer limit, String cursor, String filter, String sort, String search) {
-        KeysetPage<PackageRow> page = list(limit, cursor, filter, sort, search);
-        List<PackageItem> items = page.items().stream().map(PackageItem::of).toList();
-        return KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated());
+        // KeysetPage.map keeps whether the total is a count or an estimate.
+        return list(limit, cursor, filter, sort, search).map(PackageItem::of);
     }
 
     /** The errors of a package as the API answers them. */

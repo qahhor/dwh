@@ -71,8 +71,7 @@ public class UplSourceController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String q) {
         KeysetPage<SourceSummary> page = service.listSources(limit, cursor, filter, sort, q);
-        List<SourceItem> items = page.items().stream().map(SourceItem::of).toList();
-        return ResponseEntity.ok(KeysetPage.of(items, page.nextCursor(), page.hasMore(), page.totalEstimated()));
+        return ResponseEntity.ok(page.map(SourceItem::of));
     }
 
     @PostMapping

@@ -2015,8 +2015,7 @@
           "required" : false,
           "schema" : {
             "type" : "integer",
-            "format" : "int32",
-            "default" : 20
+            "format" : "int32"
           }
         }, {
           "in" : "query",
@@ -4485,6 +4484,13 @@
             "format" : "int64"
           }
         }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
           "name" : "Idempotency-Key",
@@ -4514,6 +4520,26 @@
               }
             },
             "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
           },
           "default" : {
             "content" : {
@@ -4615,6 +4641,13 @@
             "format" : "int64"
           }
         }, {
+          "in" : "header",
+          "name" : "If-Match",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
           "description" : "A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again",
           "in" : "header",
           "name" : "Idempotency-Key",
@@ -4644,6 +4677,26 @@
               }
             },
             "description" : "OK"
+          },
+          "409" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The record changed since the revision named in If-Match"
+          },
+          "428" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "The change names no revision: send If-Match"
           },
           "default" : {
             "content" : {
@@ -9773,6 +9826,7 @@
     },
     "/api/v1/tasks/projects/stats" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getProjectStats",
         "responses" : {
           "200" : {
@@ -9799,7 +9853,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-task-controller" ]
+        "tags" : [ "ms-task-controller" ],
+        "x-successor" : "GET /api/v1/tasks/projects",
+        "x-sunset" : "2026-12-31"
       }
     },
     "/api/v1/tasks/projects/{id}" : {
@@ -9931,6 +9987,7 @@
     },
     "/api/v1/tasks/projects/{id}/members" : {
       "get" : {
+        "deprecated" : true,
         "operationId" : "getMembers",
         "parameters" : [ {
           "in" : "path",
@@ -9966,7 +10023,9 @@
             "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
           }
         },
-        "tags" : [ "ms-project-controller" ]
+        "tags" : [ "ms-project-controller" ],
+        "x-successor" : "GET /api/v1/tasks/projects/{id}/members/page",
+        "x-sunset" : "2026-12-31"
       },
       "post" : {
         "operationId" : "addMember",
@@ -10001,6 +10060,58 @@
         "responses" : {
           "204" : {
             "description" : "No Content"
+          },
+          "default" : {
+            "content" : {
+              "application/problem+json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProblemDetailRecord"
+                }
+              }
+            },
+            "description" : "Problem details (RFC 9457): code, catalog key, parameters and the rendered text"
+          }
+        },
+        "tags" : [ "ms-project-controller" ]
+      }
+    },
+    "/api/v1/tasks/projects/{id}/members/page" : {
+      "get" : {
+        "operationId" : "pageMembers",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/KeysetPageProjectMemberView"
+                }
+              }
+            },
+            "description" : "OK"
           },
           "default" : {
             "content" : {
@@ -14385,6 +14496,30 @@
           }
         }
       },
+      "KeysetPageProjectMemberView" : {
+        "type" : "object",
+        "properties" : {
+          "hasMore" : {
+            "type" : "boolean"
+          },
+          "items" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ProjectMemberView"
+            }
+          },
+          "nextCursor" : {
+            "type" : "string"
+          },
+          "totalEstimated" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "totalExact" : {
+            "type" : "boolean"
+          }
+        }
+      },
       "KeysetPageSecurityEventView" : {
         "type" : "object",
         "properties" : {
@@ -15177,6 +15312,10 @@
         "type" : "object",
         "properties" : {
           "permissionsVersion" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "revision" : {
             "type" : "integer",
             "format" : "int64"
           }

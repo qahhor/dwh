@@ -31,6 +31,7 @@ export const PACKAGED_RUSSIAN: Readonly<Record<string, string>> = Object.freeze(
   "common.priority": "Приоритет",
   "common.created_at": "Создано",
   "common.refresh": "Обновить",
+  "common.revision_conflict_title": "Данные устарели",
   "common.all": "Все",
   "common.saved": "Настройки успешно сохранены",
   "common.error": "Ошибка",

@@ -102,9 +102,20 @@ public class MsProjectController {
         return ResponseEntity.noContent().build();
     }
 
+    /** Deprecated for {@code GET /{id}/members/page} (ApiDeprecations); answers the whole list until its sunset. */
     @GetMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<List<ProjectMemberView>> getMembers(@PathVariable("id") Long id) {
         return ResponseEntity.ok(projectService.getProjectMembers(id));
+    }
+
+    /** The members of a project a page at a time, by name (plan 10/10, item 3.5). */
+    @GetMapping("/{id}/members/page")
+    @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
+    public ResponseEntity<KeysetPage<ProjectMemberView>> pageMembers(
+            @PathVariable("id") Long id,
+            @RequestParam(name = "limit", required = false) Integer limit,
+            @RequestParam(name = "cursor", required = false) String cursor) {
+        return ResponseEntity.ok(projectService.pageProjectMembers(id, limit, cursor));
     }
 }

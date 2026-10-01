@@ -36,19 +36,20 @@ describe('RolePermissionsEditor', () => {
   function setup(permissions: (roleId: number) => Observable<string[]> = () => of(['audit.events.view'])) {
     const api = {
       get: vi.fn((path: string) => permissions(Number(path.split('/')[3]))),
-      put: vi.fn((_path: string, _body: unknown) => of({})),
+      put: vi.fn((_path: string, _body: unknown, _options?: unknown): Observable<unknown> => of({})),
     };
+    const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         RolePermissionsEditor,
         PermissionService,
         { provide: ApiService, useValue: api },
-        { provide: ToastService, useValue: { success: vi.fn() } },
+        { provide: ToastService, useValue: toast },
         { provide: I18nService, useValue: { translate: translateTest, currentLang: signal('ru') } },
       ],
     });
     TestBed.inject(PermissionService).setPermissions(['rbac.roles.view', 'rbac.roles.grant']);
-    return { editor: TestBed.inject(RolePermissionsEditor), api };
+    return { editor: TestBed.inject(RolePermissionsEditor), api, toast };
   }
   /** The matrix is a resource: its request starts on a tick and its answer lands on a later task. */
   async function settle() {
@@ -150,6 +151,44 @@ describe('RolePermissionsEditor', () => {
     );
     expect(saved).toHaveBeenCalledTimes(1);
     expect(editor.isPermissionsDirty()).toBe(false);
+  });
+
+  it('gives the saved role its new revision and takes a re-read role without dropping the draft', async () => {
+    const { editor, api } = setup();
+    const saved = vi.fn();
+    editor.load({ ...role(1), revision: 3 });
+    await settle();
+    editor.togglePermission('audit.events', 'edit', true);
+
+    editor.savePermissions(saved);
+
+    expect(api.put.mock.calls[0][2]).toEqual(expect.objectContaining({ notifyError: false, ifMatch: 3 }));
+    expect(saved).toHaveBeenCalledWith(expect.objectContaining({ id: 1, revision: 4 }));
+    editor.togglePermission('audit.events', 'view', false);
+    editor.refreshSelected({ ...role(1), name: 'Renamed', revision: 5 });
+    expect(editor.selectedRole()).toEqual(expect.objectContaining({ name: 'Renamed', revision: 5 }));
+    expect(editor.isPermissionsDirty()).toBe(true);
+    editor.refreshSelected({ ...role(2), revision: 9 });
+    expect(editor.selectedRole()?.id).toBe(1);
+  });
+
+  it('shows a matrix save refused over a newer revision once, keeps the draft and offers to read it again', async () => {
+    const { editor, api, toast } = setup();
+    api.put.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+    const reload = vi.fn();
+    editor.load({ ...role(1), revision: 3 });
+    await settle();
+    editor.togglePermission('audit.events', 'edit', true);
+
+    editor.savePermissions(undefined, reload);
+
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    expect(editor.isPermissionsDirty()).toBe(true);
+    toast.show.mock.calls[0][4].run();
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
   it('forgets the matrix and its draft when the chosen role is deleted, so nothing is left unsaved', async () => {

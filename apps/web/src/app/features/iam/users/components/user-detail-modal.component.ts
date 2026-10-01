@@ -87,6 +87,10 @@ export class UserDetailModalComponent {
     userId: number;
   }>();
   readonly orgPanelBusy = output<boolean>();
+  /** A change made in the dialog raised the user's revision (plan item 3.6). */
+  readonly userRevisionChange = output<{ userId: number; revision: number }>();
+  /** The user changed since the dialog read it: read it again. */
+  readonly refreshUser = output<number>();
 
   private readonly sessionIpCell = viewChild.required<TemplateRef<unknown>>('sessionIpCell');
   private readonly sessionAgentCell = viewChild.required<TemplateRef<unknown>>('sessionAgentCell');

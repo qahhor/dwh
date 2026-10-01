@@ -58,6 +58,22 @@
   word-break: break-word;
 }
 
+.toast-action {
+  margin-top: 6px;
+  padding: 2px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.toast-action:hover,
+.toast-action:focus-visible {
+  background-color: var(--bg-hover);
+}
+
 .toast-close {
   background: transparent;
   border: none;

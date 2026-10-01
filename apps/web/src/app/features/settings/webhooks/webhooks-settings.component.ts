@@ -22,6 +22,7 @@ import { TableConfig } from '@shared/ui-kit/components/table/table.types';
 import { finalize, tap } from 'rxjs';
 import { SMTModalService } from '@shared/ui-kit/components/modal';
 import { problemText } from '@shared/ui/problem-text';
+import { SaveErrorNotifier } from '@shared/ui/save-errors';
 import {
   WebhookSubscription,
   CreatedWebhookSubscription,
@@ -64,6 +65,7 @@ export class WebhooksSettingsComponent {
   private readonly uiI18n = inject(I18nService);
   private readonly permService = inject(PermissionService);
   private readonly modal = inject(SMTModalService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   private readonly idCell = viewChild.required<TemplateRef<unknown>>('idCell');
   private readonly nameCell = viewChild.required<TemplateRef<unknown>>('nameCell');
@@ -237,7 +239,9 @@ export class WebhooksSettingsComponent {
         this.toast.success(this.uiI18n.translate('settings.webhooks.updated_success'));
         this.loadSubscriptions();
       },
-      error: () => {},
+      error: (err: unknown) => {
+        this.saveErrors.show(err, { fallbackKey: 'common.error', reload: () => this.loadSubscriptions() });
+      },
     });
   }
 

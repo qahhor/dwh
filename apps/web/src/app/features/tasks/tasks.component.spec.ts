@@ -74,6 +74,7 @@ async function setup(
     patch: vi.fn((path: string, body?: unknown) => options.patch?.(path, body) ?? of({})),
     delete: vi.fn(() => of({})),
   };
+  const toast = { success: vi.fn(), error: vi.fn(), warning: vi.fn(), show: vi.fn() };
   const canComment = (form: string) => form !== 'tasks.comments' || options.canComment !== false;
   await TestBed.configureTestingModule({
     imports: [TasksComponent],
@@ -89,13 +90,13 @@ async function setup(
           hasPermission: (form: string) => canComment(form),
         },
       },
-      { provide: ToastService, useValue: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } },
+      { provide: ToastService, useValue: toast },
       { provide: ActivatedRoute, useValue: options.route ?? { queryParams: of({}) } },
     ],
   }).compileComponents();
   const fixture = TestBed.createComponent(TasksComponent);
   redraw(fixture);
-  return { fixture, component: fixture.componentInstance, api, screen: inScreen(fixture.nativeElement) };
+  return { fixture, component: fixture.componentInstance, api, toast, screen: inScreen(fixture.nativeElement) };
 }
 
 const listCalls = (api: { get: ReturnType<typeof vi.fn> }, match: (params: Params) => boolean = () => true) =>
@@ -376,8 +377,28 @@ describe('TasksComponent', () => {
     const { component, api } = await setup();
     component.tasks.set([task(42)]);
     component.updatePriority(42, 'critical');
-    expect(api.patch).toHaveBeenCalledWith('/tasks/42', { priority: 'critical' });
+    expect(api.patch).toHaveBeenCalledWith('/tasks/42', { priority: 'critical' }, { notifyError: false });
     expect(component.tasks()[0].priority).toBe('critical');
+  });
+
+  it('shows a refused priority change once and reads the tasks again from its button (plan item 3.6)', async () => {
+    const conflict = { status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' };
+    const { component, api, toast } = await setup({ patch: () => throwError(() => conflict) });
+    component.tasks.set([{ ...task(42), revision: 3 }]);
+
+    component.updatePriority(42, 'critical');
+
+    expect(api.patch).toHaveBeenCalledWith(
+      '/tasks/42',
+      { priority: 'critical', expectedRevision: 3 },
+      { notifyError: false },
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    expect(component.tasks()[0].priority).not.toBe('critical');
+    const reads = listCalls(api).length;
+    toast.show.mock.calls[0][4].run();
+    expect(listCalls(api).length).toBe(reads + 1);
   });
 });
 

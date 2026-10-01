@@ -2432,6 +2432,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getProjectStats"];
         put?: never;
         post?: never;
@@ -2464,9 +2465,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @deprecated */
         get: operations["getMembers"];
         put?: never;
         post: operations["addMember"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/projects/{id}/members/page": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["pageMembers"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3750,6 +3768,14 @@ export interface components {
             totalEstimated?: number;
             totalExact?: boolean;
         };
+        KeysetPageProjectMemberView: {
+            hasMore?: boolean;
+            items?: components["schemas"]["ProjectMemberView"][];
+            nextCursor?: string;
+            /** Format: int64 */
+            totalEstimated?: number;
+            totalExact?: boolean;
+        };
         KeysetPageSecurityEventView: {
             hasMore?: boolean;
             items?: components["schemas"]["SecurityEventView"][];
@@ -4068,6 +4094,8 @@ export interface components {
         PermissionsVersionResponse: {
             /** Format: int64 */
             permissionsVersion?: number;
+            /** Format: int64 */
+            revision?: number;
         };
         PinRequest: {
             pinned?: boolean;
@@ -8135,6 +8163,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "If-Match"?: string;
                 /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
                 "Idempotency-Key"?: string;
             };
@@ -8156,6 +8185,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PermissionsVersionResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -8236,6 +8283,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                "If-Match"?: string;
                 /** @description A UUID naming this change: a retry with the same key and body gets the stored answer (Idempotent-Replay: true) instead of running again */
                 "Idempotency-Key"?: string;
             };
@@ -8257,6 +8305,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PermissionsVersionResponse"];
+                };
+            };
+            /** @description The record changed since the revision named in If-Match */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+            /** @description The change names no revision: send If-Match */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
                 };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
@@ -12103,6 +12169,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetailRecord"];
+                };
+            };
+        };
+    };
+    pageMembers: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeysetPageProjectMemberView"];
+                };
             };
             /** @description Problem details (RFC 9457): code, catalog key, parameters and the rendered text */
             default: {

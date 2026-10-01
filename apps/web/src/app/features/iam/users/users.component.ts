@@ -290,11 +290,37 @@ export class UsersComponent implements OnInit, OnDestroy {
       this.secService.loadUserSecurity(userId);
     }
   }
+  /** A security action raised the user's revision (plan item 3.6): the list and the open user are read again. */
   forcePasswordChange(userId: number) {
-    this.secService.forcePasswordChange(userId, () => this.list.loadUsers());
+    this.secService.forcePasswordChange(userId, () => {
+      this.list.loadUsers();
+      this.refreshViewingUser(userId);
+    });
   }
   resetUser2fa(userId: number) {
-    this.secService.resetUser2fa(userId, () => this.list.loadUsers());
+    this.secService.resetUser2fa(userId, () => {
+      this.list.loadUsers();
+      this.refreshViewingUser(userId);
+    });
+  }
+
+  /** A change made in the dialog gave the user a new revision: the open copy takes it, the list is read again. */
+  onUserRevision(userId: number, revision: number) {
+    this.viewingUser.update((user) => (user?.id === userId ? { ...user, revision } : user));
+    this.list.loadUsers();
+  }
+
+  /** Reads the open user again, so its edit starts from the saved revision; a failure keeps the one on screen. */
+  refreshViewingUser(userId: number) {
+    if (this.destroyed || this.viewingUser()?.id !== userId) return;
+    this.usersApi.get(userId).subscribe({
+      next: (fresh) => {
+        if (!this.destroyed && this.viewingUser()?.id === userId && recordResponseMatches(fresh?.id, String(userId))) {
+          this.viewingUser.set(fresh);
+        }
+      },
+      error: () => {},
+    });
   }
   private get userOrgUnitsPanel(): UserOrgUnitsPanelComponent | undefined {
     return this.userDetailModal()?.orgUnitsPanel();

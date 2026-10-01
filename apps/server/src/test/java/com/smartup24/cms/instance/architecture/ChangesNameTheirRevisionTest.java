@@ -26,7 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
  * saves is refused (409) instead of overwriting the first, and a change without it is 428. A {@code PUT} or
  * {@code PATCH} handler takes {@code If-Match} or a body with {@code expectedRevision}/{@code lockVersion}, unless it
  * sets a state that does not depend on what the client read (a pin, an on/off switch, the viewer's own settings) —
- * each such handler is named here with the reason. {@link #NOT_YET_LOCKED} is the debt of the item: it only shrinks.
+ * each such handler is named here with the reason. A handler that replaces a shared record whole is not a state
+ * setter: two administrators replacing it from different reads still lose one of the two changes. {@link #NOT_YET_LOCKED} is the debt of the item: it only shrinks.
  */
 class ChangesNameTheirRevisionTest {
 
@@ -38,19 +39,33 @@ class ChangesNameTheirRevisionTest {
     private static final Map<String, String> STATE_SETTERS = Map.ofEntries(
             Map.entry("MsNoteController#setPin", "the pin the viewer asks for"),
             Map.entry("ModuleRegistryController#setEnabled", "on or off, as asked"),
-            Map.entry("ModuleRegistryController#putModule", "a module registration is replaced whole"),
             Map.entry("NavigationItemController#setActive", "shown or hidden, as asked"),
             Map.entry("MsNotificationController#updatePreferences", "the viewer's own delivery choices"),
-            Map.entry("MdSettingController#updateUserSettings", "the viewer's own settings"),
-            Map.entry("MdOrgUnitController#assignUser", "the units of a user are replaced whole"),
-            Map.entry("MdOrgUnitController#setRoleRule", "the scope rule of a role is replaced whole"));
+            Map.entry("MdSettingController#updateUserSettings", "the viewer's own settings"));
+
+    /**
+     * Handlers whose body is decoded by hand and names the revision under its own name, so the signature does not show
+     * it: each is named here with where the revision is checked.
+     */
+    private static final Map<String, String> REVISION_IN_RAW_BODY = Map.ofEntries(Map.entry(
+            "SearchManagementController#save",
+            "SaveSettingsRequest.version, checked by SearchSettingsRepository#save (409 when it moved)"));
 
     /** Changes of shared records still saved without a revision: debt of item 3.6, which only shrinks. */
     private static final Map<String, String> NOT_YET_LOCKED = Map.ofEntries(
-            Map.entry("MdSettingController#updateSystemSettings", "system settings: a key-value map without revision"),
-            Map.entry("SearchManagementController#save", "search settings: one row without revision"),
-            Map.entry("MdAssignmentController#replacePersonalPermissions", "personal rights of a user"),
-            Map.entry("MdAssignmentController#assignRoles", "roles of a user"));
+            Map.entry(
+                    "MdSettingController#updateSystemSettings",
+                    "system settings: each key sent is its own md_settings row; one revision of the set needs a row"
+                            + " of its own"),
+            Map.entry(
+                    "MdOrgUnitController#assignUser",
+                    "replaces the units of a user whole; the user panel does not hold the user's revision yet"),
+            Map.entry(
+                    "MdOrgUnitController#setRoleRule",
+                    "replaces the scope rule of a role whole; the scope panel does not hold the role's revision yet"),
+            Map.entry(
+                    "ModuleRegistryController#putModule",
+                    "replaces a module registration whole; md_installed_modules has no revision column"));
 
     @Test
     @DisplayName("3.6: a PUT or PATCH of a record requires the revision it was made from")
@@ -73,6 +88,7 @@ class ChangesNameTheirRevisionTest {
             }
         }
         TreeSet<String> allowed = new TreeSet<>(STATE_SETTERS.keySet());
+        allowed.addAll(REVISION_IN_RAW_BODY.keySet());
         allowed.addAll(NOT_YET_LOCKED.keySet());
 
         assertThat(unlocked)

@@ -2,8 +2,11 @@ package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
+import com.smartup24.cms.core.pagination.CursorUtils;
+import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
 import com.smartup24.cms.instance.ms.task.api.ProjectView;
@@ -16,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class MsProjectService {
+
+    static final int DEFAULT_MEMBERS = 50;
+    static final int MAX_MEMBERS = 200;
 
     private final MsProjectRepository projectRepository;
     private final MdCustomFieldService customFieldService;
@@ -152,5 +158,44 @@ public class MsProjectService {
     @Transactional(readOnly = true)
     public List<ProjectMemberView> getProjectMembers(Long projectId) {
         return MsTaskViews.all(projectRepository.getMembers(projectId), MsTaskViews::projectMember);
+    }
+
+    /**
+     * A page of the members of a project by name (plan 10/10, item 3.5): {@code limit} 1 to {@link #MAX_MEMBERS}
+     * (else 422), {@code cursor} the {@code nextCursor} of the previous page (422 when it is not one).
+     */
+    @Transactional(readOnly = true)
+    public KeysetPage<ProjectMemberView> pageProjectMembers(Long projectId, Integer limit, String cursor) {
+        int size = TimePage.limit(limit, DEFAULT_MEMBERS, MAX_MEMBERS);
+        var after = cursor == null || cursor.isBlank() ? null : decodeMember(projectId, cursor);
+        var rows = projectRepository.getMembers(projectId, after, size + 1);
+        boolean hasMore = rows.size() > size;
+        var items = hasMore ? rows.subList(0, size) : rows;
+        String next = hasMore ? encodeMember(items.getLast()) : null;
+        return new KeysetPage<>(
+                MsTaskViews.all(items, MsTaskViews::projectMember),
+                next,
+                hasMore,
+                items.size(),
+                after == null && !hasMore);
+    }
+
+    private static String encodeMember(MsProjectRepository.ProjectMemberRecord member) {
+        return CursorUtils.encode(member.userId() + "|" + member.userName());
+    }
+
+    /** The user id goes first: a name may hold the separator. */
+    private static MsProjectRepository.ProjectMemberRecord decodeMember(Long projectId, String cursor) {
+        String raw = CursorUtils.decode(cursor);
+        int bar = raw == null ? -1 : raw.indexOf('|');
+        if (bar <= 0) {
+            throw TimePage.invalidCursor();
+        }
+        try {
+            long userId = Long.parseLong(raw.substring(0, bar));
+            return new MsProjectRepository.ProjectMemberRecord(projectId, userId, raw.substring(bar + 1), null, null);
+        } catch (NumberFormatException notOurs) {
+            throw TimePage.invalidCursor();
+        }
     }
 }

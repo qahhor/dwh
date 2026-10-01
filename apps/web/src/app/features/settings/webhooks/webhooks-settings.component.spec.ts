@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { I18nService } from '@core/services/i18n.service';
@@ -62,6 +62,7 @@ describe('WebhooksSettingsComponent', () => {
       success: vi.fn(),
       error: vi.fn(),
       info: vi.fn(),
+      show: vi.fn(),
     };
 
     const permService = {
@@ -119,6 +120,28 @@ describe('WebhooksSettingsComponent', () => {
 
     expect(api.patch).toHaveBeenCalledWith('/webhooks/subscriptions/1', { state: 'P' }, expect.any(Object));
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('shows a switch refused over a newer revision once and reads the list again from its button', async () => {
+    const { fixture, component, api, toast } = await createFixture();
+    api.patch.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+    const reads = api.get.mock.calls.length;
+
+    component.toggleState(component.subscriptions()[0]);
+
+    expect(api.patch).toHaveBeenCalledWith(
+      '/webhooks/subscriptions/1',
+      { state: 'P' },
+      expect.objectContaining({ notifyError: false }),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    toast.show.mock.calls[0][4].run();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(api.get.mock.calls.length).toBe(reads + 1);
   });
 
   it('should handle creation flow and reveal secret key modal', async () => {

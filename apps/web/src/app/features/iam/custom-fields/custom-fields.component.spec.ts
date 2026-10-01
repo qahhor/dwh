@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { NEVER, of } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiService } from '@core/services/api.service';
 import { PermissionService } from '@core/services/permission.service';
@@ -10,7 +10,7 @@ import { inScreen } from '@testing/in-screen';
 
 describe('CustomFieldsComponent', () => {
   async function createFixture(initialFields: CustomField[] = []) {
-    const toast = { success: vi.fn(), error: vi.fn() };
+    const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     const api = {
       get: vi.fn(() => of(initialFields)),
       post: vi.fn(() => of({})),
@@ -121,7 +121,44 @@ describe('CustomFieldsComponent', () => {
       expect.objectContaining({
         options: ['Новый', 'В работе', 'Готово'],
       }),
+      { notifyError: false },
     );
+  });
+
+  it('shows a save refused over a newer revision once and reads the fields again from its button', async () => {
+    const field: CustomField = {
+      id: 9,
+      entityType: 'TASK',
+      code: 'budget',
+      name: 'Бюджет',
+      fieldType: 'number',
+      isRequired: false,
+      orderNo: 10,
+      createdAt: '2026-08-30T00:00:00Z',
+      revision: 4,
+    };
+    const { fixture, api, toast } = await createFixture([field]);
+    fixture.detectChanges();
+    api.patch.mockReturnValueOnce(
+      throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'Запись уже изменил другой пользователь' })),
+    );
+    const page = fixture.componentInstance;
+    page.openEditModal(field);
+
+    page.saveField();
+
+    expect(api.patch).toHaveBeenCalledWith('/custom-fields/9', expect.any(Object), {
+      notifyError: false,
+      ifMatch: 4,
+    });
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(toast.show).toHaveBeenCalledTimes(1);
+    const reads = api.get.mock.calls.length;
+    toast.show.mock.calls[0][4].run();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(page.showModal()).toBe(false);
+    expect(api.get.mock.calls.length).toBe(reads + 1);
   });
 
   it('sends a field once while its save is under way, however often Save is asked', async () => {

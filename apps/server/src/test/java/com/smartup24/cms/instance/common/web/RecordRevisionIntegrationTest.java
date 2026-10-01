@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.common.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
@@ -187,6 +188,82 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
             state = change[1];
         }
         assertThat(state).isEqualTo(finalState);
+    }
+
+    @Test
+    @DisplayName("3.6: a reset of 2FA raises the user's revision, so a form opened before it gets 409")
+    void securityActionRaisesTheRevision() throws Exception {
+        Session admin = login(user());
+        String target = "/api/v1/iam/users/" + userId(user());
+        long read = revisionOf(admin, target);
+
+        MockHttpServletResponse reset = send(admin, post(target + "/reset-2fa"), null);
+        assertThat(reset.getStatus()).as(reset.getContentAsString()).isEqualTo(204);
+
+        MockHttpServletResponse stale =
+                send(admin, patch(target).header("If-Match", Revisions.etag(read)), Map.of("name", "Stale form"));
+        assertThat(stale.getStatus()).isEqualTo(409);
+        assertThat(object(stale).get("messageKey")).isEqualTo("error.common.revision_conflict");
+
+        long now = revisionOf(admin, target);
+        assertThat(now).isGreaterThan(read);
+        MockHttpServletResponse fresh =
+                send(admin, patch(target).header("If-Match", Revisions.etag(now)), Map.of("name", "Fresh form"));
+        assertThat(fresh.getStatus()).as(fresh.getContentAsString()).isEqualTo(204);
+        assertThat(fresh.getHeader("ETag")).isEqualTo(Revisions.etag(now + 1));
+
+        // The personal rights are part of the user: saved from its revision, 428 without one, 409 from a stale one.
+        Map<String, Object> grants = Map.of("grants", List.of());
+        assertThat(send(admin, put(target + "/permissions"), grants).getStatus())
+                .isEqualTo(428);
+        assertThat(send(admin, put(target + "/permissions").header("If-Match", Revisions.etag(now)), grants)
+                        .getStatus())
+                .isEqualTo(409);
+        MockHttpServletResponse rights =
+                send(admin, put(target + "/permissions").header("If-Match", Revisions.etag(now + 1)), grants);
+        assertThat(rights.getStatus()).as(rights.getContentAsString()).isEqualTo(200);
+        assertThat(rights.getHeader("ETag")).isEqualTo(Revisions.etag(now + 2));
+    }
+
+    @Test
+    @DisplayName("3.6: a reorder raises the revision of every status it moves, so a stale edit gets 409")
+    void reorderRaisesTheRevision() throws Exception {
+        Session admin = login(user());
+        List<Map<String, Object>> before = list(send(admin, get("/api/v1/tasks/statuses"), null));
+        List<Long> ids =
+                before.stream().map(row -> ((Number) row.get("id")).longValue()).toList();
+        Map<String, Object> first = before.getFirst();
+        long read = ((Number) first.get("revision")).longValue();
+        try {
+            MockHttpServletResponse reordered = send(admin, post("/api/v1/tasks/statuses/reorder"), ids.reversed());
+            assertThat(reordered.getStatus()).as(reordered.getContentAsString()).isLessThan(300);
+
+            MockHttpServletResponse stale = send(
+                    admin,
+                    patch("/api/v1/tasks/statuses/" + first.get("id")).header("If-Match", Revisions.etag(read)),
+                    Map.of("color", "#123456"));
+            assertThat(stale.getStatus()).isEqualTo(409);
+        } finally {
+            send(admin, post("/api/v1/tasks/statuses/reorder"), ids);
+        }
+    }
+
+    private long revisionOf(Session s, String path) throws Exception {
+        MockHttpServletResponse read = send(s, get(path), null);
+        assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
+        return ((Number) object(read).get("revision")).longValue();
+    }
+
+    private long userId(String login) {
+        return jdbc.sql("select id from md_users where login = :login")
+                .param("login", login)
+                .query(Long.class)
+                .single();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Map<String, Object>> list(MockHttpServletResponse response) throws Exception {
+        return JSON.readValue(response.getContentAsString(StandardCharsets.UTF_8), List.class);
     }
 
     private long note(Session s) throws Exception {

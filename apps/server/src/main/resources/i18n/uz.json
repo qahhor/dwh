@@ -29,6 +29,7 @@
   "common.priority": "Ustuvorlik",
   "common.created_at": "Yaratilgan",
   "common.refresh": "Yangilash",
+  "common.revision_conflict_title": "Ma'lumotlar eskirgan",
   "common.all": "Barchasi",
   "common.saved": "Sozlamalar muvaffaqiyatli saqlandi",
   "common.error": "Xato",

@@ -170,6 +170,8 @@ class MdIamWireFormatTest {
                         new MdPermissionRepository.EffectivePermissionItem("tasks.items", "create", "role:Менеджер")));
         when(permissionService.getGrantablePairs()).thenReturn(Set.of("audit.log.view"));
         when(permissionService.getPermissionVersion(42L)).thenReturn(7L);
+        when(users.nextRevision(42L, 1L)).thenReturn(2L);
+        when(users.nextRevision(42L, 2L)).thenReturn(3L);
         MockMvc mvc = mvc(new MdAssignmentController(
                 new MdAssignmentService(users, roles, permissions, permissionService, scope, audit)));
         String base = "/api/v1/iam/users/42";
@@ -188,15 +190,24 @@ class MdIamWireFormatTest {
         assertThat(effective.get("items")).hasSize(2);
         assertThat(keys(effective.get("items").get(1))).isEqualTo(Set.of("form", "action", "source"));
 
-        JsonNode assigned = json(mvc, put(base + "/roles").content("{\"roleIds\":[3]}"), 200);
-        assertThat(keys(assigned)).containsExactly("permissionsVersion");
+        // The roles and the personal rights are saved from the user's revision (plan 10/10, item 3.6).
+        MockHttpServletResponse assignedAnswer = send(
+                        mvc, put(base + "/roles").header("If-Match", "\"1\"").content("{\"roleIds\":[3]}"))
+                .andStatus(200);
+        assertThat(assignedAnswer.getHeader("ETag")).isEqualTo("\"2\"");
+        JsonNode assigned = JSON.readTree(assignedAnswer.getContentAsString());
+        assertThat(keys(assigned)).containsExactlyInAnyOrder("permissionsVersion", "revision");
         assertThat(assigned.get("permissionsVersion").asLong()).isEqualTo(7L);
+        assertThat(assigned.get("revision").asLong()).isEqualTo(2L);
 
         JsonNode replaced = json(
                 mvc,
-                put(base + "/permissions").content("{\"grants\":[{\"form\":\"audit.log\",\"action\":\"view\"}]}"),
+                put(base + "/permissions")
+                        .header("If-Match", "\"2\"")
+                        .content("{\"grants\":[{\"form\":\"audit.log\",\"action\":\"view\"}]}"),
                 200);
-        assertThat(keys(replaced)).containsExactly("permissionsVersion");
+        assertThat(keys(replaced)).containsExactlyInAnyOrder("permissionsVersion", "revision");
+        assertThat(replaced.get("revision").asLong()).isEqualTo(3L);
         verify(permissions)
                 .replaceUserPermissions(42L, List.of(new MdRoleRepository.PermissionPair("audit.log", "view")));
     }

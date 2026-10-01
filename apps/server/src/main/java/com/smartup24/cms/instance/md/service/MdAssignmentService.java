@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.EffectivePermission;
 import com.smartup24.cms.instance.md.api.MdAssignmentDtos.GrantDto;
+import com.smartup24.cms.instance.md.api.MdAssignmentDtos.PermissionsVersionResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdPermissionRepository;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
@@ -58,9 +59,12 @@ public class MdAssignmentService {
         return roleRepository.getUserRoleIds(userId);
     }
 
-    /** Полная замена набора ролей пользователя (семантика PUT из ТЗ-04 разд. 4.4). */
+    /**
+     * Replaces the roles of a user (PUT semantics), made from the user's revision {@code expectedRevision}: the roles
+     * are part of the user, so the change raises its revision and a stale form cannot undo it (plan 10/10, item 3.6).
+     */
     @Transactional
-    public long assignRoles(Long userId, List<Long> roleIds) {
+    public PermissionsVersionResponse assignRoles(Long userId, List<Long> roleIds, long expectedRevision) {
         scopeService.acquireMutationLock();
         requireUser(userId);
         List<Long> requested = roleIds != null ? roleIds : List.of();
@@ -72,6 +76,7 @@ public class MdAssignmentService {
         Set<Long> before = new TreeSet<>(roleRepository.getUserRoleIds(userId));
         guardLastAdmin(userId, requested);
 
+        long revision = userRepository.nextRevision(userId, expectedRevision);
         roleRepository.assignRolesToUser(userId, requested);
         scopeService.recalculateFor(userId);
 
@@ -91,12 +96,13 @@ public class MdAssignmentService {
                         "revoked",
                         named(diff(before, after), names)));
 
-        return permissionService.getPermissionVersion(userId);
+        return new PermissionsVersionResponse(permissionService.getPermissionVersion(userId), revision);
     }
 
-    /** Полная замена персональных прав поверх ролей (FR-PERM-5). */
+    /** Replaces the personal rights of a user on top of its roles (FR-PERM-5), made from the user's revision. */
     @Transactional
-    public long replacePersonalPermissions(Long userId, List<GrantDto> grants) {
+    public PermissionsVersionResponse replacePersonalPermissions(
+            Long userId, List<GrantDto> grants, long expectedRevision) {
         requireUser(userId);
         List<MdRoleRepository.PermissionPair> requested = grants == null
                 ? List.of()
@@ -119,6 +125,7 @@ public class MdAssignmentService {
 
         Set<String> before = new TreeSet<>(permissionRepository.getUserPersonalPermissions(userId));
 
+        long revision = userRepository.nextRevision(userId, expectedRevision);
         permissionRepository.replaceUserPermissions(userId, requested);
         permissionService.recalculateEffectivePermissions(userId);
 
@@ -137,7 +144,7 @@ public class MdAssignmentService {
                         "revoked",
                         List.copyOf(diff(before, after))));
 
-        return permissionService.getPermissionVersion(userId);
+        return new PermissionsVersionResponse(permissionService.getPermissionVersion(userId), revision);
     }
 
     @Transactional(readOnly = true)

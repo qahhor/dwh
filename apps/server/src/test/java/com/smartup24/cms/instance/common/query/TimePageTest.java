@@ -45,6 +45,25 @@ class TimePageTest {
     }
 
     @Test
+    @DisplayName("3.5: nothing is counted, so the total is exact only for a first page with nothing after it")
+    void totalIsExactOnlyForAWholeFirstPage() {
+        var whole = TimePage.of(5, null, 50, 100).page(List.of(1L, 2L), id -> new TimePage.Position(AT, id));
+        assertThat(whole.totalEstimated()).isEqualTo(2);
+        assertThat(whole.totalExact()).isTrue();
+
+        TimePage first = TimePage.of(2, null, 50, 100);
+        var partial = first.page(List.of(1L, 2L, 3L), id -> new TimePage.Position(AT, id));
+        assertThat(partial.totalExact()).isFalse();
+
+        var later =
+                TimePage.of(2, partial.nextCursor(), 50, 100).page(List.of(3L), id -> new TimePage.Position(AT, id));
+        assertThat(later.hasMore()).isFalse();
+        assertThat(later.totalExact())
+                .as("a later page does not know the rows before it")
+                .isFalse();
+    }
+
+    @Test
     @DisplayName("3.5: a cursor that is not one of ours is 422 naming the field")
     void foreignCursorIsRefused() {
         for (String bad : new String[] {

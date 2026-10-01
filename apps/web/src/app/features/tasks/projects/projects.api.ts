@@ -32,8 +32,13 @@ export class ProjectsApi {
     return this.api.get<Project>(`/tasks/projects/${id}`, undefined, { notifyError: false });
   }
 
-  members(projectId: number): Observable<ProjectMember[]> {
-    return this.api.get<ProjectMember[]>(`/tasks/projects/${projectId}/members`);
+  /** A page of the members of a project, by name (plan item 3.5); the dialog shows a failure itself. */
+  membersPage(projectId: number, cursor: string | null, limit: number): Observable<KeysetPage<ProjectMember>> {
+    return this.api.get<KeysetPage<ProjectMember>>(
+      `/tasks/projects/${projectId}/members/page`,
+      { limit, cursor: cursor ?? undefined },
+      { notifyError: false },
+    );
   }
 
   addMember(projectId: number, userId: number, accessKind: string): Observable<void> {
