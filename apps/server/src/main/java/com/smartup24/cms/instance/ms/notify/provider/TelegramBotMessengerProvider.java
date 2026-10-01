@@ -17,13 +17,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /**
- * FR-NOTIF-4: доставка через Telegram Bot API.
+ * FR-NOTIF-4: delivery through the Telegram Bot API.
  *
- * Бин создаётся только когда {@code dwh.telegram.bot-token} задан непустым: без токена
- * отправлять некуда, и активным останется {@link ConsoleMessengerProvider}.
+ * The bean is created only when {@code dwh.telegram.bot-token} is set and not blank: without
+ * a token there is nowhere to send, and {@link ConsoleMessengerProvider} stays active.
  *
- * Токен — секрет: он не попадает ни в журнал, ни в сообщение об ошибке
- * (в URL Telegram он неизбежен, поэтому URL наружу тоже не отдаём).
+ * The token is a secret: it gets neither into the log nor into an error message
+ * (it is unavoidable in the Telegram URL, so the URL is not exposed either).
  */
 @Component
 @ConditionalOnExpression("'${dwh.telegram.bot-token:}'.trim().length() > 0")
@@ -89,7 +89,7 @@ public class TelegramBotMessengerProvider implements MessengerProvider {
             return MessengerSendResult.failure("telegram_rejected", description, elapsedMs(startedAt));
 
         } catch (Exception ex) {
-            // chat_id — идентификатор получателя, в журнал не пишем (логи без ПДн).
+            // chat_id identifies the recipient and is not logged (no personal data in logs).
             log.warn("Telegram: отправка не удалась: {}", ex.getMessage());
             return MessengerSendResult.failure("telegram_send_failed", ex.getMessage(), elapsedMs(startedAt));
         }

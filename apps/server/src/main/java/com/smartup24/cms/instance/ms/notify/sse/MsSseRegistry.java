@@ -13,12 +13,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Реестр открытых SSE-соединений (FR-NOTIF-2, FR-API-5).
- * У одного пользователя может быть несколько вкладок — отсюда список на пользователя.
+ * Registry of open SSE connections (FR-NOTIF-2, FR-API-5).
+ * One user may have several tabs open, hence a list per user.
  *
- * Область применения: один инстанс приложения на экземпляр клиента (ТЗ-01 разд. 3).
- * При переходе на несколько нод (фаза P) доставку между нодами обеспечит
- * PostgreSQL LISTEN/NOTIFY — точка расширения обозначена в ADR-0009 разд. 3.
+ * Scope: one application instance per customer installation.
+ * When the deployment moves to several nodes, delivery between nodes will be provided by
+ * PostgreSQL LISTEN/NOTIFY; the extension point is described in ADR-0009, section 3.
  */
 @Component
 public class MsSseRegistry {
@@ -39,14 +39,14 @@ public class MsSseRegistry {
     }
 
     /**
-     * Открывает поток для пользователя. Браузерный EventSource переподключается сам,
-     * поэтому истечение таймаута — штатное завершение, а не ошибка.
+     * Opens a stream for the user. The browser EventSource reconnects by itself,
+     * so a timeout is a normal completion, not an error.
      */
     public SseEmitter subscribe(Long userId) {
         List<SseEmitter> userEmitters = emittersByUser.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
 
-        // Защита от исчерпания потоков: вкладок у пользователя конечное число,
-        // всё сверх лимита — почти наверняка утечка на клиенте.
+        // Guard against thread exhaustion: a user has a finite number of tabs,
+        // anything above the limit is almost certainly a leak on the client.
         while (userEmitters.size() >= maxPerUser) {
             SseEmitter oldest = userEmitters.isEmpty() ? null : userEmitters.get(0);
             if (oldest == null) break;
@@ -66,8 +66,8 @@ public class MsSseRegistry {
         });
         emitter.onError(e -> remove(userId, emitter));
 
-        // Первое событие сразу: подтверждает клиенту, что поток жив,
-        // и заставляет прокси отдать заголовки, не буферизуя ответ.
+        // The first event is sent at once: it confirms to the client that the stream is alive
+        // and makes proxies send the headers without buffering the response.
         try {
             emitter.send(SseEmitter.event().name("connected").data("ok"));
         } catch (IOException e) {
@@ -77,24 +77,24 @@ public class MsSseRegistry {
         return emitter;
     }
 
-    /** Рассылает событие всем соединениям пользователя. Мёртвые — вычищает. */
+    /** Sends the event to all connections of the user and removes dead ones. */
     public void send(Long userId, String eventName, Object payload) {
         List<SseEmitter> userEmitters = emittersByUser.get(userId);
         if (userEmitters == null || userEmitters.isEmpty()) {
-            return; // пользователь офлайн — уведомление он увидит при следующем входе
+            return; // the user is offline and will see the notification at the next sign-in
         }
         for (SseEmitter emitter : userEmitters) {
             try {
                 emitter.send(SseEmitter.event().name(eventName).data(payload));
             } catch (Exception e) {
-                // Обрыв соединения — норма (закрыли вкладку, уснул ноутбук)
+                // A dropped connection is normal (a tab was closed, a laptop went to sleep)
                 remove(userId, emitter);
                 emitter.completeWithError(e);
             }
         }
     }
 
-    /** Keep-alive: без трафика прокси и балансировщики рвут соединение. */
+    /** Keep-alive: without traffic, proxies and load balancers drop the connection. */
     public void sendHeartbeat() {
         emittersByUser.forEach((userId, list) -> {
             for (SseEmitter emitter : list) {

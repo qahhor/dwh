@@ -16,14 +16,14 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 
 /**
- * FR-NOTIF-3: доставка писем по SMTP.
+ * FR-NOTIF-3: mail delivery over SMTP.
  *
- * Бин создаётся только когда {@code spring.mail.host} задан непустым — иначе поднимать
- * нечего и активным останется консольная заглушка. Выбор активного провайдера —
- * за {@code dwh.providers.mail} (ADR-0011), этот класс лишь умеет отправлять.
+ * The bean is created only when {@code spring.mail.host} is set and not blank; otherwise
+ * there is nothing to start and the console stub stays active. The active provider is chosen
+ * by {@code dwh.providers.mail} (ADR-0011); this class only knows how to send.
  *
- * Ошибка отправки не бросается наружу: у вызывающего кода (outbox оповещений)
- * есть собственный retry, и он опирается на {@link MailSendResult#isSuccess()}.
+ * A send failure is not thrown to the caller: the calling code (the notification outbox)
+ * has its own retry, and it relies on {@link MailSendResult#isSuccess()}.
  */
 @Component
 @ConditionalOnExpression("'${spring.mail.host:}'.trim().length() > 0")
@@ -57,16 +57,16 @@ public class SmtpMailProvider implements MailProvider {
             boolean hasAttachments =
                     message.attachments() != null && !message.attachments().isEmpty();
             boolean hasAlternativeBodies = message.htmlBody() != null && message.textBody() != null;
-            // Два представления письма или вложения существуют только в multipart:
-            // без этого флага setText(text, html) бросает IllegalStateException.
+            // Two representations of a message, or attachments, exist only in multipart:
+            // without this flag setText(text, html) throws IllegalStateException.
             var helper = new MimeMessageHelper(mime, hasAttachments || hasAlternativeBodies, "UTF-8");
 
             helper.setFrom(from, fromName);
             helper.setTo(message.recipientEmail());
             helper.setSubject(message.subject());
 
-            // Письмо уходит в двух представлениях: текст для почтовых клиентов
-            // без HTML и для антиспам-фильтров, HTML — для остальных.
+            // The message goes out in two representations: plain text for mail clients
+            // without HTML and for spam filters, HTML for everyone else.
             if (message.htmlBody() != null && message.textBody() != null) {
                 helper.setText(message.textBody(), message.htmlBody());
             } else if (message.htmlBody() != null) {
@@ -91,7 +91,7 @@ public class SmtpMailProvider implements MailProvider {
                     messageId != null ? messageId : message.idempotencyKey(), elapsedMs(startedAt));
 
         } catch (Exception ex) {
-            // Адрес получателя — персональные данные, в журнал не пишем (CODE_STYLE, логи без ПДн).
+            // The recipient address is personal data and is not logged (CODE_STYLE, no personal data in logs).
             log.warn("SMTP: письмо не отправлено, тема '{}': {}", message.subject(), ex.getMessage());
             return MailSendResult.failure("smtp_send_failed", ex.getMessage(), elapsedMs(startedAt));
         }

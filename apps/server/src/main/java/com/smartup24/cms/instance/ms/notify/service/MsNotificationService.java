@@ -78,7 +78,7 @@ public class MsNotificationService {
     public void sendInAppNotification(
             Long userId, String type, String title, String body, String formLink, String sourceCode) {
         var created = notificationRepository.create(userId, type, title, body, formLink, sourceCode);
-        // Доставка в открытые SSE-потоки произойдёт после коммита (MsSsePublisher)
+        // Delivery to open SSE streams happens after commit (MsSsePublisher)
         eventPublisher.publishEvent(new MsNotificationCreatedEvent(userId, created));
     }
 
