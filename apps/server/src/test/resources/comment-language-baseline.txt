@@ -1,8 +1,6 @@
 # Files that still have comments in Russian, with the number of their comment lines that have
 # Cyrillic letters (plan 10/10, item 3.14, checked by CommentLanguageTest). The numbers only go down:
 # translate comments and lower the number (-Dcomment.baseline.update=true); a new file never goes here.
-apps/server/src/main/java/com/smartup24/cms/instance/audit/repository/AuditPartitionRepository.java 27
-apps/server/src/main/java/com/smartup24/cms/instance/audit/worker/AuditPartitionWorker.java 18
 apps/server/src/main/java/com/smartup24/cms/instance/common/bulk/BulkRunner.java 10
 apps/server/src/main/java/com/smartup24/cms/instance/common/provider/NotificationChannelStartupCheck.java 9
 apps/server/src/main/java/com/smartup24/cms/instance/common/query/QueryCompiler.java 9
