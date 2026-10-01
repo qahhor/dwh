@@ -7,6 +7,7 @@ import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
@@ -75,14 +76,35 @@ public class MsNoteRepository {
 
     /**
      * A page of the owner's notes by the registry plan ({@code ms.notes}). Notes are personal (SELF scope): the
-     * owner predicate goes into the same SQL, so a page and its total only ever see the owner's notes.
+     * owner predicate goes into the same SQL, so a page and its total only ever see the owner's notes. The list is
+     * derived from the entity declaration (ADR-0032, 3.4), so its rows carry the record's keys.
      */
     public KeysetPage<NoteRecord> pageByOwner(QueryPlan plan, Long ownerId) {
         return new QueryListRepository(jdbcClient)
                 .page(
                         plan,
-                        this::mapNote,
+                        this::mapListed,
                         new QueryPlan.SqlFragment(" and n.created_by = :ownerId", Map.of("ownerId", ownerId)));
+    }
+
+    /** A row of the derived list: the columns are named by the record's keys. */
+    private NoteRecord mapListed(ResultSet rs, int rowNum) throws SQLException {
+        return new NoteRecord(
+                rs.getLong("id"),
+                rs.getString("title"),
+                rs.getString("contentMd"),
+                rs.getString("color"),
+                rs.getBoolean("isPinned"),
+                jsonColumns.readObject(rs.getString("attributes")),
+                rs.getLong("createdBy"),
+                rs.getLong("modifiedBy"),
+                instant(rs.getTimestamp("createdAt")),
+                instant(rs.getTimestamp("modifiedAt")),
+                rs.getLong("revision"));
+    }
+
+    private static @Nullable Instant instant(@Nullable Timestamp timestamp) {
+        return timestamp == null ? null : timestamp.toInstant();
     }
 
     public NoteRecord update(

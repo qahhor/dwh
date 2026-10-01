@@ -3,7 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.FormFieldExtender;
-import com.smartup24.cms.instance.common.entity.FormFieldType;
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository.CustomFieldRecord;
 import java.util.List;
@@ -45,20 +45,19 @@ public class MdCustomFieldFormFields implements FormFieldExtender {
         String key = MdCustomFieldQueryFields.key(record.code());
         if (key.length() > 64) return null;
         FormField field = switch (record.fieldType().toLowerCase(Locale.ROOT)) {
-            case "string" -> FormField.of(key, "", FormFieldType.TEXT).length(null, MAX_TEXT);
-            case "number" -> FormField.of(key, "", FormFieldType.NUMBER);
-            case "date" -> FormField.of(key, "", FormFieldType.DATE);
-            case "datetime" -> FormField.of(key, "", FormFieldType.DATETIME);
-            case "time" -> FormField.of(key, "", FormFieldType.TIME);
-            case "boolean" -> FormField.of(key, "", FormFieldType.BOOLEAN);
+            case "string" -> FormField.of(key, "", FieldType.TEXT).length(null, MAX_TEXT);
+            case "number" -> FormField.of(key, "", FieldType.NUMBER);
+            case "date" -> FormField.of(key, "", FieldType.DATE);
+            case "datetime" -> FormField.of(key, "", FieldType.DATETIME);
+            case "time" -> FormField.of(key, "", FieldType.TIME);
+            case "boolean" -> FormField.of(key, "", FieldType.BOOLEAN);
             case "select" -> {
                 List<String> options = service.parseSelectOptions(record.optionsJson());
                 yield options.isEmpty()
-                        ? FormField.of(key, "", FormFieldType.TEXT).length(null, MAX_TEXT)
+                        ? FormField.of(key, "", FieldType.TEXT).length(null, MAX_TEXT)
                         : FormField.select(key, "", options, null);
             }
-            case "user_ref" ->
-                FormField.of(key, "", FormFieldType.NUMBER).refersTo(QueryRef.paged("/iam/users", "name"));
+            case "user_ref" -> FormField.of(key, "", FieldType.NUMBER).refersTo(QueryRef.paged("/iam/users", "name"));
             default -> null;
         };
         if (field == null) return null;

@@ -7,6 +7,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
@@ -31,8 +32,8 @@ class EntityDefinitionTest {
 
     @Test
     void declarationRejectsFieldsOutsideTheLayoutAndDuplicates() {
-        FormField title = FormField.of("title", "t", FormFieldType.TEXT);
-        FormField body = FormField.of("body", "b", FormFieldType.TEXT);
+        FormField title = FormField.of("title", "t", FieldType.TEXT);
+        FormField body = FormField.of("body", "b", FieldType.TEXT);
 
         assertThatThrownBy(() -> entity(List.of(title, body), List.of(new FormSection("main", "m", List.of("title")))))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -51,7 +52,6 @@ class EntityDefinitionTest {
                         null,
                         null,
                         null,
-                        null,
                         List.of(title),
                         List.of(new FormSection("main", "m", List.of("title"))),
                         List.of(),
@@ -61,16 +61,16 @@ class EntityDefinitionTest {
 
     @Test
     void fieldRejectsABadKeyAndMismatchedOptionsOrRef() {
-        assertThatThrownBy(() -> FormField.of("Bad-key", "l", FormFieldType.TEXT))
+        assertThatThrownBy(() -> FormField.of("Bad-key", "l", FieldType.TEXT))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> FormField.of("state", "l", FormFieldType.SELECT))
+        assertThatThrownBy(() -> FormField.of("state", "l", FieldType.SELECT))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> FormField.of("owner", "l", FormFieldType.REF))
+        assertThatThrownBy(() -> FormField.of("owner", "l", FieldType.REF))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThat(FormField.of("owner", "l", FormFieldType.NUMBER)
+        assertThat(FormField.of("owner", "l", FieldType.NUMBER)
                         .refersTo(QueryRef.paged("/iam/users", "name"))
                         .type())
-                .isEqualTo(FormFieldType.REF);
+                .isEqualTo(FieldType.REF);
     }
 
     @Test
@@ -111,9 +111,9 @@ class EntityDefinitionTest {
 
     @Test
     void validatorChecksNumbersDatesAndPatterns() {
-        FormField amount = FormField.of("amount", "a", FormFieldType.NUMBER).range(BigDecimal.ZERO, BigDecimal.TEN);
-        FormField due = FormField.of("due", "d", FormFieldType.DATE);
-        FormField code = FormField.of("code", "c", FormFieldType.TEXT).matching("[A-Z]{3}");
+        FormField amount = FormField.of("amount", "a", FieldType.NUMBER).range(BigDecimal.ZERO, BigDecimal.TEN);
+        FormField due = FormField.of("due", "d", FieldType.DATE);
+        FormField code = FormField.of("code", "c", FieldType.TEXT).matching("[A-Z]{3}");
         EntityDefinition entity = entity(
                 List.of(amount, due, code), List.of(new FormSection("main", "m", List.of("amount", "due", "code"))));
 
@@ -130,8 +130,8 @@ class EntityDefinitionTest {
     /** Plan 10/10, item 5.0: a moment carries its offset; a time of day is HH:mm or HH:mm:ss. */
     @Test
     void validatorChecksMomentsAndTimesOfDay() {
-        FormField at = FormField.of("startsAt", "s", FormFieldType.DATETIME);
-        FormField time = FormField.of("callTime", "t", FormFieldType.TIME);
+        FormField at = FormField.of("startsAt", "s", FieldType.DATETIME);
+        FormField time = FormField.of("callTime", "t", FieldType.TIME);
         EntityDefinition entity =
                 entity(List.of(at, time), List.of(new FormSection("main", "m", List.of("startsAt", "callTime"))));
 
@@ -158,15 +158,15 @@ class EntityDefinitionTest {
                     .extracting(FieldErrorItem::messageKey)
                     .containsExactly("error.field.time_required");
         }
-        assertThat(FormFieldType.DATETIME.wire()).isEqualTo("datetime");
-        assertThat(FormFieldType.TIME.wire()).isEqualTo("time");
+        assertThat(FieldType.DATETIME.wire()).isEqualTo("datetime");
+        assertThat(FieldType.TIME.wire()).isEqualTo("time");
     }
 
     @Test
     void registryAddsCustomFieldsInTheirOwnSectionAndSkipsTakenKeys() {
         FormFieldExtender extender = entity -> List.of(
-                FormField.of("cfBudget", "", FormFieldType.NUMBER).custom("Бюджет", "budget"),
-                FormField.of("title", "", FormFieldType.TEXT).custom("Дубль", "title"));
+                FormField.of("cfBudget", "", FieldType.NUMBER).custom("Бюджет", "budget"),
+                FormField.of("title", "", FieldType.TEXT).custom("Дубль", "title"));
         EntityRegistry registry = new EntityRegistry(
                 List.of(NOTES), List.of(extender), List.of(EntityFeaturesTest.records(NOTES.code())));
 
@@ -193,13 +193,13 @@ class EntityDefinitionTest {
         assertThat(meta.actions()).containsExactly("update", "pin");
         assertThat(meta.listCode()).isEqualTo("ms.notes");
         assertThat(meta.capabilities()).containsExactly("bulk", "custom_fields", "export", "history", "saved_views");
-        FormMetaController.FieldMeta title = meta.fields().getFirst();
+        FormMetaController.FormFieldMeta title = meta.fields().getFirst();
         assertThat(title.type()).isEqualTo("text");
         assertThat(title.required()).isTrue();
         assertThat(title.maxLength()).isEqualTo(255);
         assertThat(meta.fields().get(2).options()).contains("default", "red");
         assertThat(meta.layout())
-                .extracting(FormMetaController.SectionMeta::key)
+                .extracting(FormMetaController.FormSectionMeta::key)
                 .containsExactly("main", "settings");
     }
 
@@ -220,7 +220,6 @@ class EntityDefinitionTest {
         return new EntityDefinition(
                 "x.items",
                 "x",
-                null,
                 null,
                 null,
                 null,

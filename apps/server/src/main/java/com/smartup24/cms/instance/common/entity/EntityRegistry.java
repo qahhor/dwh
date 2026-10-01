@@ -85,8 +85,8 @@ public class EntityRegistry {
     /** How the permission matrix names a form, when an entity with that right declares it (roadmap item 57). */
     public Optional<EntityDefinition.EntityRights> rights(String form) {
         return entities.values().stream()
-                .filter(entity -> entity.form().equals(form) && entity.rights() != null)
-                .map(EntityDefinition::rights)
+                .filter(entity -> entity.form().equals(form))
+                .flatMap(entity -> Optional.ofNullable(entity.rights()).stream())
                 .findFirst();
     }
 
@@ -110,18 +110,7 @@ public class EntityRegistry {
                 CUSTOM_SECTION,
                 "entity.section.custom",
                 extra.stream().map(FormField::key).toList()));
-        return new EntityDefinition(
-                entity.code(),
-                entity.form(),
-                entity.listCode(),
-                entity.customEntity(),
-                entity.auditTable(),
-                entity.rights(),
-                entity.menu(),
-                fields,
-                layout,
-                entity.actions(),
-                entity.capabilities());
+        return entity.withForm(fields, layout);
     }
 
     /**
@@ -161,7 +150,7 @@ public class EntityRegistry {
 
             @Override
             public String tableName() {
-                return entity.auditTable();
+                return Objects.requireNonNull(entity.auditTable(), entity.code());
             }
 
             @Override
@@ -209,7 +198,7 @@ public class EntityRegistry {
         return new QueryListExporter() {
             @Override
             public String code() {
-                return entity.listCode();
+                return Objects.requireNonNull(entity.listCode(), entity.code());
             }
 
             @Override

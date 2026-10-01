@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.common.entity;
 
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import java.math.BigDecimal;
 import java.util.List;
@@ -31,7 +32,7 @@ public record FormField(
         String key,
         String labelKey,
         @Nullable String label,
-        FormFieldType type,
+        FieldType type,
         boolean required,
         @Nullable Integer minLength,
         @Nullable Integer maxLength,
@@ -52,11 +53,11 @@ public record FormField(
             throw new IllegalArgumentException("Bad form field key: " + key);
         }
         options = options == null ? List.of() : List.copyOf(options);
-        if ((type == FormFieldType.SELECT) == options.isEmpty()) {
+        if ((type == FieldType.SELECT) == options.isEmpty()) {
             throw new IllegalArgumentException(
                     "Form field " + key + ": options go with a select, and a select needs them");
         }
-        if ((type == FormFieldType.REF) != (ref != null)) {
+        if ((type == FieldType.REF) != (ref != null)) {
             throw new IllegalArgumentException(
                     "Form field " + key + ": a reference field names its source, and only it");
         }
@@ -65,7 +66,7 @@ public record FormField(
         }
     }
 
-    public static FormField of(String key, String labelKey, FormFieldType type) {
+    public static FormField of(String key, String labelKey, FieldType type) {
         return new FormField(
                 key, labelKey, null, type, false, null, null, null, null, null, List.of(), null, null, null);
     }
@@ -76,7 +77,7 @@ public record FormField(
                 key,
                 labelKey,
                 null,
-                FormFieldType.SELECT,
+                FieldType.SELECT,
                 false,
                 null,
                 null,
@@ -185,7 +186,7 @@ public record FormField(
                 key,
                 labelKey,
                 label,
-                FormFieldType.REF,
+                FieldType.REF,
                 required,
                 minLength,
                 maxLength,
