@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.0 — entity model hygiene (ADR-0019 §2.5.3): form and
+  list fields of the same name agree (`EntityFieldContractTest`); the audit
+  and history carry every declared and custom field with labels; references
+  are named by their target type; form-meta is cached like query-meta and
+  both are cleared across nodes when custom fields change; DATETIME and TIME
+  field types (V157); entity right names are translated.
+- ADR-0032 (proposed): the design of the low-code platform v2 for phase 5.
+
 - Phase 4, wave C (plan 10/10, items 4.3, 4.5) — phase 4 complete. The
   webhook module is `webhook` (package and `md_forms.module`, V155; tables
   keep `kwh_*`); every module has a `package-info.java` and a row in
@@ -804,6 +812,16 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking — compatibility removed before the release** (no client
+  installation exists, AGENTS.md §3): the deprecated forms of ADR-0023 are
+  gone (path aliases `/tasks/items`, `/rbac`, `/notify`, old session paths,
+  toggles, `POST /modules`, whole lists of projects, stats and members,
+  snake_case query parameters, `otp_token`); old configuration names
+  (`dwh.*`, `DWH_*`, `APP_DWH_*`), the `DWH_SESSION` cookie, `dwh_` tokens,
+  old permission codes and old browser storage keys are no longer read; the
+  browser-kept language import is withdrawn (FR-I18N-05). The deprecation
+  machinery of ADR-0023 stays, with empty tables.
+
 - **API- and upgrade-breaking (phase 4, wave B):**
   - The session cookie is `SMC_SESSION` (OpenAPI cookie scheme renamed);
     `DWH_SESSION` is accepted and replaced until 2026-12-31. New API tokens
@@ -1540,6 +1558,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security
+
+- Data scope (ADR-0013) was not applied on about 25 by-id paths of users and
+  projects (read, change, block, roles and rights, org units, sessions,
+  members, history) and on the project list and its export; a record outside
+  the caller's scope now answers 404 everywhere, and
+  `ScopeByIdMatrixIntegrationTest` fails for any new by-id handler that is
+  neither covered nor explicitly exempt. Global search showed every user's
+  notes; notes are found only by their owner (V159). Another person's note
+  answers 404 instead of 403.
 
 - The login lockout works (plan 10/10, item 0.6). A refused login recorded its
   attempt and security event inside the login transaction, and the exception

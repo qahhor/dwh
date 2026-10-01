@@ -56,8 +56,7 @@ publish local audit drafts as requirements or evidence.
   2026-10-01): do not add legacy aliases, transition periods, deprecated API
   forms kept for a release, or migrations that preserve or convert existing
   client data. Record a breaking change in `CHANGELOG.md`; no compatibility
-  path is needed. Compatibility layers already in the code stay until the user
-  asks to remove them.
+  path is needed. The earlier compatibility layers were removed on 2026-10-01.
 - Released Flyway migrations never change (`migration-manifest.sha256`,
   checked by `MigrationManifestTest`). A new migration takes the next free
   `V` number and is appended to the manifest
