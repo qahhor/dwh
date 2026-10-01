@@ -277,6 +277,12 @@ jobs:
           cache: npm
           cache-dependency-path: e2e/package-lock.json
 
+      # Plan 10/10, item 3.4 (ADR-0023): no spec drives or waits for a deprecated API form. A static scan against
+      # docs/api/openapi.json, before the stack is built.
+      - name: Audit deprecated API use in e2e sources
+        working-directory: e2e
+        run: npm run api:audit
+
       - name: Generate ephemeral test credentials
         shell: bash
         run: |
