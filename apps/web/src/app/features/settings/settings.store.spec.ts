@@ -8,6 +8,7 @@ import { PermissionService } from '@core/services/permission.service';
 import { ThemeService } from '@core/services/theme.service';
 import { ToastService } from '@core/services/toast.service';
 import { translateTest } from '@testing/i18n-test.stub';
+import { SystemSettings } from './settings.api';
 import { SettingsStore } from './settings.store';
 
 function setup(
@@ -15,7 +16,7 @@ function setup(
   hasPermission: (form: string, action: string) => boolean = () => true,
 ) {
   const api = { get: vi.fn(get), patch: vi.fn(() => of({})) };
-  const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
+  const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), show: vi.fn() };
   const theme = { themePreference: signal('light'), setTheme: vi.fn() };
   TestBed.configureTestingModule({
     providers: [
@@ -38,7 +39,8 @@ async function settle(): Promise<void> {
 
 describe('SettingsStore', () => {
   it('loads personal settings for everyone, applies their theme, and system settings only with the right', async () => {
-    const get = (path: string) => of(path === '/settings/user' ? { 'user.theme': 'dark' } : { 'system.x': '1' });
+    const get = (path: string) =>
+      of(path === '/settings/user' ? { 'user.theme': 'dark' } : { values: { 'system.x': '1' }, revision: 3 });
     const viewer = setup(get, () => false);
     expect(viewer.store.isLoading()).toBe(true);
     await settle();
@@ -56,12 +58,13 @@ describe('SettingsStore', () => {
     await settle();
     expect(admin.api.get).toHaveBeenCalledWith('/settings/system');
     expect(admin.store.systemSettings()).toEqual({ 'system.x': '1' });
+    expect(admin.store.systemRevision()).toBe(3);
   });
 
   it('reports a failed load once it ends, keeps the edits on screen and asks both again on refresh', async () => {
-    const retried = new Subject<Record<string, string>>();
-    const systemAnswers: Observable<Record<string, string>>[] = [
-      of({ 'system.company_name': 'Old' }),
+    const retried = new Subject<SystemSettings>();
+    const systemAnswers: Observable<SystemSettings>[] = [
+      of({ values: { 'system.company_name': 'Old' }, revision: 1 }),
       throwError(() => ({ status: 503, detail: 'down' })),
       retried,
     ];
@@ -80,7 +83,7 @@ describe('SettingsStore', () => {
     TestBed.tick();
     expect(store.isLoading()).toBe(true);
     expect(store.loadError()).toBeNull();
-    retried.next({ 'system.company_name': 'Fresh' });
+    retried.next({ values: { 'system.company_name': 'Fresh' }, revision: 2 });
     await settle();
     expect(store.loadError()).toBeNull();
     expect(store.systemSettings()).toEqual({ 'system.company_name': 'Fresh' });
@@ -120,5 +123,37 @@ describe('SettingsStore', () => {
     store.systemSettings.set({ 'security.session_lifetime_hours': '720', 'storage.default_user_quota_mb': '2048' });
     store.saveSystemSettings();
     expect(api.patch).toHaveBeenCalledOnce();
+  });
+
+  it('saves the system settings from their revision, keeps it in step, and offers a reload on a conflict', async () => {
+    const answers: SystemSettings[] = [
+      { values: { 'system.company_name': 'Old' }, revision: 4 },
+      { values: { 'system.company_name': 'Theirs' }, revision: 6 },
+    ];
+    const { store, api, toast } = setup((path) => of(path === '/settings/system' ? answers.shift() : {}));
+    await settle();
+
+    store.setSystemSetting('system.company_name', 'Mine');
+    store.saveSystemSettings();
+    expect(api.patch).toHaveBeenLastCalledWith(
+      '/settings/system',
+      { 'system.company_name': 'Mine' },
+      { notifyError: false, ifMatch: 4 },
+    );
+    expect(store.systemRevision()).toBe(5);
+
+    api.patch.mockReturnValueOnce(throwError(() => ({ status: 409, code: 'revision_conflict', detail: 'moved' })));
+    store.saveSystemSettings();
+    expect(api.patch).toHaveBeenLastCalledWith('/settings/system', expect.anything(), {
+      notifyError: false,
+      ifMatch: 5,
+    });
+    expect(store.isSaving()).toBe(false);
+    expect(toast.show).toHaveBeenCalledOnce();
+    const reload = toast.show.mock.calls[0][4] as { run: () => void };
+    reload.run();
+    await settle();
+    expect(store.systemSettings()).toEqual({ 'system.company_name': 'Theirs' });
+    expect(store.systemRevision()).toBe(6);
   });
 });

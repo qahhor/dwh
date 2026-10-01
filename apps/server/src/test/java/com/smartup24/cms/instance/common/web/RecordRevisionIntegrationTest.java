@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.common.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.MAP;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -9,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.api.NavigationItemView;
+import com.smartup24.cms.instance.md.service.MdRoleService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.NavigationItemService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -54,6 +56,9 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
 
     @Autowired
     private NavigationItemService navigation;
+
+    @Autowired
+    private MdRoleService roles;
 
     @Autowired
     private JdbcClient jdbc;
@@ -245,6 +250,123 @@ class RecordRevisionIntegrationTest extends EmbeddedPostgresTest {
             assertThat(stale.getStatus()).isEqualTo(409);
         } finally {
             send(admin, post("/api/v1/tasks/statuses/reorder"), ids);
+        }
+    }
+
+    @Test
+    @DisplayName("3.6: of two concurrent saves of the system settings from the same revision exactly one wins")
+    void concurrentSettingsSavesConflict() throws Exception {
+        Session admin = login(user());
+        MockHttpServletResponse read = send(admin, get("/api/v1/settings/system"), null);
+        assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
+        long revision = ((Number) object(read).get("revision")).longValue();
+        assertThat(read.getHeader("ETag")).isEqualTo(Revisions.etag(revision));
+        assertThat(object(read).get("values")).asInstanceOf(MAP).containsKey("system.company_name");
+
+        assertThat(send(admin, patch("/api/v1/settings/system"), Map.of("system.date_format", "dd.MM.yyyy HH:mm"))
+                        .getStatus())
+                .isEqualTo(428);
+
+        // Different keys all the same: the set is one record, so the second save is refused, not merged.
+        List<Integer> statuses = concurrently(
+                () -> send(
+                                admin,
+                                patch("/api/v1/settings/system").header("If-Match", Revisions.etag(revision)),
+                                Map.of("system.company_name", "Alice Ltd"))
+                        .getStatus(),
+                () -> send(
+                                admin,
+                                patch("/api/v1/settings/system").header("If-Match", Revisions.etag(revision)),
+                                Map.of("system.default_timezone", "UTC"))
+                        .getStatus());
+        assertThat(statuses).containsExactlyInAnyOrder(204, 409);
+        assertThat(revisionOf(admin, "/api/v1/settings/system")).isEqualTo(revision + 1);
+
+        MockHttpServletResponse saved = send(
+                admin,
+                patch("/api/v1/settings/system").header("If-Match", Revisions.etag(revision + 1)),
+                Map.of("system.company_name", "Smartup DWH Platform", "system.default_timezone", "Asia/Tashkent"));
+        assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(204);
+        assertThat(saved.getHeader("ETag")).isEqualTo(Revisions.etag(revision + 2));
+    }
+
+    @Test
+    @DisplayName("3.6: org units of a user and the scope rule of a role are saved from the user's and role's revision")
+    void orgUnitsAndScopeRuleNameTheirRevision() throws Exception {
+        Session admin = login(user());
+        long userId = userId(user());
+        String units = "/api/v1/iam/org-units/users/" + userId;
+        Map<String, Object> none = Map.of("orgUnitIds", List.of());
+        long read = revisionOf(admin, units);
+        assertThat(send(admin, put(units), none).getStatus()).isEqualTo(428);
+
+        MockHttpServletResponse assigned = send(admin, put(units).header("If-Match", Revisions.etag(read)), none);
+        assertThat(assigned.getStatus()).as(assigned.getContentAsString()).isEqualTo(204);
+        assertThat(assigned.getHeader("ETag")).isEqualTo(Revisions.etag(read + 1));
+        assertThat(send(admin, put(units).header("If-Match", Revisions.etag(read)), none)
+                        .getStatus())
+                .isEqualTo(409);
+        // The units are part of the user: a profile form opened before the change is stale too.
+        assertThat(send(
+                                admin,
+                                patch("/api/v1/iam/users/" + userId).header("If-Match", Revisions.etag(read)),
+                                Map.of("name", "Stale form"))
+                        .getStatus())
+                .isEqualTo(409);
+
+        long roleId = roles.createRole("rev-" + UUID.randomUUID().toString().substring(0, 8), 0)
+                .id();
+        String rule = "/api/v1/iam/org-units/roles/" + roleId + "/rule";
+        long roleRead = revisionOf(admin, rule);
+        Map<String, Object> all = Map.of("rule", "ALL");
+        assertThat(send(admin, put(rule), all).getStatus()).isEqualTo(428);
+        MockHttpServletResponse ruled = send(admin, put(rule).header("If-Match", Revisions.etag(roleRead)), all);
+        assertThat(ruled.getStatus()).as(ruled.getContentAsString()).isEqualTo(204);
+        assertThat(ruled.getHeader("ETag")).isEqualTo(Revisions.etag(roleRead + 1));
+        assertThat(send(admin, put(rule).header("If-Match", Revisions.etag(roleRead)), all)
+                        .getStatus())
+                .isEqualTo(409);
+    }
+
+    @Test
+    @DisplayName("3.6: PUT /modules/{code} creates without a revision and replaces only from the current one")
+    void moduleRegistrationNamesItsRevision() throws Exception {
+        Session admin = login(user());
+        String module = "/api/v1/modules/rev-" + UUID.randomUUID().toString().substring(0, 8);
+        Map<String, Object> body = Map.of("name", "Revision probe", "route", "/probe", "sortOrder", 500);
+
+        MockHttpServletResponse created = send(admin, put(module), body);
+        assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(200);
+        assertThat(created.getHeader("ETag")).isEqualTo("\"1\"");
+        assertThat(send(admin, put(module), body).getStatus()).isEqualTo(428);
+
+        MockHttpServletResponse replaced = send(admin, put(module).header("If-Match", "\"1\""), body);
+        assertThat(replaced.getStatus()).as(replaced.getContentAsString()).isEqualTo(200);
+        assertThat(object(replaced).get("revision")).isEqualTo(2);
+        assertThat(send(admin, put(module).header("If-Match", "\"1\""), body).getStatus())
+                .isEqualTo(409);
+    }
+
+    @SafeVarargs
+    private static List<Integer> concurrently(Callable<Integer>... calls) throws Exception {
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(calls.length);
+        try {
+            List<Future<Integer>> running = new ArrayList<>();
+            for (Callable<Integer> call : calls) {
+                running.add(pool.submit(() -> {
+                    start.await();
+                    return call.call();
+                }));
+            }
+            start.countDown();
+            List<Integer> results = new ArrayList<>();
+            for (Future<Integer> one : running) {
+                results.add(one.get());
+            }
+            return results;
+        } finally {
+            pool.shutdownNow();
         }
     }
 

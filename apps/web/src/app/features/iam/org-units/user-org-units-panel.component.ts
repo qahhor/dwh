@@ -26,7 +26,15 @@ import { SMTTreeTableComponent } from '@shared/ui-kit/components/tree-table/tree
 import { TreeRow } from '@shared/ui-kit/components/tree-table/tree.utils';
 import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { OrgUnitTreeRows, orgUnitSearchText, orgUnitTreeColumns } from './org-unit-tree';
-import { emptyScopeKey, normalizedIds, sameIds, scopeRuleKey, unsafeIdProblem } from './org-unit-assignments';
+import { isRevisionConflict, SaveErrorNotifier } from '@shared/ui/save-errors';
+import {
+  emptyScopeKey,
+  latestRevision,
+  normalizedIds,
+  sameIds,
+  scopeRuleKey,
+  unsafeIdProblem,
+} from './org-unit-assignments';
 import { OrgUnitsApiService } from './org-units-api.service';
 import { OrgUnit, UserScope } from './org-units.models';
 
@@ -50,10 +58,17 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly toast = inject(ToastService);
   private readonly i18n = inject(I18nService);
+  private readonly saveErrors = inject(SaveErrorNotifier);
 
   readonly userId = input.required<number>();
+  /** The user's revision as the host screen holds it: the units are saved from it (plan item 3.6). */
+  readonly revision = input<number | undefined>(undefined);
 
   readonly busyChange = output<boolean>();
+  /** The user's revision after a save of the units, for the host screen to keep its copy in step. */
+  readonly revisionChange = output<number>();
+  /** The user changed since the screen read it: the host screen reads the user again. */
+  readonly staleUser = output<void>();
 
   readonly selectedOrgUnitIds = signal<readonly number[]>([]);
   readonly search = signal('');
@@ -73,6 +88,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
   readonly saveError = signal<ProblemDetail | null>(null);
   readonly savedRefreshFailed = signal(false);
   private readonly originalOrgUnitIds = signal<readonly number[]>([]);
+  private readonly loadedRevision = signal<number | undefined>(undefined);
 
   /** The tree table identifies rows by string id. */
   readonly checkedRowIds = computed(() => this.selectedOrgUnitIds().map(String));
@@ -159,11 +175,12 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     )
       return;
     const epoch = this.viewEpoch;
+    const revision = latestRevision(this.revision(), this.loadedRevision());
     this.setPending(true);
     this.saveError.set(null);
     this.changeDetector.markForCheck();
     this.writes.add(
-      this.api.saveAssignments(target, ids).subscribe({
+      this.api.saveAssignments(target, ids, revision).subscribe({
         next: () => {
           this.setPending(false);
           if (!this.currentView(epoch, target)) {
@@ -173,13 +190,19 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
           this.originalOrgUnitIds.set([...ids]);
           this.selectedOrgUnitIds.set([...ids]);
           this.assignmentsLoaded.set(true);
+          // The save raised the user's revision by one: the next change of the user names the new one.
+          if (revision !== undefined) {
+            this.loadedRevision.set(revision + 1);
+            this.revisionChange.emit(revision + 1);
+          }
           this.toast.success(this.i18n.translate('iam.org_units.assignments_saved'));
           this.reloadScope(true);
         },
         error: (error) => {
           this.setPending(false);
-          if (this.currentView(epoch, target)) this.saveError.set(error);
-          else this.loadDeferredTarget();
+          if (!this.currentView(epoch, target)) this.loadDeferredTarget();
+          else if (isRevisionConflict(error)) this.offerReload(error);
+          else this.saveError.set(error);
           this.changeDetector.markForCheck();
         },
       }),
@@ -246,6 +269,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
         this.originalOrgUnitIds.set(ids);
         this.selectedOrgUnitIds.set([...ids]);
         this.legacyOrgUnitId.set(snapshot.legacyOrgUnitId ?? null);
+        this.loadedRevision.set(snapshot.revision);
         this.assignmentsLoaded.set(true);
         this.changeDetector.markForCheck();
       },
@@ -352,6 +376,7 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.originalOrgUnitIds.set([]);
     this.selectedOrgUnitIds.set([]);
     this.legacyOrgUnitId.set(null);
+    this.loadedRevision.set(undefined);
     this.assignmentsLoading.set(false);
     this.assignmentsLoaded.set(false);
     this.assignmentsError.set(null);
@@ -393,6 +418,18 @@ export class UserOrgUnitsPanelComponent implements OnChanges {
     this.pending.set(value);
     this.busyChange.emit(value);
     this.changeDetector.markForCheck();
+  }
+  /** The user moved on since the screen read it: the draft gives way to what the server has now. */
+  private offerReload(error: unknown): void {
+    this.saveErrors.show(error, {
+      fallbackKey: 'common.operation_failed',
+      reload: () => {
+        this.restoreDraft();
+        this.reloadAssignments();
+        this.reloadScope();
+        this.staleUser.emit();
+      },
+    });
   }
   private unavailable(): ProblemDetail {
     return unsafeIdProblem((key) => this.i18n.translate(key));

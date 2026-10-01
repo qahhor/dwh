@@ -1,10 +1,12 @@
 package com.smartup24.cms.instance.md;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import com.smartup24.cms.instance.md.service.MdI18nService;
@@ -64,8 +66,10 @@ class MdSettingServiceTest {
     @DisplayName("Обновление системных настроек должно фиксироваться в журнале аудита")
     void shouldAuditSystemSettingsChange() {
         when(repository.getAllInstanceSettings()).thenReturn(Map.of("system.company_name", "Old Company Name"));
+        when(repository.nextInstanceRevision(4L)).thenReturn(5L);
 
-        service.updateInstanceSettings(Map.of("system.company_name", "New Company Name"));
+        assertThat(service.updateInstanceSettings(Map.of("system.company_name", "New Company Name"), 4L))
+                .isEqualTo(5L);
 
         verify(repository, times(1)).setInstanceSetting("system.company_name", "New Company Name");
         verify(auditLogService, times(1))
@@ -76,6 +80,26 @@ class MdSettingServiceTest {
                         eq(List.of("value")),
                         eq(Map.of("key", "system.company_name", "value", "Old Company Name")),
                         eq(Map.of("key", "system.company_name", "value", "New Company Name")));
+    }
+
+    @Test
+    @DisplayName("3.6: system settings carry the revision of the set; a stale save writes nothing")
+    void systemSettingsAreSavedFromTheirRevision() {
+        when(repository.getAllInstanceSettings()).thenReturn(Map.of());
+        when(repository.instanceRevision()).thenReturn(3L);
+        when(repository.nextInstanceRevision(2L)).thenThrow(Revisions.conflict());
+
+        assertThat(service.getSystemSettings().revision()).isEqualTo(3L);
+        assertThat(service.getSystemSettings().values()).containsEntry("system.default_language", "ru");
+        // An empty save changes nothing and keeps the revision, but is refused from an older one.
+        assertThat(service.updateInstanceSettings(Map.of(), 3L)).isEqualTo(3L);
+        assertThatThrownBy(() -> service.updateInstanceSettings(Map.of(), 2L)).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> service.updateInstanceSettings(Map.of("system.company_name", "Late"), 2L))
+                .isInstanceOf(ApiException.class);
+
+        verify(repository, never()).nextInstanceRevision(3L);
+        verify(repository, never()).setInstanceSetting(anyString(), anyString());
+        verifyNoInteractions(auditLogService);
     }
 
     @Test
@@ -116,10 +140,10 @@ class MdSettingServiceTest {
     @DisplayName("Блокировка по бездействию: от 0 до 1440 минут, иначе 422; испорченное значение — по умолчанию")
     void idleLockMinutesAreBounded() {
         org.assertj.core.api.Assertions.assertThatThrownBy(
-                        () -> service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "2000")))
+                        () -> service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "2000"), 1L))
                 .isInstanceOf(ApiException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(
-                        () -> service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "soon")))
+                        () -> service.updateInstanceSettings(Map.of("security.idle_lock_minutes", "soon"), 1L))
                 .isInstanceOf(ApiException.class);
 
         when(repository.getAllInstanceSettings()).thenReturn(Map.of("security.idle_lock_minutes", "15"));

@@ -121,30 +121,42 @@ public class MdOrgUnitController {
         return ResponseEntity.ok(scopeService.getRoleScopeRule(roleId));
     }
 
-    /** Позиция сотрудника в дереве — полная замена набора узлов. */
+    /**
+     * Replaces the org units of a user whole, made from the user's revision ({@code If-Match}, ADR-0024); the answer
+     * carries the user's new revision in {@code ETag}.
+     */
     @Operation(
             summary = "Replace the units of a user",
             description = "Replaces the whole set of units a user is assigned to.")
     @PutMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> assignUser(
-            @PathVariable("userId") Long userId, @Valid @RequestBody AssignUnitsDto body) {
-        scopeService.assignUserOrgUnits(userId, body.orgUnitIds());
-        return ResponseEntity.noContent().build();
+            @PathVariable("userId") Long userId,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody AssignUnitsDto body) {
+        long revision = scopeService.assignUserOrgUnits(userId, body.orgUnitIds(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
-    /** Правило видимости у роли: ALL, SUBTREE, UNITS или SELF. */
+    /**
+     * Sets the scope rule of a role (ALL, SUBTREE, UNITS or SELF), made from the role's revision ({@code If-Match},
+     * ADR-0024); the answer carries the role's new revision in {@code ETag}.
+     */
     @Operation(
             summary = "Set the visibility rule of a role",
             description = "Sets what a role sees: all, a subtree, chosen units or own records only.")
     @PutMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> setRoleRule(
-            @PathVariable("roleId") Long roleId, @Valid @RequestBody ScopeRuleDto body) {
-        scopeService.setRoleRule(roleId, body.rule());
-        return ResponseEntity.noContent().build();
+            @PathVariable("roleId") Long roleId,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody ScopeRuleDto body) {
+        long revision = scopeService.setRoleRule(roleId, body.rule(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     /** Скоуп сотрудника глазами администратора: какое правило и какие узлы видны. */

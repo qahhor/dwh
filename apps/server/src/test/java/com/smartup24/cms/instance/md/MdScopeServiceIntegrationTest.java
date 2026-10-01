@@ -102,7 +102,10 @@ class MdScopeServiceIntegrationTest {
         Long roleId = createRole("Региональный менеджер", MdScopeService.RULE_SUBTREE);
         assignRole(userId, roleId);
 
-        scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                userId,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(userId).revision());
 
         var scope = scopeService.getUserScope(userId);
         assertThat(scope.rule()).isEqualTo(MdScopeService.RULE_SUBTREE);
@@ -118,7 +121,10 @@ class MdScopeServiceIntegrationTest {
         Long roleId = createRole("Супервайзер региона", MdScopeService.RULE_UNITS);
         assignRole(userId, roleId);
 
-        scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                userId,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(userId).revision());
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactly(regionTashkent);
     }
@@ -128,7 +134,10 @@ class MdScopeServiceIntegrationTest {
     void allRuleMaterializesNothing() {
         Long userId = createUser("scope_all", null);
         assignRole(userId, roleRepository.findByPcode("admin").orElseThrow().id());
-        scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                userId,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(userId).revision());
 
         var scope = scopeService.getUserScope(userId);
         assertThat(scope.rule()).isEqualTo(MdScopeService.RULE_ALL);
@@ -142,7 +151,10 @@ class MdScopeServiceIntegrationTest {
         assignRole(userId, createRole("Узкая роль", MdScopeService.RULE_UNITS));
         assignRole(userId, createRole("Широкая роль", MdScopeService.RULE_SUBTREE));
 
-        scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                userId,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(userId).revision());
 
         assertThat(scopeService.getUserScope(userId).rule()).isEqualTo(MdScopeService.RULE_SUBTREE);
     }
@@ -158,7 +170,8 @@ class MdScopeServiceIntegrationTest {
         Long branch = orgUnitService
                 .create(region, "B-TMP", "Временный филиал", "branch", 10)
                 .id();
-        scopeService.assignUserOrgUnits(userId, List.of(region));
+        scopeService.assignUserOrgUnits(
+                userId, List.of(region), scopeService.getUserAssignments(userId).revision());
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactlyInAnyOrder(region, branch);
 
@@ -194,7 +207,8 @@ class MdScopeServiceIntegrationTest {
                 .create(company, "R-DEL", "Удаляемый регион", "region", 40)
                 .id();
         Long userId = createUser("scope_delete_guard", null);
-        scopeService.assignUserOrgUnits(userId, List.of(unit));
+        scopeService.assignUserOrgUnits(
+                userId, List.of(unit), scopeService.getUserAssignments(userId).revision());
 
         assertThatThrownBy(() -> orgUnitService.delete(unit))
                 .isInstanceOf(ApiException.class)
@@ -208,7 +222,10 @@ class MdScopeServiceIntegrationTest {
     void predicateRestrictsUserList() {
         Long viewer = createUser("scope_viewer", regionTashkent);
         assignRole(viewer, createRole("Менеджер Ташкента", MdScopeService.RULE_SUBTREE));
-        scopeService.assignUserOrgUnits(viewer, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                viewer,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(viewer).revision());
 
         Long inBranch = createUser("scope_in_branch", branchYunusabad);
         Long inOtherRegion = createUser("scope_in_samarkand", regionSamarkand);
@@ -254,7 +271,10 @@ class MdScopeServiceIntegrationTest {
         assignRole(userId, createRole("Роль для версии", MdScopeService.RULE_SUBTREE));
         long before = permissionService.getPermissionVersion(userId);
 
-        scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                userId,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(userId).revision());
 
         assertThat(permissionService.getPermissionVersion(userId)).isGreaterThan(before);
     }
@@ -265,11 +285,17 @@ class MdScopeServiceIntegrationTest {
         Long userId = createUser("scope_rule_change", null);
         Long roleId = createRole("Меняющая правило роль", MdScopeService.RULE_UNITS);
         assignRole(userId, roleId);
-        scopeService.assignUserOrgUnits(userId, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                userId,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(userId).revision());
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds()).containsExactly(regionTashkent);
 
-        scopeService.setRoleRule(roleId, MdScopeService.RULE_SUBTREE);
+        scopeService.setRoleRule(
+                roleId,
+                MdScopeService.RULE_SUBTREE,
+                scopeService.getRoleScopeRule(roleId).revision());
 
         assertThat(scopeService.getUserScope(userId).visibleOrgUnitIds())
                 .containsExactlyInAnyOrder(regionTashkent, branchYunusabad);
@@ -280,12 +306,21 @@ class MdScopeServiceIntegrationTest {
     void subtreeRestrictsTasksAndFilesAcrossOrganizationBranches() {
         Long viewer = createUser("scope_task_viewer", regionTashkent);
         assignRole(viewer, createRole("Менеджер задач Ташкента", MdScopeService.RULE_SUBTREE));
-        scopeService.assignUserOrgUnits(viewer, List.of(regionTashkent));
+        scopeService.assignUserOrgUnits(
+                viewer,
+                List.of(regionTashkent),
+                scopeService.getUserAssignments(viewer).revision());
 
         Long inBranch = createUser("scope_task_in_branch", branchYunusabad);
-        scopeService.assignUserOrgUnits(inBranch, List.of(branchYunusabad));
+        scopeService.assignUserOrgUnits(
+                inBranch,
+                List.of(branchYunusabad),
+                scopeService.getUserAssignments(inBranch).revision());
         Long outsideBranch = createUser("scope_task_outside", regionSamarkand);
-        scopeService.assignUserOrgUnits(outsideBranch, List.of(regionSamarkand));
+        scopeService.assignUserOrgUnits(
+                outsideBranch,
+                List.of(regionSamarkand),
+                scopeService.getUserAssignments(outsideBranch).revision());
 
         Long visibleTask = createTask("Видимая задача", inBranch);
         Long hiddenTask = createTask("Чужая задача", outsideBranch);
@@ -378,7 +413,10 @@ class MdScopeServiceIntegrationTest {
     void unknownRuleIsRejected() {
         Long roleId = createRole("Роль с плохим правилом", MdScopeService.RULE_ALL);
 
-        assertThatThrownBy(() -> scopeService.setRoleRule(roleId, "EVERYTHING"))
+        assertThatThrownBy(() -> scopeService.setRoleRule(
+                        roleId,
+                        "EVERYTHING",
+                        scopeService.getRoleScopeRule(roleId).revision()))
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.scope_rule_unknown")
                 .hasFieldOrPropertyWithValue(

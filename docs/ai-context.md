@@ -133,10 +133,9 @@ JSON, сроки хранения) и `config` (безопасность, фил
 структура»; порядок задач задаёт пользователь. Правила для всех AI-ассистентов —
 в [`AGENTS.md`](../AGENTS.md).
 
-Оставшийся долг виден в тестах и только сокращается: `NOT_YET_LOCKED` в
-`ChangesNameTheirRevisionTest` (`NOT_YET_PAGED` в `CollectionsArePagedTest` пуст и
-удалён 2026-10-01), замороженные нарушения границ (`src/test/resources/archunit_store`),
-`comment-language-baseline.txt` для `CommentLanguageTest`.
+Долги фазы 3 закрыты 2026-10-01: `NOT_YET_LOCKED` и `NOT_YET_PAGED` пусты и удалены,
+хранилище замороженных нарушений ArchUnit пусто, «чужой SQL» запрещён строго (ADR-0026),
+комментарии в коде и тестах на английском (выпущенные миграции заморожены контрольной суммой).
 
 Известные пробелы платформы перечислены в
 [extension-points.md](architecture/extension-points.md#7-известные-пробелы):

@@ -76,7 +76,10 @@ export const fixtures = {
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 1929, total: 1929, coverage: 100 },
     { code: 'en', name: 'English', builtin: true, active: true, revision: 1, translated: 1751, total: 1929, coverage: 91 },
   ],
-  '/settings/system': { company_name: 'Smartup Distribution', default_language: 'ru' },
+  '/settings/system': {
+    values: { 'system.company_name': 'Smartup Distribution', 'system.default_language': 'ru' },
+    revision: 1,
+  },
   '/settings/user': {},
   '/modules/active': [
     { code: 'notes', name: 'Заметки', version: '1.0.0', route: '/notes', icon: 'description', isSystem: false, status: 'ACTIVE', isActive: true },
@@ -85,7 +88,7 @@ export const fixtures = {
   '/notifications/unread-count': { unread_count: 0 },
   '/announcements/active': [],
   '/iam/org-units': orgUnits(),
-  '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null },
+  '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null, revision: 1 },
   '/iam/org-units/users/1/scope': { rule: 'UNITS', visibleOrgUnitIds: [2, 5] },
   // The user list is a registry list (roadmap item 48): its fields come from query-meta, the total is real.
   '/query-meta/iam.users': {

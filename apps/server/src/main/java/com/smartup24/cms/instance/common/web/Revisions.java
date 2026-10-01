@@ -41,7 +41,20 @@ public final class Revisions {
         if (fromBody != null) {
             return fromBody;
         }
-        throw new ApiException(ErrorCode.PRECONDITION_REQUIRED, "error.common.precondition_required");
+        throw missing();
+    }
+
+    /**
+     * The revision from {@code If-Match}, or {@code null} when the header is absent: for a {@code PUT} that creates the
+     * record when it does not exist yet, and replaces it from the named revision when it does.
+     */
+    public static @Nullable Long optional(@Nullable String ifMatch) {
+        return ifMatch == null || ifMatch.isBlank() ? null : required(ifMatch);
+    }
+
+    /** The answer to a change of an existing record that named no revision (428). */
+    public static ApiException missing() {
+        return new ApiException(ErrorCode.PRECONDITION_REQUIRED, "error.common.precondition_required");
     }
 
     /** The {@code ETag} value of a revision. */

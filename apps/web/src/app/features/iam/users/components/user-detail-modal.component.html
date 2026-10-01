@@ -233,7 +233,10 @@
           @if (isOpen() && canViewOrgUnits() && safeRecordId()(u.id)) {
             <app-user-org-units-panel
               [userId]="u.id"
+              [revision]="u.revision"
               (busyChange)="orgPanelBusy.emit($event)"
+              (revisionChange)="userRevisionChange.emit({ userId: u.id, revision: $event })"
+              (staleUser)="refreshUser.emit(u.id)"
             ></app-user-org-units-panel>
           }
         </div>

@@ -2,6 +2,9 @@ package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import com.smartup24.cms.instance.common.web.AnswersRevision;
+import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.instance.md.api.SystemSettingsView;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdSettingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,20 +44,25 @@ public class MdSettingController {
         return ResponseEntity.ok(Map.of("idleLockMinutes", settingService.idleLockMinutes()));
     }
 
+    /** The system settings and the revision of the set (body and {@code ETag}), which a save names (ADR-0024). */
     @Operation(summary = "Get the system settings", description = "The installation-wide settings.")
     @GetMapping("/system")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "view")
-    public ResponseEntity<Map<String, String>> getSystemSettings() {
-        return ResponseEntity.ok(settingService.getInstanceSettings());
+    public ResponseEntity<SystemSettingsView> getSystemSettings() {
+        return ResponseEntity.ok(settingService.getSystemSettings());
     }
 
+    /** Saves the keys sent, made from the revision of the set: 428 without {@code If-Match}, 409 from an older one. */
     @Operation(summary = "Update the system settings", description = "Changes installation-wide settings.")
     @PatchMapping("/system")
     @RequiresPermission(form = MdPref.FORM_SETTINGS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> updateSystemSettings(@RequestBody Map<String, String> body) {
-        settingService.updateInstanceSettings(body);
-        return ResponseEntity.noContent().build();
+    @AnswersRevision
+    public ResponseEntity<Void> updateSystemSettings(
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @RequestBody Map<String, String> body) {
+        long revision = settingService.updateInstanceSettings(body, Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
     @Operation(summary = "Get my settings", description = "The caller's own settings.")

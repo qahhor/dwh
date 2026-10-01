@@ -75,7 +75,13 @@
         (togglePermission)="matrix.togglePermission($event.formCode, $event.action, $event.checked)"
       ></app-role-permissions-matrix>
       @if (canViewOrgUnits() && safeRoleId(role.id)) {
-        <app-role-scope-panel [roleId]="role.id" (busyChange)="scopePanelBusy.set($event)"></app-role-scope-panel>
+        <app-role-scope-panel
+          [roleId]="role.id"
+          [revision]="role.revision"
+          (busyChange)="scopePanelBusy.set($event)"
+          (revisionChange)="onScopeRevision(role, $event)"
+          (staleRole)="loadRoles()"
+        ></app-role-scope-panel>
       }
     </div>
   }

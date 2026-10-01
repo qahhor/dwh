@@ -72,7 +72,7 @@ class KauthChannelTextsTest {
 
     @BeforeEach
     void russianSystem() {
-        settings.updateInstanceSettings(Map.of("system.default_language", "ru"));
+        saveSystemLanguage("ru");
     }
 
     @Test
@@ -89,7 +89,7 @@ class KauthChannelTextsTest {
     @Test
     @DisplayName("An inactive user language gives way to the system language from the settings")
     void systemLanguage() {
-        settings.updateInstanceSettings(Map.of("system.default_language", "uz"));
+        saveSystemLanguage("uz");
 
         var text = texts.render(user("kk"), "channel_verify", Map.of("code", "654321", "minutes", "15"));
 
@@ -100,7 +100,7 @@ class KauthChannelTextsTest {
     @Test
     @DisplayName("With neither language active the text is Russian")
     void russianLast() {
-        settings.updateInstanceSettings(Map.of("system.default_language", "kk"));
+        saveSystemLanguage("kk");
 
         var text = texts.render(user("kk"), "password_reset", Map.of("link", "https://cms.test/x", "minutes", "15"));
 
@@ -108,6 +108,12 @@ class KauthChannelTextsTest {
         assertThat(text.body())
                 .startsWith("Ссылка для смены пароля:\nhttps://cms.test/x")
                 .contains("15 мин.");
+    }
+
+    private static void saveSystemLanguage(String language) {
+        settings.updateInstanceSettings(
+                Map.of("system.default_language", language),
+                settings.getSystemSettings().revision());
     }
 
     private static Long user(String language) {

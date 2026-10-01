@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -99,7 +100,8 @@ class MdOrgUnitControllerTest {
     void exposesExplicitUserAssignmentsToViewers() throws Exception {
         MdScopeService scopeService = mock(MdScopeService.class);
         SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
-        when(scopeService.getUserAssignments(42L)).thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(7L), 9L));
+        when(scopeService.getUserAssignments(42L))
+                .thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(7L), 9L, 4L));
 
         mvc(scopeService)
                 .perform(get("/api/v1/iam/org-units/users/42"))
@@ -113,7 +115,8 @@ class MdOrgUnitControllerTest {
     void serializesNullLegacyOrgUnitIdInsteadOfOmittingIt() throws Exception {
         MdScopeService scopeService = mock(MdScopeService.class);
         SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
-        when(scopeService.getUserAssignments(42L)).thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(), null));
+        when(scopeService.getUserAssignments(42L))
+                .thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(), null, 1L));
 
         mvc(scopeService)
                 .perform(get("/api/v1/iam/org-units/users/42"))
@@ -128,7 +131,7 @@ class MdOrgUnitControllerTest {
                         JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL))
                 .build();
 
-        String json = mapper.writeValueAsString(new MdOrgUnitDtos.UserAssignments(42L, List.of(), null));
+        String json = mapper.writeValueAsString(new MdOrgUnitDtos.UserAssignments(42L, List.of(), null, 1L));
 
         assertThat(json).contains("\"legacyOrgUnitId\":null");
     }
@@ -137,7 +140,8 @@ class MdOrgUnitControllerTest {
     void exposesRoleScopeRuleToViewers() throws Exception {
         MdScopeService scopeService = mock(MdScopeService.class);
         SecurityContext.setPrincipal(principal(Set.of("iam.org_units.view")));
-        when(scopeService.getRoleScopeRule(42L)).thenReturn(new MdOrgUnitDtos.RoleRule(42L, MdScopeService.RULE_ALL));
+        when(scopeService.getRoleScopeRule(42L))
+                .thenReturn(new MdOrgUnitDtos.RoleRule(42L, MdScopeService.RULE_ALL, 3L));
 
         mvc(scopeService)
                 .perform(get("/api/v1/iam/org-units/roles/42/rule"))
@@ -181,6 +185,40 @@ class MdOrgUnitControllerTest {
                     .andExpect(status().isUnprocessableEntity())
                     .andExpect(jsonPath("$.code").value("validation_failed"));
         }
+    }
+
+    @Test
+    void assignmentAndRuleChangesNameTheRevisionAndAnswerTheNewOne() throws Exception {
+        SecurityContext.setPrincipal(principal(Set.of("iam.org_units.assign")));
+        MdScopeService scopeService = mock(MdScopeService.class);
+        when(scopeService.assignUserOrgUnits(42L, List.of(7L), 4L)).thenReturn(5L);
+        when(scopeService.setRoleRule(8L, "UNITS", 2L)).thenReturn(3L);
+        MockMvc mvc = mvc(scopeService);
+
+        mvc.perform(put("/api/v1/iam/org-units/users/42")
+                        .contentType("application/json")
+                        .content("{\"orgUnitIds\":[7]}"))
+                .andExpect(status().isPreconditionRequired())
+                .andExpect(jsonPath("$.code").value("precondition_required"));
+        mvc.perform(put("/api/v1/iam/org-units/roles/8/rule")
+                        .contentType("application/json")
+                        .content("{\"rule\":\"UNITS\"}"))
+                .andExpect(status().isPreconditionRequired());
+
+        mvc.perform(put("/api/v1/iam/org-units/users/42")
+                        .header("If-Match", "\"4\"")
+                        .contentType("application/json")
+                        .content("{\"orgUnitIds\":[7]}"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("ETag", "\"5\""));
+        mvc.perform(put("/api/v1/iam/org-units/roles/8/rule")
+                        .header("If-Match", "\"2\"")
+                        .contentType("application/json")
+                        .content("{\"rule\":\"UNITS\"}"))
+                .andExpect(status().isNoContent())
+                .andExpect(header().string("ETag", "\"3\""));
+        org.mockito.Mockito.verify(scopeService).assignUserOrgUnits(42L, List.of(7L), 4L);
+        org.mockito.Mockito.verify(scopeService).setRoleRule(8L, "UNITS", 2L);
     }
 
     private static MockMvc mvc(MdScopeService scopeService) {
