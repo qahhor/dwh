@@ -84,10 +84,10 @@ public class MfFileRepository {
     }
 
     /**
-     * Любая запись владения с таким содержимым — нужна, чтобы переиспользовать
-     * уже лежащий на диске объект вместо повторной заливки. Возвращённая запись
-     * может принадлежать другому пользователю, поэтому наружу её отдавать нельзя
-     * (V010): из неё берутся только bucket и ключ.
+     * Any ownership record with this content, used to reuse an object already
+     * on disk instead of uploading it again. The returned record may belong to
+     * another user, so it must never be exposed (V010): only the bucket and key
+     * are taken from it.
      */
     public Optional<FileRecord> findBySha256(String sha256) {
         return jdbcClient
@@ -102,7 +102,7 @@ public class MfFileRepository {
                 .optional();
     }
 
-    /** Запись владения этого пользователя на это содержимое — повторная загрузка своего же файла. */
+    /** This user's ownership record for this content: a repeat upload of the user's own file. */
     public Optional<FileRecord> findBySha256AndOwner(String sha256, Long ownerId) {
         if (ownerId == null) {
             return Optional.empty();
@@ -119,7 +119,7 @@ public class MfFileRepository {
                 .optional();
     }
 
-    /** Остались ли владельцы у этого содержимого — проверка перед удалением объекта с диска. */
+    /** Whether this content still has owners: the check before deleting the object from disk. */
     public boolean existsBySha256(String sha256) {
         Long count = jdbcClient
                 .sql("select count(*) from mf_files where sha256 = :sha256")
