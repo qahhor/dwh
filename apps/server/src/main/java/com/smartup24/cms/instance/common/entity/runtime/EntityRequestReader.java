@@ -70,7 +70,16 @@ public final class EntityRequestReader {
                     continue;
                 }
                 attributes = attributes == null ? new LinkedHashMap<>() : attributes;
-                attributes.putAll(objectOf(node));
+                for (Map.Entry<String, Object> value : objectOf(node).entrySet()) {
+                    if (takesAttribute(entity, model, value.getKey())) {
+                        attributes.put(value.getKey(), value.getValue());
+                    } else {
+                        errors.add(FieldErrorItem.keyed(
+                                EntityModel.ATTRIBUTES + "." + value.getKey(),
+                                EntityFieldRights.UNKNOWN_FIELD,
+                                "error.field.unknown"));
+                    }
+                }
                 continue;
             }
             Optional<EntityField> field = model.field(key).filter(EntityRequestReader::written);
@@ -95,6 +104,19 @@ public final class EntityRequestReader {
             throw ApiException.badRequest(ErrorCode.BAD_REQUEST, "error.common.entity_body_invalid");
         }
         return objectOf(body);
+    }
+
+    /**
+     * Whether a value in {@code attributes} has a place: any code of an entity with the administrator's custom fields
+     * (their definitions check them), otherwise only the code of a declared attribute field — an entity without either
+     * keeps no free values (ADR-0032, 12, "mass assignment").
+     */
+    private static boolean takesAttribute(EntityDefinition entity, EntityModel model, String code) {
+        if (entity.customEntity() != null) return true;
+        return model.fields().stream()
+                .anyMatch(field -> written(field)
+                        && field.source() instanceof FieldSource.Attribute attribute
+                        && attribute.code().equals(code));
     }
 
     /** A field a save writes: a column, an attribute, money columns or a link table on the form. */

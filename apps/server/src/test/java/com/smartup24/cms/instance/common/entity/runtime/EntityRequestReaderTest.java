@@ -72,15 +72,21 @@ class EntityRequestReaderTest {
         EntityRequestReader.Body body = EntityRequestReader.read(FieldTypesFixture.DEFINITION, json("""
                 {"title": "T", "qty": 12.50, "active": true, "ownerId": 7, "tagIds": [1, 2],
                  "total": {"amount": "1.00", "currency": "UZS"}, "extra": {"a": [1]}, "photo": null,
-                 "region": "north", "attributes": {"cfX": "y"}}
+                 "region": "north", "attributes": {"level": "3", "cfX": "y"}}
                 """));
 
-        assertThat(body.errors()).isEmpty();
+        assertThat(body.errors())
+                .extracting(item -> item.field() + ":" + item.code())
+                .as("a free value in attributes of an entity without custom fields")
+                .containsExactly("attributes.cfX:unknown_field");
         assertThat((BigDecimal) body.values().get("qty")).isEqualByComparingTo("12.5");
         assertThat(body.values().get("ownerId")).isEqualTo(7L);
         assertThat(body.values().get("tagIds")).isEqualTo(List.of(1L, 2L));
         assertThat(body.values()).containsKey("photo").doesNotContainKey("region");
-        assertThat(body.attributes()).containsEntry("region", "north").containsEntry("cfX", "y");
+        assertThat(body.attributes())
+                .containsEntry("region", "north")
+                .containsEntry("level", "3")
+                .doesNotContainKey("cfX");
     }
 
     @Test
