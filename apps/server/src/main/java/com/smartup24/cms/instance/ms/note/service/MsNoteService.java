@@ -109,7 +109,8 @@ public class MsNoteService {
                 .orElseThrow(
                         () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!note.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
+            // Someone else's note reads as missing: 404, not 403, so the id reveals nothing (ADR-0013).
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id));
         }
         return NoteView.from(note);
     }
@@ -159,7 +160,8 @@ public class MsNoteService {
                 .orElseThrow(
                         () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
+            // Someone else's note reads as missing: 404, not 403, so the id reveals nothing (ADR-0013).
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id));
         }
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
 
@@ -224,7 +226,8 @@ public class MsNoteService {
                 .orElseThrow(
                         () -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id)));
         if (!existing.createdBy().equals(userId)) {
-            throw ApiException.forbidden(ErrorCode.FORBIDDEN, "error.note.foreign_note");
+            // Someone else's note reads as missing: 404, not 403, so the id reveals nothing (ADR-0013).
+            throw ApiException.notFound(ErrorCode.NOT_FOUND, "error.note.not_found", Map.of("id", id));
         }
         return existing;
     }

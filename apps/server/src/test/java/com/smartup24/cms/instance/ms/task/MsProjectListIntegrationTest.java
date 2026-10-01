@@ -151,8 +151,8 @@ class MsProjectListIntegrationTest {
     }
 
     @Test
-    @DisplayName("A viewer who sees none of the tasks counts none of them")
-    void countsFollowTheScope() {
+    @DisplayName("ADR-0013: a scoped viewer lists only the projects in scope and counts only the tasks in scope")
+    void listAndCountsFollowTheScope() {
         Long self = user("pl_self");
         var role = roles.create("pl SELF", null, "A", 100);
         new MdScopeRepository(jdbc).setRoleRule(role.id(), MdScopeService.RULE_SELF);
@@ -160,8 +160,19 @@ class MsProjectListIntegrationTest {
         scopes.recalculateFor(self);
         signIn(self, "tasks.projects.view", "tasks.items.view");
         assertThat(projects.page(self, null, null, null, null, "pl ", null).items())
+                .as("a project the viewer neither created, joined nor works in is not listed")
+                .isEmpty();
+
+        jdbc.sql("""
+                        insert into ms_task_project_members (project_id, user_id, access_kind)
+                        select id, :user, 'R' from ms_task_projects where name = 'pl Alpha'
+                        """).param("user", self).update();
+        var page = projects.page(self, null, null, null, null, "pl ", null);
+        assertThat(names(page.items())).containsExactly("pl Alpha");
+        assertThat(page.items())
+                .as("a member sees the project but counts only the tasks they take part in")
                 .extracting(ProjectListItem::totalTasks)
-                .containsOnly(0);
+                .containsExactly(0);
     }
 
     private static List<String> names(List<ProjectListItem> items) {

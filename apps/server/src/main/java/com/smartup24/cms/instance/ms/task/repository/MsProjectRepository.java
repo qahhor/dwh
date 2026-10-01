@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.ms.task.repository;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
+import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.common.web.Revisions;
 import java.time.Instant;
 import java.util.List;
@@ -49,6 +50,20 @@ public class MsProjectRepository {
                 from ms_task_projects
                 where id = :id
                 """).param("id", id).query(this::mapRecord).optional();
+    }
+
+    /** The project as the viewer may see it (ADR-0013): outside the scope it is as good as missing. */
+    public Optional<ProjectRecord> findById(Long id, ScopeFilter scope) {
+        var query = jdbcClient.sql("""
+                select p.id, p.name, p.description, p.state, p.attributes::text as attributes_str, p.created_at,
+                       p.created_by, p.revision
+                from ms_task_projects p
+                where p.id = :id
+                """ + scope.sql()).param("id", id);
+        if (scope.bindsUserId()) {
+            query = query.param("scopeUserId", scope.userId());
+        }
+        return query.query(this::mapRecord).optional();
     }
 
     public List<ProjectRecord> listProjects(String state) {

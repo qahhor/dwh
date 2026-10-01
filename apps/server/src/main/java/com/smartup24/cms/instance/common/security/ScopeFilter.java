@@ -221,6 +221,69 @@ public record ScopeFilter(
                 userId);
     }
 
+    /**
+     * UNITS/SUBTREE for users: the user's home unit or one of their additional units is in the viewer's scope,
+     * the rule {@code MdScopeService.canAccessUser} answers for one user. The list and the card share it, so a user
+     * the list hides is missing by id too (ADR-0013, 404 rather than 403).
+     */
+    public static ScopeFilter userByOrgUnit(String userIdColumn, Long userId) {
+        return scoped(" and " + userInScope(userIdColumn), userId);
+    }
+
+    /**
+     * SELF for projects (alias {@code p}): the viewer created the project, is its member, or takes part in one of
+     * its tasks.
+     */
+    public static ScopeFilter projectSelf(Long userId) {
+        return scoped(
+                " and (p.created_by = :scopeUserId"
+                        + " or exists (select 1 from ms_task_project_members scope_pm"
+                        + " where scope_pm.project_id = p.id and scope_pm.user_id = :scopeUserId)"
+                        + " or exists (select 1 from ms_tasks t where t.project_id = p.id"
+                        + taskSelf(userId).sql() + "))",
+                userId);
+    }
+
+    /**
+     * UNITS/SUBTREE for projects (alias {@code p}): the creator or a member is in the viewer's scope, or one of its
+     * tasks is visible by participation.
+     */
+    public static ScopeFilter projectByParticipantOrgUnit(Long userId) {
+        return scoped(
+                " and (" + userInScope("p.created_by")
+                        + " or exists (select 1 from ms_task_project_members scope_pm"
+                        + " where scope_pm.project_id = p.id and " + userInScope("scope_pm.user_id") + ")"
+                        + " or exists (select 1 from ms_tasks t where t.project_id = p.id and "
+                        + TASK_PARTICIPANT_IN_SCOPE + "))",
+                userId);
+    }
+
+    /** The user named by {@code userIdColumn} has a home or an additional unit in the viewer's scope. */
+    private static String userInScope(String userIdColumn) {
+        return """
+                exists (
+                    select 1
+                    from md_users scope_su
+                    where scope_su.id = %s
+                      and (
+                           scope_su.org_unit_id in (
+                               select org_unit_id
+                               from md_effective_scope
+                               where user_id = :scopeUserId
+                           )
+                        or exists (
+                               select 1
+                               from md_user_org_units scope_suou
+                               join md_effective_scope scope_ses
+                                 on scope_ses.org_unit_id = scope_suou.org_unit_id
+                                and scope_ses.user_id = :scopeUserId
+                               where scope_suou.user_id = scope_su.id
+                           )
+                      )
+                )
+                """.formatted(userIdColumn);
+    }
+
     private static ScopeFilter scoped(String sql, Long userId) {
         return new ScopeFilter(sql, true, userId);
     }

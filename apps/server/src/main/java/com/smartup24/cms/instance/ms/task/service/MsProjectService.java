@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.md.service.MdCustomFieldService;
+import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
 import com.smartup24.cms.instance.ms.task.api.ProjectView;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
@@ -27,16 +28,19 @@ public class MsProjectService {
     private final MdCustomFieldService customFieldService;
     private final SearchChangePublisher searchChangePublisher;
     private final AuditLogService auditLogService;
+    private final MdScopeService scopeService;
 
     public MsProjectService(
             MsProjectRepository projectRepository,
             MdCustomFieldService customFieldService,
             SearchChangePublisher searchChangePublisher,
-            AuditLogService auditLogService) {
+            AuditLogService auditLogService,
+            MdScopeService scopeService) {
         this.projectRepository = projectRepository;
         this.customFieldService = customFieldService;
         this.searchChangePublisher = searchChangePublisher;
         this.auditLogService = auditLogService;
+        this.scopeService = scopeService;
     }
 
     @Transactional
@@ -65,6 +69,27 @@ public class MsProjectService {
     @Transactional(readOnly = true)
     public ProjectView getProjectById(Long id) {
         return MsTaskViews.project(findProject(id));
+    }
+
+    /** The card as the viewer may open it: a project outside the viewer's data scope is missing (ADR-0013). */
+    @Transactional(readOnly = true)
+    public ProjectView getProjectById(Long id, Long viewerId) {
+        return MsTaskViews.project(findVisible(id, viewerId));
+    }
+
+    /**
+     * Every call that names a project by id checks this first: outside the viewer's scope the project answers 404
+     * like a missing one, so its id reveals nothing (ADR-0013); {@code viewerId} null is a system call.
+     */
+    @Transactional(readOnly = true)
+    public void requireVisible(Long id, Long viewerId) {
+        findVisible(id, viewerId);
+    }
+
+    private MsProjectRepository.ProjectRecord findVisible(Long id, Long viewerId) {
+        return projectRepository
+                .findById(id, scopeService.filterForProjects(viewerId))
+                .orElseThrow(() -> new ApiException(ErrorCode.PROJECT_NOT_FOUND));
     }
 
     @Transactional(readOnly = true)
@@ -123,6 +148,14 @@ public class MsProjectService {
                     "error.project.state_invalid",
                     List.of(FieldErrorItem.keyed("state", "invalid", "error.field.one_of", Map.of("values", "A, P"))));
         }
+    }
+
+    /** With an actor: the project and the new member are both checked in the actor's scope (ADR-0013). */
+    @Transactional
+    public void addProjectMember(Long projectId, Long userId, String accessKind, Long actorId) {
+        findVisible(projectId, actorId);
+        scopeService.requireUserVisible(actorId, userId);
+        addProjectMember(projectId, userId, accessKind);
     }
 
     @Transactional

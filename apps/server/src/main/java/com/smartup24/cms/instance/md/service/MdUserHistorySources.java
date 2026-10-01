@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
@@ -31,9 +32,10 @@ public class MdUserHistorySources {
                 return "view";
             }
 
+            /** The same data scope as opening the user's card (ADR-0013). */
             public void requireVisible(String recordId) {
                 try {
-                    userService.getUserById(Long.valueOf(recordId));
+                    userService.requireVisible(SecurityContext.getCurrentUserId(), Long.valueOf(recordId));
                 } catch (NumberFormatException e) {
                     throw new ApiException(ErrorCode.USER_NOT_FOUND);
                 }

@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.md.controller;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.AnswersRevision;
 import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
@@ -108,6 +109,7 @@ public class MdOrgUnitController {
     @GetMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdOrgUnitDtos.UserAssignments> getUserAssignments(@PathVariable("userId") Long userId) {
+        scopeService.requireUserVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(scopeService.getUserAssignments(userId));
     }
 
@@ -136,6 +138,7 @@ public class MdOrgUnitController {
             @PathVariable("userId") Long userId,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
             @Valid @RequestBody AssignUnitsDto body) {
+        scopeService.requireUserVisible(SecurityContext.getCurrentUserId(), userId);
         long revision = scopeService.assignUserOrgUnits(userId, body.orgUnitIds(), Revisions.required(ifMatch));
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
@@ -166,6 +169,7 @@ public class MdOrgUnitController {
     @GetMapping("/users/{userId}/scope")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdScopeService.UserScope> getUserScope(@PathVariable("userId") Long userId) {
+        scopeService.requireUserVisible(SecurityContext.getCurrentUserId(), userId);
         return ResponseEntity.ok(scopeService.getUserScope(userId));
     }
 }

@@ -242,6 +242,46 @@ public class MdScopeService {
         };
     }
 
+    /**
+     * Row visibility of users; {@code idColumn} names the user id of the row. UNITS/SUBTREE see a user whose home
+     * or additional unit is in scope, SELF sees only themselves: the same rule as {@link #canAccessUser}.
+     */
+    @Transactional(readOnly = true)
+    public ScopeFilter filterForUsers(Long viewerId, String idColumn) {
+        if (viewerId == null) {
+            return ScopeFilter.unrestricted();
+        }
+        return switch (scopeRepository.getUserRule(viewerId)) {
+            case RULE_SUBTREE, RULE_UNITS -> ScopeFilter.userByOrgUnit(idColumn, viewerId);
+            case RULE_SELF -> ScopeFilter.byOwner(idColumn, viewerId);
+            default -> ScopeFilter.unrestricted();
+        };
+    }
+
+    /** Row visibility of projects for queries whose project table alias is {@code p}. */
+    @Transactional(readOnly = true)
+    public ScopeFilter filterForProjects(Long viewerId) {
+        if (viewerId == null) {
+            return ScopeFilter.unrestricted();
+        }
+        return switch (scopeRepository.getUserRule(viewerId)) {
+            case RULE_SUBTREE, RULE_UNITS -> ScopeFilter.projectByParticipantOrgUnit(viewerId);
+            case RULE_SELF -> ScopeFilter.projectSelf(viewerId);
+            default -> ScopeFilter.unrestricted();
+        };
+    }
+
+    /**
+     * Every call that names a user by id starts here: a user outside the viewer's scope answers 404, exactly like a
+     * missing one, so the id does not reveal that the user exists (ADR-0013).
+     */
+    @Transactional(readOnly = true)
+    public void requireUserVisible(Long viewerId, Long userId) {
+        if (userId == null || !canAccessUser(viewerId, userId) || !scopeRepository.userExists(userId)) {
+            throw new ApiException(ErrorCode.USER_NOT_FOUND);
+        }
+    }
+
     /** Validates assignees before a scoped actor can add them to a task. */
     @Transactional(readOnly = true)
     public boolean canAccessUser(Long viewerId, Long targetUserId) {

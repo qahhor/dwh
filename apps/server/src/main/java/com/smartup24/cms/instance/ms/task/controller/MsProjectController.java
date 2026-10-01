@@ -69,7 +69,7 @@ public class MsProjectController {
     @GetMapping("/{id}")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<ProjectView> getProject(@PathVariable("id") Long id) {
-        return ResponseEntity.ok(projectService.getProjectById(id));
+        return ResponseEntity.ok(projectService.getProjectById(id, SecurityContext.getCurrentUserId()));
     }
 
     @Operation(
@@ -94,6 +94,7 @@ public class MsProjectController {
             @PathVariable("id") Long id,
             @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
             @RequestBody UpdateProjectRequest body) {
+        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
         long revision = projectService.updateProject(
                 id, body.name(), body.description(), body.state(), body.attributes(), Revisions.required(ifMatch));
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
@@ -105,7 +106,7 @@ public class MsProjectController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> addMember(
             @PathVariable("id") Long id, @Valid @RequestBody AddProjectMemberRequest body) {
-        projectService.addProjectMember(id, body.userId(), body.accessKind());
+        projectService.addProjectMember(id, body.userId(), body.accessKind(), SecurityContext.getCurrentUserId());
         return ResponseEntity.noContent().build();
     }
 
@@ -114,6 +115,7 @@ public class MsProjectController {
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> removeMember(@PathVariable("id") Long id, @PathVariable("userId") Long userId) {
+        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
         projectService.removeProjectMember(id, userId);
         return ResponseEntity.noContent().build();
     }
@@ -126,6 +128,7 @@ public class MsProjectController {
     @GetMapping("/{id}/members")
     @RequiresPermission(form = MsTaskPref.FORM_PROJECTS, action = "view")
     public ResponseEntity<List<ProjectMemberView>> getMembers(@PathVariable("id") Long id) {
+        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
         return ResponseEntity.ok(projectService.getProjectMembers(id));
     }
 
@@ -139,6 +142,7 @@ public class MsProjectController {
             @PathVariable("id") Long id,
             @RequestParam(name = "limit", required = false) Integer limit,
             @RequestParam(name = "cursor", required = false) String cursor) {
+        projectService.requireVisible(id, SecurityContext.getCurrentUserId());
         return ResponseEntity.ok(projectService.pageProjectMembers(id, limit, cursor));
     }
 }
