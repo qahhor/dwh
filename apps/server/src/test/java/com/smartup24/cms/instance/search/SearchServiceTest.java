@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.security.DataScopeRules;
 import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos;
@@ -51,11 +52,12 @@ class SearchServiceTest {
     private final TypesenseSearch typesenseClient = mock(TypesenseSearch.class);
     private final SearchFallbackRepository fallbackRepository = mock(SearchFallbackRepository.class);
     private final RoleMembershipAuthorizer roleMembershipAuthorizer = mock(RoleMembershipAuthorizer.class);
+    private final DataScopeRules dataScopeRules = mock(DataScopeRules.class);
     private final SearchIndexStateRepository indexState = mock(SearchIndexStateRepository.class);
     private final SearchService service = new SearchService(
             typesenseClient,
             fallbackRepository,
-            new SearchAccessPolicy(roleMembershipAuthorizer),
+            new SearchAccessPolicy(roleMembershipAuthorizer, dataScopeRules),
             new SearchResultBudget(),
             defaultProvider(),
             new SearchExecutionSnapshotReader(indexState));
@@ -63,6 +65,7 @@ class SearchServiceTest {
     @BeforeEach
     void authenticateWithLegacyWildcard() {
         SecurityContext.setPrincipal(principalWithPermissions(Set.of("*.*")));
+        when(dataScopeRules.isUnrestricted(any())).thenReturn(true);
         when(indexState.executionSnapshot())
                 .thenReturn(new SearchManagementDtos.SearchExecutionSnapshot(
                         new IndexSnapshot(
@@ -136,7 +139,7 @@ class SearchServiceTest {
         var dynamic = new SearchService(
                 typesenseClient,
                 fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer),
+                new SearchAccessPolicy(roleMembershipAuthorizer, dataScopeRules),
                 new SearchResultBudget(),
                 defaultProvider(),
                 new SearchExecutionSnapshotReader(indexState));
@@ -186,7 +189,7 @@ class SearchServiceTest {
         SearchService uninitialized = new SearchServiceWithSeams(
                 typesenseClient,
                 fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer),
+                new SearchAccessPolicy(roleMembershipAuthorizer, dataScopeRules),
                 new SearchResultBudget(),
                 SearchQueryPolicy.defaults(),
                 Map.of());
@@ -233,7 +236,7 @@ class SearchServiceTest {
         SearchService capped = new SearchServiceWithSeams(
                 typesenseClient,
                 fallbackRepository,
-                new SearchAccessPolicy(roleMembershipAuthorizer),
+                new SearchAccessPolicy(roleMembershipAuthorizer, dataScopeRules),
                 new SearchResultBudget(),
                 oneResultPolicy,
                 Map.of("TASK", "tasks", "PROJECT", "projects", "USER", "users"));
@@ -304,6 +307,46 @@ class SearchServiceTest {
 
         assertThat(result.totalHits()).isZero();
         assertThat(result.source()).isEqualTo("TYPESENSE");
+    }
+
+    @Test
+    void administratorWithRestrictedDataScopeCannotSearch() {
+        // ADR-0013, 2.5: an administrator whose rule is UNITS would see rows their own lists hide.
+        SecurityContext.setPrincipal(principalWithPermissions(Set.of("search.view")));
+        when(roleMembershipAuthorizer.hasActiveRole(42L, "admin")).thenReturn(true);
+        when(dataScopeRules.isUnrestricted(42L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
+                .isInstanceOfSatisfying(ApiException.class, error -> {
+                    assertThat(error.getErrorCode()).isEqualTo(ErrorCode.FORBIDDEN);
+                    assertThat(error.getMessageKey()).isEqualTo("error.search.scope_restricted");
+                });
+        verifyNoInteractions(typesenseClient, fallbackRepository);
+    }
+
+    @Test
+    void legacyWildcardWithRestrictedDataScopeCannotSearch() {
+        when(dataScopeRules.isUnrestricted(42L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getMessageKey()).isEqualTo("error.search.scope_restricted"));
+        verifyNoInteractions(typesenseClient, fallbackRepository);
+    }
+
+    @Test
+    void unrestrictedDataScopeWithoutAdministratorRoleCannotSearch() {
+        // The index does not check per-entity view permissions, so the rule ALL alone opens nothing.
+        SecurityContext.setPrincipal(principalWithPermissions(Set.of("search.view")));
+        when(roleMembershipAuthorizer.hasActiveRole(42L, "admin")).thenReturn(false);
+        when(dataScopeRules.isUnrestricted(42L)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.search("Kafka", "ALL", 10))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        error -> assertThat(error.getMessageKey()).isEqualTo("error.search.admin_only"));
+        verifyNoInteractions(typesenseClient, fallbackRepository);
     }
 
     @Test

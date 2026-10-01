@@ -112,12 +112,12 @@ public class SearchJobService {
     }
 
     public JobStatus current(UUID id) {
-        access.requireSearchAccess();
+        access.requireAdministrator();
         return required(id);
     }
 
     public JobPage history(int limit, String cursor) {
-        access.requireSearchAccess();
+        access.requireAdministrator();
         // Plan 10/10, item 3.5: a bad page request is 422 naming the field, as every paged list answers.
         TimePage.limit(limit, limit, MAX_HISTORY_LIMIT);
         Instant time = null;

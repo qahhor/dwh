@@ -1,11 +1,12 @@
 # Точки расширения SmartupCMS
 
-**Версия:** 1.2
+**Версия:** 1.3
 
 **Обновлено:** 2026-10-01
 
 **Основание:** [ADR-0016](../adr/ADR-0016-field-registry-query-dsl.md),
 [ADR-0019](../adr/ADR-0019-low-code-entity-model.md),
+[ADR-0032](../adr/ADR-0032-low-code-platform-v2.md),
 [ADR-0011](../adr/ADR-0011-provider-spi.md) и текущий код.
 
 SmartupCMS расширяется **модулями в коде**: модуль — пакет внутри монолита
@@ -22,7 +23,9 @@ SmartupCMS расширяется **модулями в коде**: модуль
 
 | Точка | Где | Что даёт |
 |---|---|---|
-| `EntityDefinition` (`@Bean`) | `S/common/entity/EntityDefinition.java` | Одно объявление сущности: поля формы и правила (`FormField`: `TEXT`, `TEXTAREA`, `MARKDOWN`, `NUMBER`, `DATE`, `DATETIME`, `TIME`, `BOOLEAN`, `SELECT`, `REF`; поле списка того же ключа — того же вида, `EntityFieldContractTest`), секции, действия с правом каждое, названия права (`EntityRights`), пункт меню (`EntityMenu`), возможности (`EntityCapability`). Отдаётся `GET /api/v1/form-meta/{code}`. |
+| `EntityDefinition` (`@Bean`) через `Entity.define(...)` | `S/common/entity/Entity.java`, `S/common/entity/EntityDefinition.java` | Одно объявление сущности: таблица и псевдоним (`table`), поля (`field`, см. ниже), секции формы, действия с правом каждое, названия права (`EntityRights`), пункт меню (`EntityMenu`), сортировка списка по умолчанию, возможности (`EntityCapability`). Отдаётся `GET /api/v1/form-meta/{code}`; список сущности (`query-meta/{code}`) выводится из тех же полей. `new EntityDefinition(...)` вне `common.entity` запрещён (`EntityFieldsSingleSourceTest`). |
+| `EntityField` | `S/common/entity/field/EntityField.java`, построитель `EntityFields` | Поле объявляется **один раз** (ADR-0032, §3; план 10/10, пункт 5.1): тип (`FieldType`: `TEXT`, `TEXTAREA`, `MARKDOWN`, `NUMBER`, `DATE`, `DATETIME`, `TIME`, `BOOLEAN`, `SELECT`, `REF`), источник значения (`FieldSource`: колонка, выражение, вычисляемое, атрибут в `attributes`, системная колонка), признаки формы (`FormPart`: обязательность, `FieldRules` — длина, диапазон, шаблон), признаки списка (`ListPart`: фильтр, сортировка, поиск, видимость), права на поле (`FieldAccess`, полностью — в пункте 5.3), параметры типа (`FieldOptions`). Из него выводятся `FormField` формы и `QueryField` списка: ключ, подпись, вид, варианты и ссылка у них совпадают по построению (`EntityFieldContractTest`). Записываемое поле (колонка, атрибут) — в форме и в списке, `listOnly`/`formOnly` оставляют одно; выражение и системная колонка — только в списке. |
+| `EntityLists` | `S/common/entity/EntityLists.java` | Список сущности, выведенный из её полей: код = код сущности, право `<форма>.view`, `select` — системные колонки, поля под ключами записи (`<sql> as "<key>"`) и `attributes`. Реестр списков получает его через `QueryListSource`; бин `QueryList` с тем же кодом не даёт приложению стартовать. |
 | `EntityRecords` (`@Bean`) | `S/common/entity/EntityRecords.java` | То, что знает только модуль: видимость записи в скоупе зрителя, страница списка, удаление одной записи. Из него и объявления платформа строит историю, экспорт и `POST /api/v1/entities/{code}/bulk`. |
 | `EntityValidator` | `S/common/entity/EntityValidator.java` | Проверка сохранения по объявлению: 422 с ошибкой на каждом поле. Вызывается сервисом модуля. |
 | `FormFieldExtender` | `S/common/entity/FormFieldExtender.java` | Поля, добавляемые в форму во время запроса. Реализация — дополнительные поля (`S/md/service/MdCustomFieldFormFields.java`). |
@@ -43,7 +46,8 @@ SmartupCMS расширяется **модулями в коде**: модуль
 
 | Точка | Где | Что даёт |
 |---|---|---|
-| `QueryList` (`@Bean`) | `S/common/query/QueryList.java` | Список: SQL выборки, поля с типами, фильтрами, сортировкой и поиском, лимиты. Отдаётся `GET /api/v1/query-meta/{code}`; экран фильтрует и сортирует через JSON DSL, включая группы «любое из условий» и поля-ссылки (`QueryRef`). |
+| `QueryList` (`@Bean`) | `S/common/query/QueryList.java` | Список, который не является сущностью (аудит, события безопасности, файлы, пакеты загрузок, задачи до пункта 5.6): SQL выборки, поля с типами, фильтрами, сортировкой и поиском, лимиты. Отдаётся `GET /api/v1/query-meta/{code}`; экран фильтрует и сортирует через JSON DSL, включая группы «любое из условий» и поля-ссылки (`QueryRef`). Список сущности бином не объявляется — его выводит `EntityLists`. |
+| `QueryListSource` | `S/common/query/QueryListSource.java` | Списки, построенные из других объявлений (реализация — `EntityLists`); реестр отвергает совпадение их кодов с бинами `QueryList`. |
 | `QueryList.withCustomFields` | там же | Дополнительные поля как поля списка. |
 | `QueryListExtender` | `S/common/query/QueryListExtender.java` | Поля списка, добавляемые во время запроса (реализация — дополнительные поля). |
 | `QueryListExporter` | `S/common/query/QueryListExporter.java` | Экспорт списка, если он не берётся из объявления (`EXPORT`). |

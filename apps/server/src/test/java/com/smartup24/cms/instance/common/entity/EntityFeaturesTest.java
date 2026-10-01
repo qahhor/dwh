@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkRequest;
 import com.smartup24.cms.instance.common.bulk.BulkRunner.BulkResult;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityAction;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.FormSection;
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.history.RecordHistorySource;
 import com.smartup24.cms.instance.common.query.QueryListExporter;
@@ -68,12 +69,11 @@ class EntityFeaturesTest {
 
     @Test
     void declarationRefusesCapabilitiesItCannotKeep() {
-        FormField title = FormField.of("title", "t", FormFieldType.TEXT);
+        FormField title = FormField.of("title", "t", FieldType.TEXT);
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
         List<EntityAction> create = List.of(new EntityAction("create", "create"));
 
         assertThatThrownBy(() -> new EntityDefinition(
-                        "x",
                         "x",
                         "x",
                         null,
@@ -92,14 +92,12 @@ class EntityFeaturesTest {
                         null,
                         null,
                         null,
-                        null,
                         List.of(title),
                         layout,
                         create,
                         Set.of(EntityCapability.EXPORT)))
                 .hasMessageContaining("list");
         assertThatThrownBy(() -> new EntityDefinition(
-                        "x",
                         "x",
                         "x",
                         null,
@@ -156,7 +154,7 @@ class EntityFeaturesTest {
                 .containsEntry("contentMd", "notes.col.content");
         assertThat(source.fieldNames()).isEmpty();
 
-        custom.add(FormField.of("cfRegion", "", FormFieldType.TEXT).custom("Регион", "region"));
+        custom.add(FormField.of("cfRegion", "", FieldType.TEXT).custom("Регион", "region"));
 
         assertThat(source.fieldNames()).containsExactly(Map.entry("cfRegion", "Регион"));
         assertThat(source.fieldLabels()).doesNotContainKey("cfRegion");
@@ -229,14 +227,13 @@ class EntityFeaturesTest {
 
     @Test
     void rightsNameViewAndEveryDeclaredActionsRight() {
-        FormField title = FormField.of("title", "t", FormFieldType.TEXT);
+        FormField title = FormField.of("title", "t", FieldType.TEXT);
         List<FormSection> layout = List.of(new FormSection("main", "m", List.of("title")));
         var rights = new EntityDefinition.EntityRights("x", "x.rights.form", Map.of("view", "x.rights.view"));
 
         assertThatThrownBy(() -> new EntityDefinition(
                         "x",
                         "x",
-                        null,
                         null,
                         null,
                         rights,

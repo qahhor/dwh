@@ -7,14 +7,12 @@ import static org.mockito.Mockito.when;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.note.repository.MsNoteRepository;
 import com.smartup24.cms.instance.ms.note.service.MsNoteService;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
-import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
@@ -58,7 +56,7 @@ class SearchNoteOwnershipIntegrationTest {
         search = new SearchService(
                 typesense,
                 fallback,
-                new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
+                SearchAccessFixtures.policy(),
                 new SearchResultBudget(),
                 new SearchPolicyProvider(
                         new SearchOwnerRateLimits() {

@@ -1929,6 +1929,7 @@
   "error.search.request_history_unavailable": "Bu requestId bilan yuborilgan so'rov tarixi mavjud emas",
   "error.search.retry_request_invalid": "Vazifani qayta ishga tushirish so'rovi noto'g'ri",
   "error.search.schema_profile_invalid": "Qidiruv sxemasi profili noto'g'ri: MIXED yoki RU bo'lishi mumkin",
+  "error.search.scope_restricted": "Global qidiruv faqat ma'lumotlar doirasi cheklanmagan (ALL qoidasi) administrator uchun ochiq",
   "error.search.settings_changed": "Qidiruv sozlamalari allaqachon o'zgargan. Ma'lumotni yangilab, qayta urinib ko'ring",
   "error.search.settings_request_invalid": "Qidiruv sozlamalari so'rovi noto'g'ri",
   "error.search.storage_insufficient": "Indeksni qayta qurish uchun qidiruv omborida joy yetarli emas",

@@ -10,9 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * The list registry: all {@link QueryList} beans of the application by code. A list is returned complete: the
- * fields from code are joined by extension fields ({@link QueryListExtender}), the entity's custom fields
- * (ADR-0019).
+ * The list registry: all {@link QueryList} beans of the application and the lists of its {@link QueryListSource}s
+ * (the entities' lists, ADR-0032, 3.4) by code. A list is returned complete: the fields from code are joined by
+ * extension fields ({@link QueryListExtender}), the entity's custom fields (ADR-0019).
+ *
+ * <p>A code is declared once: a {@code QueryList} bean with the code of an entity's list fails the start, so an
+ * entity's fields cannot be declared a second time for its list (plan 10/10, item 5.1).
  */
 @Component
 public class QueryListRegistry {
@@ -21,17 +24,26 @@ public class QueryListRegistry {
     private final List<QueryListExtender> extenders;
 
     @Autowired
-    public QueryListRegistry(List<QueryList> declared, List<QueryListExtender> extenders) {
+    public QueryListRegistry(
+            List<QueryList> declared, List<QueryListSource> sources, List<QueryListExtender> extenders) {
         for (QueryList list : declared) {
-            if (lists.put(list.code(), list) != null) {
-                throw new IllegalStateException("Duplicate query list " + list.code());
-            }
+            add(list);
+        }
+        for (QueryListSource source : sources) {
+            source.lists().forEach(this::add);
         }
         this.extenders = List.copyOf(extenders);
     }
 
     public QueryListRegistry(List<QueryList> declared) {
-        this(declared, List.of());
+        this(declared, List.of(), List.of());
+    }
+
+    private void add(QueryList list) {
+        if (lists.put(list.code(), list) != null) {
+            throw new IllegalStateException("Duplicate query list " + list.code()
+                    + ": a list is declared once, an entity's list by its fields only");
+        }
     }
 
     public Optional<QueryList> find(String code) {

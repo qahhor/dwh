@@ -11418,6 +11418,58 @@
           }
         }
       },
+      "FormFieldMeta" : {
+        "type" : "object",
+        "properties" : {
+          "attribute" : {
+            "type" : "string"
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "label" : {
+            "type" : "string"
+          },
+          "labelKey" : {
+            "type" : "string"
+          },
+          "max" : {
+            "type" : "number"
+          },
+          "maxLength" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "min" : {
+            "type" : "number"
+          },
+          "minLength" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "optionLabelPrefix" : {
+            "type" : "string"
+          },
+          "options" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "pattern" : {
+            "type" : "string"
+          },
+          "ref" : {
+            "$ref" : "#/components/schemas/QueryRef"
+          },
+          "required" : {
+            "type" : "boolean"
+          },
+          "type" : {
+            "type" : "string"
+          }
+        }
+      },
       "FormMeta" : {
         "type" : "object",
         "properties" : {
@@ -11439,16 +11491,33 @@
           "fields" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/FieldMeta"
+              "$ref" : "#/components/schemas/FormFieldMeta"
             }
           },
           "layout" : {
             "type" : "array",
             "items" : {
-              "$ref" : "#/components/schemas/SectionMeta"
+              "$ref" : "#/components/schemas/FormSectionMeta"
             }
           },
           "listCode" : {
+            "type" : "string"
+          }
+        }
+      },
+      "FormSectionMeta" : {
+        "type" : "object",
+        "properties" : {
+          "fields" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "key" : {
+            "type" : "string"
+          },
+          "labelKey" : {
             "type" : "string"
           }
         }
@@ -13355,23 +13424,6 @@
           "totalHits" : {
             "type" : "integer",
             "format" : "int32"
-          }
-        }
-      },
-      "SectionMeta" : {
-        "type" : "object",
-        "properties" : {
-          "fields" : {
-            "type" : "array",
-            "items" : {
-              "type" : "string"
-            }
-          },
-          "key" : {
-            "type" : "string"
-          },
-          "labelKey" : {
-            "type" : "string"
           }
         }
       },

@@ -6,7 +6,6 @@ import static org.mockito.Mockito.*;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
-import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
@@ -141,6 +140,7 @@ abstract class SearchDeliveryTestSupport {
         state = SearchRevisionIntegrationTest.proxied(new SearchIndexStateRepository(jdbc), manager);
         var scopes = mock(MdScopeService.class);
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
+        when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
         var audit = mock(AuditLogService.class);
         tasks = MsTaskFixture.wire(
                         MsTaskFixture.Repositories.jdbc(jdbc, mapper),
@@ -209,7 +209,7 @@ abstract class SearchDeliveryTestSupport {
         reconciliation = new SearchReconciliationService(database, reader, client.collections(), client.documents());
         jobService = SearchRevisionIntegrationTest.proxied(
                 new SearchJobService(
-                        new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
+                        SearchAccessFixtures.policy(),
                         jobRepository,
                         state,
                         generationService,

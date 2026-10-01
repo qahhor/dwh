@@ -46,7 +46,7 @@ public class SearchStatusService {
     }
 
     public Status current() {
-        access.requireSearchAccess();
+        access.requireAdministrator();
         var index = repository.snapshot();
         var observations = repository.observations();
         SearchQueryPolicy policy = null;

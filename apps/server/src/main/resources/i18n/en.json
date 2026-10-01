@@ -1929,6 +1929,7 @@
   "error.search.request_history_unavailable": "History of the request with this requestId is unavailable",
   "error.search.retry_request_invalid": "Invalid retry request",
   "error.search.schema_profile_invalid": "Invalid search schema profile: MIXED or RU",
+  "error.search.scope_restricted": "Global search is available only to an administrator whose data scope is unrestricted (rule ALL)",
   "error.search.settings_changed": "Search settings changed; refresh and retry",
   "error.search.settings_request_invalid": "Invalid search settings request",
   "error.search.storage_insufficient": "Not enough search storage to rebuild the index",

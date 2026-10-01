@@ -4,14 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.smartup24.cms.instance.common.security.RoleMembershipAuthorizer;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.config.db.FlywayUtcConfiguration;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository;
 import com.smartup24.cms.instance.search.repository.SearchFallbackRepository.FallbackSearch;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository;
 import com.smartup24.cms.instance.search.repository.SearchSettingsRepository;
-import com.smartup24.cms.instance.search.service.SearchAccessPolicy;
 import com.smartup24.cms.instance.search.service.SearchExecutionSnapshotReader;
 import com.smartup24.cms.instance.search.service.SearchPolicyProvider;
 import com.smartup24.cms.instance.search.service.SearchResultBudget;
@@ -166,7 +164,7 @@ class SearchFallbackIntegrationTest {
         SearchService service = new SearchService(
                 typesense,
                 repository,
-                new SearchAccessPolicy(mock(RoleMembershipAuthorizer.class)),
+                SearchAccessFixtures.policy(),
                 new SearchResultBudget(),
                 new SearchPolicyProvider(
                         new SearchOwnerRateLimits() {

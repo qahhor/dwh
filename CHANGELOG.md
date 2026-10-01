@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 5.1 — one field model (ADR-0032 step 1): an entity
+  declares each field once as an `EntityField` (value source, form part,
+  list part, access); its form description and its list are derived from it
+  (`EntityLists`, `QueryListSource`). Notes are one declaration; their
+  `form-meta` and `query-meta` answers are unchanged
+  (`EntityMetaSnapshotTest`); `EntityFieldsSingleSourceTest` refuses a second
+  declaration; the module generator writes one declaration and registers its
+  permission area.
+
 - Plan 10/10, item 5.0 — entity model hygiene (ADR-0019 §2.5.3): form and
   list fields of the same name agree (`EntityFieldContractTest`); the audit
   and history carry every declared and custom field with labels; references
@@ -812,6 +821,10 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- **API-breaking (item 5.1):** the OpenAPI schemas of form-meta are
+  `FormFieldMeta` / `FormSectionMeta` (they reused the list's `FieldMeta`, so
+  generated types lacked the form rules); the JSON answers are unchanged.
+
 - **API-breaking — compatibility removed before the release** (no client
   installation exists, AGENTS.md §3): the deprecated forms of ADR-0023 are
   gone (path aliases `/tasks/items`, `/rbac`, `/notify`, old session paths,
@@ -1558,6 +1571,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Control Plane, fleet management, heartbeat, enrollment, and license gates.
 
 ### Security
+
+- A task could be created in, or moved to, a project outside the caller's data
+  scope (201/204 where a missing id gave 404), which then made the project
+  visible; such a project now answers 404 `project_not_found`
+  (`ScopeProjectReferenceIntegrationTest`). Global search let in any admin
+  whatever their scope rule; it now requires the rule ALL (403
+  `error.search.scope_restricted` otherwise), as ADR-0013 §2.5 says.
 
 - Data scope (ADR-0013) was not applied on about 25 by-id paths of users and
   projects (read, change, block, roles and rights, org units, sessions,

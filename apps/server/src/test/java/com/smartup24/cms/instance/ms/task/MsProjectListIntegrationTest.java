@@ -56,7 +56,8 @@ class MsProjectListIntegrationTest {
                 new MdPermissionService(new MdPermissionRepository(jdbc)),
                 audit);
         var config = new MsProjectQuery();
-        var registry = new QueryListRegistry(List.of(MsProjectQuery.LIST), List.of(config.progressFields(scopes)));
+        var registry =
+                new QueryListRegistry(List.of(MsProjectQuery.LIST), List.of(), List.of(config.progressFields(scopes)));
         projects = new MsProjectListService(
                 new QueryListRepository(jdbc),
                 registry,

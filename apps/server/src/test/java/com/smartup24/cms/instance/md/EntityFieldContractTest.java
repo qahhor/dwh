@@ -5,10 +5,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityLists;
 import com.smartup24.cms.instance.common.entity.EntityRecords;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.FormField;
-import com.smartup24.cms.instance.common.entity.FormFieldType;
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.query.QueryField;
 import com.smartup24.cms.instance.common.query.QueryFieldType;
 import com.smartup24.cms.instance.common.query.QueryList;
@@ -21,11 +22,8 @@ import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -37,21 +35,23 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
  * the same kind of value, the same label, the same options and the same reference target. Otherwise the form offers
  * a choice the list shows as raw text (the note colour was a select in the form and free text in the list), or the
  * filter takes values the form refuses.
+ *
+ * <p>Since plan 10/10, item 5.1 both are derived from one {@code EntityField} declaration (ADR-0032, 3), so the list
+ * compared here is the one the application registers: the declared lists and the entities' derived lists together.
  */
 class EntityFieldContractTest {
 
     @Test
     void everyDeclaredFormFieldMatchesItsListField() throws Exception {
-        Map<String, QueryList> lists =
-                declaredLists().stream().collect(Collectors.toMap(QueryList::code, Function.identity()));
         List<EntityDefinition> entities = EntityActionPermissionContractTest.declaredEntities();
         assertThat(entities).isNotEmpty();
+        QueryListRegistry lists = new QueryListRegistry(declaredLists(), List.of(new EntityLists(entities)), List.of());
 
         List<String> problems = new ArrayList<>();
         int compared = 0;
         for (EntityDefinition entity : entities) {
             if (entity.listCode() == null) continue;
-            QueryList list = lists.get(entity.listCode());
+            QueryList list = lists.find(entity.listCode()).orElse(null);
             if (list == null) {
                 problems.add(entity.code() + ": no list " + entity.listCode());
                 continue;
@@ -91,7 +91,10 @@ class EntityFieldContractTest {
         when(service.parseSelectOptions(null)).thenReturn(List.of());
 
         EntityDefinition notes = entity("ms.notes");
-        QueryList noteList = new QueryListRegistry(declaredLists(), List.of(new MdCustomFieldQueryFields(service)))
+        QueryList noteList = new QueryListRegistry(
+                        declaredLists(),
+                        List.of(new EntityLists(List.of(notes))),
+                        List.of(new MdCustomFieldQueryFields(service)))
                 .get(notes.listCode());
         EntityRecords records = new EntityRecords() {
             public String entity() {
@@ -134,7 +137,7 @@ class EntityFieldContractTest {
         if (!form.labelKey().equals(list.labelKey()) || !Objects.equals(form.label(), list.label())) {
             problems.add(at + "label " + form.labelKey() + form.label() + " / " + list.labelKey() + list.label());
         }
-        if (form.type() == FormFieldType.SELECT
+        if (form.type() == FieldType.SELECT
                 && (!form.options().equals(list.enumValues())
                         || !Objects.equals(form.optionLabelPrefix(), list.enumLabelPrefix()))) {
             problems.add(at + "options " + form.options() + " " + form.optionLabelPrefix() + " / " + list.enumValues()

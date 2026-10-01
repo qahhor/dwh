@@ -20,7 +20,7 @@ describe('featureI18nProblems', () => {
   });
 
   it('finds no dead copy in the notes catalogs', () => {
-    // The note labels are named by the server (MsNoteQuery, MsNoteEntity); colours are notes.color_<colour>.
+    // The note labels are named by the server (MsNoteEntity); colours are notes.color_<colour>.
     const colors = ['default', 'blue', 'green', 'yellow', 'purple', 'red'].map((color) => `notes.color_${color}`);
     expect(
       featureI18nProblems({

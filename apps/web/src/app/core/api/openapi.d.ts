@@ -3653,13 +3653,36 @@ export interface components {
             isDeprecated?: boolean;
             module?: string;
         };
+        FormFieldMeta: {
+            attribute?: string;
+            key?: string;
+            label?: string;
+            labelKey?: string;
+            max?: number;
+            /** Format: int32 */
+            maxLength?: number;
+            min?: number;
+            /** Format: int32 */
+            minLength?: number;
+            optionLabelPrefix?: string;
+            options?: string[];
+            pattern?: string;
+            ref?: components["schemas"]["QueryRef"];
+            required?: boolean;
+            type?: string;
+        };
         FormMeta: {
             actions?: string[];
             capabilities?: string[];
             code?: string;
-            fields?: components["schemas"]["FieldMeta"][];
-            layout?: components["schemas"]["SectionMeta"][];
+            fields?: components["schemas"]["FormFieldMeta"][];
+            layout?: components["schemas"]["FormSectionMeta"][];
             listCode?: string;
+        };
+        FormSectionMeta: {
+            fields?: string[];
+            key?: string;
+            labelKey?: string;
         };
         FormatDraftRequest: {
             delimiter?: string;
@@ -4395,11 +4418,6 @@ export interface components {
             suggestedQuery?: string;
             /** Format: int32 */
             totalHits?: number;
-        };
-        SectionMeta: {
-            fields?: string[];
-            key?: string;
-            labelKey?: string;
         };
         SecurityEventView: {
             /** Format: date-time */
