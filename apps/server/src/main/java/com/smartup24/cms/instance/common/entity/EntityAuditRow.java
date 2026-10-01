@@ -19,6 +19,8 @@ public final class EntityAuditRow {
     private EntityAuditRow() {}
 
     /**
+     * The audit row of one record.
+     *
      * @param entity     the entity with its custom fields ({@link EntityRegistry#resolve})
      * @param values     the record's declared values by field key
      * @param attributes the record's custom field values by code, or null

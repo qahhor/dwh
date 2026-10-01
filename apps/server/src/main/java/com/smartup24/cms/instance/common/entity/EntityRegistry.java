@@ -154,22 +154,27 @@ public class EntityRegistry {
      */
     private RecordHistorySource historySource(EntityDefinition entity, EntityRecords records) {
         return new RecordHistorySource() {
+            @Override
             public String key() {
                 return entity.code();
             }
 
+            @Override
             public String tableName() {
                 return entity.auditTable();
             }
 
+            @Override
             public String form() {
                 return entity.form();
             }
 
+            @Override
             public String action() {
                 return "view";
             }
 
+            @Override
             public Map<String, String> fieldLabels() {
                 Map<String, String> labels = new LinkedHashMap<>();
                 resolve(entity).fields().stream()
@@ -178,6 +183,7 @@ public class EntityRegistry {
                 return labels;
             }
 
+            @Override
             public Map<String, String> fieldNames() {
                 Map<String, String> names = new LinkedHashMap<>();
                 resolve(entity).fields().stream()
@@ -186,6 +192,7 @@ public class EntityRegistry {
                 return names;
             }
 
+            @Override
             public void requireVisible(String recordId) {
                 long id;
                 try {
@@ -200,10 +207,12 @@ public class EntityRegistry {
 
     private static QueryListExporter exporter(EntityDefinition entity, EntityRecords records) {
         return new QueryListExporter() {
+            @Override
             public String code() {
                 return entity.listCode();
             }
 
+            @Override
             public KeysetPage<?> page(
                     int limit, String cursor, String filter, String sort, String search, Map<String, String> options) {
                 return records.page(limit, cursor, filter, sort, search);
