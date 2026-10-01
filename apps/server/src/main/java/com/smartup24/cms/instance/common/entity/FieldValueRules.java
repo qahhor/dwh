@@ -19,7 +19,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -48,6 +51,12 @@ public final class FieldValueRules {
     private static final Pattern PHONE_SEPARATORS = Pattern.compile("[\\s()\\-]");
     private static final Pattern DECIMAL = Pattern.compile("^-?[0-9]{1,15}([.][0-9]{1,6})?$");
     private static final Pattern KEY = Pattern.compile("^[0-9]{1,18}$");
+    private static final Pattern UUID_TEXT =
+            Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
+    private static final Set<String> CURRENCIES = Currency.getAvailableCurrencies().stream()
+            .map(Currency::getCurrencyCode)
+            .collect(Collectors.toUnmodifiableSet());
+    private static final Logger log = LoggerFactory.getLogger(FieldValueRules.class);
 
     /** Reads JSON with default settings only to see its shape: the shared default mapper (plan 10/10, item 3.11). */
     private static final JsonMapper JSON = JsonMapper.shared();
@@ -120,6 +129,7 @@ public final class FieldValueRules {
             try {
                 return JSON.readTree(text);
             } catch (JacksonException e) {
+                log.debug("json_value_kept_as_text reason={}", e.getOriginalMessage());
                 return JSON.getNodeFactory().textNode(text);
             }
         }
@@ -142,6 +152,15 @@ public final class FieldValueRules {
         }
     }
 
+    /**
+     * The digits after the point of an ISO 4217 currency (UZS 2, JPY 0), or {@code unknown} for a code that names no
+     * currency.
+     */
+    public static int currencyDigits(@Nullable String code, int unknown) {
+        if (code == null || !CURRENCIES.contains(code)) return unknown;
+        return Math.max(0, Currency.getInstance(code).getDefaultFractionDigits());
+    }
+
     /** Most digits after the point of a number (ADR-0032, 3.1). */
     static Optional<FieldErrorItem> scale(String key, BigDecimal number, @Nullable Integer scale) {
         if (scale != null && number.stripTrailingZeros().scale() > scale) {
@@ -153,12 +172,8 @@ public final class FieldValueRules {
     /** The id of a file value: its uuid as text, or {@code {"id": ...}} as the record reads it back. */
     public static Optional<UUID> fileId(@Nullable Object value) {
         Object id = value instanceof Map<?, ?> file ? file.get("id") : value;
-        if (id == null) return Optional.empty();
-        try {
-            return Optional.of(UUID.fromString(String.valueOf(id).strip()));
-        } catch (IllegalArgumentException e) {
-            return Optional.empty();
-        }
+        String text = id == null ? "" : String.valueOf(id).strip();
+        return UUID_TEXT.matcher(text).matches() ? Optional.of(UUID.fromString(text)) : Optional.empty();
     }
 
     /** The keys of a multiple reference value, or empty when it is not a list of positive whole numbers. */
@@ -199,7 +214,7 @@ public final class FieldValueRules {
                     Map.of("allowed", String.join(", ", params.currencies())));
         }
         BigDecimal number = new BigDecimal(text);
-        int digits = Currency.getInstance(String.valueOf(currency)).getDefaultFractionDigits();
+        int digits = currencyDigits(String.valueOf(currency), -1);
         if (digits >= 0 && number.stripTrailingZeros().scale() > digits) {
             return error(key, EntityValidator.INVALID, "error.field.scale_exceeded", Map.of("max", digits));
         }
@@ -231,6 +246,7 @@ public final class FieldValueRules {
         try {
             node = value instanceof String text ? JSON.readTree(text) : JSON.valueToTree(value);
         } catch (JacksonException | IllegalArgumentException e) {
+            log.debug("json_field_invalid field={} reason={}", key, e.getMessage());
             return invalid(key, "error.field.json_invalid");
         }
         JsonRoot root = field.params().jsonRoot();
@@ -254,6 +270,7 @@ public final class FieldValueRules {
                     && uri.getHost() != null
                     && !uri.getHost().isBlank();
         } catch (URISyntaxException e) {
+            log.debug("url_field_invalid reason={}", e.getReason());
             return false;
         }
     }

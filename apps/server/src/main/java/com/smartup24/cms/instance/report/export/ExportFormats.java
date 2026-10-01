@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.report.export;
 
+import com.smartup24.cms.instance.common.entity.FieldValueRules;
 import com.smartup24.cms.instance.common.query.QueryField;
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Currency;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 import org.dhatim.fastexcel.HyperLink;
 import org.dhatim.fastexcel.Worksheet;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -27,6 +29,8 @@ final class ExportFormats {
 
     /** Writes JSON with default settings only: the shared default mapper (plan 10/10, item 3.11). */
     private static final JsonMapper JSON = JsonMapper.shared();
+
+    private static final Logger log = LoggerFactory.getLogger(ExportFormats.class);
 
     private ExportFormats() {}
 
@@ -67,12 +71,7 @@ final class ExportFormats {
 
     /** The number format of an amount in {@code currency}: its digits after the point and its code. */
     static String moneyFormat(String currency) {
-        int digits;
-        try {
-            digits = Math.max(0, Currency.getInstance(currency).getDefaultFractionDigits());
-        } catch (IllegalArgumentException e) {
-            digits = 2;
-        }
+        int digits = FieldValueRules.currencyDigits(currency, 2);
         return "#,##0" + (digits > 0 ? "." + "0".repeat(digits) : "") + " \"" + currency + "\"";
     }
 
@@ -112,6 +111,8 @@ final class ExportFormats {
         try {
             return JSON.writeValueAsString(value);
         } catch (JacksonException e) {
+            // A cell of one value never fails the whole file: the value as Java writes it, and a trace of why.
+            log.warn("export_json_cell_unwritable type={}", value.getClass().getName(), e);
             return String.valueOf(value);
         }
     }

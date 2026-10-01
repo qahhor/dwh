@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Currency;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,12 +107,7 @@ public final class EntityRowMapper implements RowMapper<Map<String, Object>> {
     }
 
     private static int currencyDigits(@Nullable String currency) {
-        if (currency == null) return 0;
-        try {
-            return Math.max(0, Currency.getInstance(currency).getDefaultFractionDigits());
-        } catch (IllegalArgumentException e) {
-            return 0;
-        }
+        return FieldValueRules.currencyDigits(currency, 0);
     }
 
     private static List<Long> keys(@Nullable Array array) throws SQLException {
