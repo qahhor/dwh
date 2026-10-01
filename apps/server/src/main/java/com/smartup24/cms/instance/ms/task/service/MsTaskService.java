@@ -74,7 +74,7 @@ public class MsTaskService {
             Instant beginTime,
             Instant endTime,
             Long reporterId) {
-        access.requireProject(projectId);
+        access.requireProject(projectId, reporterId);
         if (parentTaskId != null) {
             access.find(parentTaskId, reporterId);
         }
@@ -197,7 +197,7 @@ public class MsTaskService {
             Instant endTime,
             Long currentUserId) {
         access.find(taskId, currentUserId);
-        access.requireProject(projectId);
+        access.requireProject(projectId, currentUserId);
         if (parentTaskId != null) {
             requireParent(taskId, parentTaskId, currentUserId);
         }
@@ -256,7 +256,7 @@ public class MsTaskService {
      */
     private MsTaskPatch checkPatch(Long taskId, MsTaskPatch requested, Long currentUserId) {
         if (requested.projectIdPresent()) {
-            access.requireProject(requested.projectId());
+            access.requireProject(requested.projectId(), currentUserId);
         }
         if (requested.parentTaskIdPresent() && requested.parentTaskId() != null) {
             requireParent(taskId, requested.parentTaskId(), currentUserId);

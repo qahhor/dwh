@@ -79,6 +79,7 @@ class SearchRevisionIntegrationTest {
         var mapper = new ObjectMapper();
         var scopes = mock(MdScopeService.class);
         when(scopes.filterForTasks(any())).thenReturn(ScopeFilter.unrestricted());
+        when(scopes.filterForProjects(any())).thenReturn(ScopeFilter.unrestricted());
         publisher = proxied(new SearchChangePublisher(jdbc), manager);
         taskServices = MsTaskFixture.wire(
                 MsTaskFixture.Repositories.jdbc(jdbc, mapper),

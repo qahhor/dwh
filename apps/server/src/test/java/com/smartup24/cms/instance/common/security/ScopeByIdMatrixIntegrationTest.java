@@ -1,14 +1,9 @@
 package com.smartup24.cms.instance.common.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 
 import com.smartup24.cms.instance.common.security.ScopeByIdCases.Case;
-import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdScopeRepository;
 import com.smartup24.cms.instance.md.service.MdScopeService;
@@ -16,12 +11,10 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
-import jakarta.servlet.http.Cookie;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -37,15 +30,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * ADR-0013, "404, not 403": every handler that reads, changes or deletes a record by id answers 404 to a caller
@@ -59,7 +48,6 @@ import tools.jackson.databind.ObjectMapper;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
     private static final Pattern VARIABLE = Pattern.compile("\\{([^}:]+)(?::[^}]*)?}");
 
     @Autowired
@@ -90,22 +78,13 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
     @Qualifier("requestMappingHandlerMapping")
     private RequestMappingHandlerMapping mappings;
 
-    private MockMvc mvc;
     private ScopeFixture fixture;
-    private Cookie session;
-    private Cookie csrf;
+    private ScopeSession viewer;
 
     @BeforeAll
     void setUp() throws Exception {
-        DefaultMockMvcBuilder builder = MockMvcBuilders.webAppContextSetup(wac).apply(springSecurity());
-        IdempotencyFilter idempotency =
-                wac.getBeanProvider(IdempotencyFilter.class).getIfAvailable();
-        if (idempotency != null) {
-            builder.addFilters(idempotency);
-        }
-        mvc = builder.build();
         fixture = new ScopeFixture(jdbc, users, scopes, scopeRepository, roles, tasks, files);
-        signIn(fixture.viewerLogin);
+        viewer = ScopeSession.signIn(wac, fixture.viewerLogin);
     }
 
     @Test
@@ -172,19 +151,13 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
         assertThat(methods).as("one HTTP method for %s", c.handler()).hasSize(1);
         String pattern = new TreeSet<>(info.getPatternValues()).first();
         String path = expand(pattern, c.vars().apply(fixture, recordId), recordId);
-        var request = request(HttpMethod.valueOf(methods.iterator().next().name()), path)
-                .cookie(session, csrf)
-                .header("X-XSRF-TOKEN", csrf.getValue())
-                .header("Idempotency-Key", UUID.randomUUID().toString());
+        var request = request(HttpMethod.valueOf(methods.iterator().next().name()), path);
         String ifMatch = fixture.ifMatch(c.kind(), recordId);
         if (ifMatch != null) {
             request.header("If-Match", ifMatch);
         }
         Object body = c.body().apply(fixture, recordId);
-        if (body != null) {
-            request.contentType("application/json").content(JSON.writeValueAsString(body));
-        }
-        return mvc.perform(request).andReturn().getResponse();
+        return body == null ? viewer.send(request) : viewer.send(request, body);
     }
 
     /** Every path variable takes the record's id unless the case names another value for it. */
@@ -197,24 +170,5 @@ class ScopeByIdMatrixIntegrationTest extends EmbeddedPostgresTest {
         }
         variable.appendTail(path);
         return path.toString();
-    }
-
-    private void signIn(String login) throws Exception {
-        var response = mvc.perform(post("/api/v1/auth/login")
-                        .contentType("application/json")
-                        .content(JSON.writeValueAsString(
-                                Map.of("login", login, "password", ScopeFixture.PASSWORD, "deviceInfo", "test"))))
-                .andReturn()
-                .getResponse();
-        assertThat(response.getStatus()).as(response.getContentAsString()).isEqualTo(200);
-        session = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
-        csrf = response.getCookie("XSRF-TOKEN");
-        if (csrf == null) {
-            csrf = mvc.perform(get("/api/v1/auth/me").cookie(session))
-                    .andReturn()
-                    .getResponse()
-                    .getCookie("XSRF-TOKEN");
-        }
-        assertThat(csrf).as("XSRF-TOKEN cookie").isNotNull();
     }
 }
