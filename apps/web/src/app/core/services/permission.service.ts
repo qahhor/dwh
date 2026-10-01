@@ -2,25 +2,6 @@ import { inject, Injectable, signal } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { MetaCacheState } from './meta-cache';
 
-/**
- * Form codes of the previous release by their successors (ADR-0028). A permission set loaded before the server moved
- * to the new codes still opens the screens until the sunset of the old codes (2026-12-31); then this table goes.
- */
-export const LEGACY_FORM_CODES: Readonly<Record<string, string>> = {
-  'md.users': 'iam.users',
-  'md.profile': 'iam.profile',
-  'md.org_units': 'iam.org_units',
-  'md.roles': 'rbac.roles',
-  'md.assignments': 'rbac.assignments',
-  'md.settings': 'platform.settings',
-  'md.navigation': 'platform.navigation',
-  'md.modules': 'platform.modules',
-  'notify.announcements': 'platform.announcements',
-  'mf.files': 'platform.files',
-  search: 'platform.search',
-  'webhook.subscriptions': 'platform.webhooks',
-};
-
 @Injectable({
   providedIn: 'root',
 })
@@ -48,11 +29,7 @@ export class PermissionService {
     if (perms.has('*.*')) {
       return true;
     }
-    if (perms.has(`${form}.${action}`) || perms.has(`${form}.*`)) {
-      return true;
-    }
-    const legacy = LEGACY_FORM_CODES[form];
-    return legacy !== undefined && (perms.has(`${legacy}.${action}`) || perms.has(`${legacy}.*`));
+    return perms.has(`${form}.${action}`) || perms.has(`${form}.*`);
   }
 
   /** Checks a `form.action` pair written as one key, e.g. `md.navigation.manage`. */

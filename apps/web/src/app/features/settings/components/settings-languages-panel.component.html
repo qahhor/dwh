@@ -8,27 +8,6 @@
 
 @if (!editingLanguageCode()) {
   <div class="settings-card">
-    @if (legacyLanguageCount() > 0) {
-      <div class="legacy-import" role="status">
-        <div>
-          <strong>{{ 'settings.legacy_packages_found' | t: { count: legacyLanguageCount() } }}</strong>
-          <span>{{ 'settings.languages.migrate_local_hint' | t }}</span>
-        </div>
-        @if (canUpdateSystemSettings()) {
-          <button
-            smt-button
-            smtVariant="secondary"
-            id="migrate-legacy-languages"
-            type="button"
-            [disabled]="isMigratingLegacyLanguages()"
-            (click)="migrateLegacyLanguages.emit()"
-          >
-            {{ (isMigratingLegacyLanguages() ? 'settings.migrating' : 'settings.migrate') | t }}
-          </button>
-        }
-      </div>
-    }
-
     <div class="card-header-bar">
       <div class="card-title-group">
         <span class="material-symbols-outlined card-icon" aria-hidden="true">translate</span>

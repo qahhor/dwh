@@ -70,7 +70,6 @@ export class SettingsComponent implements OnInit {
     } else if (!this.store.canManageSystemSettings()) {
       this.activeTab.set('preferences');
     }
-    this.languageStore.countLegacyLanguages();
   }
 
   openAddLangModal() {

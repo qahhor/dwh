@@ -18,14 +18,6 @@ if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) {
     throw "Environment file '$EnvFile' was not found."
 }
 
-# ADR-0027: names before smc/warehouse still work until 2026-12-31; say which ones to rename (names only, no values).
-$legacyNames = @(Select-String -LiteralPath $EnvFile -Pattern '^((?:APP_)?DWH_[A-Z0-9_]+)=' |
-        ForEach-Object { $_.Matches[0].Groups[1].Value })
-if ($legacyNames.Count -gt 0) {
-    Write-Warning "$EnvFile uses configuration names read only until 2026-12-31: $($legacyNames -join ', ')"
-    Write-Warning 'Rename them (DWH_* -> SMC_*, APP_DWH_* -> WAREHOUSE_*): docs/ops/configuration-reference.md'
-}
-
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $DeploymentHistoryFile = Join-Path $repoRoot 'deployments/history.jsonl'
 

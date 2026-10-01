@@ -93,6 +93,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class SecurityConfigTest {
 
     private static final String SESSION_COOKIE = "SMC_SESSION";
+    /** The session cookie name before plan 10/10, item 4.7; the server no longer reads it. */
+    private static final String OLD_SESSION_COOKIE = "DWH_SESSION";
 
     @Autowired
     MockMvc mvc;
@@ -175,35 +177,21 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("4.7: старая cookie DWH_SESSION — тоже cookie-сессия: без CSRF-токена мутирующий запрос -> 403")
-    void legacySessionCookieStillNeedsCsrf() throws Exception {
-        mvc.perform(post("/api/v1/security-test")
-                        .cookie(new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "raw-session")))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value("csrf_token_invalid"));
-    }
-
-    @Test
-    @DisplayName("4.7: старая cookie DWH_SESSION работает до конца периода и заменяется на SMC_SESSION в том же ответе")
-    void legacySessionCookieAuthenticatesAndIsReplaced() throws Exception {
+    @DisplayName("4.7: старая cookie DWH_SESSION игнорируется: запрос остаётся анонимным, cookie не заменяется")
+    void oldSessionCookieIsIgnored() throws Exception {
         stubAuthenticatedUser(Set.of());
 
         var response = mvc.perform(post("/api/v1/security-test")
                         .cookie(
-                                new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "raw-session"),
+                                new Cookie(OLD_SESSION_COOKIE, "raw-session"),
                                 new Cookie("XSRF-TOKEN", "test-csrf-token"))
                         .header("X-XSRF-TOKEN", "test-csrf-token"))
-                .andExpect(status().isOk())
+                .andExpect(status().isUnauthorized())
                 .andReturn()
                 .getResponse();
 
-        Cookie renewed = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
-        assertThat(renewed).isNotNull();
-        assertThat(renewed.getValue()).isEqualTo("raw-session");
-        assertThat(renewed.isHttpOnly()).isTrue();
-        assertThat(renewed.getMaxAge()).isEqualTo(KauthPref.SESSION_COOKIE_MAX_AGE_SECONDS);
-        assertThat(response.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
-                .isZero();
+        assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME)).isNull();
+        assertThat(response.getCookie(OLD_SESSION_COOKIE)).isNull();
     }
 
     @Test
@@ -216,7 +204,6 @@ class SecurityConfigTest {
                 .getResponse();
 
         assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME)).isNull();
-        assertThat(response.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME)).isNull();
     }
 
     @Test

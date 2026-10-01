@@ -34,26 +34,6 @@
   color: var(--text-light);
   margin: 2px 0 0 0;
 }
-.legacy-import {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--warning);
-  border-radius: 9px;
-  color: var(--text-main);
-  background: var(--warning-bg);
-}
-.legacy-import > div {
-  display: grid;
-  gap: 3px;
-}
-.legacy-import span {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
 .table-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -193,10 +173,4 @@ tbody tr:hover td {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-@media (max-width: 680px) {
-  .legacy-import {
-    align-items: stretch;
-    flex-direction: column;
-  }
 }

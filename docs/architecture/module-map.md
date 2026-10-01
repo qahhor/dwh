@@ -53,9 +53,6 @@
 | `common` | `com.smartup24.cms.instance.common` | Платформа, не бизнес-модуль: сущность и реестр полей, модель ошибок, веб-соглашения, JSON-колонки, сроки хранения, версии с датой действия, актор аудита; не зависит от бизнес-модулей | реестры `fnd_versioned_tables`, `fnd_audit_tables` | любая форма по правилу (ADR-0028, п. 3) | `EntityMenuController` и `EntityBulkController` — `/api/v1/entities`, `FormMetaController` — `/api/v1/form-meta`, `QueryMetaController` — `/api/v1/query-meta` |
 | `config` | `com.smartup24.cms.instance.config` | Конфигурация приложения, не бизнес-модуль: безопасность и фильтры, обработчик ошибок, кэш кластера, идемпотентность, OpenAPI, задание очистки журналов, такт очереди заданий, проверка схемы, health | `idempotency_keys` | любая форма по правилу (ADR-0028, п. 3) | `SystemInfoController` — `/api/v1/system`, `GlobalExceptionHandler`, `JobQueueWorker`, `SchemaVersionGate` |
 
-Пакет `fnd` — не модуль: в нём остался только устаревший псевдоним
-`fnd.migration.MigrateMain` до 2026-12-31 (ADR-0030).
-
 ## Переименование `kwh` → `webhook` (пункт 4.3)
 
 Код модуля `kwh` объяснялся только в javadoc. С пункта 4.3 модуль называется

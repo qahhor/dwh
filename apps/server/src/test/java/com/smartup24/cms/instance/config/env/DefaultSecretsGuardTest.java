@@ -94,14 +94,28 @@ class DefaultSecretsGuardTest {
     }
 
     @Test
-    @DisplayName("4.1: старый ключ dwh.typesense.api-key доходит до приложения как smc.typesense.api-key")
-    void oldKeyReachesTheApplication() {
+    @DisplayName("4.1: старый ключ dwh.typesense.api-key не читается: остаётся ключ по умолчанию, старт падает")
+    void oldKeyIsIgnored() {
+        SpringApplication application = new SpringApplication(Empty.class);
+        application.setWebApplicationType(WebApplicationType.NONE);
+        application.setRegisterShutdownHook(false);
+
+        assertThatThrownBy(() -> application.run(
+                        "--dwh.typesense.api-key=a-key-of-this-installation",
+                        "--DB_PASSWORD=a-password-of-this-installation"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("SMC_TYPESENSE_API_KEY");
+    }
+
+    @Test
+    @DisplayName("4.1: ключ smc.typesense.api-key своей установки доходит до приложения")
+    void currentKeyReachesTheApplication() {
         SpringApplication application = new SpringApplication(Empty.class);
         application.setWebApplicationType(WebApplicationType.NONE);
         application.setRegisterShutdownHook(false);
 
         try (ConfigurableApplicationContext context = application.run(
-                "--dwh.typesense.api-key=a-key-of-this-installation",
+                "--smc.typesense.api-key=a-key-of-this-installation",
                 "--DB_PASSWORD=a-password-of-this-installation")) {
             assertThat(context.getEnvironment().getProperty("smc.typesense.api-key"))
                     .isEqualTo("a-key-of-this-installation");

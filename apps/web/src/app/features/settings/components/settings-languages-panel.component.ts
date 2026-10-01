@@ -38,7 +38,6 @@ import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
 export class SettingsLanguagesPanelComponent {
   private readonly i18n = inject(I18nService);
 
-  readonly isMigratingLegacyLanguages = input(false);
   readonly isAddingLang = input(false);
   readonly newLangCode = input('');
   readonly newLangName = input('');
@@ -46,7 +45,6 @@ export class SettingsLanguagesPanelComponent {
 
   readonly canUpdateSystemSettings = input(false);
   readonly editingLanguageCode = input<string | null>(null);
-  readonly legacyLanguageCount = input(0);
   readonly languages = input<LanguageInfo[]>([]);
   readonly currentLang = input('');
   readonly isAddLangModalOpen = input(false);
@@ -54,7 +52,6 @@ export class SettingsLanguagesPanelComponent {
   readonly openLanguageEditor = output<string>();
   readonly closeLanguageEditor = output<void>();
   readonly languageSaved = output<void>();
-  readonly migrateLegacyLanguages = output<void>();
   readonly openAddLangModal = output<void>();
   readonly closeAddLangModal = output<void>();
   readonly saveNewLanguage = output<void>();

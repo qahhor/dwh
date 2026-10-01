@@ -42,13 +42,12 @@ public class KauthApiTokenService {
     }
 
     /**
-     * The active token with this secret, found by its hash: the prefix is not parsed, so a token issued with
-     * {@link KauthPref#LEGACY_API_TOKEN_PREFIX} keeps authenticating until {@code ApiDeprecations.SUNSET}
-     * (plan 10/10, item 4.7).
+     * The active token with this secret, found by its hash. A value without {@link KauthPref#API_TOKEN_PREFIX} is
+     * no token of this server and is not looked up (plan 10/10, item 4.7).
      */
     @Transactional(readOnly = true)
     public Optional<KauthApiTokenRepository.ApiTokenRecord> validateToken(String rawToken) {
-        if (rawToken == null || rawToken.isBlank()) {
+        if (rawToken == null || !rawToken.startsWith(KauthPref.API_TOKEN_PREFIX)) {
             return Optional.empty();
         }
         String tokenHash = KauthPasswordHasher.sha256(rawToken);
