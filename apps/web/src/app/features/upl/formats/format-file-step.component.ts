@@ -15,7 +15,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
-/** Шаг «Файл» анкеты: вид файла, кодировка и разделитель CSV, сопоставление колонок. Правит модель на месте. */
+/** The "File" step of the file format: file kind, CSV encoding and delimiter, column mapping. Edits the model. */
 @Component({
   selector: 'app-upl-format-file-step',
   changeDetection: ChangeDetectionStrategy.OnPush,

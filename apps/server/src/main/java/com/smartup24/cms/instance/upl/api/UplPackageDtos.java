@@ -11,12 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Ответы API загрузок файлов (контракт И5, раздел 3). Внутренние числовые идентификаторы наружу не выходят. */
+/** API responses of file uploads. Internal numeric identifiers are never exposed. */
 public final class UplPackageDtos {
 
     private UplPackageDtos() {}
 
-    /** Пакет загрузки: счётчики и причина отказа пусты, пока файл не разобран. */
+    /** Upload package: counters and the rejection reason are empty until the file is parsed. */
     public record PackageItem(
             UUID id,
             long sourceId,
@@ -68,7 +68,7 @@ public final class UplPackageDtos {
         }
     }
 
-    /** Запись об ошибке: {@code rowNo == null} — расхождение с анкетой, иначе адрес ячейки. */
+    /** Error record: {@code rowNo == null} means a mismatch with the format, otherwise a cell address. */
     public record ErrorItem(
             String sheet, Integer rowNo, String columnName, String value, String code, Map<String, Object> params) {
 
@@ -77,7 +77,7 @@ public final class UplPackageDtos {
         }
     }
 
-    /** Ошибки пакета: {@code total} — сколько найдено всего, {@code shown} — сколько сохранено и отдано. */
+    /** Package errors: {@code total} is how many were found, {@code shown} is how many were stored and returned. */
     public record PackageErrors(int total, int shown, List<ErrorItem> items) {
 
         public static PackageErrors of(ErrorsView view) {

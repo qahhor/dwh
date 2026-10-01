@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
 import java.sql.SQLException;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;

@@ -22,6 +22,8 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -180,6 +182,37 @@ class IdempotencyExactlyOnceIntegrationTest {
                         .query(Long.class)
                         .single())
                 .isZero();
+    }
+
+    @Test
+    @DisplayName("3.12: a hook failing after a successful commit keeps the buffered answer: the operation happened")
+    void afterCommitHookFailureKeepsTheAnswer() throws Exception {
+        UUID key = UUID.randomUUID();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        filter.doFilter(request(key), response, (request, servletResponse) -> {
+            jdbc.sql("insert into idem_business (note) values ('committed')").update();
+            // E.g. a metric or an event published once the request commits.
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    throw new IllegalStateException("after-commit hook failed");
+                }
+            });
+            respond((HttpServletResponse) servletResponse, 201, "{\"id\":5}");
+        });
+
+        assertThat(response.getStatus()).isEqualTo(201);
+        assertThat(new ObjectMapper().readTree(response.getContentAsString()))
+                .isEqualTo(new ObjectMapper().readTree("{\"id\":5}"));
+        assertThat(rows()).as("the operation committed").isEqualTo(1);
+
+        MockHttpServletResponse retry = new MockHttpServletResponse();
+        filter.doFilter(request(key), retry, (request, servletResponse) -> {
+            throw new IllegalStateException("a replay never runs the operation again");
+        });
+        assertThat(retry.getStatus()).isEqualTo(201);
+        assertThat(retry.getHeader(IdempotencyFilter.HEADER_IDEMPOTENT_REPLAY)).isEqualTo("true");
+        assertThat(rows()).isEqualTo(1);
     }
 
     private static long rows() {

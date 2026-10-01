@@ -5,7 +5,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -76,8 +76,8 @@ public class MdUserSecurityService {
 
         userRepository.setState(targetUserId, newState, currentUserId);
 
-        // I-U1 (FR-USR-4): блокировка атомарно закрывает сессии и отзывает токены —
-        // в ТОЙ ЖЕ транзакции, никаких «окон», когда state=P, а сессия жива.
+        // FR-USR-4: blocking atomically closes sessions and revokes tokens
+        // in the SAME transaction, with no window where state=P while a session is alive.
         if (MdPref.STATE_PASSIVE.equals(newState)) {
             userRepository.incrementAuthenticationVersion(targetUserId);
             sessionInvalidator.invalidateAllAccess(targetUserId);
@@ -132,15 +132,15 @@ public class MdUserSecurityService {
     public void anonymizeUser(Long targetUserId, Long currentUserId) {
         var targetUser = getUserById(targetUserId);
 
-        // I-IAM-1: Системный администратор не может быть удалён или анонимизирован
+        // The system administrator cannot be deleted or anonymized
         if (targetUser.login().equalsIgnoreCase("admin")) {
             throw ApiException.conflict(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_delete_forbidden");
         }
 
-        // FR-USR-8: Анонимизация ПДн с сохранением реляционной целостности для аудита
+        // FR-USR-8: anonymize personal data while keeping relational integrity for the audit
         userRepository.anonymizeUser(targetUserId, currentUserId);
 
-        // Закрытие всех сессий и отзыв токенов
+        // Close all sessions and revoke tokens
         userRepository.incrementAuthenticationVersion(targetUserId);
         sessionInvalidator.invalidateAllAccess(targetUserId);
 

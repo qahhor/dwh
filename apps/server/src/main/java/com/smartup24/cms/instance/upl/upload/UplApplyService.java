@@ -2,10 +2,10 @@ package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
+import com.smartup24.cms.instance.fnd.api.FndJobQueue;
+import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
@@ -14,26 +14,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Применение пакета «проверен» (контракт И6, раздел 6), asynchronous since plan 10/10, item 3.9: the request opens
- * the load of the foundation, turns the package «применяется» and queues {@link UplApplyJob}, which streams the rows
+ * Applies a "verified" package, asynchronous since plan 10/10, item 3.9: the request opens
+ * the load of the foundation, turns the package "applying" and queues {@link UplApplyJob}, which streams the rows
  * into raw and closes the package. The request holds one short OLTP transaction and starts no long work, so it answers
  * at once and an Idempotency-Key replays it (item 3.12).
  */
 @Service
 public class UplApplyService {
 
-    /** Строк в raw не столько, сколько в пакете, или счётчики пакета не сходятся. */
+    /** The number of rows in raw differs from the package, or the package counters do not add up. */
     public static final String UPL_PKG_RECONCILIATION = "UPL_PKG_RECONCILIATION";
-    /** Строки пакета не записаны в raw. */
+    /** The package rows were not written to raw. */
     public static final String UPL_PKG_RAW_WRITE_FAILED = "UPL_PKG_RAW_WRITE_FAILED";
-    /** Применение прервалось между шагами (падение процесса, сбой базы) — пакет закрыло задание восстановления. */
+    /** Apply was interrupted between steps (process crash, database failure); the recovery job closed the package. */
     public static final String UPL_PKG_APPLY_INTERRUPTED = "UPL_PKG_APPLY_INTERRUPTED";
 
     private final UplPackageService packages;
     private final UplPackageRepository repo;
-    private final FndLoadService loads;
-    private final FndActors actors;
-    private final FndJobRunner jobs;
+    private final FndLoads loads;
+    private final FndActorContext actors;
+    private final FndJobQueue jobs;
     private final TransactionTemplate tx;
 
     /** Requests the apply as {@link #request} does and answers the package as the API shows it (plan 10/10, 3.2). */
@@ -44,9 +44,9 @@ public class UplApplyService {
     public UplApplyService(
             UplPackageService packages,
             UplPackageRepository repo,
-            FndLoadService loads,
-            FndActors actors,
-            FndJobRunner jobs,
+            FndLoads loads,
+            FndActorContext actors,
+            FndJobQueue jobs,
             TransactionTemplate tx) {
         this.packages = packages;
         this.repo = repo;
@@ -57,11 +57,11 @@ public class UplApplyService {
     }
 
     /**
-     * Ставит применение в очередь: открывает загрузку основы, переводит пакет в «применяется» и ставит задание — всё
-     * одной транзакцией (с Idempotency-Key — транзакцией запроса). Не «проверен» — 409, нет принятых строк — 409, нет
-     * пакета — 404.
+     * Queues the apply: opens a foundation load, turns the package "applying" and queues the job, all
+     * in one transaction (with an Idempotency-Key, the request transaction). Not "verified" gives 409,
+     * no accepted rows gives 409, no package gives 404.
      *
-     * @return the package «применяется»: the status resource the client polls until it is applied or rejected
+     * @return the package "applying": the status resource the client polls until it is applied or rejected
      */
     public PackageRow request(String publicId, long userId) {
         UUID id = packages.get(publicId).publicId();

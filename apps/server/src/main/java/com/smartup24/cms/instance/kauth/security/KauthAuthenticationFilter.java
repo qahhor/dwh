@@ -26,11 +26,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Аутентификация Bearer API-токеном или cookie-сессией.
- * Участвует ТОЛЬКО в цепочке Spring Security (см. SecurityConfig:
- * авто-регистрация в servlet-контейнере отключена). Заполняет оба контекста:
- * наш thread-local SecurityContext (RBAC-интерцептор) и SecurityContextHolder
- * (авторизация Spring Security).
+ * Authentication by a Bearer API token or a cookie session.
+ * Takes part ONLY in the Spring Security chain (see SecurityConfig:
+ * auto-registration in the servlet container is disabled). Fills both contexts:
+ * our thread-local SecurityContext (RBAC interceptor) and SecurityContextHolder
+ * (Spring Security authorization).
  */
 @Component
 public class KauthAuthenticationFilter extends OncePerRequestFilter {
@@ -95,9 +95,9 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } finally {
-            // SecurityContextHolder чистит SecurityContextHolderFilter самой цепочки —
-            // ручная очистка здесь стирала бы аутентификацию ДО того, как
-            // ExceptionTranslationFilter (выше по цепочке) разберёт исключение.
+            // SecurityContextHolder is cleared by the chain's own SecurityContextHolderFilter;
+            // clearing it by hand here would wipe the authentication BEFORE
+            // ExceptionTranslationFilter (higher up the chain) handles the exception.
             SecurityContext.clear();
         }
     }
@@ -110,7 +110,7 @@ public class KauthAuthenticationFilter extends OncePerRequestFilter {
     private void authenticateUser(
             Long userId, long authenticationVersion, Runnable touch, Long sessionId, boolean api, Long apiTokenId) {
         try {
-            var user = userService.getUserById(userId);
+            var user = userService.getUserIdentity(userId);
             if (MdPref.STATE_ACTIVE.equals(user.state()) && user.authenticationVersion() == authenticationVersion) {
                 touch.run();
                 Set<String> permissions = permissionService.getEffectivePermissions(user.id());

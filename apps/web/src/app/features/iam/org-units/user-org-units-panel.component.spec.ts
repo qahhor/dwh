@@ -61,11 +61,12 @@ describe('UserOrgUnitsPanelComponent', () => {
       list: vi.fn((): Observable<OrgUnit[]> => of(units)),
       assignments: vi.fn((userId: number): Observable<UserAssignments> =>
         options.perUser
-          ? of({ userId, orgUnitIds: userId === 43 ? [9] : [7], legacyOrgUnitId: null })
+          ? of({ userId, orgUnitIds: userId === 43 ? [9] : [7], legacyOrgUnitId: null, revision: 4 })
           : of({
               userId: options.target ?? 42,
               orgUnitIds: options.assigned ?? [7],
               legacyOrgUnitId: options.legacy === undefined ? 9 : options.legacy,
+              revision: 4,
             }),
       ),
       scope: vi.fn((userId: number): Observable<UserScope> =>
@@ -73,9 +74,11 @@ describe('UserOrgUnitsPanelComponent', () => {
           ? of({ rule: 'UNITS', visibleOrgUnitIds: userId === 43 ? [9] : [7] })
           : of({ rule: options.rule ?? 'SUBTREE', visibleOrgUnitIds: options.visible ?? [7, 8] }),
       ),
-      saveAssignments: vi.fn((_userId: number, _orgUnitIds: number[]): Observable<undefined> => of(undefined)),
+      saveAssignments: vi.fn((_userId: number, _orgUnitIds: number[], _revision?: number): Observable<undefined> =>
+        of(undefined),
+      ),
     };
-    const toast = { success: vi.fn() };
+    const toast = { success: vi.fn(), error: vi.fn(), show: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: OrgUnitsApiService, useValue: api },
@@ -102,6 +105,38 @@ describe('UserOrgUnitsPanelComponent', () => {
   }
   const box = (fixture: { nativeElement: HTMLElement }, id: number) =>
     fixture.nativeElement.querySelector(`input[data-smt-check="${id}"]`) as HTMLInputElement;
+
+  it('saves from the newest revision of the user it knows and hands the raised one to the host', () => {
+    const { fixture, panel, api } = rendered();
+    const raised: number[] = [];
+    panel.revisionChange.subscribe((revision) => raised.push(revision));
+    fixture.componentRef.setInput('revision', 2);
+    fixture.detectChanges();
+
+    panel.toggleAssignment(units[0]);
+    panel.save();
+
+    expect(api.saveAssignments).toHaveBeenCalledWith(42, expect.any(Array), 4);
+    expect(raised).toEqual([5]);
+  });
+
+  it('offers a reload once when the user moved on, drops the draft and asks the host to read the user again', () => {
+    const { fixture, panel, api, toast } = rendered();
+    const stale = vi.fn();
+    panel.staleUser.subscribe(stale);
+    api.saveAssignments.mockReturnValueOnce(throwError(() => ({ status: 428, code: 'precondition_required' })));
+
+    panel.toggleAssignment(units[0]);
+    panel.save();
+    fixture.detectChanges();
+
+    expect(panel.saveError()).toBeNull();
+    expect(toast.show).toHaveBeenCalledOnce();
+    (toast.show.mock.calls[0][4] as { run: () => void }).run();
+    expect(panel.selectedOrgUnitIds()).toEqual([7]);
+    expect(api.assignments).toHaveBeenCalledTimes(2);
+    expect(stale).toHaveBeenCalledOnce();
+  });
 
   it('keeps assigned, effective and legacy organization IDs separate and never writes an unchanged draft', () => {
     const { fixture, panel, api, text } = rendered();
@@ -134,7 +169,7 @@ describe('UserOrgUnitsPanelComponent', () => {
     fixture.detectChanges();
     expect(panel.selectedOrgUnitIds()).toEqual([]);
     panel.save();
-    expect(api.saveAssignments).toHaveBeenCalledWith(42, []);
+    expect(api.saveAssignments).toHaveBeenCalledWith(42, [], 4);
     expect(panel.legacyOrgUnitId()).toBe(9);
   });
 

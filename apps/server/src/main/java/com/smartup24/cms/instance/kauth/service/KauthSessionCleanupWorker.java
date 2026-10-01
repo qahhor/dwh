@@ -9,9 +9,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Фоновый воркер очистки неактивных сессий (FR-AUTH-8):
- * Сессии, не проявлявшие активности более 12 часов (last_seen_at < now() - 12h),
- * автоматически переводятся в закрытые (closed_at = now()).
+ * Background worker that cleans up inactive sessions (FR-AUTH-8):
+ * sessions with no activity for more than 12 hours (last_seen_at < now() - 12h)
+ * are closed automatically (closed_at = now()).
  */
 @Component
 @Profile("!migrate")

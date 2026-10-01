@@ -41,7 +41,8 @@ final class MsTaskRows {
                 rs.getTimestamp("modified_at").toInstant(),
                 rs.getLong("created_by"),
                 rs.getLong("modified_by"),
-                rs.getObject("revision") != null ? rs.getLong("revision") : 1L);
+                rs.getObject("revision") != null ? rs.getLong("revision") : 1L,
+                rs.getString("project_name"));
     }
 
     /** The attributes of a task as a JSON object, written by the shared JSON columns (plan item 3.11). */

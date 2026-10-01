@@ -39,14 +39,14 @@ describe('OrgUnitsApiService contracts', () => {
     service.create(body).subscribe();
     service.update(7, { name: 'New' }, 3).subscribe();
     service.remove(7).subscribe();
-    service.saveAssignments(42, []).subscribe();
-    service.saveRoleRule(8, 'UNITS').subscribe();
+    service.saveAssignments(42, [], 5).subscribe();
+    service.saveRoleRule(8, 'UNITS', 2).subscribe();
     expect(api.post).toHaveBeenCalledWith('/iam/org-units', body, { notifyError: false });
     expect(api.patch).toHaveBeenCalledWith('/iam/org-units/7', { name: 'New' }, { notifyError: false, ifMatch: 3 });
     expect(api.delete).toHaveBeenCalledWith('/iam/org-units/7', { notifyError: false });
     expect(api.put.mock.calls).toEqual([
-      ['/iam/org-units/users/42', { orgUnitIds: [] }, { notifyError: false }],
-      ['/iam/org-units/roles/8/rule', { rule: 'UNITS' }, { notifyError: false }],
+      ['/iam/org-units/users/42', { orgUnitIds: [] }, { notifyError: false, ifMatch: 5 }],
+      ['/iam/org-units/roles/8/rule', { rule: 'UNITS' }, { notifyError: false, ifMatch: 2 }],
     ]);
   });
   it.each([undefined, null])('normalizes root parent %s for list, detail and create', (parentId) => {
@@ -72,8 +72,8 @@ describe('OrgUnitsApiService contracts', () => {
     for (const request of [
       service.update(id, { name: 'X' }, 1),
       service.remove(id),
-      service.saveAssignments(42, [id]),
-      service.saveRoleRule(id, 'SELF'),
+      service.saveAssignments(42, [id], 1),
+      service.saveRoleRule(id, 'SELF', 1),
       service.create({ parentId: id, code: 'X', name: 'X', kind: 'company', orderNo: 0 }),
       service.update(1, { parentId: id }, 1),
     ]) {

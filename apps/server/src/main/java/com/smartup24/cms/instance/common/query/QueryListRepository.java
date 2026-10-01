@@ -13,8 +13,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Выполняет {@link QueryPlan}: страница по keyset-курсору и итог на первой странице.
- * Скоуп данных (ADR-0013) модуль передаёт готовым предикатом {@code extra}: он ложится в тот же SQL.
+ * Runs a {@link QueryPlan}: a page by keyset cursor and the total on the first page.
+ * The module passes the data scope (ADR-0013) as a ready {@code extra} predicate that goes into the same SQL.
  */
 @Repository
 public class QueryListRepository {
@@ -48,7 +48,7 @@ public class QueryListRepository {
         return page(plan, mapper, new QueryPlan.SqlFragment("", Map.of()));
     }
 
-    /** @param extra дополнительный предикат модуля ({@code " and ..."}) с параметрами без префикса {@code q_} */
+    /** @param extra an additional module predicate ({@code " and ..."}) with parameters not prefixed {@code q_} */
     public <T> KeysetPage<T> page(QueryPlan plan, RowMapper<T> mapper, QueryPlan.SqlFragment extra) {
         QueryList list = plan.list();
         QueryPlan.SqlFragment where = plan.where();

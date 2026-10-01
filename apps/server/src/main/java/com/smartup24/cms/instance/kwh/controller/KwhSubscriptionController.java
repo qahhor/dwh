@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.common.web.Created;
 import com.smartup24.cms.instance.common.web.Revisions;
 import com.smartup24.cms.instance.kwh.pref.KwhPref;
 import com.smartup24.cms.instance.kwh.service.KwhWebhookService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -26,12 +27,17 @@ public class KwhSubscriptionController {
         this.webhookService = webhookService;
     }
 
+    @Operation(summary = "List webhook subscriptions", description = "The webhook subscriptions of the installation.")
     @GetMapping
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "view")
     public ResponseEntity<List<KwhWebhookService.SubscriptionView>> listSubscriptions() {
         return ResponseEntity.ok(webhookService.listSubscriptions());
     }
 
+    @Operation(
+            summary = "Create a webhook subscription",
+            description =
+                    "Subscribes a target URL to events; the signing key is returned once and never stored for replay.")
     @PostMapping
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     @ReturnsSecret
@@ -45,6 +51,9 @@ public class KwhSubscriptionController {
         return Created.at("/api/v1/webhooks/subscriptions/{id}", sub.id(), sub);
     }
 
+    @Operation(
+            summary = "Update a webhook subscription",
+            description = "Changes the name, target, events or state of a subscription.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -58,6 +67,7 @@ public class KwhSubscriptionController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete a webhook subscription", description = "Removes a webhook subscription.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = KwhPref.FORM_WEBHOOKS, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)

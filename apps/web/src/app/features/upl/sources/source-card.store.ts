@@ -13,7 +13,7 @@ import { parseUplProblem, uplFieldErrorText } from '../formats/upl-format-errors
 import { UPL_ERROR, uplProblemText } from '../upl-labels';
 import { UplRuleMessage, uplSourceLengthLimits, uplSourceRequisiteRules } from './source-form-rules';
 
-/** Реквизиты источника в форме экрана: код не правится и здесь не хранится. */
+/** The source details in the screen form: the code is not editable and is not kept here. */
 export interface SourceForm {
   name: string;
   ownerOrg: string;

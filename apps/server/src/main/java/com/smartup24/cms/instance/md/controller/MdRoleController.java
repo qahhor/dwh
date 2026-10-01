@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.md.api.MdRoleDtos.UpdateRoleDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdPermissionService;
 import com.smartup24.cms.instance.md.service.MdRoleService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
@@ -33,18 +34,21 @@ public class MdRoleController {
         this.permissionService = permissionService;
     }
 
+    @Operation(summary = "List roles", description = "The roles of the installation.")
     @GetMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
     public ResponseEntity<List<RoleView>> listRoles() {
         return ResponseEntity.ok(roleService.listRoles());
     }
 
+    @Operation(summary = "Count users per role", description = "How many users each role is assigned to.")
     @GetMapping("/roles/user-counts")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
     public ResponseEntity<Map<Long, Integer>> getRoleUserCounts() {
         return ResponseEntity.ok(roleService.countUsersPerRole());
     }
 
+    @Operation(summary = "Create a role", description = "Adds a role with its code and name.")
     @PostMapping("/roles")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -53,6 +57,9 @@ public class MdRoleController {
         return Created.at("/api/v1/iam/roles/{id}", role.id(), role);
     }
 
+    @Operation(
+            summary = "Update a role",
+            description = "Changes the name or state of a role; names the revision it was read at.")
     @PatchMapping("/roles/{id}")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -66,6 +73,7 @@ public class MdRoleController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete a role", description = "Removes a role.")
     @DeleteMapping("/roles/{id}")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -74,12 +82,16 @@ public class MdRoleController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Get the permissions of a role", description = "The form actions granted to a role.")
     @GetMapping("/roles/{id}/permissions")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
     public ResponseEntity<Set<String>> getRolePermissions(@PathVariable("id") Long id) {
         return ResponseEntity.ok(roleService.getRolePermissions(id));
     }
 
+    @Operation(
+            summary = "Replace the permissions of a role",
+            description = "Replaces the whole set of form actions granted to a role.")
     @PutMapping("/roles/{id}/permissions")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "grant")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -93,6 +105,9 @@ public class MdRoleController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(
+            summary = "Get the permission catalog",
+            description = "The forms and their actions on which permissions are granted.")
     @GetMapping("/forms")
     @RequiresPermission(form = MdPref.FORM_ROLES, action = "view")
     public ResponseEntity<List<FormCatalogItem>> getFormCatalog() {

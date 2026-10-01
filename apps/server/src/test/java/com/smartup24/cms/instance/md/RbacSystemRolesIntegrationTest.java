@@ -25,11 +25,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * R6 (ремедиация): интеграционная проверка RBAC на PostgreSQL 18.
- * Результаты матрицы ТЗ-01 разд. 8.2 (блок PERM):
- * - системные роли соответствуют матрице разд. 4.4.1 (auditor — без единой мутации);
- * - каждый эндпоинт объявляет право, и это право существует в каталоге (FR-PERM-8/FR-PERM-1);
- * - выдача/отзыв роли материализуют эффективные права и двигают permissions_version (FR-PERM-6).
+ * Integration check of RBAC on PostgreSQL 18, from the permission block of the technical specification's
+ * result matrix:
+ * - the system roles match the role matrix (auditor has not a single mutation);
+ * - every endpoint declares a permission, and that permission exists in the catalog (FR-PERM-8, FR-PERM-1);
+ * - granting or revoking a role materializes the effective permissions and moves permissions_version (FR-PERM-6).
  */
 class RbacSystemRolesIntegrationTest {
 
@@ -42,20 +42,20 @@ class RbacSystemRolesIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // FR-PERM-8 + FR-PERM-1: контроллеры ↔ каталог
+    // FR-PERM-8, FR-PERM-1: controllers and the catalog
     // ------------------------------------------------------------------
 
     /**
-     * Контроллеры вне матрицы прав. Исключение допустимо только если эндпоинт
-     * не отдаёт данных экземпляра: иначе право обязано быть объявлено (FR-PERM-8).
-     * Список закрытый — новый контроллер сюда не добавляется без обоснования.
+     * Controllers outside the permission matrix. An exception is allowed only if the endpoint returns
+     * no instance data: otherwise a permission must be declared (FR-PERM-8).
+     * The list is closed: a new controller is not added here without a reason.
      */
     private static final Set<String> PUBLIC_CONTROLLER_ALLOWLIST = Set.of(
-            "KauthAuthController", // публичный/сессионный контур входа
-            "KauthPasswordController", // смена собственного пароля — контур аутентификации (Д-7)
-            "KauthPasswordResetController", // сброс пароля по одноразовой ссылке, вход ещё не выполнен (план 0.1)
-            "OpenApiController", // спецификация API, permitAll в SecurityConfig
-            "MdI18nController", // публичные UI-словари, без данных экземпляра/пользователей
+            "KauthAuthController", // the public and session sign-in boundary
+            "KauthPasswordController", // changing one's own password, the authentication boundary
+            "KauthPasswordResetController", // password reset by a one-time link, the user is not signed in yet
+            "OpenApiController", // the API description, permitAll in SecurityConfig
+            "MdI18nController", // public UI dictionaries, no instance or user data
             "ProblemErrorController" // renders the container's own errors as problem+json; carries no data
             );
 
@@ -102,7 +102,7 @@ class RbacSystemRolesIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // FR-PERM-12: матрица системных ролей (ТЗ-01 разд. 4.4.1)
+    // FR-PERM-12: the matrix of system roles
     // ------------------------------------------------------------------
 
     @Test
@@ -111,7 +111,7 @@ class RbacSystemRolesIntegrationTest {
         List<String> pcodes = jdbc.sql("select pcode from md_roles where pcode is not null order by pcode")
                 .query(String.class)
                 .list();
-        // [допущение] И1: pcode есть и у ролей экземпляра (V110), поэтому contains, а не точное равенство
+        // An assumption: instance roles (V110) have a pcode too, hence contains rather than exact equality
         assertThat(pcodes).contains("admin", "manager", "auditor", "user");
     }
 
@@ -140,7 +140,7 @@ class RbacSystemRolesIntegrationTest {
         assertThat(mutating)
                 .as("Мутирующие права у auditor (запрещено определением роли): %s", mutating)
                 .isEmpty();
-        // и при этом просмотр у него не пустой
+        // and yet its view is not empty
         Long views = jdbc.sql("""
                 select count(*) from md_role_permissions rp
                 join md_roles r on r.id = rp.role_id where r.pcode = 'auditor'
@@ -172,7 +172,7 @@ class RbacSystemRolesIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // FR-PERM-6: выдача/отзыв → эффективные права + версия
+    // FR-PERM-6: granting or revoking gives effective permissions and a new version
     // ------------------------------------------------------------------
 
     @Test
@@ -212,7 +212,7 @@ class RbacSystemRolesIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // Инфраструктура сканирования
+    // Scanning infrastructure
     // ------------------------------------------------------------------
 
     private static List<Class<?>> findRestControllers() {
@@ -222,9 +222,9 @@ class RbacSystemRolesIntegrationTest {
         for (var bd : scanner.findCandidateComponents("com.smartup24.cms.instance")) {
             try {
                 Class<?> controller = Class.forName(bd.getBeanClassName());
-                // Тестовые стенды (SecurityTestController и подобные) охраняют
-                // выдуманные формы: в матрице прав приложения их быть не должно,
-                // и держать их в списке исключений — лишний повод его редактировать.
+                // Test stands (SecurityTestController and the like) guard
+                // made-up forms: they must not be in the application permission matrix,
+                // and keeping them in the exception list would be one more reason to edit it.
                 var source = controller.getProtectionDomain().getCodeSource();
                 if (source != null && source.getLocation().getPath().contains("test-classes")) {
                     continue;

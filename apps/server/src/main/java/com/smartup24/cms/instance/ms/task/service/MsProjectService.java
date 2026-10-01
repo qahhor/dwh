@@ -11,7 +11,7 @@ import com.smartup24.cms.instance.md.service.MdCustomFieldService;
 import com.smartup24.cms.instance.ms.task.api.ProjectMemberView;
 import com.smartup24.cms.instance.ms.task.api.ProjectView;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -45,11 +45,10 @@ public class MsProjectService {
 
         String normalizedName = validateAndNormalizeName(name, true);
         validateState(state);
-        if (attributes != null) {
-            customFieldService.validateAttributes("PROJECT", attributes);
-        }
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("PROJECT", attributes) : null;
 
-        var project = projectRepository.create(normalizedName, description, state, attributes, createdBy);
+        var project = projectRepository.create(normalizedName, description, state, storedAttributes, createdBy);
         searchChangePublisher.projectChanged(project.id());
 
         auditLogService.logChange(
@@ -88,10 +87,10 @@ public class MsProjectService {
         var before = findProject(id);
         String normalizedName = validateAndNormalizeName(name, false);
         validateState(state);
-        if (attributes != null) {
-            customFieldService.validateAttributes("PROJECT", attributes);
-        }
-        long revision = projectRepository.update(id, normalizedName, description, state, attributes, expectedRevision);
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("PROJECT", attributes) : null;
+        long revision =
+                projectRepository.update(id, normalizedName, description, state, storedAttributes, expectedRevision);
         searchChangePublisher.projectChanged(id);
 
         auditLogService.logChange(
@@ -131,8 +130,8 @@ public class MsProjectService {
         findProject(projectId);
         projectRepository.addMember(projectId, userId, accessKind);
 
-        // Состав участников проекта — это доступ к его задачам, а значит
-        // изменение доступа: журналируется наравне с выдачей прав.
+        // Project membership is access to its tasks, so changing it is an access change:
+        // it is audited on a par with granting permissions.
         auditLogService.logChange(
                 "ms_task_project_members",
                 projectId + ":" + userId,

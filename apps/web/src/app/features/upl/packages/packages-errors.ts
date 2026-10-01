@@ -2,7 +2,7 @@ import { ProblemDetail } from '@core/models/common.models';
 import { UPL_ERROR, UplTranslateFn, uplErrorKey, uplProblemText } from '../upl-labels';
 import { UplPackageParams } from './packages-api';
 
-/** Все коды ошибок загрузки из контракта (раздел 8): у каждого есть ключ `upl.err.<КОД>` в словаре. */
+/** All load error codes from the contract: each has the key `upl.err.<CODE>` in the dictionary. */
 export const UPL_PACKAGE_CODES = [
   'UPL_PKG_SOURCE_REQUIRED',
   'UPL_PKG_PERIOD_REQUIRED',
@@ -32,10 +32,10 @@ export const UPL_PACKAGE_CODES = [
   'UPL_CELL_KEY_MASK',
 ] as const;
 
-/** Перевод с параметрами: `I18nService.translate` либо его заглушка в тестах. */
+/** Translation with parameters: `I18nService.translate` or its stub in tests. */
 export type UplTranslate = UplTranslateFn;
 
-/** Русский текст кода ошибки; перевода нет — показываем сам код, а не пустую строку. */
+/** The Russian text of an error code; without a translation the code itself is shown, not an empty string. */
 export function uplPackageCodeText(
   code: string,
   params: UplPackageParams | null | undefined,
@@ -46,7 +46,7 @@ export function uplPackageCodeText(
   return text === key ? code : text;
 }
 
-/** Места формы «Новая загрузка», под которые ложатся отказы сервера. */
+/** The places of the "New load" form where server refusals land. */
 export interface UplPackageFormErrors {
   source: string[];
   period: string[];
@@ -56,7 +56,7 @@ export interface UplPackageFormErrors {
 
 type UplFormPlace = keyof UplPackageFormErrors;
 
-/** Поле ответа сервера → место формы; неизвестное поле уходит полосой над формой. */
+/** A server response field maps to a form place; an unknown field goes to the banner above the form. */
 const FIELD_PLACE: Record<string, UplFormPlace> = {
   sourceId: 'source',
   periodFrom: 'period',
@@ -64,10 +64,10 @@ const FIELD_PLACE: Record<string, UplFormPlace> = {
   file: 'file',
 };
 
-/** Отказы по размеру приходят с этим кодом и от нашей проверки, и от каркаса. */
+/** Size refusals come with this code both from our check and from the framework. */
 const FILE_SIZE_CODE = 'file_size_exceeded';
 
-/** Ключи ошибок, которые относятся к выбранному источнику. */
+/** Error keys that relate to the selected source. */
 const SOURCE_KEYS: readonly string[] = [UPL_ERROR.sourceNotFound, UPL_ERROR.noFormatAtDate];
 
 function emptyErrors(): UplPackageFormErrors {
@@ -86,7 +86,7 @@ function fieldText(code: string, message: string, translate: UplTranslate): stri
   return text === key ? `${message} (${code})` : text;
 }
 
-/** Отказ сервера → тексты по местам формы; неизвестный код не прячем — он уходит полосой над формой. */
+/** A server refusal maps to texts per form place; an unknown code is not hidden, it goes to the banner above. */
 export function mapUplUploadProblem(
   problem: ProblemDetail | null | undefined,
   translate: UplTranslate,

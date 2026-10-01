@@ -19,8 +19,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * AC-1 (две БД, два набора миграций) и AC-3 (повторный прогон, схема каркаса не изменена).
- * Без Spring-контекста: только мигратор и JDBC на встроенном PostgreSQL.
+ * Two databases with two sets of migrations, and a repeated run that leaves the framework schema unchanged.
+ * No Spring context: only the migrator and JDBC on an embedded PostgreSQL.
  */
 class FndMigrationsTest {
 
@@ -52,7 +52,7 @@ class FndMigrationsTest {
     @Test
     @DisplayName("AC-1: в OLTP — таблицы A1 и основы, в pg-dwh — схемы raw/core/mart/cache без таблиц модулей")
     void twoDatabasesTwoMigrationSets() {
-        // AC-1/M-7: одна история OLTP — и миграции каркаса (V0xx), и наши (V1xx)
+        // One OLTP history holds both the framework migrations (V0xx) and ours (V1xx)
         String versionNumber = "split_part(version, '.', 1)::int";
         Integer oltpMin = oltp.sql(
                         "select min(" + versionNumber + ") from flyway_schema_history where version is not null")
@@ -74,7 +74,7 @@ class FndMigrationsTest {
                 .query(String.class)
                 .list();
         assertThat(oltpTables).contains("md_users", "kauth_sessions", "audit_log", "mf_files", "md_settings");
-        // Наши таблицы (V100 и далее); список расширяется вместе с миграциями fnd
+        // Our tables (V100 and later); the list grows with the fnd migrations
         assertThat(oltpTables)
                 .contains(
                         "fnd_audit_tables",
@@ -128,7 +128,7 @@ class FndMigrationsTest {
                 .isEmpty();
     }
 
-    /** Последняя миграция каркаса: наши файлы нумеруются с V100, всё ниже — upstream. */
+    /** The last framework migration: our files are numbered from V100, everything below is upstream. */
     static String frameworkBaselineVersion() {
         return MigrationCatalog.onClasspath(FndPref.OLTP_MIGRATIONS).fileNames().stream()
                 .map(MigrationCatalog::versionOf)
@@ -146,9 +146,9 @@ class FndMigrationsTest {
     }
 
     /**
-     * Снимок схемы каркаса — тест-ресурс, снятый с базы, мигрированной только файлами каркаса (V0xx,
-     * до наших V1xx). Пересъёмка: {@code mvn test -Dtest=FndMigrationsTest -Dcms.snapshot.generate=true}
-     * — пишет файл в {@code src/test/resources}; выполнять только при подъёме upstream, дельту показывать в отчёте.
+     * The framework schema snapshot is a test resource taken from a database migrated with the framework files only
+     * (V0xx, before our V1xx). Retake it with {@code mvn test -Dtest=FndMigrationsTest -Dcms.snapshot.generate=true},
+     * which writes the file to {@code src/test/resources}; do it only when upstream is raised, and report the delta.
      */
     private static List<Map<String, Object>> readSnapshot() throws IOException {
         ObjectMapper json = new ObjectMapper();

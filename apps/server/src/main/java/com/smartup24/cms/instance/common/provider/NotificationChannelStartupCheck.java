@@ -9,16 +9,16 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Проверка каналов доставки при старте (FR-NOTIF-3, FR-NOTIF-4, FR-NOTIF-5).
+ * Checks delivery channels at startup (FR-NOTIF-3, FR-NOTIF-4, FR-NOTIF-5).
  *
- * Почему это отдельный шаг, а не строка в журнале провайдера: заглушка канала
- * возвращает «отправлено», outbox помечает оповещение доставленным, и система
- * выглядит исправной, пока пользователь не сообщит, что письмо не пришло.
- * Восстановление пароля и OTP на таком канале не работают вовсе.
+ * Why this is a separate step rather than a line in the provider's log: a stub channel
+ * returns "sent", the outbox marks the notification delivered, and the system
+ * looks healthy until a user reports that the email never arrived.
+ * Password recovery and OTP do not work at all on such a channel.
  *
- * Сетевых проверок здесь нет намеренно: старт экземпляра не должен зависеть
- * от доступности почтового шлюза. Смотрим только на то, какой провайдер
- * активен — этого достаточно, чтобы отличить настроенный канал от заглушки.
+ * There are deliberately no network checks here: instance startup must not depend
+ * on the mail gateway being reachable. Only the active provider is inspected,
+ * which is enough to tell a configured channel from a stub.
  */
 @Component
 public class NotificationChannelStartupCheck {
@@ -49,7 +49,7 @@ public class NotificationChannelStartupCheck {
                 String.join(", ", stubs));
     }
 
-    /** Каналы, на которых активна заглушка. Пустой список — все каналы настроены. */
+    /** Channels where a stub is active. An empty list means every channel is configured. */
     public List<String> findStubChannels() {
         List<String> stubs = new ArrayList<>();
         addIfStub(stubs, "почта", providerRegistry.getActiveMailProvider().getProviderCode());

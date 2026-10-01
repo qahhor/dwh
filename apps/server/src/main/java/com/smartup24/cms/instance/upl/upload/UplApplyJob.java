@@ -1,14 +1,14 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
 import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
 import com.smartup24.cms.instance.fnd.api.FndJobFailures;
-import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
-import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndLoads;
+import com.smartup24.cms.instance.fnd.api.FndRawRow;
+import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -28,17 +28,17 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Задание «применить пакет» (план 10/10, п. 3.9), queued by {@link UplApplyService#request}. It reads the stored file
+ * The "apply package" job (plan 10/10, item 3.9), queued by {@link UplApplyService#request}. It reads the stored file
  * from a temporary copy on disk and pushes each parsed row straight into one {@code COPY} of pg-dwh: no list of rows,
  * no reading raw back — the reconciliation takes the count {@code COPY} returns. Raw lives in the second database, so a
- * failed write becomes the package's reason, not a failed job: the job closes the package «отклонён системой» and ends.
+ * failed write becomes the package's reason, not a failed job: the job closes the package as "rejected" and ends.
  * A transient failure (pg-dwh away, storage not readable) is first left to the runner's retries; only the last attempt
  * closes the package with it.
  *
  * <p>The runner calls it with no transaction open (item 3.8); the job opens one short transaction to close the
  * package. It may run again after its node died. Raw is written in one pg-dwh transaction, so a load has all its rows
  * or none: rows already there mean an earlier attempt committed them and died before closing the package, and the
- * retry closes it with their count instead of writing them twice. A package no longer «применяется» — closed by an
+ * retry closes it with their count instead of writing them twice. A package no longer "applying", closed by an
  * earlier attempt or by {@link UplApplyRecoveryJob} — is left alone.
  */
 @Component
@@ -55,9 +55,9 @@ public class UplApplyJob implements FndJobHandler {
     private final UplSourceService sources;
     private final MfFileService files;
     private final UplXlsxParser parser;
-    private final FndLoadService loads;
+    private final FndLoads loads;
     private final FndRawWriter raw;
-    private final FndActors actors;
+    private final FndActorContext actors;
     private final TransactionTemplate tx;
 
     public UplApplyJob(
@@ -65,9 +65,9 @@ public class UplApplyJob implements FndJobHandler {
             UplSourceService sources,
             MfFileService files,
             UplXlsxParser parser,
-            FndLoadService loads,
+            FndLoads loads,
             FndRawWriter raw,
-            FndActors actors,
+            FndActorContext actors,
             TransactionTemplate tx) {
         this.repo = repo;
         this.sources = sources;
@@ -98,7 +98,7 @@ public class UplApplyJob implements FndJobHandler {
     /**
      * A transient failure of the write (pg-dwh away, the stored file not readable for a moment) fails the attempt
      * while attempts remain, so the runner retries it (plan 10/10, item 3.8); the last attempt, or a failure a retry
-     * would not fix, closes the package «отклонён системой».
+     * would not fix, closes the package as "rejected".
      */
     @Override
     public void run(Map<String, Object> args, FndJobAttempt attempt) {

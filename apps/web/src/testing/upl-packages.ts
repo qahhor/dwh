@@ -151,7 +151,7 @@ export function packagesScreen(fixture: ComponentFixture<PackagesComponent>) {
   const redraw = () => fixture.detectChanges();
   /** The text field inside an smt-date-picker (or the element itself when it is one). */
   const dateField = (id: string) => (testId(id)[0].querySelector('input') ?? testId(id)[0]) as HTMLInputElement;
-  /** Поля заполняем как человек — событиями, иначе `OnPush` не перерисует форму. */
+  /** Fields are filled the way a person does it, with events; otherwise `OnPush` does not redraw the form. */
   const openSources = () => {
     const trigger = testId('upl-pkg-source')[0].querySelector('button[role="combobox"]') as HTMLButtonElement;
     if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click();
@@ -166,7 +166,7 @@ export function packagesScreen(fixture: ComponentFixture<PackagesComponent>) {
     input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
     redraw();
   };
-  /** `input type="file"` в jsdom не заполнить обычным путём — подменяем список файлов. */
+  /** `input type="file"` cannot be filled the usual way in jsdom, so the file list is replaced. */
   const attachFile = () => {
     const input = testId('upl-pkg-file')[0];
     Object.defineProperty(input, 'files', { value: [new File(['x'], 'a_jan.xlsx')], configurable: true });

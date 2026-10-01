@@ -2,11 +2,14 @@ package com.smartup24.cms.instance.ms.task;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -28,7 +31,7 @@ import com.smartup24.cms.instance.ms.task.controller.MsProjectController;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsProjectRepository;
 import com.smartup24.cms.instance.ms.task.service.MsProjectService;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -97,8 +100,8 @@ class MsProjectWriteIntegrationTest {
 
         auditLogService =
                 new AuditLogService(new AuditLogRepository(jdbc, objectMapper), null, new AuditDataRedactor());
-        var serviceTarget = new MsProjectService(
-                projects, mock(MdCustomFieldService.class), searchChangePublisher, auditLogService);
+        var serviceTarget =
+                new MsProjectService(projects, acceptingCustomFields(), searchChangePublisher, auditLogService);
         transactions = new DataSourceTransactionManager(dataSource);
         projectService = transactional(serviceTarget, transactions, MsProjectService.class);
         transactionTemplate = new TransactionTemplate(transactions);
@@ -313,7 +316,7 @@ class MsProjectWriteIntegrationTest {
         var pausingProjects = new PausingProjectRepository(jdbc, objectMapper, readComplete, continueUpdate);
         var localIndexer = mock(SearchChangePublisher.class);
         var serviceTarget =
-                new MsProjectService(pausingProjects, mock(MdCustomFieldService.class), localIndexer, auditLogService);
+                new MsProjectService(pausingProjects, acceptingCustomFields(), localIndexer, auditLogService);
         var overlappingService = transactional(serviceTarget, transactions, MsProjectService.class);
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -540,5 +543,12 @@ class MsProjectWriteIntegrationTest {
                 .optional()
                 .orElse(1L);
         return "\"" + revision + "\"";
+    }
+
+    /** Custom fields that accept any attributes and store them as given. */
+    private static MdCustomFieldService acceptingCustomFields() {
+        MdCustomFieldService fields = mock(MdCustomFieldService.class);
+        when(fields.checkedAttributes(anyString(), any())).thenAnswer(call -> call.getArgument(1));
+        return fields;
     }
 }

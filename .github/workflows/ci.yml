@@ -268,6 +268,11 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
+    # Every docker compose call of the job includes the mail stub: the server delivers by SMTP to Mailpit, whose
+    # HTTP API the mail spec reads (plan 10/10, item 0.8).
+    env:
+      COMPOSE_FILE: docker-compose.yml:scripts/dev/e2e-mail.compose.yml
+      MAILPIT_URL: http://localhost:8025
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
@@ -276,6 +281,12 @@ jobs:
           node-version-file: '.node-version'
           cache: npm
           cache-dependency-path: e2e/package-lock.json
+
+      # Plan 10/10, item 3.4 (ADR-0023): no spec drives or waits for a deprecated API form. A static scan against
+      # docs/api/openapi.json, before the stack is built.
+      - name: Audit deprecated API use in e2e sources
+        working-directory: e2e
+        run: npm run api:audit
 
       - name: Generate ephemeral test credentials
         shell: bash
@@ -338,6 +349,13 @@ jobs:
           INSTANCE_BASE_URL: http://localhost:4201
           E2E_QUARANTINE: only
         run: npx playwright test --pass-with-no-tests
+
+      # Last, because it takes the database away (plan 10/10, item 0.7): readiness answers 503 within 30 s of
+      # stopping postgres and 200 again after it starts. One shard is enough; shard 1 already scans the images.
+      - name: Verify readiness follows the main database
+        if: matrix.shard == 2
+        shell: pwsh
+        run: ./scripts/dev/test-readiness-dependency.ps1
 
       - name: Upload E2E failure artifacts
         if: failure()

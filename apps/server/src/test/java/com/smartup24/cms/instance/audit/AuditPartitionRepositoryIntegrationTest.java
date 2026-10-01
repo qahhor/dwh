@@ -12,11 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * FR-AUD-2: срок хранения оперативного журнала на настоящей PostgreSQL.
+ * FR-AUD-2: the retention of the operational log on a real PostgreSQL.
  *
- * Логику окна проверяют моки, но сам DDL — {@code detach partition} и
- * {@code rename to} — на моках не проверяется никак, а ошибка здесь стоит
- * дороже прочих: партиция уходит из журнала вместе с записями.
+ * Mocks check the window logic, but the DDL itself ({@code detach partition} and {@code rename to}) cannot be
+ * checked on mocks at all, and a mistake here costs more than elsewhere: the partition leaves the log together
+ * with its records.
  */
 class AuditPartitionRepositoryIntegrationTest {
 
@@ -82,7 +82,7 @@ class AuditPartitionRepositoryIntegrationTest {
     }
 
     // ------------------------------------------------------------------
-    // FR-AUD-1: журнал только дополняется
+    // FR-AUD-1: the log is append-only
     // ------------------------------------------------------------------
 
     @Test
@@ -130,7 +130,7 @@ class AuditPartitionRepositoryIntegrationTest {
         repository.create(futureMonth);
         assertThat(repository.exists(futureMonth)).isTrue();
 
-        // Проверяем, что в созданную партицию можно писать
+        // The created partition accepts writes
         jdbc.sql("""
                         insert into audit_log (table_name, row_pk, event, changed_at)
                         values ('future_probe', '42', 'I', timestamptz '2028-05-15 12:00:00+00')

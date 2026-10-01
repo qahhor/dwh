@@ -10,13 +10,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Заглушка канала мессенджера для разработки: пишет сообщение в журнал,
- * чтобы разработчик увидел код OTP, и никуда его не отправляет.
+ * Development stub of the messenger channel: writes the message to the log
+ * so that the developer sees the OTP code, and sends it nowhere.
  *
- * Раньше этот класс назывался TelegramMessengerProvider и объявлял код
- * «telegram», из-за чего система выглядела так, будто канал работает.
- * Здоровье провайдера намеренно отрицательное: канал не настроен, и
- * эксплуатация обязана это видеть, а не узнавать от пользователя.
+ * This class used to be called TelegramMessengerProvider and declared the code
+ * "telegram", which made the system look as if the channel worked.
+ * The provider health is deliberately negative: the channel is not configured, and
+ * operations must see this rather than learn it from users.
  */
 @Component
 public class ConsoleMessengerProvider implements MessengerProvider {

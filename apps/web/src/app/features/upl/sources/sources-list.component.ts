@@ -122,7 +122,7 @@ export class SourcesListComponent implements OnInit {
   readonly metaError = signal(false);
   readonly isCreateOpen = signal(false);
   readonly isSaving = signal(false);
-  /** Значение — ключ i18n либо готовый текст сервера; в шаблоне всё равно идёт через `| t`. */
+  /** The value is an i18n key or a ready server text; the template passes it through `| t` anyway. */
   readonly fieldErrors = signal<Record<string, string>>({});
   readonly createError = signal<string | null>(null);
 
@@ -332,7 +332,7 @@ export class SourcesListComponent implements OnInit {
     this.createError.set(this.problemText(problem));
   }
 
-  /** Неизвестный код ошибки не прячем: показываем подкод и код каркаса. */
+  /** An unknown error code is not hidden: the subcode and the framework code are shown. */
   private problemText(problem: ProblemDetail): string {
     return uplProblemText(problem, (key, params) => this.i18n.translate(key, params));
   }

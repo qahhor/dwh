@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.report.controller;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.report.service.ReportService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,6 +21,7 @@ public class ReportController {
         this.reportService = reportService;
     }
 
+    @Operation(summary = "Export tasks", description = "The tasks as a downloadable CSV or XLSX file.")
     @GetMapping("/tasks/export")
     @RequiresPermission(form = "tasks.items", action = "view")
     public void exportTasks(

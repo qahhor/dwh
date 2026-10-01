@@ -68,7 +68,7 @@ export function weekdayNames(locale: string, style: 'short' | 'long' = 'short'):
   );
 }
 
-/** The spoken name of a day, e.g. "четверг, 24 сентября 2026 г.". */
+/** The spoken name of a day in the person's language, e.g. "Thursday, 24 September 2026". */
 export function fullDateLabel(date: CalendarDate, locale: string): string {
   return new Intl.DateTimeFormat(locale, {
     weekday: 'long',

@@ -22,8 +22,8 @@ import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Чтение и запись пакетов загрузки (таблицы V114). Транзакции и актор аудита ставит сервис.
- * Поля {@code jsonb} пишутся через {@code cast(:p as jsonb)}, а читаются как текст и разбираются здесь.
+ * Reads and writes upload packages (tables of migration V114). The service sets transactions and the audit actor.
+ * {@code jsonb} fields are written through {@code cast(:p as jsonb)}, read as text and parsed here.
  */
 @Repository
 public class UplPackageRepository {
@@ -35,7 +35,7 @@ public class UplPackageRepository {
     static final String STATUS_SQL =
             "case when p.status = 'verified' and p.load_id is not null then 'applying' else p.status end";
 
-    /** Колонки пакета; вместе с {@link #PACKAGE_FROM} — и для одиночного чтения, и для списка реестра. */
+    /** Package columns; together with {@link #PACKAGE_FROM} used both for a single read and for the registry list. */
     static final String PACKAGE_COLUMNS = """
             p.id, p.public_id, p.source_id, s.code as source_code, s.name as source_name,
                    p.format_version, p.period_from, p.period_to, p.file_id, p.file_name, p.file_sha256,
@@ -104,7 +104,7 @@ public class UplPackageRepository {
                 .optional();
     }
 
-    /** Пакет с блокировкой строки до конца транзакции: второе одновременное «Применить» ждёт первое. */
+    /** Package with its row locked until the transaction ends: a second concurrent "Apply" waits for the first. */
     public Optional<PackageRow> lockByPublicId(UUID publicId) {
         return jdbc.sql(PACKAGE_SELECT + " where p.public_id = :publicId for update of p")
                 .param("publicId", publicId)
@@ -121,9 +121,9 @@ public class UplPackageRepository {
     }
 
     /**
-     * Пакеты «применяется» (проверен, получил номер загрузки) дольше {@code staleMinutes} минут — кандидаты
-     * в прерванные применения (статус загрузки проверяет вызывающий через основу). Строки блокируются;
-     * занятые другим воркером пропускаются.
+     * "Applying" packages (verified, with a load number) older than {@code staleMinutes} minutes are candidates
+     * for interrupted applies (the caller checks the load status through the foundation). Rows are locked;
+     * rows held by another worker are skipped.
      */
     public List<PackageRow> lockStaleApplies(int staleMinutes) {
         return jdbc.sql(PACKAGE_SELECT + """
@@ -137,12 +137,12 @@ public class UplPackageRepository {
                 .list();
     }
 
-    /** Страница списка по плану реестра ({@link UplPackageQuery#LIST}). */
+    /** Page of the list by the registry plan ({@link UplPackageQuery#LIST}). */
     public KeysetPage<PackageRow> pagePackages(QueryPlan plan) {
         return lists.page(plan, this::mapPackage);
     }
 
-    /** Переводит пакет в «проверен»; возвращает 0, если пакет уже не в статусе «получен». */
+    /** Turns the package "verified"; returns 0 if the package is no longer "received". */
     public int markVerified(long id, int total, int accepted, int rejected, int errorsTotal) {
         return jdbc.sql("""
                         update upl_packages
@@ -162,7 +162,7 @@ public class UplPackageRepository {
                 .update();
     }
 
-    /** Переводит пакет в «отклонён системой»; возвращает 0, если пакет уже не в статусе «получен». */
+    /** Turns the package "rejected"; returns 0 if the package is no longer "received". */
     public int markRejected(long id, String rejectCode, Map<String, Object> rejectParams, Integer errorsTotal) {
         return jdbc.sql("""
                         update upl_packages
@@ -181,8 +181,8 @@ public class UplPackageRepository {
     }
 
     /**
-     * Запоминает номер загрузки основы у пакета «проверен» — пакет становится «применяется»; 0 — пакет не «проверен»
-     * или номер уже есть.
+     * Stores the foundation load number on a "verified" package, which becomes "applying"; 0 means the package
+     * is not "verified" or already has a number.
      */
     public int setLoadId(long id, long loadId) {
         return jdbc.sql("""
@@ -193,7 +193,7 @@ public class UplPackageRepository {
                         """).param("load", loadId).param("id", id).update();
     }
 
-    /** Переводит пакет «проверен» в «применён»; 0 — пакет уже не «проверен». */
+    /** Turns a "verified" package "applied"; 0 means the package is no longer "verified". */
     public int markApplied(long id, int rawRows) {
         return jdbc.sql("""
                         update upl_packages
@@ -204,7 +204,7 @@ public class UplPackageRepository {
                         """).param("raw", rawRows).param("id", id).update();
     }
 
-    /** Закрывает пакет «проверен» причиной «отклонён системой» при применении; 0 — пакет уже не «проверен». */
+    /** Closes a "verified" package as "rejected" during apply; 0 means the package is no longer "verified". */
     public int markApplyRejected(long id, String rejectCode, Map<String, Object> rejectParams, Integer rawRows) {
         return jdbc.sql("""
                         update upl_packages

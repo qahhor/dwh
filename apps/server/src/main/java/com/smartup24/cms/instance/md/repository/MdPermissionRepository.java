@@ -45,18 +45,18 @@ public class MdPermissionRepository {
     }
 
     /**
-     * Помечает устаревшим всё, чего нет среди объявленных в коде пар (FR-PERM-1).
+     * Marks obsolete everything that is not among the pairs declared in code (FR-PERM-1).
      *
-     * Удаления здесь нет намеренно: удаление формы каскадом снимет уже выданные
-     * права, а временное переименование эндпоинта молча лишило бы людей доступа.
+     * There is deliberately no deletion: deleting a form would cascade to permissions already
+     * granted, and temporarily renaming an endpoint would silently take people's access away.
      *
-     * @param livePairs пары вида {@code form.action}, найденные среди @RequiresPermission
-     * @return сколько записей стало устаревшими в этот проход
+     * @param livePairs pairs of the form {@code form.action} found among @RequiresPermission
+     * @return how many records became obsolete in this pass
      */
     public int deprecateMissing(Set<String> livePairs) {
         if (livePairs.isEmpty()) {
-            // Ни одной пары в коде — значит живых прав нет вовсе.
-            // Ситуация ненормальная, но помечать надо честно, а не молчать.
+            // No pairs in code means there are no live permissions at all.
+            // The situation is abnormal, but it must be marked honestly, not hidden.
             return jdbcClient
                             .sql("update md_form_actions set is_deprecated = true where not is_deprecated")
                             .update()
@@ -90,7 +90,7 @@ public class MdPermissionRepository {
         return actions + forms;
     }
 
-    /** Живые пары каталога — то, что реально можно выдать (FR-PERM-1). */
+    /** Live catalog pairs: what can actually be granted (FR-PERM-1). */
     public Set<String> getGrantablePairs() {
         return new HashSet<>(jdbcClient.sql("""
                 select fa.form_code || '.' || fa.action
@@ -118,9 +118,9 @@ public class MdPermissionRepository {
                 .param("userId", userId)
                 .query(Long.class)
                 .optional()
-                // Нет строки — версия 0, а НЕ 1: первый пересчёт вставляет 1,
-                // и версия обязана вырасти, иначе кэш прав не инвалидируется
-                // и выданные права не вступят в силу (FR-PERM-6).
+                // No row means version 0, NOT 1: the first recalculation inserts 1,
+                // and the version must grow, otherwise the permission cache is not invalidated
+                // and granted permissions do not take effect (FR-PERM-6).
                 .orElse(0L);
     }
 
@@ -182,7 +182,7 @@ public class MdPermissionRepository {
     }
 
     // ------------------------------------------------------------------
-    // Персональные права поверх ролей (FR-PERM-5)
+    // Personal permissions on top of roles (FR-PERM-5)
     // ------------------------------------------------------------------
 
     public Set<String> getUserPersonalPermissions(Long userId) {
@@ -193,7 +193,7 @@ public class MdPermissionRepository {
                 .list());
     }
 
-    /** Полная замена набора персональных прав (семантика PUT из ТЗ-04). */
+    /** Replaces the whole set of personal permissions (PUT semantics). */
     public void replaceUserPermissions(Long userId, List<MdRoleRepository.PermissionPair> permissions) {
         jdbcClient
                 .sql("delete from md_user_permissions where user_id = :userId")
@@ -214,8 +214,8 @@ public class MdPermissionRepository {
     }
 
     /**
-     * Эффективные права с указанием источника — экран «права глазами
-     * пользователя» (FR-PERM-10): видно, откуда пришло каждое право.
+     * Effective permissions with their source, for the "permissions as the user
+     * sees them" screen (FR-PERM-10): it shows where each permission came from.
      */
     public List<EffectivePermissionItem> getEffectivePermissionsWithSource(Long userId) {
         return jdbcClient

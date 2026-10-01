@@ -5,9 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
+import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndRawRow;
+import com.smartup24.cms.instance.fnd.api.FndRawSource;
+import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.config.DwhDataSourceProperties;
 import com.smartup24.cms.instance.fnd.config.FndDwhConfig;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.TestDatabases;
@@ -215,7 +219,7 @@ class JdbcFndRawWriterCopyTest extends EmbeddedPostgresTest {
                 .isLessThan(48);
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private static long liveHeap(MemoryMXBean memory) {
         memory.gc();

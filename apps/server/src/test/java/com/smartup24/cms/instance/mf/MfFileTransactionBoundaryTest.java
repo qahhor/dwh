@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import com.smartup24.cms.instance.md.service.MdStorageQuotaService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.instance.mf.service.FileContentInspector;
 import com.smartup24.cms.instance.mf.service.MfFileMetadataService;
@@ -42,6 +43,7 @@ class MfFileTransactionBoundaryTest {
     @Test
     void storageIoDoesNotRunInsideDatabaseTransaction() throws Exception {
         MfFileRepository repository = Mockito.mock(MfFileRepository.class);
+        MdStorageQuotaService quotas = Mockito.mock(MdStorageQuotaService.class);
         StorageProvider storage = Mockito.mock(StorageProvider.class);
         AuditLogService auditLog = Mockito.mock(AuditLogService.class);
         MdScopeService scopeService = Mockito.mock(MdScopeService.class);
@@ -49,9 +51,9 @@ class MfFileTransactionBoundaryTest {
         List<Boolean> transactionStatesAtStorageBoundary = new ArrayList<>();
         byte[] content = pdfBytes(128);
 
-        when(repository.getCompanyQuotaBytes()).thenReturn(10_000_000L);
+        when(quotas.instanceQuotaBytes()).thenReturn(10_000_000L);
         when(repository.getTotalCompanyUsedBytes()).thenReturn(0L);
-        when(repository.getUserEffectiveQuotaBytes(1L)).thenReturn(1_000_000L);
+        when(quotas.userQuotaBytes(1L)).thenReturn(1_000_000L);
         when(repository.getUserUsedBytes(1L)).thenReturn(0L);
         when(repository.findBySha256AndOwner(SHA, 1L)).thenReturn(Optional.of(record()));
         when(repository.findById(any())).thenReturn(Optional.of(record()));
@@ -87,7 +89,8 @@ class MfFileTransactionBoundaryTest {
             context.register(EnableTransactions.class);
             context.registerBean(DataSource.class, () -> dataSource);
             context.registerBean(PlatformTransactionManager.class, () -> new DataSourceTransactionManager(dataSource));
-            context.registerBean(MfFileMetadataService.class, () -> new MfFileMetadataService(repository, auditLog));
+            context.registerBean(
+                    MfFileMetadataService.class, () -> new MfFileMetadataService(repository, auditLog, quotas));
             context.registerBean(
                     MfFileService.class,
                     () -> new MfFileService(

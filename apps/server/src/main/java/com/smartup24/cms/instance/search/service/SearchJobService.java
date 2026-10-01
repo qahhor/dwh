@@ -27,6 +27,7 @@ public class SearchJobService {
     private final SearchIndexStateRepository state;
     private final SearchGenerationService generations;
     private final SearchStoragePreflight storage;
+    private final SearchJobAudit audit;
     private final TransactionTemplate transaction;
     private SearchMetrics metrics = SearchMetrics.unmetered();
 
@@ -37,9 +38,10 @@ public class SearchJobService {
             SearchIndexStateRepository state,
             SearchGenerationService generations,
             SearchStoragePreflight storage,
+            SearchJobAudit audit,
             PlatformTransactionManager manager,
             Optional<SearchMetrics> metrics) {
-        this(access, jobs, state, generations, storage, manager);
+        this(access, jobs, state, generations, storage, audit, manager);
         this.metrics = metrics.orElseGet(SearchMetrics::unmetered);
     }
 
@@ -49,12 +51,14 @@ public class SearchJobService {
             SearchIndexStateRepository state,
             SearchGenerationService generations,
             SearchStoragePreflight storage,
+            SearchJobAudit audit,
             PlatformTransactionManager manager) {
         this.access = access;
         this.jobs = jobs;
         this.state = state;
         this.generations = generations;
         this.storage = storage;
+        this.audit = audit;
         this.transaction = new TransactionTemplate(manager);
         this.transaction.setTimeout(2);
     }
@@ -86,7 +90,7 @@ public class SearchJobService {
                 if (!jobs.generationExists(generation))
                     throw new ApiException(ErrorCode.NOT_FOUND, "error.search.generation_not_found");
             }
-            var receipt = jobs.insert(request, generation, SecurityContext.getCurrentUserId());
+            var receipt = insert(request, generation, SecurityContext.getCurrentUserId(), null);
             metricAfterCommit(request.action(), "QUEUED", null);
             return receipt;
         });
@@ -144,21 +148,30 @@ public class SearchJobService {
         return new JobPage(items, next, more);
     }
 
+    // The state changes below keep their 2 s limit inside an outer transaction too (SearchJobRepository#limited).
     @Transactional(timeout = 2)
     public JobReceipt cancel(UUID id) {
+        return jobs.limited(() -> cancelNow(id));
+    }
+
+    private JobReceipt cancelNow(UUID id) {
         access.requireSettingsUpdate();
         jobs.lockState();
         var job = required(id);
         if (job.state().equals("CANCELLED")) return new JobReceipt(id, "CANCELLED");
         if (!jobs.cancel(id)) throw new ApiException(ErrorCode.CONFLICT, "error.search.job_cannot_be_cancelled");
         if (job.action().equals("REBUILD")) generations.failed(job.generationId());
-        jobs.auditCancellation(id, SecurityContext.getCurrentUserId());
+        audit.record(id, SecurityContext.getCurrentUserId(), "CANCEL");
         metricAfterCommit(job.action(), "CANCELLED", Duration.between(job.createdAt(), Instant.now()));
         return new JobReceipt(id, "CANCELLED");
     }
 
     @Transactional(timeout = 2)
     public JobReceipt retry(UUID id, UUID requestId) {
+        return jobs.limited(() -> retryNow(id, requestId));
+    }
+
+    private JobReceipt retryNow(UUID id, UUID requestId) {
         access.requireSettingsUpdate();
         jobs.lockState();
         if (requestId == null) throw new ApiException(ErrorCode.BAD_REQUEST, "error.search.retry_request_invalid");
@@ -180,7 +193,7 @@ public class SearchJobService {
             throw new ApiException(ErrorCode.CONFLICT, "error.search.job_in_progress");
         if (old.action().equals("REBUILD")) generations.retry(old.generationId());
         if (old.action().equals("ROLLBACK")) generations.retryRollback(old.generationId());
-        var receipt = jobs.insert(
+        var receipt = insert(
                 new StartJobRequest(requestId, old.action(), old.generationId()),
                 old.generationId(),
                 SecurityContext.getCurrentUserId(),
@@ -195,8 +208,12 @@ public class SearchJobService {
 
     @Transactional(timeout = 2)
     public void failOwned(JobStatus job, UUID owner, String error) {
-        jobs.lockState();
-        if (jobs.fail(job.id(), owner, error) && job.action().equals("REBUILD")) generations.failed(job.generationId());
+        jobs.limited(() -> {
+            jobs.lockState();
+            if (jobs.fail(job.id(), owner, error) && job.action().equals("REBUILD"))
+                generations.failed(job.generationId());
+            return Boolean.TRUE;
+        });
     }
 
     /** Startup is a system-owned request, not a fabricated request principal. */
@@ -212,9 +229,16 @@ public class SearchJobService {
                 return;
             }
             UUID generation = jobs.initialBuilding().orElseGet(generations::allocate);
-            jobs.insert(new StartJobRequest(UUID.randomUUID(), "REBUILD", null), generation, null);
+            insert(new StartJobRequest(UUID.randomUUID(), "REBUILD", null), generation, null, null);
             metricAfterCommit("REBUILD", "QUEUED", null);
         });
+    }
+
+    /** Queues the job and records its start or retry in the audit log, in the caller's transaction. */
+    private JobReceipt insert(StartJobRequest request, UUID generation, Long actor, UUID retryOf) {
+        var receipt = jobs.insert(request, generation, actor, retryOf);
+        audit.record(receipt.id(), actor, retryOf == null ? "START" : "RETRY");
+        return receipt;
     }
 
     private void metricAfterCommit(String action, String state, Duration duration) {

@@ -10,8 +10,8 @@ import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.fnd.units.FndUnitService;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
@@ -55,9 +55,9 @@ import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Сквозная проверка загрузки для конфигураций экземпляров из фикстур: анкета опубликована,
- * файл принят, задание разобрало его, список и ошибки прочитаны запросами. Ни одного имени
- * конкретной конфигурации в коде теста нет — всё берётся из {@link DepartmentFixture}.
+ * An end-to-end load check for the instance configurations from the fixtures: the file format is published,
+ * the file is accepted, the job parses it, and the list and the errors are read by requests. The test code
+ * names no specific configuration: everything comes from {@link DepartmentFixture}.
  */
 class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
@@ -107,7 +107,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
 
     private record Session(Cookie session, Cookie csrf) {}
 
-    /** Собранный файл и ожидания по нему: счётчики строк и адреса ошибочных ячеек. */
+    /** The built file and the expectations for it: row counters and the addresses of the wrong cells. */
     private record Sample(
             byte[] content, int total, int rejected, int errors, List<Integer> badKeyRowNos, int doubleBadRowNo) {}
 
@@ -281,7 +281,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         return read(accepted, "$.id");
     }
 
-    /** Plan 10/10, item 3.9: 202 and a package «применяется»; the job applies it, the client reads the outcome. */
+    /** Plan 10/10, item 3.9: 202 and an applying package; the job applies it, the client reads the outcome. */
     private long applyPackage(Session session, String packageId, Sample sample) throws Exception {
         var queued = send(session, post(BASE + "/" + packageId + "/apply"));
         assertThat(queued.getStatus()).as(queued.getContentAsString()).isEqualTo(202);
@@ -300,7 +300,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
                 .single();
     }
 
-    // ---------- ожидания по ошибкам ----------
+    // ---------- error expectations ----------
 
     private static void assertErrors(MockHttpServletResponse errors, FormatSheet sheet, Sample sample)
             throws Exception {
@@ -335,7 +335,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
                 .isSorted();
     }
 
-    // ---------- сборка файла по анкете фикстуры ----------
+    // ---------- building a file by the fixture's file format ----------
 
     private static Format xlsxFormat(DepartmentFixture fixture) {
         return fixture.formats().stream()
@@ -401,12 +401,12 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         return new Sample(content, total, REJECTED_ROWS, EXPECTED_ERRORS, badKeyRowNos, doubleBadRowNo);
     }
 
-    /** Номер строки как в Excel для элемента списка строк данных. */
+    /** The Excel row number of an element of the data row list. */
     private static int rowNo(FormatSheet sheet, int index) {
         return sheet.headerRow() + 1 + index;
     }
 
-    /** Делает файл неповторимым: первая текстовая ячейка первой строки уникальна. */
+    /** Makes the file unique: the first text cell of the first row is unique. */
     private static void markUnique(List<FormatColumn> columns, List<Object> row) {
         for (int i = 0; i < columns.size(); i++) {
             if ("text".equals(columns.get(i).type())) {
@@ -447,7 +447,7 @@ class UplPackageEndToEndTest extends EmbeddedPostgresTest {
         return candidates.get(number % candidates.size());
     }
 
-    // ---------- помощники ----------
+    // ---------- helpers ----------
 
     private MockHttpServletResponse upload(Session session, long sourceId, Format format, byte[] content)
             throws Exception {

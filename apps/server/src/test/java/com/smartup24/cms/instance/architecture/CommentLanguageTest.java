@@ -7,10 +7,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +27,12 @@ import org.junit.jupiter.api.Test;
  * number grows fails, and a file whose number drops fails too until the baseline is lowered (a ratchet). String
  * literals and text blocks are not comments: messages and SQL keep whatever language they need.
  *
+ * <p>Released migrations are frozen by checksum: {@code migration-manifest.sha256} pins them and
+ * {@code MigrationManifestTest} fails on any change, so their Russian comments can never be translated and are not a
+ * debt that can shrink. A migration is exempt when it is listed in the manifest and its version is not above the last
+ * one released before this rule ({@link #FROZEN_UP_TO}: V145 in {@code db/migration}, V003 in {@code db/dwh}). A
+ * migration with a higher version is checked like any other file, even after it is appended to the manifest.
+ *
  * <p>After translating comments, rewrite the baseline with {@code -Dcomment.baseline.update=true}: it lowers numbers
  * and drops translated files, and never raises a number or adds a file.
  */
@@ -32,6 +42,12 @@ class CommentLanguageTest {
     private static final Path REPOSITORY = Path.of("../..");
 
     private static final Path BASELINE = Path.of("src/test/resources/comment-language-baseline.txt");
+    private static final Path MANIFEST = Path.of("src/test/resources/migration-manifest.sha256");
+
+    /** Per migration folder under src/main/resources, the last version released before this rule. */
+    static final Map<String, Integer> FROZEN_UP_TO = Map.of("db/migration", 145, "db/dwh", 3);
+
+    private static final Pattern MIGRATION = Pattern.compile("(db/[a-z]+)/V(\\d+)__[^/]+\\.sql");
     private static final String HEADER = """
             # Files that still have comments in Russian, with the number of their comment lines that have
             # Cyrillic letters (plan 10/10, item 3.14, checked by CommentLanguageTest). The numbers only go down:
@@ -84,6 +100,23 @@ class CommentLanguageTest {
         Map<String, Integer> baseline = Map.of("a.java", 3, "b.java", 4, "gone.java", 2);
 
         assertThat(lowered(found, baseline)).containsExactly(Map.entry("a.java", 3), Map.entry("b.java", 1));
+    }
+
+    @Test
+    @DisplayName("3.14: released migrations are frozen by checksum; a later version is checked even when listed")
+    void releasedMigrationsAreExempt() throws IOException {
+        Set<String> manifest = Set.of(
+                "db/migration/V145__a.sql", "db/migration/V146__b.sql", "db/dwh/V003__c.sql", "db/dwh/V004__d.sql");
+
+        assertThat(frozen("db/migration/V145__a.sql", manifest)).isTrue();
+        assertThat(frozen("db/dwh/V003__c.sql", manifest)).isTrue();
+        assertThat(frozen("db/migration/V146__b.sql", manifest)).isFalse();
+        assertThat(frozen("db/dwh/V004__d.sql", manifest)).isFalse();
+        assertThat(frozen("db/migration/V100__not_listed.sql", manifest)).isFalse();
+        assertThat(manifest())
+                .as("the cut-off versions name released migrations")
+                .anyMatch(entry -> entry.startsWith("db/migration/V145__"))
+                .anyMatch(entry -> entry.startsWith("db/dwh/V003__"));
     }
 
     @Test
@@ -158,9 +191,10 @@ class CommentLanguageTest {
         return found;
     }
 
-    /** The server's configuration (application*.yml) and its migrations (db/**.sql). */
+    /** The server's configuration (application*.yml) and its migrations (db/**.sql) except the frozen ones. */
     private static List<Path> resources() throws IOException {
         Path resources = REPOSITORY.resolve("apps/server/src/main/resources");
+        Set<String> manifest = manifest();
         List<Path> found = new ArrayList<>();
         try (Stream<Path> files = Files.list(resources)) {
             files.filter(path -> path.getFileName().toString().matches("application.*\\.ya?ml"))
@@ -168,7 +202,11 @@ class CommentLanguageTest {
                     .forEach(found::add);
         }
         try (Stream<Path> files = Files.walk(resources.resolve("db"))) {
-            files.filter(path -> path.toString().endsWith(".sql")).sorted().forEach(found::add);
+            files.filter(path -> path.toString().endsWith(".sql"))
+                    .filter(path ->
+                            !frozen(resources.relativize(path).toString().replace('\\', '/'), manifest))
+                    .sorted()
+                    .forEach(found::add);
         }
         return found;
     }
@@ -189,6 +227,28 @@ class CommentLanguageTest {
             }
         }
         return roots;
+    }
+
+    /** Whether a migration (its path under src/main/resources) is pinned by checksum and released before the rule. */
+    static boolean frozen(String migration, Set<String> manifest) {
+        Matcher matcher = MIGRATION.matcher(migration);
+        if (!matcher.matches() || !manifest.contains(migration)) {
+            return false;
+        }
+        Integer last = FROZEN_UP_TO.get(matcher.group(1));
+        return last != null && Integer.parseInt(matcher.group(2)) <= last;
+    }
+
+    /** The migrations listed in migration-manifest.sha256, as paths under src/main/resources. */
+    private static Set<String> manifest() throws IOException {
+        Set<String> listed = new HashSet<>();
+        for (String line : Files.readAllLines(MANIFEST, StandardCharsets.UTF_8)) {
+            String entry = line.strip();
+            if (!entry.isEmpty() && !entry.startsWith("#")) {
+                listed.add(entry.substring(entry.lastIndexOf(' ') + 1));
+            }
+        }
+        return listed;
     }
 
     private static Map<String, Integer> baseline() throws IOException {

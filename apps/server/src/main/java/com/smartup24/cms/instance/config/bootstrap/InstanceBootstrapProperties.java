@@ -3,9 +3,9 @@ package com.smartup24.cms.instance.config.bootstrap;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Параметры инициализации экземпляра (FR-INST-1). Задаются конфигурацией
- * развёртывания (env / Vault в фазе P). Захардкоженных значений нет —
- * AUDIT-03 C-1/C-2.
+ * Instance initialization parameters (FR-INST-1). Set by the deployment
+ * configuration (environment variables, later Vault). There are no
+ * hard-coded values: no demo data and no well-known passwords.
  */
 @ConfigurationProperties(prefix = "dwh.instance")
 public record InstanceBootstrapProperties(

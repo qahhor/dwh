@@ -83,6 +83,10 @@ GET /api/v1/notes?limit=50&cursor=<nextCursor прошлой страницы>
   `revision_conflict`. Клиент перечитывает запись и повторяет.
 - Установщики состояния (закрепить, включить) ревизию не требуют; их список —
   в `ChangesNameTheirRevisionTest`.
+- Системные настройки — одна запись: `GET /settings/system` отдаёт
+  `{values, revision}`, `PATCH` называет эту ревизию. Оргединицы пользователя
+  и правило скоупа роли сохраняются из ревизии пользователя и роли.
+  `PUT /modules/{code}` без `If-Match` только создаёт модуль.
 
 ## 5. Идемпотентность
 
@@ -138,5 +142,7 @@ request или трейлером коммита `Api-Breaking: <что и по�
   `src/app/core/api/openapi.d.ts`.
 - Проверки: `OpenApiContractTest` (копия совпадает с кодом, каждый обработчик
   описан), `scripts/api/test-api-contract.ps1` (Spectral, свежесть типов,
-  совместимость с базовой веткой), `npm run api:audit` (веб не вызывает
-  устаревшие формы).
+  совместимость с базовой веткой; у каждой операции есть `summary` и
+  `description` из `@Operation` обработчика), `npm run api:audit` в `apps/web`
+  и в `e2e` (ни веб, ни тесты e2e не вызывают устаревшие формы; общая логика —
+  `scripts/api/api-deprecations.mjs`).

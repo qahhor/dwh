@@ -28,7 +28,7 @@ import com.smartup24.cms.instance.ms.task.controller.MsTaskCommentController;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import com.smartup24.cms.instance.ms.task.service.MsTaskCommentService;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

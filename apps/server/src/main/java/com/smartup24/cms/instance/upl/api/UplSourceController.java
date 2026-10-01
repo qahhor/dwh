@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-/** API анкеты файла: источники и версии формата (контракт И3). */
+/** File format API: sources and format versions. */
 @RestController
 @RequestMapping("/api/v1/upl/sources")
 public class UplSourceController {
@@ -62,6 +62,7 @@ public class UplSourceController {
         return Objects.requireNonNull(SecurityContext.getCurrentUserId(), "user");
     }
 
+    @Operation(summary = "List data sources", description = "The upload sources, a keyset page at a time.")
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<KeysetPage<SourceItem>> list(
@@ -74,6 +75,7 @@ public class UplSourceController {
         return ResponseEntity.ok(page.map(SourceItem::of));
     }
 
+    @Operation(summary = "Create a data source", description = "Adds an upload source.")
     @PostMapping
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_CREATE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -82,12 +84,14 @@ public class UplSourceController {
         return Created.at("/api/v1/upl/sources/{id}", created.id(), created);
     }
 
+    @Operation(summary = "Get a data source", description = "One upload source.")
     @GetMapping("/{id}")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<SourceResponse> get(@PathVariable long id) {
         return ResponseEntity.ok(SourceResponse.of(service.getSource(id)));
     }
 
+    @Operation(summary = "Update a data source", description = "Replaces an upload source.")
     @PutMapping("/{id}")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
     public ResponseEntity<SourceResponse> update(@PathVariable long id, @Valid @RequestBody SourceRequest request) {
@@ -105,6 +109,10 @@ public class UplSourceController {
      * typed handlers told apart by the parameter (plan 10/10, item 3.2), described as one operation whose answer is
      * one of the two shapes.
      */
+    @Operation(
+            summary = "List format versions",
+            description =
+                    "The format versions of a source; with the at parameter, the one version in force on that day.")
     @GetMapping(value = "/{id}/format-versions", params = "!at")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<List<VersionItem>> versions(@PathVariable long id) {
@@ -118,7 +126,11 @@ public class UplSourceController {
      */
     @GetMapping(value = "/{id}/format-versions", params = "at")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
-    @Operation(operationId = "versions")
+    @Operation(
+            operationId = "versions",
+            summary = "List format versions",
+            description =
+                    "The format versions of a source; with the at parameter, the one version in force on that day.")
     public ResponseEntity<FormatVersionResponse> versionAt(
             @PathVariable long id,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate at) {
@@ -128,6 +140,9 @@ public class UplSourceController {
         return ResponseEntity.ok(FormatVersionResponse.of(service.versionAt(id, at)));
     }
 
+    @Operation(
+            summary = "Create a format draft",
+            description = "Starts a draft format version of a source, empty or copied from a version.")
     @PostMapping("/{id}/format-versions")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
     @ResponseStatus(HttpStatus.CREATED)
@@ -140,6 +155,9 @@ public class UplSourceController {
                 "/api/v1/upl/sources/{id}/format-versions/{v}", new Object[] {id, created.version()}, created);
     }
 
+    @Operation(
+            summary = "Get a format version",
+            description = "One format version of a source with its sheets and columns.")
     @GetMapping("/{id}/format-versions/{v}")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<FormatVersionResponse> getVersion(@PathVariable long id, @PathVariable int v) {
@@ -150,6 +168,9 @@ public class UplSourceController {
      * The file a supplier fills in for this format version (roadmap item 20): an instruction sheet and
      * the data sheets with headers, notes and input checks, in the language asked for (Russian by default).
      */
+    @Operation(
+            summary = "Download a format template",
+            description = "The file a supplier fills in for a format version, in the requested language.")
     @GetMapping("/{id}/format-versions/{v}/template")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<byte[]> template(
@@ -179,6 +200,9 @@ public class UplSourceController {
         return result;
     }
 
+    @Operation(
+            summary = "Update a format draft",
+            description = "Replaces the sheets and columns of a draft format version.")
     @PutMapping("/{id}/format-versions/{v}")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_EDIT)
     public ResponseEntity<FormatVersionResponse> replaceDraft(
@@ -187,6 +211,9 @@ public class UplSourceController {
         return ResponseEntity.ok(FormatVersionResponse.of(draft));
     }
 
+    @Operation(
+            summary = "Publish a format version",
+            description = "Publishes a draft format version, in force from the given day.")
     @PostMapping("/{id}/format-versions/{v}/publish")
     @RequiresPermission(form = UplPref.FORM_SOURCES, action = UplPref.ACTION_PUBLISH)
     @ResponseStatus(HttpStatus.NO_CONTENT)

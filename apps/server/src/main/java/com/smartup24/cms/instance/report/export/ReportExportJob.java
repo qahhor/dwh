@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.report.export;
 
-import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;

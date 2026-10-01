@@ -45,6 +45,7 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
     private static final Set<String> TASK = Set.of(
             "id",
             "projectId",
+            "projectName",
             "parentTaskId",
             "title",
             "descriptionMarkdown",
@@ -271,6 +272,32 @@ class MsTaskApiContractIntegrationTest extends EmbeddedPostgresTest {
         assertThat(array(ok(send(s, get("/api/v1/tasks/projects/" + projectId + "/members"), null))))
                 .as("the deprecated whole list still answers until its sunset")
                 .hasSize(3);
+    }
+
+    @Test
+    @DisplayName("3.5: task rows name their project; a picker finds it in the paged project list by name")
+    void taskRowsNameTheirProjectAndPickersSearchProjects() throws Exception {
+        Session s = login(user());
+        String name = "TEST picker " + suffix();
+        long projectId = id(created(send(s, post("/api/v1/tasks/projects"), Map.of("name", name, "state", "A"))));
+        Map<String, Object> task =
+                created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST named", "projectId", projectId)));
+        assertThat(task.get("projectName")).isEqualTo(name);
+        Map<String, Object> page = object(ok(send(s, get("/api/v1/tasks?projectId=" + projectId), null)));
+        assertThat(items(page)).extracting(row -> row.get("projectName")).containsExactly(name);
+        assertThat(map(object(ok(send(s, get("/api/v1/tasks/" + id(task)), null)))
+                                .get("task"))
+                        .get("projectName"))
+                .isEqualTo(name);
+        Map<String, Object> loose = created(send(s, post("/api/v1/tasks"), Map.of("title", "TEST without project")));
+        assertThat(loose).doesNotContainKey("projectName");
+
+        Map<String, Object> found = object(
+                ok(send(s, get("/api/v1/tasks/projects/page").param("q", name).param("limit", "20"), null)));
+        assertThat(items(found)).extracting(row -> row.get("name")).containsExactly(name);
+        assertThat(send(s, get("/api/v1/tasks/projects/page").param("limit", "201"), null)
+                        .getStatus())
+                .isEqualTo(422);
     }
 
     @SuppressWarnings("unchecked")

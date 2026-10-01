@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Реализация порта md.UserSessionInvalidator (инвариант I-U1):
- * закрывает сессии и отзывает API-токены.
- * REQUIRED сохраняет атомарность как внутри MD use case, так и при отдельном вызове.
+ * Implements the md.UserSessionInvalidator port (user-blocking invariant, FR-USR-4):
+ * closes sessions and revokes API tokens.
+ * REQUIRED keeps it atomic both inside an MD use case and when called on its own.
  */
 @Component
 public class KauthUserSessionInvalidator implements UserSessionInvalidator {

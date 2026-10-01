@@ -31,7 +31,7 @@ export type IconType = SMTIcons | { key: SMTIcons; width?: number | string; heig
 /** Field row scale; same tokens as {@link SMTControlSize}. */
 export type InputSize = SMTControlSize;
 
-/** Внешний вид поля: принудительно светлый/тёмный или `auto` из `SMTThemeService.resolvedTheme()`. */
+/** The field appearance: forced light or dark, or `auto` from `SMTThemeService.resolvedTheme()`. */
 export type SMTInputAppearance = 'light' | 'dark' | 'auto';
 
 export type SMTInputBehavior = 'biruni-number' | 'readonly-link' | null;

@@ -4,8 +4,8 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.query.TimePage;
 import com.smartup24.cms.instance.mf.service.MfFileService;
+import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.api.TaskCommentView;
-import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskCommentRepository;
 import java.util.List;
 import java.util.Map;
@@ -51,15 +51,15 @@ public class MsTaskCommentService {
         var comment = commentRepository.create(taskId, userId, textMarkdown, fileIds);
         memberService.markViewed(taskId, userId);
 
-        // FR-TASK-8: участники узнают о комментарии; автор себя не уведомляет
+        // FR-TASK-8: members learn about the comment; the author does not notify themselves
         var recipients = memberService.getTaskMembers(taskId).stream()
                 .map(m -> m.userId())
                 .distinct()
                 .toList();
         eventPublisher.publishEvent(new MsTaskEvents.TaskCommented(taskId, task.title(), recipients, userId));
 
-        // Текст комментария в журнал не кладём: это содержимое переписки,
-        // а аудит читают шире, чем задачу. В журнале — факт и автор.
+        // The comment text is not written to the audit log: it is correspondence content,
+        // and the audit log is read more widely than the task. The log keeps the fact and the author.
         auditLogService.logChange(
                 "ms_task_comments",
                 String.valueOf(comment.id()),

@@ -11,6 +11,7 @@ import com.smartup24.cms.instance.ms.notify.api.AnnouncementVersionRequest;
 import com.smartup24.cms.instance.ms.notify.api.ManagedAnnouncementView;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsAnnouncementService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,9 @@ public class MsAnnouncementAdminController {
         this.service = service;
     }
 
+    @Operation(
+            summary = "List announcements to manage",
+            description = "Every announcement, for its managers, a keyset page at a time.")
     @GetMapping("/manage")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "update")
     public ResponseEntity<KeysetPage<ManagedAnnouncementView>> manage(
@@ -46,6 +50,7 @@ public class MsAnnouncementAdminController {
         return ResponseEntity.ok(service.listPage(TimePage.of(limit, cursor, MANAGE_PAGE, MANAGE_MAX)));
     }
 
+    @Operation(summary = "Create an announcement", description = "Adds an announcement.")
     @PostMapping
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -54,6 +59,7 @@ public class MsAnnouncementAdminController {
         return Created.at("/api/v1/announcements/{id}", created.id(), created);
     }
 
+    @Operation(summary = "Update an announcement", description = "Replaces an announcement.")
     @PutMapping("/{id}")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "update")
     public ResponseEntity<ManagedAnnouncementView> update(
@@ -61,6 +67,7 @@ public class MsAnnouncementAdminController {
         return ResponseEntity.ok(service.update(id, request));
     }
 
+    @Operation(summary = "Publish an announcement", description = "Makes an announcement visible to its audience.")
     @PostMapping("/{id}/publish")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "publish")
     public ResponseEntity<ManagedAnnouncementView> publish(
@@ -68,6 +75,7 @@ public class MsAnnouncementAdminController {
         return ResponseEntity.ok(service.publish(id, request.lockVersion()));
     }
 
+    @Operation(summary = "Archive an announcement", description = "Archives an announcement.")
     @PostMapping("/{id}/archive")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "archive")
     public ResponseEntity<ManagedAnnouncementView> archive(

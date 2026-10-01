@@ -8,15 +8,15 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.security.web.util.matcher.IpAddressMatcher;
 
 /**
- * Сервис безопасного определения IP-адреса и протокола клиента (H05, FR-SEC-2).
+ * Safely resolves the client IP address and protocol (FR-SEC-2).
  * <p>
- * Предотвращает спуфинг IP через заголовок {@code X-Forwarded-For}:
+ * Prevents IP spoofing through the {@code X-Forwarded-For} header:
  * <ul>
- *   <li>Если прямой адрес соединения (remoteAddr) НЕ входит в доверенные подсети (trusted-proxies),
- *       заголовки X-Forwarded-* полностью игнорируются, а клиенту назначается его реальный remoteAddr.</li>
- *   <li>Если прямой адрес соединения ВХОДИТ в доверенные подсети, заголовок X-Forwarded-For
- *       разбирается справа налево (от ближайшего доверенного прокси), пропуская доверенные узлы
- *       внутренней сети. Первый недоверенный IP считается аутентичным адресом клиента.</li>
+ *   <li>If the direct connection address (remoteAddr) is NOT in the trusted subnets (trusted-proxies),
+ *       X-Forwarded-* headers are ignored entirely and the client gets its real remoteAddr.</li>
+ *   <li>If the direct connection address IS in the trusted subnets, X-Forwarded-For is
+ *       parsed right to left (from the nearest trusted proxy), skipping trusted internal-network
+ *       hops. The first untrusted IP is taken as the authentic client address.</li>
  * </ul>
  */
 public class ClientIpResolver {
@@ -44,7 +44,7 @@ public class ClientIpResolver {
     }
 
     /**
-     * Проверяет, входит ли указанный IP-адрес в список доверенных прокси.
+     * Checks whether the given IP address is in the trusted proxy list.
      */
     public boolean isTrustedProxy(String ip) {
         if (ip == null || ip.isBlank() || !isValidIp(ip)) {
@@ -60,7 +60,7 @@ public class ClientIpResolver {
     }
 
     /**
-     * Извлекает реальный IP-адрес клиента с учётом доверенных прокси.
+     * Extracts the real client IP address, taking trusted proxies into account.
      */
     public String resolveClientIp(HttpServletRequest request) {
         if (request == null) {
@@ -72,7 +72,7 @@ public class ClientIpResolver {
             return DEFAULT_FALLBACK_IP;
         }
 
-        // Если прямой пир не является доверенным прокси — игнорируем любые заголовки пересылки
+        // If the direct peer is not a trusted proxy, ignore all forwarding headers
         if (!isTrustedProxy(remoteAddr)) {
             return remoteAddr;
         }
@@ -83,19 +83,19 @@ public class ClientIpResolver {
         }
 
         String[] hops = forwarded.split(",");
-        // Идем справа налево: от ближайшего прокси к клиенту
+        // Walk right to left: from the nearest proxy towards the client
         for (int i = hops.length - 1; i >= 0; i--) {
             String hop = normalize(hops[i]);
             if (hop == null || hop.isBlank() || !isValidIp(hop)) {
                 continue;
             }
             if (!isTrustedProxy(hop)) {
-                // Первый недоверенный IP справа — это настоящий клиент
+                // The first untrusted IP from the right is the real client
                 return hop;
             }
         }
 
-        // Если все хопы доверенные (например, внутренняя инфраструктура), берем самый левый валидный IP
+        // If every hop is trusted (for example, internal infrastructure), take the leftmost valid IP
         for (String hopStr : hops) {
             String hop = normalize(hopStr);
             if (hop != null && !hop.isBlank() && isValidIp(hop)) {
@@ -107,8 +107,8 @@ public class ClientIpResolver {
     }
 
     /**
-     * Определяет, является ли соединение защищенным (HTTPS), доверяя X-Forwarded-Proto
-     * только при обращении через доверенный прокси.
+     * Determines whether the connection is secure (HTTPS), trusting X-Forwarded-Proto
+     * only when the request comes through a trusted proxy.
      */
     public boolean isSecure(HttpServletRequest request) {
         if (request == null) {
@@ -135,7 +135,7 @@ public class ClientIpResolver {
             return null;
         }
         String clean = ip.trim();
-        // Удаление IPv6 scope id (например, fe80::1%eth0)
+        // Strip the IPv6 scope id (for example, fe80::1%eth0)
         int percentIdx = clean.indexOf('%');
         if (percentIdx > 0) {
             clean = clean.substring(0, percentIdx);
@@ -151,7 +151,7 @@ public class ClientIpResolver {
         if (IPV4_PATTERN.matcher(clean).matches()) {
             return true;
         }
-        // IPv6 проверка формата
+        // IPv6 format check
         return clean.contains(":") && clean.matches("^[0-9a-fA-F:]+$") && !clean.contains(":::");
     }
 }

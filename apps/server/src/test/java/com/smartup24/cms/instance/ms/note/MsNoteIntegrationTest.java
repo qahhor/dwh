@@ -68,7 +68,7 @@ class MsNoteIntegrationTest {
         assertThat(note.title()).isEqualTo("Архитектурный манифест");
         assertThat(note.isPinned()).isFalse();
 
-        // Закрепление
+        // Pin
         var pinned = noteService.togglePinned(note.id(), user1Id);
         assertThat(pinned.isPinned()).isTrue();
         // PUT /notes/{id}/pin (plan item 3.4): the state is set, a repeat leaves it.
@@ -76,21 +76,21 @@ class MsNoteIntegrationTest {
         assertThat(noteService.setPinned(note.id(), user1Id, false).isPinned()).isFalse();
         assertThat(noteService.setPinned(note.id(), user1Id, false).isPinned()).isFalse();
 
-        // Поиск по ключевому слову
+        // Search by keyword
         var found = noteService
                 .getNotes(user1Id, null, null, null, null, "манифест")
                 .items();
         assertThat(found).hasSize(1);
         assertThat(found.getFirst().id()).isEqualTo(note.id());
 
-        // Обновление
+        // Update
         long revision = noteService.getNote(note.id(), user1Id).revision();
         var updated = noteService.updateNote(
                 note.id(), "Обновленный манифест", null, "yellow", null, null, user1Id, revision);
         assertThat(updated.title()).isEqualTo("Обновленный манифест");
         assertThat(updated.color()).isEqualTo("yellow");
 
-        // Удаление
+        // Delete
         noteService.deleteNote(note.id(), user1Id);
         assertThatThrownBy(() -> noteService.getNote(note.id(), user1Id)).isInstanceOf(ApiException.class);
     }
@@ -101,19 +101,19 @@ class MsNoteIntegrationTest {
         var user1Note =
                 noteService.createNote("Приватная заметка 1", "Секретный контент", "default", false, null, user1Id);
 
-        // Пользователь 2 не может получить чужую заметку
+        // User 2 cannot get someone else's note
         assertThatThrownBy(() -> noteService.getNote(user1Note.id(), user2Id)).isInstanceOf(ApiException.class);
 
-        // Пользователь 2 не видит чужую заметку в своем списке
+        // User 2 does not see someone else's note in their own list
         var user2Notes =
                 noteService.getNotes(user2Id, null, null, null, null, null).items();
         assertThat(user2Notes.stream().map(MsNoteService.NoteView::id)).doesNotContain(user1Note.id());
 
-        // Пользователь 2 не может изменить чужую заметку
+        // User 2 cannot change someone else's note
         assertThatThrownBy(() -> noteService.updateNote(user1Note.id(), "Хак", null, null, null, null, user2Id, 1L))
                 .isInstanceOf(ApiException.class);
 
-        // Пользователь 2 не может удалить чужую заметку
+        // User 2 cannot delete someone else's note
         assertThatThrownBy(() -> noteService.deleteNote(user1Note.id(), user2Id))
                 .isInstanceOf(ApiException.class);
     }

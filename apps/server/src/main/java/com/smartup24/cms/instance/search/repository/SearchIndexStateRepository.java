@@ -185,9 +185,9 @@ public class SearchIndexStateRepository {
     public void discoverPage(Generation generation, UUID owner, int pageSize) {
         if ("DONE".equals(generation.discoveryEntity()) || !lockOwner(owner, "share")) return;
         String table = switch (generation.discoveryEntity()) {
-            case "TASK" -> "ms_tasks";
-            case "PROJECT" -> "ms_task_projects";
-            case "USER" -> "md_users";
+            case "TASK" -> "ms_task_pub_tasks";
+            case "PROJECT" -> "ms_task_pub_projects";
+            case "USER" -> "md_pub_users";
             default -> throw new IllegalArgumentException("Unknown discovery entity");
         };
         String next = switch (generation.discoveryEntity()) {

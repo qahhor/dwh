@@ -92,12 +92,21 @@ public final class MdOrgUnitDtos {
 
     public record ScopeRuleDto(@NotBlank String rule) {}
 
+    /**
+     * The org units of a user. They are part of the user: {@code revision} is the user's, which a change of them names
+     * in {@code If-Match} and raises (plan 10/10, item 3.6).
+     */
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public record UserAssignments(Long userId, List<Long> orgUnitIds, Long legacyOrgUnitId) {
+    public record UserAssignments(Long userId, List<Long> orgUnitIds, Long legacyOrgUnitId, long revision)
+            implements Revisioned {
         public UserAssignments {
             orgUnitIds = List.copyOf(orgUnitIds);
         }
     }
 
-    public record RoleRule(Long roleId, String rule) {}
+    /**
+     * The scope rule of a role. It is part of the role: {@code revision} is the role's, which a change of the rule
+     * names in {@code If-Match} and raises (plan 10/10, item 3.6).
+     */
+    public record RoleRule(Long roleId, String rule, long revision) implements Revisioned {}
 }

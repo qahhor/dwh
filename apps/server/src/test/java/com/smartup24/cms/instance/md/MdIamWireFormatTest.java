@@ -43,7 +43,7 @@ import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
 import com.smartup24.cms.instance.md.service.PasswordHasher;
 import com.smartup24.cms.instance.md.service.PasswordValidator;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -222,8 +222,8 @@ class MdIamWireFormatTest {
         when(repository.findById(1L)).thenReturn(Optional.of(root));
         when(repository.findById(2L)).thenReturn(Optional.of(child));
         when(repository.create(1L, "SALES", "Sales", "department", 1)).thenReturn(child);
-        when(scope.getUserAssignments(42L)).thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(2L), null));
-        when(scope.getRoleScopeRule(3L)).thenReturn(new MdOrgUnitDtos.RoleRule(3L, MdScopeService.RULE_ALL));
+        when(scope.getUserAssignments(42L)).thenReturn(new MdOrgUnitDtos.UserAssignments(42L, List.of(2L), null, 1L));
+        when(scope.getRoleScopeRule(3L)).thenReturn(new MdOrgUnitDtos.RoleRule(3L, MdScopeService.RULE_ALL, 1L));
         MockMvc mvc = mvc(new MdOrgUnitController(new MdOrgUnitService(repository, scope, audit), scope));
 
         JsonNode list = json(mvc, get("/api/v1/iam/org-units"), 200);
@@ -237,9 +237,9 @@ class MdIamWireFormatTest {
                         201)))
                 .isEqualTo(ORG_UNIT);
         assertThat(keys(json(mvc, get("/api/v1/iam/org-units/users/42"), 200)))
-                .isEqualTo(Set.of("userId", "orgUnitIds", "legacyOrgUnitId"));
+                .isEqualTo(Set.of("userId", "orgUnitIds", "legacyOrgUnitId", "revision"));
         assertThat(keys(json(mvc, get("/api/v1/iam/org-units/roles/3/rule"), 200)))
-                .isEqualTo(Set.of("roleId", "rule"));
+                .isEqualTo(Set.of("roleId", "rule", "revision"));
     }
 
     @Test

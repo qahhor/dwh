@@ -31,7 +31,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка сохранённых представлений списка {@code /api/v1/list-views/{list}} (ADR-0016, роадмап п. 14). */
+/** HTTP check of the saved list views {@code /api/v1/list-views/{list}} (ADR-0016). */
 class MdListViewControllerTest extends EmbeddedPostgresTest {
 
     private static final String BASE = "/api/v1/list-views/upl.sources";

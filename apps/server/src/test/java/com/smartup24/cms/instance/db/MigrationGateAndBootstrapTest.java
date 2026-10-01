@@ -23,12 +23,12 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * R4 (ремедиация, NFR-10 / FR-INST-1 / FR-INST-2, AUDIT-03 C-1/C-2):
- * 1) schema-gate не пускает приложение на пустой/несовпадающей схеме;
- * 2) миграции применяются только явным запуском (профиль migrate);
- * 3) bootstrap создаёт instance_info и первого админа из конфигурации,
- *    без параметров — отказывается, повторный запуск — идемпотентен;
- * 4) в справочном seed нет DEMO-данных и пользователей.
+ * NFR-10, FR-INST-1, FR-INST-2:
+ * 1) the schema gate does not let the application start on an empty or mismatching schema;
+ * 2) migrations are applied only by an explicit run (the migrate profile);
+ * 3) bootstrap creates instance_info and the first administrator from the configuration, refuses without the
+ *    parameters, and a repeated run is idempotent;
+ * 4) the reference seed has no demo data and no users.
  */
 @Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -75,7 +75,7 @@ class MigrationGateAndBootstrapTest {
                 .isZero();
         assertThat(jdbc.sql("select count(*) from md_users").query(Long.class).single())
                 .isZero();
-        // Справочники при этом на месте
+        // The reference data is still in place
         assertThat(jdbc.sql("select count(*) from md_roles where pcode = 'admin'")
                         .query(Long.class)
                         .single())
@@ -118,7 +118,7 @@ class MigrationGateAndBootstrapTest {
                 .as("эффективные права админа материализованы")
                 .isPositive();
 
-        // Идемпотентность: повторный запуск ничего не дублирует
+        // Idempotency: a repeated run duplicates nothing
         bootstrap.run(null);
         assertThat(jdbc.sql("select count(*) from md_users").query(Long.class).single())
                 .isEqualTo(1);

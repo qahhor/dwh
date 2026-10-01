@@ -23,12 +23,12 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
- * FR-PERM-1: каталог форм — производная от кода, а не наоборот.
+ * FR-PERM-1: the form catalog derives from the code, not the other way round.
  *
- * Здесь проверяется половина, которой не нужна база: сканер аннотаций и полнота
- * человекочитаемых имён. Без имени пара всё равно попадёт в каталог (под своим
- * кодом), но администратор увидит в матрице прав «tasks.items.create» вместо
- * «Создание задачи» — поэтому пропуск валит сборку, а не деградирует молча.
+ * This class checks the half that needs no database: the annotation scanner and the completeness of
+ * human-readable names. A pair without a name still gets into the catalog (under its code), but an
+ * administrator would see "tasks.items.create" in the permission matrix instead of a readable action
+ * name, so a missing name fails the build instead of degrading silently.
  */
 class MdFormCatalogTest {
 
@@ -94,7 +94,7 @@ class MdFormCatalogTest {
         assertThat(MdFormCatalog.moduleOf("unknown.form")).isEqualTo("unknown");
     }
 
-    /** Пары из всех контроллеров приложения — тот же набор, что соберёт синхронизатор при старте. */
+    /** The pairs of all application controllers: the same set the synchronizer collects at start. */
     static Set<String> declaredPairsFromSources() {
         var scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(RestController.class));
@@ -104,8 +104,8 @@ class MdFormCatalogTest {
             try {
                 Class<?> controller = Class.forName(definition.getBeanClassName());
                 if (isFromTestClasspath(controller)) {
-                    // Тестовые стенды (SecurityTestController и подобные) охраняют
-                    // выдуманные формы — в каталоге приложения им делать нечего.
+                    // Test stands (SecurityTestController and the like) guard
+                    // made-up forms: they have no place in the application catalog.
                     continue;
                 }
                 for (Method m : controller.getDeclaredMethods()) {
@@ -115,7 +115,7 @@ class MdFormCatalogTest {
                     }
                 }
             } catch (ClassNotFoundException ignored) {
-                // Контроллер с тестового classpath — в каталоге ему делать нечего.
+                // A controller from the test classpath has no place in the catalog.
             }
         }
         return pairs;

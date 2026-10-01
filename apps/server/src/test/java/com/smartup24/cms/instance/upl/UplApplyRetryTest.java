@@ -3,13 +3,13 @@ package com.smartup24.cms.instance.upl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
-import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
-import com.smartup24.cms.instance.fnd.dwh.FndRawSource;
-import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
+import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndRawRow;
+import com.smartup24.cms.instance.fnd.api.FndRawSource;
+import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.jobs.FndJobProperties;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;

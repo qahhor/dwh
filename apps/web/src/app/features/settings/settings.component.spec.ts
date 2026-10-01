@@ -59,7 +59,7 @@ describe('SettingsComponent UI contracts', () => {
   }
 
   it('renders settings that arrive after the initial change-detection pass', async () => {
-    const systemSettings = new Subject<Record<string, string>>();
+    const systemSettings = new Subject<{ values: Record<string, string>; revision: number }>();
     const userSettings = new Subject<Record<string, string>>();
     const api = {
       get: vi.fn((path: string) => (path === '/settings/system' ? systemSettings : userSettings)),
@@ -69,10 +69,13 @@ describe('SettingsComponent UI contracts', () => {
     fixture.autoDetectChanges();
 
     systemSettings.next({
-      'system.company_name': 'Persisted Company',
-      'system.default_language': 'en',
-      'system.default_timezone': 'UTC',
-      'system.date_format': 'yyyy-MM-dd HH:mm',
+      values: {
+        'system.company_name': 'Persisted Company',
+        'system.default_language': 'en',
+        'system.default_timezone': 'UTC',
+        'system.date_format': 'yyyy-MM-dd HH:mm',
+      },
+      revision: 1,
     });
     userSettings.next({ 'user.theme': 'light' });
     await fixture.whenStable();
@@ -86,7 +89,7 @@ describe('SettingsComponent UI contracts', () => {
       get: vi.fn((path: string) =>
         of(
           path === '/settings/system'
-            ? { 'system.company_name': 'Old', 'storage.default_user_quota_mb': '1024' }
+            ? { values: { 'system.company_name': 'Old', 'storage.default_user_quota_mb': '1024' }, revision: 7 }
             : { 'user.theme': 'light' },
         ),
       ),
@@ -108,10 +111,11 @@ describe('SettingsComponent UI contracts', () => {
     redraw(fixture);
 
     fixture.componentInstance.store.saveSystemSettings();
-    expect(api.patch).toHaveBeenCalledWith('/settings/system', {
-      'system.company_name': 'New Company',
-      'storage.default_user_quota_mb': '2048',
-    });
+    expect(api.patch).toHaveBeenCalledWith(
+      '/settings/system',
+      { 'system.company_name': 'New Company', 'storage.default_user_quota_mb': '2048' },
+      { notifyError: false, ifMatch: 7 },
+    );
   });
 
   it('connects the settings tabs to their panels and gives the general panel the interface languages', async () => {
@@ -223,7 +227,7 @@ describe('SettingsComponent UI contracts', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 's', cancelable: true, ...init }));
 
     press({ ctrlKey: true });
-    expect(api.patch).toHaveBeenLastCalledWith('/settings/system', {});
+    expect(api.patch).toHaveBeenLastCalledWith('/settings/system', {}, { notifyError: false, ifMatch: undefined });
     fixture.componentInstance.setTab('preferences');
     press({ metaKey: true });
     expect(api.patch).toHaveBeenLastCalledWith('/settings/user', {});

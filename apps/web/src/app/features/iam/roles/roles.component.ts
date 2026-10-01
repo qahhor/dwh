@@ -181,6 +181,13 @@ export class RolesComponent implements OnInit {
     );
   }
 
+  /** A save of the scope rule raised the role's revision: the list and the matrix name the new one (plan item 3.6). */
+  onScopeRevision(role: Role, revision: number): void {
+    const saved = { ...role, revision };
+    this.replaceRole(saved);
+    this.matrix.refreshSelected(saved);
+  }
+
   loadRoleUserCounts() {
     this.userCountsRead.reload();
   }

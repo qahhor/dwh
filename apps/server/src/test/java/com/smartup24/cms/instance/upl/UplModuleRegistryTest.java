@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** U5а (В-2): V113 регистрирует upl в реестре модулей каркаса. */
+/** V113 registers upl in the framework's module registry. */
 class UplModuleRegistryTest extends EmbeddedPostgresTest {
 
     @Autowired

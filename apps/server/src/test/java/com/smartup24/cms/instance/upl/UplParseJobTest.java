@@ -39,7 +39,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
-/** Задание разбора: файл из хранилища превращается в счётчики и ошибки пакета (контракт И5). */
+/** The parse job: a file from the storage turns into the package's counters and errors. */
 class UplParseJobTest extends EmbeddedPostgresTest {
 
     private static final LocalDate PERIOD_FROM = LocalDate.of(2026, 3, 1);
@@ -239,7 +239,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
         assertThat(packages.errors(row.publicId().toString()).items()).hasSize(3);
     }
 
-    // ---------- помощники ----------
+    // ---------- helpers ----------
 
     private PackageRow register(byte[] content) {
         FileRecord file = files.uploadFile(
@@ -275,7 +275,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
                 .list();
     }
 
-    /** Анкеты, чтение которых падает: подменяют бин в раннере теста. */
+    /** File formats whose reading fails: they replace the bean in the test runner. */
     private static UplSourceService failingSources() {
         UplSourceService failing = Mockito.mock(UplSourceService.class);
         Mockito.when(failing.getVersion(anyLong(), anyInt()))
@@ -283,7 +283,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
         return failing;
     }
 
-    /** Разборщик, падающий на любом файле: подменяет бин в раннере теста. */
+    /** A parser that fails on any file: it replaces the bean in the test runner. */
     private static UplXlsxParser failingParser() {
         return new UplXlsxParser() {
             @Override

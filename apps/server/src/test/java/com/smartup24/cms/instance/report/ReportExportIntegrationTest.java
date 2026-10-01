@@ -133,7 +133,8 @@ class ReportExportIntegrationTest {
         Long child = user("child", branch);
         Long foreign = user("foreign", sibling);
         Long secondary = user("secondary", sibling);
-        scopes.assignUserOrgUnits(secondary, List.of(region));
+        scopes.assignUserOrgUnits(
+                secondary, List.of(region), scopes.getUserAssignments(secondary).revision());
         Long primaryTask = task("Основной узел", primary, foreign);
         Long childTask = task("Дочерний узел", foreign, child);
         Long secondaryTask = task("Дополнительный узел наблюдателя", foreign, foreign);
@@ -144,7 +145,8 @@ class ReportExportIntegrationTest {
                 .update();
         task("Соседняя ветка", foreign, foreign);
         assignScope(viewer, "UNITS");
-        scopes.assignUserOrgUnits(viewer, List.of(region));
+        scopes.assignUserOrgUnits(
+                viewer, List.of(region), scopes.getUserAssignments(viewer).revision());
         signIn(viewer, Set.of("tasks.items.view"), false);
 
         assertIds(export(format), format, List.of(primaryTask, secondaryTask));

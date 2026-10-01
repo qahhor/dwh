@@ -29,7 +29,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка массовых действий над задачами {@code POST /api/v1/tasks/bulk} (роадмап п. 17). */
+/** HTTP check of the bulk actions on tasks {@code POST /api/v1/tasks/bulk}. */
 class MsTaskBulkControllerTest extends EmbeddedPostgresTest {
 
     private static final String BULK = "/api/v1/tasks/bulk";

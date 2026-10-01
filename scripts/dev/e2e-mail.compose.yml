@@ -1,0 +1,34 @@
+# The e2e stack's mail channel (plan 10/10, item 0.8): the server sends real SMTP to Mailpit, a stub that keeps every
+# message and serves it over HTTP, so a browser test can read a login code or a reset link the way a person would.
+# Never part of a deployment. Used by the e2e job of ci.yml and scripts/dev/test-e2e.ps1:
+#   docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.compose.yml up -d --wait
+# Mailpit's HTTP API is published on the loopback address only; other host port: MAILPIT_HTTP_PORT.
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: "500"
+      TZ: UTC
+    ports:
+      - "127.0.0.1:${MAILPIT_HTTP_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  server:
+    environment:
+      # Delivery as in production: a real SMTP provider, and the start refuses two-factor users on a stub channel.
+      DWH_PROVIDER_MAIL: smtp
+      SMC_DELIVERY_ENFORCE: "true"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      # The stub takes plain SMTP without a login on the disposable network.
+      SMTP_AUTH: "false"
+      SMTP_STARTTLS: "false"
+      DWH_MAIL_FROM: no-reply@e2e.test
+    depends_on:
+      mailpit: {condition: service_healthy}

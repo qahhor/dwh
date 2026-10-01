@@ -11,7 +11,7 @@ import com.smartup24.cms.instance.kauth.repository.*;
 import com.smartup24.cms.instance.kauth.service.*;
 import com.smartup24.cms.instance.md.repository.*;
 import com.smartup24.cms.instance.md.service.*;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;

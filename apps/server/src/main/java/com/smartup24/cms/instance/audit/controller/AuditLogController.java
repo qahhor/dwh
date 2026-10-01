@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.audit.pref.AuditPref;
 import com.smartup24.cms.instance.audit.service.AuditListService;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import io.swagger.v3.oas.annotations.Operation;
 import java.time.Instant;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,12 +30,16 @@ public class AuditLogController {
         this.auditListService = auditListService;
     }
 
+    @Operation(summary = "Get audit statistics", description = "Counters of the audit journal.")
     @GetMapping("/stats")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<AuditStatsView> getStats() {
         return ResponseEntity.ok(auditLogService.getAuditStats());
     }
 
+    @Operation(
+            summary = "List audit records",
+            description = "The audit journal of data changes, a keyset page at a time with filters.")
     @GetMapping("/logs")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<KeysetPage<AuditLogView>> listLogs(
@@ -55,6 +60,9 @@ public class AuditLogController {
                 limit, cursor, filter, sort, query, new AuditLogFilter(tableName, rowPk, event, userId, from, to)));
     }
 
+    @Operation(
+            summary = "List security events",
+            description = "The journal of security events, a keyset page at a time with filters.")
     @GetMapping("/security-events")
     @RequiresPermission(form = AuditPref.FORM_AUDIT_LOG, action = "view")
     public ResponseEntity<KeysetPage<SecurityEventView>> listSecurityEvents(

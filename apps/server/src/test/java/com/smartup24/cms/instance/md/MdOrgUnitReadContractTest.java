@@ -95,10 +95,14 @@ class MdOrgUnitReadContractTest {
         when(scopeRepository.getUserOrgUnitIds(42L)).thenReturn(Set.of(7L, 3L));
         when(scopeRepository.findUserOrgUnit(42L)).thenReturn(Optional.of(9L));
         when(scopeRepository.getEffectiveScope(42L)).thenReturn(Set.of(3L, 4L, 7L));
+        when(scopeRepository.userRevision(42L)).thenReturn(6L);
 
         var result = service.getUserAssignments(42L);
 
         assertThat(result.userId()).isEqualTo(42L);
+        assertThat(result.revision())
+                .as("the user's revision, which a change of the units names")
+                .isEqualTo(6L);
         assertThat(result.orgUnitIds()).containsExactly(3L, 7L);
         assertThat(result.legacyOrgUnitId()).isEqualTo(9L);
         verify(scopeRepository, never()).getEffectiveScope(42L);
@@ -150,7 +154,7 @@ class MdOrgUnitReadContractTest {
     void nullAssignmentListIsRejectedBeforeAnyReplacement() {
         when(scopeRepository.userExists(42L)).thenReturn(true);
 
-        assertValidation(() -> service.assignUserOrgUnits(42L, null));
+        assertValidation(() -> service.assignUserOrgUnits(42L, null, 1L));
 
         verify(scopeRepository, never())
                 .replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyList());
@@ -162,7 +166,7 @@ class MdOrgUnitReadContractTest {
         when(scopeRepository.userExists(42L)).thenReturn(true);
 
         for (List<Long> invalid : List.of(Arrays.asList(7L, null), List.of(0L), List.of(-1L))) {
-            assertValidation(() -> service.assignUserOrgUnits(42L, invalid));
+            assertValidation(() -> service.assignUserOrgUnits(42L, invalid, 1L));
         }
 
         verify(scopeRepository, never())
@@ -177,7 +181,7 @@ class MdOrgUnitReadContractTest {
                 .thenReturn(Optional.of(mock(MdOrgUnitRepository.OrgUnitRecord.class)));
         when(scopeRepository.getUserOrgUnitIds(42L)).thenReturn(Set.of());
 
-        service.assignUserOrgUnits(42L, List.of(7L, 3L, 7L));
+        service.assignUserOrgUnits(42L, List.of(7L, 3L, 7L), 1L);
 
         verify(scopeRepository).replaceUserOrgUnits(42L, List.of(3L, 7L));
     }
@@ -187,7 +191,7 @@ class MdOrgUnitReadContractTest {
         when(scopeRepository.userExists(42L)).thenReturn(true);
         when(scopeRepository.getUserOrgUnitIds(42L)).thenReturn(Set.of(7L));
 
-        service.assignUserOrgUnits(42L, List.of());
+        service.assignUserOrgUnits(42L, List.of(), 1L);
 
         verify(scopeRepository).replaceUserOrgUnits(42L, List.of());
     }
@@ -196,7 +200,7 @@ class MdOrgUnitReadContractTest {
     void unknownUserIsRejectedBeforeAssignmentReplacement() {
         when(scopeRepository.userExists(42L)).thenReturn(false);
 
-        assertNotFound(() -> service.assignUserOrgUnits(42L, List.of()));
+        assertNotFound(() -> service.assignUserOrgUnits(42L, List.of(), 1L));
 
         verify(scopeRepository, never())
                 .replaceUserOrgUnits(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyList());
@@ -207,7 +211,7 @@ class MdOrgUnitReadContractTest {
     void unknownRoleIsRejectedBeforeRuleDefaultOrWrite() {
         when(scopeRepository.roleExists(55L)).thenReturn(false);
 
-        assertNotFound(() -> service.setRoleRule(55L, MdScopeService.RULE_UNITS));
+        assertNotFound(() -> service.setRoleRule(55L, MdScopeService.RULE_UNITS, 1L));
 
         verify(scopeRepository, never()).getRoleRule(55L);
         verify(scopeRepository, never())
@@ -227,7 +231,10 @@ class MdOrgUnitReadContractTest {
                 .id();
         databaseScopeRepository.setRoleRule(roleId, MdScopeService.RULE_SUBTREE);
         databaseRoleRepository.assignRolesToUser(userId, List.of(roleId));
-        databaseService.assignUserOrgUnits(userId, List.of(assignedId));
+        databaseService.assignUserOrgUnits(
+                userId,
+                List.of(assignedId),
+                databaseService.getUserAssignments(userId).revision());
 
         List<Long> directBefore = directAssignments(userId);
         List<Long> effectiveBefore = effectiveAssignments(userId);

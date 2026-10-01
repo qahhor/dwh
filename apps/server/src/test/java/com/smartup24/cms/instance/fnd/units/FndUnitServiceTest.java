@@ -4,12 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
-import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.units.FndConversion.FndCoefficientRef;
-import com.smartup24.cms.instance.fnd.versioning.FndVersion;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
+import com.smartup24.cms.instance.fnd.api.FndConversion;
+import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
+import com.smartup24.cms.instance.fnd.api.FndVersion;
 import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.support.fixtures.DepartmentFixture;
@@ -27,10 +29,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Блок D основы: единицы и датированные коэффициенты (AC-18…AC-24).
+ * Units and dated coefficients of the foundation.
  *
- * <p>Каждый тест идёт по двум конфигурациям ведомств А и Б ({@link DepartmentFixture}, AC-41): коды единиц,
- * множители и даты — параметр, а не знание ядра. Реальных отраслевых единиц нет ни в ядре, ни в тестах.
+ * <p>Every test runs over two department configurations A and B ({@link DepartmentFixture}): unit codes,
+ * multipliers and dates are a parameter, not knowledge of the core. No real industry units exist in the core or
+ * in the tests.
  */
 class FndUnitServiceTest extends EmbeddedPostgresTest {
 
@@ -51,7 +54,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
 
     private FndActor actor;
 
-    /** Конфигурации экземпляров А и Б (AC-41). */
+    /** The instance configurations A and B. */
     static Stream<DepartmentFixture> departments() {
         return DepartmentFixture.departments();
     }
@@ -61,7 +64,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         actor = actors.system();
         tx.executeWithoutResult(status -> {
             actors.apply(actor);
-            // Опубликованные версии защищены триггером — чистка идёт в режиме обслуживания (V102)
+            // Published versions are protected by a trigger, so the cleanup runs in maintenance mode (V102)
             jdbc.sql("select set_config('dwh.maintenance', 'on', true)")
                     .query(String.class)
                     .single();
@@ -84,7 +87,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         assertThat(baseId).isPositive();
         assertThat(derivedId).isPositive();
         assertThat(units.findUnit(base).orElseThrow().baseUnitCode()).isEqualTo(base);
-        // Узбекские кириллица и латиница сохраняются без потерь
+        // Uzbek Cyrillic and Latin text is kept without loss
         assertThat(units.findUnit(derived).orElseThrow().nameI18n())
                 .contains(dept.derivedUnit().nameUz())
                 .contains("Единица TEST");
@@ -101,7 +104,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
                 .isEqualTo(ConstraintErrorCode.FND_UNITS_FK_BASE_UNIT);
         assertThat(codeOf(() -> units.registerUnit(base, Map.of("uz", "TEST"), base, actor)))
                 .isEqualTo(ConstraintErrorCode.FND_UNITS_UK_CODE);
-        // Единица без базовой не заводится ни фасадом, ни прямым SQL (S-3: base_unit_code not null, V107)
+        // A unit without a base unit is rejected both by the facade and by plain SQL (base_unit_code not null, V107)
         assertThat(codeOf(() -> units.registerUnit(other, Map.of("uz", "TEST"), null, actor)))
                 .isEqualTo(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
         assertThat(codeOf(() -> units.registerUnit(other, Map.of("uz", "TEST"), " ", actor)))
@@ -182,7 +185,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
         String base = dept.baseUnit().code();
         String other = dept.otherUnit().code();
         LocalDate inForce = first.validFrom().plusDays(10);
-        // Пара производная -> отдельная существует только черновиком: в пересчёт черновик не попадает
+        // A derived-to-separate pair exists only as a draft: a draft never takes part in the conversion
         long draftPair = tx.execute(status -> {
             actors.apply(actor);
             return jdbc.sql("insert into fnd_unit_coefficients (from_unit, to_unit) values (:f, :t) returning id")
@@ -261,7 +264,7 @@ class FndUnitServiceTest extends EmbeddedPostgresTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ---------- вспомогательное ----------
+    // ---------- helpers ----------
 
     private void registerUnits(List<DepartmentFixture.Unit> fixtureUnits) {
         for (DepartmentFixture.Unit unit : fixtureUnits) {

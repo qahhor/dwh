@@ -43,7 +43,7 @@ class AuditPartitionWorkerTest {
 
         worker.ensureRunwayFrom(LocalDate.of(2026, 12, 20));
 
-        // сегодня + 31 день вперёд
+        // today plus 31 days ahead
         Mockito.verify(repository).createDay(LocalDate.of(2026, 12, 20));
         Mockito.verify(repository).createDay(LocalDate.of(2027, 1, 1));
         Mockito.verify(repository).createDay(LocalDate.of(2027, 1, 20));
@@ -75,7 +75,7 @@ class AuditPartitionWorkerTest {
     }
 
     // ------------------------------------------------------------------
-    // FR-AUD-2: срок хранения оперативного журнала
+    // FR-AUD-2: the retention of the operational log
     // ------------------------------------------------------------------
 
     @Test
@@ -91,7 +91,7 @@ class AuditPartitionWorkerTest {
 
         worker.applyRetentionFrom(LocalDate.of(2027, 1, 15));
 
-        // срез — 2026-01-01: всё, что кончилось к нему, отцепляется
+        // the cut-off is 2026-01-01: everything that ended by then is detached
         Mockito.verify(repository).detachAndArchive(YearMonth.of(2025, 8));
         Mockito.verify(repository).detachDay(LocalDate.of(2025, 12, 31));
         Mockito.verify(repository, Mockito.times(1)).detachAndArchive(any());

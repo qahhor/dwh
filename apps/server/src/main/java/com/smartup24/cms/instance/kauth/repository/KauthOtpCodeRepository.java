@@ -25,7 +25,7 @@ public class KauthOtpCodeRepository {
 
     private static final String SELECT = """
             select c.auth_version, c.id, c.user_id, c.channel, c.code_hash, c.attempts_left, c.expires_at, c.created_at, c.is_used
-            from kauth_otp_codes c join md_users u on u.id = c.user_id
+            from kauth_otp_codes c join md_pub_users u on u.id = c.user_id
             """;
     private static final String ACTIVE = """
             not c.is_used and c.attempts_left > 0 and c.expires_at > now()
@@ -39,11 +39,11 @@ public class KauthOtpCodeRepository {
     }
 
     /**
-     * Код второго фактора, привязанный к своему токену (FR-AUTH-5).
+     * A second-factor code bound to its token (FR-AUTH-5).
      *
-     * Токен хранится хешем и служит единственным способом найти этот код.
-     * До V015 его не было вовсе, и код искали по идентификатору пользователя,
-     * который проверка возвращала захардкоженным.
+     * The token is stored as a hash and is the only way to find this code.
+     * Before V015 there was no token at all, and the code was looked up by a user id
+     * that the check returned hard-coded.
      */
     public OtpRecord create(
             Long userId,
@@ -58,7 +58,7 @@ public class KauthOtpCodeRepository {
                 insert into kauth_otp_codes (user_id, auth_version, channel, code_hash, otp_token_hash, purpose,
                                              attempts_left, expires_at, created_at, is_used)
                 select u.id, :authenticationVersion, :channel, :codeHash, :otpTokenHash, :purpose, 3, :expiresAt, now(), false
-                from md_users u
+                from md_pub_users u
                 where u.id = :userId and u.state = 'A' and u.auth_version = :authenticationVersion
                 returning auth_version, id, user_id, channel, code_hash, attempts_left, expires_at, created_at, is_used
                 """)
@@ -74,7 +74,7 @@ public class KauthOtpCodeRepository {
                 .orElseThrow(ApiException::invalidCredentials);
     }
 
-    /** Единственный правильный способ найти код: по хешу выданного токена. */
+    /** The only correct way to find a code: by the hash of the issued token. */
     public Optional<OtpRecord> findActiveByTokenHash(String otpTokenHash, String purpose) {
         return jdbcClient
                 .sql(SELECT + " where c.otp_token_hash = :otpTokenHash and c.purpose = :purpose and " + ACTIVE)
@@ -106,7 +106,7 @@ public class KauthOtpCodeRepository {
                 where o.id = :otpId and o.user_id = :userId and o.purpose = :purpose
                   and o.auth_version = :authenticationVersion and not o.is_used
                   and o.attempts_left >= 0 and o.expires_at > now()
-                  and exists (select 1 from md_users u where u.id = o.user_id
+                  and exists (select 1 from md_pub_users u where u.id = o.user_id
                               and u.state = 'A' and u.auth_version = o.auth_version)
                 """)
                         .param("otpId", otpId)

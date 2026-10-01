@@ -1,5 +1,6 @@
 package com.smartup24.cms.instance.md.repository;
 
+import com.smartup24.cms.instance.common.web.Revisions;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -13,6 +14,40 @@ public class MdSettingRepository {
 
     public MdSettingRepository(JdbcClient jdbcClient) {
         this.jdbcClient = jdbcClient;
+    }
+
+    /** The revision of the system settings as a whole (plan 10/10, item 3.6): 1 until the first save. */
+    public long instanceRevision() {
+        return jdbcClient
+                .sql("select revision from md_settings_revision where scope = 'system'")
+                .query(Long.class)
+                .optional()
+                .orElse(1L);
+    }
+
+    /**
+     * Claims the next revision of the system settings for a save made from {@code expectedRevision}: one statement
+     * checks and raises it, so of two concurrent saves from the same revision the second is refused (409). The row
+     * appears with the first save; until then the revision is 1.
+     */
+    public long nextInstanceRevision(long expectedRevision) {
+        Optional<Long> raised = jdbcClient
+                .sql("""
+                update md_settings_revision set revision = revision + 1, modified_at = clock_timestamp()
+                where scope = 'system' and revision = :expectedRevision
+                returning revision
+                """)
+                .param("expectedRevision", expectedRevision)
+                .query(Long.class)
+                .optional();
+        if (raised.isPresent() || expectedRevision != 1L) {
+            return raised.orElseThrow(Revisions::conflict);
+        }
+        return jdbcClient.sql("""
+                insert into md_settings_revision (scope, revision) values ('system', 2)
+                on conflict (scope) do nothing
+                returning revision
+                """).query(Long.class).optional().orElseThrow(Revisions::conflict);
     }
 
     public void setInstanceSetting(String key, String value) {

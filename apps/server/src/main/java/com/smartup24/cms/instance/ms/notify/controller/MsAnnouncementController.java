@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.ms.notify.api.AnnouncementView;
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,9 @@ public class MsAnnouncementController {
         this.notificationService = notificationService;
     }
 
+    @Operation(
+            summary = "List active announcements",
+            description = "The published announcements addressed to the caller.")
     @GetMapping({"", "/active"})
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "view")
     public ResponseEntity<List<AnnouncementView>> getAnnouncements(
@@ -32,6 +36,7 @@ public class MsAnnouncementController {
         return ResponseEntity.ok(notificationService.getActiveAnnouncements(userId, language));
     }
 
+    @Operation(summary = "Mark an announcement read", description = "Records that the caller has read an announcement.")
     @PostMapping("/{id}/read")
     @RequiresPermission(form = MsNotifyPref.FORM_ANNOUNCEMENTS, action = "view")
     @ResponseStatus(HttpStatus.NO_CONTENT)

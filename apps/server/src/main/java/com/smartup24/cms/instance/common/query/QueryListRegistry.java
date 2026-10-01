@@ -10,8 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * Реестр списков: все бины {@link QueryList} приложения по коду. Список отдаётся уже достроенным: к полям из
- * кода добавляются поля расширений ({@link QueryListExtender}) — дополнительные поля сущности (ADR-0019, 2.3).
+ * The list registry: all {@link QueryList} beans of the application by code. A list is returned complete: the
+ * fields from code are joined by extension fields ({@link QueryListExtender}), the entity's custom fields
+ * (ADR-0019).
  */
 @Component
 public class QueryListRegistry {

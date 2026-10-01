@@ -15,11 +15,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Роли и матрица их прав (FR-PERM-2, FR-PERM-3).
+ * Roles and their permission matrix (FR-PERM-2, FR-PERM-3).
  *
- * Каждая мутация оставляет след в аудите: изменение матрицы прав — самое
- * чувствительное действие в системе, и «кто кому что выдал» обязано
- * восстанавливаться по журналу без обращения к резервным копиям (FR-AUD-1).
+ * Every mutation leaves an audit trace: changing the permission matrix is the most
+ * sensitive action in the system, and "who granted what to whom" must be
+ * recoverable from the log without resorting to backups (FR-AUD-1).
  */
 @Service
 public class MdRoleService {
@@ -55,9 +55,9 @@ public class MdRoleService {
         scopeRepository.lockScopeMutation();
         var role = roleRepository.create(name, null, "A", orderNo);
 
-        // ADR-0013: правило видимости заводится сразу и явно. Роль без строки
-        // правила вела бы себя как ALL по умолчанию — это расширение доступа
-        // по умолчанию, а такие вещи должны быть видны администратору в списке.
+        // ADR-0013: the visibility rule is created at once and explicitly. A role without a rule
+        // row would behave as ALL by default, which widens access by default,
+        // and such things must be visible to the administrator in the list.
         scopeRepository.setRoleRule(role.id(), MdScopeService.RULE_ALL);
 
         auditLogService.logChange(
@@ -95,9 +95,9 @@ public class MdRoleService {
         if (role.pcode() != null && "admin".equals(role.pcode()) && "P".equalsIgnoreCase(state)) {
             throw ApiException.forbidden(ErrorCode.SUPERADMIN_IMMUTABLE, "error.md.admin_role_passive_forbidden");
         }
-        // Семантика частичного обновления: не переданное поле не меняется.
-        // Раньше null в name уходил в базу и падал на not null, а не переданный
-        // order_no молча обнулял порядок роли в списке.
+        // Partial update semantics: a field not sent is not changed.
+        // A null name used to reach the database and fail on not null, and a missing
+        // order_no silently reset the role's position in the list.
         String newName = name != null ? name : role.name();
         String newState = state != null ? state : role.state();
         int newOrderNo = orderNo != null ? orderNo : role.orderNo();
@@ -156,8 +156,8 @@ public class MdRoleService {
                         .map(p -> new MdRoleRepository.PermissionPair(p.formCode(), p.action()))
                         .toList();
 
-        // Матрица роли раньше не проверялась вовсе: в md_role_permissions можно
-        // было записать любую пару, и она попадала в эффективные права (FR-PERM-1).
+        // The role matrix used not to be checked at all: any pair could be written to
+        // md_role_permissions, and it got into the effective permissions (FR-PERM-1).
         var grantable = permissionService.getGrantablePairs();
         for (var p : permissions != null ? permissions : List.<MdRoleRepository.PermissionPair>of()) {
             if (!grantable.contains(p.formCode() + "." + p.action())) {
@@ -168,7 +168,7 @@ public class MdRoleService {
             }
         }
 
-        // Снимок «до» нужен именно здесь: после replace старый набор восстановить неоткуда.
+        // The "before" snapshot is needed exactly here: after replace the old set cannot be recovered.
         Set<String> before = new TreeSet<>(roleRepository.getRolePermissions(roleId));
 
         long revision = roleRepository.nextRevision(roleId, expectedRevision);
@@ -199,7 +199,7 @@ public class MdRoleService {
         return revision;
     }
 
-    /** Что есть в {@code from} и нет в {@code to} — читаемый диff для экрана аудита. */
+    /** What is in {@code from} and not in {@code to}: a readable diff for the audit screen. */
     private static List<String> diff(Set<String> from, Set<String> to) {
         return from.stream().filter(p -> !to.contains(p)).toList();
     }

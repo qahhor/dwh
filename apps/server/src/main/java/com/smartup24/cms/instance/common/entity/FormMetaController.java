@@ -5,6 +5,7 @@ import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import io.swagger.v3.oas.annotations.Operation;
 import java.math.BigDecimal;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -75,6 +76,10 @@ public class FormMetaController {
             List<String> capabilities) {}
 
     /** Anyone signed in may ask; the entity's own right is checked below. A string: common depends on no module. */
+    @Operation(
+            summary = "Get a form description",
+            description =
+                    "The fields, layout and rules of an entity form, built from its declaration; the entity's own right is checked.")
     @GetMapping("/{code}")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<FormMeta> get(@PathVariable String code) {

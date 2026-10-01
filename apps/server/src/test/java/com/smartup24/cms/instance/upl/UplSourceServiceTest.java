@@ -45,7 +45,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Сервис анкеты файла (И3 шаг 3.5): AC-1…AC-12 контракта source-formats. */
+/** The file format service, checked against the acceptance criteria of the source format contract. */
 class UplSourceServiceTest extends EmbeddedPostgresTest {
 
     private static final String UNIT_BASE = "test.u.base";
@@ -517,7 +517,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         }
     }
 
-    /** Опрашивает до 5 с, есть ли другой сеанс, ждущий блокировку строки. */
+    /** Polls for up to 5 s whether another session waits for the row lock. */
     private boolean waitForLockWaiter() throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (System.nanoTime() < deadline) {
@@ -565,7 +565,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
         }
     }
 
-    /** Запускает вызов из двух потоков одновременно: ровно один успех, второй — CONFLICT с {@code loserDetail}. */
+    /** Runs a call from two threads at once: exactly one succeeds, the other gets CONFLICT with {@code loserDetail}. */
     private static void assertOneWinner(Callable<?> call, String loserDetail) throws Exception {
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
@@ -705,7 +705,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
                                                 "test.book")))));
     }
 
-    /** Колонка без единиц измерения; {@code sourceUnit} — только для случая «единица у не-числа». */
+    /** A column without units of measure; {@code sourceUnit} is only for the "unit on a non-number" case. */
     private static Column col(
             String name,
             String target,
@@ -737,7 +737,7 @@ class UplSourceServiceTest extends EmbeddedPostgresTest {
                 c.refBookCode());
     }
 
-    /** Листы без идентификаторов строк — для сравнения копии с оригиналом. */
+    /** Sheets without row identifiers, for comparing a copy with the original. */
     private static List<Sheet> withoutIds(List<Sheet> sheets) {
         return sheets.stream()
                 .map(s -> new Sheet(

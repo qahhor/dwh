@@ -6,8 +6,8 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
- * W3C Traceparent Filter (ADR-0006, TRD-04).
- * Наследует промышленную реализацию из библиотеки platform-common.
+ * W3C Traceparent Filter (ADR-0006).
+ * Inherits the production implementation from the platform-common library.
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)

@@ -59,7 +59,9 @@ public final class ApiDeprecations {
             alias("GET", "/api/v1/announcements", "GET", "/api/v1/announcements/active"),
             // Plan 10/10, item 3.5: a whole list of projects with their task counts; the paged project list carries
             // the same counts per project.
-            alias("GET", "/api/v1/tasks/projects/stats", "GET", "/api/v1/tasks/projects"),
+            alias("GET", "/api/v1/tasks/projects/stats", "GET", "/api/v1/tasks/projects/page"),
+            // Plan 10/10, item 3.5: every project at once; pickers search the paged list, task rows carry the name.
+            alias("GET", "/api/v1/tasks/projects", "GET", "/api/v1/tasks/projects/page"),
             alias("GET", "/api/v1/tasks/projects/{id}/members", "GET", "/api/v1/tasks/projects/{id}/members/page"),
             alias("POST", "/api/v1/notes/{id}/pin", "PUT", "/api/v1/notes/{id}/pin"),
             alias("POST", "/api/v1/modules/{code}/toggle", "PUT", "/api/v1/modules/{code}/enabled"),

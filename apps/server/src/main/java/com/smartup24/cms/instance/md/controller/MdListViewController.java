@@ -9,6 +9,7 @@ import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewRequest;
 import com.smartup24.cms.instance.md.api.MdListViewDtos.ViewResponse;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdListViewService;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.http.HttpStatus;
@@ -24,8 +25,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Свои сохранённые представления списка. Как и собственные настройки, это часть профиля: право —
- * от формы профиля, которая есть у всех ролей; доступ к самому списку сервис проверяет по реестру.
+ * The user's own saved list views. Like personal settings, they are part of the profile: the permission
+ * comes from the profile form every role has; the service checks access to the list itself in the registry.
  */
 @RestController
 @RequestMapping("/api/v1/list-views/{listCode}")
@@ -41,12 +42,16 @@ public class MdListViewController {
         return Objects.requireNonNull(SecurityContext.getCurrentUserId(), "user");
     }
 
+    @Operation(summary = "List saved views", description = "The saved views (filters, columns, sort) of a list.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<List<ViewResponse>> list(@PathVariable String listCode) {
         return ResponseEntity.ok(service.list(userId(), listCode));
     }
 
+    @Operation(
+            summary = "Save a view",
+            description = "Saves the current filters, columns and sort of a list as a named view.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     @ResponseStatus(HttpStatus.CREATED)
@@ -55,6 +60,7 @@ public class MdListViewController {
         return Created.at("/api/v1/list-views/{listCode}/{id}", new Object[] {listCode, view.id()}, view);
     }
 
+    @Operation(summary = "Update a saved view", description = "Replaces a saved view of a list.")
     @PutMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     public ResponseEntity<ViewResponse> update(
@@ -68,6 +74,7 @@ public class MdListViewController {
         return ResponseEntity.ok(service.update(userId(), listCode, id, request.lockVersion(), request));
     }
 
+    @Operation(summary = "Delete a saved view", description = "Removes a saved view of a list.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)

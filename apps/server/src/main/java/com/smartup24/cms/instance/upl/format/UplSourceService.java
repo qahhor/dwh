@@ -5,12 +5,12 @@ import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
-import com.smartup24.cms.instance.fnd.versioning.FndVersion;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
+import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
+import com.smartup24.cms.instance.fnd.api.FndVersion;
+import com.smartup24.cms.instance.fnd.api.FndVersions;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -30,7 +30,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Анкета файла: источник, черновик, публикация с проверками, чтение версий (контракт И3). */
+/** File format: source, draft, publication with checks, reading versions. */
 @Service
 public class UplSourceService {
 
@@ -44,11 +44,11 @@ public class UplSourceService {
 
     private final UplFormatRepository repo;
     private final UplFormatValidator validator;
-    private final FndVersioning versioning;
-    private final FndActors actors;
+    private final FndVersions versioning;
+    private final FndActorContext actors;
 
     public UplSourceService(
-            UplFormatRepository repo, UplFormatValidator validator, FndVersioning versioning, FndActors actors) {
+            UplFormatRepository repo, UplFormatValidator validator, FndVersions versioning, FndActorContext actors) {
         this.repo = repo;
         this.validator = validator;
         this.versioning = versioning;
@@ -126,7 +126,10 @@ public class UplSourceService {
         return listSources(limit, cursor, null, null, null);
     }
 
-    /** Список по реестру: фильтр — DSL {@link QueryCompiler}, сортировка — ключ поля с минусом для убывания. */
+    /**
+     * Registry list: the filter is the {@link QueryCompiler} DSL, the sort is a field key with a minus for
+     * descending.
+     */
     @Transactional(readOnly = true)
     public KeysetPage<SourceSummary> listSources(
             Integer limit, String cursor, String filter, String sort, String search) {
@@ -239,7 +242,7 @@ public class UplSourceService {
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.source_not_found"));
     }
 
-    /** Блокирует строку версии до конца транзакции: параллельные правка и публикация идут по очереди. */
+    /** Locks the version row until the end of the transaction: concurrent edit and publication run in turn. */
     private void lockDraft(long sourceId, int version) {
         String status = repo.lockVersionStatus(sourceId, version)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.fnd_version_unknown"));

@@ -1,6 +1,7 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
 import com.smartup24.cms.instance.fnd.FndPref;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.config.FndDwhMaintenance;
 import java.sql.ResultSet;
 import java.sql.Statement;

@@ -4,10 +4,11 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdUserDtos.CreateUserDto;
+import com.smartup24.cms.instance.md.api.MdUserIdentity;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.repository.MdRoleRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +87,7 @@ public class MdUserService {
         }
 
         // Validate custom dynamic fields
-        customFieldService.validateAttributes("USER", attributes);
+        Map<String, Object> storedAttributes = customFieldService.checkedAttributes("USER", attributes);
 
         String passwordHash =
                 rawPassword != null && !rawPassword.isBlank() ? passwordHasher.hashPassword(rawPassword) : null;
@@ -103,7 +104,7 @@ public class MdUserService {
                         language,
                         timezone,
                         avatarFileId,
-                        attributes,
+                        storedAttributes,
                         is2faEnabled,
                         forcePasswordChange),
                 createdBy);
@@ -201,6 +202,19 @@ public class MdUserService {
         return userRepository.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
     }
 
+    /** The user as other modules see it when they act on the user's behalf (plan 10/10, item 1.3). */
+    @Transactional(readOnly = true)
+    public MdUserIdentity getUserIdentity(Long userId) {
+        var user = getUserById(userId);
+        return new MdUserIdentity(
+                user.id(),
+                user.login(),
+                user.email(),
+                user.state(),
+                user.forcePasswordChange(),
+                user.authenticationVersion());
+    }
+
     @Transactional(readOnly = true)
     public List<Long> getUserRoleIds(Long userId) {
         return roleRepository.getUserRoleIds(userId);
@@ -238,19 +252,25 @@ public class MdUserService {
             }
         }
 
-        if (attributes != null) {
-            customFieldService.validateAttributes("USER", attributes);
-        }
+        Map<String, Object> storedAttributes =
+                attributes != null ? customFieldService.checkedAttributes("USER", attributes) : null;
 
         long revision = userRepository.update(
                 userId,
                 new MdUserRepository.UserUpdateData(
-                        name, normalizedPhone, managerId, language, timezone, avatarFileId, attributes, is2faEnabled),
+                        name,
+                        normalizedPhone,
+                        managerId,
+                        language,
+                        timezone,
+                        avatarFileId,
+                        storedAttributes,
+                        is2faEnabled),
                 modifiedBy,
                 expectedRevision);
 
         if (roleIds != null) {
-            // I-IAM-1: Нельзя снять роль администратора с системного администратора admin
+            // The administrator role cannot be removed from the system administrator admin
             if (existingUser.login().equalsIgnoreCase("admin")) {
                 roleRepository.findByPcode(MdPref.ROLE_ADMIN).ifPresent(adminRole -> {
                     if (!roleIds.contains(adminRole.id())) {

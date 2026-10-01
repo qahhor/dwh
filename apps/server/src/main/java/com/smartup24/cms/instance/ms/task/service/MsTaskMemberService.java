@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.ms.task.service;
 
 import com.smartup24.cms.instance.ms.task.MsTaskPatch;
+import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.api.TaskMemberView;
-import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskMemberRepository.TaskMemberRecord;
@@ -53,7 +53,7 @@ public class MsTaskMemberService {
         addEach(task.id(), executorUserIds, MsTaskPref.INVOLVE_EXECUTOR);
         addEach(task.id(), observerUserIds, MsTaskPref.INVOLVE_OBSERVER);
 
-        // FR-TASK-8: назначенные узнают о задаче с учётом роли; автор себя не уведомляет
+        // FR-TASK-8: assignees learn about the task according to their role; the author does not notify themselves
         if (responsibleUserId != null) {
             eventPublisher.publishEvent(new MsTaskEvents.TaskAssigned(
                     task.id(), task.title(), List.of(responsibleUserId), MsTaskPref.INVOLVE_RESPONSIBLE, reporterId));
@@ -143,7 +143,7 @@ public class MsTaskMemberService {
         setMembers(taskId, MsTaskPref.INVOLVE_OBSERVER, observerUserIds, currentUserId);
     }
 
-    /** Все участники задачи — получатели уведомлений о ней (FR-TASK-4). */
+    /** All task members are recipients of its notifications (FR-TASK-4). */
     @Transactional(readOnly = true)
     public List<Long> memberUserIds(Long taskId) {
         return memberRepository.getTaskMembers(taskId).stream()

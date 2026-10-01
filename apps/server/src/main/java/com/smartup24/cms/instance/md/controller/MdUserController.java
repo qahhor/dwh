@@ -14,6 +14,7 @@ import com.smartup24.cms.instance.md.service.MdUserListService;
 import com.smartup24.cms.instance.md.service.MdUserSecurityService;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.md.service.MdUserView;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +35,7 @@ public class MdUserController {
         this.userListService = userListService;
     }
 
+    @Operation(summary = "List users", description = "The users the caller may see, with filters, sort and search.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<KeysetPage<MdUserView>> listUsers(
@@ -59,12 +61,16 @@ public class MdUserController {
                 new UserListFilters(state, roleId, managerId, is2faEnabled)));
     }
 
+    @Operation(summary = "Get a user", description = "One user.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "view")
     public ResponseEntity<MdUserView> getUser(@PathVariable("id") Long id) {
         return ResponseEntity.ok(userService.getUserView(id));
     }
 
+    @Operation(
+            summary = "Create a user",
+            description = "Adds a user with their login, contacts, roles and custom field values.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_USERS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -73,6 +79,9 @@ public class MdUserController {
         return Created.at("/api/v1/iam/users/{id}", user.id(), user);
     }
 
+    @Operation(
+            summary = "Update a user",
+            description = "Changes a user's profile, roles or custom field values; names the revision it was read at.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -101,6 +110,7 @@ public class MdUserController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Block a user", description = "Blocks a user, so they cannot sign in.")
     @PostMapping("/{id}/block")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "block")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -110,6 +120,7 @@ public class MdUserController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Unblock a user", description = "Lets a blocked user sign in again.")
     @PostMapping("/{id}/unblock")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "unblock")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -119,6 +130,7 @@ public class MdUserController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Delete a user", description = "Removes a user.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_USERS, action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)

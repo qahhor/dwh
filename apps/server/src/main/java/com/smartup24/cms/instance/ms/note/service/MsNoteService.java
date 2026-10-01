@@ -125,11 +125,12 @@ public class MsNoteService {
         checkModuleActive();
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), false);
 
+        Map<String, Object> storedAttributes = attributes;
         if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
-            customFieldService.validateAttributes("NOTE", attributes);
+            storedAttributes = customFieldService.checkedAttributes("NOTE", attributes);
         }
 
-        var note = noteRepository.create(title.trim(), contentMd, color, isPinned, attributes, userId);
+        var note = noteRepository.create(title.trim(), contentMd, color, isPinned, storedAttributes, userId);
 
         auditLogService.logChange(
                 "ms_notes",
@@ -162,12 +163,13 @@ public class MsNoteService {
         }
         EntityValidator.check(MsNoteEntity.DEFINITION, values(title, contentMd, color, isPinned), true);
 
+        Map<String, Object> storedAttributes = attributes;
         if (customFieldService != null && attributes != null && !attributes.isEmpty()) {
-            customFieldService.validateAttributes("NOTE", attributes);
+            storedAttributes = customFieldService.checkedAttributes("NOTE", attributes);
         }
 
-        var updated =
-                noteRepository.update(id, title, contentMd, color, isPinned, attributes, userId, expectedRevision);
+        var updated = noteRepository.update(
+                id, title, contentMd, color, isPinned, storedAttributes, userId, expectedRevision);
 
         auditLogService.logChange(
                 "ms_notes",

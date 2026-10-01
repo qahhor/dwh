@@ -17,7 +17,7 @@ import com.smartup24.cms.instance.config.error.PackagedProblemMessages;
 import com.smartup24.cms.instance.md.controller.MdOrgUnitController;
 import com.smartup24.cms.instance.md.repository.*;
 import com.smartup24.cms.instance.md.service.*;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -100,7 +100,10 @@ class MdOrgUnitWriteIntegrationTest {
         Long child = unit(oldParent), grandchild = unit(child);
         Long oldManager = manager(oldParent), newManager = manager(newParent), otherManager = manager(otherParent);
         Long overlappingManager = manager(oldParent), descendantManager = manager(grandchild);
-        scopeService.assignUserOrgUnits(overlappingManager, List.of(oldParent, newParent, child));
+        scopeService.assignUserOrgUnits(
+                overlappingManager,
+                List.of(oldParent, newParent, child),
+                scopeService.getUserAssignments(overlappingManager).revision());
         long overlappingVersion = version(overlappingManager), descendantVersion = version(descendantManager);
         long oldVersion = version(oldManager), newVersion = version(newManager), otherVersion = version(otherManager);
         assertThat(scopeService.getUserScope(oldManager).visibleOrgUnitIds()).contains(child, grandchild);
@@ -138,10 +141,11 @@ class MdOrgUnitWriteIntegrationTest {
         Long parent = unit(root), child = unit(parent), user = manager(parent);
         Long role = roles.getUserRoleIds(user).getFirst();
         long before = version(user);
-        roleService.updateRole(role, null, "P", null, 1L);
+        long revision = scopeService.getRoleScopeRule(role).revision();
+        roleService.updateRole(role, null, "P", null, revision);
         assertThat(scopeService.getUserScope(user).rule()).isEqualTo("ALL");
         assertThat(scopeService.getUserScope(user).visibleOrgUnitIds()).isEmpty();
-        roleService.updateRole(role, null, "A", null, 2L);
+        roleService.updateRole(role, null, "A", null, revision + 1);
         assertThat(scopeService.getUserScope(user).rule()).isEqualTo("SUBTREE");
         assertThat(scopeService.getUserScope(user).visibleOrgUnitIds()).containsExactlyInAnyOrder(parent, child);
         assertThat(version(user)).isEqualTo(before + 2);
@@ -334,10 +338,24 @@ class MdOrgUnitWriteIntegrationTest {
                         case "tree-create" -> unit(root);
                         case "tree-update" -> orgUnitService.update(node, root, "Updated", null, null, null, 1L);
                         case "tree-delete" -> orgUnitService.delete(emptyNode);
-                        case "unit-assignment" -> scopeService.assignUserOrgUnits(user, List.of(emptyNode));
-                        case "role-rule" -> scopeService.setRoleRule(role, "SELF");
+                        case "unit-assignment" ->
+                            scopeService.assignUserOrgUnits(
+                                    user,
+                                    List.of(emptyNode),
+                                    scopeService.getUserAssignments(user).revision());
+                        case "role-rule" ->
+                            scopeService.setRoleRule(
+                                    role,
+                                    "SELF",
+                                    scopeService.getRoleScopeRule(role).revision());
                         case "role-create" -> roleService.createRole("new-" + sequence.incrementAndGet(), 0);
-                        case "role-update" -> roleService.updateRole(role, null, "P", null, 1L);
+                        case "role-update" ->
+                            roleService.updateRole(
+                                    role,
+                                    null,
+                                    "P",
+                                    null,
+                                    scopeService.getRoleScopeRule(role).revision());
                         case "role-delete" -> roleService.deleteRole(unusedRole);
                         case "assign-roles" ->
                             assignments.assignRoles(
@@ -374,7 +392,7 @@ class MdOrgUnitWriteIntegrationTest {
                                     null,
                                     List.of(unusedRole),
                                     null,
-                                    1L);
+                                    users.findById(user).orElseThrow().revision());
                         default -> throw new AssertionError(operation);
                     }
                 })));
@@ -498,9 +516,11 @@ class MdOrgUnitWriteIntegrationTest {
                     .query(Long.class)
                     .single();
             Long role = roleService.createRole(login, 0).id();
-            scopeService.setRoleRule(role, "SUBTREE");
+            scopeService.setRoleRule(
+                    role, "SUBTREE", scopeService.getRoleScopeRule(role).revision());
             roles.assignRolesToUser(user, List.of(role));
-            scopeService.assignUserOrgUnits(user, List.of(unit));
+            scopeService.assignUserOrgUnits(
+                    user, List.of(unit), scopeService.getUserAssignments(user).revision());
             return user;
         });
     }

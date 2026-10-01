@@ -38,6 +38,35 @@ public record MsTaskPatch(
         return new Builder();
     }
 
+    /** The same patch with other attribute values, e.g. as they are stored; their presence is kept. */
+    public MsTaskPatch withAttributes(Map<String, Object> value) {
+        return new MsTaskPatch(
+                projectIdPresent,
+                projectId,
+                titlePresent,
+                title,
+                descriptionMarkdownPresent,
+                descriptionMarkdown,
+                parentTaskIdPresent,
+                parentTaskId,
+                priorityPresent,
+                priority,
+                responsibleUserIdPresent,
+                responsibleUserId,
+                executorUserIdsPresent,
+                executorUserIds,
+                observerUserIdsPresent,
+                observerUserIds,
+                attributesPresent,
+                value,
+                beginTimePresent,
+                beginTime,
+                endTimePresent,
+                endTime,
+                expectedRevisionPresent,
+                expectedRevision);
+    }
+
     /** Collects the properties a caller sets; every setter marks its property present. */
     public static final class Builder {
         private boolean projectIdPresent;

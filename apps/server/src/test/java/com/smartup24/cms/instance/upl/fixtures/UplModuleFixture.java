@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.upl.fixtures;
 
-/** Фикстура AC-37: класс «прикладного модуля» upl, от которого основе зависеть нельзя. В контекст не сканируется. */
+/** A fixture: a class of the upl "application module" that the foundation must not depend on. Not scanned. */
 public final class UplModuleFixture {
 
     private UplModuleFixture() {}

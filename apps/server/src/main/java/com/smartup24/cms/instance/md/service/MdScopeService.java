@@ -17,16 +17,16 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Скоуп данных: кто какие строки видит (ADR-0013).
+ * Data scope: who sees which rows (ADR-0013).
  *
- * Модель доступа Этапа 1 отвечала только на вопрос «можно ли открыть форму».
- * Здесь появляется второй вопрос — «какие строки в ней твои», без которого
- * дашборды Этапа 3 показывать нельзя.
+ * The original access model answered only "may this form be opened".
+ * Here a second question appears, "which rows in it are yours", without which
+ * analytics dashboards cannot be shown.
  *
- * Правило видимости принадлежит роли, позиция в дереве — пользователю.
- * Это разделение позволяет одной ролью «региональный менеджер» обслужить все
- * регионы: правило одно, а видят её носители разное, потому что стоят
- * в разных узлах.
+ * The visibility rule belongs to the role, the position in the tree to the user.
+ * This split lets one "regional manager" role serve all
+ * regions: the rule is the same, but its holders see different rows because they sit
+ * in different units.
  */
 @Service
 public class MdScopeService {
@@ -54,7 +54,7 @@ public class MdScopeService {
         this.auditLogService = auditLogService;
     }
 
-    // ------------------------------------------------------- правило у роли
+    // ---------------------------------------------------------- role's rule
 
     /** Acquire before source rows or per-user materializations are changed. */
     @Transactional(propagation = Propagation.MANDATORY)
@@ -62,18 +62,24 @@ public class MdScopeService {
         scopeRepository.lockScopeMutation();
     }
 
+    /**
+     * Sets the scope rule of a role, made from the role's revision {@code expectedRevision}, and answers the role's new
+     * revision: the rule is part of the role, so the change raises it and a stale screen cannot undo it (plan 10/10,
+     * item 3.6).
+     */
     @Transactional
-    public void setRoleRule(Long roleId, String rule) {
+    public long setRoleRule(Long roleId, String rule, long expectedRevision) {
         acquireMutationLock();
         requireRole(roleId);
         String normalized = normalize(rule);
         String before = scopeRepository.getRoleRule(roleId);
 
+        long revision = scopeRepository.nextRoleRevision(roleId, expectedRevision);
         scopeRepository.setRoleRule(roleId, normalized);
         recalculateForRole(roleId);
 
-        // Смена правила меняет видимость данных так же радикально, как выдача
-        // права, поэтому пишется в аудит наравне с матрицей прав (FR-AUD-1).
+        // Changing the rule changes data visibility as radically as granting
+        // a permission, so it is audited just like the permission matrix (FR-AUD-1).
         auditLogService.logChange(
                 "md_role_scope_rules",
                 String.valueOf(roleId),
@@ -81,6 +87,7 @@ public class MdScopeService {
                 List.of("rule"),
                 Map.of("rule", before),
                 Map.of("rule", normalized));
+        return revision;
     }
 
     @Transactional(readOnly = true)
@@ -91,13 +98,18 @@ public class MdScopeService {
     @Transactional(readOnly = true)
     public RoleRule getRoleScopeRule(Long roleId) {
         requireRole(roleId);
-        return new RoleRule(roleId, scopeRepository.getRoleRule(roleId));
+        long revision = scopeRepository.roleRevision(roleId);
+        return new RoleRule(roleId, scopeRepository.getRoleRule(roleId), revision);
     }
 
-    // -------------------------------------------------- позиция пользователя
+    // -------------------------------------------------------- user position
 
+    /**
+     * Replaces the org units of a user, made from the user's revision {@code expectedRevision}, and answers the user's
+     * new revision: the units are part of the user, so the change raises it (plan 10/10, item 3.6).
+     */
     @Transactional
-    public void assignUserOrgUnits(Long userId, List<Long> orgUnitIds) {
+    public long assignUserOrgUnits(Long userId, List<Long> orgUnitIds, long expectedRevision) {
         acquireMutationLock();
         requireUser(userId);
         if (orgUnitIds == null) {
@@ -112,6 +124,7 @@ public class MdScopeService {
         }
 
         Set<Long> before = scopeRepository.getUserOrgUnitIds(userId);
+        long revision = scopeRepository.nextUserRevision(userId, expectedRevision);
         scopeRepository.replaceUserOrgUnits(userId, requested);
         recalculateFor(userId);
 
@@ -122,12 +135,13 @@ public class MdScopeService {
                 List.of("org_units"),
                 Map.of("org_units", List.copyOf(before)),
                 Map.of("org_units", List.copyOf(scopeRepository.getUserOrgUnitIds(userId))));
+        return revision;
     }
 
     /**
-     * Пересчёт эффективного скоупа пользователя. Версия прав двигается вместе
-     * со скоупом: изменение видимости данных обязано инвалидировать кэш
-     * доступа так же, как изменение права, иначе отзыв не сработает (I-P2).
+     * Recalculates the user's effective scope. The permissions version moves together
+     * with the scope: a change of data visibility must invalidate the access cache
+     * just like a permission change, otherwise revocation fails (an ADR-0006 invariant).
      */
     @Transactional
     public String recalculateFor(Long userId) {
@@ -169,24 +183,26 @@ public class MdScopeService {
     @Transactional(readOnly = true)
     public UserAssignments getUserAssignments(Long userId) {
         requireUser(userId);
+        long revision = scopeRepository.userRevision(userId);
         return new UserAssignments(
                 userId,
                 scopeRepository.getUserOrgUnitIds(userId).stream().sorted().toList(),
-                scopeRepository.findUserOrgUnit(userId).orElse(null));
+                scopeRepository.findUserOrgUnit(userId).orElse(null),
+                revision);
     }
 
-    // ------------------------------------------------------- применение в SQL
+    // ------------------------------------------------------- applying in SQL
 
     /**
-     * Ограничение выборки для текущего пользователя.
+     * The row restriction for the current user.
      *
-     * Предикат добавляется в запрос явно, а не подставляется автоматически:
-     * молчаливая фильтрация — это когда разработчик не видит, что его запрос
-     * урезан, и отлаживает пустой список часами. Полнота покрытия
-     * проверяется тестом на каждую скоупируемую сущность.
+     * The predicate is added to the query explicitly, not injected automatically:
+     * silent filtering is when a developer does not see that the query is
+     * cut down and spends hours debugging an empty list. Full coverage
+     * is checked by a test for every scoped entity.
      *
-     * @param orgUnitColumn колонка привязки строки к узлу, например {@code md_users.org_unit_id}
-     * @param ownerColumn   колонка владельца строки для правила SELF
+     * @param orgUnitColumn the column linking a row to a unit, for example {@code md_users.org_unit_id}
+     * @param ownerColumn   the row owner column for the SELF rule
      */
     @Transactional(readOnly = true)
     public ScopeFilter filterFor(Long userId, String orgUnitColumn, String ownerColumn) {

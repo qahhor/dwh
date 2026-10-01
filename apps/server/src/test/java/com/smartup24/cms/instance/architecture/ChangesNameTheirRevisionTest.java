@@ -27,7 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code PATCH} handler takes {@code If-Match} or a body with {@code expectedRevision}/{@code lockVersion}, unless it
  * sets a state that does not depend on what the client read (a pin, an on/off switch, the viewer's own settings) —
  * each such handler is named here with the reason. A handler that replaces a shared record whole is not a state
- * setter: two administrators replacing it from different reads still lose one of the two changes. {@link #NOT_YET_LOCKED} is the debt of the item: it only shrinks.
+ * setter: two administrators replacing it from different reads still lose one of the two changes. The item has no
+ * debt left: a new handler that saves a shared record names its revision, or the test is red.
  */
 class ChangesNameTheirRevisionTest {
 
@@ -51,22 +52,6 @@ class ChangesNameTheirRevisionTest {
             "SearchManagementController#save",
             "SaveSettingsRequest.version, checked by SearchSettingsRepository#save (409 when it moved)"));
 
-    /** Changes of shared records still saved without a revision: debt of item 3.6, which only shrinks. */
-    private static final Map<String, String> NOT_YET_LOCKED = Map.ofEntries(
-            Map.entry(
-                    "MdSettingController#updateSystemSettings",
-                    "system settings: each key sent is its own md_settings row; one revision of the set needs a row"
-                            + " of its own"),
-            Map.entry(
-                    "MdOrgUnitController#assignUser",
-                    "replaces the units of a user whole; the user panel does not hold the user's revision yet"),
-            Map.entry(
-                    "MdOrgUnitController#setRoleRule",
-                    "replaces the scope rule of a role whole; the scope panel does not hold the role's revision yet"),
-            Map.entry(
-                    "ModuleRegistryController#putModule",
-                    "replaces a module registration whole; md_installed_modules has no revision column"));
-
     @Test
     @DisplayName("3.6: a PUT or PATCH of a record requires the revision it was made from")
     void changesNameTheirRevision() throws ClassNotFoundException {
@@ -89,7 +74,6 @@ class ChangesNameTheirRevisionTest {
         }
         TreeSet<String> allowed = new TreeSet<>(STATE_SETTERS.keySet());
         allowed.addAll(REVISION_IN_RAW_BODY.keySet());
-        allowed.addAll(NOT_YET_LOCKED.keySet());
 
         assertThat(unlocked)
                 .as("PUT/PATCH handlers that save a record without its revision: take If-Match (Revisions.required)")
@@ -97,8 +81,8 @@ class ChangesNameTheirRevisionTest {
         assertThat(allowed)
                 .as("handlers named here that no longer exist: remove them")
                 .isSubsetOf(changes);
-        assertThat(NOT_YET_LOCKED.keySet())
-                .as("handlers of the debt that now name their revision: remove them from NOT_YET_LOCKED")
+        assertThat(allowed)
+                .as("handlers named here whose signature now names the revision: remove them")
                 .isSubsetOf(unlocked);
     }
 

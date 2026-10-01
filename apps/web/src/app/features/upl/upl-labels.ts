@@ -9,7 +9,7 @@ import {
   UplVersionStatus,
 } from './upl-api';
 
-/** Справочник «значение контракта → ключ i18n»: подписи живут в словарях, не в коде. */
+/** A map from a contract value to an i18n key: the labels live in the dictionaries, not in code. */
 export const UPL_PERIODICITY_KEY: Record<UplPeriodicity, string> = {
   month: 'upl.periodicity.month',
   quarter: 'upl.periodicity.quarter',
@@ -52,14 +52,17 @@ export const UPL_MATCH_BY_KEY: Record<UplMatchBy, string> = {
   position: 'upl.format.match_by.position',
 };
 
-/** Код ошибки контракта (`UPL_*`, `STALE_VERSION`, `FND_VERSION_*`, `VALIDATION_FAILED`, `PERMISSION_DENIED`) → ключ словаря. */
+/**
+ * A contract error code (`UPL_*`, `STALE_VERSION`, `FND_VERSION_*`, `VALIDATION_FAILED`, `PERMISSION_DENIED`) to a
+ * dictionary key.
+ */
 export function uplErrorKey(code: string): string {
   return 'upl.err.' + code;
 }
 
 /**
- * Ключи текстов ошибок UPL, на которые экраны отвечают особо (план 10/10, п. 3.1: ошибка несёт ключ своего текста
- * в `messageKey`, а коды остаются только у полей в `errors[].code`).
+ * Text keys of UPL errors the screens handle specially (plan 10/10, item 3.1: an error carries the key of its text
+ * in `messageKey`, and codes remain only on fields in `errors[].code`).
  */
 export const UPL_ERROR = {
   staleVersion: 'error.upl.stale_version',
@@ -72,12 +75,13 @@ export const UPL_ERROR = {
   noFormatAtDate: 'error.upl.pkg_no_format_at_date',
 } as const;
 
-/** Перевод с параметрами: `I18nService.translate` либо его заглушка в тестах. */
+/** Translation with parameters: `I18nService.translate` or its stub in tests. */
 export type UplTranslateFn = (key: string, params?: Record<string, string | number>) => string;
 
 /**
- * Текст ошибки сервера: по ключу `messageKey` из словаря (язык мог смениться после запроса); без ключа или без
- * перевода — подкод (`detail`) → ключ `upl.err.*`; неизвестный код не прячем — `detail (code)`.
+ * The text of a server error: by the `messageKey` key from the dictionary (the language may have changed after the
+ * request); without a key or a translation, the subcode (`detail`) to the key `upl.err.*`; an unknown code is not
+ * hidden: `detail (code)`.
  */
 export function uplProblemText(problem: ProblemDetail | null | undefined, translate: UplTranslateFn): string {
   const messageKey = problem?.messageKey;

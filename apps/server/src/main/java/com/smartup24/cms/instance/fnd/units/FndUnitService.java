@@ -1,12 +1,16 @@
 package com.smartup24.cms.instance.fnd.units;
 
 import com.smartup24.cms.instance.common.json.JsonColumns;
-import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
-import com.smartup24.cms.instance.fnd.units.FndConversion.FndCoefficientRef;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndCoefficientMissingException;
+import com.smartup24.cms.instance.fnd.api.FndConversion;
+import com.smartup24.cms.instance.fnd.api.FndConversion.FndCoefficientRef;
+import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
+import com.smartup24.cms.instance.fnd.api.FndUnit;
+import com.smartup24.cms.instance.fnd.api.FndUnits;
 import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,7 +31,7 @@ import tools.jackson.databind.ObjectMapper;
  * "from memory" rather than from a published coefficient.
  */
 @Service
-public class FndUnitService {
+public class FndUnitService implements FndUnits {
 
     /** The coefficient versions table, following the foundation's versioning standard ({@link FndVersioning}). */
     public static final String COEFFICIENT_VERSIONS = "fnd_unit_coefficient_versions";
@@ -51,6 +55,7 @@ public class FndUnitService {
      * constraints.
      */
     @Transactional
+    @Override
     public long registerUnit(String code, Map<String, String> nameI18n, String baseUnitCode, FndActor actor) {
         if (baseUnitCode == null || baseUnitCode.isBlank()) {
             throw new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_BASE_REQUIRED);
@@ -68,6 +73,7 @@ public class FndUnitService {
 
     /** A unit by its code, as the instance sees it. */
     @Transactional(readOnly = true)
+    @Override
     public Optional<FndUnit> findUnit(String code) {
         return jdbc.sql("select id, code, name_i18n::text as name_i18n, base_unit_code from fnd_units"
                         + " where code = :code")
@@ -85,6 +91,7 @@ public class FndUnitService {
      * {@code nameI18n} contains.
      */
     @Transactional(readOnly = true)
+    @Override
     public List<FndUnit> listUnits() {
         return jdbc.sql("select id, code, name_i18n::text as name_i18n, base_unit_code from fnd_units order by code")
                 .query((rs, rowNum) -> new FndUnit(
@@ -101,6 +108,7 @@ public class FndUnitService {
      * previous version.
      */
     @Transactional
+    @Override
     public FndCoefficientRef publishCoefficient(
             String fromUnit, String toUnit, BigDecimal factor, LocalDate validFrom, FndActor actor) {
         if (factor == null) {
@@ -125,6 +133,7 @@ public class FndUnitService {
      * value is returned. The foundation does no rounding: the numeric multiplication result is returned as is.
      */
     @Transactional(readOnly = true)
+    @Override
     public FndConversion convert(BigDecimal value, String fromUnit, String toUnit, LocalDate date) {
         if (value == null) {
             throw new IllegalArgumentException("Значение не задано: пересчитывать нечего");
@@ -150,6 +159,7 @@ public class FndUnitService {
 
     /** Converts to the base unit; the unit's base is taken from the reference data, never from code. */
     @Transactional(readOnly = true)
+    @Override
     public FndConversion toBase(BigDecimal value, String unitCode, LocalDate date) {
         requireUnitCode(unitCode);
         FndUnit unit = findUnit(unitCode)
@@ -179,7 +189,4 @@ public class FndUnitService {
                 .query(Long.class)
                 .optional();
     }
-
-    /** An instance unit; {@code nameI18n} is returned as JSON text, since the core does not care what it contains. */
-    public record FndUnit(long id, String code, String nameI18n, String baseUnitCode) {}
 }

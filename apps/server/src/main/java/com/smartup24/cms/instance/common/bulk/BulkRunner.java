@@ -16,10 +16,10 @@ import org.springframework.transaction.support.TransactionOperations;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Массовое действие над выбранными записями ({@code POST …/bulk}): одна и та же операция для каждой записи,
- * каждая — отдельным вызовом сервиса, то есть в своей транзакции. Ошибка одной записи не откатывает
- * остальные: ответ говорит по каждой, прошла ли она и почему нет. Права, скоуп данных и аудит остаются
- * на одиночной операции сервиса — массовое действие не обходит ни одну из её проверок.
+ * A bulk action on selected records ({@code POST …/bulk}): the same operation for each record, each one a
+ * separate service call and therefore its own transaction. A failure on one record does not roll back the
+ * others: the response says for each record whether it succeeded and why not. Permissions, data scope and audit
+ * stay with the single-record service operation, so the bulk action bypasses none of its checks.
  */
 public final class BulkRunner {
 
@@ -32,13 +32,13 @@ public final class BulkRunner {
 
     private BulkRunner() {}
 
-    /** Тело запроса: действие, записи и параметры действия. */
+    /** The request body: the action, the records and the action's parameters. */
     public record BulkRequest(String action, List<Long> ids, JsonNode params) {}
 
     /**
-     * Итог по одной записи; {@code code}, {@code message}, {@code messageKey} и {@code params} — только у неудачи.
-     * {@code message} — текст на языке запроса (его собирает обработчик ответа по {@code messageKey}); клиент
-     * может собрать его и сам, по ключу из своего каталога.
+     * The outcome for one record; {@code code}, {@code message}, {@code messageKey} and {@code params} are set only
+     * on failure. {@code message} is the text in the request language (the response handler builds it from
+     * {@code messageKey}); the client may also build it itself from the key in its own catalog.
      */
     public record BulkItemResult(
             long id,
@@ -70,7 +70,7 @@ public final class BulkRunner {
     }
 
     /**
-     * Проверенный список записей: от одной до {@link #MAX_IDS}, без пустых, повторы убраны с сохранением порядка.
+     * The validated record list: one to {@link #MAX_IDS} ids, no blanks, duplicates removed with order preserved.
      */
     public static List<Long> checkedIds(BulkRequest request) {
         List<Long> ids = request == null ? null : request.ids();
@@ -101,7 +101,7 @@ public final class BulkRunner {
                 List.of(FieldErrorItem.keyed("params." + name, BULK_INVALID, messageKey, params)));
     }
 
-    /** Выполняет операцию для каждой записи и собирает итог; ожидаемые отказы — с кодом одиночной операции. */
+    /** Runs the operation for each record and collects the outcome; expected refusals carry the single-op code. */
     public static BulkResult run(String action, List<Long> ids, LongConsumer operation) {
         return run(action, ids, operation, TransactionOperations.withoutTransaction());
     }

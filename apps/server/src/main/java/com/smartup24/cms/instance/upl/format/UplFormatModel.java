@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Модель анкеты файла: источник, версия формата, листы и колонки (таблицы V111). */
+/** File format model: source, format version, sheets and columns (tables of migration V111). */
 public final class UplFormatModel {
 
     private UplFormatModel() {}

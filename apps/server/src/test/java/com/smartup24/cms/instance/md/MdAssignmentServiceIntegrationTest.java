@@ -27,10 +27,10 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * F2 (FR-PERM-4/5/10): назначение ролей и персональных прав.
- * Ключевые правила: пересчёт эффективных прав и рост версии при каждом
- * изменении (I-P2), защита последнего администратора (F-04),
- * запрет прав на пары вне каталога (FR-PERM-1).
+ * FR-PERM-4, FR-PERM-5, FR-PERM-10: assigning roles and personal permissions.
+ * Key rules: every change recalculates the effective permissions and raises the version, the last
+ * administrator is protected, and permissions on pairs outside the catalog are refused
+ * (FR-PERM-1).
  */
 class MdAssignmentServiceIntegrationTest {
 
@@ -188,7 +188,7 @@ class MdAssignmentServiceIntegrationTest {
                 .isInstanceOf(ApiException.class)
                 .hasFieldOrPropertyWithValue("messageKey", "error.md.last_admin_role");
 
-        // Права не пострадали: пользователь остался администратором
+        // The permissions are intact: the user is still an administrator
         assertThat(service.getUserRoleIds(onlyAdmin)).contains(roleId("admin"));
     }
 
@@ -228,9 +228,9 @@ class MdAssignmentServiceIntegrationTest {
     }
 
     /**
-     * FR-AUD-1: выдача доступа обязана оставлять след. До этой правки изменение
-     * ролей и персональных прав не писалось в аудит вовсе — восстановить
-     * «кто кому выдал право» было нечем.
+     * FR-AUD-1: granting access must leave a trace. Before this change, changes of roles and personal
+     * permissions were not audited at all: there was no way to restore "who granted which permission to
+     * whom".
      */
     @Test
     @DisplayName("Назначение ролей пишется в аудит с диффом granted/revoked")
@@ -268,7 +268,7 @@ class MdAssignmentServiceIntegrationTest {
         assertThat(rows.get(1)).contains("revoked").contains("audit.log.view");
     }
 
-    /** new_row как текст: проверяем факт записи и содержимое диффа, а не форму сериализации. */
+    /** new_row as text: the test checks that a record exists and what its diff holds, not the serialization form. */
     private static List<String> auditRows(String tableName, Long rowPk) {
         return jdbc.sql("""
                         select coalesce(old_row::text, '') || ' ' || coalesce(new_row::text, '')

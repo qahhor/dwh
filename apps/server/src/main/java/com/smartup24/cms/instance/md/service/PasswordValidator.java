@@ -7,11 +7,11 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
- * Валидатор паролей пользователей (FR-USR-2):
- * - Длина от {@value #MIN_PASSWORD_LENGTH} до {@value #MAX_PASSWORD_LENGTH} символов (решение 27.09.2026). Проверяется
- *   только новый пароль: вход с прежним, более длинным паролем продолжает работать.
- * - Запрет распространённых слабых паролей (blacklist).
- * - Запрет использования логина в качестве пароля.
+ * User password validator (FR-USR-2):
+ * - Length from {@value #MIN_PASSWORD_LENGTH} to {@value #MAX_PASSWORD_LENGTH} characters. Only a new password
+ *   is checked: signing in with an earlier, longer password keeps working.
+ * - Common weak passwords are rejected (blacklist).
+ * - The login cannot be used as the password.
  */
 @Component
 public class PasswordValidator {

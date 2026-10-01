@@ -6,7 +6,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.ms.task.pref.MsTaskPref;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskStatusRepository;
 import com.smartup24.cms.instance.ms.task.repository.MsTaskTypeRepository;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import java.util.List;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Выделенный сервис для управления динамическими статусами и типами задач (SRP).
+ * Dedicated service that manages dynamic task statuses and task types (SRP).
  */
 @Service
 public class MsTaskStatusService {

@@ -28,7 +28,7 @@ import com.smartup24.cms.instance.ms.task.service.MsTaskService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusViewService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskWorkflowService;
-import com.smartup24.cms.instance.search.SearchChangePublisher;
+import com.smartup24.cms.instance.search.service.SearchChangePublisher;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;

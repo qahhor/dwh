@@ -8,7 +8,7 @@ import { UplApiService, UplSource, UplSourceItem } from '../upl-api';
 
 export type UplPackageStatus = 'received' | 'verified' | 'applying' | 'rejected' | 'applied';
 
-/** Параметры русского текста ошибки: подставляются в фигурные скобки ключа `upl.err.*`. */
+/** Parameters of the Russian error text: substituted into the braces of the `upl.err.*` key. */
 export type UplPackageParams = Record<string, string | number>;
 
 export interface UplPackageItem {
@@ -58,20 +58,20 @@ export interface UplPackageUpload {
 }
 
 const PACKAGES = '/upl/packages';
-/** Источники для формы читаются порциями: список И3 отдаёт не больше 200 записей за раз. */
+/** Sources for the form are read in portions: the source list returns at most 200 records at a time. */
 
 @Injectable({ providedIn: 'root' })
 export class UplPackagesApiService {
   private readonly api = inject(ApiService);
   private readonly upl = inject(UplApiService);
 
-  /** Страница загрузок; `query` — фильтр, сортировка и поиск реестра полей (`query-meta/upl.packages`). */
+  /** A page of loads; `query` is the filter, sort and search of the field registry (`query-meta/upl.packages`). */
   list(limit = 50, cursor?: string | null, query?: ListQuery | null): Observable<KeysetPage<UplPackageItem>> {
     const params = { limit, ...(cursor ? { cursor } : {}), ...toQueryParams(query) };
     return this.api.get<KeysetPage<UplPackageItem>>(PACKAGES, params, { notifyError: false });
   }
 
-  /** `multipart/form-data`: заголовок ставит браузер сам — руками его не задаём, иначе теряется граница частей. */
+  /** `multipart/form-data`: the browser sets the header itself; setting it by hand loses the part boundary. */
   upload(request: UplPackageUpload): Observable<UplPackageItem> {
     const form = new FormData();
     form.append('sourceId', String(request.sourceId));
@@ -93,19 +93,19 @@ export class UplPackagesApiService {
   }
 
   /**
-   * Ставит применение проверенной загрузки в очередь (plan 10/10, item 3.9): ответ 202 — пакет «применяется»; итог
-   * («применён» или «отклонён системой» с причиной сверки) читается через {@link get}.
+   * Queues the apply of a verified load (plan 10/10, item 3.9): the answer is 202 with an applying package; the outcome
+   * (applied, or rejected by the system with the reconciliation reason) is read through {@link get}.
    */
   apply(id: string): Observable<UplPackageItem> {
     return this.api.post<UplPackageItem>(`${PACKAGES}/${id}/apply`, null, { notifyError: false });
   }
 
-  /** Страница источников для поиска в форме: подстрока в коде или названии (`q`). */
+  /** A page of sources for the search in the form: a substring of the code or the name (`q`). */
   searchSources(query: string, cursor: string | null, pageSize: number): Observable<KeysetPage<UplSourceItem>> {
     return this.upl.listSources(pageSize, cursor, { search: query });
   }
 
-  /** Один источник — чтобы показать выбранным тот, что создан из формы. */
+  /** One source, to show as selected the one created from the form. */
   source(id: string): Observable<UplSource> {
     return this.upl.getSource(id);
   }

@@ -49,6 +49,8 @@ export interface QueryRefMeta {
   keyField: string;
   /** Keyset pages searched with `q`; false — the whole short list, searched on the screen. */
   paged: boolean;
+  /** Where one row is read as `{readPath}/{key}` when that is not `{path}/{key}` (a list paged under `/page`). */
+  readPath?: string | null;
 }
 
 /** How the conditions of a filter combine: all of them, or any of them (`{"any": [...]}`). */

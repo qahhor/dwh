@@ -13,6 +13,7 @@ import com.smartup24.cms.instance.md.api.MdOrgUnitDtos.UpdateOrgUnitDto;
 import com.smartup24.cms.instance.md.pref.MdPref;
 import com.smartup24.cms.instance.md.service.MdOrgUnitService;
 import com.smartup24.cms.instance.md.service.MdScopeService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -30,10 +31,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Оргструктура и скоуп данных (ADR-0013).
+ * Org structure and data scope (ADR-0013).
  *
- * Права на всю форму — только у администратора: смена правила видимости
- * меняет доступ к данным так же радикально, как выдача права.
+ * The whole form is for administrators only: changing a visibility rule changes access to data as much as
+ * granting a right does.
  */
 @RestController
 @RequestMapping("/api/v1/iam/org-units")
@@ -47,18 +48,21 @@ public class MdOrgUnitController {
         this.scopeService = scopeService;
     }
 
+    @Operation(summary = "List org units", description = "The organisation structure as a flat list of units.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<List<OrgUnitView>> list() {
         return ResponseEntity.ok(orgUnitService.listAll());
     }
 
+    @Operation(summary = "Get an org unit", description = "One unit of the organisation structure.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<OrgUnitView> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(orgUnitService.getById(id));
     }
 
+    @Operation(summary = "Create an org unit", description = "Adds a unit to the organisation structure.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -67,6 +71,9 @@ public class MdOrgUnitController {
         return Created.at("/api/v1/iam/org-units/{id}", unit.id(), unit);
     }
 
+    @Operation(
+            summary = "Update an org unit",
+            description = "Changes the name, parent or state of a unit; names the revision it was read at.")
     @PatchMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "update")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -87,6 +94,7 @@ public class MdOrgUnitController {
         return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
+    @Operation(summary = "Delete an org unit", description = "Removes a unit of the organisation structure.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -95,41 +103,66 @@ public class MdOrgUnitController {
         return ResponseEntity.noContent().build();
     }
 
-    /** Явные назначения сотрудника и отдельная legacy-привязка. */
+    /** The explicit unit assignments of a user and the separate legacy binding. */
+    @Operation(summary = "Get the units of a user", description = "The units a user is explicitly assigned to.")
     @GetMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdOrgUnitDtos.UserAssignments> getUserAssignments(@PathVariable("userId") Long userId) {
         return ResponseEntity.ok(scopeService.getUserAssignments(userId));
     }
 
-    /** Явное правило роли; отсутствие строки у существующей роли означает ALL. */
+    /** The explicit rule of a role; no row for an existing role means ALL. */
+    @Operation(
+            summary = "Get the visibility rule of a role",
+            description = "The data visibility rule of a role; a role without a rule sees all.")
     @GetMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdOrgUnitDtos.RoleRule> getRoleRule(@PathVariable("roleId") Long roleId) {
         return ResponseEntity.ok(scopeService.getRoleScopeRule(roleId));
     }
 
-    /** Позиция сотрудника в дереве — полная замена набора узлов. */
+    /**
+     * Replaces the org units of a user whole, made from the user's revision ({@code If-Match}, ADR-0024); the answer
+     * carries the user's new revision in {@code ETag}.
+     */
+    @Operation(
+            summary = "Replace the units of a user",
+            description = "Replaces the whole set of units a user is assigned to.")
     @PutMapping("/users/{userId}")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> assignUser(
-            @PathVariable("userId") Long userId, @Valid @RequestBody AssignUnitsDto body) {
-        scopeService.assignUserOrgUnits(userId, body.orgUnitIds());
-        return ResponseEntity.noContent().build();
+            @PathVariable("userId") Long userId,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody AssignUnitsDto body) {
+        long revision = scopeService.assignUserOrgUnits(userId, body.orgUnitIds(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
-    /** Правило видимости у роли: ALL, SUBTREE, UNITS или SELF. */
+    /**
+     * Sets the scope rule of a role (ALL, SUBTREE, UNITS or SELF), made from the role's revision ({@code If-Match},
+     * ADR-0024); the answer carries the role's new revision in {@code ETag}.
+     */
+    @Operation(
+            summary = "Set the visibility rule of a role",
+            description = "Sets what a role sees: all, a subtree, chosen units or own records only.")
     @PutMapping("/roles/{roleId}/rule")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "assign")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @AnswersRevision
     public ResponseEntity<Void> setRoleRule(
-            @PathVariable("roleId") Long roleId, @Valid @RequestBody ScopeRuleDto body) {
-        scopeService.setRoleRule(roleId, body.rule());
-        return ResponseEntity.noContent().build();
+            @PathVariable("roleId") Long roleId,
+            @RequestHeader(name = Revisions.IF_MATCH, required = false) String ifMatch,
+            @Valid @RequestBody ScopeRuleDto body) {
+        long revision = scopeService.setRoleRule(roleId, body.rule(), Revisions.required(ifMatch));
+        return ResponseEntity.noContent().eTag(Revisions.etag(revision)).build();
     }
 
-    /** Скоуп сотрудника глазами администратора: какое правило и какие узлы видны. */
+    /** A user's scope as an administrator sees it: which rule applies and which units are visible. */
+    @Operation(
+            summary = "Get the data scope of a user",
+            description = "The rule and the units that decide which records a user sees.")
     @GetMapping("/users/{userId}/scope")
     @RequiresPermission(form = MdPref.FORM_ORG_UNITS, action = "view")
     public ResponseEntity<MdScopeService.UserScope> getUserScope(@PathVariable("userId") Long userId) {

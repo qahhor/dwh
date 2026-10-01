@@ -30,7 +30,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 /**
- * Чтение и запись анкеты файла (таблицы V111). Транзакции и актор аудита ставит сервис.
+ * Reads and writes file formats (tables of migration V111). The service sets transactions and the audit actor.
  */
 @Repository
 public class UplFormatRepository {
@@ -118,7 +118,7 @@ public class UplFormatRepository {
                 .update();
     }
 
-    /** Страница списка источников по плану реестра ({@link UplSourceQuery#LIST}). */
+    /** Page of the source list by the registry plan ({@link UplSourceQuery#LIST}). */
     public KeysetPage<SourceSummary> pageSources(QueryPlan plan) {
         return lists.page(plan, this::mapSummary);
     }
@@ -147,7 +147,7 @@ public class UplFormatRepository {
         return header.map(h -> h.withSheets(loadSheets(sourceId, version)));
     }
 
-    /** Статус версии с блокировкой строки до конца транзакции; пусто — версии нет. */
+    /** Version status with the row locked until the end of the transaction; empty means there is no version. */
     public Optional<String> lockVersionStatus(long sourceId, int version) {
         return jdbc.sql("select status from upl_format_versions where source_id = :s and version = :v for update")
                 .param("s", sourceId)

@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.md.service.NavigationItemService;
 import com.smartup24.cms.instance.md.service.NavigationItemService.CreateNavigationItemCommand;
 import com.smartup24.cms.instance.md.service.NavigationItemService.PermissionChoice;
 import com.smartup24.cms.instance.md.service.NavigationItemService.UpdateNavigationItemCommand;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -29,25 +30,31 @@ public class NavigationItemController {
         this.navigationService = navigationService;
     }
 
+    @Operation(summary = "Get the navigation menu", description = "The active menu items for the caller.")
     @GetMapping("/active")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<List<NavigationItemView>> getActiveItems() {
         return ResponseEntity.ok(NavigationItemService.visibleToViewer(navigationService.getActiveItems()));
     }
 
-    /** Пары каталога, которыми можно ограничить пункт меню. */
+    /** Catalog pairs that can restrict a menu item. */
+    @Operation(
+            summary = "List menu permission choices",
+            description = "The catalog pairs a menu item may be restricted by.")
     @GetMapping("/permissions")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     public ResponseEntity<List<PermissionChoice>> getPermissionChoices() {
         return ResponseEntity.ok(navigationService.getPermissionChoices());
     }
 
+    @Operation(summary = "List menu items", description = "Every menu item, visible or hidden, for the menu editor.")
     @GetMapping
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "view")
     public ResponseEntity<List<NavigationItemView>> getAllItems() {
         return ResponseEntity.ok(navigationService.getAllItems());
     }
 
+    @Operation(summary = "Get a menu item", description = "One menu item.")
     @GetMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "view")
     public ResponseEntity<NavigationItemView> getItem(@PathVariable Long id) {
@@ -58,6 +65,7 @@ public class NavigationItemController {
                         ErrorCode.NOT_FOUND, "error.md.navigation_item_not_found", Map.of("id", id)));
     }
 
+    @Operation(summary = "Get a menu item by code", description = "One menu item found by its code.")
     @GetMapping("/by-code/{code}")
     @RequiresPermission(form = MdPref.FORM_PROFILE, action = "view")
     public ResponseEntity<NavigationItemView> getItemByCode(@PathVariable String code) {
@@ -68,6 +76,7 @@ public class NavigationItemController {
                         ErrorCode.NOT_FOUND, "error.md.navigation_item_code_not_found", Map.of("code", code)));
     }
 
+    @Operation(summary = "Create a menu item", description = "Adds an item to the navigation menu.")
     @PostMapping
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     @ResponseStatus(HttpStatus.CREATED)
@@ -77,6 +86,7 @@ public class NavigationItemController {
         return Created.at("/api/v1/navigation/items/{id}", created.id(), created);
     }
 
+    @Operation(summary = "Update a menu item", description = "Replaces a menu item; names the revision it was read at.")
     @PutMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     public ResponseEntity<NavigationItemView> updateItem(
@@ -90,6 +100,9 @@ public class NavigationItemController {
     public record ActiveRequest(boolean active) {}
 
     /** Shows or hides the item (plan item 3.4): the body states the result, so a repeat changes nothing. */
+    @Operation(
+            summary = "Show or hide a menu item",
+            description = "Sets whether a menu item is shown; the body states the result, so a repeat changes nothing.")
     @PutMapping("/{id}/active")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     public ResponseEntity<NavigationItemView> setActive(@PathVariable Long id, @RequestBody ActiveRequest body) {
@@ -98,6 +111,10 @@ public class NavigationItemController {
     }
 
     /** Flips the state: deprecated for PUT /{id}/active, answers until its sunset (ADR-0023). */
+    @Operation(
+            summary = "Toggle a menu item (deprecated)",
+            description =
+                    "Flips whether a menu item is shown. Deprecated for PUT /api/v1/navigation/items/{id}/active; answers until its sunset.")
     @PostMapping("/{id}/toggle")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     public ResponseEntity<NavigationItemView> toggleItem(@PathVariable Long id) {
@@ -105,6 +122,7 @@ public class NavigationItemController {
         return ResponseEntity.ok(navigationService.toggleState(id, userId));
     }
 
+    @Operation(summary = "Delete a menu item", description = "Removes a menu item.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = MdPref.FORM_NAVIGATION, action = "manage")
     @ResponseStatus(HttpStatus.NO_CONTENT)

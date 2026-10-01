@@ -1,11 +1,13 @@
 package com.smartup24.cms.instance.fnd.versioning;
 
-import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
-import com.smartup24.cms.instance.fnd.error.StaleVersionException;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
+import com.smartup24.cms.instance.fnd.api.FndVersion;
+import com.smartup24.cms.instance.fnd.api.FndVersions;
+import com.smartup24.cms.instance.fnd.api.StaleVersionException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -31,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
  * The {@code deny_update_published()} trigger protects a published row.
  */
 @Service
-public class FndVersioning {
+public class FndVersioning implements FndVersions {
 
     /** A table or column name in dynamic SQL: only names we create ourselves in migrations. */
     private static final Pattern IDENTIFIER = Pattern.compile("^[a-z][a-z0-9_]{0,62}$");
@@ -60,6 +62,7 @@ public class FndVersioning {
      *     header won the race
      */
     @Transactional
+    @Override
     public int createDraft(String versionsTable, long headerId, FndActor actor) {
         String header = headerColumn(versionsTable);
         actors.apply(actor);
@@ -90,6 +93,7 @@ public class FndVersioning {
      *                                      the previous version's
      */
     @Transactional
+    @Override
     public void publish(
             String versionsTable, long headerId, int version, LocalDate validFrom, LocalDate validTo, FndActor actor) {
         String header = headerColumn(versionsTable);
@@ -144,6 +148,7 @@ public class FndVersioning {
 
     /** Withdraws a version published by mistake: its interval is freed and the row stays as history. */
     @Transactional
+    @Override
     public void supersede(String versionsTable, long headerId, int version, FndActor actor) {
         String header = headerColumn(versionsTable);
         actors.apply(actor);
@@ -163,6 +168,7 @@ public class FndVersioning {
      * an old value gets {@link StaleVersionException}.
      */
     @Transactional
+    @Override
     public void updateDraft(
             String versionsTable,
             long headerId,
@@ -210,6 +216,7 @@ public class FndVersioning {
 
     /** The number of the version in effect on the date; drafts and withdrawn versions are ignored. */
     @Transactional(readOnly = true)
+    @Override
     public Optional<Integer> versionAt(String versionsTable, long headerId, LocalDate date) {
         headerColumn(versionsTable);
         return jdbc.sql("select fnd_version_at(cast(:t as regclass), :h, :d)")
@@ -222,6 +229,7 @@ public class FndVersioning {
 
     /** A version row as stored, for modules and checks. */
     @Transactional(readOnly = true)
+    @Override
     public Optional<FndVersion> find(String versionsTable, long headerId, int version) {
         String header = headerColumn(versionsTable);
         return jdbc.sql("select " + header + " as header_id, version, valid_from, valid_to, status,"

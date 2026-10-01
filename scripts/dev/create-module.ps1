@@ -627,6 +627,7 @@ import ${pkg}.api.${createClass};
 import ${pkg}.api.${updateClass};
 import ${pkg}.api.${viewClass};
 import ${pkg}.service.${serviceClass};
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -653,6 +654,9 @@ public class ${ctrlClass} {
     }
 
     /** The list through the field registry: filter (JSON DSL), sort, search q and the keyset cursor. */
+    @Operation(
+            summary = "List $cleanCode records",
+            description = "The $cleanCode records, a keyset page at a time with filter, sort and search.")
     @GetMapping
     @RequiresPermission(form = "$cleanCode", action = "view")
     public ResponseEntity<KeysetPage<${viewClass}>> page(
@@ -664,12 +668,14 @@ public class ${ctrlClass} {
         return ResponseEntity.ok(service.page(limit, cursor, filter, sort, q));
     }
 
+    @Operation(summary = "Get a $cleanCode record", description = "One $cleanCode record.")
     @GetMapping("/{id}")
     @RequiresPermission(form = "$cleanCode", action = "view")
     public ResponseEntity<${viewClass}> getItem(@PathVariable Long id) {
         return ResponseEntity.ok(service.getItem(id));
     }
 
+    @Operation(summary = "Create a $cleanCode record", description = "Adds a $cleanCode record.")
     @PostMapping
     @RequiresPermission(form = "$cleanCode", action = "create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -679,6 +685,9 @@ public class ${ctrlClass} {
         return Created.at("/api/v1/$cleanCode/{id}", item.id(), item);
     }
 
+    @Operation(
+            summary = "Update a $cleanCode record",
+            description = "Replaces a $cleanCode record; names the revision it was read at (If-Match).")
     @PutMapping("/{id}")
     @RequiresPermission(form = "$cleanCode", action = "update")
     public ResponseEntity<${viewClass}> updateItem(
@@ -694,6 +703,7 @@ public class ${ctrlClass} {
                 Revisions.required(ifMatch)));
     }
 
+    @Operation(summary = "Delete a $cleanCode record", description = "Removes a $cleanCode record.")
     @DeleteMapping("/{id}")
     @RequiresPermission(form = "$cleanCode", action = "delete")
     @ResponseStatus(HttpStatus.NO_CONTENT)

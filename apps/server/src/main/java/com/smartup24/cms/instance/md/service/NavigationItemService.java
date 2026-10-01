@@ -29,7 +29,7 @@ public class NavigationItemService {
     private static final Pattern DANGEROUS_SCHEME =
             Pattern.compile("^(javascript|data|vbscript):.*", Pattern.CASE_INSENSITIVE);
 
-    /** Право на пункт указано неизвестной или устаревшей парой каталога. */
+    /** The item's permission is given as an unknown or obsolete catalog pair. */
     public static final String PERMISSION_UNKNOWN = "NAVIGATION_PERMISSION_UNKNOWN";
 
     private final NavigationItemRepository navigationRepository;
@@ -45,7 +45,7 @@ public class NavigationItemService {
         this.permissionService = permissionService;
     }
 
-    /** Пара каталога, которую можно назначить пункту меню: {@code form.action} и её названия. */
+    /** A catalog pair that can be assigned to a menu item: {@code form.action} and its names. */
     public record PermissionChoice(String permission, String formName, String actionName) {}
 
     public record CreateNavigationItemCommand(
@@ -102,10 +102,10 @@ public class NavigationItemService {
     }
 
     /**
-     * Пункты, которые видит текущий пользователь (FR-MOD-02): пункт с правом
-     * виден только владельцу этого права, а вложенный пункт — только вместе
-     * с родителем. Фильтр применяется к общему кэшу активных пунктов, поэтому
-     * вызывается после {@link #getActiveItems()}, а не внутри него.
+     * Items the current user sees (FR-MOD-02): an item with a permission
+     * is visible only to holders of that permission, and a nested item only together
+     * with its parent. The filter is applied to the shared cache of active items, so it
+     * is called after {@link #getActiveItems()}, not inside it.
      */
     public static List<NavigationItemView> visibleToViewer(List<NavigationItemView> items) {
         Map<Long, NavigationItemView> byId = new HashMap<>();
@@ -115,7 +115,7 @@ public class NavigationItemService {
                 .toList();
     }
 
-    /** Пункт по коду для встроенного отчёта: чужой пункт неотличим от несуществующего. */
+    /** An item by code for an embedded report: a forbidden item looks the same as a missing one. */
     @Transactional(readOnly = true)
     public Optional<NavigationItemView> getVisibleItemByCode(String code) {
         return getItemByCode(code)
@@ -124,7 +124,7 @@ public class NavigationItemService {
                         visibleToViewer(getAllItemsUncached()).stream().anyMatch(v -> v.id().equals(item.id())));
     }
 
-    /** Живые пары каталога для выбора права в настройках меню. */
+    /** Live catalog pairs for choosing a permission in the menu settings. */
     @Transactional(readOnly = true)
     public List<PermissionChoice> getPermissionChoices() {
         return permissionService.getFormCatalog().stream()

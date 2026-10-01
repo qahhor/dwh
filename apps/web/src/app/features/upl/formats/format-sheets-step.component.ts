@@ -13,8 +13,8 @@ import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/f
 import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-options';
 
 /**
- * Шаг «Листы и колонки» анкеты: вкладки листов, параметры листа и таблица колонок.
- * Правит модель на месте; активный лист и ошибки — двусторонние, их держит редактор.
+ * The "Sheets and columns" step of the file format: sheet tabs, sheet parameters and the column table.
+ * Edits the model in place; the active sheet and the errors are two-way, the editor holds them.
  */
 @Component({
   selector: 'app-upl-format-sheets-step',
@@ -42,14 +42,14 @@ export class FormatSheetsStepComponent {
   private readonly dataTypeMemo = optionsMemo<SMTSelectOption<UplDataType>[]>();
   private readonly unitMemo = optionsMemo<SMTSelectOption<string>[]>();
 
-  /** Типы данных колонки; подписи переводятся заново при смене языка. */
+  /** The column data types; the labels are translated again when the language changes. */
   dataTypeOptions(): SMTSelectOption<UplDataType>[] {
     return this.dataTypeMemo([this.i18n.currentLang()], () =>
       UPL_DATA_TYPES.map((type) => ({ id: type, label: this.i18n.translate(UPL_DATA_TYPE_KEY[type]) })),
     );
   }
 
-  /** Единицы из /upl/units как «Имя (код)». */
+  /** Units from /upl/units as "Name (code)". */
   unitOptions(): SMTSelectOption<string>[] {
     return this.unitMemo([this.units()], () =>
       this.units().map((unit) => ({ id: unit.code, label: `${unit.name} (${unit.code})` })),
@@ -105,12 +105,12 @@ export class FormatSheetsStepComponent {
     return uplSheetHasErrors(this.errors(), sheet);
   }
 
-  /** Неизвестный код не прячем: показываем сообщение сервера и сам код. */
+  /** An unknown code is not hidden: the server message and the code itself are shown. */
   errorText(problem: UplFieldError): string {
     return uplFieldErrorText(problem, (key) => this.i18n.translate(key));
   }
 
-  /** «Имя (код)» из /upl/units; единица вне списка — только код. */
+  /** "Name (code)" from /upl/units; a unit outside the list shows only its code. */
   baseUnitLabel(column: UplColumn): string {
     const code = column.baseUnit ?? '';
     const unit = this.units().find((item) => item.code === code);
@@ -176,7 +176,7 @@ export class FormatSheetsStepComponent {
     this.onTypeChange(column);
   }
 
-  /** Поля, которых у нового типа нет, очищаются — единственная молчаливая правка, и о ней говорим тостом. */
+  /** Fields the new type does not have are cleared: the only silent edit, so a toast tells about it. */
   onTypeChange(column: UplColumn): void {
     const cleared = clearFieldsForType(column);
     this.errors.set([]);

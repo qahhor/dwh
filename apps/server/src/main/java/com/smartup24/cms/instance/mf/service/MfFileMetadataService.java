@@ -6,6 +6,7 @@ import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.query.QueryPlan;
 import com.smartup24.cms.instance.common.security.ScopeFilter;
+import com.smartup24.cms.instance.md.service.MdStorageQuotaService;
 import com.smartup24.cms.instance.mf.api.StorageStats;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import java.util.List;
@@ -28,10 +29,13 @@ public class MfFileMetadataService {
 
     private final MfFileRepository fileRepository;
     private final AuditLogService auditLogService;
+    private final MdStorageQuotaService quotas;
 
-    public MfFileMetadataService(MfFileRepository fileRepository, AuditLogService auditLogService) {
+    public MfFileMetadataService(
+            MfFileRepository fileRepository, AuditLogService auditLogService, MdStorageQuotaService quotas) {
         this.fileRepository = fileRepository;
         this.auditLogService = auditLogService;
+        this.quotas = quotas;
     }
 
     /** Fast, advisory check before spending object-storage and scanner capacity. */
@@ -150,9 +154,9 @@ public class MfFileMetadataService {
 
     @Transactional(readOnly = true)
     public StorageStats getStorageStats(Long userId) {
-        long companyQuota = fileRepository.getCompanyQuotaBytes();
+        long companyQuota = quotas.instanceQuotaBytes();
         long companyUsed = fileRepository.getTotalCompanyUsedBytes();
-        long userQuota = fileRepository.getUserEffectiveQuotaBytes(userId);
+        long userQuota = quotas.userQuotaBytes(userId);
         long userUsed = fileRepository.getUserUsedBytes(userId);
 
         return new StorageStats(
@@ -173,7 +177,7 @@ public class MfFileMetadataService {
     }
 
     private void validateQuota(Long ownerId, long requestedBytes) {
-        long companyQuota = fileRepository.getCompanyQuotaBytes();
+        long companyQuota = quotas.instanceQuotaBytes();
         long companyUsed = fileRepository.getTotalCompanyUsedBytes();
         if (exceedsQuota(companyUsed, requestedBytes, companyQuota)) {
             throw ApiException.badRequest(
@@ -183,7 +187,7 @@ public class MfFileMetadataService {
         }
 
         if (ownerId != null) {
-            long userQuota = fileRepository.getUserEffectiveQuotaBytes(ownerId);
+            long userQuota = quotas.userQuotaBytes(ownerId);
             long userUsed = fileRepository.getUserUsedBytes(ownerId);
             if (exceedsQuota(userUsed, requestedBytes, userQuota)) {
                 throw ApiException.badRequest(

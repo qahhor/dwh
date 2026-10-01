@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.ObjectMapper;
 
-/** HTTP-проверка списка единиц {@code /api/v1/upl/units} (К-1, И4). */
+/** HTTP check of the unit list {@code /api/v1/upl/units}. */
 class UplUnitControllerTest extends EmbeddedPostgresTest {
 
     private static final String BASE = "/api/v1/upl/units";
@@ -113,7 +113,7 @@ class UplUnitControllerTest extends EmbeddedPostgresTest {
         assertThat(UplUnitController.displayName("u_x", Map.of("ru", ""))).isEqualTo("u_x");
     }
 
-    /** Значение поля элемента с заданным кодом единицы: JsonPath-фильтр всегда отдаёт список. */
+    /** The field value of the element with the given unit code: a JsonPath filter always returns a list. */
     private static List<String> field(String body, String code, String name) {
         return JsonPath.read(body, "$[?(@.code=='" + code + "')]." + name);
     }

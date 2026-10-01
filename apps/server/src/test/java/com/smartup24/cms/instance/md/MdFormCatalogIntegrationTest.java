@@ -25,13 +25,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * FR-PERM-1 (дефект Д-5): каталог форм приводится в соответствие с кодом.
+ * FR-PERM-1: the form catalog is brought in line with the code.
  *
- * До этой работы каталог наполнялся только миграциями, а метод регистрации из
- * кода не вызывался ниоткуда. На живом стенде это дало четыре пары, за которыми
- * нет ни одного эндпоинта: notify.preferences.view / .update,
- * iam.profile.manage_channels, platform.files.manage_quotas. Администратор
- * видел их в матрице прав и мог выдать — право не открывало ничего.
+ * Before this work the catalog was filled by migrations only, and the registration method in the code
+ * was called from nowhere. On a live stand this left four pairs without a single endpoint behind them:
+ * notify.preferences.view / .update,
+ * iam.profile.manage_channels, platform.files.manage_quotas. An administrator
+ * saw them in the permission matrix and could grant them, and the permission opened nothing.
  */
 class MdFormCatalogIntegrationTest {
 
@@ -66,7 +66,7 @@ class MdFormCatalogIntegrationTest {
     @Test
     @DisplayName("Запись каталога без эндпоинта помечается устаревшей, но не удаляется")
     void catalogEntryWithoutEndpointBecomesDeprecated() {
-        // Миграции засеяли notify.preferences, но эндпоинта под неё в коде нет.
+        // The migrations seeded notify.preferences, but the code has no endpoint for it.
         assertThat(countActions("notify.preferences")).isEqualTo(2);
 
         permissionService.syncFormCatalog(realPairs());
@@ -120,7 +120,7 @@ class MdFormCatalogIntegrationTest {
                 });
     }
 
-    /** Пары, реально объявленные аннотациями в коде приложения. */
+    /** The pairs that annotations in the application code really declare. */
     private static Set<String> realPairs() {
         return MdFormCatalogTest.declaredPairsFromSources();
     }

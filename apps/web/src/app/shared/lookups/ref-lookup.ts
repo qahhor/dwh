@@ -30,12 +30,13 @@ export function refLookup(api: ApiService, ref: QueryRefMeta): SMTLookupSource<R
         ),
       key,
       option,
-      // A chosen key is named by its own read, as the reference lists do (lookup-sources.ts).
+      // A chosen key is named by its own read, as the reference lists do (lookup-sources.ts); a list paged
+      // under `/page` names where that read lives.
       resolve: (keys) =>
         forkJoin(
           keys.map((one) =>
             api
-              .get<Row>(`${ref.path}/${encodeURIComponent(String(one))}`, undefined, quiet)
+              .get<Row>(`${ref.readPath ?? ref.path}/${encodeURIComponent(String(one))}`, undefined, quiet)
               .pipe(catchError(() => of(null))),
           ),
         ).pipe(map((found) => found.filter((row): row is Row => row != null))),

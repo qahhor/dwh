@@ -76,7 +76,10 @@ export const fixtures = {
     { code: 'ru', name: 'Русский', builtin: true, active: true, revision: 1, translated: 1929, total: 1929, coverage: 100 },
     { code: 'en', name: 'English', builtin: true, active: true, revision: 1, translated: 1751, total: 1929, coverage: 91 },
   ],
-  '/settings/system': { company_name: 'Smartup Distribution', default_language: 'ru' },
+  '/settings/system': {
+    values: { 'system.company_name': 'Smartup Distribution', 'system.default_language': 'ru' },
+    revision: 1,
+  },
   '/settings/user': {},
   '/modules/active': [
     { code: 'notes', name: 'Заметки', version: '1.0.0', route: '/notes', icon: 'description', isSystem: false, status: 'ACTIVE', isActive: true },
@@ -85,7 +88,7 @@ export const fixtures = {
   '/notifications/unread-count': { unread_count: 0 },
   '/announcements/active': [],
   '/iam/org-units': orgUnits(),
-  '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null },
+  '/iam/org-units/users/1': { userId: 1, orgUnitIds: [2, 5], legacyOrgUnitId: null, revision: 1 },
   '/iam/org-units/users/1/scope': { rule: 'UNITS', visibleOrgUnitIds: [2, 5] },
   // The user list is a registry list (roadmap item 48): its fields come from query-meta, the total is real.
   '/query-meta/iam.users': {
@@ -152,10 +155,6 @@ export const fixtures = {
   '/list-views/ms.tasks': [],
   '/tasks': page(range(100, 51).map(task), 't2', 60),
   '/tasks#t2': page(range(50, 41).map(task), null, 60),
-  '/tasks/projects': range(1, 14).map(id => ({
-    id, name: `Выкладка в сети ${id}`, description: id % 2 ? `Регион ${id}: контроль полки и POSM` : undefined,
-    state: id % 5 ? 'A' : 'P', attributes: {}, createdAt: at(id), createdBy: 1,
-  })),
   '/tasks/projects/stats': range(1, 12).map(id => ({ projectId: id, totalTasks: id + 2, activeTasks: 2, doneTasks: id })),
   // The project screen pages the registry list ms.projects (roadmap item 51); counts come with each row.
   '/query-meta/ms.projects': {

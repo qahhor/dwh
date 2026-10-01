@@ -24,7 +24,7 @@ public class ExportPrincipals {
 
     public void runAs(long userId, Runnable work) {
         var previous = SecurityContext.getPrincipal();
-        var user = users.getUserById(userId);
+        var user = users.getUserIdentity(userId);
         if (!"A".equals(user.state())) {
             throw ApiException.permissionDenied("iam.profile", "view");
         }

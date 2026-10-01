@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.audit.controller;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.RecordHistoryService;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,12 +27,18 @@ public class RecordHistoryController {
         this.historyService = historyService;
     }
 
+    @Operation(
+            summary = "List record kinds with history",
+            description = "The kinds of records whose change history can be read.")
     @GetMapping
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<List<String>> kinds() {
         return ResponseEntity.ok(historyService.availableKinds());
     }
 
+    @Operation(
+            summary = "Get the history of a record",
+            description = "The recorded changes of one record, a keyset page at a time.")
     @GetMapping("/{kind}/{id}")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<KeysetPage<RecordHistoryService.HistoryEntry>> history(

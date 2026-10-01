@@ -102,6 +102,21 @@ class MsProjectListIntegrationTest {
     }
 
     @Test
+    @DisplayName("3.5: a project picker searches by name and pages by a cursor, archived projects included")
+    void pickerSearchesAndPages() {
+        signIn(admin, "tasks.projects.view", "tasks.items.view");
+        assertThat(names(projects.page(admin, 20, null, null, null, "alpha", null)
+                        .items()))
+                .containsExactly("pl Alpha");
+        var first = projects.page(admin, 2, null, null, null, "pl ", null);
+        assertThat(names(first.items())).containsExactly("pl Alpha", "pl Beta");
+        assertThat(first.hasMore()).isTrue();
+        var second = projects.page(admin, 2, first.nextCursor(), null, null, "pl ", null);
+        assertThat(names(second.items())).containsExactly("pl Gamma");
+        assertThat(second.hasMore()).isFalse();
+    }
+
+    @Test
     @DisplayName("Progress sorts the whole list on the server; counts are over the viewer's tasks")
     void progressSortsOnTheServer() {
         signIn(admin, "tasks.projects.view", "tasks.items.view");

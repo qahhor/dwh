@@ -1,10 +1,14 @@
 package com.smartup24.cms.instance.search.repository;
 
+import com.smartup24.cms.instance.common.jdbc.StatementTimeouts;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,12 +16,23 @@ import tools.jackson.databind.ObjectMapper;
 
 @Repository
 public class SearchJobRepository {
+    /**
+     * The limit of each statement of a job state change, the same as their {@code @Transactional(timeout = 2)}: it
+     * holds inside an outer transaction too (an Idempotency-Key request), where that timeout is ignored.
+     */
+    public static final Duration STATE_CHANGE_LIMIT = Duration.ofSeconds(2);
+
     private final JdbcClient jdbc;
     private final ObjectMapper mapper;
 
     public SearchJobRepository(JdbcClient jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
         this.mapper = mapper;
+    }
+
+    /** Runs a job state change with each statement limited to {@link #STATE_CHANGE_LIMIT}. */
+    public <T> T limited(Supplier<T> work) {
+        return StatementTimeouts.within(jdbc, STATE_CHANGE_LIMIT, work);
     }
 
     public void lockState() {
@@ -58,7 +73,6 @@ public class SearchJobRepository {
                 .param("requested", request.generationId())
                 .param("retryOf", retryOf)
                 .update();
-        audit(jdbc, id, actor, retryOf == null ? "START" : "RETRY");
         return new JobReceipt(id, "QUEUED");
     }
 
@@ -115,6 +129,10 @@ public class SearchJobRepository {
 
     @Transactional(timeout = 2)
     public Optional<JobStatus> claim(UUID owner) {
+        return limited(() -> claimNow(owner));
+    }
+
+    private Optional<JobStatus> claimNow(UUID owner) {
         if (!owns(owner)) return Optional.empty();
         var id = jdbc.sql(
                         "select id from search_jobs where state in ('QUEUED','RUNNING','VERIFYING','ACTIVATING') and (owner_token is null or owner_token=:owner) order by created_at,id limit 1 for update skip locked")
@@ -132,6 +150,11 @@ public class SearchJobRepository {
 
     @Transactional(timeout = 2)
     public boolean checkpoint(
+            UUID id, UUID owner, String state, long processed, long failed, VerificationSummary verification) {
+        return limited(() -> checkpointNow(id, owner, state, processed, failed, verification));
+    }
+
+    private boolean checkpointNow(
             UUID id, UUID owner, String state, long processed, long failed, VerificationSummary verification) {
         if (!owns(owner)) return false;
         return jdbc.sql("""
@@ -175,27 +198,36 @@ public class SearchJobRepository {
                 .single();
     }
 
-    public void auditCancellation(UUID id, Long actor) {
-        audit(jdbc, id, actor, "CANCEL");
+    /** What the audit log keeps of a job operation (ADR-0026): the job's actor and the job as it stands now. */
+    public record JobAuditRow(@Nullable Long actorId, Map<String, Object> newRow) {}
+
+    public Optional<JobAuditRow> auditRow(UUID job, String operation) {
+        return auditRow(jdbc, job, operation);
     }
-    /** Existing immutable audit storage; actor is explicit, including system-owned null, never a worker SecurityContext. */
-    public static void audit(JdbcClient connection, UUID job, Long actor, String operation) {
-        connection
+
+    /** {@link #auditRow(UUID, String)} on a connection the caller holds, inside its transaction. */
+    public Optional<JobAuditRow> auditRow(JdbcClient connection, UUID job, String operation) {
+        return connection
                 .sql("""
-                insert into audit_log(table_name,row_pk,event,changed_by,is_api,changed_at,changed_columns,new_row)
-                select :table,:row,'U',:actor,false,clock_timestamp(),array['state'],
-                    jsonb_build_object('operation',cast(:operation as text),'action',j.action,'job_id',j.id,
-                        'generation_id',j.generation_id,'state',j.state,'settings_version',g.settings_version,
-                        'index_version',s.version,'schema_version',g.schema_version)
+                select j.actor_id, j.action, j.id, j.generation_id, j.state, g.settings_version,
+                    s.version as index_version, g.schema_version
                 from search_jobs j join search_generations g on g.id=j.generation_id cross join search_index_state s
                 where j.id=:job and s.id=1
                 """)
-                .param("table", operation.equals("SWITCH") ? "search_index_state" : "search_jobs")
-                .param("row", operation.equals("SWITCH") ? "1" : job.toString())
-                .param("actor", actor)
-                .param("operation", operation)
                 .param("job", job)
-                .update();
+                .query((rs, row) -> {
+                    Map<String, Object> newRow = new LinkedHashMap<>();
+                    newRow.put("operation", operation);
+                    newRow.put("action", rs.getString("action"));
+                    newRow.put("job_id", rs.getString("id"));
+                    newRow.put("generation_id", rs.getString("generation_id"));
+                    newRow.put("state", rs.getString("state"));
+                    newRow.put("settings_version", rs.getObject("settings_version"));
+                    newRow.put("index_version", rs.getObject("index_version"));
+                    newRow.put("schema_version", rs.getObject("schema_version"));
+                    return new JobAuditRow(rs.getObject("actor_id", Long.class), newRow);
+                })
+                .optional();
     }
 
     private JobStatus mapStatus(ResultSet rs, int row) throws SQLException {

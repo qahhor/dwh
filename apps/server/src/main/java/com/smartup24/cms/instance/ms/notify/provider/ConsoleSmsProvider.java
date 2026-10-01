@@ -10,8 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Заглушка канала SMS для разработки: пишет сообщение в журнал и никуда его не шлёт.
- * Номер телефона — персональные данные, в журнал не попадает (CODE_STYLE).
+ * Development stub of the SMS channel: writes the message to the log and sends it nowhere.
+ * The phone number is personal data and is not written to the log (CODE_STYLE).
  */
 @Component
 public class ConsoleSmsProvider implements SmsProvider {

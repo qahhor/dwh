@@ -2,8 +2,8 @@ package com.smartup24.cms.instance.upl.parse;
 
 import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
 import com.smartup24.cms.instance.fnd.api.FndJobFailures;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
-import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -19,15 +19,15 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Задание «разобрать файл пакета»: берёт файл из хранилища каркаса, разбирает его по анкете,
- * действовавшей на начало периода, и записывает итог. A transient failure is left to the runner's retries; any
+ * The "parse the package file" job: takes the file from the platform storage, parses it by the format
+ * valid at the period start and records the result. A transient failure is left to the runner's retries; any
  * other failure, or one on the last attempt, closes the package with {@link #UPL_PKG_INTERNAL} and fails the job with
  * no retry. Parsing runs outside a transaction (the queue holds none while a job works, plan 10/10, item 3.8).
  */
 @Component
 public class UplParseJob implements FndJobHandler {
 
-    /** Пакет отклонён: разбор упал по внутренней ошибке. */
+    /** Package rejected: parsing failed with an internal error. */
     public static final String UPL_PKG_INTERNAL = "UPL_PKG_INTERNAL";
 
     private static final String ARG_PACKAGE_ID = "packageId";
@@ -70,7 +70,7 @@ public class UplParseJob implements FndJobHandler {
 
     /**
      * Reads the format and parses the file of the package. A transient failure (storage or database away) while
-     * attempts remain fails the attempt and leaves the package «получен» for the runner's retry (plan 10/10, item
+     * attempts remain fails the attempt and leaves the package "received" for the runner's retry (plan 10/10, item
      * 3.8); any other failure, or one on the last attempt, closes the package with an internal error and fails the job
      * with no retry: another attempt would find the package closed and change nothing.
      */

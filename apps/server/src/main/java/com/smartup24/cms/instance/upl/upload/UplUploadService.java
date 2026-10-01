@@ -3,9 +3,9 @@ package com.smartup24.cms.instance.upl.upload;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
-import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
+import com.smartup24.cms.instance.fnd.api.FndJobQueue;
+import com.smartup24.cms.instance.fnd.api.FndVersions;
+import com.smartup24.cms.instance.mf.api.StoredFile;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplLimits;
 import com.smartup24.cms.instance.upl.UplPref;
@@ -24,9 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Приём файла: проверка полей, поиск анкеты на начало периода, укладка файла в хранилище каркаса
- * и запись пакета вместе с заданием на разбор (контракт И5, раздел 3 «Порядок приёма»).
- * Разбора в запросе нет: он идёт заданием очереди.
+ * File upload: field checks, finding the format valid at the period start, storing the file in the platform storage
+ * and writing the package together with the parse job.
+ * There is no parsing in the request: it runs as a queue job.
  */
 @Service
 public class UplUploadService {
@@ -34,18 +34,18 @@ public class UplUploadService {
     private static final String XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
     private final UplSourceService sources;
-    private final FndVersioning versioning;
+    private final FndVersions versioning;
     private final MfFileService files;
     private final UplPackageService packages;
-    private final FndJobRunner jobs;
+    private final FndJobQueue jobs;
     private final TransactionTemplate tx;
 
     public UplUploadService(
             UplSourceService sources,
-            FndVersioning versioning,
+            FndVersions versioning,
             MfFileService files,
             UplPackageService packages,
-            FndJobRunner jobs,
+            FndJobQueue jobs,
             TransactionTemplate tx) {
         this.sources = sources;
         this.versioning = versioning;
@@ -55,7 +55,7 @@ public class UplUploadService {
         this.tx = tx;
     }
 
-    /** Части запроса приёма как они пришли с формы; {@code content} — тело файла. */
+    /** Parts of the upload request as they came from the form; {@code content} is the file body. */
     /** Receives the file as {@link #receive} does and answers the package as the API shows it (plan 10/10, 3.2). */
     public PackageItem receiveItem(Upload upload, long userId) {
         return PackageItem.of(receive(upload, userId));
@@ -72,8 +72,8 @@ public class UplUploadService {
             InputStreamSource content) {}
 
     /**
-     * Принимает файл и ставит его в очередь на разбор. Транзакции на весь приём нет намеренно:
-     * файл кладётся в хранилище каркаса снаружи, а пакет и задание появляются одной транзакцией.
+     * Accepts a file and queues it for parsing. There is deliberately no transaction for the whole upload:
+     * the file is put into the platform storage outside it, while the package and the job appear in one transaction.
      */
     public PackageRow receive(Upload upload, long userId) {
         List<FieldErrorItem> errors = UplUploadValidator.validate(
@@ -101,23 +101,23 @@ public class UplUploadService {
                     Map.of("megabytes", UplLimits.MAX_FILE_MEGABYTES));
         }
 
-        FileRecord file = store(upload, userId);
+        StoredFile file = store(upload, userId);
         return tx.execute(status -> registerWithParseJob(sourceId, formatVersion, periodFrom, periodTo, file, userId));
     }
 
-    /** Кладёт файл в хранилище каркаса; отказы хранилища уходят наверх как есть. */
-    private FileRecord store(Upload upload, long userId) {
+    /** Puts the file into the platform storage; storage refusals propagate as they are. */
+    private StoredFile store(Upload upload, long userId) {
         String mimeType = upload.mimeType() == null || upload.mimeType().isBlank() ? XLSX_MIME : upload.mimeType();
         try (InputStream content = upload.content().getInputStream()) {
-            return files.uploadFile(upload.fileName(), mimeType, content, upload.sizeBytes(), userId);
+            return files.store(upload.fileName(), mimeType, content, upload.sizeBytes(), userId);
         } catch (IOException failure) {
             throw new UncheckedIOException("Тело загружаемого файла не читается", failure);
         }
     }
 
-    /** Пакет и задание на его разбор появляются вместе или не появляются вовсе. */
+    /** The package and its parse job appear together or not at all. */
     private PackageRow registerWithParseJob(
-            long sourceId, int formatVersion, LocalDate periodFrom, LocalDate periodTo, FileRecord file, long userId) {
+            long sourceId, int formatVersion, LocalDate periodFrom, LocalDate periodTo, StoredFile file, long userId) {
         PackageRow row = packages.register(new NewPackage(
                 sourceId,
                 formatVersion,

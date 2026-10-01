@@ -49,7 +49,7 @@ class KauthAuthenticationFilterTest {
         var tokenRecord = new KauthApiTokenRepository.ApiTokenRecord(
                 1L, 10L, "token", "dwh_", "hash", null, Instant.now(), null, null, 0L);
         when(apiTokenService.validateToken("dwh_test_token")).thenReturn(Optional.of(tokenRecord));
-        when(userService.getUserById(10L)).thenThrow(new QueryTimeoutException("DB connection failure"));
+        when(userService.getUserIdentity(10L)).thenThrow(new QueryTimeoutException("DB connection failure"));
 
         assertThatThrownBy(() -> filter.doFilter(request, response, chain))
                 .isInstanceOf(DataAccessException.class)
@@ -66,7 +66,7 @@ class KauthAuthenticationFilterTest {
         var sessionRecord = new KauthSessionRepository.SessionRecord(
                 1L, 10L, "hash", "127.0.0.1", "agent", "desktop", Instant.now(), Instant.now(), null, 0L);
         when(sessionService.getActiveSession("test_session_token")).thenReturn(Optional.of(sessionRecord));
-        when(userService.getUserById(10L)).thenThrow(new QueryTimeoutException("DB connection timeout"));
+        when(userService.getUserIdentity(10L)).thenThrow(new QueryTimeoutException("DB connection timeout"));
 
         assertThatThrownBy(() -> filter.doFilter(request, response, chain))
                 .isInstanceOf(DataAccessException.class)

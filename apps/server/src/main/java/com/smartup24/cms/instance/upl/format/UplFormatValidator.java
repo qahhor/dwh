@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.upl.format;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
-import com.smartup24.cms.instance.fnd.units.FndUnitService.FndUnit;
+import com.smartup24.cms.instance.fnd.api.FndUnit;
+import com.smartup24.cms.instance.fnd.api.FndUnits;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
@@ -20,7 +20,10 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import org.springframework.stereotype.Component;
 
-/** Проверки анкеты перед публикацией (контракт И3, «Ошибки»): собирает все нарушения сразу. */
+/**
+ * Checks of a file format before publication (the "Errors" table of the format contract): collects all
+ * violations at once.
+ */
 @Component
 public class UplFormatValidator {
 
@@ -48,13 +51,13 @@ public class UplFormatValidator {
     public static final String UPL_POSITION_REQUIRED = "UPL_POSITION_REQUIRED";
     public static final String UPL_POSITION_DUPLICATE = "UPL_POSITION_DUPLICATE";
 
-    private final FndUnitService units;
+    private final FndUnits units;
 
-    public UplFormatValidator(FndUnitService units) {
+    public UplFormatValidator(FndUnits units) {
         this.units = units;
     }
 
-    /** Все нарушения анкеты; пустой список — версию можно публиковать. */
+    /** All violations of the format; an empty list means the version can be published. */
     public List<FieldErrorItem> validate(FormatVersion v) {
         List<FieldErrorItem> errors = new ArrayList<>();
         checkVersion(v, errors);

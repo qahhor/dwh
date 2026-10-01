@@ -8,6 +8,7 @@ import com.smartup24.cms.instance.md.service.MdScopeService;
 import com.smartup24.cms.instance.mf.api.FileListItem;
 import com.smartup24.cms.instance.mf.api.FileView;
 import com.smartup24.cms.instance.mf.api.StorageStats;
+import com.smartup24.cms.instance.mf.api.StoredFile;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import com.smartup24.cms.spi.storage.FileScanner;
@@ -84,7 +85,14 @@ public class MfFileService {
         return view(uploadFile(originalName, mimeType, contentStream, sizeBytes, createdBy));
     }
 
-    /** The full ownership record, for modules that keep a reference to the stored content (e.g. its hash). */
+    /** An upload from another module that keeps a reference to the stored content, its hash included. */
+    public StoredFile store(
+            String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
+        var file = uploadFile(originalName, mimeType, contentStream, sizeBytes, createdBy);
+        return new StoredFile(file.id(), file.originalName(), file.sha256(), file.sizeBytes());
+    }
+
+    /** The full ownership record, for this module and its tests. */
     public MfFileRepository.FileRecord uploadFile(
             String originalName, String mimeType, InputStream contentStream, long sizeBytes, Long createdBy) {
         if (!uploadLimiter.tryAcquire()) {
@@ -140,21 +148,21 @@ public class MfFileService {
             String verifiedMimeType,
             String sha256) {
 
-        // Свою же копию отдаём как есть: повторная загрузка того же файла не
-        // плодит записи и не списывает квоту дважды.
+        // The user's own copy is returned as is: uploading the same file again neither
+        // creates records nor charges the quota twice.
         var ownOpt = metadataService.findBySha256AndOwner(sha256, createdBy);
         if (ownOpt.isPresent()) {
             return ownOpt.get();
         }
 
-        // Дедупликация — на уровне физического объекта, не записи владения (V010).
-        // Чужую запись возвращать нельзя: её удаление владельцем каскадом снесло
-        // бы вложения у всех остальных, а квота второго загрузившего не росла бы.
+        // Deduplication works on the physical object, not on the ownership record (V010).
+        // Another user's record must not be returned: its owner deleting it would cascade
+        // to everyone else's attachments, and the second uploader's quota would not grow.
         String finalKey = sha256.substring(0, 2) + "/" + sha256;
         var sameContent = metadataService.findBySha256(sha256);
         boolean createdPhysicalObject = false;
         if (sameContent.isPresent()) {
-            // Объект уже лежит на диске — переиспользуем его ключ.
+            // The object is already on disk, so reuse its key.
             finalKey = sameContent.get().storageKey();
         } else {
             if (!storageProvider.exists(DEFAULT_BUCKET, finalKey)) {
@@ -164,7 +172,7 @@ public class MfFileService {
         }
 
         try {
-            // Своя запись владения: своё имя файла, своя квота, своё право на удаление.
+            // An ownership record of the user's own: own file name, own quota, own right to delete.
             return metadataService.publish(
                     sha256,
                     originalName,

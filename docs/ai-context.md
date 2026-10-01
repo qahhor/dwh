@@ -116,8 +116,11 @@ JSON, сроки хранения) и `config` (безопасность, фил
 - API: `scripts/api/test-api-contract.ps1` (Spectral, свежесть типов веба,
   openapi-diff против базовой ветки).
 - E2E (`e2e`): `npm run typecheck`; доступность — `npm run test:a11y`; полный
-  прогон на стенде Compose — `scripts/dev/test-e2e.ps1` (в CI два шарда,
-  `-Shard N/2`).
+  прогон на стенде Compose с почтовой заглушкой
+  (`docker compose -f docker-compose.yml -f scripts/dev/e2e-mail.compose.yml up -d --wait`)
+  — `scripts/dev/test-e2e.ps1` (в CI два шарда, `-Shard N/2`; `-CheckReadiness`
+  в конце останавливает postgres и проверяет readiness,
+  `scripts/dev/test-readiness-dependency.ps1`).
 - Документация и репозиторий: `scripts/docs/test-public-docs.ps1` (каждый ADR
   в индексе, ссылки), `scripts/docs/test-repository-hygiene.ps1`,
   `scripts/architecture/test-unified-boundaries.ps1`.
@@ -133,10 +136,9 @@ JSON, сроки хранения) и `config` (безопасность, фил
 структура»; порядок задач задаёт пользователь. Правила для всех AI-ассистентов —
 в [`AGENTS.md`](../AGENTS.md).
 
-Оставшийся долг виден в тестах и только сокращается: `NOT_YET_LOCKED` в
-`ChangesNameTheirRevisionTest`, `NOT_YET_PAGED` в `CollectionsArePagedTest`,
-замороженные нарушения границ (`src/test/resources/archunit_store`),
-`comment-language-baseline.txt` для `CommentLanguageTest`.
+Долги фазы 3 закрыты 2026-10-01: `NOT_YET_LOCKED` и `NOT_YET_PAGED` пусты и удалены,
+хранилище замороженных нарушений ArchUnit пусто, «чужой SQL» запрещён строго (ADR-0026),
+комментарии в коде и тестах на английском (выпущенные миграции заморожены контрольной суммой).
 
 Известные пробелы платформы перечислены в
 [extension-points.md](architecture/extension-points.md#7-известные-пробелы):

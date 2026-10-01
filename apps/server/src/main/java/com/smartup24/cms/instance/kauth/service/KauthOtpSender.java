@@ -17,17 +17,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Доставка одноразового кода в канал пользователя (FR-AUTH-5).
+ * Delivers a one-time code to the user's channel (FR-AUTH-5).
  *
- * До пересмотра M3 30.08 код второго фактора создавался в базе и **никуда не
- * отправлялся**: между `otpCodeRepository.create(...)` и возвратом токена не
- * было ни одного вызова провайдера. Вход по второму фактору был неработоспособен
- * целиком, и это не всплывало, потому что 2FA ни у кого не была включена.
+ * Originally the second-factor code was created in the database and **never
+ * sent**: between `otpCodeRepository.create(...)` and returning the token there
+ * was not a single provider call. Second-factor sign-in was entirely broken,
+ * and nobody noticed because no one had 2FA enabled.
  *
- * Отправка синхронная, а не через outbox оповещений: код живёт пять минут, и
- * очередь с повторами здесь работает против пользователя. Провал отправки —
- * это отказ входа, а не «доставим позже»: иначе клиент получает токен, которым
- * невозможно воспользоваться.
+ * Sending is synchronous, not through the notification outbox: the code lives five minutes,
+ * and a retry queue works against the user here. A failed send
+ * means the sign-in is refused, not "delivered later"; otherwise the client gets a token
+ * that cannot be used.
  */
 @Service
 public class KauthOtpSender {
@@ -87,10 +87,10 @@ public class KauthOtpSender {
     }
 
     /**
-     * @param channel        запись канала пользователя
-     * @param text           текст с кодом открытым текстом — только для отправки,
-     *                       в базе и журнале живёт лишь SHA-256 кода
-     * @param idempotencyKey ключ идемпотентности для провайдера
+     * @param channel        the user's channel record
+     * @param text           the text with the code in clear, only for sending;
+     *                       the database and log keep only the code's SHA-256
+     * @param idempotencyKey the idempotency key for the provider
      */
     public void send(KauthChannelRepository.ChannelRecord channel, String subject, String text, String idempotencyKey) {
         boolean delivered = switch (channel.channel()) {
@@ -117,7 +117,7 @@ public class KauthOtpSender {
         };
 
         if (!delivered) {
-            // Адрес получателя — персональные данные, в журнал не пишем.
+            // The recipient address is personal data and is not written to the log.
             log.warn("Код не доставлен в канал {}", channel.channel());
             throw new ApiException(
                     ErrorCode.OTP_SEND_FAILED, "error.auth.otp_send_failed", Map.of("channel", channel.channel()));

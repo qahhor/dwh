@@ -28,7 +28,7 @@ import org.dhatim.fastexcel.reader.Row;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Шаблон файла по версии анкеты (роадмап п. 20): инструкция, заголовки там, где их ищет разбор, и проверки ввода. */
+/** The file template by a format version: instructions, headers where parsing looks for them, and input checks. */
 class UplTemplateBuilderTest {
 
     private static final Source SOURCE = new Source(

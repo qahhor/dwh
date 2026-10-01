@@ -7,11 +7,11 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
-import com.smartup24.cms.instance.fnd.dwh.FndRawSource;
-import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndRawRow;
+import com.smartup24.cms.instance.fnd.api.FndRawSource;
+import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
@@ -42,7 +42,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Применение пакета «проверен» (контракт И6), asynchronous (plan 10/10, item 3.9): the request opens the load and
+ * Applying a verified package, asynchronous (plan 10/10, item 3.9): the request opens the load and
  * queues the job, the job streams the rows into raw, reconciles and closes the package.
  */
 class UplApplyServiceTest extends EmbeddedPostgresTest {
@@ -369,7 +369,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                 .isEqualTo(1);
         assertConflict(() -> applies.request(closed.publicId().toString(), userId), "error.upl.pkg_not_verified");
 
-        // Применение моложе порога может ещё идти — его задание не трогает
+        // An apply younger than the threshold may still be running, so its job is left alone
         PackageRow running = packages.get(fresh.publicId().toString());
         assertThat(running.status()).isEqualTo(UplPackageModel.APPLYING);
         assertThat(loads.find(running.loadId()))
@@ -386,7 +386,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                 .hasValue(900);
     }
 
-    // ---------- помощники ----------
+    // ---------- helpers ----------
 
     /** Asks to apply and runs the queue, as the worker would; the package as the client then reads it. */
     private PackageRow apply(PackageRow row) {

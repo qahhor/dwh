@@ -7,9 +7,9 @@ import { UiMarkdownViewComponent } from '@shared/ui/ui-markdown-view.component';
 import { UiFileUploadComponent } from '@shared/ui/ui-file-upload.component';
 import { UiRecordHistoryComponent } from '@shared/ui/ui-record-history.component';
 import { CustomField } from '@core/models/custom-field.models';
-import { Task, Project, TaskStatus, TaskType, TaskMember, TaskComment, TaskFile } from '@core/models/task.models';
+import { Task, TaskStatus, TaskType, TaskMember, TaskComment, TaskFile } from '@core/models/task.models';
 import { safeNumericRecordId } from '@core/services/search-target';
-import { groupMembersByRole, GroupedTaskMembers } from '../tasks.models';
+import { groupMembersByRole, GroupedTaskMembers, TaskProjectRef } from '../tasks.models';
 import { SMTAvatarComponent } from '@shared/ui-kit/components/avatar';
 import { SMTSelectComponent, SMTSelectOption } from '@shared/ui-kit/components/forms/select';
 import { SMTTextareaComponent } from '@shared/ui-kit/components/forms/textarea';
@@ -46,7 +46,8 @@ export class TaskDetailModalComponent {
   readonly getStatusName = input.required<(statusId: number | null | undefined) => string>();
   readonly getStatusColor = input.required<(statusId: number | null | undefined) => string>();
   readonly getPriorityLabel = input.required<(priority: string) => string>();
-  readonly getProjectName = input.required<(projectId: number | null | undefined) => string | null>();
+  /** The task's project as the card names it (`projectName`). */
+  readonly getProjectName = input.required<(task: TaskProjectRef) => string | null>();
 
   readonly isOpen = input(false);
   readonly selectedTask = input<Task | null>(null);
@@ -65,7 +66,6 @@ export class TaskDetailModalComponent {
   readonly taskMembers = input<TaskMember[]>([]);
   readonly taskCustomFields = input<CustomField[]>([]);
   readonly statuses = input<TaskStatus[]>([]);
-  readonly projects = input<Project[]>([]);
   readonly taskTypes = input<TaskType[]>([]);
   readonly commentDraft = input('');
   readonly isCommentSubmitting = input(false);

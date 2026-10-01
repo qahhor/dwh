@@ -27,7 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** Анкеты клиентов из фикстур заводятся через сервис без правки кода (И3 шаг 3.7). */
+/** The client file formats from the fixtures are set up through the service without changing code. */
 class UplFixturesTest extends EmbeddedPostgresTest {
 
     @Autowired

@@ -1,8 +1,9 @@
 package com.smartup24.cms.instance.fnd.dwh;
 
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

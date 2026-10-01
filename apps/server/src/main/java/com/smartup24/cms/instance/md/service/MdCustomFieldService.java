@@ -7,8 +7,6 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.md.api.MdCustomFieldDtos.CustomFieldView;
 import com.smartup24.cms.instance.md.repository.MdCustomFieldRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.LinkedHashMap;
 import org.slf4j.Logger;
@@ -167,8 +165,8 @@ public class MdCustomFieldService {
         var field = customFieldRepository.create(
                 entityType, normalizedCode, name, normalizedFieldType, isRequired, defaultValue, options, orderNo);
 
-        // Поле меняет форму данных всех записей сущности — операция уровня схемы,
-        // и она обязана быть в журнале (FR-AUD-1).
+        // A field changes the data shape of every record of the entity: a schema-level operation
+        // that must be in the audit log (FR-AUD-1).
         auditLogService.logChange(
                 "md_custom_fields",
                 String.valueOf(field.id()),
@@ -249,14 +247,20 @@ public class MdCustomFieldService {
     }
 
     /**
-     * Dynamic Attribute Validation against schema definitions in md_custom_fields.
+     * The attributes as they are stored: checked against the definitions in md_custom_fields (422 per field), and
+     * the scalar value of a string or select field written as a JSON string. Equality on those fields is JSON
+     * containment of a string (plan 10/10, item 3.7), so a number or boolean stored as such would never be found.
      */
-    public void validateAttributes(String entityType, Map<String, Object> attributes) {
+    public Map<String, Object> checkedAttributes(String entityType, Map<String, Object> attributes) {
         List<MdCustomFieldRepository.CustomFieldRecord> fieldDefs = getSelf().getFields(entityType);
         if (fieldDefs.isEmpty()) {
-            return;
+            return attributes;
         }
+        validate(fieldDefs, attributes);
+        return attributes == null ? null : MdCustomFieldValues.textValuesAsStrings(fieldDefs, attributes);
+    }
 
+    private void validate(List<MdCustomFieldRepository.CustomFieldRecord> fieldDefs, Map<String, Object> attributes) {
         Map<String, Object> safeAttrs = attributes != null ? attributes : Map.of();
         List<FieldErrorItem> errors = new ArrayList<>();
 
@@ -286,13 +290,17 @@ public class MdCustomFieldService {
                         ? fieldError(field, "too_long", "error.md.field_custom_too_long", Map.of("max", 4000))
                         : null;
             case "number" ->
-                isNumber(value) ? null : fieldError(field, "invalid_number", "error.md.field_custom_number", Map.of());
+                MdCustomFieldValues.isNumber(value)
+                        ? null
+                        : fieldError(field, "invalid_number", "error.md.field_custom_number", Map.of());
             case "boolean" ->
-                isBoolean(value)
+                MdCustomFieldValues.isBoolean(value)
                         ? null
                         : fieldError(field, "invalid_boolean", "error.md.field_custom_boolean", Map.of());
             case "date" ->
-                isDate(value) ? null : fieldError(field, "invalid_date", "error.md.field_custom_date", Map.of());
+                MdCustomFieldValues.isDate(value)
+                        ? null
+                        : fieldError(field, "invalid_date", "error.md.field_custom_date", Map.of());
             case "select" -> selectError(field, value.toString());
             case "user_ref" -> userRefError(field, value);
             default -> null;
@@ -305,33 +313,6 @@ public class MdCustomFieldService {
         Map<String, Object> all = new HashMap<>(params);
         all.put("name", field.name());
         return FieldErrorItem.keyed("attributes." + field.code(), code, messageKey, all);
-    }
-
-    private static boolean isNumber(Object value) {
-        if (value instanceof Number) {
-            return true;
-        }
-        try {
-            Double.parseDouble(value.toString());
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    private static boolean isBoolean(Object value) {
-        return value instanceof Boolean
-                || value.toString().equalsIgnoreCase("true")
-                || value.toString().equalsIgnoreCase("false");
-    }
-
-    private static boolean isDate(Object value) {
-        try {
-            LocalDate.parse(value.toString());
-            return true;
-        } catch (DateTimeParseException e) {
-            return false;
-        }
     }
 
     private FieldErrorItem selectError(MdCustomFieldRepository.CustomFieldRecord field, String value) {

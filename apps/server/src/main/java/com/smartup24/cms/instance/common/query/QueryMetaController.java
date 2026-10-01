@@ -4,6 +4,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
@@ -13,9 +14,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Метаданные списка для клиента: поля, их типы и операции фильтра, сортировка и размер страницы.
- * Отдаются тому, кто может смотреть сам список; неизвестный код и чужой список неотличимы (404),
- * чтобы по ответу нельзя было перебрать, какие списки есть.
+ * List metadata for the client: fields, their types and filter operations, sorting and page size.
+ * Served to whoever may view the list itself; an unknown code and a forbidden list look the same (404),
+ * so responses cannot be used to enumerate which lists exist.
  */
 @RestController
 @RequestMapping("/api/v1/query-meta")
@@ -71,9 +72,13 @@ public class QueryMetaController {
             int maxInValues) {}
 
     /**
-     * Любой вошедший пользователь (у всех ролей есть {@code iam.profile:view}); право на сам список
-     * проверяется ниже по реестру. Строка, а не {@code MdPref}: {@code common} не зависит от модулей.
+     * Any signed-in user (every role has {@code iam.profile:view}); the permission for the list itself
+     * is checked below against the registry. A string, not {@code MdPref}: {@code common} does not depend on modules.
      */
+    @Operation(
+            summary = "Get a list description",
+            description =
+                    "The fields, filters, sorts and defaults of a registry list, including custom fields; the list's own right is checked.")
     @GetMapping("/{code}")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<ListMeta> get(@PathVariable String code) {

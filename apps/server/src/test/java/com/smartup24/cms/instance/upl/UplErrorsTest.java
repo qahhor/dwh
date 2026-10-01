@@ -4,15 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.StaleVersionException;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.StaleVersionException;
 import com.smartup24.cms.instance.upl.format.UplErrors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
-/** М-10: перевод ошибок основы и БД в ответ API — каждая ветка {@link UplErrors#toApi}. */
+/** Turning foundation and database errors into an API answer: every branch of {@link UplErrors#toApi}. */
 class UplErrorsTest {
 
     @Test

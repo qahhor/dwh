@@ -22,7 +22,7 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** Разбор xlsx по анкете: структура, значения, счётчики и пределы. */
+/** Parsing xlsx by a file format: structure, values, counters and limits. */
 class UplXlsxParserTest {
 
     private static final String SHEET = "TEST лист";

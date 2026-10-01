@@ -14,19 +14,19 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /**
- * Синхронизация каталога форм с кодом (FR-PERM-1, дефект Д-5).
+ * Synchronizes the form catalog with the code (FR-PERM-1).
  *
- * Единственный источник правды о существовании права — аннотация
- * {@code @RequiresPermission} на обработчике: именно она реально охраняет
- * эндпоинт. Каталог в базе — производная от неё, а не наоборот.
+ * The single source of truth about whether a permission exists is the
+ * {@code @RequiresPermission} annotation on a handler: it is what actually guards the
+ * endpoint. The catalog in the database derives from it, not the other way round.
  *
- * Почему это понадобилось: каталог наполнялся миграциями, а метод регистрации
- * из кода не вызывался ниоткуда. В результате в матрице прав жили пары, за
- * которыми не стоит ни одного эндпоинта — администратор их видел и мог выдать,
- * право ничего не открывало, и это неотличимо от ошибки настройки доступа.
+ * Why this was needed: the catalog was filled by migrations, and the registration method
+ * was never called from code. As a result the permission matrix held pairs with no
+ * endpoint behind them: an administrator saw them and could grant them,
+ * the permission opened nothing, and that is indistinguishable from an access misconfiguration.
  *
- * Устаревшие записи не удаляются: удаление формы каскадом снимет уже выданные
- * права, а временное переименование эндпоинта молча лишило бы людей доступа.
+ * Obsolete records are not deleted: deleting a form would cascade to permissions already
+ * granted, and temporarily renaming an endpoint would silently take people's access away.
  */
 @Component
 @Profile("!migrate")
@@ -62,9 +62,9 @@ public class MdFormCatalogSynchronizer {
     }
 
     /**
-     * Пары {@code form.action}, объявленные аннотациями обработчиков.
-     * Вынесено отдельно и без зависимостей на Spring-контекст, чтобы правило
-     * можно было проверить тестом, а не только наблюдением за журналом.
+     * {@code form.action} pairs declared by handler annotations.
+     * Kept separate and free of Spring context dependencies so the rule
+     * can be checked by a test, not only by watching the log.
      */
     public static Set<String> declaredPairs(Collection<HandlerMethod> handlers) {
         Set<String> pairs = new TreeSet<>();

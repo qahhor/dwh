@@ -38,7 +38,8 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * <p>The violations that exist today are frozen ({@link FreezingArchRule}, store in
  * {@code src/test/resources/archunit_store}): a new one fails the build, a fixed one leaves the store, so the number
- * only goes down. Phases 2–4 remove them; the store's diff shows the progress in review.
+ * only goes down. Phases 2–4 remove them; the store's diff shows the progress in review. Foreign SQL is strict, not
+ * frozen: another module's data is read through its published views (ADR-0026).
  */
 class ModuleBoundariesTest {
 
@@ -227,14 +228,7 @@ class ModuleBoundariesTest {
             total += count;
             report.append("| ").append(rule).append(" | ").append(count).append(" |\n");
         }
-        long foreignSql = countLines(FOREIGN_SQL_BASELINE);
-        total += foreignSql;
-        report.append("| repositories touch only their module's tables | ")
-                .append(foreignSql)
-                .append(" |\n")
-                .append("| **total** | **")
-                .append(total)
-                .append("** |\n");
+        report.append("| **total** | **").append(total).append("** |\n");
         Files.createDirectories(REPORT.getParent());
         Files.writeString(REPORT, report.toString(), StandardCharsets.UTF_8);
         assertThat(rules.stringPropertyNames())
@@ -252,19 +246,28 @@ class ModuleBoundariesTest {
     }
 
     // ------------------------------------------------------------------
-    // Foreign SQL: a module's repositories touch only its own tables
+    // Foreign SQL: a module's repositories touch only its own tables (ADR-0026)
     // ------------------------------------------------------------------
 
     private static final Path SOURCES = Path.of("src/main/java/com/smartup24/cms/instance");
     private static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
-    private static final Path FOREIGN_SQL_BASELINE = Path.of("src/test/resources/archunit_store/foreign-sql.txt");
     private static final Pattern CREATE_TABLE =
             Pattern.compile("(?i)create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?([a-z_][a-z0-9_]*)");
-    private static final Pattern TABLE_USE = Pattern.compile("(?i)\\b(?:from|join|into|update)\\s+([a-z_][a-z0-9_]*)");
+    private static final Pattern CREATE_VIEW =
+            Pattern.compile("(?i)create\\s+(?:or\\s+replace\\s+)?view\\s+([a-z_][a-z0-9_]*)");
+    /** A relation after a SQL keyword, or a relation name alone in a string literal (built into SQL later). */
+    private static final Pattern TABLE_USE = Pattern.compile(
+            "(?i)\\b(delete\\s+from|from|join|into|update)\\s+([a-z_][a-z0-9_]*)|\"([a-z_][a-z0-9_]*)\"");
+    /** A published read view: {@code <owner prefix>_pub_<name>} (ADR-0026). */
+    static final Pattern PUBLISHED_VIEW = Pattern.compile("^([a-z][a-z0-9_]*?)_pub_[a-z0-9_]+$");
 
-    /** The module that owns a table, by its prefix. */
+    /**
+     * The module that owns a table or a published view, by its prefix. {@code md_sso_providers} carries the md prefix
+     * from V017 but only kauth reads it (SSO sign-in): the code that holds a table owns it (ADR-0026).
+     */
     static Optional<String> ownerOf(String table) {
         if (table.startsWith("audit_log") || table.equals("security_events")) return Optional.of("audit");
+        if (table.equals("md_sso_providers")) return Optional.of("kauth");
         if (table.startsWith("ms_task")) return Optional.of("ms.task");
         if (table.startsWith("ms_notification") || table.startsWith("ms_announcement")) return Optional.of("ms.notify");
         if (table.startsWith("ms_note")) return Optional.of("ms.note");
@@ -276,45 +279,68 @@ class ModuleBoundariesTest {
     }
 
     @Test
-    @DisplayName("1.3: a module's repositories touch only its own tables (frozen: only goes down)")
+    @DisplayName("1.3: a repository reads other modules only through their published views and writes only its own")
     void repositoriesTouchOnlyTheirModulesTables() throws IOException {
-        Set<String> tables = knownTables();
+        Set<String> tables = createdRelations(CREATE_TABLE);
+        Set<String> views = createdRelations(CREATE_VIEW);
         List<String> found;
         try (Stream<Path> files = Files.walk(SOURCES)) {
             found = files.filter(file -> file.toString().replace('\\', '/').contains("/repository/")
                             && file.toString().endsWith(".java"))
-                    .flatMap(file -> foreignTables(file, tables).stream())
+                    .flatMap(file -> foreignAccess(file, tables, views).stream())
                     .sorted()
                     .distinct()
                     .toList();
         }
-        if (Boolean.getBoolean("archunit.freeze.store.default.allowStoreCreation")) {
-            // The same switch that lets ArchUnit create its stores writes this baseline: once, when a rule is added.
-            Files.createDirectories(FOREIGN_SQL_BASELINE.getParent());
-            Files.write(
-                    FOREIGN_SQL_BASELINE,
-                    Stream.concat(
-                                    Stream.of(
-                                            "# Frozen foreign table access from repositories (plan 10/10, item 1.3): lines only go away."),
-                                    found.stream())
-                            .toList(),
-                    StandardCharsets.UTF_8);
-        }
-        List<String> baseline = Files.readAllLines(FOREIGN_SQL_BASELINE, StandardCharsets.UTF_8).stream()
-                .map(String::trim)
-                .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                .toList();
-
-        assertThat(found.stream().filter(line -> !baseline.contains(line)).toList())
-                .as("new foreign table access from a repository: go through the owning module's service")
-                .isEmpty();
-        assertThat(baseline.stream().filter(line -> !found.contains(line)).toList())
-                .as("fixed foreign table access: remove these lines from %s", FOREIGN_SQL_BASELINE)
+        assertThat(found)
+                .as("read another module's published view (<owner>_pub_*, ADR-0026) or call its service;"
+                        + " a write always goes through the owning module's service")
                 .isEmpty();
     }
 
-    private static List<String> foreignTables(Path file, Set<String> tables) {
+    @Test
+    @DisplayName("ADR-0026: every view is a published view with an owning module")
+    void everyViewIsPublishedByAModule() throws IOException {
+        List<String> wrong = createdRelations(CREATE_VIEW).stream()
+                .filter(view -> !PUBLISHED_VIEW.matcher(view).matches()
+                        || ownerOf(view).isEmpty()
+                        || !ownerOf(view).equals(ownerOf(prefixOf(view) + "_")))
+                .toList();
+        assertThat(wrong).as("a view is named <owner prefix>_pub_<name>").isEmpty();
+        assertThat(foreignAccessIn("ms/task/repository/Probe.java", "select 1 from md_users", Set.of("md_users")))
+                .containsExactly("ms.task Probe -> md_users");
+        assertThat(foreignAccessIn("ms/task/repository/Probe.java", "join md_pub_users u", Set.of()))
+                .isEmpty();
+        assertThat(foreignAccessIn("ms/task/repository/Probe.java", "update md_pub_users set", Set.of()))
+                .containsExactly("ms.task Probe writes md_pub_users");
+        assertThat(foreignAccessIn("md/repository/Probe.java", "delete from md_pub_users", Set.of()))
+                .containsExactly("md Probe writes md_pub_users");
+        assertThat(foreignAccessIn(
+                        "ms/task/repository/Probe.java", "case \"USER\" -> \"md_users\";", Set.of("md_users")))
+                .containsExactly("ms.task Probe -> md_users");
+    }
+
+    private static String prefixOf(String view) {
+        Matcher matcher = PUBLISHED_VIEW.matcher(view);
+        return matcher.matches() ? matcher.group(1) : view;
+    }
+
+    private static List<String> foreignAccess(Path file, Set<String> tables, Set<String> views) {
         String relative = SOURCES.relativize(file).toString().replace('\\', '/');
+        try {
+            Set<String> relations = new TreeSet<>(tables);
+            relations.addAll(views);
+            return foreignAccessIn(relative, Files.readString(file, StandardCharsets.UTF_8), relations);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Violations in one repository source: a table of another module, a write to any published view, a view of
+     * another module that is not published. Published views need not be in {@code relations}: the name says it.
+     */
+    static List<String> foreignAccessIn(String relative, String source, Set<String> relations) {
         String module = MODULES.stream()
                 .filter(candidate -> relative.startsWith(candidate.replace('.', '/') + "/"))
                 .findFirst()
@@ -323,34 +349,34 @@ class ModuleBoundariesTest {
             return List.of();
         }
         String className = relative.substring(relative.lastIndexOf('/') + 1).replace(".java", "");
-        try {
-            String source = Files.readString(file, StandardCharsets.UTF_8);
-            Matcher matcher = TABLE_USE.matcher(source);
-            TreeSet<String> result = new TreeSet<>();
-            while (matcher.find()) {
-                String table = matcher.group(1).toLowerCase();
-                if (tables.contains(table)) {
-                    ownerOf(table)
-                            .filter(owner -> !owner.equals(module))
-                            .ifPresent(owner -> result.add(module + " " + className + " -> " + table));
-                }
+        Matcher matcher = TABLE_USE.matcher(source);
+        TreeSet<String> result = new TreeSet<>();
+        while (matcher.find()) {
+            String keyword = matcher.group(1) == null ? "" : matcher.group(1).toLowerCase();
+            String name = (matcher.group(2) != null ? matcher.group(2) : matcher.group(3)).toLowerCase();
+            boolean published =
+                    PUBLISHED_VIEW.matcher(name).matches() && ownerOf(name).isPresent();
+            if (published && (keyword.startsWith("delete") || keyword.equals("into") || keyword.equals("update"))) {
+                result.add(module + " " + className + " writes " + name);
+            } else if (!published && relations.contains(name)) {
+                ownerOf(name)
+                        .filter(owner -> !owner.equals(module))
+                        .ifPresent(owner -> result.add(module + " " + className + " -> " + name));
             }
-            return List.copyOf(result);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
+        return List.copyOf(result);
     }
 
-    private static Set<String> knownTables() throws IOException {
-        TreeSet<String> tables = new TreeSet<>();
+    private static Set<String> createdRelations(Pattern statement) throws IOException {
+        TreeSet<String> relations = new TreeSet<>();
         try (Stream<Path> files = Files.list(MIGRATIONS)) {
             for (Path file : files.toList()) {
-                Matcher matcher = CREATE_TABLE.matcher(Files.readString(file, StandardCharsets.UTF_8));
+                Matcher matcher = statement.matcher(Files.readString(file, StandardCharsets.UTF_8));
                 while (matcher.find()) {
-                    tables.add(matcher.group(1).toLowerCase());
+                    relations.add(matcher.group(1).toLowerCase());
                 }
             }
         }
-        return tables;
+        return relations;
     }
 }

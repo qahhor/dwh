@@ -121,7 +121,7 @@ export class NotificationService {
   }
 
   /**
-   * Подключение к Server-Sent Events (SSE) потоку /api/v1/events для получения уведомлений в реальном времени.
+   * Connects to the Server-Sent Events (SSE) stream /api/v1/events to receive notifications in real time.
    */
   connectSse(): void {
     if (this.eventSource || this.isConnecting) {
@@ -138,7 +138,7 @@ export class NotificationService {
         this.isConnecting = false;
       };
 
-      // Слушатель события 'notification'
+      // Listener of the 'notification' event
       source.addEventListener('notification', (event: MessageEvent) => {
         if (this.eventSource !== source) return;
         try {
@@ -154,7 +154,7 @@ export class NotificationService {
         }
       });
 
-      // Слушатель события 'announcement'
+      // Listener of the 'announcement' event
       source.addEventListener('announcement', (event: MessageEvent) => {
         if (this.eventSource !== source) return;
         try {
@@ -172,7 +172,7 @@ export class NotificationService {
       source.onerror = () => {
         if (this.eventSource !== source) return;
         this.isConnecting = false;
-        // EventSource автоматически выполняет реконнект в браузере
+        // The browser's EventSource reconnects by itself
       };
     } catch (e) {
       this.isConnecting = false;
@@ -181,7 +181,7 @@ export class NotificationService {
   }
 
   /**
-   * Закрытие SSE соединения при выходе из системы.
+   * Closes the SSE connection on sign-out.
    */
   disconnectSse(): void {
     if (this.eventSource) {

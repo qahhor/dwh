@@ -21,7 +21,7 @@ const column = (nameInFile: string, extra: Partial<UplColumn> = {}): UplColumn =
   ...extra,
 });
 
-/** A workbook draft: «Продажи» with three columns, the volume in tons, and an empty «Остатки». */
+/** A workbook draft: a sales sheet with three columns, the volume in tons, and an empty stock sheet. */
 function draft(): UplFormatDraftRequest {
   return {
     ...emptyModel(),

@@ -2,6 +2,7 @@ package com.smartup24.cms.instance.common.entity;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
 import com.smartup24.cms.instance.common.security.SecurityContext;
+import io.swagger.v3.oas.annotations.Operation;
 import java.util.Comparator;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,9 @@ public class EntityMenuController {
             String module) {}
 
     /** Anyone signed in may ask; each item is filtered by its entity's own right. */
+    @Operation(
+            summary = "Get the entity menu",
+            description = "The menu items of the declared entities, each filtered by the caller's right on its entity.")
     @GetMapping("/menu")
     @RequiresPermission(form = "iam.profile", action = "view")
     public ResponseEntity<List<MenuItem>> menu() {

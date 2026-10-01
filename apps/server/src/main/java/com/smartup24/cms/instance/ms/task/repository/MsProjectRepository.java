@@ -135,7 +135,7 @@ public class MsProjectRepository {
                 .sql("""
                 select pm.project_id, pm.user_id, u.name as user_name, u.email as user_email, pm.access_kind
                 from ms_task_project_members pm
-                join md_users u on u.id = pm.user_id
+                join md_pub_users u on u.id = pm.user_id
                 where pm.project_id = :projectId
                   and (cast(:afterUserId as bigint) is null or (u.name, pm.user_id) > (:afterName, :afterUserId))
                 order by u.name asc, pm.user_id asc

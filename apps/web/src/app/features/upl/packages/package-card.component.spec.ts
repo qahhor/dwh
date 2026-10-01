@@ -209,7 +209,7 @@ describe('PackageCardComponent', () => {
   });
 
   it('статус «отклонён»: сервер не передаёт пустые поля — расхождение без поля rowNo всё равно показано строкой', async () => {
-    // так запись выглядит в настоящем ответе сервера: полей sheet-адреса строки и value нет вовсе
+    // this is how the record looks in a real server response: the sheet address fields of the row and value are absent
     const fromServer = {
       sheet: 'Sheet2',
       columnName: 'Summa',

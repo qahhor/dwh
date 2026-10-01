@@ -199,7 +199,7 @@ export class PackagesComponent implements OnInit {
     return this.permissions.hasPermission('upl.packages', 'apply');
   }
 
-  /** Ответ «Применить» сразу показывается в карточке; список перечитывается, чтобы статус совпал и там. */
+  /** The "Apply" answer shows in the card at once; the list is reread so that the status matches there too. */
   onApplied(result: UplPackageItem): void {
     this.selected.set(result);
     this.load();
@@ -227,7 +227,7 @@ export class PackagesComponent implements OnInit {
     else this.sourceLookup.search(query, this.selectedSource);
   }
 
-  /** «Создать из поля»: карточка нового источника с набранным названием; после создания форма получит его выбранным. */
+  /** "Create from the field": the card of a new source with the typed name; once created, the form gets it selected. */
   createSource(name: string): void {
     void this.router.navigate(['/upl/sources'], { queryParams: { create: name, returnTo: 'packages' } });
   }
@@ -281,7 +281,7 @@ export class PackagesComponent implements OnInit {
     this.form.update((form) => ({ ...form, ...patch }));
   }
 
-  /** Кнопка «Загрузить» оживает, только когда заполнены все четыре поля. */
+  /** The "Upload" button comes alive only when all four fields are filled in. */
   isReady(): boolean {
     const form = this.form();
     return (
@@ -359,7 +359,7 @@ export class PackagesComponent implements OnInit {
     };
   }
 
-  /** После успеха чистим только файл: источник и период нужны для следующего файла. */
+  /** After a success only the file is cleared: the source and the period are needed for the next file. */
   private clearFile(): void {
     this.patchForm({ file: null });
     const fileInput = this.fileInput();
@@ -374,7 +374,7 @@ export class PackagesComponent implements OnInit {
     return open ? this.api.get(open).pipe(catchError(() => of(null))) : of(null);
   }
 
-  /** Открытая карточка подхватывает свежие данные списка; пропала из порции — остаётся как была. */
+  /** The open card picks up fresh list data; if it dropped out of the portion, it stays as it was. */
   private syncSelected(loaded: UplPackageItem[]): void {
     const current = this.selected();
     if (current === null) {

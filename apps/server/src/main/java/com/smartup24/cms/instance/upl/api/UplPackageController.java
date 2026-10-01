@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.upl.upload.UplErrorReportBuilder;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService.Upload;
+import io.swagger.v3.oas.annotations.Operation;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -31,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * API загрузок файлов: приём файла, список пакетов и ошибки пакета (контракт И5), применение пакета (И6). Both the
+ * File upload API: accepting a file, the package list and package errors, and applying a package. Both the
  * upload and the apply answer 202: the work is a job, the package is the status resource.
  */
 @RestController
@@ -64,9 +65,12 @@ public class UplPackageController {
     }
 
     /**
-     * Принимает файл: 202 и пакет в статусе «получен». Части запроса не обязательны для каркаса —
-     * их отсутствие проверяет сервис и отвечает одним списком ошибок, а не отказом разбора запроса.
+     * Accepts a file: 202 and a package in status "received". The request parts are not required by the framework:
+     * the service checks whether they are missing and answers with one list of errors, not a request parsing failure.
      */
+    @Operation(
+            summary = "Upload a data package",
+            description = "Accepts a file for a source; the package starts as received.")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_UPLOAD)
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -87,6 +91,9 @@ public class UplPackageController {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(uploads.receiveItem(upload, userId()));
     }
 
+    @Operation(
+            summary = "List data packages",
+            description = "The uploaded packages, a keyset page at a time with filters.")
     @GetMapping
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<KeysetPage<PackageItem>> list(
@@ -99,12 +106,14 @@ public class UplPackageController {
     }
 
     /** One upload, as the list shows it; the overview links straight to its card. */
+    @Operation(summary = "Get a data package", description = "One uploaded package with its state and counts.")
     @GetMapping("/{id}")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<PackageItem> get(@PathVariable String id) {
         return ResponseEntity.ok(packages.item(id));
     }
 
+    @Operation(summary = "List the errors of a package", description = "The errors found in an uploaded package.")
     @GetMapping("/{id}/errors")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<PackageErrors> errors(@PathVariable String id) {
@@ -112,9 +121,12 @@ public class UplPackageController {
     }
 
     /**
-     * Ошибки пакета файлом xlsx (роадмап п. 21): что загружено и чем кончилось, затем каждая сохранённая
-     * ошибка с адресом и словами, а не кодом, — на языке, который попросили (по умолчанию русский).
+     * Package errors as an xlsx file: what was uploaded and how it ended, then each stored
+     * error with its address and words rather than a code, in the requested language (Russian by default).
      */
+    @Operation(
+            summary = "Download the errors of a package",
+            description = "The errors of an uploaded package as a spreadsheet, in the requested language.")
     @GetMapping("/{id}/errors/file")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_VIEW)
     public ResponseEntity<byte[]> errorsFile(@PathVariable String id, @RequestParam(required = false) String lang) {
@@ -143,9 +155,13 @@ public class UplPackageController {
     }
 
     /**
-     * Ставит применение пакета «проверен» в очередь (план 10/10, п. 3.9): 202, пакет «применяется» и {@code Location}
-     * — the package itself, which the client polls until it turns «применён» or «отклонён системой».
+     * Queues the apply of a "verified" package (plan 10/10, item 3.9): 202, the package "applying" and {@code Location}
+     * is the package itself, which the client polls until it turns "applied" or "rejected".
      */
+    @Operation(
+            summary = "Apply a data package",
+            description =
+                    "Queues the application of a checked package; the client polls the package until it is applied or refused.")
     @PostMapping("/{id}/apply")
     @RequiresPermission(form = UplPref.FORM_PACKAGES, action = UplPref.ACTION_APPLY)
     @ResponseStatus(HttpStatus.ACCEPTED)

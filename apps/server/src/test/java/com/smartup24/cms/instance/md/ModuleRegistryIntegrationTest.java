@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.md;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.audit.repository.AuditLogRepository;
 import com.smartup24.cms.instance.audit.service.AuditDataRedactor;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
@@ -100,5 +101,45 @@ class ModuleRegistryIntegrationTest {
         var found = moduleService.getModule("inventory");
         assertThat(found).isPresent();
         assertThat(found.get().attributes()).containsEntry("currency", "USD");
+    }
+
+    @Test
+    @DisplayName("3.6: PUT registers a new module; a replace names its revision: 428 without, 409 from an older one")
+    void putModuleReplacesFromItsRevision() {
+        var created = moduleService.putModule(
+                "warehouse", "Склад", null, "1.0.0", "package", "/warehouse", 160, Map.of(), null);
+        assertThat(created.revision()).isEqualTo(1L);
+        assertThat(created.status()).isEqualTo("ACTIVE");
+
+        assertThatThrownBy(() -> moduleService.putModule(
+                        "warehouse", "Без ревизии", null, "1.0.1", "package", "/warehouse", 160, Map.of(), null))
+                .isInstanceOfSatisfying(
+                        ApiException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.PRECONDITION_REQUIRED));
+
+        var replaced = moduleService.putModule(
+                "warehouse", "Склад 2", null, "1.1.0", "package", "/warehouse", 160, Map.of(), 1L);
+        assertThat(replaced.revision()).isEqualTo(2L);
+        assertThat(replaced.name()).isEqualTo("Склад 2");
+
+        assertThatThrownBy(() -> moduleService.putModule(
+                        "warehouse", "Устаревшая", null, "1.0.2", "package", "/warehouse", 160, Map.of(), 1L))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.REVISION_CONFLICT));
+        assertThatThrownBy(() -> moduleService.putModule(
+                        "nowhere", "Нет такого", null, "1.0.0", "box", "/nowhere", 1, Map.of(), 1L))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.NOT_FOUND));
+
+        // A switch is a write of the row too: a replace made from the revision before it gets 409.
+        moduleService.toggleModuleStatus("warehouse", false);
+        assertThat(moduleService.getModule("warehouse").orElseThrow().revision())
+                .isEqualTo(3L);
+        assertThatThrownBy(() -> moduleService.putModule(
+                        "warehouse", "Поверх", null, "1.2.0", "package", "/warehouse", 160, Map.of(), 2L))
+                .isInstanceOf(ApiException.class);
+        assertThat(moduleService.getModule("warehouse").orElseThrow().status())
+                .as("a replace keeps the status")
+                .isEqualTo("DISABLED");
     }
 }

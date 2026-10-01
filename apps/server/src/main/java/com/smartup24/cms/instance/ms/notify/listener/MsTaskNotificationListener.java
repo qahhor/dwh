@@ -2,22 +2,22 @@ package com.smartup24.cms.instance.ms.notify.listener;
 
 import com.smartup24.cms.instance.ms.notify.pref.MsNotifyPref;
 import com.smartup24.cms.instance.ms.notify.service.MsNotificationService;
-import com.smartup24.cms.instance.ms.task.event.MsTaskEvents;
+import com.smartup24.cms.instance.ms.task.api.MsTaskEvents;
 import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Превращает доменные события задачника в in-app уведомления (FR-TASK-8).
+ * Turns task tracker domain events into in-app notifications (FR-TASK-8).
  *
- * Слушатель обычный (не AFTER_COMMIT): уведомление должно попасть в БД
- * в ТОЙ ЖЕ транзакции, что и само изменение задачи — иначе возможна задача
- * без уведомления при откате или наоборот. Доставка в SSE уже отложена
- * до коммита внутри MsNotificationService (MsSsePublisher).
+ * A plain listener (not AFTER_COMMIT): the notification must reach the database
+ * in the SAME transaction as the task change itself; otherwise a rollback could leave a task
+ * without a notification or the other way round. Delivery to SSE is already deferred
+ * until commit inside MsNotificationService (MsSsePublisher).
  *
- * Автор действия исключается из получателей: не уведомляем человека
- * о том, что он сам только что сделал.
+ * The author of the action is excluded from the recipients: we do not notify a person
+ * about what they have just done themselves.
  */
 @Component
 @Profile("!migrate")
@@ -61,8 +61,8 @@ public class MsTaskNotificationListener {
                 "Статус задачи: " + event.newStatusName(),
                 event.taskTitle(),
                 event.taskId(),
-                // source_code с учётом статуса: смена на новый статус — новое
-                // уведомление, повторная установка того же — обновление прежнего
+                // source_code includes the status: a change to a new status creates a new
+                // notification, setting the same status again updates the previous one
                 "task-status-" + event.taskId() + "-" + event.newStatusName());
     }
 
@@ -76,7 +76,7 @@ public class MsTaskNotificationListener {
                 "Новый комментарий к задаче",
                 event.taskTitle(),
                 event.taskId(),
-                null); // комментарии не схлопываем: важен каждый
+                null); // comments are not collapsed: each one matters
     }
 
     @EventListener

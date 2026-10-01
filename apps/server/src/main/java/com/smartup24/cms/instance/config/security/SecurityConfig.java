@@ -70,8 +70,8 @@ public class SecurityConfig {
                             // Kauth revalidates credentials on every stateless request. Completed
                             // login/OTP and logout own CSRF renewal/clearing in KauthAuthController.
                             .sessionAuthenticationStrategy(new NullAuthenticatedSessionStrategy())
-                            // FR-SEC-1: CSRF применяется к мутирующим запросам С cookie-аутентификацией.
-                            // Только принятый API-токен освобождает запрос с сессионной cookie.
+                            // FR-SEC-1: CSRF applies to mutating requests WITH cookie authentication.
+                            // Only an accepted API token exempts a request that carries a session cookie.
                             .ignoringRequestMatchers(SecurityConfig::isCsrfExempt);
                 })
                 .authorizeHttpRequests(auth -> auth
@@ -85,7 +85,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(PUBLIC_PATHS)
                         .permitAll()
-                        // Actuator живёт на отдельном management-порту, наружу не публикуется
+                        // Actuator lives on a separate management port that is not published outside
                         .requestMatchers("/actuator/**")
                         .permitAll()
                         .anyRequest()
@@ -104,7 +104,7 @@ public class SecurityConfig {
                                 "Permissions-Policy", "geolocation=(), camera=(), microphone=()")))
                 .exceptionHandling(
                         ex -> ex.authenticationEntryPoint(problemHandlers).accessDeniedHandler(problemHandlers))
-                // Порядок детерминирован: аутентификация -> лимиты -> идемпотентность -> авторизация
+                // The order is deterministic: authentication -> rate limits -> idempotency -> authorization
                 .addFilterAfter(kauthAuthenticationFilter, SecurityContextHolderFilter.class)
                 .addFilterBefore(rateLimitFilter, AuthorizationFilter.class)
                 .addFilterAfter(idempotencyFilter, RateLimitFilter.class);

@@ -3,6 +3,8 @@ package com.smartup24.cms.instance.md.service;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.web.Revisions;
+import com.smartup24.cms.instance.md.api.SystemSettingsView;
 import com.smartup24.cms.instance.md.repository.MdSettingRepository;
 import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import java.util.HashMap;
@@ -83,27 +85,51 @@ public class MdSettingService {
         return effective;
     }
 
+    /** The system settings with the revision of the set, which a save of them names (plan 10/10, item 3.6). */
+    @Transactional(readOnly = true)
+    public SystemSettingsView getSystemSettings() {
+        long revision = settingRepository.instanceRevision();
+        return new SystemSettingsView(getInstanceSettings(), revision);
+    }
+
+    /**
+     * Saves the system settings sent, made from the revision {@code expectedRevision} of the set, and answers its new
+     * revision (plan 10/10, item 3.6): the set is one record, so of two concurrent saves from the same revision the
+     * second is refused (409) even when they change different keys. An empty save changes nothing and keeps the
+     * revision, but is still refused when it was made from an older one.
+     */
     @Transactional
-    public void updateInstanceSettings(Map<String, String> settings) {
+    public long updateInstanceSettings(Map<String, String> settings, long expectedRevision) {
         if (settings != null && settings.containsKey(IDLE_LOCK_MINUTES)) {
             parseIdleLock(settings.get(IDLE_LOCK_MINUTES), true);
         }
-        if (settings != null && !settings.isEmpty()) {
-            Map<String, String> existing = getInstanceSettings();
-            settings.forEach((k, v) -> {
-                settingRepository.setInstanceSetting(k, v);
-                String oldVal = existing.get(k);
-                if (oldVal == null || !oldVal.equals(v)) {
-                    auditLogService.logChange(
-                            "md_settings",
-                            k,
-                            "U",
-                            List.of("value"),
-                            Map.of("key", k, "value", oldVal != null ? oldVal : ""),
-                            Map.of("key", k, "value", v != null ? v : ""));
-                }
-            });
+        if (settings == null || settings.isEmpty()) {
+            long current = settingRepository.instanceRevision();
+            if (current != expectedRevision) {
+                throw Revisions.conflict();
+            }
+            return current;
         }
+        long revision = settingRepository.nextInstanceRevision(expectedRevision);
+        writeInstanceSettings(settings);
+        return revision;
+    }
+
+    private void writeInstanceSettings(Map<String, String> settings) {
+        Map<String, String> existing = getInstanceSettings();
+        settings.forEach((k, v) -> {
+            settingRepository.setInstanceSetting(k, v);
+            String oldVal = existing.get(k);
+            if (oldVal == null || !oldVal.equals(v)) {
+                auditLogService.logChange(
+                        "md_settings",
+                        k,
+                        "U",
+                        List.of("value"),
+                        Map.of("key", k, "value", oldVal != null ? oldVal : ""),
+                        Map.of("key", k, "value", v != null ? v : ""));
+            }
+        });
     }
 
     @Transactional

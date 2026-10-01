@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.ms.task.service.MsTaskAuditTrail;
 import com.smartup24.cms.instance.ms.task.service.MsTaskStatusService;
-import com.smartup24.cms.instance.search.repository.SearchJobRepository;
+import com.smartup24.cms.instance.search.service.SearchJobAudit;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -22,28 +22,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * FR-AUD-1: значимое изменение оставляет след.
+ * FR-AUD-1: a significant change leaves a trace.
  *
- * Ревизия 29.08 показала, что аудит писали три сервиса из полутора десятков —
- * выдача прав, файлы, вебхуки и динамические поля не журналировались вовсе.
- * Разошлось это молча: ни один тест не проверял покрытие, потому что проверять
- * «каждый вызов» невозможно.
+ * A review on 29.08 showed that only three services out of about fifteen wrote audit records: permission grants,
+ * files, webhooks and dynamic fields were not logged at all. The gap opened silently: no test checked coverage,
+ * because checking "every call" is impossible.
  *
- * Проверяем то, что проверяемо и что ловит регресс: сервис, у которого есть
- * мутирующая транзакция, обязан зависеть от {@link AuditLogService}. Это не
- * гарантирует, что вызов расставлен в каждой ветке, но гарантирует, что новый
- * мутирующий сервис не появится вообще без аудита.
+ * So the test checks what can be checked and what catches a regression: a service with a mutating transaction
+ * must depend on {@link AuditLogService}. This does not guarantee a call in every branch, but it guarantees that
+ * a new mutating service never appears without audit at all.
  */
 class AuditCoverageTest {
 
     /**
-     * Search jobs write fixed-field, explicit-actor audit rows through this exact repository.
-     * The worker also uses it on the activation connection, preserving pointer/job/audit atomicity.
-     * This is audited delegation, not an exemption; behavioral coverage lives in the job tests.
+     * Search jobs write fixed-field, explicit-actor audit rows through {@link SearchJobAudit}, which hands them to
+     * {@link AuditLogService} (ADR-0026). The worker also uses it on the activation connection, preserving
+     * pointer/job/audit atomicity. This is audited delegation, not an exemption; behavioral coverage lives in the job
+     * tests.
      */
     private static final Map<String, Class<?>> AUDIT_DELEGATES = Map.of(
             "SearchJobService",
-            SearchJobRepository.class,
+            SearchJobAudit.class,
             // Plan 10/10, item 3.10: the task services write ms_tasks entries through one trail; the status view
             // service adapts the status service, which audits the dictionaries itself.
             "MsTaskService",
@@ -58,20 +57,20 @@ class AuditCoverageTest {
             MsTaskStatusService.class);
 
     /**
-     * Сервисы без аудита — каждый с обоснованием. Список закрытый: новый сервис
-     * сюда не добавляется без причины, по которой его мутации не значимы.
+     * Services without audit, each with a reason. The list is closed: a new service is added only with a reason why
+     * its mutations are not significant.
      */
     private static final Set<String> WITHOUT_AUDIT_BY_DESIGN = Set.of(
-            "AuditLogService", // сам механизм журнала
-            "MdPermissionService", // материализация прав; источник изменения журналируют вызывающие
-            "IdempotencyService", // служебный кэш ответов, бизнес-состояния не меняет
-            "KauthSessionService", // вход и выход пишутся в security_events, а не в audit_log
-            "KauthApiTokenService", // выдача и отзыв токена — тоже security_events
-            "SearchService", // индексация, производная от уже пожурналированных данных
-            "SearchChangePublisher", // производные ревизии; бизнес-мутацию журналирует владелец
-            "MsNotificationService", // доставка оповещений, а не изменение данных
-            // аудит — триггерами основы (fnd_audit_enable, V100): актор через app.user_id, строка audit_log на каждую
-            // I/U/D
+            "AuditLogService", // the log mechanism itself
+            "MdPermissionService", // materializes permissions; the callers log the change that caused it
+            "IdempotencyService", // a service cache of responses, does not change business state
+            "KauthSessionService", // sign-in and sign-out go to security_events, not to audit_log
+            "KauthApiTokenService", // issuing and revoking a token go to security_events too
+            "SearchService", // indexing, derived from data that is already logged
+            "SearchChangePublisher", // derived revisions; the owner logs the business mutation
+            "MsNotificationService", // delivers notifications, does not change data
+            // audited by the foundation triggers (fnd_audit_enable, V100): the actor comes from app.user_id, one
+            // audit_log row per insert, update or delete
             "FndLoadService",
             "FndUnitService",
             "FndVersioning",
@@ -170,7 +169,7 @@ class AuditCoverageTest {
                 }
                 services.add(type);
             } catch (ClassNotFoundException ignored) {
-                // класса нет на этом classpath — проверять нечего
+                // the class is not on this classpath: nothing to check
             }
         }
         return services;

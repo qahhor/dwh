@@ -6,14 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Пакет загрузки и его ошибки, как они лежат в таблицах {@code upl_packages} и {@code upl_package_errors} (V114). */
+/** Upload package and its errors as stored in {@code upl_packages} and {@code upl_package_errors} (V114). */
 public final class UplPackageModel {
 
-    /** Файл принят и ждёт разбора заданием. */
+    /** The file is accepted and waits to be parsed by a job. */
     public static final String RECEIVED = "received";
-    /** Файл отклонён системой: разбор не дал строк, причина — в {@code rejectCode}. */
+    /** The file is rejected by the system: parsing produced no rows, the reason is in {@code rejectCode}. */
     public static final String REJECTED = "rejected";
-    /** Файл разобран: счётчики строк заполнены, ошибки ячеек сохранены. */
+    /** The file is parsed: row counters are filled in, cell errors are stored. */
     public static final String VERIFIED = "verified";
     /**
      * Apply requested (plan 10/10, item 3.9): the load of the foundation is open and the job that streams the rows into
@@ -22,12 +22,12 @@ public final class UplPackageModel {
      * UplPackageRepository#STATUS_SQL}, so the table and its check stay as V114 made them.
      */
     public static final String APPLYING = "applying";
-    /** Проверенный пакет применён загрузкой основы (следующий инкремент). */
+    /** A verified package was applied by a foundation load. */
     public static final String APPLIED = "applied";
 
     private UplPackageModel() {}
 
-    /** Строка пакета вместе с кодом и названием источника. */
+    /** A package row together with the source code and name. */
     public record PackageRow(
             long id,
             UUID publicId,
@@ -53,7 +53,7 @@ public final class UplPackageModel {
             Instant uploadedAt,
             String uploadedBy) {}
 
-    /** Данные нового пакета: всё, что известно в момент приёма файла. */
+    /** Data of a new package: everything known at the moment the file is accepted. */
     public record NewPackage(
             long sourceId,
             int formatVersion,
@@ -65,7 +65,7 @@ public final class UplPackageModel {
             long fileSizeBytes,
             long uploadedById) {}
 
-    /** Запись об ошибке пакета: {@code rowNo == null} — расхождение с анкетой, иначе ошибка ячейки. */
+    /** Package error record: {@code rowNo == null} means a mismatch with the format, otherwise a cell error. */
     public record ErrorRow(
             int ordinal,
             String sheet,
@@ -75,6 +75,6 @@ public final class UplPackageModel {
             String code,
             Map<String, Object> params) {}
 
-    /** Ошибки пакета: сколько найдено всего и что сохранено. */
+    /** Package errors: how many were found in total and what was stored. */
     public record ErrorsView(int total, List<ErrorRow> items) {}
 }

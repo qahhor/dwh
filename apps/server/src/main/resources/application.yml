@@ -46,16 +46,16 @@ spring:
         # are PostgreSQL durations (60s, 5min; 0 = off), set under smc.database below.
         options: "-c statement_timeout=${smc.database.statement-timeout} -c idle_in_transaction_session_timeout=${smc.database.idle-in-transaction-timeout}"
   flyway:
-    # NFR-10 / ADR-0007 2.3: приложение НЕ мигрирует схему. Миграции — только
-    # отдельным запуском: --spring.profiles.active=migrate (batch-job фазы P).
-    # При старте приложение лишь проверяет схему (SchemaVersionGate, FR-INST-2).
+    # NFR-10 / ADR-0007: the application does NOT migrate the schema. Migrations run only
+    # as a separate launch: --spring.profiles.active=migrate (a batch job in production).
+    # At startup the application only checks the schema (SchemaVersionGate, FR-INST-2).
     enabled: false
     locations: classpath:db/migration
     baseline-on-migrate: false
   mail:
-    # FR-NOTIF-3. Пусто -> SmtpMailProvider не поднимается и активной остаётся
-    # заглушка: канал восстановления пароля работать не будет, и об этом
-    # предупредит NotificationChannelStartupCheck при старте.
+    # FR-NOTIF-3. Empty -> SmtpMailProvider is not created and the stub stays
+    # active: the password recovery channel will not work, and
+    # NotificationChannelStartupCheck warns about it at startup.
     host: ${SMTP_HOST:}
     port: ${SMTP_PORT:587}
     username: ${SMTP_USER:}
@@ -63,18 +63,18 @@ spring:
     properties:
       mail.smtp.auth: ${SMTP_AUTH:true}
       mail.smtp.starttls.enable: ${SMTP_STARTTLS:true}
-      # Без таймаутов недоступный шлюз держит поток отправки до упора.
+      # Without timeouts an unreachable gateway holds the sending thread indefinitely.
       mail.smtp.connectiontimeout: 10000
       mail.smtp.timeout: 10000
       mail.smtp.writetimeout: 10000
   jackson:
-    # Jackson 3: даты ISO-8601 по умолчанию, write-dates-as-timestamps удалён
+    # Jackson 3: ISO-8601 dates by default, write-dates-as-timestamps was removed
     default-property-inclusion: non_null
     deserialization:
-      # Jackson 3 включил fail-on-null-for-primitives по умолчанию (в Jackson 2
-      # было выключено). Из-за этого клиент, опустивший необязательное поле
-      # с примитивным типом, получал 400. Контракт ТЗ-04: такие поля
-      # необязательны и берут значение по умолчанию — возвращаем прежнее поведение.
+      # Jackson 3 turned fail-on-null-for-primitives on by default (it was off in
+      # Jackson 2). Because of that a client that omitted an optional field
+      # of a primitive type got 400. The API contract says such fields are
+      # optional and take the default value, so the former behavior is restored.
       fail-on-null-for-primitives: false
 
 # The API description generated from the controllers (plan 10/10, item 3.3); keys sorted for a stable diff.
@@ -88,8 +88,8 @@ springdoc:
 
 management:
   server:
-    # Actuator на отдельном порту: НЕ публикуется наружу (compose/Nomad),
-    # доступен только сети мониторинга. Поэтому в SecurityConfig он permitAll.
+    # Actuator on a separate port: NOT published outside (compose/Nomad),
+    # reachable only from the monitoring network. That is why SecurityConfig permits all on it.
     port: 9090
   endpoints:
     web:
@@ -109,9 +109,9 @@ management:
           include: readinessState,database
   health:
     mail:
-      # Недоступность почтового шлюза не должна ронять экземпляр: healthcheck
-      # контейнера читает этот же эндпоинт и перезапустил бы приложение.
-      # Состояние канала показывает NotificationChannelStartupCheck и журнал.
+      # An unreachable mail gateway must not bring the instance down: the container
+      # healthcheck reads this same endpoint and would restart the application.
+      # NotificationChannelStartupCheck and the log show the channel state.
       enabled: false
 
 smc:
@@ -173,8 +173,8 @@ smc:
 
 dwh:
   providers:
-    # Активный провайдер каждого канала (ADR-0011). Значение console_* означает
-    # заглушку: сообщения пишутся в журнал и никуда не уходят.
+    # The active provider of each channel (ADR-0011). A console_* value means
+    # a stub: messages are written to the log and go nowhere.
     storage: ${DWH_PROVIDER_STORAGE:local_disk}
     mail: ${DWH_PROVIDER_MAIL:console_mail}
     sms: ${DWH_PROVIDER_SMS:console_sms}
@@ -183,19 +183,19 @@ dwh:
     from: ${DWH_MAIL_FROM:no-reply@localhost}
     from-name: ${DWH_MAIL_FROM_NAME:SmartupCMS}
   telegram:
-    # FR-NOTIF-4. Пусто -> TelegramBotMessengerProvider не поднимается.
+    # FR-NOTIF-4. Empty -> TelegramBotMessengerProvider is not created.
     bot-token: ${TELEGRAM_BOT_TOKEN:}
     api-url: ${TELEGRAM_API_URL:https://api.telegram.org}
   audit:
-    # Запас дневных партиций audit_log вперёд, в днях (FR-AUD-2, V127). Партиция, не
-    # созданная вовремя, — тупик: аудит уходит в default, откуда retention и архив
-    # его не заберут, а создать нужную партицию задним числом PostgreSQL уже не даст.
+    # How many days of daily audit_log partitions to keep ahead (FR-AUD-2, V127). A partition not
+    # created in time is a dead end: audit rows go to default, where retention and the archive
+    # cannot reach them, and PostgreSQL refuses to create the right partition after the fact.
     partition-runway-days: ${DWH_AUDIT_PARTITION_RUNWAY_DAYS:31}
     partition-cron: ${DWH_AUDIT_PARTITION_CRON:0 30 3 * * *}
-    # Срок хранения оперативного журнала (FR-AUD-2). Партиции старше окна
-    # отцепляются и переименовываются в audit_log_archived_YYYY_MM — данные
-    # остаются в базе, решение об их судьбе принимает эксплуатация.
-    # 0 — не отцеплять ничего.
+    # Retention of the operational log (FR-AUD-2). Partitions older than the window
+    # are detached and renamed to audit_log_archived_YYYY_MM; the data
+    # stays in the database, and operations decide what happens to it.
+    # 0 means detach nothing.
     retention-months: ${DWH_AUDIT_RETENTION_MONTHS:12}
   backup:
     # Status is written atomically by the local backup command/sidecar.
@@ -242,19 +242,19 @@ dwh:
       connect-timeout: ${DWH_S3_CONNECT_TIMEOUT:5s}
       read-timeout: ${DWH_S3_READ_TIMEOUT:30s}
   sse:
-    timeout-ms: 1800000            # 30 мин; EventSource переподключается сам
-    heartbeat-ms: 25000            # keep-alive < таймаута прокси (обычно 60 с)
-    max-connections-per-user: 5    # защита от утечки вкладок на клиенте
+    timeout-ms: 1800000            # 30 min; EventSource reconnects by itself
+    heartbeat-ms: 25000            # keep-alive < proxy timeout (usually 60 s)
+    max-connections-per-user: 5    # protects against leaked tabs on the client
   security:
     trusted-proxies: ${DWH_SECURITY_TRUSTED_PROXIES:127.0.0.1/32,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7,fe80::/10}
   rate-limit:
     enabled: true
     max-entries: ${DWH_RATE_LIMIT_MAX_ENTRIES:10000}
-    ip-per-minute: ${DWH_RATE_LIMIT_IP_PER_MINUTE:60}                  # вход и прочие anonymous requests
-    public-read-per-minute: ${DWH_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:600} # публичные словари i18n за общим NAT
-    user-per-minute: ${DWH_RATE_LIMIT_USER_PER_MINUTE:600}             # cookie-сессии
-    token-per-minute: ${DWH_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, на владельца токена
-    expensive-per-minute: ${DWH_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # дорогие операции (пути ниже)
+    ip-per-minute: ${DWH_RATE_LIMIT_IP_PER_MINUTE:60}                  # sign-in and other anonymous requests
+    public-read-per-minute: ${DWH_RATE_LIMIT_PUBLIC_READ_PER_MINUTE:600} # public i18n dictionaries behind a shared NAT
+    user-per-minute: ${DWH_RATE_LIMIT_USER_PER_MINUTE:600}             # cookie sessions
+    token-per-minute: ${DWH_RATE_LIMIT_TOKEN_PER_MINUTE:300}           # Bearer, per token owner
+    expensive-per-minute: ${DWH_RATE_LIMIT_EXPENSIVE_PER_MINUTE:10}    # expensive operations (paths below)
     expensive-paths:
       - /api/v1/audit/stats
       - /api/v1/audit/logs
