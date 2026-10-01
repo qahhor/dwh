@@ -88,6 +88,7 @@ try {
         (Test-Path -LiteralPath (Join-Path $work "$javaRelative/service/MsProbeHooks.java"))) 'the declaration and the hooks'
     Assert-That (-not ($java -match '@RestController|@Repository|JdbcClient')) 'no controller and no SQL: the runtime serves the records'
     Assert-That ($java.Contains('implements EntityHooks')) 'the hooks are an EntityHooks bean'
+    Assert-That ($java.Contains('new EntityMenu("nav.probe",')) 'no route of its own: the menu item opens the general screen /e/ms.probe (ADR-0032, 7.1)'
     Assert-That (-not ($java -match '[Ѐ-ӿ]')) 'the generated Java has no Cyrillic outside the title'
     Assert-That ($java.Contains('Entity.define(') -and -not $java.Contains('new QueryList(') -and -not $java.Contains('QueryField.')) 'every field is declared once, as an EntityField'
     $contract = Join-Path $work 'apps/server/src/test/java/com/smartup24/cms/instance/ms/probe/MsProbeContractTest.java'
