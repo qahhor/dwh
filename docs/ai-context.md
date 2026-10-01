@@ -149,7 +149,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
   2026-12-31); коды прав по модулю (ADR-0028); схема БД и шифрование секретов
   `SMC_SECRETS_KEY` (ADR-0029); `fnd` разделён на `jobs`, `warehouse`, `units`
   (ADR-0030); модуль вебхуков — `webhook`; ключи переводов
-  `<module>.<screen>.<element>` (ADR-0031); «dwh» означает только хранилище
+  `<module>.<screen>.<element>` (ADR-0031); старое имя продукта осталось только у хранилища
   (cookie `SMC_SESSION`, токены `smc_`, `type` ошибки — URN, метрики `smc`).
 
 Известные пробелы платформы перечислены в
