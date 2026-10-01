@@ -31,7 +31,7 @@ class CorePurityTest {
     private static final List<String> OUR_MODULES =
             List.of("jobs", "warehouse", "units", "common/versioning", "common/actor", "upl", "ref", "reg", "vit");
     private static final Path OLTP_MIGRATIONS = Path.of("src/main/resources/db/migration");
-    private static final Path DWH_MIGRATIONS = Path.of("src/main/resources/db/dwh");
+    private static final Path WAREHOUSE_MIGRATIONS = Path.of("src/main/resources/db/dwh");
     private static final Path TERMS = Path.of("src/test/resources/forbidden-terms.txt");
     private static final Path ALLOWED_NUMBERS = Path.of("src/test/resources/allowed-numbers.txt");
     /** Lines where a listed term is an identifier, not a unit or a buyer: {@code path:line:term # reason}. */
@@ -226,7 +226,7 @@ class CorePurityTest {
         List<Path> roots = new ArrayList<>();
         OUR_MODULES.forEach(module -> roots.add(INSTANCE.resolve(module)));
         roots.add(OLTP_MIGRATIONS);
-        roots.add(DWH_MIGRATIONS);
+        roots.add(WAREHOUSE_MIGRATIONS);
         List<Path> files = new ArrayList<>();
         for (Path root : roots) {
             if (!Files.exists(root)) {

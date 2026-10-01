@@ -82,8 +82,9 @@ Current ADRs that are not superseded:
   change another module's data only through its service.
 - [ADR-0027 — configuration names: smc and warehouse](adr/ADR-0027-configuration-names.md)
   — product settings are `smc.*` / `SMC_*`, warehouse settings `warehouse.*` /
-  `WAREHOUSE_*`; old `dwh` names are read with a warning until 2026-12-31;
-  published development secrets stop a start outside dev and test.
+  `WAREHOUSE_*`; old `dwh` names are not read (the transition was cancelled
+  on 2026-10-01); published development secrets stop a start outside dev and
+  test.
 - [ADR-0028 — permission codes by module](adr/ADR-0028-permission-codes.md)
   — a form code is `<area>.<entity-or-screen>` and its area names the owning
   module; a controller guards its endpoints with its own module's forms or

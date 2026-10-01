@@ -183,52 +183,20 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 
 <!-- generated:end -->
 
-## Старые имена (переходный период до 2026-12-31)
+## Старые имена не читаются
 
-До 2026-12-31 включительно старые имена читаются как синонимы новых; при
-старте сервер пишет в журнал одно предупреждение `WARN` на каждое
-использованное старое имя (значение не печатается). Если заданы оба имени,
-действует новое. Срок совпадает с переходным периодом
-[ADR-0023](../adr/ADR-0023-uniform-rest.md) (предположение: отдельного
-решения о сроке для конфигурации нет). Скрипты развёртывания
-(`scripts/prod/deploy.*`) предупреждают о старых именах в `.env`, а Compose до
-конца периода подставляет старое значение, если новое не задано.
-
-| Было | Стало |
-|---|---|
-| `dwh.<ключ>` | `smc.<ключ>` |
-| `dwh.fnd.jobs.<ключ>` | `smc.jobs.<ключ>` |
-| `app.dwh.<ключ>` | `warehouse.<ключ>` |
-| `DWH_<ИМЯ>` | `SMC_<ИМЯ>` |
-| `DWH_FND_JOBS_<ИМЯ>` | `SMC_JOBS_<ИМЯ>` |
-| `APP_DWH_<ИМЯ>` | `WAREHOUSE_<ИМЯ>` |
-| `DWH_DATA_DB_URL`, `DWH_DATA_DB_USER`, `DWH_DATA_DB_PASSWORD` | `WAREHOUSE_URL`, `WAREHOUSE_USERNAME`, `WAREHOUSE_PASSWORD` |
-| `DWH_DB_URL`, `DWH_DB_USER`, `DWH_DB_PASSWORD` (шаг миграции) | `DB_URL`, `DB_USER`, `DB_PASSWORD` |
-| `DWH_DB_NAME` (Compose, образы PostgreSQL и backup) | `WAREHOUSE_DB_NAME` |
-| `DWH_MIGRATE_SCOPE=dwh` | `SMC_MIGRATE_SCOPE=warehouse` |
-
-Не переименованы в этом пункте: объекты базы данных и Java-пакеты (план 10/10,
-пункт 4.2). Имя cookie сессии, префикс токенов, адреса типов ошибок и имена
-метрик переименованы пунктом 4.7 — см. раздел «Старое имя продукта» ниже.
-
-## Старое имя продукта (план 10/10, пункт 4.7)
-
-| Было | Стало | Переходный период |
-|---|---|---|
-| cookie `DWH_SESSION` | `SMC_SESSION` | старая cookie принимается до 2026-12-31 и заменяется новой в первом же ответе |
-| префикс токена API `dwh_` | `smc_` | токены `dwh_` работают до 2026-12-31 (поиск по хешу, не по префиксу) |
-| `type` ошибки `https://api.dwh.internal/errors/<code>` | `urn:smartupcms:problem:<code>` | нет: контракт — поле `code` (ADR-0021 §6) |
-| метрики `dwh.search.*`, `dwh.storage.operation`, `dwh.file.scanner` | `smc.search.*`, `smc.storage.operation`, `smc.file.scanner` (в Prometheus `smc_search_*`, `smc_storage_operation_seconds`, `smc_file_scanner_seconds`) | нет: панели и правила оповещений переводятся при обновлении |
-| метрики `dwh_auth_logins_total`, `dwh_security_rate_limit_exceeded_total`, `dwh_tasks_created_total`, `dwh_tasks_status_changed_total`, `dwh_files_uploaded_bytes_total`, `dwh_audit_mutations_total`, `dwh_retention_deleted_rows_total`, `dwh_api_deprecated_calls_total` | те же имена с префиксом `smc_` | нет |
-| ключи браузера `dwh_theme`, `dwh_lang` | `smc_theme`, `smc_lang` | старое значение переносится при первом чтении |
-
-Срок 2026-12-31 совпадает с переходным периодом ADR-0023 и ADR-0027
-(предположение: отдельного решения о сроке для cookie и токенов нет).
+Имена до [ADR-0027](../adr/ADR-0027-configuration-names.md) (свойства
+`dwh.*`, `app.dwh.*` и переменные с теми же префиксами) и старые имена
+продукта из пункта 4.7 плана 10/10 (cookie сессии, префикс токенов API, ключи
+браузера) сервер, Compose, образы и скрипты развёртывания не читают.
+Переходный период отменён 2026-10-01: установок у клиентов нет. Сервер
+запускается только с именами из таблиц выше; переменная со старым именем
+просто игнорируется.
 
 `dwh` теперь означает только хранилище (pg-dwh). `scripts/docs/test-repository-hygiene.ps1`
 падает на новом вхождении `dwh`/`DWH`/`Dwh` вне закрытого списка: хранилище,
-идентификаторы пакета `fnd` (до пункта 4.2), старые имена переходного периода,
-выпущенные миграции и история.
+выпущенные миграции, тесты, доказывающие, что старые имена не читаются, и
+документы об истории.
 
 ## Секреты разработки вне dev
 

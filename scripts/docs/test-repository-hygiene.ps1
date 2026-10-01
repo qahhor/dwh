@@ -110,9 +110,8 @@ foreach ($relativePath in $frozenBriefReferences) {
 $oldName = [regex]::new('dwh|DWH|Dwh')
 $oldNameFiles = @(
     # The warehouse module (item 4.2, ADR-0030): "dwh" is the name of its database (pg-dwh), its qualifier, pool and
-    # health component. fnd keeps only the old migrate entry point, an alias until 2026-12-31.
+    # health component.
     [pscustomobject]@{ Path = '^apps/server/src/(main|test)/java/com/smartup24/cms/instance/warehouse/'; Reason = 'the warehouse module' },
-    [pscustomobject]@{ Path = '^apps/server/src/(main|test)/java/com/smartup24/cms/instance/fnd/'; Reason = 'old migrate entry point, an alias until 2026-12-31' },
     [pscustomobject]@{ Path = '^docs/adr/ADR-0030-fnd-split\.md$'; Reason = 'names the warehouse identifiers kept by the split' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/TestDatabases\.java$'; Reason = 'test databases of OLTP and the warehouse, shared with the fnd tests until item 4.2' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/support/fixtures/DwhQualifierViolator\.java$'; Reason = 'fixture of the fnd architecture test: the warehouse qualifier outside fnd' },
@@ -123,14 +122,16 @@ $oldNameFiles = @(
     [pscustomobject]@{ Path = '^scripts/prod/(restore|restore-combined)\.ps1$|^scripts/prod/(restore|test-backup-databases)\.sh$'; Reason = 'restores the warehouse archive' },
     # Released migrations are frozen by checksum (MigrationManifestTest): their old headers and seed values stay.
     [pscustomobject]@{ Path = '^apps/server/src/main/resources/db/migration/V(001|002|007|017|029|102|104|111|121)__[a-z0-9_]+\.sql$'; Reason = 'released migration, frozen by checksum' },
-    # The transition of ADR-0027 and item 4.7: old names are read until 2026-12-31 and these files name them.
-    [pscustomobject]@{ Path = '^apps/server/src/main/java/com/smartup24/cms/instance/(config|common)/env/(LegacyConfigNames|DefaultSecretsGuard|package-info)\.java$'; Reason = 'old configuration names and published secrets (ADR-0027)' },
-    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/(config|common)/env/(LegacyConfigAliasesTest|ConfigurationNamesTest|DefaultSecretsGuardTest)\.java$'; Reason = 'tests of the old configuration names (ADR-0027)' },
-    [pscustomobject]@{ Path = '^apps/server/src/main/java/com/smartup24/cms/instance/kauth/pref/KauthPref\.java$'; Reason = 'old session cookie and token prefix, accepted until 2026-12-31' },
-    [pscustomobject]@{ Path = '^docs/ops/configuration-reference\.md$|^docs/adr/ADR-0027-configuration-names\.md$|^docs/plan-10-10\.md$'; Reason = 'documents every old name and its replacement' },
-    [pscustomobject]@{ Path = '^\.gitleaks\.toml$'; Reason = 'leaked tokens of the old prefix are still live secrets until 2026-12-31' },
+    # Tests that prove an old name is not read any more (ADR-0027 section 4, item 4.7): they have to name it.
+    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/env/(ConfigurationNamesTest|DefaultSecretsGuardTest)\.java$'; Reason = 'tests that the configuration names before ADR-0027 are not read' },
+    [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/(config/security/SecurityConfigTest|kauth/AuthenticationGenerationHttpTest|kauth/security/KauthSessionCookiesTest|kauth/service/KauthApiTokenServiceTest)\.java$'; Reason = 'tests that the old session cookie and token prefix are not accepted' },
+    # Documents that describe the history of the old names (the transition was cancelled on 2026-10-01).
+    [pscustomobject]@{ Path = '^docs/ops/configuration-reference\.md$|^docs/adr/ADR-0027-configuration-names\.md$|^docs/plan-10-10\.md$'; Reason = 'history of the old names and their replacements' },
     # History that cannot change: the changelog and fingerprints of past commits.
     [pscustomobject]@{ Path = '^CHANGELOG\.md$|^\.gitleaksignore$'; Reason = 'history of past releases and commits' },
+    [pscustomobject]@{ Path = '^\.gitleaks\.toml$'; Reason = 'allow-lists false positives of past commits that still hold the old environment names' },
+    # Checks that fail when an old name comes back: they have to name it.
+    [pscustomobject]@{ Path = '^scripts/prod/test-release-config\.ps1$|^scripts/docs/test-public-docs\.ps1$'; Reason = 'checks that reject the old environment names and retired terms' },
     [pscustomobject]@{ Path = '(^|/)package-lock\.json$'; Reason = 'integrity hashes, not names' },
     [pscustomobject]@{ Path = '^scripts/docs/test-repository-hygiene\.ps1$'; Reason = 'this check' }
 )
@@ -142,14 +143,12 @@ $oldNameTokens = @(
     # fnd identifiers used outside fnd until item 4.2.
     [pscustomobject]@{ Path = '^apps/server/src/|^docs/|^deploy/|(^|/)docker-compose[^/]*\.yml$'; Token = 'FndDwhConfig|FndDwhMaintenance|DwhSchemaVersionGate|DwhDataSourceProperties|DwhUnavailableException|DwhQualifierViolator|FndPref\.DWH\w*|fnd\.dwh|migrateDwh|TestDatabases\.(DWH_DB|dwh\(\))|dwh\.maintenance|`dwh`'; Reason = 'fnd identifiers, the warehouse session setting and the repository slug until item 4.2' },
     [pscustomobject]@{ Path = '^apps/server/src/test/java/com/smartup24/cms/instance/config/system/ReadinessGroupIntegrationTest\.java$'; Token = '"dwh"'; Reason = 'health component of the warehouse, declared in fnd' },
+    [pscustomobject]@{ Path = '^apps/server/src/'; Token = 'WarehouseError\.DWH_(READ_FORBIDDEN|UNAVAILABLE)'; Reason = 'error codes of the warehouse module' },
     # i18n keys and texts about the warehouse.
     [pscustomobject]@{ Path = '^apps/server/src/main/resources/i18n/|^apps/web/src/app/core/i18n/|^apps/web/src/app/features/(iam/roles|tasks/projects)/'; Token = 'error\.fnd\.dwh_(read_forbidden|unavailable)|\bDWH\b'; Reason = 'the warehouse (and a sample project name) in UI texts' },
     [pscustomobject]@{ Path = '^apps/web/scripts/i18n-key-renames\.json$|^apps/server/src/main/resources/db/migration/V156__[a-z0-9_]+\.sql$'; Token = '\b[a-z]+\.[a-z_]*dwh[a-z_]*\b'; Reason = 'old translation keys renamed by item 4.5: the mapping and its migration' },
-    # Old names accepted until 2026-12-31 (ADR-0027, item 4.7).
-    [pscustomobject]@{ Path = '.'; Token = '\b(APP_)?DWH_[A-Z0-9_]*'; Reason = 'old environment names and the old session cookie, read until 2026-12-31' },
-    [pscustomobject]@{ Path = '^docs/|^apps/server/src/test/'; Token = '\b(app\.)?dwh\.[a-z][a-z.-]*|`dwh_`|api\.dwh\.internal'; Reason = 'old property names, token prefix and problem type in transition notes and tests' },
-    [pscustomobject]@{ Path = '^docs/api/openapi\.json$'; Token = 'dwh_\.\.\.'; Reason = 'old token prefix in the security scheme description' },
-    [pscustomobject]@{ Path = '^apps/web/src/|^e2e/|^docs/'; Token = 'dwh_(theme|lang|custom_languages)|dwh\.table-columns\.v1\.'; Reason = 'old browser storage keys, moved on first read' },
+    # Documents that describe the history of a renamed property or problem type.
+    [pscustomobject]@{ Path = '^docs/'; Token = '\b(app\.)?dwh\.[a-z][a-z.-]*|api\.dwh\.internal'; Reason = 'old property names and problem type in documents about their history' },
     # Not ours to rename.
     [pscustomobject]@{ Path = '.'; Token = 'qahhor/dwh'; Reason = 'the GitHub repository slug' }
 )
@@ -158,18 +157,18 @@ foreach ($entry in $oldNameFiles) {
         $errors.Add("Old-name exemption matches no tracked file: $($entry.Path)")
     }
 }
-# The check itself is checked on a main source file: product forms fail, warehouse and transition forms pass.
+# The check itself is checked on a main source file: product forms and old names fail, warehouse forms pass.
 $sampleTokens = @($oldNameTokens | Where-Object { 'apps/server/src/main/java/X.java' -match $_.Path })
 function Test-OldNameRemains([string]$text) {
     $rest = $text
     foreach ($token in $sampleTokens) { $rest = [regex]::Replace($rest, $token.Token, '') }
     return $oldName.IsMatch($rest)
 }
-foreach ($sample in @('DWH Platform', 'Bearer dwh_xyz', 'DwhInfoContributor', 'dwh.search.query.duration')) {
+foreach ($sample in @('DWH Platform', 'Bearer dwh_xyz', 'DwhInfoContributor', 'dwh.search.query.duration', 'DWH_TYPESENSE_URL', 'DWH_SESSION', 'dwh_theme')) {
     if (-not (Test-OldNameRemains $sample)) { $errors.Add("Old-name check misses a product form: $sample") }
 }
-foreach ($sample in @('pg-dwh is away', 'goodWhen', 'DWH_TYPESENSE_URL', 'FndDwhConfig')) {
-    if (Test-OldNameRemains $sample) { $errors.Add("Old-name check flags a warehouse or transition form: $sample") }
+foreach ($sample in @('pg-dwh is away', 'goodWhen', 'FndDwhConfig')) {
+    if (Test-OldNameRemains $sample) { $errors.Add("Old-name check flags a warehouse form: $sample") }
 }
 # Every tracked text file is read. Binaries are skipped by extension and by a NUL byte in their first 8 KB.
 $binaryExtension = '\.(png|jpe?g|gif|ico|webp|avif|bmp|tiff?|woff2?|ttf|otf|eot|pdf|zip|gz|tgz|bz2|xz|7z|rar|jar|war|class|xlsx?|docx?|pptx?|odt|ods|mp3|mp4|webm|wav|ogg|wasm|jks|p12|pfx|keystore|der|exe|dll|so|dylib|bin|dat)$'
