@@ -30,7 +30,12 @@ public class FormMetaController {
         this.registry = registry;
     }
 
-    public record FieldMeta(
+    /**
+     * A form field as the client sees it. Named apart from the list field of {@code query-meta}, so the API
+     * description keeps the two schemas and the web types know {@code required}, the lengths and the options
+     * (ADR-0032, 3.3).
+     */
+    public record FormFieldMeta(
             String key,
             String labelKey,
             @Nullable String label,
@@ -46,8 +51,8 @@ public class FormMetaController {
             @Nullable QueryRef ref,
             @Nullable String attribute) {
 
-        static FieldMeta of(FormField field) {
-            return new FieldMeta(
+        static FormFieldMeta of(FormField field) {
+            return new FormFieldMeta(
                     field.key(),
                     field.labelKey(),
                     field.label(),
@@ -65,13 +70,13 @@ public class FormMetaController {
         }
     }
 
-    public record SectionMeta(String key, String labelKey, List<String> fields) {}
+    public record FormSectionMeta(String key, String labelKey, List<String> fields) {}
 
     public record FormMeta(
             String code,
-            String listCode,
-            List<FieldMeta> fields,
-            List<SectionMeta> layout,
+            @Nullable String listCode,
+            List<FormFieldMeta> fields,
+            List<FormSectionMeta> layout,
             List<String> actions,
             List<String> capabilities) {}
 
@@ -93,9 +98,9 @@ public class FormMetaController {
         return new FormMeta(
                 entity.code(),
                 entity.listCode(),
-                entity.fields().stream().map(FieldMeta::of).toList(),
+                entity.fields().stream().map(FormFieldMeta::of).toList(),
                 entity.layout().stream()
-                        .map(s -> new SectionMeta(s.key(), s.labelKey(), s.fields()))
+                        .map(s -> new FormSectionMeta(s.key(), s.labelKey(), s.fields()))
                         .toList(),
                 entity.actions().stream()
                         .filter(action -> SecurityContext.hasPermission(entity.form(), action.permission()))

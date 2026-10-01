@@ -5,6 +5,7 @@ import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.audit.service.AuditLogService;
 import com.smartup24.cms.instance.common.entity.EntityAuditRow;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
+import com.smartup24.cms.instance.common.entity.EntityLists;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.EntityValidator;
 import com.smartup24.cms.instance.common.error.ApiException;
@@ -52,7 +53,10 @@ public class MsNoteService {
         this(noteRepository, auditLogService, null, null);
     }
 
-    /** The registry adds the note custom fields to the list (ADR-0019, 2.3); without it, the declared fields only. */
+    /**
+     * The registry gives the note list derived from the declaration with the custom fields (ADR-0019, 2.3; ADR-0032,
+     * 3.4); without it, the derived list alone.
+     */
     @Autowired(required = false)
     public void setQueryListRegistry(QueryListRegistry registry) {
         this.registry = registry;
@@ -106,7 +110,7 @@ public class MsNoteService {
             Long userId, Integer limit, String cursor, String filter, String sort, String search) {
         checkModuleActive();
         var plan = QueryCompiler.compile(
-                registry == null ? MsNoteQuery.LIST : registry.resolve(MsNoteQuery.LIST),
+                registry == null ? EntityLists.queryList(MsNoteEntity.DEFINITION) : registry.get(MsNoteEntity.CODE),
                 filter,
                 sort,
                 limit,

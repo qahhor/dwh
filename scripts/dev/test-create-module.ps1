@@ -33,6 +33,9 @@ $tests = @(
     'EntityActionPermissionContractTest',
     # Plan 10/10, item 5.0: form and list fields agree, and the right names are translated keys.
     'EntityFieldContractTest',
+    # Plan 10/10, item 5.1: every field is declared once, the list is derived from it; the right has its area.
+    'EntityFieldsSingleSourceTest',
+    'PermissionCodesTest',
     'MdPermissionEntityNamesTest',
     'MdFormCatalogTest',
     # Embedded PostgreSQL, no Docker: the migrations apply, the declared rights are in the catalog, the role
@@ -80,6 +83,9 @@ try {
     Assert-That ($java.Contains('new JsonColumns(') -and -not ($java -match 'toJson\(|parseJson\(')) 'JSON columns go through JsonColumns'
     Assert-That ($java.Contains('"error.probe.not_found"')) 'not found is an ApiException with a catalog key'
     Assert-That (-not ($java -match '[Ѐ-ӿ]')) 'the generated Java has no Cyrillic outside the title'
+    Assert-That ($java.Contains('Entity.define(') -and -not $java.Contains('new QueryList(') -and -not $java.Contains('QueryField.')) 'every field is declared once, as an EntityField'
+    $areas = Get-Content -LiteralPath (Join-Path $work 'apps/server/src/main/java/com/smartup24/cms/instance/md/pref/PermissionAreas.java') -Raw -Encoding UTF8
+    Assert-That ($areas.Contains('"probe", "ms.probe"')) 'the right''s area is registered for its module'
 
     $migrations = @(Get-ChildItem -LiteralPath (Join-Path $work 'apps/server/src/main/resources/db/migration') -Filter 'V*__ms_probe_*.sql')
     Assert-That ($migrations.Count -eq 2) "two migrations (table and seed), found $($migrations.Count)"

@@ -11,7 +11,7 @@ import com.smartup24.cms.instance.audit.service.RecordHistoryService;
 import com.smartup24.cms.instance.common.entity.EntityRegistry;
 import com.smartup24.cms.instance.common.entity.FormField;
 import com.smartup24.cms.instance.common.entity.FormFieldExtender;
-import com.smartup24.cms.instance.common.entity.FormFieldType;
+import com.smartup24.cms.instance.common.entity.field.FieldType;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.md.repository.ModuleRegistryRepository;
@@ -215,8 +215,8 @@ class MsNoteIntegrationTest {
     @Test
     @DisplayName("7. Аудит пишет все объявленные поля, текст и доп. поля; история называет каждое поле")
     void auditKeepsEveryFieldAndHistoryNamesThem() {
-        var extender = (FormFieldExtender) entity ->
-                List.of(FormField.of("cfRegion", "", FormFieldType.TEXT).custom("Регион", "region"));
+        var extender = (FormFieldExtender)
+                entity -> List.of(FormField.of("cfRegion", "", FieldType.TEXT).custom("Регион", "region"));
         var registry = new EntityRegistry(
                 List.of(MsNoteEntity.DEFINITION), List.of(extender), List.of(new MsNoteRecords(noteService)));
         var beans = new DefaultListableBeanFactory();

@@ -5,6 +5,8 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import io.swagger.v3.oas.annotations.Operation;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,7 +35,7 @@ public class EntityMenuController {
             String icon,
             String section,
             int order,
-            String module) {}
+            @Nullable String module) {}
 
     /** Anyone signed in may ask; each item is filtered by its entity's own right. */
     @Operation(
@@ -43,17 +45,17 @@ public class EntityMenuController {
     @RequiresPermission(form = "md.profile", action = "view")
     public ResponseEntity<List<MenuItem>> menu() {
         return ResponseEntity.ok(registry.all().stream()
-                .filter(entity -> entity.menu() != null)
                 .filter(entity -> SecurityContext.hasPermission(entity.form(), "view"))
-                .map(entity -> new MenuItem(
-                        entity.code(),
-                        entity.form(),
-                        entity.menu().route(),
-                        entity.menu().labelKey(),
-                        entity.menu().icon(),
-                        entity.menu().section(),
-                        entity.menu().order(),
-                        entity.menu().module()))
+                .flatMap(entity -> Stream.ofNullable(entity.menu())
+                        .map(menu -> new MenuItem(
+                                entity.code(),
+                                entity.form(),
+                                menu.route(),
+                                menu.labelKey(),
+                                menu.icon(),
+                                menu.section(),
+                                menu.order(),
+                                menu.module())))
                 .sorted(Comparator.comparing(MenuItem::section)
                         .thenComparingInt(MenuItem::order)
                         .thenComparing(MenuItem::code))

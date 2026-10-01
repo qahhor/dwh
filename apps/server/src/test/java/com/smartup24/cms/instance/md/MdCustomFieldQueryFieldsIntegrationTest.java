@@ -58,7 +58,8 @@ class MdCustomFieldQueryFieldsIntegrationTest {
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var repository = new MdCustomFieldRepository(jdbc, mapper);
         fields = new MdCustomFieldService(repository, audit);
-        registry = new QueryListRegistry(List.of(MdUserQuery.LIST), List.of(new MdCustomFieldQueryFields(fields)));
+        registry = new QueryListRegistry(
+                List.of(MdUserQuery.LIST), List.of(), List.of(new MdCustomFieldQueryFields(fields)));
         var roles = new MdRoleRepository(jdbc);
         var scope = new MdScopeService(
                 new MdScopeRepository(jdbc),

@@ -248,6 +248,34 @@ List<QueryListSource>, List<QueryListExtender>)` отвергает совпад
 - `EntityValidator.check(entity, values, partial)` остаётся публичным: хуки и
   нестандартные экраны проверяют им значения, как сейчас.
 
+### 3.6. Шаг 1 выполнен: как реализовано и отступления (2026-10-01)
+
+Шаг 1 (пункт 5.1) выполнен в ветке `claude/p5-entity-field`: заметки — одно
+объявление (`MsNoteEntity`), `MsNoteQuery` удалён; `EntityMetaSnapshotTest`
+подтверждает, что `form-meta` и `query-meta` заметок совпадают байт в байт
+со снимком после 5.0; `EntityFieldsSingleSourceTest` и
+`EntityFieldContractTest` — зелёные. Схемы `form-meta` в `openapi.json` —
+`FormFieldMeta` и `FormSectionMeta`.
+
+Отступления от §3.1–3.5 (решение не меняется, уточняется исполнение):
+
+| № | В дизайне | Сделано | Почему |
+|---|---|---|---|
+| О1 | `QueryListSource` реализует `EntityRegistry` | реализует `EntityLists` — бин, собранный только из бинов `EntityDefinition` | `EntityRegistry` зависит от бинов `EntityRecords`, те — от сервисов модулей, а сервис заметок — от реестра списков: цикл бинов, которого Spring Boot не допускает |
+| О2 | `FieldSource` из семи вариантов | `Column`, `Expression`, `Computed`, `Attribute`, `SystemValue`; `MoneyColumns` и `Link` придут с типами `MONEY` и `MULTI_REF` (шаг 6) | вариант без типа, который его читает, был бы мёртвым кодом; `System` переименован в `SystemValue` — имя совпадало с `java.lang.System` (Error Prone `AvoidCommonTypeNames`) |
+| О3 | `Computed` показывается в форме как readonly | выражение, вычисляемое и системная колонка — только в списке; поле формы — только у колонки и атрибута | признака `readonly` у `FormField` до шага 6 (§4.4) нет; без него форма предлагала бы правку, которую сервер не примет |
+| О4 | `Attribute` для скалярных типов | только `TEXT`, `TEXTAREA`, `MARKDOWN`, `SELECT`, без сортировки | значение атрибута — текст jsonb; приведение остальных типов с защитой от старых значений (как у доп. полей) — правило хранения §4.1, шаг 6 |
+| О5 | `FormPart` с `readonly`, `defaultValue`, `visibleWhen` | `FormPart(required, FieldRules)`; остальные признаки — шаг 6 (§4.3–4.4) | снимок `form-meta` заметок не должен меняться в шаге 1 |
+| О6 | `ListPart` — record | класс-значение с методами `sortable()`, `searchable()`, `hidden()`, `notFilterable()`, `nullable()` и доступом `isSortable()`…; начальные значения — `EntityFields.sortable()`/`searchable()`/`hidden()`/`listed()` | у record метод `sortable()` обязан вернуть компонент `boolean`, цепочка `sortable().searchable()` из §3.2 иначе не пишется |
+| О7 | `FieldAccess` — права на поле | запись есть, по умолчанию `OPEN`; список применяет `requires` так же, как `QueryField.requires`; метода построителя и проверки в форме, записи, выгрузке, истории нет | это шаг 2 (§5.2); заготовка не даёт полю списка и полю формы разойтись позже |
+| О8 | `select` списка — `id`, `revision` и поля | системные колонки `id`, `revision`, `created_at`, `created_by`, `modified_at`, `modified_by` под ключами записи (`"createdAt"`…), поля как `<sql> as "<key>"` и всегда `attributes::text as "attributes"` | формат записи §6.2 и соглашение о таблице §14.1: эти колонки есть у каждой таблицы сущности; строка списка читается по ключам записи; ключ поля не может совпасть с системным, кроме самой системной колонки (`EntityModel`) |
+| О9 | `EntityDefinition` с компонентом `model` | `model` — последний компонент; `listCode` есть только вместе с моделью (иначе конструктор отвергает объявление); форма модели — начало `fields` (доп. поля идут после); для сущности без таблицы — конструктор без `listCode` и модели; `new EntityDefinition` вне `common.entity` запрещён | «0 параллельных объявлений» обеспечивает конструктор и ArchUnit, а не только ревью |
+| О10 | `.defaultSort("rank", DESC)`, `.rights("ms.note", "Заметки", …)` | `.defaultSort("rank", Entity.Sort.DESC)`; `rights(модуль, ключ названия, ключи действий)` (ключи — с 5.0, ADR-0031); действия в порядке объявления (`create`, `update`, `pin`, `delete` у заметок — порядок кнопок в снимке); `auditTable` по умолчанию — таблица сущности при `HISTORY` | порядок действий виден в `form-meta` |
+| О11 | `FormFieldType` | переименован в `FieldType` и перенесён в `common.entity.field`, с `listType()` — тип поля списка по виду поля | один перечень видов для формы и списка; псевдонима старого имени нет (AGENTS.md, §3) |
+| О12 | генератор переписывается в шаге 4 | в шаге 1 генератор уже пишет одно объявление полей (без класса `…Query`), сервис берёт список из реестра, а область права (`<код>` → `<префикс>.<код>`) записывается в `PermissionAreas` и в `EntityRights` | без этого генератор снова создавал бы параллельное объявление; предположение §6.15 подтвердилось: `test-create-module.ps1` падал на `EntityActionPermissionContractTest.everyEntityFormIsOwnedByTheModuleItsRightsName` |
+| О13 | — | доп. поля администратора остаются `FormFieldExtender`/`QueryListExtender` в `md` | это данные, а не объявление в коде; их согласованность проверяет `EntityFieldContractTest`; перевод на `EntityField` с источником `Attribute` — вместе с правилами хранения шага 6 |
+| О14 | `EntityFieldsSingleSourceTest` — ArchUnit | ArchUnit (конструктор `EntityDefinition` и фабрики `FormField` только в `common.entity`, кроме доп. полей `md`; класс с `Entity.define` не строит `QueryField`/`QueryList`) и проверки объявлений (поля формы и списка — из модели; ни один бин `QueryList` не совпадает кодом с сущностью; реестр отвергает второе объявление) | — |
+
 ## 4. Типы полей (5.2)
 
 ### 4.1. Перечень и хранение
@@ -827,8 +855,8 @@ ADR-0026, ограничения): правило «SQL только в репо
 исправляется найденное при разборе (предположение, не запускалось):
 генератор пишет форму `"<code>"` с модулем `ms` в `EntityRights`, и
 `EntityActionPermissionContractTest` не находит владельца формы — проверка
-`test-create-module.ps1` подтвердит или опровергнет это первой. Кроссплатформенный
-CLI — пункт 6.1.
+`test-create-module.ps1` подтвердит или опровергнет это первой (подтвердилось
+и исправлено в шаге 1, §3.6, О12). Кроссплатформенный CLI — пункт 6.1.
 
 ## 7. Общий экран `/e/:code` (5.5)
 
@@ -1279,7 +1307,7 @@ create index ex_orders_org_unit_id_idx on ex_orders (org_unit_id);
 | Шаг | Пункт | Что | Зависит от | Критерии приёмки плана (ACC) |
 |---|---|---|---|---|
 | 0 | 5.0 | гигиена модели (параллельный исполнитель) | — | контракт «поле формы ↔ поле списка», история всех полей, 404 чужой записи, доп. поле без перезагрузки |
-| 1 | 5.1 | `EntityField`, `Entity`, вывод `FormField`/`QueryList`, `QueryListSource`; заметки — одно объявление; схемы `FormFieldMeta` в OpenAPI | 0 | «0 параллельных объявлений» — `EntityFieldsSingleSourceTest`; «снимок `query-meta` заметок не изменился» — `EntityMetaSnapshotTest` |
+| 1 | 5.1 | **выполнен** (§3.6): `EntityField`, `Entity`, вывод `FormField`/`QueryList`, `QueryListSource`; заметки — одно объявление; схемы `FormFieldMeta` в OpenAPI | 0 | «0 параллельных объявлений» — `EntityFieldsSingleSourceTest`; «снимок `query-meta` заметок не изменился» — `EntityMetaSnapshotTest` |
 | 2 | 5.3 | `EntityScope` (обязателен), `DataScopes`, `FieldAccess`, обязательная ревизия, `ARCHIVE` | 1 | «скоуп у 100% сущностей» — построитель + `EntityScopeDeclaredTest`; «права на поля: form-meta, чтение, запись, выгрузка» — тест прав на поля; «устаревшая версия → 409» — `RecordRevisionIntegrationTest` + кит |
 | 3 | 5.4 (а) | `EntityController`, `EntityRuntime`, `EntityStoreRepository`, порядок §6.3, `EntityHooks`, `EntityRule`, аудит, `EntityChanged` → Spring; флаг выключен вне тестов | 2 | — (промежуточный) |
 | 4 | 6.2 (ядро) | кит, `TestSessions`/`TestUsers`, контракт заметок, `EntityContractCoverageTest`, `EntitySchemaContractTest`; генератор под модель | 3 | «модуль проходит кит одним наследованием» — `MsNotesContractTest` |
