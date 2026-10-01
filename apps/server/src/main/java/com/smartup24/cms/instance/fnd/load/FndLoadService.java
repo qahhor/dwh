@@ -1,10 +1,12 @@
 package com.smartup24.cms.instance.fnd.load;
 
-import com.smartup24.cms.instance.fnd.FndActor;
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.FndSqlErrors;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndLoads;
+import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -26,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code pending→failed}, {@code applied→superseded}.
  */
 @Service
-public class FndLoadService {
+public class FndLoadService implements FndLoads {
 
     private final JdbcClient jdbc;
     private final FndActors actors;
@@ -38,6 +40,7 @@ public class FndLoadService {
 
     /** Opens a load version. A repeated {@code package_ref} is rejected by {@code fnd_loads_uk_package_ref}. */
     @Transactional
+    @Override
     public long begin(
             String sourceCode,
             UUID packageRef,
@@ -67,6 +70,7 @@ public class FndLoadService {
      * same period becomes {@code superseded} and gets a {@code superseded_by} reference to this one.
      */
     @Transactional
+    @Override
     public void apply(long loadId, int rowsTotal, int rowsAccepted, int rowsRejected, FndActor actor) {
         FndLoad load = lockPending(loadId);
         actors.apply(actor);
@@ -98,6 +102,7 @@ public class FndLoadService {
 
     /** Marks a load failed and writes the reason to the log; a call without a reason is rejected. */
     @Transactional
+    @Override
     public void fail(long loadId, String reason, FndActor actor) {
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("Причина сбоя не задана: загрузка без причины не отмечается");
@@ -118,6 +123,7 @@ public class FndLoadService {
      * log rows.
      */
     @Transactional
+    @Override
     public void log(
             UUID packageRef,
             String event,
@@ -154,6 +160,7 @@ public class FndLoadService {
 
     /** The current data versions of a source: applied loads only. */
     @Transactional(readOnly = true)
+    @Override
     public List<Long> appliedLoadIds(String sourceCode) {
         return jdbc.sql("select id from fnd_loads where source_code = :source and status = 'applied' order by id")
                 .param("source", sourceCode)
@@ -162,6 +169,7 @@ public class FndLoadService {
     }
 
     @Transactional(readOnly = true)
+    @Override
     public Optional<FndLoad> find(long loadId) {
         return jdbc.sql("select id, source_code, package_ref, period_from, period_to, format_version,"
                         + " applied_at, applied_by, rows_total, rows_accepted, rows_rejected, status, superseded_by"

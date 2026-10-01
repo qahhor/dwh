@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.units;
+package com.smartup24.cms.instance.fnd.api;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

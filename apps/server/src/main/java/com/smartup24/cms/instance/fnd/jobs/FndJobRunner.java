@@ -1,7 +1,9 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
 import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
+import com.smartup24.cms.instance.fnd.api.FndJobQueue;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
 import java.util.HashMap;
@@ -39,7 +41,7 @@ import tools.jackson.databind.ObjectMapper;
  * {@code md_settings} (the row with {@code user_id is null}) stops the runner from taking jobs.
  */
 @Component
-public class FndJobRunner {
+public class FndJobRunner implements FndJobQueue {
 
     /** The switch key in the framework's {@code md_settings}; with no such row, jobs run. */
     public static final String JOBS_ENABLED_KEY = "jobs_enabled";
@@ -313,6 +315,7 @@ public class FndJobRunner {
 
     /** Enqueues a scheduled job outside its schedule, e.g. from a deployment step or an on-demand check. */
     @Transactional
+    @Override
     public void enqueue(String scheduleCode) {
         int queued = jdbc.sql("""
                         insert into fnd_job_queue (handler, args, schedule_code)
@@ -328,6 +331,7 @@ public class FndJobRunner {
      * module's record and the job appear together or not at all.
      */
     @Transactional
+    @Override
     public void enqueueOnce(String handlerCode, Map<String, Object> args) {
         handler(handlerCode);
         jdbc.sql("insert into fnd_job_queue (handler, args) values (:handler, cast(:args as jsonb))")

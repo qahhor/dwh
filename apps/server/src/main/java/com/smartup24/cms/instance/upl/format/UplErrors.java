@@ -2,9 +2,9 @@ package com.smartup24.cms.instance.upl.format;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.error.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.error.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.error.StaleVersionException;
+import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
+import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
+import com.smartup24.cms.instance.fnd.api.StaleVersionException;
 import org.springframework.dao.DataAccessException;
 
 /** Перевод ошибок основы и БД в ответ API по таблице «Ошибки» контракта анкеты файла. */

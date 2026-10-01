@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.fnd.config;
 
-import com.smartup24.cms.instance.fnd.dwh.DwhUnavailableException;
+import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;

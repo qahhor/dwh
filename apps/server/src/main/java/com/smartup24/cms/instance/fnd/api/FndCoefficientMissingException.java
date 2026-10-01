@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.units;
+package com.smartup24.cms.instance.fnd.api;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;

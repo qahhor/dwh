@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.error;
+package com.smartup24.cms.instance.fnd.api;
 
 import java.sql.SQLException;
 import java.util.Optional;
@@ -7,10 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 
 /**
- * Перевод ошибок PostgreSQL в {@link ConstraintViolationException} (AC-9б): по имени ограничения
- * ({@code SQLException.getMessage()} содержит его; у драйвера PostgreSQL — {@code ServerErrorMessage.getConstraint()})
- * или по тексту {@code raise exception '<код>'} триггеров основы либо (для таблиц версий, {@link #translatingVersions}) по нарушению их первичного ключа — {@code fnd_version_conflict}.
- * Неопознанная ошибка возвращается как есть.
+ * Translates PostgreSQL errors into {@link ConstraintViolationException}: by the constraint name (the PostgreSQL
+ * driver reports it as {@code ServerErrorMessage.getConstraint()}), by the text of a foundation trigger's
+ * {@code raise exception '<code>'}, or, for versions tables ({@link #translatingVersions}), by a violation of their
+ * primary key — {@code fnd_version_conflict}. An unrecognised error is returned as it is.
  */
 public final class FndSqlErrors {
 
@@ -18,7 +18,7 @@ public final class FndSqlErrors {
 
     private FndSqlErrors() {}
 
-    /** Выполняет действие; ошибку БД с известным кодом переводит в исключение с кодом. */
+    /** Runs the action; a database error with a known code becomes an exception carrying that code. */
     public static <T> T translating(SqlAction<T> action) {
         try {
             return action.run();
@@ -46,10 +46,10 @@ public final class FndSqlErrors {
     }
 
     /**
-     * То же, что {@link #translating(SqlAction)}, но нарушения ограничений таблицы версий переводятся в коды:
-     * первичный ключ {@code <versionsTable>_pkey} (параллельный createDraft посчитал тот же номер, M-13) —
-     * {@code fnd_version_conflict}; частичный уникальный индекс {@code <versionsTable>_draft_uidx}
-     * (второй черновик того же заголовка, S-5) — {@code fnd_version_draft_exists}.
+     * Like {@link #translating(SqlAction)}, but violations of a versions table's own constraints become codes: the
+     * primary key {@code <versionsTable>_pkey} (a concurrent createDraft computed the same number) is
+     * {@code fnd_version_conflict}; the partial unique index {@code <versionsTable>_draft_uidx} (a second draft of the
+     * same header) is {@code fnd_version_draft_exists}.
      */
     public static <T> T translatingVersions(String versionsTable, SqlAction<T> action) {
         try {

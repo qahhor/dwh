@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.upl.api;
 
 import com.smartup24.cms.instance.common.annotation.RequiresPermission;
-import com.smartup24.cms.instance.fnd.units.FndUnitService;
+import com.smartup24.cms.instance.fnd.api.FndUnits;
 import com.smartup24.cms.instance.upl.UplPref;
 import java.util.List;
 import java.util.Map;
@@ -20,10 +20,10 @@ public class UplUnitController {
     private static final String RU = "ru";
     private static final String UZ = "uz";
 
-    private final FndUnitService units;
+    private final FndUnits units;
     private final ObjectMapper json;
 
-    public UplUnitController(FndUnitService units, ObjectMapper json) {
+    public UplUnitController(FndUnits units, ObjectMapper json) {
         this.units = units;
         this.json = json;
     }

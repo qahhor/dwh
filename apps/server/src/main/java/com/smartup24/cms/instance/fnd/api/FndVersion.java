@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.versioning;
+package com.smartup24.cms.instance.fnd.api;
 
 import java.time.Instant;
 import java.time.LocalDate;

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.dwh;
+package com.smartup24.cms.instance.fnd.api;
 
 import java.util.List;
 import java.util.UUID;

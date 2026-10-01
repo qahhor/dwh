@@ -1,14 +1,14 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
 import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
 import com.smartup24.cms.instance.fnd.api.FndJobFailures;
-import com.smartup24.cms.instance.fnd.dwh.FndRawRow;
-import com.smartup24.cms.instance.fnd.dwh.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndLoads;
+import com.smartup24.cms.instance.fnd.api.FndRawRow;
+import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -55,9 +55,9 @@ public class UplApplyJob implements FndJobHandler {
     private final UplSourceService sources;
     private final MfFileService files;
     private final UplXlsxParser parser;
-    private final FndLoadService loads;
+    private final FndLoads loads;
     private final FndRawWriter raw;
-    private final FndActors actors;
+    private final FndActorContext actors;
     private final TransactionTemplate tx;
 
     public UplApplyJob(
@@ -65,9 +65,9 @@ public class UplApplyJob implements FndJobHandler {
             UplSourceService sources,
             MfFileService files,
             UplXlsxParser parser,
-            FndLoadService loads,
+            FndLoads loads,
             FndRawWriter raw,
-            FndActors actors,
+            FndActorContext actors,
             TransactionTemplate tx) {
         this.repo = repo;
         this.sources = sources;

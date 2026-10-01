@@ -1,10 +1,10 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.FndActor;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.jobs.FndJobHandler;
-import com.smartup24.cms.instance.fnd.load.FndLoad;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.fnd.api.FndActor;
+import com.smartup24.cms.instance.fnd.api.FndActorContext;
+import com.smartup24.cms.instance.fnd.api.FndJobHandler;
+import com.smartup24.cms.instance.fnd.api.FndLoad;
+import com.smartup24.cms.instance.fnd.api.FndLoads;
 import com.smartup24.cms.instance.fnd.service.FndJobQueries;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
@@ -41,11 +41,11 @@ public class UplApplyRecoveryJob implements FndJobHandler {
     private static final Logger log = LoggerFactory.getLogger(UplApplyRecoveryJob.class);
 
     private final UplPackageRepository repo;
-    private final FndLoadService loads;
-    private final FndActors actors;
+    private final FndLoads loads;
+    private final FndActorContext actors;
     private final FndJobQueries jobs;
 
-    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoadService loads, FndActors actors, FndJobQueries jobs) {
+    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, FndActorContext actors, FndJobQueries jobs) {
         this.repo = repo;
         this.loads = loads;
         this.actors = actors;
