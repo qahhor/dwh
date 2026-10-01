@@ -1,8 +1,8 @@
 # Точки расширения SmartupCMS
 
-**Версия:** 1.4
+**Версия:** 1.5
 
-**Обновлено:** 2026-10-01
+**Обновлено:** 2026-10-02
 
 **Основание:** [ADR-0016](../adr/ADR-0016-field-registry-query-dsl.md),
 [ADR-0019](../adr/ADR-0019-low-code-entity-model.md),
@@ -45,6 +45,18 @@ SmartupCMS расширяется **модулями в коде**: модуль
 | `BULK` | действие `delete`, `EntityRecords.delete` | Удаление выбранных записей |
 
 Объявление, которому не хватает нужного, не даёт приложению стартовать.
+
+Контракт сущности в тестах (ADR-0032, §11; план 10/10, пункт 6.2): у каждой
+сущности с таблицей — ровно один наследник `EntityContractTestKit`
+(`apps/server/src/test/java/com/smartup24/cms/instance/support/entity`), его
+требует `EntityContractCoverageTest`. Кит выводит случаи из объявления: CRUD,
+ревизия, архив, права, скоуп «404, а не 403», права на поля, проверка по типам
+полей, аудит и выгрузка. Транспорт записей подключаемый: `EntityTransport.module(путь)`
+— свой контроллер модуля, `EntityTransport.runtime(code)` — общий runtime
+`/api/v1/entities/{code}` пункта 5.4 (по умолчанию); данные, которые кит не
+придумает, — `EntityFixture`. Общие помощники тестов — `TestUsers` (пользователь
+с заданными правами в своей оргединице) и `TestSession` (вход через настоящий
+`/auth/login`).
 
 ## 2. Списки: реестр полей
 
@@ -145,6 +157,7 @@ package» (`ModuleBoundariesTest`) не даёт зависеть от внут�
 | `smt-entity-form` | `W/shared/entity/smt-entity-form.component.ts` | Форма по `form-meta`; отдельное поле заменяется шаблоном `smtEntityField`. Контрол каждого типа — `ENTITY_CONTROLS` (почта, телефон, адрес — поля ввода своего вида; `smt-money-field`, `smt-file-field`, `smt-multi-data-select`, JSON текстом); поле скрывается по `visibleWhen`, блокируется, если только для чтения (`[recordId]` — запись уже есть). Правила значений по типам — `W/core/services/field-values.ts` (`FIELD_VALUE_RULES`), слова на карточке и в истории — `FIELD_TEXT`. |
 | `smt-entity-card` | `W/shared/entity/smt-entity-card.component.ts` | Просмотр записи по раскладке. |
 | `smt-entity-toolbar` | `W/shared/entity/smt-entity-toolbar.component.ts` | Виды, экспорт и удаление выбранных — по возможностям и правам. |
+| Помощники тестов формы | `apps/web/src/testing/entity-form.ts` | `formMetaFixture`, `renderEntityForm`, `EntityFormHarness` (заполнить поле по ключу и типу, прочитать ошибку и признак только для чтения) для спеков экранов на `smt-entity-form` (план 10/10, пункт 6.2). |
 | `ui-server-table` + `registryTableConfig` | `W/shared/ui/ui-server-table.component.ts`, `W/shared/ui/registry-table-config.ts` | Таблица по `query-meta`: колонки, сортировка, фильтр, курсор. |
 | UI kit | `W/shared/ui-kit` | Кнопки, диалоги, таблицы, поля (в том числе `smt-dynamic-field`, `smt-data-select`), загрузка файлов. |
 | Маршрут экрана | `W/app.routes.ts` | Lazy `loadComponent` с `moduleActiveGuard` и `permissionGuard`. |

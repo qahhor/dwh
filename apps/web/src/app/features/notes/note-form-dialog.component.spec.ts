@@ -9,6 +9,7 @@ import { NoteFormDialogComponent } from './note-form-dialog.component';
 import { Note } from './notes.api';
 import { inScreen } from '@testing/in-screen';
 import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
+import { EntityFormHarness } from '@testing/entity-form';
 
 describe('NoteFormDialogComponent', () => {
   const note: Note = {
@@ -46,6 +47,7 @@ describe('NoteFormDialogComponent', () => {
     fixture.componentInstance.saved.subscribe(saved);
     fixture.componentInstance.closed.subscribe(closed);
     fixture.detectChanges();
+    const meta = options.meta ?? NOTES_FORM_META;
     return {
       fixture,
       component: fixture.componentInstance,
@@ -54,6 +56,11 @@ describe('NoteFormDialogComponent', () => {
       saved,
       closed,
       screen: inScreen(fixture.nativeElement),
+      form: new EntityFormHarness(
+        inScreen(fixture.nativeElement),
+        () => meta,
+        () => fixture.detectChanges(),
+      ),
     };
   }
 
@@ -66,16 +73,31 @@ describe('NoteFormDialogComponent', () => {
   });
 
   it('checks the title by the declared rules and shows the problem under the field', () => {
-    const { component, api, fixture, screen } = setup();
-    component.values.update((values) => ({ ...values, title: '   ' }));
+    const { component, api, fixture, form } = setup();
+    form.fill('title', '   ');
 
     component.save();
     fixture.detectChanges();
 
     expect(component.problems()['title']).toBeTruthy();
     expect(api.post).not.toHaveBeenCalled();
-    expect(screen.querySelector('smt-entity-form [data-field="title"]').textContent).toContain(
-      component.problems()['title'],
+    expect(form.problem('title')).toBe(component.problems()['title']);
+  });
+
+  // Plan 10/10, item 6.2: the form is filled as a person fills it, by field key and type.
+  it('submits what a person types and toggles in the form', () => {
+    const { component, api, form } = setup();
+
+    expect(form.keys()).toEqual(['title', 'contentMd', 'color', 'isPinned']);
+    form.fill('title', 'Список покупок');
+    form.fill('contentMd', '- хлеб');
+    form.fill('isPinned', true);
+    component.save();
+
+    expect(api.post).toHaveBeenCalledWith(
+      '/notes',
+      expect.objectContaining({ title: 'Список покупок', contentMd: '- хлеб', isPinned: true }),
+      { notifyError: false },
     );
   });
 

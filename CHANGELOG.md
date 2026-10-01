@@ -9,6 +9,14 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, item 6.2 — the entity contract test kit (ADR-0032 step 4):
+  one subclass of `EntityContractTestKit` checks CRUD, rights, scope ("404,
+  not 403"), field rights, validation per type, revision, archive, audit and
+  export for an entity; `EntityContractCoverageTest` requires a subclass for
+  every entity with a table, a self-test proves the kit catches a missing
+  scope check, a 403 leak and a hidden-field leak; the module generator
+  writes the subclass; web helpers in `apps/web/src/testing/entity-form.ts`.
+
 - Plan 10/10, items 5.2 and 5.3 (ADR-0032 steps 2–3). Field types for
   ERP/SFA: EMAIL, PHONE, URL, MONEY (amount + currency, numeric), ENUM from a
   declared reference entity (archived items keep their label but are not

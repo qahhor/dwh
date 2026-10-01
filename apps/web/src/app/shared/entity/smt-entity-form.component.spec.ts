@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { FormMeta, FormProblems, FormValues } from '@core/models/form-meta.models';
 import { ApiService } from '@core/services/api.service';
 import { NOTES_FORM_META, formField, withCustomField } from '@testing/form-meta';
+import { EntityFormHarness } from '@testing/entity-form';
 import { translateTest } from '@testing/i18n-test.stub';
 import { SMTEntityFieldDirective, SMTEntityFormComponent } from './smt-entity-form.component';
 
@@ -61,13 +62,16 @@ describe('SMTEntityFormComponent', () => {
 
   it('writes what is typed into the value, by field key', async () => {
     const { fixture, root, host } = await render();
+    const form = new EntityFormHarness(
+      root,
+      () => host.meta(),
+      () => fixture.detectChanges(),
+    );
 
-    const title = root.querySelector('[data-field="title"] input') as HTMLInputElement;
-    title.value = 'Новое';
-    title.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    form.fill('title', 'Новое');
+    form.fill('isPinned', true);
 
-    expect(host.values()).toEqual({ title: 'Новое', contentMd: '', color: 'blue', isPinned: false });
+    expect(host.values()).toEqual({ title: 'Новое', contentMd: '', color: 'blue', isPinned: true });
   });
 
   it('shows each problem under its field', async () => {
