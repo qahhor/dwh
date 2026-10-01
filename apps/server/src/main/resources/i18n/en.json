@@ -1771,7 +1771,7 @@
   "error.i18n_translation_invalid": "The language pack contains incorrect translations",
   "error.idempotency_auth_unsupported": "Idempotency is not supported for sign-in and secret generation endpoints.",
   "error.idempotency_body_too_large": "A request body with an Idempotency-Key must not exceed 64 KB.",
-  "error.idempotency_entity_body_too_large": "A record body with an Idempotency-Key must not exceed 512 KB.",
+  "error.idempotency.entity_body_too_large": "A record body with an Idempotency-Key must not exceed 512 KB.",
   "error.idempotency_key_format": "Invalid Idempotency-Key format. A valid UUID is expected.",
   "error.idempotency_key_invalid": "Invalid idempotency key",
   "error.idempotency_key_payload_mismatch": "The idempotency key was already used with another request",

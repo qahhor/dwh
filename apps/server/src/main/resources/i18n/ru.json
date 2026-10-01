@@ -1771,7 +1771,7 @@
   "error.i18n_translation_invalid": "Языковой пакет содержит некорректные переводы",
   "error.idempotency_auth_unsupported": "Идемпотентность не поддерживается для эндпоинтов авторизации и генерации секретов.",
   "error.idempotency_body_too_large": "Размер тела запроса с Idempotency-Key превышает допустимый лимит (64 КБ).",
-  "error.idempotency_entity_body_too_large": "Размер тела запроса записи с Idempotency-Key превышает допустимый лимит (512 КБ).",
+  "error.idempotency.entity_body_too_large": "Размер тела запроса записи с Idempotency-Key превышает допустимый лимит (512 КБ).",
   "error.idempotency_key_format": "Некорректный формат Idempotency-Key. Ожидается валидный UUID.",
   "error.idempotency_key_invalid": "Некорректный ключ идемпотентности",
   "error.idempotency_key_payload_mismatch": "Ключ идемпотентности уже использован с другим запросом",

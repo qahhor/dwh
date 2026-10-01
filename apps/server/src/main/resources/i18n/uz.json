@@ -1771,7 +1771,7 @@
   "error.i18n_translation_invalid": "Til paketida noto'g'ri tarjimalar mavjud",
   "error.idempotency_auth_unsupported": "Avtorizatsiya va maxfiy kalit yaratish so'rovlari idempotentlikni qo'llab-quvvatlamaydi.",
   "error.idempotency_body_too_large": "Idempotency-Key bilan so'rov tanasi 64 KB dan oshmasligi kerak.",
-  "error.idempotency_entity_body_too_large": "Idempotency-Key bilan yozuv so'rovi tanasi 512 KB dan oshmasligi kerak.",
+  "error.idempotency.entity_body_too_large": "Idempotency-Key bilan yozuv so'rovi tanasi 512 KB dan oshmasligi kerak.",
   "error.idempotency_key_format": "Idempotency-Key formati noto'g'ri. Yaroqli UUID kutilmoqda.",
   "error.idempotency_key_invalid": "Idempotentlik kaliti noto'g'ri",
   "error.idempotency_key_payload_mismatch": "Idempotentlik kaliti boshqa so'rov bilan ishlatilgan",

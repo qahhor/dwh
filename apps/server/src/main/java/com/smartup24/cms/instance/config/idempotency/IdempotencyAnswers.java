@@ -146,7 +146,7 @@ final class IdempotencyAnswers {
     /** The text of a refusal over the limit: each limit names its size. */
     static String tooLargeKey(int limit) {
         return limit == IdempotencyFilter.MAX_ENTITY_BODY_BYTES
-                ? "error.idempotency_entity_body_too_large"
+                ? "error.idempotency.entity_body_too_large"
                 : "error.idempotency_body_too_large";
     }
 
