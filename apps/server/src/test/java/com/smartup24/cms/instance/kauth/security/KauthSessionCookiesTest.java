@@ -9,36 +9,37 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-/** Plan 10/10, item 4.7: the session cookie SMC_SESSION, with DWH_SESSION read until the sunset. */
+/** Plan 10/10, item 4.7: the session cookie SMC_SESSION; the name before the rename is not read. */
 class KauthSessionCookiesTest {
+
+    /** The session cookie name before plan 10/10, item 4.7. */
+    private static final String OLD_NAME = "DWH_SESSION";
 
     private final KauthSessionCookies cookies = new KauthSessionCookies(null);
 
     @Test
-    @DisplayName("the new name wins; the old one is read and marked as legacy; a blank value is no cookie")
-    void readsTheNewNameThenTheOldOne() {
+    @DisplayName("SMC_SESSION is read; the old name and a blank value are no cookie")
+    void readsOnlyTheCurrentName() {
         var both = new MockHttpServletRequest();
-        both.setCookies(
-                new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "old"),
-                new Cookie(KauthPref.SESSION_COOKIE_NAME, "new"));
-        assertThat(KauthSessionCookies.read(both)).contains(new KauthSessionCookies.SessionCookie("new", false));
+        both.setCookies(new Cookie(OLD_NAME, "old"), new Cookie(KauthPref.SESSION_COOKIE_NAME, "new"));
+        assertThat(KauthSessionCookies.read(both)).contains("new");
 
-        var legacy = new MockHttpServletRequest();
-        legacy.setCookies(new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "old"));
-        assertThat(KauthSessionCookies.read(legacy)).contains(new KauthSessionCookies.SessionCookie("old", true));
+        var old = new MockHttpServletRequest();
+        old.setCookies(new Cookie(OLD_NAME, "old"));
+        assertThat(KauthSessionCookies.read(old)).isEmpty();
+        assertThat(KauthSessionCookies.present(old)).isFalse();
 
         var blank = new MockHttpServletRequest();
-        blank.setCookies(
-                new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, ""), new Cookie(KauthPref.SESSION_COOKIE_NAME, " "));
+        blank.setCookies(new Cookie(KauthPref.SESSION_COOKIE_NAME, " "));
         assertThat(KauthSessionCookies.read(blank)).isEmpty();
         assertThat(KauthSessionCookies.present(new MockHttpServletRequest())).isFalse();
     }
 
     @Test
-    @DisplayName("issuing sets SMC_SESSION and removes DWH_SESSION only when the browser still sends it")
-    void issueReplacesTheOldCookie() {
+    @DisplayName("issuing sets an HTTP-only SMC_SESSION and leaves an old cookie alone")
+    void issueSetsTheCookie() {
         var request = new MockHttpServletRequest();
-        request.setCookies(new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "raw"));
+        request.setCookies(new Cookie(OLD_NAME, "raw"));
         var response = new MockHttpServletResponse();
 
         cookies.issue(request, response, "raw");
@@ -46,24 +47,20 @@ class KauthSessionCookiesTest {
         assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME).getValue()).isEqualTo("raw");
         assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME).isHttpOnly())
                 .isTrue();
-        assertThat(response.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
-                .isZero();
-
-        var fresh = new MockHttpServletResponse();
-        cookies.issue(new MockHttpServletRequest(), fresh, "raw");
-        assertThat(fresh.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME)).isNull();
+        assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME).getMaxAge())
+                .isEqualTo(KauthPref.SESSION_COOKIE_MAX_AGE_SECONDS);
+        assertThat(response.getCookie(OLD_NAME)).isNull();
     }
 
     @Test
-    @DisplayName("sign-out removes the cookie under both names")
-    void clearRemovesBothNames() {
+    @DisplayName("sign-out removes SMC_SESSION")
+    void clearRemovesTheCookie() {
         var response = new MockHttpServletResponse();
 
         cookies.clear(new MockHttpServletRequest(), response);
 
         assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME).getMaxAge())
                 .isZero();
-        assertThat(response.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
-                .isZero();
+        assertThat(response.getCookie(OLD_NAME)).isNull();
     }
 }

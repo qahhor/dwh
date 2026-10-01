@@ -17911,12 +17911,12 @@
     },
     "securitySchemes" : {
       "BearerAuth" : {
-        "description" : "Personal API token (smc_...; tokens issued as dwh_... are accepted until 2026-12-31)",
+        "description" : "Personal API token (smc_...)",
         "scheme" : "bearer",
         "type" : "http"
       },
       "SessionCookie" : {
-        "description" : "HTTP-only session cookie of the web application; the old name DWH_SESSION is read until 2026-12-31",
+        "description" : "HTTP-only session cookie of the web application",
         "in" : "cookie",
         "name" : "SMC_SESSION",
         "type" : "apiKey"

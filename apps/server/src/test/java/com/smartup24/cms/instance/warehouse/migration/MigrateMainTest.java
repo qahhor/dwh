@@ -36,8 +36,8 @@ class MigrateMainTest {
     @Test
     @DisplayName("старые имена DWH_MIGRATE_SCOPE и DWH_DATA_DB_URL не читаются")
     void oldNamesAreIgnored() {
-        assertThatThrownBy(() -> MigrateMain.run(Map.of(
-                        "DWH_MIGRATE_SCOPE", "dwh", "DWH_DATA_DB_URL", "jdbc:postgresql://127.0.0.1:1/none")))
+        assertThatThrownBy(() -> MigrateMain.run(
+                        Map.of("DWH_MIGRATE_SCOPE", "dwh", "DWH_DATA_DB_URL", "jdbc:postgresql://127.0.0.1:1/none")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageEndingWith("DB_URL")
                 .hasMessageNotContaining("WAREHOUSE_URL");

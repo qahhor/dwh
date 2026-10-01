@@ -28,8 +28,8 @@ import org.junit.jupiter.api.io.TempDir;
 class CorePurityTest {
 
     private static final Path INSTANCE = Path.of("src/main/java/com/smartup24/cms/instance");
-    private static final List<String> OUR_MODULES = List.of(
-            "jobs", "warehouse", "units", "common/versioning", "common/actor", "upl", "ref", "reg", "vit");
+    private static final List<String> OUR_MODULES =
+            List.of("jobs", "warehouse", "units", "common/versioning", "common/actor", "upl", "ref", "reg", "vit");
     private static final Path OLTP_MIGRATIONS = Path.of("src/main/resources/db/migration");
     private static final Path DWH_MIGRATIONS = Path.of("src/main/resources/db/dwh");
     private static final Path TERMS = Path.of("src/test/resources/forbidden-terms.txt");

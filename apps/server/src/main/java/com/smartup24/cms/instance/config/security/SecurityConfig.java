@@ -147,7 +147,6 @@ public class SecurityConfig {
     }
 
     private static boolean hasSessionCookie(HttpServletRequest request) {
-        // Either name (plan 10/10, item 4.7): a browser still on the old cookie is a cookie session as well.
         return KauthSessionCookies.present(request);
     }
 }

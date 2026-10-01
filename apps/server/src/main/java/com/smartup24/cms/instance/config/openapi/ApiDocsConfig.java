@@ -59,19 +59,14 @@ public class ApiDocsConfig {
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
-                                        .description("Personal API token (" + KauthPref.API_TOKEN_PREFIX
-                                                + "...; tokens issued as "
-                                                + KauthPref.LEGACY_API_TOKEN_PREFIX + "... are accepted until "
-                                                + ApiDeprecations.SUNSET + ")"))
+                                        .description("Personal API token (" + KauthPref.API_TOKEN_PREFIX + "...)"))
                         .addSecuritySchemes(
                                 SESSION,
                                 new SecurityScheme()
                                         .type(SecurityScheme.Type.APIKEY)
                                         .in(SecurityScheme.In.COOKIE)
                                         .name(KauthPref.SESSION_COOKIE_NAME)
-                                        .description("HTTP-only session cookie of the web application; the old name "
-                                                + KauthPref.LEGACY_SESSION_COOKIE_NAME + " is read until "
-                                                + ApiDeprecations.SUNSET)))
+                                        .description("HTTP-only session cookie of the web application")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER))
                 .addSecurityItem(new SecurityRequirement().addList(SESSION));
     }
