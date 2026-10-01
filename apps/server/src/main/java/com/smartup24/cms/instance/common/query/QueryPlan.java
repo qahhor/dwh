@@ -84,6 +84,9 @@ public record QueryPlan(
         if (attributes != null && (condition.op() == QueryOp.EQ || condition.op() == QueryOp.IN)) {
             return containment(attributes, condition, p, params);
         }
+        if (condition.field().type() == QueryFieldType.REF_SET) {
+            return keySetTest(condition, p, params);
+        }
         switch (condition.op()) {
             case EQ -> sql.append(expr).append(" = :").append(p);
             case NE -> sql.append(expr).append(" is distinct from :").append(p);
@@ -177,6 +180,23 @@ public record QueryPlan(
     public String orderBy() {
         String direction = descending ? " desc" : " asc";
         return " order by " + sort.sql() + direction + ", " + list.idSql() + direction;
+    }
+
+    /**
+     * A set of keys read as a {@code bigint[]} (plan 10/10, item 5.2): {@code in} holds when it shares a key with the
+     * values, {@code empty} when it holds none.
+     */
+    private static String keySetTest(Condition condition, String p, Map<String, Object> params) {
+        String expr = condition.field().sql();
+        return switch (condition.op()) {
+            case IN -> {
+                params.put(p, condition.values());
+                yield "(" + expr + " && cast(array[:" + p + "] as bigint[]))";
+            }
+            case EMPTY -> "(cardinality(" + expr + ") = 0)";
+            case NOT_EMPTY -> "(cardinality(" + expr + ") > 0)";
+            default -> throw new IllegalStateException("A set of keys takes in, empty and not_empty only");
+        };
     }
 
     private static String emptyTest(QueryField field, boolean empty) {

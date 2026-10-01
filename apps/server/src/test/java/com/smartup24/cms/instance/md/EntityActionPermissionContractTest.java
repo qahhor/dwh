@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.md.pref.PermissionAreas;
+import com.smartup24.cms.instance.support.TestFixtureExcludeFilter;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +61,8 @@ class EntityActionPermissionContractTest {
     static List<EntityDefinition> declaredEntities() throws Exception {
         var scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(Configuration.class));
+        // The application's own declarations, not the fixtures of tests (EntityFieldRightsIntegrationTest).
+        scanner.addExcludeFilter(new TestFixtureExcludeFilter());
         List<EntityDefinition> entities = new ArrayList<>();
         for (var definition : scanner.findCandidateComponents("com.smartup24.cms.instance")) {
             Class<?> type = Class.forName(definition.getBeanClassName());

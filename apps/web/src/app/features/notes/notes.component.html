@@ -43,6 +43,7 @@
             [selected]="isSelected(note)"
             (selectedChange)="setSelected(note, $event)"
             (togglePin)="togglePin(note)"
+            (toggleArchive)="toggleArchive(note)"
             (edit)="editing.set(note)"
             (remove)="remove(note)"
           />

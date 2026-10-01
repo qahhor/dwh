@@ -12,6 +12,7 @@ import com.smartup24.cms.instance.common.entity.Entity;
 import com.smartup24.cms.instance.common.entity.EntityCapability;
 import com.smartup24.cms.instance.common.entity.EntityDefinition;
 import com.smartup24.cms.instance.common.entity.EntityDefinition.EntityMenu;
+import com.smartup24.cms.instance.common.entity.EntityScope;
 import com.smartup24.cms.instance.common.entity.field.FieldSource.SystemColumn;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ public class MsNoteEntity {
 
     public static final EntityDefinition DEFINITION = Entity.define(CODE, "notes")
             .table("ms_notes", "n")
+            // A note is its owner's alone, whatever the role's rule (ADR-0013, 2.5).
+            .scope(EntityScope.owner("created_by"))
             .rights(
                     "ms.note",
                     "notes.rights.form",
@@ -77,6 +80,7 @@ public class MsNoteEntity {
             .section("settings", "entity.section.settings", "color", "isPinned")
             .actions("create", "update")
             .action("pin", "update")
+            .archivable()
             .actions("delete")
             .defaultSort("rank", Entity.Sort.DESC)
             .customFields("NOTE")

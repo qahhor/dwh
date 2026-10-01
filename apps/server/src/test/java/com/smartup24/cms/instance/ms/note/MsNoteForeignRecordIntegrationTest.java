@@ -35,7 +35,8 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Plan 10/10, item 5.0: another person's note answers exactly as a note that does not exist, 404, on every path of
- * the entity — read, change, pin, delete, history, bulk delete and export — so no answer tells that the id exists.
+ * the entity — read, change, pin, archive (item 5.3), delete, history, bulk delete and export — so no answer tells that
+ * the id exists.
  */
 class MsNoteForeignRecordIntegrationTest extends EmbeddedPostgresTest {
 
@@ -81,6 +82,10 @@ class MsNoteForeignRecordIntegrationTest extends EmbeddedPostgresTest {
                                 Map.of("title", "x")),
                         new Path("delete", id -> delete("/api/v1/notes/" + id), null),
                         new Path("pin", id -> put("/api/v1/notes/" + id + "/pin"), Map.of("pinned", true)),
+                        new Path(
+                                "archive",
+                                id -> put("/api/v1/notes/" + id + "/archived").header("If-Match", "\"1\""),
+                                Map.of("archived", true)),
                         new Path("history", id -> get("/api/v1/history/ms.notes/" + id), null))
                 .map(Arguments::of);
     }

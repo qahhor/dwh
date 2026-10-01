@@ -6,8 +6,9 @@ import com.smartup24.cms.instance.common.security.SecurityContext;
 import org.springframework.stereotype.Component;
 
 /**
- * Notes for the platform's history, export and bulk delete (roadmap item 56): a note is its owner's alone, so
- * another person's note reads as missing, and a delete is the owner's single delete, with its audit.
+ * Notes for the platform's history, export, bulk delete and bulk archive (roadmap item 56): a note is its owner's
+ * alone, so another person's note reads as missing, and a delete or an archive is the owner's single one, with its
+ * audit.
  */
 @Component
 public class MsNoteRecords implements EntityRecords {
@@ -37,5 +38,11 @@ public class MsNoteRecords implements EntityRecords {
     @Override
     public void delete(long id) {
         notes.deleteNote(id, SecurityContext.getCurrentUserId());
+    }
+
+    /** The bulk archive (ADR-0032, 5.4): the owner's single archive, with its audit, from whatever revision. */
+    @Override
+    public void archive(long id) {
+        notes.setArchived(id, SecurityContext.getCurrentUserId(), true, null);
     }
 }

@@ -1,5 +1,6 @@
 import { TrackByFunction } from '@angular/core';
 import {
+  enumLabel,
   fieldLabel,
   fieldValue,
   QueryFieldMeta,
@@ -8,6 +9,7 @@ import {
   QuerySort,
 } from '@core/models/query-meta.models';
 import { ColumnContentType, ColumnInfo, OrderBy, TableConfig } from '../ui-kit/components/table/table.types';
+import { fileName, moneyText } from '../entity/entity-values';
 
 export interface RegistryTableOptions<T> {
   translate: (key: string) => string;
@@ -44,7 +46,8 @@ export function registryTableConfig<T>(meta: QueryListMeta, options: RegistryTab
       hasSorting: field.sortable,
       sortedBy: options.sort?.field === field.key ? (options.sort.descending ? OrderBy.Desc : OrderBy.Asc) : undefined,
       width: options.widths?.[field.key],
-      align: options.align?.[field.key] ?? (field.type === 'number' ? 'right' : undefined),
+      align:
+        options.align?.[field.key] ?? (field.type === 'number' && field.format !== 'currency' ? 'right' : undefined),
     };
   }
   return {
@@ -66,6 +69,8 @@ function defaultCell<T>(
   refName?: RegistryTableOptions<T>['refName'],
 ): ColumnContentType<T> {
   const value = (row: T) => fieldValue(field, row);
+  const formatted = formatCell<T>(field, value, refName);
+  if (formatted) return formatted;
   const ref = field.ref;
   if (ref && refName) {
     // A reference by the name of its row, from its own target (a person, a project, any list).
@@ -87,7 +92,7 @@ function defaultCell<T>(
         type: 'primitive',
         value: (row) => {
           const raw = value(row);
-          return raw == null ? '—' : field.enumLabelPrefix ? translate(`${field.enumLabelPrefix}${raw}`) : String(raw);
+          return raw == null ? '—' : enumLabel(field, String(raw), translate);
         },
       };
     case 'boolean':
@@ -103,5 +108,41 @@ function defaultCell<T>(
       };
     default:
       return { type: 'primitive', value: (row) => (value(row) as string | number | null) ?? '—' };
+  }
+}
+
+/**
+ * The cell of a field whose list type alone does not say how to show it (the field's `format`, ADR-0032 4.1): money in
+ * its currency, several references by their names, a file by its name, JSON as compact text. Null for a field without
+ * a format of its own, or one its list type shows (an e-mail, a phone, an address, an enumeration).
+ */
+function formatCell<T>(
+  field: QueryFieldMeta,
+  value: (row: T) => unknown,
+  refName?: RegistryTableOptions<T>['refName'],
+): ColumnContentType<T> | null {
+  const shown = (text: (raw: unknown) => string): ColumnContentType<T> => ({
+    type: 'primitive',
+    value: (row) => {
+      const raw = value(row);
+      return raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0) ? '—' : text(raw);
+    },
+  });
+  switch (field.format) {
+    case 'money':
+      return shown((raw) => moneyText(raw));
+    case 'multi_ref':
+      return shown((raw) =>
+        (Array.isArray(raw) ? raw : [raw])
+          .map((key) => (field.ref && refName ? refName(field.ref, key) : null) ?? String(key))
+          .join(', '),
+      );
+    case 'file':
+    case 'image':
+      return shown((raw) => fileName(raw));
+    case 'json':
+      return shown((raw) => (typeof raw === 'string' ? raw : JSON.stringify(raw)));
+    default:
+      return null;
   }
 }

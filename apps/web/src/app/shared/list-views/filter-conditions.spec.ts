@@ -149,4 +149,54 @@ describe('filter conditions', () => {
     expect(describeCondition({ field: 'version', op: 'empty' }, META, translate)).toBe('Version: is empty');
     expect(describeCondition({ field: 'draft', op: 'eq', value: false }, META, translate)).toBe('Draft: equals No');
   });
+
+  /** Plan 10/10, item 5.2 (ADR-0032 4.1, 4.5): a set of references and an enumeration of a reference entity. */
+  it('takes record keys for a set of references and names enumeration items', () => {
+    const meta: QueryListMeta = {
+      ...META,
+      fields: [
+        {
+          key: 'tagIds',
+          labelKey: 'Tags',
+          type: 'ref_set',
+          ops: ['in', 'empty', 'not_empty'],
+          sortable: false,
+          nullable: true,
+          defaultVisible: true,
+          enumValues: [],
+          enumLabelPrefix: null,
+          ref: { path: '/tags', labelField: 'name', keyField: 'id', paged: true },
+          format: 'multi_ref',
+        },
+        {
+          key: 'unit',
+          labelKey: 'Unit',
+          type: 'enum',
+          ops: ['eq', 'in'],
+          sortable: false,
+          nullable: false,
+          defaultVisible: true,
+          enumValues: ['kg', 'pc'],
+          enumLabelPrefix: null,
+          enumLabels: { kg: 'Kilogram', pc: 'Piece' },
+          format: 'enum',
+        },
+      ],
+    };
+    const translate = (key: string) => key;
+
+    expect(draftError({ field: 'tagIds', op: 'in', value: '0', valueTo: '', values: [] }, meta)).toBe(
+      'ui.filter.err.number',
+    );
+    expect(
+      toCondition({ field: 'tagIds', op: 'in', value: '9', valueTo: '', values: [], label: 'Urgent' }, meta),
+    ).toEqual({ field: 'tagIds', op: 'in', value: [9], label: 'Urgent' });
+    expect(toCondition({ field: 'tagIds', op: 'empty', value: '', valueTo: '', values: [] }, meta)).toEqual({
+      field: 'tagIds',
+      op: 'empty',
+    });
+    expect(describeCondition({ field: 'unit', op: 'eq', value: 'kg' }, meta, translate)).toBe(
+      'Unit: ui.filter.op.eq Kilogram',
+    );
+  });
 });

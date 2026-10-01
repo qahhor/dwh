@@ -10,28 +10,45 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Where an entity's records live and the fields they have (ADR-0032, 3.2): the table and its alias, every field
  * declared once as an {@link EntityField}, and the list's default order. The entity's form fields
- * ({@link #formFields()}) and its list ({@link EntityLists#queryList}) are derived from it. The scope, collections,
- * process, rules, search and import of ADR-0032 join it with the later items of plan 10/10, phase 5.
+ * ({@link #formFields()}) and its list ({@link EntityLists#queryList}) are derived from it. Its scope says which rows a
+ * viewer sees (ADR-0032, 5.1; plan 10/10, item 5.3). The collections, process, rules, search and import of ADR-0032
+ * join it with the later items of plan 10/10, phase 5.
  *
  * @param table             the entity's table ({@code ms_notes})
  * @param alias             its alias in the list's SQL ({@code n})
  * @param fields            every field, in the order of the form and the list
  * @param defaultSort       the key of the list's default sort field, a sortable list field
  * @param defaultDescending the default sort runs from the largest value
+ * @param scope             which rows a viewer sees; every entity table declares it
+ * @param reference         its rows are the items of enumerations (ADR-0032, 4.5), or null
  */
 public record EntityModel(
-        String table, String alias, List<EntityField> fields, String defaultSort, boolean defaultDescending) {
+        String table,
+        String alias,
+        List<EntityField> fields,
+        String defaultSort,
+        boolean defaultDescending,
+        EntityScope scope,
+        @Nullable EntityReference reference) {
 
     /** The record property of the custom field values. */
     public static final String ATTRIBUTES = "attributes";
 
+    /** The record property and list field of an archived record (ADR-0032, 5.4): true once it is archived. */
+    public static final String ARCHIVED = "archived";
+
+    /** The record property of the moment it was archived, or null. */
+    public static final String ARCHIVED_AT = "archivedAt";
+
     /** The record's own properties: a field may use one only as its system column. */
     private static final Set<String> RESERVED = Stream.concat(
-                    Stream.of(SystemColumn.values()).map(SystemColumn::key), Stream.of(ATTRIBUTES))
+                    Stream.of(SystemColumn.values()).map(SystemColumn::key),
+                    Stream.of(ATTRIBUTES, ARCHIVED, ARCHIVED_AT))
             .collect(Collectors.toUnmodifiableSet());
 
     public EntityModel {
@@ -39,6 +56,7 @@ public record EntityModel(
         requireIdentifier(alias);
         fields = List.copyOf(fields);
         Objects.requireNonNull(defaultSort, "defaultSort");
+        Objects.requireNonNull(scope, () -> "Table " + table + " declares its scope (ADR-0032, 5.1)");
         Set<String> keys = new HashSet<>();
         for (EntityField field : fields) {
             if (!keys.add(field.key())) {
@@ -49,6 +67,18 @@ public record EntityModel(
                         + " is the record's own; only its system field may use it");
             }
         }
+        EntityModelRules.check(table, fields);
+    }
+
+    /** A model of an entity that is no reference. */
+    public EntityModel(
+            String table,
+            String alias,
+            List<EntityField> fields,
+            String defaultSort,
+            boolean defaultDescending,
+            EntityScope scope) {
+        this(table, alias, fields, defaultSort, defaultDescending, scope, null);
     }
 
     /** The fields of the form, in declaration order. */
@@ -61,7 +91,7 @@ public record EntityModel(
     /** The fields of the list, in declaration order, read over the alias. */
     public List<QueryField> listFields() {
         return fields.stream()
-                .flatMap(field -> Stream.ofNullable(field.queryField(alias)))
+                .flatMap(field -> field.queryFields(alias).stream())
                 .toList();
     }
 

@@ -1,6 +1,8 @@
 package com.smartup24.cms.instance.common.entity;
 
+import com.smartup24.cms.instance.common.entity.field.FieldParams;
 import com.smartup24.cms.instance.common.entity.field.FieldType;
+import com.smartup24.cms.instance.common.entity.field.FormFlags;
 import com.smartup24.cms.instance.common.query.QueryRef;
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,6 +29,8 @@ import org.jspecify.annotations.Nullable;
  * @param optionLabelPrefix dictionary prefix of the option labels ({@code notes.color_}); null shows the value
  * @param ref       where a reference field's rows come from (ADR-0019, 2.4)
  * @param attribute a custom field's code: its value lives in the record's {@code attributes}
+ * @param flags     read-only, default, conditional visibility and computed (ADR-0032, 4.3–4.4)
+ * @param params    the parameters of the types of plan 10/10, item 5.2 (ADR-0032, 4.1)
  */
 public record FormField(
         String key,
@@ -42,13 +46,17 @@ public record FormField(
         List<String> options,
         @Nullable String optionLabelPrefix,
         @Nullable QueryRef ref,
-        @Nullable String attribute) {
+        @Nullable String attribute,
+        FormFlags flags,
+        FieldParams params) {
 
     /** The list registry's key rule, so a form field and its list field can share one name (plan 10/10, item 5.0). */
     private static final Pattern KEY = Pattern.compile("^[a-z][a-zA-Z0-9]{0,63}$");
 
     public FormField {
         Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(flags, "flags");
+        Objects.requireNonNull(params, "params");
         if (key == null || !KEY.matcher(key).matches()) {
             throw new IllegalArgumentException("Bad form field key: " + key);
         }
@@ -57,13 +65,52 @@ public record FormField(
             throw new IllegalArgumentException(
                     "Form field " + key + ": options go with a select, and a select needs them");
         }
-        if ((type == FieldType.REF) != (ref != null)) {
+        if ((type == FieldType.REF || type == FieldType.MULTI_REF) != (ref != null)) {
             throw new IllegalArgumentException(
                     "Form field " + key + ": a reference field names its source, and only it");
+        }
+        if ((type == FieldType.ENUM) != (params.enumeration() != null)) {
+            throw new IllegalArgumentException(
+                    "Form field " + key + ": an enumeration names its reference entity, and only it");
         }
         if (pattern != null) {
             Pattern.compile(pattern);
         }
+    }
+
+    /** A form field without the flags and parameters of plan 10/10, item 5.2: a custom field (ADR-0019, 2.3). */
+    public FormField(
+            String key,
+            String labelKey,
+            @Nullable String label,
+            FieldType type,
+            boolean required,
+            @Nullable Integer minLength,
+            @Nullable Integer maxLength,
+            @Nullable BigDecimal min,
+            @Nullable BigDecimal max,
+            @Nullable String pattern,
+            List<String> options,
+            @Nullable String optionLabelPrefix,
+            @Nullable QueryRef ref,
+            @Nullable String attribute) {
+        this(
+                key,
+                labelKey,
+                label,
+                type,
+                required,
+                minLength,
+                maxLength,
+                min,
+                max,
+                pattern,
+                options,
+                optionLabelPrefix,
+                ref,
+                attribute,
+                FormFlags.NONE,
+                FieldParams.NONE);
     }
 
     public static FormField of(String key, String labelKey, FieldType type) {
@@ -105,7 +152,9 @@ public record FormField(
                 options,
                 optionLabelPrefix,
                 ref,
-                attribute);
+                attribute,
+                flags,
+                params);
     }
 
     public FormField length(Integer shortest, Integer longest) {
@@ -123,7 +172,9 @@ public record FormField(
                 options,
                 optionLabelPrefix,
                 ref,
-                attribute);
+                attribute,
+                flags,
+                params);
     }
 
     public FormField range(BigDecimal smallest, BigDecimal largest) {
@@ -141,7 +192,9 @@ public record FormField(
                 options,
                 optionLabelPrefix,
                 ref,
-                attribute);
+                attribute,
+                flags,
+                params);
     }
 
     public FormField matching(String regex) {
@@ -159,7 +212,9 @@ public record FormField(
                 options,
                 optionLabelPrefix,
                 ref,
-                attribute);
+                attribute,
+                flags,
+                params);
     }
 
     /** A custom field of the entity: labelled by its own name, its value in the record's attributes. */
@@ -178,7 +233,9 @@ public record FormField(
                 options,
                 optionLabelPrefix,
                 ref,
-                code);
+                code,
+                flags,
+                params);
     }
 
     public FormField refersTo(QueryRef source) {
@@ -196,6 +253,13 @@ public record FormField(
                 options,
                 optionLabelPrefix,
                 source,
-                attribute);
+                attribute,
+                flags,
+                params);
+    }
+
+    /** Whether the server computes the value: the form shows it and never sends it. */
+    public boolean computed() {
+        return flags.computed();
     }
 }

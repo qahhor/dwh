@@ -312,6 +312,43 @@ public class MdScopeRepository {
                 .single();
     }
 
+    /**
+     * Whether a record may be put in the unit by the user (ADR-0032, 5.1): under {@code ALL} any existing unit, under
+     * {@code SUBTREE}/{@code UNITS} a unit of the materialized scope, under {@code SELF} one of the user's own units.
+     */
+    public boolean isUnitAvailable(long userId, long orgUnitId, String rule) {
+        String sql = switch (rule) {
+            case "SUBTREE", "UNITS" -> """
+                            select exists (
+                                select 1 from md_effective_scope where user_id = :userId and org_unit_id = :unitId
+                            )
+                            """;
+            case "SELF" -> """
+                            select exists (
+                                select 1 from md_user_org_units where user_id = :userId and org_unit_id = :unitId
+                            ) or exists (
+                                select 1 from md_users where id = :userId and org_unit_id = :unitId
+                            )
+                            """;
+            default -> "select exists (select 1 from md_org_units where id = :unitId)";
+        };
+        return jdbcClient
+                .sql(sql)
+                .param("userId", userId)
+                .param("unitId", orgUnitId)
+                .query(Boolean.class)
+                .single();
+    }
+
+    /** The user's home unit ({@code md_users.org_unit_id}), when they have one. */
+    public Optional<Long> homeUnit(long userId) {
+        return jdbcClient
+                .sql("select org_unit_id from md_users where id = :userId and org_unit_id is not null")
+                .param("userId", userId)
+                .query(Long.class)
+                .optional();
+    }
+
     public boolean userExists(Long userId) {
         return jdbcClient
                 .sql("select exists (select 1 from md_users where id = :userId)")

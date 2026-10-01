@@ -23,6 +23,7 @@ class EntityListsTest {
     private static EntityDefinition items() {
         return Entity.define("x.items", "x")
                 .table("x_items", "t")
+                .scope(EntityScope.all())
                 .field(text("name", "x.col.name")
                         .column("name")
                         .required()
@@ -34,7 +35,7 @@ class EntityListsTest {
                         .list(sortable()))
                 .section("main", "entity.section.main", "name", "status")
                 .actions("create", "update")
-                .action("archive", "update")
+                .action("close", "update")
                 .actions("delete")
                 .defaultSort("modifiedAt", Entity.Sort.DESC)
                 .capabilities(EntityCapability.HISTORY, EntityCapability.EXPORT)
@@ -50,8 +51,8 @@ class EntityListsTest {
         assertThat(entity.fields()).extracting(FormField::key).containsExactly("name", "status");
         assertThat(entity.actions())
                 .extracting(EntityDefinition.EntityAction::code)
-                .containsExactly("create", "update", "archive", "delete");
-        assertThat(entity.action("archive").orElseThrow().permission()).isEqualTo("update");
+                .containsExactly("create", "update", "close", "delete");
+        assertThat(entity.action("close").orElseThrow().permission()).isEqualTo("update");
         assertThat(entity.model().table()).isEqualTo("x_items");
     }
 
@@ -82,7 +83,9 @@ class EntityListsTest {
 
         assertThat(notes.customEntity()).isEqualTo("NOTE");
         assertThat(notes.attributesSql()).isEqualTo("n.attributes");
-        assertThat(notes.select()).endsWith("n.attributes::text as \"attributes\"");
+        assertThat(notes.select())
+                .contains("n.attributes::text as \"attributes\"")
+                .endsWith("n.archived_at as \"archivedAt\"");
         assertThat(notes.field("rank").orElseThrow().sortable()).isTrue();
         assertThat(new EntityLists(List.of(MsNoteEntity.DEFINITION, formOnly())).lists())
                 .extracting(QueryList::code)
@@ -93,6 +96,7 @@ class EntityListsTest {
     void theRecordsOwnKeysAreNotFieldKeys() {
         assertThatThrownBy(() -> Entity.define("x.items", "x")
                         .table("x_items", "t")
+                        .scope(EntityScope.all())
                         .field(text("attributes", "x.col.a").column("attrs").list(sortable()))
                         .section("main", "m", "attributes")
                         .defaultSort("attributes", Entity.Sort.ASC)
@@ -100,6 +104,7 @@ class EntityListsTest {
                 .hasMessageContaining("record's own");
         assertThatThrownBy(() -> Entity.define("x.items", "x")
                         .table("x_items", "t")
+                        .scope(EntityScope.all())
                         .field(text("createdBy", "x.col.c").column("author").list(sortable()))
                         .section("main", "m", "createdBy")
                         .defaultSort("createdBy", Entity.Sort.ASC)
@@ -143,6 +148,7 @@ class EntityListsTest {
                 .hasMessageContaining("come from its model");
         assertThatThrownBy(() -> Entity.define("x.items", "x")
                         .table("x_items", "t")
+                        .scope(EntityScope.all())
                         .field(text("name", "l").column("name").list(sortable()))
                         .section("main", "m", "name")
                         .build())

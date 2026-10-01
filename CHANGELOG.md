@@ -9,6 +9,20 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Plan 10/10, items 5.2 and 5.3 (ADR-0032 steps 2–3). Field types for
+  ERP/SFA: EMAIL, PHONE, URL, MONEY (amount + currency, numeric), ENUM from a
+  declared reference entity (archived items keep their label but are not
+  offered), MULTI_REF (link table), FILE and IMAGE (`mf_record_files`, V161;
+  downloaded through the record), JSON and computed read-only values; default
+  values (incl. the author's org unit), read-only modes and conditional
+  visibility; a type × capability matrix test on server and web keeps every
+  type complete. Every entity declares its data scope (owner, org unit, all
+  or custom); field rights `requires` / `readonlyUnless` apply to form-meta,
+  reads, writes, export, history and webhook data; a field is read-only by
+  its declaration or by the viewer's rights; the `ARCHIVE` capability
+  (`archived_at`/`archived_by`, partial unique indexes) with archived notes
+  (V164) and `PUT /api/v1/notes/{id}/archived`.
+
 - Plan 10/10, item 5.1 — one field model (ADR-0032 step 1): an entity
   declares each field once as an `EntityField` (value source, form part,
   list part, access); its form description and its list are derived from it
