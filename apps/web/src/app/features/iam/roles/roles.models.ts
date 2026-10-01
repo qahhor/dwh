@@ -27,18 +27,19 @@ export const MODULE_ICON_MAP: Record<string, string> = {
   platform: 'hub',
   audit: 'history',
   mf: 'folder_open',
-  kwh: 'database',
+  webhook: 'webhook',
 };
 
 export const MODULE_NAME_KEY_MAP: Record<string, string> = {
-  md: 'iam.polzovateli_i_bezopasnost_iam',
-  iam: 'iam.uchetnye_zapisi_i_profil_iam',
-  'ms.task': 'iam.upravlenie_zadachami_task',
-  'ms.notify': 'iam.opovescheniya_i_sobytiya_notif',
-  platform: 'iam.sistemnaya_platforma_platform',
-  audit: 'iam.zhurnal_audita_audit',
-  mf: 'iam.faylovoe_hranilische_file',
-  kwh: 'iam.hranilische_dannyh_dwh',
+  md: 'iam.roles.module_users_security',
+  iam: 'iam.roles.module_accounts_profile',
+  'ms.task': 'iam.roles.module_tasks',
+  'ms.notify': 'iam.roles.module_notifications',
+  platform: 'iam.roles.module_platform',
+  audit: 'iam.roles.module_audit',
+  mf: 'iam.roles.module_files',
+  webhook: 'settings.webhooks.tab',
+  warehouse: 'iam.roles.module_warehouse',
 };
 
 export function buildModuleGroups(items: FormTreeItem[], getModuleName: (modCode: string) => string): ModuleGroup[] {

@@ -64,8 +64,8 @@ describe('CommandPaletteResultsComponent', () => {
     ]);
     expect(options.map((option) => option.getAttribute('aria-selected'))).toEqual(['false', 'true', 'false']);
     expect(options.map((option) => option.querySelector('.result-badge')?.textContent?.trim())).toEqual([
-      PACKAGED_RUSSIAN['tasks.zadacha'],
-      PACKAGED_RUSSIAN['analytics.sotrudnik'],
+      PACKAGED_RUSSIAN['tasks.common.task'],
+      PACKAGED_RUSSIAN['analytics.dashboard.employee'],
       PACKAGED_RUSSIAN['search.entity.note'],
     ]);
     expect(options[0].textContent).toContain('Склад №2');
@@ -132,7 +132,7 @@ describe('CommandPaletteResultsComponent', () => {
     const chips = Array.from(element.querySelectorAll('.recent-chip')) as HTMLButtonElement[];
 
     expect(element.querySelector('.palette-hint')?.textContent).toContain(
-      PACKAGED_RUSSIAN['layout.command_palette.vvedite_minimum_2_simvola_dlya_mgnovennogo_poisk'],
+      PACKAGED_RUSSIAN['layout.command_palette.min_query_hint'],
     );
     expect(chips.map((chip) => chip.textContent?.trim())).toEqual([
       expect.stringContaining('отчёт'),

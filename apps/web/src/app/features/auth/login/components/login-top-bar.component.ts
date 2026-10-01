@@ -14,7 +14,7 @@ import { optionsMemo } from '@shared/ui-kit/components/forms/radio-group/radio-o
         <smt-select
           smtTriggerId="login-language-select"
           class="lang-select-login"
-          [ariaLabel]="'settings.yazyk_interfeysa' | t"
+          [ariaLabel]="'settings.common.interface_language' | t"
           [options]="languageOptions()"
           [allowClear]="false"
           [value]="i18n.currentLang()"

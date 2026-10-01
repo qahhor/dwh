@@ -132,7 +132,7 @@ export class TaskKanbanService {
           onLocalUpdate();
         },
         error: (err: unknown) => {
-          this.saveErrors.show(err, { fallbackKey: 'tasks.ne_udalos_izmenit_prioritet', reload: onReload });
+          this.saveErrors.show(err, { fallbackKey: 'tasks.kanban.priority_change_failed', reload: onReload });
         },
       });
   }
@@ -150,12 +150,12 @@ export class TaskKanbanService {
       .post(`/tasks/${taskId}/status`, { statusId: newStatusId, expectedRevision: revision }, { notifyError: false })
       .subscribe({
         next: () => {
-          this.toast.success(this.uiI18n.translate('tasks.status_zadachi_obnovlen'));
+          this.toast.success(this.uiI18n.translate('tasks.kanban.task_status_updated'));
           onApplyVisible();
           onUpdateSelected();
         },
         error: (err: unknown) => {
-          this.saveErrors.show(err, { fallbackKey: 'tasks.ne_udalos_izmenit_status', reload: onReload });
+          this.saveErrors.show(err, { fallbackKey: 'tasks.kanban.status_change_failed', reload: onReload });
         },
       });
   }
@@ -181,7 +181,7 @@ export class TaskKanbanService {
       },
       error: (err: unknown) => {
         // The card was moved before the answer: the tasks are read again at once, so no button is offered.
-        this.saveErrors.show(err, { fallbackKey: 'tasks.ne_udalos_izmenit_status_zadachi' });
+        this.saveErrors.show(err, { fallbackKey: 'tasks.kanban.task_status_change_failed' });
         onErrorReload();
       },
     });

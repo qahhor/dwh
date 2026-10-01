@@ -1,11 +1,13 @@
-<smt-dialog [open]="isOpen()" [smtTitle]="'iam.sozdat_polzovatelya' | t" smtSize="md" (closed)="closeModal.emit()">
+<smt-dialog [open]="isOpen()" [smtTitle]="'iam.users.editor.create_user' | t" smtSize="md" (closed)="closeModal.emit()">
   <ng-template smtDialogContent>
     <div body class="clean-modal-body">
       <div class="form-grid">
         <smt-control
           class="form-group span-2"
-          [smtLabel]="'iam.fio' | t"
-          [smtError]="isCreateSubmitted() && !createForm().name.trim() ? ('iam.ukazhite_fio_polzovatelya' | t) : ''"
+          [smtLabel]="'iam.common.full_name' | t"
+          [smtError]="
+            isCreateSubmitted() && !createForm().name.trim() ? ('iam.users.editor.full_name_placeholder' | t) : ''
+          "
         >
           <smt-input
             smtFieldId="user-create-name"
@@ -19,7 +21,9 @@
         <smt-control
           class="form-group"
           [smtLabel]="'analytics.login' | t"
-          [smtError]="isCreateSubmitted() && !createForm().login.trim() ? ('iam.ukazhite_login' | t) : ''"
+          [smtError]="
+            isCreateSubmitted() && !createForm().login.trim() ? ('iam.users.editor.login_placeholder' | t) : ''
+          "
         >
           <smt-input
             smtFieldId="user-create-login"
@@ -35,7 +39,9 @@
         <smt-control
           class="form-group"
           smtLabel="Email"
-          [smtError]="isCreateSubmitted() && !createForm().email.trim() ? ('iam.ukazhite_email' | t) : ''"
+          [smtError]="
+            isCreateSubmitted() && !createForm().email.trim() ? ('iam.users.editor.email_placeholder' | t) : ''
+          "
         >
           <smt-input
             smtFieldId="user-create-email"
@@ -49,25 +55,25 @@
           />
         </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'iam.telefon.822f9fd' | t">
+        <smt-control class="form-group" [smtLabel]="'iam.common.phone' | t">
           <smt-phone-input smtFieldId="user-create-phone" name="userCreatePhone" [(value)]="createForm().phone" />
         </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'iam.rukovoditel' | t">
+        <smt-control class="form-group" [smtLabel]="'iam.users.supervisor' | t">
           <!-- Searches the server: a manager is rarely among the rows loaded on the list. -->
           <smt-data-select
             [source]="users"
             [value]="createForm().managerId"
             (valueChange)="createForm().managerId = $event"
-            [placeholder]="'iam.bez_rukovoditelya' | t"
-            [searchPlaceholder]="'tasks.poisk_sotrudnika_po_imeni_ili_loginu' | t"
-            [emptyLabel]="'iam.bez_rukovoditelya' | t"
+            [placeholder]="'iam.users.editor.no_supervisor' | t"
+            [searchPlaceholder]="'tasks.common.employee_search_placeholder' | t"
+            [emptyLabel]="'iam.users.editor.no_supervisor' | t"
           />
         </smt-control>
 
         <smt-control
           class="form-group span-2"
-          [smtLabel]="'iam.vremennyy_parol' | t"
+          [smtLabel]="'iam.users.editor.temporary_password' | t"
           [smtHint]="createForm().password ? '' : ('password.policy.hint' | t: passwordPolicy)"
           [smtError]="
             isCreateSubmitted() && !fitsPolicy(createForm().password)
@@ -93,8 +99,8 @@
               <button
                 type="button"
                 class="pwd-btn"
-                [title]="'iam.sgenerirovat_parol' | t"
-                [attr.aria-label]="'iam.sgenerirovat_parol' | t"
+                [title]="'iam.users.editor.generate_strong_password' | t"
+                [attr.aria-label]="'iam.users.editor.generate_strong_password' | t"
                 (click)="generatePassword.emit()"
               >
                 <span class="material-symbols-outlined" aria-hidden="true">auto_fix_high</span>
@@ -103,8 +109,8 @@
                 <button
                   type="button"
                   class="pwd-btn"
-                  [title]="'iam.skopirovat_parol' | t"
-                  [attr.aria-label]="'iam.skopirovat_parol' | t"
+                  [title]="'iam.users.editor.copy_password' | t"
+                  [attr.aria-label]="'iam.users.editor.copy_password' | t"
                   (click)="copyPassword.emit()"
                 >
                   <span class="material-symbols-outlined" aria-hidden="true">content_copy</span>
@@ -156,7 +162,7 @@
                   <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
                     hasUpperAndLower() ? 'check' : 'close'
                   }}</span>
-                  <span>{{ 'iam.zaglavnye_i_strochnye_bukvy' | t }}</span>
+                  <span>{{ 'iam.users.editor.rule_mixed_case' | t }}</span>
                   <span class="sr-only">{{
                     (hasUpperAndLower() ? 'common.requirement_met' : 'common.requirement_not_met') | t
                   }}</span>
@@ -165,7 +171,7 @@
                   <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
                     hasDigitsOrSymbols() ? 'check' : 'close'
                   }}</span>
-                  <span>{{ 'iam.cifry_ili_specsimvoly' | t }}</span>
+                  <span>{{ 'iam.users.editor.rule_digits_or_symbols' | t }}</span>
                   <span class="sr-only">{{
                     (hasDigitsOrSymbols() ? 'common.requirement_met' : 'common.requirement_not_met') | t
                   }}</span>
@@ -174,7 +180,7 @@
                   <span class="material-symbols-outlined check-ico" aria-hidden="true">{{
                     doesNotContainLogin() ? 'check' : 'close'
                   }}</span>
-                  <span>{{ 'iam.bez_sovpadeniy_s_loginom' | t }}</span>
+                  <span>{{ 'iam.users.editor.rule_no_login' | t }}</span>
                   <span class="sr-only">{{
                     (doesNotContainLogin() ? 'common.requirement_met' : 'common.requirement_not_met') | t
                   }}</span>
@@ -184,7 +190,7 @@
           }
         </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'iam.yazyk' | t">
+        <smt-control class="form-group" [smtLabel]="'iam.common.language' | t">
           <smt-select
             smtTriggerId="user-create-language"
             name="userCreateLanguage"
@@ -194,7 +200,7 @@
           />
         </smt-control>
 
-        <smt-control class="form-group" [smtLabel]="'iam.chasovoy_poyas' | t">
+        <smt-control class="form-group" [smtLabel]="'iam.common.time_zone' | t">
           <smt-select
             smtTriggerId="user-create-timezone"
             name="userCreateTimezone"
@@ -206,13 +212,13 @@
 
         <div class="form-group span-2">
           <div smt-checkbox name="userCreate2fa" [(checked)]="createForm().is2faEnabled">
-            {{ 'iam.vklyuchit_dvuhfaktornuyu_zaschitu_2fa_otp' | t }}
+            {{ 'iam.users.editor.enable_two_factor' | t }}
           </div>
         </div>
 
         <!-- Roles -->
         @if (roles().length > 0) {
-          <smt-control class="form-group span-2" [smtLabel]="'iam.roli_dostupa_rbac' | t">
+          <smt-control class="form-group span-2" [smtLabel]="'iam.users.editor.access_roles' | t">
             <smt-tag-group
               [options]="roleOptions()"
               [value]="createForm().roleIds || []"
@@ -224,7 +230,7 @@
         <!-- Custom Fields -->
         @if (customFields().length > 0) {
           <div class="form-group span-2">
-            <span class="clean-label">{{ 'iam.dopolnitelnye_polya' | t }}</span>
+            <span class="clean-label">{{ 'iam.users.editor.additional_fields' | t }}</span>
             <ui-custom-fields [fields]="customFields()" [(values)]="createForm().attributes"></ui-custom-fields>
           </div>
         }

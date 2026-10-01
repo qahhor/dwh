@@ -18,11 +18,11 @@ const FILES_META: QueryListMeta = {
   maxConditions: 20,
   maxInValues: 100,
   fields: [
-    metaField('originalName', 'files.imya_fayla', 'text', { sortable: true }),
-    metaField('sizeBytes', 'files.razmer', 'number', { sortable: true }),
-    metaField('mimeType', 'files.tip_mime', 'text'),
-    metaField('creatorName', 'files.zagruzil', 'text', { nullable: true }),
-    metaField('createdAt', 'files.data_zagruzki', 'instant', { sortable: true }),
+    metaField('originalName', 'files.list.file_name', 'text', { sortable: true }),
+    metaField('sizeBytes', 'files.list.size', 'number', { sortable: true }),
+    metaField('mimeType', 'files.list.mime_type', 'text'),
+    metaField('creatorName', 'files.list.uploaded_by', 'text', { nullable: true }),
+    metaField('createdAt', 'files.list.upload_date', 'instant', { sortable: true }),
   ],
 };
 

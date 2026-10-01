@@ -26,7 +26,7 @@ import { UserSession } from '../profile.models';
       <div class="section-header">
         <div class="section-title-box">
           <span class="material-symbols-outlined section-icon" aria-hidden="true">devices</span>
-          <h4 class="section-title">{{ 'iam.aktivnye_sessii' | t }}</h4>
+          <h4 class="section-title">{{ 'iam.common.active_sessions' | t }}</h4>
           <span class="badge-count">{{ sessions().length }}</span>
         </div>
         <div class="sessions-header-actions">
@@ -38,10 +38,10 @@ import { UserSession } from '../profile.models';
               smtSize="sm"
               smtIcon="logout"
               [smtLoading]="isTerminatingSession()"
-              [title]="'iam.zavershit_vse_ostalnye_sessii_krome_tekuschey' | t"
+              [title]="'iam.profile.sessions.end_others_hint' | t"
               (click)="terminateOtherSessions.emit()"
             >
-              {{ 'iam.zavershit_drugie_sessii' | t }}
+              {{ 'iam.profile.sessions.end_other_sessions' | t }}
             </button>
           }
           <button
@@ -58,7 +58,12 @@ import { UserSession } from '../profile.models';
         </div>
       </div>
 
-      <div class="table-wrapper" role="region" [attr.aria-label]="'iam.tablica_aktivnyh_sessiy' | t" tabindex="0">
+      <div
+        class="table-wrapper"
+        role="region"
+        [attr.aria-label]="'iam.profile.sessions.active_sessions_table' | t"
+        tabindex="0"
+      >
         <div class="data-table">
           <ui-local-table
             [rows]="rows()"
@@ -75,7 +80,9 @@ import { UserSession } from '../profile.models';
       <div class="session-ip-cell tabular-nums font-mono">
         <span>{{ s.ip }}</span>
         @if (s.current) {
-          <smt-badge smtSize="SM" smtVariant="success" smtHasDot>{{ 'iam.tekuschaya_sessiya' | t }}</smt-badge>
+          <smt-badge smtSize="SM" smtVariant="success" smtHasDot>{{
+            'iam.profile.sessions.current_session' | t
+          }}</smt-badge>
         }
       </div>
     </ng-template>
@@ -89,7 +96,7 @@ import { UserSession } from '../profile.models';
     <ng-template #actionCell let-s>
       <div class="text-right">
         @if (s.current) {
-          <span class="current-session-label text-muted">{{ 'iam.tekuschaya' | t }}</span>
+          <span class="current-session-label text-muted">{{ 'iam.profile.sessions.current_badge' | t }}</span>
         } @else {
           <button
             smt-button
@@ -99,13 +106,13 @@ import { UserSession } from '../profile.models';
             [attr.aria-label]="'iam.terminate_session_ip' | t: { ip: s.ip }"
             (click)="terminateSession.emit(s)"
           >
-            {{ 'iam.zavershit' | t }}
+            {{ 'iam.profile.terminate' | t }}
           </button>
         }
       </div>
     </ng-template>
     <ng-template #emptySessions
-      ><p class="empty-cell">{{ 'iam.net_aktivnyh_sessiy' | t }}</p></ng-template
+      ><p class="empty-cell">{{ 'iam.common.no_active_sessions' | t }}</p></ng-template
     >
   `,
   styleUrl: './profile-sessions-card.component.css',
@@ -135,15 +142,20 @@ export class ProfileSessionsCardComponent {
     const cell = (template: Signal<TemplateRef<unknown>>) => ({ type: 'templateRef' as const, value: template });
     return {
       trackBy: (_index, s) => s.id ?? s.ip,
-      ariaLabel: this.i18n.translate('iam.aktivnye_sessii'),
+      ariaLabel: this.i18n.translate('iam.common.active_sessions'),
       layout: 'fit',
       rowClass: (s) => (s.current ? 'highlight-row' : null),
       columns: {
-        ip: { header: header('iam.ip_adres'), content: cell(this.ipCell) },
-        device: { header: header('iam.ustroystvo_brauzer'), content: cell(this.deviceCell) },
-        created: { header: header('iam.sozdana'), content: cell(this.createdCell), width: '160px' },
-        seen: { header: header('iam.poslednyaya_aktivnost'), content: cell(this.seenCell), width: '180px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' },
+        ip: { header: header('iam.profile.sessions.ip_address'), content: cell(this.ipCell) },
+        device: { header: header('iam.profile.sessions.device_browser'), content: cell(this.deviceCell) },
+        created: { header: header('iam.common.created_feminine'), content: cell(this.createdCell), width: '160px' },
+        seen: { header: header('iam.common.last_activity'), content: cell(this.seenCell), width: '180px' },
+        action: {
+          header: header('audit.common.action'),
+          content: cell(this.actionCell),
+          width: '140px',
+          align: 'right',
+        },
       },
       columnsOrder: ['ip', 'device', 'created', 'seen', 'action'],
     };

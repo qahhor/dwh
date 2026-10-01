@@ -108,8 +108,8 @@ export class RoleModalsComponent {
 
   stateOptions(): SMTSelectOption<string>[] {
     return this.stateMemo([this.i18n.currentLang()], () => [
-      { id: 'A', label: this.i18n.translate('iam.aktivna_a') },
-      { id: 'P', label: this.i18n.translate('iam.otklyuchena_p') },
+      { id: 'A', label: this.i18n.translate('iam.roles.editor.state_active') },
+      { id: 'P', label: this.i18n.translate('iam.roles.editor.state_passive') },
     ]);
   }
 }

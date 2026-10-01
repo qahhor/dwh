@@ -100,6 +100,11 @@ Current ADRs that are not superseded:
   audit actor are platform contracts in `common`; SQL lives only in
   repositories (no `*Service` runs SQL), the queue never depends on the
   warehouse, and message keys stay `error.fnd.*`.
+- [ADR-0031 — semantic translation keys](adr/ADR-0031-semantic-translation-keys.md)
+  — a key is `<module>.<screen>.<element>` in English snake_case; 857
+  transliterated, truncated and hash-suffixed keys were renamed by a mapping
+  and a script, V156 moved administrators' overrides, and `npm run i18n:audit`
+  refuses such keys from now on.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
@@ -124,6 +129,8 @@ Historical, fully superseded decisions are retained for traceability only:
 - [How the API behaves](api/README.md) — errors, paging, If-Match, idempotency,
   deprecations and where `openapi.json` comes from.
 - [Extension points](architecture/extension-points.md)
+- [Module map](architecture/module-map.md) — one row per server module:
+  purpose, owned tables, permission areas and entry points.
 - [Biruni and Smartup architecture conventions](architecture/biruni-smartup-conventions.md)
 - [Monorepo structure](architecture/monorepo-structure.md)
 - [Database migration guidelines](guidelines/database-migrations.md)

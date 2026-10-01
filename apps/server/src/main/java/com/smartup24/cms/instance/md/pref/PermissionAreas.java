@@ -11,9 +11,8 @@ import java.util.regex.Pattern;
  * key is {@code <form>.<action>}.
  *
  * <p>An area is a business module code ({@code md}, {@code mf}, {@code upl}, ...) or one of the named areas below for
- * a module whose code does not fit one segment ({@code ms.task}) or is about to change ({@code kwh}, plan 10/10, item
- * 4.3). A controller guards its endpoints with forms of its own module; another module's form only when the owner
- * publishes it to that module ({@link #PUBLISHED}), the way ADR-0026 publishes read views. {@code PermissionCodesTest}
+ * a module whose code does not fit one segment ({@code ms.task}). A controller guards its endpoints with forms of its
+ * own module; another module's form only when the owner publishes it to that module ({@link #PUBLISHED}), the way ADR-0026 publishes read views. {@code PermissionCodesTest}
  * checks every {@code @RequiresPermission} against both tables.
  */
 public final class PermissionAreas {
@@ -24,16 +23,25 @@ public final class PermissionAreas {
     private static final Pattern SEGMENT = Pattern.compile("[a-z][a-z0-9_]*");
 
     /** Areas that are business module codes themselves. */
-    private static final Set<String> MODULE_AREAS =
-            Set.of("analytics", "audit", "jobs", "kauth", "md", "mf", "report", "search", "units", "upl", "warehouse");
+    private static final Set<String> MODULE_AREAS = Set.of(
+            "analytics",
+            "audit",
+            "jobs",
+            "kauth",
+            "md",
+            "mf",
+            "report",
+            "search",
+            "units",
+            "upl",
+            "warehouse",
+            "webhook");
 
     /** Named areas and their owning modules. */
     private static final Map<String, String> NAMED_AREAS = Map.of(
             "tasks", "ms.task",
             "notes", "ms.note",
-            "notify", "ms.notify",
-            // Plan 10/10, item 4.3 renames the module kwh to webhook; the area already carries the new name.
-            "webhook", "kwh");
+            "notify", "ms.notify");
 
     /**
      * Forms a module publishes to other modules, with the modules that may guard endpoints with them. Each entry is a

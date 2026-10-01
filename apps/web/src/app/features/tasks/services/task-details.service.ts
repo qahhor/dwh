@@ -176,7 +176,7 @@ export class TaskDetailsService {
       },
       error: (err) => {
         if (currentContextId !== this.detailContextId || this.selectedTask()?.id !== t.id) return;
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_prikrepit_fayl'));
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.detail.attach_failed'));
       },
     });
   }
@@ -193,7 +193,7 @@ export class TaskDetailsService {
       },
       error: (err) => {
         if (currentContextId !== this.detailContextId || this.selectedTask()?.id !== t.id) return;
-        this.toast.error(err.error?.message || this.uiI18n.translate('files.ne_udalos_udalit_fayl'));
+        this.toast.error(err.error?.message || this.uiI18n.translate('files.common.delete_failed'));
       },
     });
   }
@@ -255,12 +255,12 @@ export class TaskDetailsService {
         this.isCommentSubmitting.set(false);
         this.commentDrafts.delete(task.id);
         if (this.selectedTask()?.id === task.id) this.loadComments(task.id, routeRecordId);
-        this.toast.success(this.uiI18n.translate('tasks.kommentariy_dobavlen'));
+        this.toast.success(this.uiI18n.translate('tasks.detail.comment_added'));
       },
       error: (err) => {
         if (requestId !== this.commentPostRequestId) return;
         this.isCommentSubmitting.set(false);
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.ne_udalos_otpravit_kommentariy'));
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.detail.comment_failed'));
       },
     });
   }

@@ -196,12 +196,12 @@ export class RolePermissionsEditor {
           const saved = role.revision !== undefined ? { ...role, revision: role.revision + 1 } : role;
           this.selectedRole.set(saved);
           this.originalRolePermissions.set(new Set(this.rolePermissions()));
-          this.toast.success(this.uiI18n.translate('iam.matrica_prav_uspeshno_sohranena'));
+          this.toast.success(this.uiI18n.translate('iam.roles.matrix.saved'));
           onSaved?.(saved);
         },
         error: (err: unknown) => {
           this.isSaving.set(false);
-          this.saveErrors.show(err, { fallbackKey: 'iam.oshibka_sohraneniya_prav', reload: onConflict });
+          this.saveErrors.show(err, { fallbackKey: 'iam.common.save_permissions_failed', reload: onConflict });
         },
       });
   }

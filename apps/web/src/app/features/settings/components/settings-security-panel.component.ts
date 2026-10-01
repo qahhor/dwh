@@ -18,8 +18,8 @@ import { SettingChange } from '../settings.models';
         <div class="card-title-group">
           <span class="material-symbols-outlined card-icon" aria-hidden="true">lock</span>
           <div>
-            <h3 class="card-title">{{ 'settings.politiki_bezopasnosti_i_avtorizacii' | t }}</h3>
-            <p class="card-desc">{{ 'settings.trebovaniya_k_parolyam_2fa_i_veb_sessiyam' | t }}</p>
+            <h3 class="card-title">{{ 'settings.security.title' | t }}</h3>
+            <p class="card-desc">{{ 'settings.security.subtitle' | t }}</p>
           </div>
         </div>
         @if (!canUpdateSystemSettings()) {
@@ -54,7 +54,7 @@ import { SettingChange } from '../settings.models';
             (valueChange)="changeSetting('security.session_lifetime_hours', $event)"
           />
           <span id="settings-session-lifetime-hint" class="hint-text">{{
-            'settings.po_umolchaniyu_720_chasov_30_dney' | t
+            'settings.security.session_ttl_hint' | t
           }}</span>
         </div>
 
@@ -79,7 +79,7 @@ import { SettingChange } from '../settings.models';
             <div class="toggle-info">
               <span id="settings-require-2fa-label" class="toggle-title">{{ 'settings.require_2fa' | t }}</span>
               <span id="settings-require-2fa-desc" class="toggle-desc">{{
-                'settings.prinuditelno_trebovat_dvuhfaktornuyu_autentifika' | t
+                'settings.security.require_two_factor_hint' | t
               }}</span>
             </div>
             <smt-switch

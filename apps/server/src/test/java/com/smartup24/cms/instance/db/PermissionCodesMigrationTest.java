@@ -172,7 +172,8 @@ class PermissionCodesMigrationTest {
         Matcher row = MAPPING_ROW.matcher(sql);
         while (row.find()) {
             migrated.put(row.group(1), row.group(2));
-            assertThat(row.group(3))
+            // V147 is frozen: the module it wrote as kwh was renamed to webhook by V155 (plan 10/10, item 4.3).
+            assertThat(row.group(3).equals("kwh") ? "webhook" : row.group(3))
                     .as(row.group(2))
                     .isEqualTo(PermissionAreas.ownerOf(row.group(2)).orElseThrow());
         }

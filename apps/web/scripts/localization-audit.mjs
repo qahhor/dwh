@@ -1,6 +1,14 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
+import { CONVENTION, keyProblems, selfCheck, vocabularies } from './i18n-key-rules.mjs';
+import { leftovers, loadMapping } from './i18n-rename-keys.mjs';
+
+/**
+ * Keys built from a code at run time (`upl.err.` + error code, `audit.event.` + I/U/D, `nav.` +
+ * menu item code): the code keeps its own spelling, the prefix names module and screen.
+ */
+const CODE_KEY_PREFIXES = ['upl.err.', 'audit.event.', 'projects.state.', 'iam.users.state.', 'nav.'];
 
 const webRoot = process.cwd();
 const appRoot = path.join(webRoot, 'src', 'app');
@@ -95,6 +103,56 @@ const invalidValues = supported.flatMap((code) =>
     .map(([key]) => `${code}:${key}`),
 );
 
+// Key names (plan 10/10, item 4.5; ADR-0031): no transliterated, hash-suffixed or truncated key;
+// a new key follows <module>.<screen>.<element>; a renamed key does not come back.
+const vocab = vocabularies(catalogs.ru, catalogs.en);
+const selfCheckFailures = selfCheck(vocab);
+const badKeyNames = Object.keys(catalogs.ru).flatMap((key) => {
+  const problems = keyProblems(key, catalogs.ru[key], catalogs.en[key], vocab).filter(
+    (problem) => problem !== 'format',
+  );
+  return problems.length ? [`${key}: ${problems.join(', ')}`] : [];
+});
+const baselineText = await readFile(path.join(webRoot, 'scripts', 'i18n-key-baseline.txt'), 'utf8');
+const baseline = new Set(
+  baselineText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#')),
+);
+const followsConvention = (key) =>
+  CONVENTION.test(key) ||
+  CODE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix) && /^[A-Za-z0-9_.]+$/.test(key.slice(prefix.length)));
+const offConvention = Object.keys(catalogs.ru)
+  .filter((key) => !followsConvention(key) && !baseline.has(key))
+  .sort();
+const staleBaseline = [...baseline].filter((key) => !russianKeys.has(key) || followsConvention(key)).sort();
+const renamedLeft = await leftovers(await loadMapping());
+
+if (
+  selfCheckFailures.length ||
+  badKeyNames.length ||
+  offConvention.length ||
+  staleBaseline.length ||
+  renamedLeft.length
+) {
+  if (selfCheckFailures.length)
+    process.stderr.write(`Key-name checks misjudge known samples:\n${selfCheckFailures.join('\n')}\n`);
+  if (badKeyNames.length)
+    process.stderr.write(`Transliterated, hash-suffixed or truncated keys (ADR-0031):\n${badKeyNames.join('\n')}\n`);
+  if (offConvention.length)
+    process.stderr.write(
+      `Keys outside <module>.<screen>.<element> in English snake_case (ADR-0031):\n${offConvention.join('\n')}\n`,
+    );
+  if (staleBaseline.length)
+    process.stderr.write(
+      `Remove from scripts/i18n-key-baseline.txt (gone or conforming now):\n${staleBaseline.join('\n')}\n`,
+    );
+  if (renamedLeft.length)
+    process.stderr.write(`Renamed keys used again (scripts/i18n-key-renames.json):\n${renamedLeft.join('\n')}\n`);
+  process.exit(1);
+}
+
 if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValues.length) {
   if (rawCopy.length) process.stderr.write(`Unlocalized Cyrillic UI copy:\n${rawCopy.join('\n')}\n`);
   if (missing.length) process.stderr.write(`Translation keys missing from ru.json:\n${missing.join('\n')}\n`);
@@ -105,5 +163,6 @@ if (rawCopy.length || missing.length || unknownByLanguage.length || invalidValue
 }
 
 process.stdout.write(
-  `Localization audit passed: ${usedKeys.size} referenced keys, ${russianKeys.size} Russian catalog keys.\n`,
+  `Localization audit passed: ${usedKeys.size} referenced keys, ${russianKeys.size} Russian catalog keys; ` +
+    `no transliterated, hash-suffixed or truncated key, ${baseline.size} older keys outside the convention.\n`,
 );

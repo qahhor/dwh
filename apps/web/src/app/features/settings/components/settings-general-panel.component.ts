@@ -50,8 +50,8 @@ function withCurrent(
         <div class="card-title-group">
           <span class="material-symbols-outlined card-icon" aria-hidden="true">corporate_fare</span>
           <div>
-            <h3 class="card-title">{{ 'settings.konfiguraciya_kompanii' | t }}</h3>
-            <p class="card-desc">{{ 'settings.globalnye_parametry_dlya_vseh_sotrudnikov_organi' | t }}</p>
+            <h3 class="card-title">{{ 'settings.general.title' | t }}</h3>
+            <p class="card-desc">{{ 'settings.general.subtitle' | t }}</p>
           </div>
         </div>
         @if (!canUpdateSystemSettings()) {

@@ -16,15 +16,17 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
         <div class="card-title-group">
           <span class="material-symbols-outlined card-icon" aria-hidden="true">palette</span>
           <div>
-            <h3 class="card-title">{{ 'settings.personalnye_predpochteniya' | t }}</h3>
-            <p class="card-desc">{{ 'settings.nastroyki_vneshnego_vida_i_yazyka_dlya_vashey_uc' | t }}</p>
+            <h3 class="card-title">{{ 'settings.preferences.title' | t }}</h3>
+            <p class="card-desc">{{ 'settings.preferences.subtitle' | t }}</p>
           </div>
         </div>
       </div>
 
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label" for="settings-interface-language">{{ 'settings.yazyk_interfeysa' | t }}</label>
+          <label class="form-label" for="settings-interface-language">{{
+            'settings.common.interface_language' | t
+          }}</label>
           <smt-select
             smtTriggerId="settings-interface-language"
             [options]="languageOptions()"
@@ -54,7 +56,7 @@ import { SMTButtonComponent } from '@shared/ui-kit/components/button';
                 'settings.notifications_sound' | t
               }}</span>
               <span id="settings-notification-sound-desc" class="toggle-desc">{{
-                'settings.vosproizvodit_zvukovoy_signal_pri_poluchenii_nov' | t
+                'settings.preferences.notification_sound' | t
               }}</span>
             </div>
             <smt-switch
@@ -109,9 +111,9 @@ export class SettingsPreferencesPanelComponent {
 
   themeOptions(): SMTSelectOption<string>[] {
     return this.themeMemo([this.i18n.currentLang()], () => [
-      { id: 'dark', label: this.i18n.translate('settings.temnaya_dark_premium') },
-      { id: 'light', label: this.i18n.translate('settings.svetlaya_light_clean') },
-      { id: 'system', label: this.i18n.translate('settings.sistemnaya_tema') },
+      { id: 'dark', label: this.i18n.translate('settings.preferences.theme_dark') },
+      { id: 'light', label: this.i18n.translate('settings.preferences.theme_light') },
+      { id: 'system', label: this.i18n.translate('settings.preferences.theme_system') },
     ]);
   }
 }

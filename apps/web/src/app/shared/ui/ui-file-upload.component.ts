@@ -36,7 +36,7 @@ interface UploadedFile {
       @if (canUpload()) {
         <smt-dropzone
           [smtMultiple]="multiple()"
-          [smtHint]="'ui.file_upload.do_50_mb_na_fayl_pdf_png_jpg_docx_zip_i_dr' | t"
+          [smtHint]="'ui.file_upload.limits_hint' | t"
           (filesSelected)="uploadFiles($event)"
         ></smt-dropzone>
       }
@@ -96,7 +96,7 @@ interface UploadedFile {
 
       <!-- File Attachment List -->
       @if (files() && files().length > 0) {
-        <div class="attachments-list" role="list" [attr.aria-label]="'ui.file_upload.prikreplennye_fayly' | t">
+        <div class="attachments-list" role="list" [attr.aria-label]="'ui.file_upload.attached_files' | t">
           @for (file of files(); track trackFile($index, file)) {
             <smt-file-card
               role="listitem"
@@ -115,7 +115,7 @@ interface UploadedFile {
       @if ((!files() || files().length === 0) && !canUpload()) {
         <div class="empty-files">
           <span class="material-symbols-outlined empty-icon" aria-hidden="true">attach_file</span>
-          <span>{{ 'ui.file_upload.net_prikreplennyh_faylov' | t }}</span>
+          <span>{{ 'ui.file_upload.no_attachments' | t }}</span>
         </div>
       }
     </div>
@@ -238,8 +238,7 @@ export class UiFileUploadComponent {
           }
         },
         error: (err) => {
-          const msg =
-            err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.oshibka_zagruzki_fayla');
+          const msg = err.error?.detail || err.error?.message || this.uiI18n.translate('ui.file_upload.upload_failed');
           this.current = null;
           // The failure is an alert on the file's own row, beside its retry button. Not a toast: inside a modal
           // dialog the rest of the page is aria-hidden, so a toast would never be announced there, and it fades.

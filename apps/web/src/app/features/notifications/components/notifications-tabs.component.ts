@@ -15,7 +15,7 @@ import { I18nService } from '@core/services/i18n.service';
       class="notif-tabs"
       [tabs]="tabs()"
       [value]="filterTab()"
-      [smtAriaLabel]="'notifications.spisok_uvedomleniy' | t"
+      [smtAriaLabel]="'notifications.inbox.list' | t"
       (valueChange)="$event && tabChange.emit($event)"
     />
   `,
@@ -53,10 +53,10 @@ export class NotificationsTabsComponent {
       [this.tabText.currentLang(), this.totalCount(), this.unreadCount()],
       () =>
         [
-          { value: 'all', label: this.tabText.translate('notifications.vse'), count: this.totalCount() },
+          { value: 'all', label: this.tabText.translate('notifications.inbox.all'), count: this.totalCount() },
           {
             value: 'unread',
-            label: this.tabText.translate('notifications.neprochitannye'),
+            label: this.tabText.translate('notifications.inbox.unread'),
             count: this.unreadCount() || undefined,
             countTone: 'attention',
           },

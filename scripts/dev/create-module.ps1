@@ -178,6 +178,18 @@ $serviceDir = Join-Path $javaBase "service"
 $ctrlDir = Join-Path $javaBase "controller"
 foreach ($dir in @($apiDir, $repoDir, $serviceDir, $ctrlDir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
 
+# Every module says what it is for (plan 10/10, item 4.3, ModuleMapTest); the English title keeps the comment English.
+$titleComment = $TitleEn.Replace('*/', '').Trim()
+Write-Utf8 (Join-Path $javaBase "package-info.java") @"
+/**
+ * Module {@code ${prefixLower}.${cleanCode}}: $titleComment.
+ *
+ * <p>Declared through {@code EntityDefinition} by scripts/dev/create-module.ps1 (ADR-0019). Describe here what the
+ * module is for, and give it a row in docs/architecture/module-map.md (plan 10/10, item 4.3).
+ */
+package ${pkg};
+"@
+
 $viewClass = "${prefixUpper}${capitalName}View"
 $createClass = "${prefixUpper}${capitalName}CreateRequest"
 $updateClass = "${prefixUpper}${capitalName}UpdateRequest"
@@ -444,7 +456,7 @@ public class ${entityClass} {
                             .asRequired()
                             .length(1, 64)
                             .matching("[a-z0-9_-]+"),
-                    FormField.select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status_")),
+                    FormField.select("status", "${cleanCode}.col.status", STATUSES, "${cleanCode}.status.")),
             List.of(new FormSection("main", "entity.section.main", List.of("name", "code", "status"))),
             List.of(
                     new EntityAction("create", "create"),
@@ -724,8 +736,8 @@ $labels = [ordered]@{
     "${cleanCode}.col.code"          = @{ ru = "Код"; en = "Code"; uz = "Kod" }
     "${cleanCode}.col.status"        = @{ ru = "Статус"; en = "Status"; uz = "Holat" }
     "${cleanCode}.col.modified_at"   = @{ ru = "Изменено"; en = "Modified"; uz = "Oʻzgartirilgan" }
-    "${cleanCode}.status_active"     = @{ ru = "Действует"; en = "Active"; uz = "Faol" }
-    "${cleanCode}.status_archived"   = @{ ru = "В архиве"; en = "Archived"; uz = "Arxivda" }
+    "${cleanCode}.status.active"     = @{ ru = "Действует"; en = "Active"; uz = "Faol" }
+    "${cleanCode}.status.archived"   = @{ ru = "В архиве"; en = "Archived"; uz = "Arxivda" }
 }
 $catalogDir = Join-Path $Root "apps\server\src\main\resources\i18n"
 foreach ($language in @("ru", "en", "uz")) {
@@ -755,4 +767,5 @@ Write-Host "  3. API description: mvn -B -pl apps/server test -Dtest=OpenApiCont
 Write-Host "  4. Screen: a route to /$cleanCode with smt-entity-form, smt-entity-card and smt-entity-toolbar; PUT sends ifMatch: revision"
 Write-Host "  5. Tests as for notes (MsNoteControllerTest); a line for $prefixLower.$cleanCode in apps/server/coverage-floors.csv;"
 Write-Host "     $prefixLower.$cleanCode in ModuleBoundariesTest.MODULES and ownerOf; a growing table: LARGE_TABLES, withEstimatedTotal(), a RetentionPolicy"
+Write-Host "     the purpose in package-info.java and a row in docs/architecture/module-map.md (ModuleMapTest)"
 Write-Host "  6. mvn -B verify (Checkstyle, Spotless, architecture tests); scripts/dev/test-create-module.ps1 checks this generator"

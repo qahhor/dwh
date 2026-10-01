@@ -24,11 +24,11 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           class="preset-filter"
           [options]="presetOptions()"
           [value]="activePreset()"
-          [smtAriaLabel]="'tasks.bystrye_filtry' | t"
+          [smtAriaLabel]="'tasks.filter.quick_filters' | t"
           (valueChange)="onPresetClick($event ?? activePreset())"
         />
 
-        <label class="sr-only" for="task-search">{{ 'tasks.poisk_zadach' | t }}</label>
+        <label class="sr-only" for="task-search">{{ 'tasks.filter.search_tasks' | t }}</label>
         <smt-input
           class="search-field"
           smtFieldId="task-search"
@@ -37,7 +37,7 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           smtIcon="search"
           smtSize="sm"
           clearable
-          [placeholder]="'projects.poisk_po_nazvaniyu_ili_opisaniyu' | t"
+          [placeholder]="'projects.common.search_placeholder' | t"
           [value]="searchQuery()"
           (valueChange)="onSearchValue($event)"
           (keydown.enter)="searchApply.emit(); $event.preventDefault()"
@@ -51,12 +51,12 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           class="status-filter"
           [options]="statusOptions()"
           [value]="statusFilterMode()"
-          [smtAriaLabel]="'tasks.filtr_po_statusu' | t"
+          [smtAriaLabel]="'tasks.filter.filter_by_status' | t"
           (valueChange)="statusFilterModeChange.emit($event ?? statusFilterMode())"
         />
 
         <!-- Project Filter: searched on the server, 20 projects a page (plan 10/10, item 3.5). -->
-        <label class="sr-only" for="task-project-filter">{{ 'tasks.filtr_po_proektu' | t }}</label>
+        <label class="sr-only" for="task-project-filter">{{ 'tasks.filter.filter_by_project' | t }}</label>
         <smt-data-select
           class="project-filter"
           smtTriggerId="task-project-filter"
@@ -64,30 +64,30 @@ export type TaskPreset = 'all' | 'my' | 'executor' | 'observer' | 'reported' | '
           [knownRows]="lookups.knownProjectRows()"
           [value]="selectedProjectId()"
           (valueChange)="selectedProjectIdChange.emit($event)"
-          [placeholder]="'tasks.vse_proekty' | t"
+          [placeholder]="'tasks.filter.all_projects' | t"
           [searchPlaceholder]="'tasks.search_project' | t"
-          [emptyLabel]="'tasks.vse_proekty' | t"
+          [emptyLabel]="'tasks.filter.all_projects' | t"
         />
 
         <!-- Priority Filter -->
-        <label class="sr-only" for="task-priority-filter">{{ 'tasks.filtr_po_prioritetu' | t }}</label>
+        <label class="sr-only" for="task-priority-filter">{{ 'tasks.filter.filter_by_priority' | t }}</label>
         <smt-select
           class="priority-filter"
           smtTriggerId="task-priority-filter"
           [value]="selectedPriority() || null"
           (valueChange)="selectedPriorityChange.emit($event ?? '')"
           [options]="priorityOptions()"
-          [placeholder]="'tasks.vse_prioritety' | t"
-          [emptyLabel]="'tasks.vse_prioritety' | t"
+          [placeholder]="'tasks.filter.all_priorities' | t"
+          [emptyLabel]="'tasks.filter.all_priorities' | t"
         ></smt-select>
 
         @if (hasActiveFilters()) {
           <button
             type="button"
             class="reset-filters-btn"
-            [attr.aria-label]="'tasks.sbrosit_vse_filtry' | t"
+            [attr.aria-label]="'tasks.common.reset_all_filters' | t"
             (click)="resetFilters.emit()"
-            [title]="'tasks.sbrosit_vse_filtry' | t"
+            [title]="'tasks.common.reset_all_filters' | t"
           >
             <span class="material-symbols-outlined" aria-hidden="true">filter_alt_off</span>
           </button>
@@ -156,13 +156,13 @@ export class TaskFilterBarComponent {
     return this.statusMemo([this.statuses(), this.optionText.currentLang()], () => [
       {
         value: 'active',
-        label: this.optionText.translate('iam.aktivnye'),
-        title: this.optionText.translate('tasks.tolko_aktivnye_zadachi_bez_vypolnennyh_i_otmenen'),
+        label: this.optionText.translate('iam.common.active_plural'),
+        title: this.optionText.translate('tasks.filter.only_active'),
       },
       {
         value: 'all',
         label: this.optionText.translate('common.all'),
-        title: this.optionText.translate('tasks.vse_zadachi_vklyuchaya_zavershennye'),
+        title: this.optionText.translate('tasks.filter.include_completed'),
       },
       ...this.statuses().map((status) => ({ value: status.id, label: status.name, color: status.color || undefined })),
     ]);
@@ -171,9 +171,9 @@ export class TaskFilterBarComponent {
   /** Priorities, most urgent first; no choice means every priority. */
   priorityOptions(): SMTSelectOption<string>[] {
     return this.priorityMemo([this.optionText.currentLang()], () => [
-      { id: 'critical', label: this.optionText.translate('tasks.kriticheskiy') },
+      { id: 'critical', label: this.optionText.translate('tasks.common.critical') },
       { id: 'high', label: this.optionText.translate('task.priority.high') },
-      { id: 'medium', label: this.optionText.translate('tasks.sredniy') },
+      { id: 'medium', label: this.optionText.translate('tasks.common.medium') },
       { id: 'low', label: this.optionText.translate('task.priority.low') },
     ]);
   }

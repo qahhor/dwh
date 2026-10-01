@@ -39,7 +39,7 @@ class ModularArchitectureTest {
 
     @Test
     @DisplayName(
-            "1. Модули ядра (md, kauth, ms, mf, audit, kwh, search) не должны иметь циклических зависимостей (DAG)")
+            "1. Модули ядра (md, kauth, ms, mf, audit, webhook, search) не должны иметь циклических зависимостей (DAG)")
     void modulesShouldBeFreeOfCycles() {
         slices().matching("com.smartup24.cms.instance.(*)..")
                 .should()

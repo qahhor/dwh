@@ -181,8 +181,8 @@ export class AnnouncementsStore {
         this.isEditorOpen.set(false);
         this.toast.success(
           this.editingId() === null
-            ? this.uiI18n.translate('announcements.chernovik_sozdan')
-            : this.uiI18n.translate('announcements.chernovik_sohranen'),
+            ? this.uiI18n.translate('announcements.list.draft_created')
+            : this.uiI18n.translate('announcements.list.draft_saved'),
         );
       },
       error: (problem: ApiProblem) => {
@@ -202,8 +202,8 @@ export class AnnouncementsStore {
     const title = this.localizedValue(announcement.titleJson);
     this.modal
       .confirm({
-        title: t(archive ? 'announcements.arhivirovat_obyavlenie' : 'announcements.opublikovat_obyavlenie'),
-        message: `«${title}»\n${t(archive ? 'announcements.obyavlenie_ischeznet_u_polzovateley_i_ostanetsya' : 'announcements.posle_publikacii_obyavlenie_uvidyat_polzovateli_')}`,
+        title: t(archive ? 'announcements.list.archive_confirm' : 'announcements.list.publish_confirm'),
+        message: `«${title}»\n${t(archive ? 'announcements.list.archive_confirm_hint' : 'announcements.list.publish_confirm_hint')}`,
         yesLabel: t('common.confirm'),
         noLabel: t('common.cancel'),
         destructive: archive,
@@ -247,8 +247,8 @@ export class AnnouncementsStore {
         this.upsert(saved);
         this.toast.success(
           pending.action === 'publish'
-            ? this.uiI18n.translate('announcements.obyavlenie_opublikovano')
-            : this.uiI18n.translate('announcements.obyavlenie_arhivirovano'),
+            ? this.uiI18n.translate('announcements.list.published_toast')
+            : this.uiI18n.translate('announcements.list.archived_toast'),
         );
       }),
       catchError((problem: ApiProblem) => {
@@ -267,12 +267,10 @@ export class AnnouncementsStore {
 
   private handleMutationError(problem: ApiProblem): void {
     if (problem?.status === 409 || problem?.code === 'CONFLICT') {
-      this.operationError.set(this.uiI18n.translate('announcements.eto_obyavlenie_uzhe_izmeneno_drugim_polzovatelem'));
+      this.operationError.set(this.uiI18n.translate('announcements.list.stale_conflict'));
       return;
     }
-    this.operationError.set(
-      problem?.detail || this.uiI18n.translate('announcements.ne_udalos_sohranit_izmenenie_povtorite_popytku'),
-    );
+    this.operationError.set(problem?.detail || this.uiI18n.translate('announcements.list.save_failed'));
   }
 }
 

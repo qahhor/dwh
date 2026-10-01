@@ -2,26 +2,26 @@
   <!-- Filter Toolbar -->
   <div class="filter-toolbar">
     <div class="filter-group">
-      <label class="sr-only" for="security-event-filter">{{ 'audit.filtr_sobytiy_bezopasnosti' | t }}</label>
+      <label class="sr-only" for="security-event-filter">{{ 'audit.security.filter_label' | t }}</label>
       <smt-select
         smtTriggerId="security-event-filter"
         class="filter-select"
         [options]="eventTypeOptions()"
-        [placeholder]="'audit.vse_sobytiya' | t"
-        [emptyLabel]="'audit.vse_sobytiya' | t"
+        [placeholder]="'audit.security.all_events' | t"
+        [emptyLabel]="'audit.security.all_events' | t"
         [value]="secEventTypeFilter() || null"
         (valueChange)="secEventTypeFilterChange.emit($event ?? ''); applyFilters.emit()"
       />
 
       <div class="search-box">
-        <label class="sr-only" for="security-ip-search">{{ 'audit.poisk_sobytiy_po_ip_adresu' | t }}</label>
+        <label class="sr-only" for="security-ip-search">{{ 'audit.security.search_events_by_ip' | t }}</label>
         <smt-input
           smtFieldId="security-ip-search"
           name="securityIpSearch"
           type="text"
           smtIcon="search"
           smtSize="sm"
-          [placeholder]="'audit.poisk_po_ip' | t"
+          [placeholder]="'audit.security.search_by_ip' | t"
           [value]="secIpFilter()"
           (valueChange)="secIpFilterChange.emit(filterText($event))"
           (keyup.enter)="applyFilters.emit()"
@@ -81,7 +81,7 @@
   <div
     class="table-container"
     role="region"
-    [attr.aria-label]="'audit.tablica_sobytiy_bezopasnosti' | t"
+    [attr.aria-label]="'audit.security.table' | t"
     [attr.aria-busy]="pager().loading()"
   >
     @if (tableConfig(); as config) {
@@ -136,7 +136,7 @@
       type="button"
       class="diff-btn"
       [attr.aria-label]="'audit.view_security_event_number' | t: { id: item.id }"
-      [title]="'audit.prosmotr_detaley' | t"
+      [title]="'audit.security.view_details' | t"
       (click)="selectEvent.emit(item)"
     >
       <span class="material-symbols-outlined" aria-hidden="true">info</span>
@@ -145,8 +145,8 @@
   <ng-template #emptyStateTpl>
     <div class="empty-state-box">
       <span class="material-symbols-outlined empty-icon" aria-hidden="true">verified_user</span>
-      <h3>{{ 'audit.sobytiy_bezopasnosti_ne_naydeno' | t }}</h3>
-      <p>{{ 'audit.vse_podozritelnye_sobytiya_i_vhody_fiksiruyutsya' | t }}</p>
+      <h3>{{ 'audit.security.empty' | t }}</h3>
+      <p>{{ 'audit.security.empty_hint' | t }}</p>
     </div>
   </ng-template>
 </div>

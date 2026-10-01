@@ -8,8 +8,10 @@ anything every assistant must know belongs in this file or in `docs/`.
 
 ## 1. Read first
 
-1. [`docs/ai-context.md`](docs/ai-context.md) — the handoff: product, module
-   map, invariants, checks, where work stands.
+1. [`docs/ai-context.md`](docs/ai-context.md) — the handoff: product,
+   invariants, checks, where work stands; the server modules, their tables,
+   permission areas and entry points are in
+   [`docs/architecture/module-map.md`](docs/architecture/module-map.md).
 2. [`docs/plan-10-10.md`](docs/plan-10-10.md) — the quality roadmap: phases,
    items, acceptance criteria, what is done and what is next.
 3. [`docs/README.md`](docs/README.md) — the documentation index and its

@@ -201,8 +201,8 @@ export class UsersListFacade implements OnDestroy {
     const t = (key: string, params?: Record<string, string>) => this.i18n.translate(key, params);
     this.modal
       .confirm({
-        title: t('iam.udalenie_polzovatelya'),
-        message: `${t('iam.delete_user_question', { name: user.name, login: user.login })}\n${t('iam.personalnye_dannye_budut_sterty_a_aktivnye_sessi')}`,
+        title: t('iam.users.delete_title'),
+        message: `${t('iam.delete_user_question', { name: user.name, login: user.login })}\n${t('iam.users.delete_warning')}`,
         yesLabel: t('common.delete'),
         noLabel: t('common.cancel'),
         destructive: true,
@@ -210,7 +210,7 @@ export class UsersListFacade implements OnDestroy {
           this.forms.isSubmitting.set(true);
           return this.usersApi.remove(user.id).pipe(
             tap(() => {
-              this.toast.success(t('iam.polzovatel_uspeshno_udalen'));
+              this.toast.success(t('iam.users.deleted'));
               this.loadUsers();
             }),
             finalize(() => this.forms.isSubmitting.set(false)),
@@ -225,9 +225,7 @@ export class UsersListFacade implements OnDestroy {
     this.usersApi.setBlocked(user.id, action).subscribe({
       next: () => {
         this.toast.success(
-          action === 'block'
-            ? this.i18n.translate('iam.polzovatel_zablokirovan')
-            : this.i18n.translate('iam.polzovatel_razblokirovan'),
+          action === 'block' ? this.i18n.translate('iam.users.blocked') : this.i18n.translate('iam.users.unblocked'),
         );
         this.loadUsers();
       },

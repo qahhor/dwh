@@ -110,7 +110,7 @@ export class TaskFormsService {
     if (this.isSubmitting()) return;
     this.isCreateSubmitted = true;
     if (!this.createForm.title.trim()) {
-      this.toast.warning(this.uiI18n.translate('tasks.ukazhite_nazvanie_zadachi'));
+      this.toast.warning(this.uiI18n.translate('tasks.editor.title_input_placeholder'));
       return;
     }
 
@@ -136,12 +136,12 @@ export class TaskFormsService {
       next: () => {
         this.isSubmitting.set(false);
         this.isCreateModalOpen.set(false);
-        this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_sozdana'));
+        this.toast.success(this.uiI18n.translate('tasks.editor.created'));
         onSuccess(parentId);
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.oshibka_pri_sohranenii_zadachi'));
+        this.toast.error(err.error?.message || this.uiI18n.translate('tasks.editor.save_failed'));
       },
     });
   }
@@ -310,7 +310,7 @@ export class TaskFormsService {
     if (!this.editingTask || this.isSubmitting() || this.editLoading() || this.editLoadError()) return;
     this.isEditSubmitted = true;
     if (!this.editForm.title.trim()) {
-      this.toast.warning(this.uiI18n.translate('tasks.nazvanie_zadachi_obyazatelno'));
+      this.toast.warning(this.uiI18n.translate('tasks.editor.title_required'));
       return;
     }
 
@@ -363,14 +363,14 @@ export class TaskFormsService {
           if (this.editingTask?.id !== editedTask.id) return;
           this.isSubmitting.set(false);
           this.closeEditModal(false, () => {});
-          this.toast.success(this.uiI18n.translate('tasks.zadacha_uspeshno_obnovlena'));
+          this.toast.success(this.uiI18n.translate('tasks.editor.updated'));
           onSuccess(returnTask, editedTask.id);
         },
         error: (err: unknown) => {
           if (this.editingTask?.id !== editedTask.id) return;
           this.isSubmitting.set(false);
           this.saveErrors.show(err, {
-            fallbackKey: 'tasks.oshibka_pri_obnovlenii_zadachi',
+            fallbackKey: 'tasks.editor.update_failed',
             reload: () => this.reloadEdit(),
           });
         },

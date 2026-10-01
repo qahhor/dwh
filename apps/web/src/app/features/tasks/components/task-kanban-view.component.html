@@ -1,10 +1,10 @@
-<div class="kanban-board" cdkDropListGroup role="region" [attr.aria-label]="'tasks.kanban_doska_zadach' | t">
+<div class="kanban-board" cdkDropListGroup role="region" [attr.aria-label]="'tasks.kanban.board' | t">
   @if (tasks().length === 0 && !isLoading() && !listLoadError()) {
     <div class="kanban-empty-recovery">
-      <span>{{ 'tasks.zadachi_ne_naydeny' | t }}</span>
+      <span>{{ 'tasks.common.no_tasks_found' | t }}</span>
       @if (hasActiveFilters()) {
         <button smt-button type="button" smtVariant="secondary" smtSize="sm" (click)="resetFilters.emit()">
-          {{ 'tasks.sbrosit_vse_filtry' | t }}
+          {{ 'tasks.common.reset_all_filters' | t }}
         </button>
       }
       @if (!hasActiveFilters() && canCreateTask()) {
@@ -63,7 +63,7 @@
                   <span
                     class="material-symbols-outlined drag-grip-icon"
                     cdkDragHandle
-                    [title]="'tasks.peretaschit_kartochku' | t"
+                    [title]="'tasks.kanban.drag_card' | t"
                     aria-hidden="true"
                   >
                     drag_indicator
@@ -130,7 +130,7 @@
                   </span>
                 }
                 @if (dl.state === 'none') {
-                  <span class="text-muted text-xs">{{ 'tasks.bez_sroka' | t }}</span>
+                  <span class="text-muted text-xs">{{ 'tasks.kanban.no_deadline' | t }}</span>
                 }
               }
 
@@ -141,7 +141,7 @@
                     type="button"
                     class="move-btn"
                     [attr.aria-label]="'tasks.move_task_back' | t: { id: task.id }"
-                    [title]="'tasks.peremestit_nazad' | t"
+                    [title]="'tasks.kanban.move_back' | t"
                     [disabled]="isFirstStatus(status.id)"
                     (click)="moveTaskStatus(task, -1)"
                   >
@@ -151,7 +151,7 @@
                     type="button"
                     class="move-btn"
                     [attr.aria-label]="'tasks.move_task_forward' | t: { id: task.id }"
-                    [title]="'tasks.peremestit_vpered' | t"
+                    [title]="'tasks.kanban.move_forward' | t"
                     [disabled]="isLastStatus(status.id)"
                     (click)="moveTaskStatus(task, 1)"
                   >
@@ -165,7 +165,7 @@
 
         @if (getTasksByStatus(status.id).length === 0) {
           <div class="kanban-empty-col">
-            {{ 'tasks.peretaschite_zadachu_syuda' | t }}
+            {{ 'tasks.kanban.drag_task_here' | t }}
           </div>
         }
       </div>

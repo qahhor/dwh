@@ -37,8 +37,6 @@
   }, {
     "name" : "kauth-session-controller"
   }, {
-    "name" : "kwh-subscription-controller"
-  }, {
     "name" : "md-assignment-controller"
   }, {
     "name" : "md-custom-field-controller"
@@ -106,6 +104,8 @@
     "name" : "upl-source-controller"
   }, {
     "name" : "upl-unit-controller"
+  }, {
+    "name" : "webhook-subscription-controller"
   } ],
   "paths" : {
     "/api/v1/analytics/projects" : {
@@ -12864,7 +12864,7 @@
           }
         },
         "summary" : "List webhook subscriptions",
-        "tags" : [ "kwh-subscription-controller" ]
+        "tags" : [ "webhook-subscription-controller" ]
       },
       "post" : {
         "description" : "Subscribes a target URL to events; the signing key is returned once and never stored for replay.",
@@ -12910,7 +12910,7 @@
           }
         },
         "summary" : "Create a webhook subscription",
-        "tags" : [ "kwh-subscription-controller" ]
+        "tags" : [ "webhook-subscription-controller" ]
       }
     },
     "/api/v1/webhooks/subscriptions/{id}" : {
@@ -12951,7 +12951,7 @@
           }
         },
         "summary" : "Delete a webhook subscription",
-        "tags" : [ "kwh-subscription-controller" ]
+        "tags" : [ "webhook-subscription-controller" ]
       },
       "patch" : {
         "description" : "Changes the name, target, events or state of a subscription.",
@@ -13035,7 +13035,7 @@
           }
         },
         "summary" : "Update a webhook subscription",
-        "tags" : [ "kwh-subscription-controller" ]
+        "tags" : [ "webhook-subscription-controller" ]
       }
     }
   },

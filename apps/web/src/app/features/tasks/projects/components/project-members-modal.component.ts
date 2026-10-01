@@ -104,13 +104,18 @@ export class ProjectMembersModalComponent {
     const canUpdate = this.canUpdate();
     return {
       trackBy: (_index, m) => m.userId,
-      ariaLabel: this.i18n.translate('projects.uchastniki_proekta'),
+      ariaLabel: this.i18n.translate('projects.common.project_members'),
       layout: 'fit',
       columns: {
         user: { header: header('nav.users'), content: cell(this.userCell) },
         email: { header: header('iam.email'), content: cell(this.emailCell) },
-        access: { header: header('projects.uroven_dostupa'), content: cell(this.accessCell), width: '170px' },
-        action: { header: header('audit.deystvie'), content: cell(this.actionCell), width: '140px', align: 'right' },
+        access: { header: header('projects.members.access_level'), content: cell(this.accessCell), width: '170px' },
+        action: {
+          header: header('audit.common.action'),
+          content: cell(this.actionCell),
+          width: '140px',
+          align: 'right',
+        },
       },
       columnsOrder: canUpdate ? ['user', 'email', 'access', 'action'] : ['user', 'email', 'access'],
     };
@@ -153,9 +158,9 @@ export class ProjectMembersModalComponent {
   /** Access levels a new member can get; translated again when the language changes. */
   accessKindOptions(): SMTSelectOption<string>[] {
     return this.accessKindMemo([this.i18n.currentLang()], () => [
-      { id: 'MEMBER', label: this.i18n.translate('projects.rol_uchastnik') },
-      { id: 'MANAGER', label: this.i18n.translate('projects.rol_rukovoditel') },
-      { id: 'OBSERVER', label: this.i18n.translate('projects.rol_nablyudatel') },
+      { id: 'MEMBER', label: this.i18n.translate('projects.members.role_member') },
+      { id: 'MANAGER', label: this.i18n.translate('projects.members.role_manager') },
+      { id: 'OBSERVER', label: this.i18n.translate('projects.members.role_observer') },
     ]);
   }
 
@@ -190,11 +195,11 @@ export class ProjectMembersModalComponent {
   accessLabel(kind: string): string {
     switch (kind) {
       case 'MANAGER':
-        return this.i18n.translate('projects.rol_rukovoditel');
+        return this.i18n.translate('projects.members.role_manager');
       case 'MEMBER':
-        return this.i18n.translate('projects.rol_uchastnik');
+        return this.i18n.translate('projects.members.role_member');
       case 'OBSERVER':
-        return this.i18n.translate('projects.rol_nablyudatel');
+        return this.i18n.translate('projects.members.role_observer');
       default:
         return kind;
     }

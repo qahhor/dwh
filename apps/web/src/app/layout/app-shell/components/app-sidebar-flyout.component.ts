@@ -124,7 +124,7 @@ import { User } from '@core/models/auth.models';
           </a>
           <button type="button" class="flyout-item flyout-btn text-danger" (click)="logout.emit()" role="menuitem">
             <span class="material-symbols-outlined flyout-icon" aria-hidden="true">logout</span>
-            <span class="flyout-label">{{ 'layout.app_shell.vyyti_iz_sistemy' | t }}</span>
+            <span class="flyout-label">{{ 'layout.app_shell.sign_out' | t }}</span>
           </button>
         </div>
       </div>

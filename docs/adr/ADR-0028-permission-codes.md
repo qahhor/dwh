@@ -29,8 +29,8 @@
    (`notes`), иначе — `<область>.<сущность>`.
 2. **Область называет модуль-владельца.** Область — код бизнес-модуля
    (`analytics`, `audit`, `jobs`, `kauth`, `md`, `mf`, `report`, `search`,
-   `units`, `upl`, `warehouse`; до ADR-0030 вместо трёх модулей данных была
-   область `fnd`) или именованная область из таблицы ниже. Таблица ведётся в одном месте —
+   `units`, `upl`, `warehouse`, `webhook`; до ADR-0030 вместо трёх модулей
+   данных была область `fnd`) или именованная область из таблицы ниже. Таблица ведётся в одном месте —
    `md.pref.PermissionAreas`; из неё же каталог прав берёт модуль формы
    (`MdFormCatalog.moduleOf`), поэтому модуль в матрице прав больше не
    записывается рядом с названием.
@@ -40,7 +40,12 @@
    | `tasks` | `ms.task` | код модуля из двух сегментов |
    | `notes` | `ms.note` | то же |
    | `notify` | `ms.notify` | то же |
-   | `webhook` | `kwh` | пункт 4.3 переименует модуль `kwh` в `webhook`; область уже носит новое имя, и второй миграции прав не будет |
+
+   До пункта 4.3 в таблице была строка `webhook` → `kwh`: область заранее
+   получила новое имя модуля. Пункт 4.3 переименовал модуль `kwh` в `webhook`,
+   и `webhook` стала областью-кодом модуля; второй миграции прав не было, код
+   модуля в каталоге форм (`md_forms.module`) перевела `V155` (карта модулей —
+   [module-map.md](../architecture/module-map.md)).
 
 3. **Контроллер проверяет формы своего модуля.** Обработчик модуля M требует
    форму, область которой принадлежит M. Чужая форма допустима, только если
@@ -75,7 +80,7 @@
    | `platform.announcements` | `notify.announcements` | ms.notify |
    | `platform.files` | `mf.files` | mf |
    | `platform.search` | `search` | search |
-   | `platform.webhooks` | `webhook.subscriptions` | kwh |
+   | `platform.webhooks` | `webhook.subscriptions` | kwh (с пункта 4.3 — webhook) |
 
    Без изменений: `md.custom_fields`, `audit.log`, `analytics.dashboard`,
    `upl.sources`, `upl.packages`, `tasks.projects`, `tasks.items`,

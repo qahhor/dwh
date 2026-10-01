@@ -102,7 +102,10 @@ Problem Details формате ([ADR-0021](../adr/ADR-0021-error-model.md),
    из пакета `api`.
 6. **Переводы** в `apps/server/src/main/resources/i18n` (ru, uz, en):
    `nav.<код>`, подписи полей и вариантов, ключи ошибок; затем
-   `npm run i18n:sync-ru`.
+   `npm run i18n:sync-ru`. Ключ экрана — `<модуль>.<экран>.<элемент>` по-английски
+   в snake_case, без транслита и хэшей
+   ([ADR-0031](../adr/ADR-0031-semantic-translation-keys.md)); это проверяет
+   `npm run i18n:audit`.
 7. **Экран:** маршрут в `app.routes.ts`; форма — `smt-entity-form`, просмотр —
    `smt-entity-card`, виды, экспорт и массовое удаление — `smt-entity-toolbar`;
    кнопки — по `actions` из `form-meta`, а не по своим проверкам прав. Пункт

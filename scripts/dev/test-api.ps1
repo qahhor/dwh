@@ -425,8 +425,8 @@ $hasJvmMetrics = $promMetrics -match "jvm_memory_used_bytes"
 $hasUptime = $promMetrics -match "process_uptime_seconds"
 Write-Host "   Prometheus Metrics verified: JVM metrics=$hasJvmMetrics, Uptime metrics=$hasUptime" -ForegroundColor Green
 
-# 20. Outbound Webhooks (M18 KWH)
-Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18 KWH)..." -ForegroundColor Yellow
+# 20. Outbound Webhooks (M18, module webhook)
+Write-Host "`n20. Outbound Webhooks Management & Subscription Lifecycle (M18, module webhook)..." -ForegroundColor Yellow
 
 $randWh = Get-Random -Minimum 1000 -Maximum 9999
 $whBody = @{

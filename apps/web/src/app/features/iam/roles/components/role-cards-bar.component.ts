@@ -11,9 +11,9 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
   template: `
     <div class="roles-strip-container">
       <div class="roles-strip-header">
-        <span class="strip-title">{{ 'iam.vyberite_rol_dlya_nastroyki_prav' | t }}</span>
+        <span class="strip-title">{{ 'iam.roles.select_role_hint' | t }}</span>
         <div class="search-field">
-          <label class="sr-only" for="role-search">{{ 'iam.poisk_roley' | t }}</label>
+          <label class="sr-only" for="role-search">{{ 'iam.roles.search' | t }}</label>
           <smt-input
             smtFieldId="role-search"
             name="roleSearch"
@@ -21,7 +21,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
             smtIcon="search"
             clearable
             smtSize="sm"
-            [placeholder]="'iam.filtr_roley' | t"
+            [placeholder]="'iam.roles.filter_roles' | t"
             [value]="searchQuery()"
             (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
           />
@@ -45,7 +45,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
                   <span class="role-sys-tag font-mono">{{ r.pcode }}</span>
                 }
                 @if (!r.pcode) {
-                  <span class="role-custom-tag">{{ 'iam.kastomnaya' | t }}</span>
+                  <span class="role-custom-tag">{{ 'iam.roles.custom' | t }}</span>
                 }
               </span>
               <div class="role-status-line">
@@ -60,10 +60,8 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
               <button
                 type="button"
                 class="role-users-btn"
-                [attr.aria-label]="
-                  'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts()[r.id] || 0 }
-                "
-                [title]="'iam.prosmotr_polzovateley_roli' | t: { name: r.name, count: roleUserCounts()[r.id] || 0 }"
+                [attr.aria-label]="'iam.roles.users_in_role' | t: { name: r.name, count: roleUserCounts()[r.id] || 0 }"
+                [title]="'iam.roles.users_in_role' | t: { name: r.name, count: roleUserCounts()[r.id] || 0 }"
                 (click)="navigateToUsers.emit({ role: r, event: $event })"
               >
                 <span class="material-symbols-outlined users-icon" aria-hidden="true">group</span>
@@ -76,7 +74,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
                     type="button"
                     class="mini-btn"
                     [attr.aria-label]="'iam.edit_role_named' | t: { name: r.name }"
-                    [title]="'iam.redaktirovat_rol' | t"
+                    [title]="'iam.roles.edit_role' | t"
                     (click)="openEdit.emit(r)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -87,7 +85,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
                     type="button"
                     class="mini-btn delete"
                     [attr.aria-label]="'iam.delete_role_named' | t: { name: r.name }"
-                    [title]="'iam.udalit_rol' | t"
+                    [title]="'iam.roles.delete_role' | t"
                     [disabled]="isSaving() || scopePanelBusy() || isSubmittingRole()"
                     (click)="openDelete.emit(r)"
                   >
@@ -102,7 +100,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
         @if (canCreateRole()) {
           <button type="button" class="add-role-dashed-btn" (click)="openCreate.emit()">
             <span class="material-symbols-outlined" aria-hidden="true">add</span>
-            <span>{{ 'iam.sozdat_rol' | t }}</span>
+            <span>{{ 'iam.roles.create_role' | t }}</span>
           </button>
         }
       </div>

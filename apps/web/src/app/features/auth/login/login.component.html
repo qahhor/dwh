@@ -54,7 +54,7 @@
             {{ capsLockField() === 'password' ? ('auth.caps_lock_on' | t) : '' }}
           </p>
           <button type="button" class="forgot-link" [disabled]="isLoading()" (click)="openResetModal()">
-            {{ 'auth.zabyli_parol' | t }}
+            {{ 'auth.login.forgot_password' | t }}
           </button>
         </div>
 
@@ -71,7 +71,7 @@
           [smtFullWidth]="true"
           class="submit-btn"
         >
-          {{ 'auth.voyti_v_sistemu' | t }}
+          {{ 'auth.login.sign_in' | t }}
         </button>
       </form>
     }
@@ -88,12 +88,12 @@
           <span class="material-symbols-outlined" aria-hidden="true">shield_person</span>
           <div>
             <strong>{{ 'auth.otp_title' | t }}</strong>
-            <p id="otp-hint">{{ 'auth.vvedite_6_znachnyy_kod_podtverzhdeniya_otpravlen' | t }}</p>
+            <p id="otp-hint">{{ 'auth.login.otp_hint' | t }}</p>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="otp-code">{{ 'auth.kod_podtverzhdeniya_otp' | t }}</label>
+          <label class="form-label" for="otp-code">{{ 'auth.login.otp_code' | t }}</label>
           <smt-input
             class="otp-input tabular-nums"
             smtFieldId="otp-code"
@@ -125,7 +125,7 @@
             [smtFullWidth]="true"
             class="submit-btn"
           >
-            {{ 'auth.podtverdit_vhod' | t }}
+            {{ 'auth.login.confirm_login' | t }}
           </button>
 
           <button
@@ -136,7 +136,7 @@
             [disabled]="isLoading()"
             (click)="backToCredentials()"
           >
-            {{ 'auth.vernutsya_nazad' | t }}
+            {{ 'auth.login.go_back' | t }}
           </button>
         </div>
       </form>
@@ -153,13 +153,13 @@
         <div class="otp-banner" style="background-color: var(--warning-bg); color: var(--warning)">
           <span class="material-symbols-outlined" aria-hidden="true">lock_reset</span>
           <div>
-            <strong>{{ 'auth.smena_vremennogo_parolya' | t }}</strong>
+            <strong>{{ 'auth.login.change_temporary_password' | t }}</strong>
             <p id="password-policy-hint">{{ 'auth.set_permanent_password_hint' | t: passwordPolicy }}</p>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="new-password">{{ 'auth.novyy_parol' | t }}</label>
+          <label class="form-label" for="new-password">{{ 'auth.password.new_password' | t }}</label>
           <smt-input
             smtFieldId="new-password"
             type="password"
@@ -184,7 +184,7 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="confirm-new-password">{{ 'auth.povtorite_novyy_parol' | t }}</label>
+          <label class="form-label" for="confirm-new-password">{{ 'auth.password.repeat_new_password' | t }}</label>
           <smt-input
             smtFieldId="confirm-new-password"
             type="password"

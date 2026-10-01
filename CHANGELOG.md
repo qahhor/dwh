@@ -9,6 +9,15 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Phase 4, wave C (plan 10/10, items 4.3, 4.5) — phase 4 complete. The
+  webhook module is `webhook` (package and `md_forms.module`, V155; tables
+  keep `kwh_*`); every module has a `package-info.java` and a row in
+  `docs/architecture/module-map.md`, checked by `ModuleMapTest`. Translation
+  keys follow `<module>.<screen>.<element>` (ADR-0031): 857 transliterated,
+  truncated or hash-suffixed keys are renamed in ru/uz/en and the code by
+  `npm run i18n:rename`, V156 moves administrators' overrides and menu item
+  keys, and `npm run i18n:audit` refuses such keys.
+
 - Phase 4, wave B (plan 10/10, items 4.2, 4.7). `fnd` is split into the job
   queue `jobs`, the warehouse `warehouse/{datasource,migration,raw,mart,load}`
   and the domain module `units` (ADR-0030); no `*Service` class runs SQL

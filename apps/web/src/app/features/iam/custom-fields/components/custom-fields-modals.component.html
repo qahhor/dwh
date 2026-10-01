@@ -11,7 +11,7 @@
         @if (!editingField()) {
           <div class="form-group">
             <label class="form-label" for="custom-field-entity">
-              {{ 'iam.celevaya_suschnost' | t }} <span class="req" aria-hidden="true">*</span>
+              {{ 'iam.custom_fields.editor.target_entity' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
             <smt-select
               smtTriggerId="custom-field-entity"
@@ -28,7 +28,7 @@
         <div class="form-row">
           <div class="form-group flex-1">
             <label class="form-label" for="custom-field-code">
-              {{ 'iam.kod_polya_slug' | t }} <span class="req" aria-hidden="true">*</span>
+              {{ 'iam.custom_fields.editor.field_code_slug' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
             <!-- The native input event bubbles from the inner field; the page cleans the code from it. -->
             <smt-input
@@ -39,7 +39,7 @@
               [(value)]="formData().code"
               (input)="onCodeInput($event, codeField)"
               [disabled]="!!editingField()"
-              [placeholder]="'iam.naprimer_inn_budget' | t"
+              [placeholder]="'iam.custom_fields.editor.code_placeholder' | t"
               [maxLength]="64"
               autocomplete="off"
               [smtInvalid]="!!formError()"
@@ -47,22 +47,22 @@
               required
             />
             @if (!editingField()) {
-              <span class="form-hint">{{ 'iam.kod_polya_help' | t }}</span>
+              <span class="form-hint">{{ 'iam.custom_fields.editor.code_hint' | t }}</span>
             }
             @if (editingField()) {
-              <span class="form-hint readonly-hint">{{ 'iam.kod_polya_readonly' | t }}</span>
+              <span class="form-hint readonly-hint">{{ 'iam.custom_fields.editor.code_readonly' | t }}</span>
             }
           </div>
 
           <div class="form-group flex-1">
             <label class="form-label" for="custom-field-name">
-              {{ 'iam.nazvanie_polya' | t }} <span class="req" aria-hidden="true">*</span>
+              {{ 'iam.custom_fields.editor.field_name' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
             <smt-input
               smtFieldId="custom-field-name"
               name="name"
               [(value)]="formData().name"
-              [placeholder]="'iam.naprimer_inn_byudzhet_proekta' | t"
+              [placeholder]="'iam.custom_fields.editor.name_placeholder' | t"
               [maxLength]="100"
               [smtInvalid]="!!formError()"
               [smtDescribedBy]="formError() ? 'custom-field-form-error' : null"
@@ -76,7 +76,7 @@
           @if (!editingField()) {
             <div class="form-group flex-1">
               <label class="form-label" for="custom-field-type">
-                {{ 'iam.tip_dannyh' | t }} <span class="req" aria-hidden="true">*</span>
+                {{ 'iam.custom_fields.data_type' | t }} <span class="req" aria-hidden="true">*</span>
               </label>
               <smt-select
                 smtTriggerId="custom-field-type"
@@ -91,20 +91,20 @@
 
           <div class="form-group flex-1">
             <label class="form-label" for="custom-field-default">
-              {{ 'iam.znachenie_po_umolchaniyu' | t }}
+              {{ 'iam.custom_fields.default_value' | t }}
             </label>
             <smt-input
               smtFieldId="custom-field-default"
               name="defaultValue"
               [(value)]="formData().defaultValue"
-              [placeholder]="'iam.ne_obyazatelno' | t"
+              [placeholder]="'iam.custom_fields.editor.optional' | t"
               [maxLength]="255"
             />
           </div>
 
           <div class="form-group order-input-group">
             <label class="form-label" for="custom-field-order">
-              {{ 'iam.poryadok_sortirovki' | t }}
+              {{ 'iam.custom_fields.editor.sort_order' | t }}
             </label>
             <smt-input
               class="font-mono"
@@ -112,7 +112,7 @@
               name="orderNo"
               type="number"
               [(value)]="formData().orderNo"
-              [placeholder]="'iam.poryadok_sortirovki_hint' | t"
+              [placeholder]="'iam.custom_fields.editor.sort_order_hint' | t"
               [smtMin]="0"
               [smtMax]="99999"
             />
@@ -123,26 +123,26 @@
         @if (formData().fieldType === 'select') {
           <div class="form-group">
             <label class="form-label" for="custom-field-options">
-              {{ 'iam.varianty_spiska' | t }} <span class="req" aria-hidden="true">*</span>
+              {{ 'iam.custom_fields.editor.list_options' | t }} <span class="req" aria-hidden="true">*</span>
             </label>
             <smt-textarea
               smtFieldId="custom-field-options"
               name="optionsText"
               [(value)]="formData().optionsText"
               [rows]="4"
-              [placeholder]="'iam.po_odnomu_variantu_v_stroke' | t"
+              [placeholder]="'iam.custom_fields.editor.one_option_per_line' | t"
               [smtInvalid]="!!formError()"
               [smtDescribedBy]="formError() ? 'custom-field-form-error' : ''"
               required
             />
-            <span class="form-hint">{{ 'iam.po_odnomu_variantu_v_stroke_dlya_otdelnogo_koda_' | t }}</span>
+            <span class="form-hint">{{ 'iam.custom_fields.editor.options_hint' | t }}</span>
           </div>
         }
 
         <!-- Required flag, saved with the form -->
         <div class="form-group checkbox-group">
           <div smt-checkbox name="isRequired" [(checked)]="formData().isRequired">
-            {{ 'iam.obyazatelnoe_dlya_zapolneniya' | t }}
+            {{ 'iam.custom_fields.editor.required' | t }}
           </div>
         </div>
 

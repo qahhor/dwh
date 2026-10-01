@@ -27,7 +27,7 @@ import { Project, ProjectTaskStats } from '@core/models/task.models';
                     type="button"
                     class="edit-btn"
                     [attr.aria-label]="'projects.manage_members_named' | t: { name: p.name }"
-                    [title]="'projects.uchastniki_proekta' | t"
+                    [title]="'projects.common.project_members' | t"
                     (click)="manageMembers.emit(p)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">group</span>
@@ -38,7 +38,7 @@ import { Project, ProjectTaskStats } from '@core/models/task.models';
                     type="button"
                     class="edit-btn"
                     [attr.aria-label]="'projects.edit_named' | t: { name: p.name }"
-                    [title]="'projects.redaktirovat_proekt' | t"
+                    [title]="'projects.common.edit_project' | t"
                     (click)="editProject.emit(p)"
                   >
                     <span class="material-symbols-outlined" aria-hidden="true">edit</span>
@@ -107,7 +107,7 @@ import { Project, ProjectTaskStats } from '@core/models/task.models';
         @if (totalCount() === 0) {
           <div class="empty-projects-cell">
             <span class="material-symbols-outlined empty-icon" aria-hidden="true">folder_off</span>
-            <p>{{ 'projects.proekty_ne_naydeny' | t }}</p>
+            <p>{{ 'projects.list.empty' | t }}</p>
           </div>
         }
       </div>

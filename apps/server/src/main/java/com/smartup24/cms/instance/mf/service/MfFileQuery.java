@@ -24,16 +24,16 @@ public class MfFileQuery {
             MfFileRepository.detailFrom(),
             "f.id::text",
             List.of(
-                    QueryField.of("originalName", "files.imya_fayla", QueryFieldType.TEXT, "f.original_name")
+                    QueryField.of("originalName", "files.list.file_name", QueryFieldType.TEXT, "f.original_name")
                             .asSortable()
                             .asSearchable(),
-                    QueryField.of("sizeBytes", "files.razmer", QueryFieldType.NUMBER, "f.size_bytes")
+                    QueryField.of("sizeBytes", "files.list.size", QueryFieldType.NUMBER, "f.size_bytes")
                             .asSortable(),
-                    QueryField.of("mimeType", "files.tip_mime", QueryFieldType.TEXT, "f.mime_type"),
-                    QueryField.of("creatorName", "files.zagruzil", QueryFieldType.TEXT, "u.name")
+                    QueryField.of("mimeType", "files.list.mime_type", QueryFieldType.TEXT, "f.mime_type"),
+                    QueryField.of("creatorName", "files.list.uploaded_by", QueryFieldType.TEXT, "u.name")
                             .asNullable()
                             .asSearchable(),
-                    QueryField.of("createdAt", "files.data_zagruzki", QueryFieldType.INSTANT, "f.created_at")
+                    QueryField.of("createdAt", "files.list.upload_date", QueryFieldType.INSTANT, "f.created_at")
                             .asSortable()),
             "createdAt",
             true,

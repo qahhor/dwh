@@ -7,12 +7,12 @@
       class="view-switch"
       [options]="viewOptions()"
       [value]="viewMode"
-      [smtAriaLabel]="'projects.rezhim_otobrazheniya_proektov' | t"
+      [smtAriaLabel]="'projects.list.display_mode' | t"
       (valueChange)="viewMode = $event ?? viewMode"
     />
     @if (canCreateProject()) {
       <button smt-button type="button" smtVariant="primary" smtSize="md" smtIcon="add" (click)="openCreateModal()">
-        {{ 'projects.novyy_proekt' | t }}
+        {{ 'projects.list.new_project' | t }}
       </button>
     }
   </ui-page-header>

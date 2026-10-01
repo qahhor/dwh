@@ -108,7 +108,7 @@ export function featureI18nProblems(feature: FeatureI18n): string[] {
 // ---------- keys the server names ----------
 //
 // Some keys never appear in the web's code because the server names them: a
-// list field's label (`QueryField.of("size", "files.razmer", ...)`), a cell of
+// list field's label (`QueryField.of("size", "files.list.size", ...)`), a cell of
 // the xlsx it builds, an error code the web turns into `upl.err.<code>` or
 // `error.<code>`. A feature spec declares those from the server's own sources
 // with the helpers below, so a key the server stops using becomes dead here too.

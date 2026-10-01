@@ -77,15 +77,15 @@ export class TaskPresenter {
     return this.viewMemo([this.i18n.currentLang()], () => [
       {
         value: 'table',
-        label: this.i18n.translate('projects.spisok'),
+        label: this.i18n.translate('projects.common.list'),
         icon: 'table_rows',
-        title: this.i18n.translate('tasks.tablichnyy_vid'),
+        title: this.i18n.translate('tasks.list.view_table'),
       },
       {
         value: 'kanban',
         label: this.i18n.translate('tasks.kanban'),
         icon: 'view_kanban',
-        title: this.i18n.translate('tasks.kanban_doska'),
+        title: this.i18n.translate('tasks.list.view_kanban'),
       },
     ]);
   }

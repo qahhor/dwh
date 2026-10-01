@@ -1,8 +1,8 @@
 <section class="system-page" aria-labelledby="system-title">
   <ui-page-header
-    [title]="'system.sostoyanie_sistemy' | t"
-    [eyebrow]="'system.lokalnaya_ustanovka' | t"
-    [subtitle]="'system.diagnostika_etoy_ustanovki_bez_vneshney_telemetr' | t"
+    [title]="'system.health.title' | t"
+    [eyebrow]="'system.health.local_installation' | t"
+    [subtitle]="'system.health.subtitle' | t"
     titleId="system-title"
   >
     <button
@@ -11,7 +11,7 @@
       smtVariant="secondary"
       smtIcon="refresh"
       [smtLoading]="isLoading()"
-      [attr.aria-label]="'system.obnovit_sostoyanie_sistemy' | t"
+      [attr.aria-label]="'system.health.refresh' | t"
       (click)="loadSystemInfo()"
     >
       {{ 'common.refresh' | t }}
@@ -21,7 +21,7 @@
   @if (isLoading() && !systemInfo()) {
     <div class="state-panel" aria-busy="true" aria-live="polite">
       <span class="spinner" aria-hidden="true"></span>
-      <span>{{ 'system.proveryaem_lokalnye_komponenty' | t }}</span>
+      <span>{{ 'system.health.checking' | t }}</span>
     </div>
   }
 
@@ -29,17 +29,17 @@
     <div class="state-panel error-state" role="alert">
       <span class="material-symbols-outlined" aria-hidden="true">cloud_off</span>
       <div>
-        <h2>{{ 'system.ne_udalos_zagruzit_sostoyanie_sistemy' | t }}</h2>
-        <p>{{ 'system.proverte_dostupnost_servera_i_povtorite_zapros' | t }}</p>
+        <h2>{{ 'system.health.load_failed' | t }}</h2>
+        <p>{{ 'system.health.check_server_and_retry' | t }}</p>
       </div>
       <button
         smt-button
         type="button"
         smtVariant="secondary"
-        [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+        [attr.aria-label]="'system.health.retry' | t"
         (click)="loadSystemInfo()"
       >
-        {{ 'announcements.povtorit' | t }}
+        {{ 'announcements.list.retry' | t }}
       </button>
     </div>
   }
@@ -59,10 +59,10 @@
           smt-button
           type="button"
           smtVariant="secondary"
-          [attr.aria-label]="'system.povtorit_zagruzku_sostoyaniya_sistemy' | t"
+          [attr.aria-label]="'system.health.retry' | t"
           (click)="loadSystemInfo()"
         >
-          {{ 'announcements.povtorit' | t }}
+          {{ 'announcements.list.retry' | t }}
         </button>
       </div>
     }
@@ -88,11 +88,11 @@
       <article class="panel">
         <div class="panel-heading">
           <div>
-            <h2>{{ 'system.komponenty' | t }}</h2>
-            <p>{{ 'system.tekuschee_sostoyanie_obyazatelnyh_i_opcionalnyh_' | t }}</p>
+            <h2>{{ 'system.health.components' | t }}</h2>
+            <p>{{ 'system.health.components_hint' | t }}</p>
           </div>
         </div>
-        <dl class="component-list" [attr.aria-label]="'system.sostoyanie_komponentov' | t">
+        <dl class="component-list" [attr.aria-label]="'system.health.components_state' | t">
           @for (component of componentEntries(info); track component) {
             <div class="component-row">
               <dt>{{ componentLabel(component.name) }}</dt>
@@ -114,8 +114,8 @@
       <article class="panel" data-testid="backup-status" [attr.data-severity]="backupSeverity(info.backup)">
         <div class="panel-heading">
           <div>
-            <h2>{{ 'system.rezervnoe_kopirovanie' | t }}</h2>
-            <p>{{ 'system.posledniy_rezultat_lokalnogo_backup_sidecar' | t }}</p>
+            <h2>{{ 'system.health.backup' | t }}</h2>
+            <p>{{ 'system.health.backup_hint' | t }}</p>
           </div>
           <span class="material-symbols-outlined panel-icon" aria-hidden="true">database</span>
         </div>
@@ -150,33 +150,33 @@
         <div class="cli-note">
           <span class="material-symbols-outlined" aria-hidden="true">terminal</span>
           <p>
-            <strong>{{ 'system.operacii_dostupny_tolko_administratoram_hosta' | t }}</strong>
-            {{ 'system.rezervnoe_kopirovanie_vosstanovlenie_i_obnovleni' | t }}
+            <strong>{{ 'system.health.host_operations_note' | t }}</strong>
+            {{ 'system.health.host_operations_cli' | t }}
           </p>
         </div>
       </article>
     </div>
 
     <section class="summary-section" aria-labelledby="installation-summary-title">
-      <h2 id="installation-summary-title" class="sr-only">{{ 'system.svodka_ustanovki' | t }}</h2>
+      <h2 id="installation-summary-title" class="sr-only">{{ 'system.health.installation_summary' | t }}</h2>
       <div class="summary-grid">
         <article class="summary-card">
-          <span class="summary-label">{{ 'system.organizaciya' | t }}</span>
+          <span class="summary-label">{{ 'system.health.organization' | t }}</span>
           <strong>{{ info.organization.name }}</strong>
           <span class="summary-meta mono">{{ info.organization.code }}</span>
         </article>
         <article class="summary-card">
-          <span class="summary-label">{{ 'system.profil_resursov' | t }}</span>
+          <span class="summary-label">{{ 'system.health.resource_profile' | t }}</span>
           <strong>{{ info.organization.resourceProfile }}</strong>
-          <span class="summary-meta">{{ 'system.profil_tekuschey_ustanovki' | t }}</span>
+          <span class="summary-meta">{{ 'system.health.current_installation_profile' | t }}</span>
         </article>
         <article class="summary-card">
-          <span class="summary-label">{{ 'system.hranilische_faylov' | t }}</span>
+          <span class="summary-label">{{ 'system.health.file_storage' | t }}</span>
           <strong>{{ storageProviderLabel(info.storageProvider) }}</strong>
           <span class="summary-meta mono">{{ info.storageProvider }}</span>
         </article>
         <article class="summary-card">
-          <span class="summary-label">{{ 'system.versii' | t }}</span>
+          <span class="summary-label">{{ 'system.health.versions' | t }}</span>
           <strong class="mono">{{ info.appVersion }}</strong>
           <span class="summary-meta mono">{{
             'system.database_schema_version' | t: { version: info.schemaVersion }

@@ -16,7 +16,7 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
         class="entity-filter"
         [options]="entityOptions()"
         [value]="selectedEntity()"
-        [smtAriaLabel]="'iam.filtr_po_tipu_suschnosti' | t"
+        [smtAriaLabel]="'iam.custom_fields.filter_by_entity_type' | t"
         (valueChange)="entityChange.emit($event ?? selectedEntity())"
       />
 
@@ -29,8 +29,8 @@ import { SMTInputComponent } from '@shared/ui-kit/components/forms/input';
         clearable
         [value]="searchQuery()"
         (valueChange)="searchQueryChange.emit($event === null ? '' : '' + $event)"
-        [placeholder]="'iam.poisk_poley' | t"
-        [smtAriaLabel]="'iam.poisk_poley' | t"
+        [placeholder]="'iam.custom_fields.search_placeholder' | t"
+        [smtAriaLabel]="'iam.custom_fields.search_placeholder' | t"
       />
     </div>
   `,
@@ -87,7 +87,7 @@ export class CustomFieldsToolbarComponent {
   getEntityLabel(ent: string): string {
     switch (ent) {
       case 'ALL':
-        return this.uiI18n.translate('iam.vse_suschnosti');
+        return this.uiI18n.translate('iam.custom_fields.all_entities');
       case 'USER':
         return this.uiI18n.translate('nav.users');
       case 'PROJECT':
@@ -95,7 +95,7 @@ export class CustomFieldsToolbarComponent {
       case 'TASK':
         return this.uiI18n.translate('nav.tasks');
       case 'NOTE':
-        return this.uiI18n.translate('iam.zametka_note');
+        return this.uiI18n.translate('iam.custom_fields.entity_note');
       default:
         return ent;
     }

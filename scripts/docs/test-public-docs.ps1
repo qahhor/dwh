@@ -41,6 +41,7 @@ $activeDocs = @(
     'docs/onboarding.md',
     'docs/api/README.md',
     'docs/architecture/extension-points.md',
+    'docs/architecture/module-map.md',
     'docs/architecture/biruni-smartup-conventions.md',
     'docs/architecture/monorepo-structure.md',
     'docs/guidelines/database-migrations.md',

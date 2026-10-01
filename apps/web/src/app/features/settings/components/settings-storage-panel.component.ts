@@ -16,8 +16,8 @@ import { SettingChange } from '../settings.models';
         <div class="card-title-group">
           <span class="material-symbols-outlined card-icon" aria-hidden="true">folder_shared</span>
           <div>
-            <h3 class="card-title">{{ 'settings.parametry_hranilischa_i_kvoty' | t }}</h3>
-            <p class="card-desc">{{ 'settings.limity_diskovogo_prostranstva_dlya_novyh_sotrudn' | t }}</p>
+            <h3 class="card-title">{{ 'settings.storage.title' | t }}</h3>
+            <p class="card-desc">{{ 'settings.storage.subtitle' | t }}</p>
           </div>
         </div>
         @if (!canUpdateSystemSettings()) {
@@ -46,9 +46,7 @@ import { SettingChange } from '../settings.models';
             [value]="systemSettings()['storage.default_user_quota_mb']"
             (valueChange)="changeSetting('storage.default_user_quota_mb', $event)"
           />
-          <span id="settings-user-quota-hint" class="hint-text">{{
-            'settings.1024_mb_1_gb_na_kazhdogo_sotrudnika' | t
-          }}</span>
+          <span id="settings-user-quota-hint" class="hint-text">{{ 'settings.storage.quota_hint' | t }}</span>
         </div>
       </div>
 

@@ -226,7 +226,7 @@ describe('AuditComponent', () => {
     const calls = (url: string) => get.mock.calls.filter(([called]) => called === url).length;
     const refresh = () => {
       host
-        .querySelector<HTMLButtonElement>(`button[aria-label="${PACKAGED_RUSSIAN['audit.obnovit_zhurnal_audita']}"]`)!
+        .querySelector<HTMLButtonElement>(`button[aria-label="${PACKAGED_RUSSIAN['audit.logs.refresh_audit_log']}"]`)!
         .click();
       fixture.detectChanges();
     };

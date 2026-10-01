@@ -43,7 +43,7 @@ type ResetState = 'form' | 'done' | 'invalid';
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="reset-new-password">{{ 'auth.novyy_parol' | t }}</label>
+              <label class="form-label" for="reset-new-password">{{ 'auth.password.new_password' | t }}</label>
               <smt-input
                 smtFieldId="reset-new-password"
                 type="password"
@@ -62,7 +62,9 @@ type ResetState = 'form' | 'done' | 'invalid';
             </div>
 
             <div class="form-group">
-              <label class="form-label" for="reset-confirm-password">{{ 'auth.povtorite_novyy_parol' | t }}</label>
+              <label class="form-label" for="reset-confirm-password">{{
+                'auth.password.repeat_new_password' | t
+              }}</label>
               <smt-input
                 smtFieldId="reset-confirm-password"
                 type="password"
@@ -142,7 +144,7 @@ export class ResetPasswordComponent {
       return;
     }
     if (this.newPassword() !== this.confirmPassword()) {
-      this.formError.set(this.i18n.translate('auth.vvedennye_paroli_ne_sovpadayut'));
+      this.formError.set(this.i18n.translate('auth.password.mismatch'));
       return;
     }
     this.isLoading.set(true);

@@ -39,7 +39,7 @@ import { TranslatePipe } from '@core/services/i18n.service';
             <button
               type="button"
               class="toast-close"
-              [attr.aria-label]="'ui.toast.zakryt_uvedomlenie' | t"
+              [attr.aria-label]="'ui.toast.close' | t"
               (click)="toastService.dismiss(toast.id)"
             >
               <span class="material-symbols-outlined" aria-hidden="true">close</span>

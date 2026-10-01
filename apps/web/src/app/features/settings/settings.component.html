@@ -1,6 +1,6 @@
 <div class="settings-page">
   <!-- Page Header -->
-  <ui-page-header [title]="'settings.title' | t" [subtitle]="'settings.sistemnye_nastroyki' | t">
+  <ui-page-header [title]="'settings.title' | t" [subtitle]="'settings.page.title' | t">
     <button
       smt-button
       type="button"
@@ -31,7 +31,7 @@
       class="settings-tabs"
       [tabs]="settingsTabs()"
       [value]="activeTab()"
-      [smtAriaLabel]="'settings.razdely_nastroek' | t"
+      [smtAriaLabel]="'settings.page.sections' | t"
       (valueChange)="$event && setTab($event)"
     />
   </div>

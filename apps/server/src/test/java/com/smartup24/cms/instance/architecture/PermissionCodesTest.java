@@ -137,7 +137,7 @@ class PermissionCodesTest {
         "ms.task, tasks.items",
         "ms.note, notes",
         "search, search",
-        "kwh, webhook.subscriptions",
+        "webhook, webhook.subscriptions",
         // Published forms (ADR-0028, section 2).
         "kauth, md.profile",
         "kauth, md.users",

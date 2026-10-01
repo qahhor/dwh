@@ -67,7 +67,7 @@ export class SettingsLanguagesStore {
       try {
         dict = JSON.parse(json);
       } catch {
-        this.toast.error(this.i18n.translate('settings.nevernyy_format_json_slovarya'));
+        this.toast.error(this.i18n.translate('settings.languages.invalid_json_format'));
         return;
       }
     }
@@ -128,9 +128,9 @@ export class SettingsLanguagesStore {
         next: () => {
           localStorage.removeItem('dwh_custom_languages');
           this.legacyLanguageCount.set(0);
-          this.toast.success(this.i18n.translate('settings.lokalnye_yazykovye_pakety_pereneseny_v_servernoe'));
+          this.toast.success(this.i18n.translate('settings.languages.local_packs_migrated'));
         },
-        error: () => this.toast.error(this.i18n.translate('settings.ne_udalos_perenesti_yazykovye_pakety_lokalnaya_k')),
+        error: () => this.toast.error(this.i18n.translate('settings.languages.local_packs_migrate_failed')),
       });
   }
 
