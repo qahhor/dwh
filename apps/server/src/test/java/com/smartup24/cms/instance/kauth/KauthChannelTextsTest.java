@@ -47,7 +47,7 @@ class KauthChannelTextsTest {
 
     @BeforeAll
     static void setUp() {
-        jdbc = JdbcClient.create(TestDatabases.migratedCopy("dwh_channel_texts"));
+        jdbc = JdbcClient.create(TestDatabases.migratedCopy("smc_channel_texts"));
         var mapper = new ObjectMapper();
         var audit = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());
         var i18n = new MdI18nService(new MdI18nRepository(jdbc, mapper), new MdI18nCatalog(mapper), audit);

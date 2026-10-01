@@ -47,7 +47,14 @@ class SystemInfoServiceTest {
         when(buildProperties.getIfAvailable()).thenReturn(null);
 
         SystemInfoService service = new SystemInfoService(
-                jdbc, providers, backup, typesense, bootstrap, buildProperties, Duration.ofMillis(50), Duration.ZERO);
+                new SystemInfoRepository(jdbc),
+                providers,
+                backup,
+                typesense,
+                bootstrap,
+                buildProperties,
+                Duration.ofMillis(50),
+                Duration.ZERO);
         try {
             long startedAt = System.nanoTime();
             SystemInfoResponse response = service.getInfo();
@@ -73,7 +80,7 @@ class SystemInfoServiceTest {
         when(buildProperties.getIfAvailable()).thenReturn(null);
 
         SystemInfoService service = new SystemInfoService(
-                jdbc,
+                new SystemInfoRepository(jdbc),
                 providers,
                 backup,
                 typesense,
@@ -127,7 +134,7 @@ class SystemInfoServiceTest {
         @SuppressWarnings("unchecked")
         ObjectProvider<BuildProperties> buildProperties = mock(ObjectProvider.class);
         SystemInfoService service = new SystemInfoService(
-                mock(JdbcClient.class),
+                new SystemInfoRepository(mock(JdbcClient.class)),
                 providers,
                 backup,
                 new TypesenseProperties(typesenseUrl, "test-key", true, false),

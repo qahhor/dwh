@@ -161,7 +161,7 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | Переменная окружения | Свойство | По умолчанию |
 |---|---|---|
 | `DB_PASSWORD` | `spring.datasource.password` | `postgres` |
-| `DB_URL` | `spring.datasource.url` | `jdbc:postgresql://localhost:5432/dwh_instance` |
+| `DB_URL` | `spring.datasource.url` | `jdbc:postgresql://localhost:5432/smartupcms` |
 | `DB_USER` | `spring.datasource.username` | `postgres` |
 | `SMC_LOG_FILE` | `logging.file.name` | пусто |
 | `SMC_LOG_MAX_FILE_SIZE` | `logging.logback.rollingpolicy.max-file-size` | `100MB` |
@@ -207,9 +207,28 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 | `DWH_DB_NAME` (Compose, образы PostgreSQL и backup) | `WAREHOUSE_DB_NAME` |
 | `DWH_MIGRATE_SCOPE=dwh` | `SMC_MIGRATE_SCOPE=warehouse` |
 
-Не переименованы в этом пункте (план 10/10, пункты 4.2 и 4.7): объекты базы
-данных, Java-пакеты, имя cookie сессии, префиксы токенов, адреса типов ошибок и
-имена метрик (`dwh.search.*`, `dwh.storage.operation`, `dwh.file.scanner`).
+Не переименованы в этом пункте: объекты базы данных и Java-пакеты (план 10/10,
+пункт 4.2). Имя cookie сессии, префикс токенов, адреса типов ошибок и имена
+метрик переименованы пунктом 4.7 — см. раздел «Старое имя продукта» ниже.
+
+## Старое имя продукта (план 10/10, пункт 4.7)
+
+| Было | Стало | Переходный период |
+|---|---|---|
+| cookie `DWH_SESSION` | `SMC_SESSION` | старая cookie принимается до 2026-12-31 и заменяется новой в первом же ответе |
+| префикс токена API `dwh_` | `smc_` | токены `dwh_` работают до 2026-12-31 (поиск по хешу, не по префиксу) |
+| `type` ошибки `https://api.dwh.internal/errors/<code>` | `urn:smartupcms:problem:<code>` | нет: контракт — поле `code` (ADR-0021 §6) |
+| метрики `dwh.search.*`, `dwh.storage.operation`, `dwh.file.scanner` | `smc.search.*`, `smc.storage.operation`, `smc.file.scanner` (в Prometheus `smc_search_*`, `smc_storage_operation_seconds`, `smc_file_scanner_seconds`) | нет: панели и правила оповещений переводятся при обновлении |
+| метрики `dwh_auth_logins_total`, `dwh_security_rate_limit_exceeded_total`, `dwh_tasks_created_total`, `dwh_tasks_status_changed_total`, `dwh_files_uploaded_bytes_total`, `dwh_audit_mutations_total`, `dwh_retention_deleted_rows_total`, `dwh_api_deprecated_calls_total` | те же имена с префиксом `smc_` | нет |
+| ключи браузера `dwh_theme`, `dwh_lang` | `smc_theme`, `smc_lang` | старое значение переносится при первом чтении |
+
+Срок 2026-12-31 совпадает с переходным периодом ADR-0023 и ADR-0027
+(предположение: отдельного решения о сроке для cookie и токенов нет).
+
+`dwh` теперь означает только хранилище (pg-dwh). `scripts/docs/test-repository-hygiene.ps1`
+падает на новом вхождении `dwh`/`DWH`/`Dwh` вне закрытого списка: хранилище,
+идентификаторы пакета `fnd` (до пункта 4.2), старые имена переходного периода,
+выпущенные миграции и история.
 
 ## Секреты разработки вне dev
 

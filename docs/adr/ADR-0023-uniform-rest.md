@@ -42,7 +42,7 @@
    31 Dec 2026 00:00:00 GMT` (RFC 8594) и, для пути, `Link: <новый путь>;
    rel="successor-version"`. snake_case-параметр доходит до обработчика под
    camelCase-именем; в опциях выгрузки — тоже, в том числе у выгрузок,
-   поставленных до релиза. Счётчик `dwh_api_deprecated_calls_total{alias}`
+   поставленных до релиза. Счётчик `smc_api_deprecated_calls_total{alias}`
    показывает, кто ещё пользуется старой формой. Список форм — один,
    `ApiDeprecations`: по нему отвечает фильтр и строится описание API
    (`deprecated`, `x-sunset`, `x-successor`, устаревшие параметры рядом с новыми).
@@ -73,7 +73,7 @@
   метка `api-breaking` у pull request или трейлер `Api-Breaking:` у прямого
   пуша, и запись в `CHANGELOG.md` — то же правило, что в
   [ADR-0022](ADR-0022-openapi-from-code.md), §2.4. Перед удалением
-  `dwh_api_deprecated_calls_total` должен стоять на месте.
+  `smc_api_deprecated_calls_total` должен стоять на месте.
 - Адрес экрана веба `/tasks?project_id=…` — не API и не менялся.
 - Атомарность переключателей под конкурентной нагрузкой (`update … returning`)
   — пункт 3.6.

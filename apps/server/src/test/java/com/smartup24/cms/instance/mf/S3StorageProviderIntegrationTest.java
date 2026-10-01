@@ -110,7 +110,7 @@ class S3StorageProviderIntegrationTest {
             assertThat(provider.download("instance-files", "documents/release.txt"))
                     .isNull();
             assertThat(meterRegistry
-                            .get("dwh.storage.operation")
+                            .get("smc.storage.operation")
                             .tag("provider", "s3")
                             .tag("operation", "upload")
                             .tag("outcome", "success")

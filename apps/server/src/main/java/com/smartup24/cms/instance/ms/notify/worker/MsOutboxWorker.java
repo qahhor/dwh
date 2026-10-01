@@ -68,7 +68,7 @@ public class MsOutboxWorker {
                 : "";
         String subject = item.payload() != null && item.payload().get("subject") != null
                 ? item.payload().get("subject").toString()
-                : "Уведомление DWH";
+                : "Уведомление SmartupCMS";
         String idempotencyKey = item.idempotencyKey().toString();
 
         switch (item.channel().toLowerCase()) {
@@ -81,7 +81,7 @@ public class MsOutboxWorker {
             case "sms" -> {
                 var res = providers
                         .getActiveSmsProvider()
-                        .send(new SmsMessage(item.recipient(), body, "DWH", idempotencyKey));
+                        .send(new SmsMessage(item.recipient(), body, null, idempotencyKey));
                 if (!res.isSuccess()) throw new RuntimeException("SMS failed: " + res.errorMessage());
             }
             case "telegram" -> {

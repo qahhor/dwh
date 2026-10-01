@@ -56,7 +56,7 @@ class AuditArchiveIntegrationTest {
     @DisplayName(
             "V127: empty future months gave way to daily partitions, 31 days of them exist; a monthly month covers its days")
     void dailyPartitionsReplaceEmptyFutureMonths() {
-        var db = new Db("dwh_audit_v127");
+        var db = new Db("smc_audit_v127");
         YearMonth current = YearMonth.now(ZoneOffset.UTC);
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
 
@@ -79,7 +79,7 @@ class AuditArchiveIntegrationTest {
     @DisplayName(
             "A run archives settled partitions into one verified file that restores row for row; nothing is deleted")
     void archiveIsVerifiedAndRestorable() throws IOException {
-        var db = new Db("dwh_audit_archive");
+        var db = new Db("smc_audit_archive");
         db.partitions.create(YearMonth.of(2021, 3));
         db.insert(LocalDate.of(2021, 3, 10), "march-1", "march-2");
         db.partitions.createDay(APRIL_5);
@@ -128,7 +128,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("With deletion on only archived partitions leave; the database refuses unarchived and open ones")
     void deletionTakesOnlyArchivedPartitions() {
-        var db = new Db("dwh_audit_archive_delete");
+        var db = new Db("smc_audit_archive_delete");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "gone-1", "gone-2");
 
@@ -154,7 +154,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("A row that reaches a partition after its archive keeps the partition in the database")
     void rowAddedAfterTheArchiveKeepsThePartition() {
-        var db = new Db("dwh_audit_archive_late");
+        var db = new Db("smc_audit_archive_late");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "early");
         db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -173,7 +173,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("100 MB of waiting partitions start an archive before the week is over")
     void sizeStartsAnArchiveBeforeTheWeek() {
-        var db = new Db("dwh_audit_archive_size");
+        var db = new Db("smc_audit_archive_size");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "first");
         assertThat(db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -199,7 +199,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("An expired file is removed; with deletion on the partition is archived again before it leaves")
     void expiredArchiveIsRenewedBeforeTheDrop() {
-        var db = new Db("dwh_audit_archive_expiry");
+        var db = new Db("smc_audit_archive_expiry");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "old");
         String first = db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -221,7 +221,7 @@ class AuditArchiveIntegrationTest {
     @DisplayName(
             "With deletion off an expired file is not renewed: the archive was a copy, the database keeps the rows")
     void expiredArchiveIsNotRenewedWithoutDeletion() {
-        var db = new Db("dwh_audit_archive_expiry_keep");
+        var db = new Db("smc_audit_archive_expiry_keep");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "kept");
         String first = db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -240,7 +240,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("A partition renamed by retention is not archived twice and can still leave")
     void retentionRenameKeepsTheArchive() {
-        var db = new Db("dwh_audit_archive_renamed");
+        var db = new Db("smc_audit_archive_renamed");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "renamed");
         db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -263,7 +263,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("A file missing from the store is no copy: the partition stays")
     void missingFileKeepsThePartition() throws IOException {
-        var db = new Db("dwh_audit_archive_missing");
+        var db = new Db("smc_audit_archive_missing");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "orphan");
         String key = db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -282,7 +282,7 @@ class AuditArchiveIntegrationTest {
     @DisplayName(
             "An archive that does not read back — cut short or with other content — is not verified and is retried")
     void unverifiableArchiveIsRetried() throws IOException {
-        var db = new Db("dwh_audit_archive_retry");
+        var db = new Db("smc_audit_archive_retry");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "retry");
         var good = db.localStore(archiveDir);
@@ -310,7 +310,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("Another instance holding the lease makes a run step aside")
     void leaseKeepsRunsApart() {
-        var db = new Db("dwh_audit_archive_lease");
+        var db = new Db("smc_audit_archive_lease");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "leased");
         assertThat(db.archives.acquireLease("other-instance", Duration.ofHours(1)))
@@ -326,7 +326,7 @@ class AuditArchiveIntegrationTest {
     @Test
     @DisplayName("The trace of a verified archive cannot be deleted or rewritten, nor recorded as verified")
     void verifiedArchiveRecordIsPermanent() {
-        var db = new Db("dwh_audit_archive_trace");
+        var db = new Db("smc_audit_archive_trace");
         db.partitions.createDay(APRIL_5);
         db.insert(APRIL_5, "trace");
         String key = db.service(archiveDir, false, DataSize.ofMegabytes(100), db.localStore(archiveDir))
@@ -429,7 +429,7 @@ class AuditArchiveIntegrationTest {
                     delete,
                     new AuditArchiveProperties.S3(null, "auto", null, null, null, "audit/", true));
             return new AuditArchiveService(
-                    partitions, archives, store, properties, audit, jdbc, new DataSourceTransactionManager(ds));
+                    partitions, archives, store, properties, audit, new DataSourceTransactionManager(ds));
         }
 
         void insert(LocalDate day, String... rowPks) {

@@ -47,7 +47,8 @@ networks.
 | `backup` | Dedicated read-only database role; encryption before persistence | `backups`, `backup-status` |
 | `migrate` | One-shot schema mutation with application database credentials | PostgreSQL schema history |
 
-The browser receives a `DWH_SESSION` HttpOnly session cookie. Mutating browser
+The browser receives an `SMC_SESSION` HttpOnly session cookie (the old name
+`DWH_SESSION` is still read until 2026-12-31 and replaced). Mutating browser
 requests are protected by CSRF controls, and permissions are checked by the
 server. Search results must remain constrained by application authorization;
 Typesense is not exposed to browsers in production.

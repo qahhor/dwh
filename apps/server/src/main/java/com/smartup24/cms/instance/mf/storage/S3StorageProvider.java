@@ -221,7 +221,7 @@ public final class S3StorageProvider implements StorageProvider {
     }
 
     private void recordOperation(String operation, String outcome, long startedAt) {
-        Timer.builder("dwh.storage.operation")
+        Timer.builder("smc.storage.operation")
                 .description("S3-compatible storage operation latency")
                 .tag("provider", getProviderCode())
                 .tag("operation", operation)

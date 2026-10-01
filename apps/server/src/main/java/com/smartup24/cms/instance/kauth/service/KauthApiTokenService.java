@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.kauth.service;
 import com.smartup24.cms.instance.common.security.SecurityContext.KauthPrincipal;
 import com.smartup24.cms.instance.kauth.api.ApiTokenView;
 import com.smartup24.cms.instance.kauth.api.CreatedApiToken;
+import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -29,7 +30,8 @@ public class KauthApiTokenService {
         credentialGuard.requireCurrent(principal);
         byte[] randomBytes = new byte[32];
         secureRandom.nextBytes(randomBytes);
-        String rawToken = "dwh_" + Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        String rawToken = KauthPref.API_TOKEN_PREFIX
+                + Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
         String tokenPrefix = rawToken.substring(0, Math.min(12, rawToken.length()));
         String tokenHash = KauthPasswordHasher.sha256(rawToken);
@@ -39,6 +41,11 @@ public class KauthApiTokenService {
         return new CreatedApiToken(view(record), rawToken);
     }
 
+    /**
+     * The active token with this secret, found by its hash: the prefix is not parsed, so a token issued with
+     * {@link KauthPref#LEGACY_API_TOKEN_PREFIX} keeps authenticating until {@code ApiDeprecations.SUNSET}
+     * (plan 10/10, item 4.7).
+     */
     @Transactional(readOnly = true)
     public Optional<KauthApiTokenRepository.ApiTokenRecord> validateToken(String rawToken) {
         if (rawToken == null || rawToken.isBlank()) {

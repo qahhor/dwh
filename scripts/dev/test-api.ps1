@@ -1,5 +1,5 @@
 # ============================================================================
-# DWH Platform - End-to-End Live API Verification Script
+# SmartupCMS - End-to-End Live API Verification Script
 # ============================================================================
 # The nightly workflow runs it against a disposable Compose stack whose server ports are published on 127.0.0.1
 # (scripts/dev/api-smoke.compose.yml); locally it targets a server started from the sources.
@@ -25,7 +25,7 @@ trap {
 }
 
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  DWH Platform - Live Smoke Test Suite                      " -ForegroundColor Cyan
+Write-Host "  SmartupCMS - Live Smoke Test Suite                        " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # 1. Health Check
@@ -134,7 +134,7 @@ try {
 Write-Host "`n6. Create Project (POST /api/v1/tasks/projects)..." -ForegroundColor Yellow
 $rand = Get-Random
 $projectBody = @{
-    name = "DWH Core Platform $rand"
+    name = "SmartupCMS Core $rand"
     description = "Enterprise single-tenant instance deployment"
     state = "A"
     attributes = @{}
@@ -332,7 +332,7 @@ $sysSettings = Invoke-RestMethod -Uri "$BaseUrl/api/v1/settings/system" -Method 
 Write-Host "   Current System Settings: Company='$($sysSettings.values.'system.company_name')', Timezone='$($sysSettings.values.'system.default_timezone')', Revision=$($sysSettings.revision)" -ForegroundColor Green
 
 $updateSettingsBody = @{
-    "system.company_name" = "Smartup Enterprise DWH"
+    "system.company_name" = "Smartup Enterprise CMS"
     "system.default_timezone" = "Asia/Tashkent"
 } | ConvertTo-Json
 # The settings set is saved from its revision (ADR-0024): If-Match names the one just read.
@@ -416,7 +416,7 @@ if (-not $traceparent -or -not $traceparent.StartsWith("00-")) {
 
 # 19.2 Health & Info Subsystem Checks
 $actuatorInfo = Invoke-RestMethod -Uri "$MgmtUrl/actuator/info" -Method Get
-$platInfo = $actuatorInfo.dwhPlatform
+$platInfo = $actuatorInfo.smartupcms
 Write-Host "   Actuator Info verified: DB status=$($platInfo.database.status) ($($platInfo.database.responseTimeMs)ms), Storage status=$($platInfo.storage.status) (Free: $($platInfo.storage.freeMb)MB), Typesense status=$($platInfo.typesense.status)" -ForegroundColor Green
 
 # 19.3 Prometheus Metrics Endpoint Check

@@ -20,7 +20,7 @@ class PhaseZeroDatabaseIntegrationTest {
 
     @BeforeAll
     static void setUp() {
-        jdbc = JdbcClient.create(TestDatabases.migratedCopy("dwh_phase_zero"));
+        jdbc = JdbcClient.create(TestDatabases.migratedCopy("smc_phase_zero"));
         userId = jdbc.sql("""
                 insert into md_users(name, login, email, password_hash, state)
                 values('Phase Zero', 'phase0', 'phase0@example.com', 'hash', 'A') returning id

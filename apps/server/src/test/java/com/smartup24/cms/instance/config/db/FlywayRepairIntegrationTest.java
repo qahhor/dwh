@@ -18,7 +18,7 @@ class FlywayRepairIntegrationTest {
     @Test
     @DisplayName("0.5: repair realigns an edited migration and forgets a deleted one; validation passes afterwards")
     void repairAcceptsTheV101Era() {
-        DataSource ds = TestDatabases.migratedCopy("dwh_migration_repair");
+        DataSource ds = TestDatabases.migratedCopy("smc_migration_repair");
         JdbcClient jdbc = JdbcClient.create(ds);
         // The state of a stand migrated before 2026-09-20: another checksum for V100 and a V101 row.
         jdbc.sql("update flyway_schema_history set checksum = checksum + 1 where version = '100'")

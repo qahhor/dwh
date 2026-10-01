@@ -32,7 +32,7 @@ class MsNoteIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_note_test");
+        var ds = TestDatabases.migratedCopy("smc_note_test");
         jdbc = JdbcClient.create(ds);
         var mapper = new ObjectMapper();
         var repo = new MsNoteRepository(jdbc, mapper);

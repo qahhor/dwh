@@ -33,7 +33,7 @@ class MdSettingServiceTest {
 
         var settings = service.getInstanceSettings();
 
-        assertThat(settings.get("system.company_name")).isEqualTo("Smartup DWH Platform");
+        assertThat(settings.get("system.company_name")).isEqualTo("SmartupCMS");
         assertThat(settings.get("system.default_language")).isEqualTo("ru");
         assertThat(settings.get("security.idle_lock_minutes")).isEqualTo("30");
         assertThat(settings.get("storage.default_user_quota_mb")).isEqualTo("1024");

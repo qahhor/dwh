@@ -6,16 +6,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.jayway.jsonpath.JsonPath;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel;
 import com.smartup24.cms.instance.upl.upload.UplUploadService;
 import com.smartup24.cms.instance.upl.upload.UplUploadService.Upload;
+import com.smartup24.cms.instance.warehouse.WarehousePref;
 import jakarta.servlet.http.Cookie;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -85,17 +85,17 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
     private UplUploadService uploads;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
 
     @Autowired
-    @Qualifier(FndPref.DWH)
-    private JdbcClient dwhJdbc;
+    @Qualifier(WarehousePref.QUALIFIER)
+    private JdbcClient warehouseJdbc;
 
     @Autowired
     private TransactionTemplate tx;
@@ -207,7 +207,8 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
             assertThat((String) JsonPath.read(body, "$.status")).as(body).isEqualTo(UplPackageModel.APPLIED);
             assertThat((Integer) JsonPath.read(body, "$.rawRows")).isEqualTo(ROWS);
             long loadId = ((Number) JsonPath.read(body, "$.loadId")).longValue();
-            assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
+            assertThat(warehouseJdbc
+                            .sql("select count(*) from raw.rows where load_id = :id")
                             .param("id", loadId)
                             .query(Long.class)
                             .single())

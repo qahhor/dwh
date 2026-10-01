@@ -19,7 +19,7 @@ class AuditLogRepositoryPaginationIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_audit_pagination_test");
+        var ds = TestDatabases.migratedCopy("smc_audit_pagination_test");
         jdbc = JdbcClient.create(ds);
         repository = new AuditLogRepository(jdbc, new ObjectMapper());
     }

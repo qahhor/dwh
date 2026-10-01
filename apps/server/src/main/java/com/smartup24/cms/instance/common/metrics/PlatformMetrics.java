@@ -16,34 +16,34 @@ public class PlatformMetrics {
     private final Counter auditMutationCounter;
 
     public PlatformMetrics(MeterRegistry meterRegistry) {
-        this.loginSuccessCounter = Counter.builder("dwh_auth_logins_total")
+        this.loginSuccessCounter = Counter.builder("smc_auth_logins_total")
                 .tag("status", "success")
                 .description("Total number of successful logins")
                 .register(meterRegistry);
 
-        this.loginFailureCounter = Counter.builder("dwh_auth_logins_total")
+        this.loginFailureCounter = Counter.builder("smc_auth_logins_total")
                 .tag("status", "failure")
                 .description("Total number of failed login attempts")
                 .register(meterRegistry);
 
-        this.rateLimitCounter = Counter.builder("dwh_security_rate_limit_exceeded_total")
+        this.rateLimitCounter = Counter.builder("smc_security_rate_limit_exceeded_total")
                 .description("Total number of rate limit exceeded events")
                 .register(meterRegistry);
 
-        this.taskCreatedCounter = Counter.builder("dwh_tasks_created_total")
+        this.taskCreatedCounter = Counter.builder("smc_tasks_created_total")
                 .description("Total number of created tasks")
                 .register(meterRegistry);
 
-        this.taskStatusChangedCounter = Counter.builder("dwh_tasks_status_changed_total")
+        this.taskStatusChangedCounter = Counter.builder("smc_tasks_status_changed_total")
                 .description("Total number of task status transitions")
                 .register(meterRegistry);
 
-        this.fileUploadedBytesCounter = Counter.builder("dwh_files_uploaded_bytes_total")
+        this.fileUploadedBytesCounter = Counter.builder("smc_files_uploaded_bytes_total")
                 .description("Total number of bytes uploaded")
                 .baseUnit("bytes")
                 .register(meterRegistry);
 
-        this.auditMutationCounter = Counter.builder("dwh_audit_mutations_total")
+        this.auditMutationCounter = Counter.builder("smc_audit_mutations_total")
                 .description("Total number of audited data mutations")
                 .register(meterRegistry);
     }

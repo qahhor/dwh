@@ -14,6 +14,7 @@ import {
 } from 'rxjs';
 import { Subject } from 'rxjs';
 import { CreateLanguageRequest, LanguageInfo, TranslationDictionary } from '../models/i18n.models';
+import { LANGUAGE_STORAGE_KEY, readStoredValue } from './storage-keys';
 
 export type Language = string;
 export type { LanguageInfo } from '../models/i18n.models';
@@ -362,7 +363,7 @@ export class I18nService {
       const russian = await firstValueFrom(this.loadDictionary(RUSSIAN));
       this.russianDictionary.set(russian);
 
-      const saved = this.normalize(localStorage.getItem('dwh_lang'));
+      const saved = this.normalize(readStoredValue(LANGUAGE_STORAGE_KEY));
       const selected = languages.some((language) => language.active && language.code === saved) ? saved : RUSSIAN;
       try {
         const dictionary = selected === RUSSIAN ? russian : await firstValueFrom(this.loadDictionary(selected));
@@ -410,7 +411,7 @@ export class I18nService {
   private activate(code: string, dictionary: TranslationDictionary): void {
     this.currentLang.set(code);
     this.activeDictionary.set(dictionary);
-    localStorage.setItem('dwh_lang', code);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
     document.documentElement.lang = code;
   }
 

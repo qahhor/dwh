@@ -44,7 +44,7 @@ class MdUserListIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_user_list_test");
+        var ds = TestDatabases.migratedCopy("smc_user_list_test");
         jdbc = JdbcClient.create(ds);
         var audit =
                 new AuditLogService(new AuditLogRepository(jdbc, new ObjectMapper()), null, new AuditDataRedactor());

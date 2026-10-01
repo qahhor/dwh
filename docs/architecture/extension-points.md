@@ -1,6 +1,6 @@
 # Точки расширения SmartupCMS
 
-**Версия:** 1.1
+**Версия:** 1.2
 
 **Обновлено:** 2026-10-01
 
@@ -62,52 +62,53 @@ SmartupCMS расширяется **модулями в коде**: модуль
 
 | Точка | Где | Что даёт |
 |---|---|---|
-| `FndJobHandler` (`@Bean`) | `S/fnd/api/FndJobHandler.java` | Задание по расписанию: `code()` и `run(args)`; расписание — строка в `fnd_job_schedule` (пример — `V121__upl_apply_recovery_job.sql`), разовый запуск — `FndJobQueue.enqueueOnce`. Очередь выполняет `S/config/jobs/JobQueueWorker.java`; обработчик работает вне транзакции очереди (свои короткие транзакции открывает сам) и может быть повторён после сбоя — он проверяет состояние, которое меняет. Обработчику, закрывающему свою запись при сбое, нужен `run(args, FndJobAttempt)`: пока попытка не последняя, временный сбой (`FndJobFailures.isTransient`) он пробрасывает для повтора, а сбой, который повтор не исправит, сообщает `FndJobNotRetryableException`. |
+| `JobHandler` (`@Bean`) | `S/jobs/api/JobHandler.java` | Задание по расписанию: `code()` и `run(args)`; расписание — строка в `fnd_job_schedule` (пример — `V121__upl_apply_recovery_job.sql`), разовый запуск — `JobQueue.enqueueOnce`. Очередь выполняет `S/config/jobs/JobQueueWorker.java`; обработчик работает вне транзакции очереди (свои короткие транзакции открывает сам) и может быть повторён после сбоя — он проверяет состояние, которое меняет. Обработчику, закрывающему свою запись при сбое, нужен `run(args, JobAttempt)`: пока попытка не последняя, временный сбой (`JobFailures.isTransient`; своё исключение модуль помечает `common.error.TransientFailure`) он пробрасывает для повтора, а сбой, который повтор не исправит, сообщает `JobNotRetryableException`. |
 | События Spring | например, `S/ms/task/service/MsTaskService.java` → `S/ms/notify/listener/MsTaskNotificationListener.java` | Модули общаются событиями, а не вызовами соседних сервисов. |
 | Поиск | `S/search/service/SearchChangePublisher.java` | `changed(entityType, id)` в транзакции владельца ставит запись на переиндексацию. |
 | Вебхуки | `S/kwh/service/KwhWebhookService.java` | `publishEvent(type, payload)` доставляет событие подписчикам с подписью HMAC-SHA256. |
 | Провайдеры | `libs/provider-spi` (`StorageProvider`, `MailProvider`, `SmsProvider`, `MessengerProvider`) | Хранилище и каналы доставки; активный провайдер выбирает `S/common/provider/ProviderRegistry.java`. |
 
-### Контракт основы: пакет `fnd.api`
+### Контракты очереди, хранилища, единиц и платформы
 
-Другие модули (сейчас `upl` и `report`) обращаются к основе только через
-типы пакета `S/fnd/api/` и классы `S/fnd/service/`; правило «modules meet
-only through each other's service or api package» (`ModuleBoundariesTest`)
-не даёт добавить новую зависимость от внутренних пакетов `fnd`. Пункт 4.2
-плана 10/10 разнесёт реализацию по очереди заданий (`platform/jobs`),
-хранилищу (`warehouse/{datasource,migration,raw,mart}`) и доменному модулю
-единиц; этот контракт он сохраняет, поэтому вызывающий код при переносе не
-меняется (меняется только место реализации).
+Бывший модуль `fnd` разделён (план 10/10, пункт 4.2,
+[ADR-0030](../adr/ADR-0030-fnd-split.md)). Другие модули (сейчас `upl`,
+`report` и `config.jobs`) обращаются к ним только через пакеты `api` и
+`service`; правило «modules meet only through each other's service or api
+package» (`ModuleBoundariesTest`) не даёт зависеть от внутренних пакетов, а
+`WarehouseArchitectureTest` — очереди зависеть от хранилища.
 
-| Тип | Вид | Реализация сейчас | Что даёт |
+| Тип | Вид | Реализация | Что даёт |
 |---|---|---|---|
-| `FndJobHandler` | интерфейс (`@Bean`) | — | Обработчик задания; `run(args, FndJobAttempt)` для повторов. |
-| `FndJobQueue` | интерфейс | `fnd.jobs.FndJobRunner` | `enqueueOnce(handler, args)` в транзакции вызывающего, `enqueue(scheduleCode)`. |
-| `FndJobAttempt`, `FndJobFailures`, `FndJobNotRetryableException` | record, утилита, исключение | — | Номер попытки, временный ли сбой, сбой без повтора. |
-| `FndJobQueries` (`fnd.service`) | класс | он же | Вопросы к очереди только на чтение (`pendingArgumentValues`). |
-| `FndActorContext` | интерфейс | `fnd.FndActors` | Актор (`system()`, `user(id)`) и его установка в транзакцию (`apply`) для аудита `fnd_*`. |
-| `FndActor` | record | — | Кто выполняет операцию: id в `md_users` и имя для журналов. |
-| `FndLoads` | интерфейс | `fnd.load.FndLoadService` | Версии загрузок: `begin` → `apply`/`fail`, журнал пакета `log`, `find`, `appliedLoadIds`. |
-| `FndLoad` | record | — | Версия загрузки и её статусы. |
-| `FndRawWriter`, `FndRawSource`, `FndRawRow` | интерфейсы, record | `fnd.dwh.JdbcFndRawWriter` | Потоковая запись строк загрузки в слой `raw` pg-dwh (`copy`, `count`, `read`). |
-| `FndVersions` | интерфейс | `fnd.versioning.FndVersioning` | Версии с датой действия для таблицы, объявленной через `fnd_versioning_enable`: `createDraft`, `updateDraft`, `publish`, `supersede`, `versionAt`, `find`. |
-| `FndVersion` | record | — | Строка таблицы версий. |
-| `FndUnits` | интерфейс | `fnd.units.FndUnitService` | Единицы измерения и пересчёт по датированному коэффициенту. |
-| `FndUnit`, `FndConversion`, `FndCoefficientMissingException` | record, record, исключение | — | Единица, результат пересчёта со ссылкой на коэффициент, отказ без коэффициента (409). |
-| `ConstraintViolationException`, `StaleVersionException`, `ConstraintErrorCode` | исключения, перечень кодов | — | Нарушение правила основы с кодом `error.fnd.<код>` (модель ошибок, ADR-0021). |
-| `DwhUnavailableException` | исключение | — | pg-dwh недоступна (503); пустой результат вместо данных не возвращается. |
-| `FndSqlErrors` | утилита | — | Перевод ошибки PostgreSQL по таблице стандарта основы (например, таблицы версий модуля) в код. |
+| `jobs.api.JobHandler` | интерфейс (`@Bean`) | — | Обработчик задания; `run(args, JobAttempt)` для повторов. |
+| `jobs.api.JobQueue` | интерфейс | `jobs.runner.JobRunner` | `enqueueOnce(handler, args)` в транзакции вызывающего, `enqueue(scheduleCode)`. |
+| `jobs.api.JobAttempt`, `JobFailures`, `JobNotRetryableException` | record, утилита, исключение | — | Номер попытки, временный ли сбой, сбой без повтора. |
+| `jobs.service.JobQueries` | класс | он же | Вопросы к очереди только на чтение (`pendingArgumentValues`). |
+| `warehouse.api.WarehouseLoads` | интерфейс | `warehouse.load.WarehouseLoadService` | Версии загрузок: `begin` → `apply`/`fail`, журнал пакета `log`, `find`, `appliedLoadIds`. |
+| `warehouse.api.WarehouseLoad` | record | — | Версия загрузки и её статусы. |
+| `warehouse.api.RawWriter`, `RawSource`, `RawRow` | интерфейсы, record | `warehouse.raw.JdbcRawWriter` | Потоковая запись строк загрузки в слой `raw` pg-dwh (`copy`, `count`, `read`). |
+| `warehouse.api.WarehouseUnavailableException` | исключение | — | pg-dwh недоступна (503, временный сбой для очереди); пустой результат вместо данных не возвращается. |
+| `units.api.Units` | интерфейс | `units.service.UnitService` | Единицы измерения и пересчёт по датированному коэффициенту. |
+| `units.api.Unit`, `UnitConversion`, `CoefficientMissingException` | record, record, исключение | — | Единица, результат пересчёта со ссылкой на коэффициент, отказ без коэффициента (409). |
+| `common.versioning.Versions` | интерфейс | `common.versioning.VersioningService` | Версии с датой действия для таблицы, объявленной через `fnd_versioning_enable`: `createDraft`, `updateDraft`, `publish`, `supersede`, `versionAt`, `find`. |
+| `common.versioning.Version`, `StaleVersionException`, `VersionErrors` | record, исключение, утилита | — | Строка таблицы версий; устаревшая блокировка; перевод ошибок записи в таблицу версий модуля. |
+| `common.actor.AuditActorContext` | интерфейс | `md.service.MdAuditActors` | Актор (`system()`, `user(id)`) и его установка в транзакцию (`apply`) для `fnd_audit_trigger`. |
+| `common.actor.AuditActor` | record | — | Кто выполняет операцию: id в `md_users` и имя для журналов. |
+| `common.error.ConstraintCode`, `ConstraintCodes`, `ConstraintErrors`, `ConstraintViolationException` | интерфейсы, утилита, исключение | перечни `JobError`, `UnitError`, `WarehouseError`, `VersionError`, `ActorError` | Код модуля для ограничения его таблицы или текста триггера; ответ с ключом `error.fnd.<код>` (ключи не менялись, ADR-0021). |
 
 Правила контракта:
 
-- Вызывающий модуль внедряет интерфейс (`FndLoads`, а не `FndLoadService`);
-  реализация остаётся единственным бином и может переехать в другой пакет.
+- Вызывающий модуль внедряет интерфейс (`WarehouseLoads`, а не
+  `WarehouseLoadService`); реализация остаётся единственным бином.
 - Новая потребность другого модуля — новый метод интерфейса или новый тип в
-  `fnd.api`, а не импорт внутреннего пакета (`jobs`, `load`, `dwh`,
-  `versioning`, `units`, `migration`, `config`).
-- `FndMartReader` пока не входит в контракт: им пользуется только сама
-  основа. Когда чтение витрин понадобится модулю, в `fnd.api` появится
-  интерфейс, а не зависимость от `fnd.dwh`.
+  пакете `api` нужного модуля, а не импорт внутреннего пакета (`runner`,
+  `load`, `raw`, `mart`, `migration`, `datasource`, `repository`).
+- SQL — только в репозиториях: класс `*Service` запросов не пишет
+  (`ServicesRunNoSqlTest`).
+- Модуль, чью таблицу версий пишет `common.versioning`, публикует свои коды
+  бином `ConstraintCodes` (пример — `units.config.UnitsConfig`).
+- `warehouse.mart.MartReader` пока не входит в контракт: им пользуется только
+  хранилище. Когда чтение витрин понадобится модулю, в `warehouse.api`
+  появится интерфейс.
 
 ## 5. Контракт API и платформенные сервисы
 
@@ -154,5 +155,6 @@ only through each other's service or api package» (`ModuleBoundariesTest`)
    и передачи сессии.
 5. **Маршрут экрана добавляется в `app.routes.ts` вручную** — динамической
    регистрации экранов нет.
-6. Таблица `md_custom_modules` (прежняя модель «Plugin SDK», V017) выключена
-   в V019 и кодом не используется; хранится ради истории.
+6. Прежняя модель «Plugin SDK» (таблица `md_custom_modules`, V017, выключена
+   в V019) удалена миграцией V152 (план 10/10, пункт 4.7); модули
+   регистрируются только в `md_installed_modules`.

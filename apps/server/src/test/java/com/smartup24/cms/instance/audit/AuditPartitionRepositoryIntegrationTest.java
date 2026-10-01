@@ -25,7 +25,7 @@ class AuditPartitionRepositoryIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_partition_test");
+        var ds = TestDatabases.migratedCopy("smc_partition_test");
         jdbc = JdbcClient.create(ds);
         repository = new AuditPartitionRepository(jdbc);
     }

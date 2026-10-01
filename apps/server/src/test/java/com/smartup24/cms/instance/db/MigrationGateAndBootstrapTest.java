@@ -36,7 +36,7 @@ class MigrationGateAndBootstrapTest {
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("dwh_gate_test")
+            .withDatabaseName("smc_gate_test")
             .withUsername("test_user")
             .withPassword("test_pass");
 

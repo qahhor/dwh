@@ -37,7 +37,7 @@ class RbacSystemRolesIntegrationTest {
 
     @BeforeAll
     static void migrate() {
-        var ds = TestDatabases.migratedCopy("dwh_rbac_test");
+        var ds = TestDatabases.migratedCopy("smc_rbac_test");
         jdbc = JdbcClient.create(ds);
     }
 

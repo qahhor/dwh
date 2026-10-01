@@ -3,6 +3,7 @@ package com.smartup24.cms.instance.search.service;
 import com.smartup24.cms.instance.search.dto.SearchManagementDtos.VerificationSummary;
 import com.smartup24.cms.instance.search.repository.SearchIndexStateRepository.Generation;
 import com.smartup24.cms.instance.search.repository.SearchProjectionReader;
+import com.smartup24.cms.instance.search.repository.SearchReconcileRepository;
 import com.smartup24.cms.instance.search.typesense.TypesenseCollections;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocumentStream;
 import com.smartup24.cms.instance.search.typesense.TypesenseDocuments;
@@ -14,6 +15,7 @@ import java.util.function.Function;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.stereotype.Service;
@@ -26,20 +28,33 @@ public class SearchReconciliationService {
     private final SearchProjectionReader reader;
     private final TypesenseCollections collections;
     private final TypesenseDocuments documents;
+    private final SearchReconcileRepository sql;
 
+    /** A service built by hand, for tests: the proof's SQL has no state of its own. */
     public SearchReconciliationService(
             DataSource source,
             SearchProjectionReader reader,
             TypesenseCollections collections,
             TypesenseDocuments documents) {
+        this(source, reader, collections, documents, new SearchReconcileRepository());
+    }
+
+    @Autowired
+    public SearchReconciliationService(
+            DataSource source,
+            SearchProjectionReader reader,
+            TypesenseCollections collections,
+            TypesenseDocuments documents,
+            SearchReconcileRepository sql) {
         this.source = source;
         this.reader = reader;
         this.collections = collections;
         this.documents = documents;
+        this.sql = sql;
     }
 
     public Proof begin(Generation generation) {
-        return new Proof(source, reader, collections, documents, generation);
+        return new Proof(source, reader, collections, documents, sql, generation);
     }
 
     /** Session-owned TEMP objects are dropped before returning this dedicated connection to its pool. */
@@ -47,6 +62,7 @@ public class SearchReconciliationService {
         private static final List<String> TYPES = List.of("TASK", "PROJECT", "USER");
         private final Connection connection;
         private final JdbcClient jdbc;
+        private final SearchReconcileRepository sql;
         private final SearchProjectionReader reader;
         private final TypesenseCollections collections;
         private final TypesenseDocuments documents;
@@ -63,7 +79,9 @@ public class SearchReconciliationService {
                 SearchProjectionReader reader,
                 TypesenseCollections collections,
                 TypesenseDocuments documents,
+                SearchReconcileRepository sql,
                 Generation generation) {
+            this.sql = sql;
             this.reader = reader;
             this.collections = collections;
             this.documents = documents;
@@ -85,13 +103,9 @@ public class SearchReconciliationService {
             connection = acquired;
             jdbc = JdbcClient.create(new SingleConnectionDataSource(connection, true));
             try {
-                jdbc.sql(
-                                "create temporary table search_reconcile_index(entity_type text,id text,revision bigint,fingerprint text,content_fingerprint text,primary key(entity_type,id))")
-                        .update();
+                sql.createIndexTable(jdbc);
                 indexCreated = true;
-                jdbc.sql(
-                                "create temporary table search_reconcile_source(entity_type text,entity_id bigint,revision bigint,fingerprint text,live boolean,pending boolean,primary key(entity_type,entity_id))")
-                        .update();
+                sql.createSourceTable(jdbc);
                 sourceCreated = true;
             } catch (RuntimeException failure) {
                 close();
@@ -122,23 +136,7 @@ public class SearchReconciliationService {
                 sourcePage(TYPES.get(sourceStep));
                 return false;
             }
-            summary = jdbc.sql("""
-                    select count(*) filter(where e.live and i.id is null) as missing,
-                        count(*) filter(where i.id is not null and (e.entity_id is null or not e.live)) as extra,
-                        count(*) filter(where e.live and i.id is not null and
-                            (i.revision=0 or i.revision is distinct from e.revision or i.fingerprint is distinct from e.fingerprint
-                                or i.content_fingerprint is distinct from e.fingerprint)) as mismatched,
-                        count(*) filter(where e.pending) as pending
-                    from search_reconcile_source e full join search_reconcile_index i
-                    on e.entity_type=i.entity_type and e.entity_id::text=i.id
-                    """)
-                    .query((rs, row) -> new VerificationSummary(
-                            rs.getLong("missing"),
-                            rs.getLong("extra"),
-                            rs.getLong("mismatched"),
-                            rs.getLong("pending"),
-                            schemasMatch))
-                    .single();
+            summary = sql.summary(jdbc, schemasMatch);
             return true;
         }
 
@@ -147,13 +145,13 @@ public class SearchReconciliationService {
                 stream = documents.openDocumentMetadata(generation.collections().get(type));
             var page = stream.readPage(100, 1_048_576);
             for (var document : page) {
-                jdbc.sql("insert into search_reconcile_index values(:type,:id,:revision,:fingerprint,:content)")
-                        .param("type", type)
-                        .param("id", document.id())
-                        .param("revision", document.revision())
-                        .param("fingerprint", document.fingerprint())
-                        .param("content", document.contentFingerprint())
-                        .update();
+                sql.insertIndexed(
+                        jdbc,
+                        type,
+                        document.id(),
+                        document.revision(),
+                        document.fingerprint(),
+                        document.contentFingerprint());
             }
             processed += page.size();
             if (stream.exhausted()) {
@@ -167,18 +165,14 @@ public class SearchReconciliationService {
             var ids = reader.reconciliationIds(type, after, 100);
             for (long id : ids) {
                 var value = reader.readForReconciliation(type, id).orElseThrow();
-                jdbc.sql("""
-                        insert into search_reconcile_source values(:type,:id,:revision,:fingerprint,:live,
-                            :revision=0 or :revision>coalesce((select delivered_revision from search_generation_delivery
-                                where generation_id=:generation and entity_type=:type and entity_id=:id),0))
-                        """)
-                        .param("type", type)
-                        .param("id", id)
-                        .param("revision", value.revision())
-                        .param("fingerprint", value.fingerprint())
-                        .param("live", value.document() != null)
-                        .param("generation", generation.id())
-                        .update();
+                sql.insertSource(
+                        jdbc,
+                        type,
+                        id,
+                        value.revision(),
+                        value.fingerprint(),
+                        value.document() != null,
+                        generation.id());
                 after = id;
             }
             processed += ids.size();
@@ -199,10 +193,7 @@ public class SearchReconciliationService {
 
         public boolean revisionsUnchanged() {
             if (summary == null || closed) return false;
-            return jdbc.sql("""
-                    select not exists(select 1 from search_projection_versions v full join search_reconcile_source e
-                        on v.entity_type=e.entity_type and v.entity_id=e.entity_id where v.revision is distinct from e.revision)
-                    """).query(Boolean.class).single();
+            return sql.revisionsUnchanged(jdbc);
         }
 
         /** Caller performs only PostgreSQL barrier/CAS/audit work here; never transport or source discovery. */
@@ -211,7 +202,7 @@ public class SearchReconciliationService {
             try {
                 connection.setAutoCommit(false);
                 try {
-                    jdbc.sql("set local statement_timeout='2s'").update();
+                    sql.limitTransaction(jdbc);
                     T result = action.apply(jdbc);
                     connection.commit();
                     return result;
@@ -250,12 +241,8 @@ public class SearchReconciliationService {
                     }
                     stream = null;
                 }
-                if (indexCreated)
-                    jdbc.sql("drop table if exists pg_temp.search_reconcile_index")
-                            .update();
-                if (sourceCreated)
-                    jdbc.sql("drop table if exists pg_temp.search_reconcile_source")
-                            .update();
+                if (indexCreated) sql.dropIndexTable(jdbc);
+                if (sourceCreated) sql.dropSourceTable(jdbc);
             } catch (RuntimeException failure) {
                 log.warn("search_reconcile_cleanup_failed error={}", failure.toString());
                 try {

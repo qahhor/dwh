@@ -1,0 +1,25 @@
+package com.smartup24.cms.instance.jobs.config;
+
+import com.smartup24.cms.instance.common.retention.RetentionPolicy;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * The journals of the core and how long they live (plan 10/10, item 3.13). The load log stays: it is the history of
+ * what reached the data warehouse and when.
+ */
+@Configuration(proxyBeanMethods = false)
+public class JobRetentionPolicies {
+
+    /** Finished runs of background jobs; a running one is never deleted. */
+    @Bean
+    RetentionPolicy jobRunsRetention() {
+        return new RetentionPolicy("job-runs", "fnd_job_runs", "finished_at is not null and finished_at < :cutoff", 90);
+    }
+
+    /** Queued jobs that used up their attempts; a job still waiting or running is never deleted. */
+    @Bean
+    RetentionPolicy failedJobsRetention() {
+        return new RetentionPolicy("failed-jobs", "fnd_job_queue", "failed_at is not null and failed_at < :cutoff", 90);
+    }
+}

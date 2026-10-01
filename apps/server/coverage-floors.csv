@@ -4,12 +4,15 @@
 # 2026-09-28: line floors re-measured on the reformatted code (item 1.2). The formatter splits a long
 # `if (x) return;` into two lines, so an untaken return became a line of its own: search went from 93 to 91 with
 # the same tests and the same branches. Every other floor stayed or rose.
+# 2026-10-01: fnd split into jobs, units and warehouse (plan 10/10, item 4.2, ADR-0030); each takes at least the
+# fnd floor, fnd keeps its floor for the MigrateMain alias that stays there until 2026-12-31.
 module,line,branch
 analytics,14,0
 audit,87,68
 common,91,82
 config,91,73
 fnd,94,78
+jobs,95,78
 kauth,83,71
 kwh,65,48
 md,82,65
@@ -19,4 +22,6 @@ ms.notify,63,46
 ms.task,66,52
 report,90,72
 search,91,75
+units,97,94
 upl,96,82
+warehouse,94,82

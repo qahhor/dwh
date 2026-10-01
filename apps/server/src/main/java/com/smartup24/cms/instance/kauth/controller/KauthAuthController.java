@@ -4,7 +4,7 @@ import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.kauth.api.LoginResponse;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.kauth.security.KauthSessionCookies;
 import com.smartup24.cms.instance.kauth.service.KauthAuthService;
 import com.smartup24.cms.instance.kauth.service.KauthSessionService;
 import com.smartup24.cms.instance.md.service.MdUserService;
@@ -16,9 +16,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +30,7 @@ public class KauthAuthController {
     private final MdUserService userService;
     private final CsrfTokenRepository csrfTokenRepository;
     private final ClientIpResolver clientIpResolver;
+    private final KauthSessionCookies sessionCookies;
 
     @Autowired
     public KauthAuthController(
@@ -45,6 +44,7 @@ public class KauthAuthController {
         this.userService = userService;
         this.csrfTokenRepository = csrfTokenRepository;
         this.clientIpResolver = clientIpResolver != null ? clientIpResolver : new ClientIpResolver(null);
+        this.sessionCookies = new KauthSessionCookies(this.clientIpResolver);
     }
 
     public KauthAuthController(
@@ -102,15 +102,7 @@ public class KauthAuthController {
             sessionService.closeSession(principal.sessionId());
         }
 
-        boolean isSecure = clientIpResolver.isSecure(request);
-        ResponseCookie cookie = ResponseCookie.from(KauthPref.SESSION_COOKIE_NAME, "")
-                .httpOnly(true)
-                .secure(isSecure)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(0)
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        sessionCookies.clear(request, response);
 
         csrfTokenRepository.saveToken(null, request, response);
 
@@ -134,15 +126,7 @@ public class KauthAuthController {
     }
 
     private void setSessionCookie(HttpServletRequest request, HttpServletResponse response, String rawToken) {
-        boolean isSecure = clientIpResolver.isSecure(request);
-        ResponseCookie cookie = ResponseCookie.from(KauthPref.SESSION_COOKIE_NAME, rawToken)
-                .httpOnly(true)
-                .secure(isSecure)
-                .sameSite("Lax")
-                .path("/")
-                .maxAge(60 * 60 * 24 * 7) // 7 days
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        sessionCookies.issue(request, response, rawToken);
         // Renew only after completed credential/OTP authentication, including stale-cookie relogin.
         csrfTokenRepository.saveToken(csrfTokenRepository.generateToken(request), request, response);
     }

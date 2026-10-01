@@ -12,7 +12,7 @@
 
 ```json
 {
-  "type": "https://api.dwh.internal/errors/not_found",
+  "type": "urn:smartupcms:problem:not_found",
   "title": "NOT_FOUND",
   "status": 404,
   "code": "not_found",
@@ -26,6 +26,9 @@
 
 - `code` — контракт (`ErrorCode`, в нижнем регистре); по нему клиент решает,
   что делать. `status` совпадает со статусом ответа.
+- `type` — `urn:smartupcms:problem:<code>`: идентификатор, а не адрес для
+  запроса; клиент не разбирает его и не ветвится по нему (до 2026-10-01 —
+  `https://api.dwh.internal/errors/<code>`, ADR-0021 §6).
 - `messageKey` и `params` — ключ каталога i18n и значения его
   `{плейсхолдеров}`: клиент рендерит текст сам на текущем языке интерфейса.
 - `detail` — тот же текст, собранный сервером на языке запроса: первый язык
@@ -116,7 +119,13 @@ Link: </api/v1/новый/путь>; rel="successor-version"
 
 Список форм — `ApiDeprecations` (дата — `ApiDeprecations.SUNSET`); в описании
 API у них `deprecated`, `x-sunset`, `x-successor`. Метрика
-`dwh_api_deprecated_calls_total{alias}` показывает, кто ещё ими пользуется.
+`smc_api_deprecated_calls_total{alias}` показывает, кто ещё ими пользуется.
+
+Учётные данные под старым именем продукта (план 10/10, пункт 4.7) живут до
+того же срока: cookie сессии `DWH_SESSION` принимается и в том же ответе
+заменяется на `SMC_SESSION`; токены API с префиксом `dwh_` работают, новые
+выдаются с префиксом `smc_`. В описании API схема cookie называется
+`SMC_SESSION`.
 
 **Ломающее изменение** (удалена операция или поле, сужен тип, удалена
 устаревшая форма после `Sunset`) объявляется меткой `api-breaking` у pull

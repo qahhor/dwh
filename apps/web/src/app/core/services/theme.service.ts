@@ -1,10 +1,11 @@
 import { DestroyRef, Injectable, effect, inject, signal } from '@angular/core';
+import { readStoredValue, THEME_STORAGE_KEY } from './storage-keys';
 
 export type ThemeMode = 'light' | 'dark';
 export type ThemePreference = 'light' | 'dark' | 'system';
 
 /** Same-origin channel that keeps the chosen theme identical across open tabs. */
-const THEME_CHANNEL = 'dwh_theme';
+const THEME_CHANNEL = 'smc_theme';
 
 function isThemePreference(value: unknown): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'system';
@@ -32,7 +33,7 @@ export class ThemeService {
         document.documentElement.setAttribute('data-theme', resolved);
       }
       if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('dwh_theme', pref);
+        localStorage.setItem(THEME_STORAGE_KEY, pref);
       }
     });
 
@@ -107,7 +108,7 @@ export class ThemeService {
 
   private getInitialPreference(): ThemePreference {
     if (typeof localStorage === 'undefined') return 'light';
-    const saved = localStorage.getItem('dwh_theme');
+    const saved = readStoredValue(THEME_STORAGE_KEY);
     if (saved === 'dark' || saved === 'light' || saved === 'system') {
       return saved;
     }

@@ -15,7 +15,7 @@ class FlywayMigrationValidationTest {
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("dwh_test")
+            .withDatabaseName("smc_test")
             .withUsername("test_user")
             .withPassword("test_pass");
 

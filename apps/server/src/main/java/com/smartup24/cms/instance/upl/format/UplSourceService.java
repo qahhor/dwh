@@ -3,14 +3,14 @@ package com.smartup24.cms.instance.upl.format;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
 import com.smartup24.cms.instance.common.error.ApiException;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndActorContext;
-import com.smartup24.cms.instance.fnd.api.FndSqlErrors;
-import com.smartup24.cms.instance.fnd.api.FndVersion;
-import com.smartup24.cms.instance.fnd.api.FndVersions;
+import com.smartup24.cms.instance.common.versioning.Version;
+import com.smartup24.cms.instance.common.versioning.VersionErrors;
+import com.smartup24.cms.instance.common.versioning.Versions;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -44,11 +44,11 @@ public class UplSourceService {
 
     private final UplFormatRepository repo;
     private final UplFormatValidator validator;
-    private final FndVersions versioning;
-    private final FndActorContext actors;
+    private final Versions versioning;
+    private final AuditActorContext actors;
 
     public UplSourceService(
-            UplFormatRepository repo, UplFormatValidator validator, FndVersions versioning, FndActorContext actors) {
+            UplFormatRepository repo, UplFormatValidator validator, Versions versioning, AuditActorContext actors) {
         this.repo = repo;
         this.validator = validator;
         this.versioning = versioning;
@@ -62,7 +62,7 @@ public class UplSourceService {
 
     @Transactional
     public SourceView createSource(SourceData d, long userId) {
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         actors.apply(actor);
         SourceData data = new SourceData(
                 d.code(),
@@ -87,7 +87,7 @@ public class UplSourceService {
 
     @Transactional
     public SourceView updateSource(long id, int lockVersion, SourceData d, long userId) {
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         actors.apply(actor);
         Source current = requireSource(id);
         if (d.code() != null && !d.code().equals(current.code())) {
@@ -160,13 +160,13 @@ public class UplSourceService {
 
     @Transactional
     public FormatVersion createDraft(long sourceId, Integer copyFrom, long userId) {
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         actors.apply(actor);
         requireSource(sourceId);
         FormatVersion copy = copyFrom == null ? null : getVersion(sourceId, copyFrom);
         int version;
         try {
-            version = FndSqlErrors.translatingVersions(TABLE, () -> versioning.createDraft(TABLE, sourceId, actor));
+            version = VersionErrors.translatingVersions(TABLE, () -> versioning.createDraft(TABLE, sourceId, actor));
             if (copy != null) {
                 int lock = getVersion(sourceId, version).lockVersion();
                 versioning.updateDraft(
@@ -186,7 +186,7 @@ public class UplSourceService {
 
     @Transactional
     public FormatVersion replaceDraft(long sourceId, int version, int lockVersion, DraftData d, long userId) {
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         actors.apply(actor);
         requireSource(sourceId);
         lockDraft(sourceId, version);
@@ -209,7 +209,7 @@ public class UplSourceService {
 
     @Transactional
     public void publish(long sourceId, int version, LocalDate validFrom, long userId) {
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         actors.apply(actor);
         requireSource(sourceId);
         if (validFrom == null) {
@@ -246,7 +246,7 @@ public class UplSourceService {
     private void lockDraft(long sourceId, int version) {
         String status = repo.lockVersionStatus(sourceId, version)
                 .orElseThrow(() -> ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.fnd_version_unknown"));
-        if (!FndVersion.DRAFT.equals(status)) {
+        if (!Version.DRAFT.equals(status)) {
             throw ApiException.conflict(ErrorCode.CONFLICT, "error.upl.format_not_draft");
         }
     }

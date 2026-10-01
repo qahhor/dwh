@@ -21,6 +21,7 @@ import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyService;
 import com.smartup24.cms.instance.kauth.controller.KauthPasswordController;
 import com.smartup24.cms.instance.kauth.controller.OAuth2AuthController;
+import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.repository.KauthApiTokenRepository;
 import com.smartup24.cms.instance.kauth.repository.KauthSessionRepository;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
@@ -91,7 +92,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 })
 class SecurityConfigTest {
 
-    private static final String SESSION_COOKIE = "DWH_SESSION";
+    private static final String SESSION_COOKIE = "SMC_SESSION";
 
     @Autowired
     MockMvc mvc;
@@ -171,6 +172,51 @@ class SecurityConfigTest {
                         .header("X-XSRF-TOKEN", "test-csrf-token"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("ok"));
+    }
+
+    @Test
+    @DisplayName("4.7: старая cookie DWH_SESSION — тоже cookie-сессия: без CSRF-токена мутирующий запрос -> 403")
+    void legacySessionCookieStillNeedsCsrf() throws Exception {
+        mvc.perform(post("/api/v1/security-test")
+                        .cookie(new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "raw-session")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("csrf_token_invalid"));
+    }
+
+    @Test
+    @DisplayName("4.7: старая cookie DWH_SESSION работает до конца периода и заменяется на SMC_SESSION в том же ответе")
+    void legacySessionCookieAuthenticatesAndIsReplaced() throws Exception {
+        stubAuthenticatedUser(Set.of());
+
+        var response = mvc.perform(post("/api/v1/security-test")
+                        .cookie(
+                                new Cookie(KauthPref.LEGACY_SESSION_COOKIE_NAME, "raw-session"),
+                                new Cookie("XSRF-TOKEN", "test-csrf-token"))
+                        .header("X-XSRF-TOKEN", "test-csrf-token"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse();
+
+        Cookie renewed = response.getCookie(KauthPref.SESSION_COOKIE_NAME);
+        assertThat(renewed).isNotNull();
+        assertThat(renewed.getValue()).isEqualTo("raw-session");
+        assertThat(renewed.isHttpOnly()).isTrue();
+        assertThat(renewed.getMaxAge()).isEqualTo(KauthPref.SESSION_COOKIE_MAX_AGE_SECONDS);
+        assertThat(response.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME).getMaxAge())
+                .isZero();
+    }
+
+    @Test
+    @DisplayName("4.7: запрос с новой cookie не получает Set-Cookie сессии")
+    void currentSessionCookieIsNotRewritten() throws Exception {
+        stubAuthenticatedUser(Set.of());
+
+        var response = mvc.perform(get("/api/v1/i18n/ru").cookie(new Cookie(SESSION_COOKIE, "raw-session")))
+                .andReturn()
+                .getResponse();
+
+        assertThat(response.getCookie(KauthPref.SESSION_COOKIE_NAME)).isNull();
+        assertThat(response.getCookie(KauthPref.LEGACY_SESSION_COOKIE_NAME)).isNull();
     }
 
     @Test

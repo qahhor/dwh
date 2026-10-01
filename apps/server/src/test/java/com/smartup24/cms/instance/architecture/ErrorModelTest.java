@@ -26,7 +26,7 @@ class ErrorModelTest {
 
     /** Internal exceptions: never the outcome of a request, so they are not part of the API's error model. */
     static final Map<String, String> INTERNAL = Map.of(
-            "com.smartup24.cms.instance.fnd.migration.SchemaVersionMismatchException",
+            "com.smartup24.cms.instance.warehouse.migration.SchemaVersionMismatchException",
             "stops the application at startup when the database schema does not match the build",
             "com.smartup24.cms.instance.report.service.ReportService$ClientAbortException",
             "the client closed the connection of a streamed export: there is no response left to write",
@@ -34,9 +34,9 @@ class ErrorModelTest {
             "caught by the indexer, which skips the document and records it",
             "com.smartup24.cms.instance.search.typesense.TypesenseException",
             "a failure of the search engine, caught by its callers (search falls back to PostgreSQL)",
-            "com.smartup24.cms.instance.fnd.dwh.JdbcFndRawWriter$CopyFailed",
+            "com.smartup24.cms.instance.warehouse.raw.JdbcRawWriter$CopyFailed",
             "carries a server refusal out of the COPY callback and is unwrapped by the writer itself",
-            "com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException",
+            "com.smartup24.cms.instance.jobs.api.JobNotRetryableException",
             "ends a queued job, never a request: the job runner records it and marks the job failed at once");
 
     /**

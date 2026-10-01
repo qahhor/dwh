@@ -37,14 +37,14 @@ describe('ThemeService cross-tab synchronization', () => {
   beforeEach(() => {
     original = globals.BroadcastChannel;
     FakeBroadcastChannel.last = null;
-    localStorage.removeItem('dwh_theme');
+    localStorage.removeItem('smc_theme');
     globals.BroadcastChannel = FakeBroadcastChannel;
     TestBed.configureTestingModule({});
   });
 
   afterEach(() => {
     globals.BroadcastChannel = original;
-    localStorage.removeItem('dwh_theme');
+    localStorage.removeItem('smc_theme');
   });
 
   function create(): { service: ThemeService; channel: FakeBroadcastChannel } {

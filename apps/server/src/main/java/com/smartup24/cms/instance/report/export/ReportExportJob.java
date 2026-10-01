@@ -1,13 +1,13 @@
 package com.smartup24.cms.instance.report.export;
 
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /** Writes one queued export (ADR-0018); the export's own row records how it went. */
 @Component
-public class ReportExportJob implements FndJobHandler {
+public class ReportExportJob implements JobHandler {
 
     private final ReportExportService exports;
 

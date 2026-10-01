@@ -23,7 +23,7 @@ class MsOutboxRepositoryIntegrationTest {
 
     @Container
     static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18-alpine")
-            .withDatabaseName("dwh_notification_outbox_test")
+            .withDatabaseName("smc_notification_outbox_test")
             .withUsername("test_user")
             .withPassword("test_pass");
 

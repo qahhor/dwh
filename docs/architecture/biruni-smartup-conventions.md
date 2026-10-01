@@ -79,7 +79,7 @@ HTTP API возвращает единый Problem Details контракт (`Pr
 
 ```json
 {
-  "type": "https://api.dwh.internal/errors/validation_failed",
+  "type": "urn:smartupcms:problem:validation_failed",
   "title": "VALIDATION_FAILED",
   "status": 422,
   "code": "validation_failed",

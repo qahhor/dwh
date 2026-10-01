@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.upl.format;
 
 import com.smartup24.cms.core.error.FieldErrorItem;
-import com.smartup24.cms.instance.fnd.api.FndUnit;
-import com.smartup24.cms.instance.fnd.api.FndUnits;
+import com.smartup24.cms.instance.units.api.Unit;
+import com.smartup24.cms.instance.units.api.Units;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FileKind;
@@ -51,9 +51,9 @@ public class UplFormatValidator {
     public static final String UPL_POSITION_REQUIRED = "UPL_POSITION_REQUIRED";
     public static final String UPL_POSITION_DUPLICATE = "UPL_POSITION_DUPLICATE";
 
-    private final FndUnits units;
+    private final Units units;
 
-    public UplFormatValidator(FndUnits units) {
+    public UplFormatValidator(Units units) {
         this.units = units;
     }
 
@@ -184,22 +184,22 @@ public class UplFormatValidator {
         if (c.sourceUnit() != null && c.baseUnit() == null) {
             add(errors, path + ".baseUnit", UPL_BASE_UNIT_REQUIRED);
         }
-        Optional<FndUnit> source = findUnit(c.sourceUnit(), path + ".sourceUnit", errors);
-        Optional<FndUnit> base = findUnit(c.baseUnit(), path + ".baseUnit", errors);
+        Optional<Unit> source = findUnit(c.sourceUnit(), path + ".sourceUnit", errors);
+        Optional<Unit> base = findUnit(c.baseUnit(), path + ".baseUnit", errors);
         if (source.isPresent() && base.isPresent() && !c.baseUnit().equals(baseOf(source.get()))) {
             add(errors, path + ".baseUnit", UPL_BASE_UNIT_MISMATCH);
         }
     }
 
-    private static String baseOf(FndUnit unit) {
+    private static String baseOf(Unit unit) {
         return Objects.requireNonNullElse(unit.baseUnitCode(), unit.code());
     }
 
-    private Optional<FndUnit> findUnit(String code, String field, List<FieldErrorItem> errors) {
+    private Optional<Unit> findUnit(String code, String field, List<FieldErrorItem> errors) {
         if (code == null) {
             return Optional.empty();
         }
-        Optional<FndUnit> unit = units.findUnit(code);
+        Optional<Unit> unit = units.findUnit(code);
         if (unit.isEmpty()) {
             add(errors, field, UPL_UNIT_UNKNOWN);
         }

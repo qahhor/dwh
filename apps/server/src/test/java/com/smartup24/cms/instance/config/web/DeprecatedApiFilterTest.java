@@ -35,7 +35,7 @@ class DeprecatedApiFilterTest {
         assertThat(response.getHeader(DeprecatedApiFilter.SUNSET)).isEqualTo("Thu, 31 Dec 2026 00:00:00 GMT");
         assertThat(response.getHeader(DeprecatedApiFilter.LINK))
                 .isEqualTo("</api/v1/tasks/42/comments>; rel=\"successor-version\"");
-        assertThat(meters.get("dwh_api_deprecated_calls_total")
+        assertThat(meters.get("smc_api_deprecated_calls_total")
                         .tag("alias", "/api/v1/tasks/items/{*rest}")
                         .counter()
                         .count())

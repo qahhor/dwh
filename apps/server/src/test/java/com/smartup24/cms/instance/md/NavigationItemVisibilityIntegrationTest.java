@@ -37,7 +37,7 @@ class NavigationItemVisibilityIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        var ds = TestDatabases.migratedCopy("dwh_navigation_test");
+        var ds = TestDatabases.migratedCopy("smc_navigation_test");
         jdbc = JdbcClient.create(ds);
         var mapper = new ObjectMapper();
         var auditService = new AuditLogService(new AuditLogRepository(jdbc, mapper), null, new AuditDataRedactor());

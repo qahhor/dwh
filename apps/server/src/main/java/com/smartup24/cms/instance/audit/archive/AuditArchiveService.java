@@ -39,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -76,7 +75,6 @@ public class AuditArchiveService {
     private final AuditArchiveStore store;
     private final AuditArchiveProperties properties;
     private final AuditLogService auditLogService;
-    private final JdbcClient jdbc;
     private final TransactionTemplate readOnly;
     private final Clock clock;
 
@@ -87,9 +85,8 @@ public class AuditArchiveService {
             AuditArchiveStore store,
             AuditArchiveProperties properties,
             AuditLogService auditLogService,
-            JdbcClient jdbc,
             PlatformTransactionManager transactionManager) {
-        this(partitions, archives, store, properties, auditLogService, jdbc, transactionManager, Clock.systemUTC());
+        this(partitions, archives, store, properties, auditLogService, transactionManager, Clock.systemUTC());
     }
 
     AuditArchiveService(
@@ -98,7 +95,6 @@ public class AuditArchiveService {
             AuditArchiveStore store,
             AuditArchiveProperties properties,
             AuditLogService auditLogService,
-            JdbcClient jdbc,
             PlatformTransactionManager transactionManager,
             Clock clock) {
         this.partitions = partitions;
@@ -106,7 +102,6 @@ public class AuditArchiveService {
         this.store = store;
         this.properties = properties;
         this.auditLogService = auditLogService;
-        this.jdbc = jdbc;
         this.readOnly = new TransactionTemplate(transactionManager);
         this.readOnly.setReadOnly(true);
         this.clock = clock;
@@ -256,22 +251,14 @@ public class AuditArchiveService {
 
     /** One partition, row by row through a cursor (the pool's fetch size), in key order. */
     private long export(AuditPartition partition, Writer writer) {
-        // The name comes from pg_class and matched the partition pattern: it is quoted all the same.
-        String table = "\"" + partition.name().replace("\"", "\"\"") + "\"";
-        Long count = readOnly.execute(status -> {
-            long[] lines = {0};
-            jdbc.sql("select row_to_json(t)::text from " + table + " t order by changed_at, id")
-                    .query(rs -> {
-                        try {
-                            writer.write(rs.getString(1));
-                            writer.write('\n');
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                        lines[0]++;
-                    });
-            return lines[0];
-        });
+        Long count = readOnly.execute(status -> partitions.streamRows(partition.name(), line -> {
+            try {
+                writer.write(line);
+                writer.write('\n');
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }));
         return count != null ? count : 0L;
     }
 

@@ -138,7 +138,7 @@ for (const theme of ['light', 'dark'] as const) {
   test.describe(`${theme} theme`, () => {
     for (const screen of screens) {
       test(`${screen.name} has no WCAG 2.1 AA violations`, async ({ page }) => {
-        await page.addInitScript(value => localStorage.setItem('dwh_theme', value), theme);
+        await page.addInitScript(value => localStorage.setItem('smc_theme', value), theme);
         await page.goto(screen.path);
         await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
         await screen.open(page);

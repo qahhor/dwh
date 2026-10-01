@@ -9,6 +9,13 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Phase 4, wave B (plan 10/10, items 4.2, 4.7). `fnd` is split into the job
+  queue `jobs`, the warehouse `warehouse/{datasource,migration,raw,mart,load}`
+  and the domain module `units` (ADR-0030); no `*Service` class runs SQL
+  (`ServicesRunNoSqlTest`) and the job queue does not depend on the warehouse.
+  "dwh" now names only the warehouse: the repository hygiene check fails on a
+  new product use of the old name.
+
 - Phase 4, wave A (plan 10/10, items 4.1, 4.4, 4.6). Product settings are
   named `smc.*` / `SMC_*`, warehouse settings `warehouse.*` / `WAREHOUSE_*`
   (ADR-0027); `docs/ops/configuration-reference.md` is generated from the
@@ -787,6 +794,19 @@ and releases use [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Apache-2.0 community, governance, security, and contribution policies.
 
 ### Changed
+
+- **API- and upgrade-breaking (phase 4, wave B):**
+  - The session cookie is `SMC_SESSION` (OpenAPI cookie scheme renamed);
+    `DWH_SESSION` is accepted and replaced until 2026-12-31. New API tokens
+    start with `smc_`; `dwh_` tokens keep working.
+  - Problem `type` is `urn:smartupcms:problem:<code>` instead of
+    `https://api.dwh.internal/errors/<code>`; `code` stays the contract.
+  - Metrics are renamed from `dwh.*` / `dwh_*` to `smc.*` / `smc_*`: update
+    dashboards and alert rules at upgrade.
+  - The migrate entry point is `warehouse.migration.MigrateMain`; the old
+    `fnd.migration.MigrateMain` delegates to it until 2026-12-31.
+  - The default database name in `DB_URL` is `smartupcms`; the unused table
+    `md_custom_modules` is dropped (V152).
 
 - **Upgrade-breaking (phase 4, wave A):**
   - Old `dwh.*` / `DWH_*` / `app.dwh.*` / `APP_DWH_*` names are still read

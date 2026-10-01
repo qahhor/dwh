@@ -8,7 +8,7 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.FndActors;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -55,7 +55,7 @@ class UplPackageServiceTest extends EmbeddedPostgresTest {
     private MfFileService files;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;

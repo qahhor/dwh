@@ -4,10 +4,9 @@ import com.smartup24.cms.instance.common.security.ClientIpResolver;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.security.TrustedProxyProperties;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
-import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.kauth.security.KauthAuthenticationFilter;
+import com.smartup24.cms.instance.kauth.security.KauthSessionCookies;
 import jakarta.servlet.DispatcherType;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -148,15 +147,7 @@ public class SecurityConfig {
     }
 
     private static boolean hasSessionCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies == null) {
-            return false;
-        }
-        for (Cookie cookie : cookies) {
-            if (KauthPref.SESSION_COOKIE_NAME.equals(cookie.getName())) {
-                return true;
-            }
-        }
-        return false;
+        // Either name (plan 10/10, item 4.7): a browser still on the old cookie is a cookie session as well.
+        return KauthSessionCookies.present(request);
     }
 }

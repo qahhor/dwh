@@ -30,7 +30,7 @@ class StatementTimeoutsIntegrationTest {
 
     @BeforeAll
     static void setup() {
-        ds = TestDatabases.migratedCopy("dwh_statement_timeouts_test");
+        ds = TestDatabases.migratedCopy("smc_statement_timeouts_test");
         jdbc = JdbcClient.create(ds);
         outer = new TransactionTemplate(new DataSourceTransactionManager(ds));
     }

@@ -32,7 +32,7 @@ class KauthLoginEnumerationIntegrationTest {
 
     @BeforeAll
     static void setUp() {
-        f = new AuthenticationGenerationFixture(TestDatabases.migratedCopy("dwh_login_enumeration"));
+        f = new AuthenticationGenerationFixture(TestDatabases.migratedCopy("smc_login_enumeration"));
     }
 
     @AfterAll

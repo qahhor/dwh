@@ -1,13 +1,13 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndActorContext;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.api.FndLoads;
-import com.smartup24.cms.instance.fnd.service.FndJobQueries;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.service.JobQueries;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  * that left the queue without closing the package, or ran out of attempts, makes it one.
  */
 @Component
-public class UplApplyRecoveryJob implements FndJobHandler {
+public class UplApplyRecoveryJob implements JobHandler {
 
     public static final String CODE = "upl.apply_recovery";
     /** Longer than the longest apply we expect from a live process. */
@@ -41,11 +41,12 @@ public class UplApplyRecoveryJob implements FndJobHandler {
     private static final Logger log = LoggerFactory.getLogger(UplApplyRecoveryJob.class);
 
     private final UplPackageRepository repo;
-    private final FndLoads loads;
-    private final FndActorContext actors;
-    private final FndJobQueries jobs;
+    private final WarehouseLoads loads;
+    private final AuditActorContext actors;
+    private final JobQueries jobs;
 
-    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, FndActorContext actors, FndJobQueries jobs) {
+    public UplApplyRecoveryJob(
+            UplPackageRepository repo, WarehouseLoads loads, AuditActorContext actors, JobQueries jobs) {
         this.repo = repo;
         this.loads = loads;
         this.actors = actors;
@@ -64,7 +65,7 @@ public class UplApplyRecoveryJob implements FndJobHandler {
         int staleMinutes = args.get("staleMinutes") instanceof Number minutes
                 ? Math.max(1, minutes.intValue())
                 : DEFAULT_STALE_MINUTES;
-        FndActor actor = actors.system();
+        AuditActor actor = actors.system();
         actors.apply(actor);
         List<PackageRow> stale = repo.lockStaleApplies(staleMinutes);
         // Read after the lock: a job that closes a locked package waits for this transaction
@@ -77,7 +78,7 @@ public class UplApplyRecoveryJob implements FndJobHandler {
             // The third step closes the package and the load in one transaction: a load that is not pending is not
             // an interruption
             if (loads.find(row.loadId())
-                    .filter(load -> FndLoad.PENDING.equals(load.status()))
+                    .filter(load -> WarehouseLoad.PENDING.equals(load.status()))
                     .isEmpty()) {
                 continue;
             }

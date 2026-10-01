@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.report.export.ReportExportService;
@@ -54,7 +54,7 @@ class ReportExportControllerTest extends EmbeddedPostgresTest {
     private JdbcClient jdbc;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
     private ReportExportService exports;

@@ -5,14 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.api.FndRawRow;
-import com.smartup24.cms.instance.fnd.api.FndRawSource;
-import com.smartup24.cms.instance.fnd.api.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -27,6 +21,12 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageRepository;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
+import com.smartup24.cms.instance.warehouse.WarehousePref;
+import com.smartup24.cms.instance.warehouse.api.RawRow;
+import com.smartup24.cms.instance.warehouse.api.RawSource;
+import com.smartup24.cms.instance.warehouse.api.RawWriter;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.load.WarehouseLoadService;
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
 import java.util.List;
@@ -60,7 +60,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     private UplApplyRecoveryJob recovery;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
     private UplPackageService packages;
@@ -81,20 +81,20 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     private UplXlsxParser parser;
 
     @Autowired
-    private FndLoadService loads;
+    private WarehouseLoadService loads;
 
     @Autowired
-    private FndRawWriter raw;
+    private RawWriter raw;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
 
     @Autowired
-    @Qualifier(FndPref.DWH)
-    private JdbcClient dwhJdbc;
+    @Qualifier(WarehousePref.QUALIFIER)
+    private JdbcClient warehouseJdbc;
 
     @Autowired
     private TransactionTemplate tx;
@@ -114,7 +114,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
             jdbc.sql("delete from fnd_job_queue").update();
             jdbc.sql("delete from fnd_job_runs").update();
         });
-        dwhJdbc.sql("delete from raw.rows").update();
+        warehouseJdbc.sql("delete from raw.rows").update();
         sourceId = UplPackageTestData.publishedSource(sources, userId, LocalDate.of(2026, 1, 1));
     }
 
@@ -130,7 +130,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(queued.rawRows()).isNull();
         assertThat(rawCount(queued.loadId())).isZero();
         assertThat(loads.find(queued.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.PENDING));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.PENDING));
         assertThat(jdbc.sql("select handler, args->>'packageId' from fnd_job_queue")
                         .query((rs, n) -> rs.getString(1) + " " + rs.getString(2))
                         .list())
@@ -151,7 +151,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(applied.rowsTotal()).isEqualTo(10);
         long loadId = applied.loadId();
         assertThat(rawCount(loadId)).isEqualTo(10);
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows where load_id = :id and sheet = :sheet"
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows where load_id = :id and sheet = :sheet"
                                 + " and source_row_no is not null and source_file_id = :file")
                         .param("id", loadId)
                         .param("sheet", UplPackageTestData.SHEET)
@@ -159,11 +160,9 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isEqualTo(10);
-        assertThat(raw.read(loadId))
-                .extracting(FndRawRow::rowNo)
-                .containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
+        assertThat(raw.read(loadId)).extracting(RawRow::rowNo).containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L);
         assertThat(loads.find(loadId))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.APPLIED));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.APPLIED));
         assertThat(jdbc.sql("select count(*) from fnd_load_log where load_id = :id and event = 'applied'")
                         .param("id", loadId)
                         .query(Long.class)
@@ -201,7 +200,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
 
         assertConflict(() -> applies.request(row.publicId().toString(), userId), "error.upl.pkg_not_verified");
         assertThat(rawCount(queued.loadId())).isEqualTo(10);
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows")
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
                 .isEqualTo(10);
@@ -232,12 +232,13 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
                         .query(Long.class)
                         .single())
                 .isZero();
-        assertThat(dwhJdbc.sql("select count(*) from raw.rows")
+        assertThat(warehouseJdbc
+                        .sql("select count(*) from raw.rows")
                         .query(Long.class)
                         .single())
                 .isEqualTo(10);
         assertThat(loads.find(applied.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.APPLIED));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.APPLIED));
         assertThat(loads.appliedLoadIds(good.sourceCode())).containsExactly(applied.loadId());
     }
 
@@ -245,12 +246,12 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     @DisplayName("AC-11: в raw легло меньше строк, чем в пакете — пакет «отклонён системой», загрузка неудачна")
     void reconciliationMismatchRejectsPackage() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        FndRawWriter losingLastRow = new DelegatingWriter() {
+        RawWriter losingLastRow = new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
                 // One row behind the source: the last one never reaches the copy
                 return raw.copy(loadId, sourceFileId, sink -> {
-                    FndRawRow[] held = {null};
+                    RawRow[] held = {null};
                     rows.emit(next -> {
                         if (held[0] != null) {
                             sink.accept(held[0]);
@@ -269,16 +270,16 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(result.rejectParams()).containsEntry("fileRows", 10).containsEntry("rawRows", 9);
         assertThat(result.rawRows()).isEqualTo(9);
         assertThat(loads.find(result.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.FAILED));
     }
 
     @Test
     @DisplayName("AC-11: запись в raw упала — пакет «отклонён системой», загрузка неудачна, задание не падает")
     void rawWriteFailureRejectsPackage() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
-        FndRawWriter failing = new DelegatingWriter() {
+        RawWriter failing = new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
                 throw new IllegalStateException("TEST");
             }
         };
@@ -288,7 +289,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(result.status()).isEqualTo(UplPackageModel.REJECTED);
         assertThat(result.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_RAW_WRITE_FAILED);
         assertThat(loads.find(result.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.FAILED));
     }
 
     @Test
@@ -296,9 +297,9 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     void retryAfterCommittedRowsClosesWithoutSecondWrite() {
         PackageRow row = verifiedPackage(UplPackageTestData.workbook(7, 3));
         PackageRow queued = applies.request(row.publicId().toString(), userId);
-        FndRawWriter diesAfterCommit = new DelegatingWriter() {
+        RawWriter diesAfterCommit = new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
                 raw.copy(loadId, sourceFileId, rows);
                 throw new AssertionError("TEST: процесс упал после коммита pg-dwh");
             }
@@ -307,9 +308,9 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.APPLYING);
         assertThat(rawCount(queued.loadId())).isEqualTo(10);
 
-        FndRawWriter mustNotWrite = new DelegatingWriter() {
+        RawWriter mustNotWrite = new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
                 throw new AssertionError("TEST: повтор не должен писать строки второй раз");
             }
         };
@@ -361,7 +362,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         assertThat(closed.status()).isEqualTo(UplPackageModel.REJECTED);
         assertThat(closed.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_APPLY_INTERRUPTED);
         assertThat(loads.find(closed.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.FAILED));
         assertThat(jdbc.sql("select count(*) from fnd_load_log where package_ref = :ref and event = 'failed'")
                         .param("ref", closed.publicId())
                         .query(Long.class)
@@ -373,7 +374,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         PackageRow running = packages.get(fresh.publicId().toString());
         assertThat(running.status()).isEqualTo(UplPackageModel.APPLYING);
         assertThat(loads.find(running.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.PENDING));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.PENDING));
     }
 
     @Test
@@ -395,12 +396,12 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
         return packages.get(row.publicId().toString());
     }
 
-    private PackageRow runWith(FndRawWriter writer, PackageRow queued) {
+    private PackageRow runWith(RawWriter writer, PackageRow queued) {
         job(writer).run(args(queued));
         return packages.get(queued.publicId().toString());
     }
 
-    private UplApplyJob job(FndRawWriter writer) {
+    private UplApplyJob job(RawWriter writer) {
         return new UplApplyJob(repo, sources, files, parser, loads, writer, actors, tx);
     }
 
@@ -448,7 +449,8 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     }
 
     private long rawCount(long loadId) {
-        return dwhJdbc.sql("select count(*) from raw.rows where load_id = :id")
+        return warehouseJdbc
+                .sql("select count(*) from raw.rows where load_id = :id")
                 .param("id", loadId)
                 .query(Long.class)
                 .single();
@@ -470,14 +472,14 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     }
 
     /** The real writer, with one method replaced by a test. */
-    private abstract class DelegatingWriter implements FndRawWriter {
+    private abstract class DelegatingWriter implements RawWriter {
         @Override
         public long count(long loadId) {
             return raw.count(loadId);
         }
 
         @Override
-        public List<FndRawRow> read(long loadId) {
+        public List<RawRow> read(long loadId) {
             return raw.read(loadId);
         }
     }
