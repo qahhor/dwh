@@ -14,7 +14,7 @@ import com.smartup24.cms.instance.common.query.QueryListExporter;
 import com.smartup24.cms.instance.common.query.QueryListRegistry;
 import com.smartup24.cms.instance.common.security.SecurityContext;
 import com.smartup24.cms.instance.common.web.ApiDeprecations;
-import com.smartup24.cms.instance.fnd.api.FndJobQueue;
+import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.md.service.MdI18nService;
 import com.smartup24.cms.instance.report.api.ExportItem;
 import com.smartup24.cms.instance.report.api.ExportRequest;
@@ -85,7 +85,7 @@ public class ReportExportService {
     private final ExportPrincipals principals;
     private final MdI18nService i18n;
     private final StorageProvider storage;
-    private final FndJobQueue jobs;
+    private final JobQueue jobs;
     private final AuditLogService audit;
     private final ObjectMapper json;
     private final JsonColumns jsonColumns;
@@ -100,7 +100,7 @@ public class ReportExportService {
             MdI18nService i18n,
             StorageProvider storage,
             // Lazy: the runner collects every job, including ours, which needs this service.
-            @Lazy FndJobQueue jobs,
+            @Lazy JobQueue jobs,
             AuditLogService audit,
             ObjectMapper json,
             @Value("${smc.reports.export.max-rows:50000}") int maxRows) {

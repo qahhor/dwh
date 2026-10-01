@@ -1,12 +1,12 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.jobs.runner;
 
+import com.smartup24.cms.instance.jobs.repository.JobQueueRepository;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
  * The heartbeat of one claimed job (plan 10/10, item 3.8): a virtual thread renews the lease every third of it while
@@ -15,13 +15,13 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * renewal that finds the claim gone — another node took the job after the lease ran out — stops the heartbeat and
  * marks the lease lost, so the runner does not record this attempt's outcome over the other node's.
  */
-final class FndJobLease implements AutoCloseable {
+final class JobLease implements AutoCloseable {
 
-    private static final Logger log = LoggerFactory.getLogger(FndJobLease.class);
+    private static final Logger log = LoggerFactory.getLogger(JobLease.class);
     /** How long the end of a job waits for a renewal in flight. */
     private static final Duration STOP_WAIT = Duration.ofSeconds(10);
 
-    private final JdbcClient jdbc;
+    private final JobQueueRepository queue;
     private final Duration lease;
     private final long queueId;
     private final String handler;
@@ -30,8 +30,8 @@ final class FndJobLease implements AutoCloseable {
     private final CountDownLatch stop = new CountDownLatch(1);
     private final Thread heartbeat;
 
-    private FndJobLease(JdbcClient jdbc, Duration lease, long queueId, String handler, String token) {
-        this.jdbc = jdbc;
+    private JobLease(JobQueueRepository queue, Duration lease, long queueId, String handler, String token) {
+        this.queue = queue;
         this.lease = lease;
         this.queueId = queueId;
         this.handler = handler;
@@ -40,8 +40,8 @@ final class FndJobLease implements AutoCloseable {
     }
 
     /** Starts renewing the lease the claim {@code token} holds on the queue row. */
-    static FndJobLease start(JdbcClient jdbc, Duration lease, long queueId, String handler, String token) {
-        FndJobLease started = new FndJobLease(jdbc, lease, queueId, handler, token);
+    static JobLease start(JobQueueRepository queue, Duration lease, long queueId, String handler, String token) {
+        JobLease started = new JobLease(queue, lease, queueId, handler, token);
         started.heartbeat.start();
         return started;
     }
@@ -82,12 +82,7 @@ final class FndJobLease implements AutoCloseable {
     /** One renewal: the rows renewed (0 — the claim is gone), or -1 when the database did not answer. */
     private int renewOnce() {
         try {
-            return jdbc.sql("update fnd_job_queue set locked_until = now() + :lease * interval '1 millisecond'"
-                            + " where id = :id and locked_by = :token")
-                    .param("lease", lease.toMillis())
-                    .param("id", queueId)
-                    .param("token", token)
-                    .update();
+            return queue.renewLease(queueId, token, lease.toMillis());
         } catch (RuntimeException renewalFailure) {
             log.warn("job_lease_renewal_failed handler={} queue_id={}", handler, queueId, renewalFailure);
             return -1;

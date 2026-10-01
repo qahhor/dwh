@@ -1,10 +1,12 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
-import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
+import com.smartup24.cms.instance.jobs.api.JobAttempt;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.api.JobNotRetryableException;
+import com.smartup24.cms.instance.jobs.config.JobProperties;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.sql.Connection;
 import java.sql.Statement;
@@ -34,7 +36,7 @@ import tools.jackson.databind.ObjectMapper;
  * Plan 10/10, item 3.8: the job queue leases a job in a short transaction and runs it outside, retries a failure with
  * a backoff up to a limit, takes a job back from a dead node, and two runners enqueue a scheduled job once.
  */
-class FndJobQueueTest extends EmbeddedPostgresTest {
+class JobQueueTest extends EmbeddedPostgresTest {
 
     private static final String SCHEDULE = "test.queue.scheduled";
 
@@ -64,7 +66,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
     @DisplayName("a failing job is retried until the limit, then marked failed and never taken again")
     void failingJobIsRetriedUntilTheLimit() {
         AtomicInteger calls = new AtomicInteger();
-        FndJobRunner runner = runner(settings(3, Duration.ZERO, Duration.ofMinutes(1)), handler("test.q.fail", args -> {
+        JobRunner runner = runner(settings(3, Duration.ZERO, Duration.ofMinutes(1)), handler("test.q.fail", args -> {
             calls.incrementAndGet();
             throw new IllegalStateException("TEST failure " + calls.get());
         }));
@@ -94,12 +96,11 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
     @DisplayName("a job that fails and then succeeds leaves the queue; every attempt stays in the runs")
     void retriedJobSucceeds() {
         AtomicInteger calls = new AtomicInteger();
-        FndJobRunner runner =
-                runner(settings(5, Duration.ZERO, Duration.ofMinutes(1)), handler("test.q.flaky", args -> {
-                    if (calls.incrementAndGet() < 3) {
-                        throw new IllegalStateException("TEST flaky");
-                    }
-                }));
+        JobRunner runner = runner(settings(5, Duration.ZERO, Duration.ofMinutes(1)), handler("test.q.flaky", args -> {
+            if (calls.incrementAndGet() < 3) {
+                throw new IllegalStateException("TEST flaky");
+            }
+        }));
         long id = enqueue("test.q.flaky");
 
         assertThat(runner.runQueued()).isEqualTo(1);
@@ -118,14 +119,14 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("a failed attempt moves the job forward by the backoff, doubling up to its ceiling")
     void failedAttemptWaitsForTheBackoff() {
-        FndJobProperties settings =
-                new FndJobProperties(5, Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(1));
+        JobProperties settings =
+                new JobProperties(5, Duration.ofSeconds(30), Duration.ofMinutes(2), Duration.ofMinutes(1));
         assertThat(settings.backoffAfter(1)).isEqualTo(Duration.ofSeconds(30));
         assertThat(settings.backoffAfter(2)).isEqualTo(Duration.ofMinutes(1));
         assertThat(settings.backoffAfter(3)).isEqualTo(Duration.ofMinutes(2));
         assertThat(settings.backoffAfter(9)).isEqualTo(Duration.ofMinutes(2));
 
-        FndJobRunner runner = runner(settings, handler("test.q.later", args -> {
+        JobRunner runner = runner(settings, handler("test.q.later", args -> {
             throw new IllegalStateException("TEST later");
         }));
         long id = enqueue("test.q.later");
@@ -147,7 +148,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
         List<OffsetDateTime> leases = new ArrayList<>();
         Duration lease = Duration.ofMillis(600);
         long[] id = new long[1];
-        FndJobRunner runner = runner(settings(1, Duration.ZERO, lease), handler("test.q.long", args -> {
+        JobRunner runner = runner(settings(1, Duration.ZERO, lease), handler("test.q.long", args -> {
             for (int second = 0; second < 3; second++) {
                 sleep(Duration.ofSeconds(1));
                 // The age of the oldest transaction of this database, this query's own excluded
@@ -165,7 +166,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
         }));
         id[0] = enqueue("test.q.long");
         // Load around it: other runners claim and finish short jobs while the long one works
-        FndJobRunner others = runner(settings(1, Duration.ZERO, lease), handler("test.q.short", args -> {}));
+        JobRunner others = runner(settings(1, Duration.ZERO, lease), handler("test.q.short", args -> {}));
         ExecutorService pool = Executors.newFixedThreadPool(3);
         try {
             Future<Integer> longJob = pool.submit(runner::runQueued);
@@ -220,7 +221,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
             Duration lease = Duration.ofMillis(600);
             List<Boolean> leaseAlive = new ArrayList<>();
             long[] id = new long[1];
-            FndJobRunner runner = runner(settings(1, Duration.ZERO, lease), handler("test.q.renew", args -> {
+            JobRunner runner = runner(settings(1, Duration.ZERO, lease), handler("test.q.renew", args -> {
                 for (int step = 0; step < 4; step++) {
                     sleep(Duration.ofMillis(500));
                     leaseAlive.add(jdbc.sql("select locked_until > now() from fnd_job_queue where id = :id")
@@ -258,7 +259,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
         for (boolean fails : new boolean[] {false, true}) {
             String code = fails ? "test.q.over.fail" : "test.q.over.done";
             long[] id = new long[1];
-            FndJobRunner runner = runner(settings(3, Duration.ZERO, Duration.ofMinutes(1)), handler(code, args -> {
+            JobRunner runner = runner(settings(3, Duration.ZERO, Duration.ofMinutes(1)), handler(code, args -> {
                 // What another runner's claim does once the lease has run out
                 jdbc.sql("update fnd_job_queue set locked_by = 'TEST other node', attempts = attempts + 1,"
                                 + " locked_until = now() + interval '1 minute' where id = :id")
@@ -293,7 +294,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
     @DisplayName("the handler learns its attempt; a not-retryable failure marks the job failed at once")
     void handlerSeesItsAttemptAndCanRefuseARetry() {
         List<String> seen = new ArrayList<>();
-        FndJobHandler counting = new FndJobHandler() {
+        JobHandler counting = new JobHandler() {
             @Override
             public String code() {
                 return "test.q.attempts";
@@ -305,15 +306,15 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
             }
 
             @Override
-            public void run(Map<String, Object> args, FndJobAttempt attempt) {
+            public void run(Map<String, Object> args, JobAttempt attempt) {
                 seen.add(attempt.number() + "/" + attempt.maxAttempts() + ":" + attempt.last());
                 if (attempt.number() == 2) {
-                    throw new FndJobNotRetryableException("TEST settled", new IllegalStateException("TEST cause"));
+                    throw new JobNotRetryableException("TEST settled", new IllegalStateException("TEST cause"));
                 }
                 throw new IllegalStateException("TEST transient");
             }
         };
-        FndJobRunner runner = runner(settings(4, Duration.ZERO, Duration.ofMinutes(1)), counting);
+        JobRunner runner = runner(settings(4, Duration.ZERO, Duration.ofMinutes(1)), counting);
         long id = enqueue("test.q.attempts");
 
         assertThat(runner.runQueued()).isZero();
@@ -329,14 +330,14 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
                 .asString()
                 .contains("TEST settled")
                 .contains("TEST cause");
-        assertThat(FndJobAttempt.only().last()).isTrue();
+        assertThat(JobAttempt.only().last()).isTrue();
     }
 
     @Test
     @DisplayName("a job whose node died is taken again once its lease runs out; a live lease is left alone")
     void expiredLeaseIsTakenAgain() {
         AtomicInteger calls = new AtomicInteger();
-        FndJobRunner runner = runner(
+        JobRunner runner = runner(
                 settings(3, Duration.ZERO, Duration.ofMinutes(1)),
                 handler("test.q.dead", args -> calls.incrementAndGet()));
         long dead = enqueue("test.q.dead");
@@ -370,7 +371,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
     @DisplayName("a job taken back from a dead node with no attempt left is marked failed without running")
     void expiredLeaseOnTheLastAttemptFails() {
         AtomicInteger calls = new AtomicInteger();
-        FndJobRunner runner = runner(
+        JobRunner runner = runner(
                 settings(2, Duration.ZERO, Duration.ofMinutes(1)),
                 handler("test.q.last", args -> calls.incrementAndGet()));
         long id = enqueue("test.q.last");
@@ -391,9 +392,9 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
         jdbc.sql("insert into fnd_job_schedule (code, handler, interval_sec) values (:code, :code, 3600)")
                 .param("code", SCHEDULE)
                 .update();
-        FndJobHandler handler = handler(SCHEDULE, args -> {});
-        FndJobRunner first = runner(FndJobProperties.defaults(), handler);
-        FndJobRunner second = runner(FndJobProperties.defaults(), handler);
+        JobHandler handler = handler(SCHEDULE, args -> {});
+        JobRunner first = runner(JobProperties.defaults(), handler);
+        JobRunner second = runner(JobProperties.defaults(), handler);
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             for (int round = 1; round <= 10; round++) {
@@ -429,7 +430,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
         jdbc.sql("insert into fnd_job_schedule (code, handler, interval_sec) values (:code, :code, 3600)")
                 .param("code", SCHEDULE)
                 .update();
-        FndJobRunner runner = runner(FndJobProperties.defaults(), handler(SCHEDULE, args -> {}));
+        JobRunner runner = runner(JobProperties.defaults(), handler(SCHEDULE, args -> {}));
         try (Connection other = dataSource.getConnection()) {
             other.setAutoCommit(false);
             try (Statement statement = other.createStatement()) {
@@ -449,7 +450,7 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
         jdbc.sql("insert into fnd_job_schedule (code, handler, interval_sec) values (:code, 'test.q.nobody', 3600)")
                 .param("code", SCHEDULE)
                 .update();
-        FndJobRunner runner = runner(FndJobProperties.defaults(), handler("test.q.known", args -> {}));
+        JobRunner runner = runner(JobProperties.defaults(), handler("test.q.known", args -> {}));
         long id = enqueue("test.q.nobody");
 
         assertThat(runner.enqueueDue()).isZero();
@@ -459,16 +460,16 @@ class FndJobQueueTest extends EmbeddedPostgresTest {
 
     // ---------- helpers ----------
 
-    private static FndJobProperties settings(int maxAttempts, Duration backoff, Duration lease) {
-        return new FndJobProperties(maxAttempts, backoff, backoff, lease);
+    private static JobProperties settings(int maxAttempts, Duration backoff, Duration lease) {
+        return new JobProperties(maxAttempts, backoff, backoff, lease);
     }
 
-    private FndJobRunner runner(FndJobProperties settings, FndJobHandler... handlers) {
-        return new FndJobRunner(jdbc, json, transactions, List.of(handlers), settings);
+    private JobRunner runner(JobProperties settings, JobHandler... handlers) {
+        return new JobRunner(jdbc, json, transactions, List.of(handlers), settings);
     }
 
-    private static FndJobHandler handler(String code, Consumer<Map<String, Object>> body) {
-        return new FndJobHandler() {
+    private static JobHandler handler(String code, Consumer<Map<String, Object>> body) {
+        return new JobHandler() {
             @Override
             public String code() {
                 return code;

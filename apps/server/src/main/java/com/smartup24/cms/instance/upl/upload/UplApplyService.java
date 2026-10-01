@@ -4,8 +4,8 @@ import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
 import com.smartup24.cms.instance.fnd.api.FndActor;
 import com.smartup24.cms.instance.fnd.api.FndActorContext;
-import com.smartup24.cms.instance.fnd.api.FndJobQueue;
 import com.smartup24.cms.instance.fnd.api.FndLoads;
+import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.api.UplPackageDtos.PackageItem;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
@@ -33,7 +33,7 @@ public class UplApplyService {
     private final UplPackageRepository repo;
     private final FndLoads loads;
     private final FndActorContext actors;
-    private final FndJobQueue jobs;
+    private final JobQueue jobs;
     private final TransactionTemplate tx;
 
     /** Requests the apply as {@link #request} does and answers the package as the API shows it (plan 10/10, 3.2). */
@@ -46,7 +46,7 @@ public class UplApplyService {
             UplPackageRepository repo,
             FndLoads loads,
             FndActorContext actors,
-            FndJobQueue jobs,
+            JobQueue jobs,
             TransactionTemplate tx) {
         this.packages = packages;
         this.repo = repo;

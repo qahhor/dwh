@@ -2,10 +2,10 @@ package com.smartup24.cms.instance.upl.upload;
 
 import com.smartup24.cms.instance.fnd.api.FndActor;
 import com.smartup24.cms.instance.fnd.api.FndActorContext;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndLoads;
-import com.smartup24.cms.instance.fnd.service.FndJobQueries;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.service.JobQueries;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import java.util.List;
@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
  * that left the queue without closing the package, or ran out of attempts, makes it one.
  */
 @Component
-public class UplApplyRecoveryJob implements FndJobHandler {
+public class UplApplyRecoveryJob implements JobHandler {
 
     public static final String CODE = "upl.apply_recovery";
     /** Longer than the longest apply we expect from a live process. */
@@ -43,9 +43,9 @@ public class UplApplyRecoveryJob implements FndJobHandler {
     private final UplPackageRepository repo;
     private final FndLoads loads;
     private final FndActorContext actors;
-    private final FndJobQueries jobs;
+    private final JobQueries jobs;
 
-    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, FndActorContext actors, FndJobQueries jobs) {
+    public UplApplyRecoveryJob(UplPackageRepository repo, FndLoads loads, FndActorContext actors, JobQueries jobs) {
         this.repo = repo;
         this.loads = loads;
         this.actors = actors;

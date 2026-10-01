@@ -8,9 +8,9 @@ import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawSource;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobProperties;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.jobs.config.JobProperties;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -119,7 +119,7 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     void transientRawFailureIsRetried() {
         PackageRow row = verifiedPackage();
         AtomicInteger calls = new AtomicInteger();
-        FndJobRunner runner = runner(3, new DelegatingWriter() {
+        JobRunner runner = runner(3, new DelegatingWriter() {
             @Override
             public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
                 if (calls.incrementAndGet() == 1) {
@@ -147,7 +147,7 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     @DisplayName("3.8: pg-dwh away on every attempt — the last one closes the package with the write failure")
     void transientRawFailureOnTheLastAttemptRejects() {
         PackageRow row = verifiedPackage();
-        FndJobRunner runner = runner(2, new DelegatingWriter() {
+        JobRunner runner = runner(2, new DelegatingWriter() {
             @Override
             public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
                 throw new DwhUnavailableException(new SQLException("TEST pg-dwh away"));
@@ -173,7 +173,7 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     @DisplayName("3.9: a failure a retry would not fix closes the package on the first attempt")
     void permanentRawFailureRejectsAtOnce() {
         PackageRow row = verifiedPackage();
-        FndJobRunner runner = runner(3, new DelegatingWriter() {
+        JobRunner runner = runner(3, new DelegatingWriter() {
             @Override
             public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
                 throw new IllegalStateException("TEST bug");
@@ -224,14 +224,14 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
 
     // ---------- helpers ----------
 
-    private FndJobRunner runner(int maxAttempts, FndRawWriter writer) {
+    private JobRunner runner(int maxAttempts, FndRawWriter writer) {
         UplApplyJob job = new UplApplyJob(repo, sources, files, parser, loads, writer, actors, tx);
-        return new FndJobRunner(
+        return new JobRunner(
                 jdbc,
                 json,
                 transactions,
                 List.of(job),
-                new FndJobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
+                new JobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
     }
 
     private void queueRow(PackageRow row, String assignments) {

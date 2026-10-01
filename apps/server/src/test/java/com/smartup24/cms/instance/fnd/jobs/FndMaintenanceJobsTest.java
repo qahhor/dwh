@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
 import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.config.JobProperties;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobSwitch;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -43,7 +46,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     private FndRawWriter rawWriter;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
     private FndActors actors;
@@ -227,13 +230,17 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     @Autowired
     private PlatformTransactionManager transactions;
 
+    /** The application's switch: it reads jobs_enabled through the settings' owner (plan 10/10, item 4.2). */
+    @Autowired
+    private JobSwitch jobSwitch;
+
     /** A worker with test handlers: no schedule beans are needed, the queue takes any handler code. */
-    private FndJobRunner testRunner(FndJobHandler... handlers) {
-        return new FndJobRunner(jdbc, json, transactions, List.of(handlers));
+    private JobRunner testRunner(JobHandler... handlers) {
+        return new JobRunner(jdbc, json, transactions, List.of(handlers));
     }
 
-    private static FndJobHandler handler(String code, Consumer<Map<String, Object>> body) {
-        return new FndJobHandler() {
+    private static JobHandler handler(String code, Consumer<Map<String, Object>> body) {
+        return new JobHandler() {
             @Override
             public String code() {
                 return code;
@@ -260,7 +267,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     void twoWorkersTakeDifferentJobs() throws Exception {
         CountDownLatch started = new CountDownLatch(2);
         CountDownLatch gate = new CountDownLatch(1);
-        FndJobRunner runner = testRunner(handler("test.block", args -> {
+        JobRunner runner = testRunner(handler("test.block", args -> {
             started.countDown();
             try {
                 assertThat(gate.await(30, TimeUnit.SECONDS)).isTrue();
@@ -304,7 +311,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     @DisplayName("AC-7: исключение обработчика — запуск failed с текстом ошибки и args, задание ждёт повтора;"
             + " незнакомый обработчик воркер не берёт")
     void handlerFailureIsRecorded() {
-        FndJobRunner runner = testRunner(
+        JobRunner runner = testRunner(
                 handler("test.fail", args -> {
                     throw new IllegalStateException("boom TEST " + args.get("k"));
                 }),
@@ -344,10 +351,16 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("AC-7: jobs_enabled=false в md_settings каркаса — воркер ничего не берёт; после включения — выполняет")
     void jobsEnabledSwitch() {
-        FndJobRunner runner = testRunner(handler("test.noop", args -> {}));
+        JobRunner runner = new JobRunner(
+                jdbc,
+                json,
+                transactions,
+                List.of(handler("test.noop", args -> {})),
+                JobProperties.defaults(),
+                jobSwitch);
         enqueueRaw("test.noop", "{}");
         jdbc.sql("insert into md_settings (user_id, key, value) values (null, :key, 'false')")
-                .param("key", FndJobRunner.JOBS_ENABLED_KEY)
+                .param("key", JobRunner.JOBS_ENABLED_KEY)
                 .update();
         try {
             assertThat(runner.runNext()).isEmpty();
@@ -361,7 +374,7 @@ class FndMaintenanceJobsTest extends EmbeddedPostgresTest {
                     .isZero();
         } finally {
             jdbc.sql("delete from md_settings where user_id is null and key = :key")
-                    .param("key", FndJobRunner.JOBS_ENABLED_KEY)
+                    .param("key", JobRunner.JOBS_ENABLED_KEY)
                     .update();
         }
         assertThat(runner.runQueued()).isEqualTo(1);

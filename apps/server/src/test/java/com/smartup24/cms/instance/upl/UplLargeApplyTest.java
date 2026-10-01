@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.fnd.FndActors;
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -85,7 +85,7 @@ class UplLargeApplyTest extends EmbeddedPostgresTest {
     private UplUploadService uploads;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
     private FndActors actors;

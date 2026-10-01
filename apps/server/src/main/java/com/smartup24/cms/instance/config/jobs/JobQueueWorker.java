@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.config.jobs;
 
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,9 +19,9 @@ public class JobQueueWorker {
 
     private static final Logger log = LoggerFactory.getLogger(JobQueueWorker.class);
 
-    private final FndJobRunner runner;
+    private final JobRunner runner;
 
-    public JobQueueWorker(FndJobRunner runner) {
+    public JobQueueWorker(JobRunner runner) {
         this.runner = runner;
     }
 

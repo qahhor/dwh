@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.config;
+package com.smartup24.cms.instance.jobs.config;
 
 import com.smartup24.cms.instance.common.retention.RetentionPolicy;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
  * what reached the data warehouse and when.
  */
 @Configuration(proxyBeanMethods = false)
-public class FndRetentionPolicies {
+public class JobRetentionPolicies {
 
     /** Finished runs of background jobs; a running one is never deleted. */
     @Bean

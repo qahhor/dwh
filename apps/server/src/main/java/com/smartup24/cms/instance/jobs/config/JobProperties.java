@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.jobs.config;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -16,13 +16,13 @@ import org.springframework.validation.annotation.Validated;
  */
 @Validated
 @ConfigurationProperties(prefix = "smc.jobs")
-public record FndJobProperties(
+public record JobProperties(
         @DefaultValue("5") int maxAttempts,
         @DefaultValue("30s") Duration retryBackoff,
         @DefaultValue("1h") Duration retryBackoffMax,
         @DefaultValue("5m") Duration lease) {
 
-    public FndJobProperties {
+    public JobProperties {
         if (maxAttempts < 1) {
             throw new IllegalArgumentException("smc.jobs.max-attempts must be at least 1");
         }
@@ -38,8 +38,8 @@ public record FndJobProperties(
     }
 
     /** The values of application.yml, for runners built by hand. */
-    public static FndJobProperties defaults() {
-        return new FndJobProperties(5, Duration.ofSeconds(30), Duration.ofHours(1), Duration.ofMinutes(5));
+    public static JobProperties defaults() {
+        return new JobProperties(5, Duration.ofSeconds(30), Duration.ofHours(1), Duration.ofMinutes(5));
     }
 
     /** The pause after the given failed attempt (1-based): the backoff doubled per earlier failure, capped. */

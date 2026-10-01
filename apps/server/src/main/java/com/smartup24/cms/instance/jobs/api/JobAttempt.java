@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.api;
+package com.smartup24.cms.instance.jobs.api;
 
 /**
  * Which attempt of a job a handler runs (plan 10/10, item 3.8). A handler that closes its business record on failure
@@ -8,17 +8,17 @@ package com.smartup24.cms.instance.fnd.api;
  * @param number      the attempt, from 1
  * @param maxAttempts how many attempts the runner makes before it marks the job failed
  */
-public record FndJobAttempt(int number, int maxAttempts) {
+public record JobAttempt(int number, int maxAttempts) {
 
-    public FndJobAttempt {
+    public JobAttempt {
         if (number < 1 || maxAttempts < 1) {
             throw new IllegalArgumentException("attempt and max attempts start at 1");
         }
     }
 
     /** A handler called outside the queue (a test, a tool): the only attempt, so it is also the last. */
-    public static FndJobAttempt only() {
-        return new FndJobAttempt(1, 1);
+    public static JobAttempt only() {
+        return new JobAttempt(1, 1);
     }
 
     /** No attempt follows this one: a failure now is final. */

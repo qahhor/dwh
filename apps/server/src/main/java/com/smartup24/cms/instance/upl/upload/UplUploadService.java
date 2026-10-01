@@ -3,8 +3,8 @@ package com.smartup24.cms.instance.upl.upload;
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.core.error.FieldErrorItem;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.api.FndJobQueue;
 import com.smartup24.cms.instance.fnd.api.FndVersions;
+import com.smartup24.cms.instance.jobs.api.JobQueue;
 import com.smartup24.cms.instance.mf.api.StoredFile;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplLimits;
@@ -37,7 +37,7 @@ public class UplUploadService {
     private final FndVersions versioning;
     private final MfFileService files;
     private final UplPackageService packages;
-    private final FndJobQueue jobs;
+    private final JobQueue jobs;
     private final TransactionTemplate tx;
 
     public UplUploadService(
@@ -45,7 +45,7 @@ public class UplUploadService {
             FndVersions versioning,
             MfFileService files,
             UplPackageService packages,
-            FndJobQueue jobs,
+            JobQueue jobs,
             TransactionTemplate tx) {
         this.sources = sources;
         this.versioning = versioning;

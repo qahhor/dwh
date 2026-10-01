@@ -49,6 +49,7 @@ class ModuleBoundariesTest {
             "analytics",
             "audit",
             "fnd",
+            "jobs",
             "kauth",
             "kwh",
             "md",
@@ -272,6 +273,7 @@ class ModuleBoundariesTest {
         if (table.startsWith("ms_notification") || table.startsWith("ms_announcement")) return Optional.of("ms.notify");
         if (table.startsWith("ms_note")) return Optional.of("ms.note");
         if (table.equals("idempotency_keys")) return Optional.of("config");
+        if (table.startsWith("fnd_job_")) return Optional.of("jobs");
         for (String module : List.of("fnd", "kauth", "kwh", "md", "mf", "report", "search", "upl")) {
             if (table.startsWith(module + "_")) return Optional.of(module);
         }

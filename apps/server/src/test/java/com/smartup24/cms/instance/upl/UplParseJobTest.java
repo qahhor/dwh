@@ -5,8 +5,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 
 import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.jobs.FndJobProperties;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.config.JobProperties;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -55,7 +55,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     private MfFileService files;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
     private FndActors actors;
@@ -137,7 +137,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     void jobFailureRejectsPackage() {
         PackageRow row = register(UplPackageTestData.workbook(2, 0));
         enqueue(row.publicId());
-        FndJobRunner runner = new FndJobRunner(
+        JobRunner runner = new JobRunner(
                 jdbc, json, transactions, List.of(new UplParseJob(packages, sources, files, failingParser())));
 
         assertThat(runner.runQueued()).isZero();
@@ -166,7 +166,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
         Mockito.when(flaky.downloadFile(Mockito.any(UUID.class)))
                 .thenThrow(new RuntimeException("TEST storage away", new IOException("TEST connection reset")))
                 .thenAnswer(call -> files.downloadFile(call.<UUID>getArgument(0)));
-        FndJobRunner runner = runner(3, new UplParseJob(packages, sources, flaky, new UplXlsxParser()));
+        JobRunner runner = runner(3, new UplParseJob(packages, sources, flaky, new UplXlsxParser()));
 
         assertThat(runner.runNext()).contains(false);
         assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.RECEIVED);
@@ -185,7 +185,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
         MfFileService away = Mockito.mock(MfFileService.class);
         Mockito.when(away.downloadFile(Mockito.any(UUID.class)))
                 .thenThrow(new RuntimeException("TEST storage away", new IOException("TEST connection reset")));
-        FndJobRunner runner = runner(2, new UplParseJob(packages, sources, away, new UplXlsxParser()));
+        JobRunner runner = runner(2, new UplParseJob(packages, sources, away, new UplXlsxParser()));
 
         assertThat(runner.runNext()).contains(false);
         assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.RECEIVED);
@@ -203,7 +203,7 @@ class UplParseJobTest extends EmbeddedPostgresTest {
     void formatReadFailureRejectsPackage() {
         PackageRow row = register(UplPackageTestData.workbook(2, 0));
         enqueue(row.publicId());
-        FndJobRunner runner = new FndJobRunner(
+        JobRunner runner = new JobRunner(
                 jdbc,
                 json,
                 transactions,
@@ -256,13 +256,13 @@ class UplParseJobTest extends EmbeddedPostgresTest {
                 userId));
     }
 
-    private FndJobRunner runner(int maxAttempts, UplParseJob job) {
-        return new FndJobRunner(
+    private JobRunner runner(int maxAttempts, UplParseJob job) {
+        return new JobRunner(
                 jdbc,
                 json,
                 transactions,
                 List.of(job),
-                new FndJobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
+                new JobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
     }
 
     private void enqueue(UUID publicId) {

@@ -1,7 +1,7 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.config.FndDwhMaintenance;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
 import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * and a failed load produces no data.
  */
 @Component
-public class FndLoadCleanupJob implements FndJobHandler {
+public class FndLoadCleanupJob implements JobHandler {
 
     public static final String CODE = "fnd.load_cleanup";
     private static final Logger log = LoggerFactory.getLogger(FndLoadCleanupJob.class);

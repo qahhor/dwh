@@ -11,8 +11,8 @@ import com.smartup24.cms.instance.fnd.api.FndLoad;
 import com.smartup24.cms.instance.fnd.api.FndRawRow;
 import com.smartup24.cms.instance.fnd.api.FndRawSource;
 import com.smartup24.cms.instance.fnd.api.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
 import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -60,7 +60,7 @@ class UplApplyServiceTest extends EmbeddedPostgresTest {
     private UplApplyRecoveryJob recovery;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
     private UplPackageService packages;

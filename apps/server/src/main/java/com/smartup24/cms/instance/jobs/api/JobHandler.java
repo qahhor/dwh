@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.fnd.api;
+package com.smartup24.cms.instance.jobs.api;
 
 import java.util.Map;
 
@@ -11,7 +11,7 @@ import java.util.Map;
  * its own short transactions, and long work (reading a file, writing pg-dwh) holds none. A handler may run more than
  * once for one job — after a failure, or when its node died mid-run — so it checks the state it is about to change.
  */
-public interface FndJobHandler {
+public interface JobHandler {
 
     /** The handler code, as written in {@code fnd_job_schedule.handler}. */
     String code();
@@ -21,11 +21,11 @@ public interface FndJobHandler {
 
     /**
      * Runs the job as the given attempt; the runner calls this one. A handler that closes its record on failure
-     * overrides it: while {@link FndJobAttempt#last()} is false it rethrows a transient failure (see
-     * {@link FndJobFailures#isTransient}) and leaves the record for the retry; a failure a retry would not fix it
-     * reports with {@link FndJobNotRetryableException}.
+     * overrides it: while {@link JobAttempt#last()} is false it rethrows a transient failure (see
+     * {@link JobFailures#isTransient}) and leaves the record for the retry; a failure a retry would not fix it
+     * reports with {@link JobNotRetryableException}.
      */
-    default void run(Map<String, Object> args, FndJobAttempt attempt) {
+    default void run(Map<String, Object> args, JobAttempt attempt) {
         run(args);
     }
 }

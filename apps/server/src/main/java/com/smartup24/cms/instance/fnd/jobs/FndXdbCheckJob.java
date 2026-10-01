@@ -1,8 +1,8 @@
 package com.smartup24.cms.instance.fnd.jobs;
 
 import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
 import com.smartup24.cms.instance.fnd.config.FndDwhMaintenance;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
  * event in {@code security_events}; the data itself is left untouched.
  */
 @Component
-public class FndXdbCheckJob implements FndJobHandler {
+public class FndXdbCheckJob implements JobHandler {
 
     public static final String CODE = "fnd.xdb_check";
     public static final String EVENT = "xdb_mismatch";

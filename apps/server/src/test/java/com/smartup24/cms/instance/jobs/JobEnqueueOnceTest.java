@@ -1,9 +1,10 @@
-package com.smartup24.cms.instance.fnd.jobs;
+package com.smartup24.cms.instance.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /** A one-off job in the foundation queue: arguments, an unknown handler and a transaction shared with the caller. */
-class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
+class JobEnqueueOnceTest extends EmbeddedPostgresTest {
 
     private static final String HANDLER = "test.once";
 
@@ -43,8 +44,8 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
         jdbc.sql("delete from fnd_job_runs").update();
     }
 
-    private FndJobRunner runner() {
-        FndJobHandler handler = new FndJobHandler() {
+    private JobRunner runner() {
+        JobHandler handler = new JobHandler() {
             @Override
             public String code() {
                 return HANDLER;
@@ -55,13 +56,13 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
                 received.add(args);
             }
         };
-        return new FndJobRunner(jdbc, json, transactions, List.of(handler));
+        return new JobRunner(jdbc, json, transactions, List.of(handler));
     }
 
     @Test
     @DisplayName("разовое задание попадает в очередь с аргументами и выполняется обработчиком")
     void enqueueOnceRunsHandlerWithArgs() {
-        FndJobRunner runner = runner();
+        JobRunner runner = runner();
 
         runner.enqueueOnce(HANDLER, Map.of("packageId", "TEST-1"));
 
@@ -89,7 +90,7 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("незарегистрированный обработчик — ошибка сразу, очередь пуста")
     void unknownHandlerIsRejected() {
-        FndJobRunner runner = runner();
+        JobRunner runner = runner();
 
         assertThatThrownBy(() -> runner.enqueueOnce("test.unknown", Map.of()))
                 .isInstanceOf(IllegalStateException.class);
@@ -103,7 +104,7 @@ class FndJobEnqueueOnceTest extends EmbeddedPostgresTest {
     @Test
     @DisplayName("откат транзакции вызывающего убирает и задание")
     void rollbackRemovesJob() {
-        FndJobRunner runner = runner();
+        JobRunner runner = runner();
 
         tx.executeWithoutResult(status -> {
             runner.enqueueOnce(HANDLER, Map.of());

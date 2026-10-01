@@ -1,15 +1,15 @@
-package com.smartup24.cms.instance.fnd.api;
+package com.smartup24.cms.instance.jobs.api;
 
 import java.util.Map;
 
 /**
- * Putting work on the job queue. The jobs themselves are {@link FndJobHandler} beans; the read-only questions about
- * the queue are answered by {@code fnd.service.FndJobQueries}.
+ * Putting work on the job queue. The jobs themselves are {@link JobHandler} beans; the read-only questions about
+ * the queue are answered by {@code fnd.service.JobQueries}.
  *
  * <p>Part of the foundation's contract (plan 10/10, item 4.2): callers depend on this interface, not on the job
  * runner that implements it, which may move to another package.
  */
-public interface FndJobQueue {
+public interface JobQueue {
 
     /** Enqueues a scheduled job outside its schedule, e.g. from a deployment step or an on-demand check. */
     void enqueue(String scheduleCode);
