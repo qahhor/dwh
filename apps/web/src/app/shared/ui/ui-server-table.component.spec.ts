@@ -228,7 +228,7 @@ describe('ui-server-table column settings', () => {
     fixture.detectChanges();
 
     expect(headers(fixture)).toEqual(['ID', 'Note']);
-    expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.test.columns')!).hidden).toEqual(['name']);
+    expect(JSON.parse(localStorage.getItem('smc.table-columns.v1.test.columns')!).hidden).toEqual(['name']);
 
     fixture.destroy();
     const again = await renderColumns();
@@ -245,13 +245,13 @@ describe('ui-server-table column settings', () => {
     (
       table as unknown as { onColumnResize(event: { key: string; widthPx: number; widthPercent: string }): void }
     ).onColumnResize({ key: 'name', widthPx: 240, widthPercent: '30%' });
-    expect(JSON.parse(localStorage.getItem('dwh.table-columns.v1.test.columns')!).widths).toEqual({ name: '240px' });
+    expect(JSON.parse(localStorage.getItem('smc.table-columns.v1.test.columns')!).widths).toEqual({ name: '240px' });
 
     (fixture.nativeElement.querySelector('.smt-columns__trigger') as HTMLButtonElement).click();
     fixture.detectChanges();
     (document.querySelector('.smt-columns__reset') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(localStorage.getItem('dwh.table-columns.v1.test.columns')).toBeNull();
+    expect(localStorage.getItem('smc.table-columns.v1.test.columns')).toBeNull();
   });
 });
 

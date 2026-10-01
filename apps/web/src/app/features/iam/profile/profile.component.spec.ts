@@ -54,7 +54,7 @@ describe('ProfileComponent UI contracts', () => {
       post: vi.fn((url: string) => {
         if (url.includes('/channels/confirm')) return of(undefined);
         if (url.includes('/channels')) return of({ verifyToken: 'mock_verify_token_123' });
-        return of({ record: { id: 1, name: 'test' }, rawSecretToken: 'dwh_secret_xyz' });
+        return of({ record: { id: 1, name: 'test' }, rawSecretToken: 'smc_secret_xyz' });
       }),
       delete: vi.fn(() => of({})),
     };
@@ -207,7 +207,7 @@ describe('ProfileComponent UI contracts', () => {
     );
 
     expect(comp.isTokenSecretModalOpen()).toBe(true);
-    expect(comp.createdTokenSecret()).toBe('dwh_secret_xyz');
+    expect(comp.createdTokenSecret()).toBe('smc_secret_xyz');
   });
 
   it('requests and confirms session termination', async () => {

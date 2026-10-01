@@ -224,6 +224,11 @@ mvn test -pl apps/server -Dtest=ConfigurationReferenceTest -Dconfig.reference.up
 Срок 2026-12-31 совпадает с переходным периодом ADR-0023 и ADR-0027
 (предположение: отдельного решения о сроке для cookie и токенов нет).
 
+`dwh` теперь означает только хранилище (pg-dwh). `scripts/docs/test-repository-hygiene.ps1`
+падает на новом вхождении `dwh`/`DWH`/`Dwh` вне закрытого списка: хранилище,
+идентификаторы пакета `fnd` (до пункта 4.2), старые имена переходного периода,
+выпущенные миграции и история.
+
 ## Секреты разработки вне dev
 
 Значения секретов из `application*.yml`, `docker-compose.yml` и `.env.example`

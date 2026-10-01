@@ -22,13 +22,23 @@ describe('TableColumnStateStore', () => {
 
   it('treats anything malformed as nothing stored', () => {
     const store = new TableColumnStateStore();
-    localStorage.setItem('dwh.table-columns.v1.a', '{not json');
-    localStorage.setItem('dwh.table-columns.v1.b', JSON.stringify({ order: 'code', hidden: [], widths: {} }));
-    localStorage.setItem('dwh.table-columns.v1.c', JSON.stringify({ order: [], hidden: [1], widths: {} }));
+    localStorage.setItem('smc.table-columns.v1.a', '{not json');
+    localStorage.setItem('smc.table-columns.v1.b', JSON.stringify({ order: 'code', hidden: [], widths: {} }));
+    localStorage.setItem('smc.table-columns.v1.c', JSON.stringify({ order: [], hidden: [1], widths: {} }));
 
     expect(store.load('a')).toBeNull();
     expect(store.load('b')).toBeNull();
     expect(store.load('c')).toBeNull();
+  });
+
+  it('moves a state saved under the old prefix to the new one (plan 10/10, item 4.7)', () => {
+    const store = new TableColumnStateStore();
+    const state = { order: ['name'], hidden: [], widths: {} };
+    localStorage.setItem('dwh.table-columns.v1.upl.sources', JSON.stringify(state));
+
+    expect(store.load('upl.sources')).toEqual(state);
+    expect(localStorage.getItem('smc.table-columns.v1.upl.sources')).toBe(JSON.stringify(state));
+    expect(localStorage.getItem('dwh.table-columns.v1.upl.sources')).toBeNull();
   });
 
   it('keeps working when the browser refuses storage', () => {
