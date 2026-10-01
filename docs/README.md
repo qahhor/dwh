@@ -89,6 +89,11 @@ Current ADRs that are not superseded:
   module; a controller guards its endpoints with its own module's forms or
   with forms the owner publishes to it; V147 moved the old `iam.*`, `rbac.*`
   and `platform.*` grants.
+- [ADR-0029 — encryption of secrets in the database](adr/ADR-0029-stored-secrets-encryption.md)
+  — webhook signing keys and SSO client secrets are stored as AES-256-GCM
+  `v1:` values under the installation key `SMC_SECRETS_KEY`; the server
+  refuses to start without the key outside dev and encrypts legacy plain
+  values at start.
 
 The following ADRs remain current only outside the areas explicitly replaced
 by ADR-0014:
