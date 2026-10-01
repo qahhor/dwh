@@ -1,6 +1,6 @@
 package com.smartup24.cms.instance.fnd.migration;
 
-import com.smartup24.cms.instance.config.env.LegacyConfigNames;
+import com.smartup24.cms.instance.common.env.LegacyConfigNames;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.smartup24.cms.instance.config.env;
+package com.smartup24.cms.instance.common.env;
 
 import java.time.LocalDate;
 import java.util.List;
