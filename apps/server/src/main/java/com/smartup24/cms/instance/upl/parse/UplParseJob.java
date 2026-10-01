@@ -1,9 +1,9 @@
 package com.smartup24.cms.instance.upl.parse;
 
-import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
-import com.smartup24.cms.instance.fnd.api.FndJobFailures;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
-import com.smartup24.cms.instance.fnd.api.FndJobNotRetryableException;
+import com.smartup24.cms.instance.jobs.api.JobAttempt;
+import com.smartup24.cms.instance.jobs.api.JobFailures;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
+import com.smartup24.cms.instance.jobs.api.JobNotRetryableException;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
  * no retry. Parsing runs outside a transaction (the queue holds none while a job works, plan 10/10, item 3.8).
  */
 @Component
-public class UplParseJob implements FndJobHandler {
+public class UplParseJob implements JobHandler {
 
     /** Package rejected: parsing failed with an internal error. */
     public static final String UPL_PKG_INTERNAL = "UPL_PKG_INTERNAL";
@@ -53,11 +53,11 @@ public class UplParseJob implements FndJobHandler {
     /** Outside the queue (tests, tools): the only attempt, so a failure closes the package at once. */
     @Override
     public void run(Map<String, Object> args) {
-        run(args, FndJobAttempt.only());
+        run(args, JobAttempt.only());
     }
 
     @Override
-    public void run(Map<String, Object> args, FndJobAttempt attempt) {
+    public void run(Map<String, Object> args, JobAttempt attempt) {
         UUID publicId = packageId(args);
         PackageRow row = packages.find(publicId)
                 .orElseThrow(() -> new IllegalStateException("Пакет " + publicId + " не найден"));
@@ -74,7 +74,7 @@ public class UplParseJob implements FndJobHandler {
      * 3.8); any other failure, or one on the last attempt, closes the package with an internal error and fails the job
      * with no retry: another attempt would find the package closed and change nothing.
      */
-    private UplParseResult parse(PackageRow row, FndJobAttempt attempt) {
+    private UplParseResult parse(PackageRow row, JobAttempt attempt) {
         try (FileDownloadStream file = files.downloadFile(row.fileId());
                 UplSpooledFile spooled = UplSpooledFile.of(file.inputStream())) {
             FormatVersion format = sources.getVersion(row.sourceId(), row.formatVersion());
@@ -90,13 +90,12 @@ public class UplParseJob implements FndJobHandler {
     }
 
     /** The exception the attempt ends with; closes the package unless the failure is left to a retry. */
-    private RuntimeException settle(PackageRow row, FndJobAttempt attempt, RuntimeException failure) {
-        if (!attempt.last() && FndJobFailures.isTransient(failure)) {
+    private RuntimeException settle(PackageRow row, JobAttempt attempt, RuntimeException failure) {
+        if (!attempt.last() && JobFailures.isTransient(failure)) {
             return failure;
         }
         packages.rejectInNewTransaction(row.id(), UPL_PKG_INTERNAL);
-        return new FndJobNotRetryableException(
-                "package " + row.publicId() + " closed with " + UPL_PKG_INTERNAL, failure);
+        return new JobNotRetryableException("package " + row.publicId() + " closed with " + UPL_PKG_INTERNAL, failure);
     }
 
     private static UUID packageId(Map<String, Object> args) {

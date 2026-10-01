@@ -19,7 +19,7 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 карточка, история, экспорт, массовые действия, пункт меню и названия прав
 строятся платформой ([ADR-0019](adr/ADR-0019-low-code-entity-model.md)).
 Встроенные модули — пользователи и роли, задачи и проекты, заметки, файлы,
-поиск, уведомления, аудит, загрузки данных (`upl`/`fnd`) — построены на той же
+поиск, уведомления, аудит, загрузки данных (`upl` поверх `jobs`, `warehouse`, `units`) — построены на той же
 платформе. Одна установка обслуживает одну организацию. Языки интерфейса:
 русский (канонический), узбекский и английский; другие администратор
 добавляет в редакторе языков.
@@ -48,11 +48,15 @@ SmartupCMS — self-hosted **low-code CMS для разработчиков**. �
 | Поставка | Docker Compose, отдельный шаг `migrate`, зашифрованный backup, ClamAV в production |
 
 Бизнес-модули сервера (`com.smartup24.cms.instance.*`, список —
-`ModuleBoundariesTest.MODULES`): `analytics`, `audit`, `fnd`, `kauth`, `kwh`,
-`md`, `mf`, `ms.note`, `ms.notify`, `ms.task`, `report`, `search`, `upl`.
+`ModuleBoundariesTest.MODULES`): `analytics`, `audit`, `jobs`, `kauth`, `kwh`,
+`md`, `mf`, `ms.note`, `ms.notify`, `ms.task`, `report`, `search`, `units`, `upl`,
+`warehouse` (бывший `fnd` разделён на очередь заданий, хранилище и единицы,
+[ADR-0030](adr/ADR-0030-fnd-split.md); в `fnd` остался только устаревший псевдоним
+шага миграции до 2026-12-31).
 Инфраструктура: `common` (платформа: сущность, реестр полей, ошибки, веб,
-JSON, сроки хранения) и `config` (безопасность, фильтры, кэш кластера, задание
-очистки журналов, идемпотентность, OpenAPI, очередь заданий). Точки
+JSON, сроки хранения, версии с датой действия, актор аудита) и `config`
+(безопасность, фильтры, кэш кластера, задание очистки журналов,
+идемпотентность, OpenAPI, такт очереди заданий `JobQueueWorker`). Точки
 расширения — в [extension-points.md](architecture/extension-points.md),
 порядок работы над модулем — в
 [руководстве](guidelines/module-development-guide.md).
@@ -104,6 +108,8 @@ JSON, сроки хранения) и `config` (безопасность, фил
   `@ConfigurationProperties` помечен `@Validated`; после изменения настроек —
   `-Dconfig.reference.update=true` для
   [справочника](ops/configuration-reference.md) (ADR-0027).
+- **SQL** — только в репозиториях: класс `*Service` запросов не пишет
+  (`ServicesRunNoSqlTest`); очередь `jobs` не зависит от `warehouse` (ADR-0030).
 - Не коммитить `.env`, секреты, дампы, данные клиентов, `graphify-out/`.
 - Русский каталог `apps/server/src/main/resources/i18n/ru.json` — источник
   ключей; `uz` и `en` полные; после изменений — `npm run i18n:sync-ru`.
@@ -144,6 +150,10 @@ JSON, сроки хранения) и `config` (безопасность, фил
 Долги фазы 3 закрыты 2026-10-01: `NOT_YET_LOCKED` и `NOT_YET_PAGED` пусты и удалены,
 хранилище замороженных нарушений ArchUnit пусто, «чужой SQL» запрещён строго (ADR-0026),
 комментарии в коде и тестах на английском (выпущенные миграции заморожены контрольной суммой).
+
+Пункт 4.2 фазы 4 (разделение `fnd`) выполнен 2026-10-01 в ветке
+`claude/p4-fnd-split`: модули `jobs`, `warehouse`, `units`, версии и актор в
+`common`, ключи ошибок остались `error.fnd.*` (ADR-0030).
 
 Известные пробелы платформы перечислены в
 [extension-points.md](architecture/extension-points.md#7-известные-пробелы):

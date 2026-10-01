@@ -5,7 +5,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -16,7 +16,7 @@ class JobQueueWorkerTest {
     @Test
     @DisplayName("такт сначала ставит задания расписания, затем выполняет очередь")
     void tickEnqueuesThenRuns() {
-        FndJobRunner runner = mock(FndJobRunner.class);
+        JobRunner runner = mock(JobRunner.class);
 
         new JobQueueWorker(runner).tick();
 
@@ -29,7 +29,7 @@ class JobQueueWorkerTest {
     @Test
     @DisplayName("сбой внутри такта не выпускает исключение наружу")
     void tickSwallowsFailure() {
-        FndJobRunner runner = mock(FndJobRunner.class);
+        JobRunner runner = mock(JobRunner.class);
         doThrow(new IllegalStateException("TEST сбой очереди")).when(runner).enqueueDue();
 
         assertThatCode(() -> new JobQueueWorker(runner).tick()).doesNotThrowAnyException();

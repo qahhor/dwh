@@ -1,14 +1,10 @@
 package com.smartup24.cms.instance.upl.upload;
 
-import com.smartup24.cms.instance.fnd.api.FndActor;
-import com.smartup24.cms.instance.fnd.api.FndActorContext;
-import com.smartup24.cms.instance.fnd.api.FndJobAttempt;
-import com.smartup24.cms.instance.fnd.api.FndJobFailures;
-import com.smartup24.cms.instance.fnd.api.FndJobHandler;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.api.FndLoads;
-import com.smartup24.cms.instance.fnd.api.FndRawRow;
-import com.smartup24.cms.instance.fnd.api.FndRawWriter;
+import com.smartup24.cms.instance.common.actor.AuditActor;
+import com.smartup24.cms.instance.common.actor.AuditActorContext;
+import com.smartup24.cms.instance.jobs.api.JobAttempt;
+import com.smartup24.cms.instance.jobs.api.JobFailures;
+import com.smartup24.cms.instance.jobs.api.JobHandler;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.upl.UplPref;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.FormatVersion;
@@ -17,6 +13,10 @@ import com.smartup24.cms.instance.upl.parse.UplParseResult;
 import com.smartup24.cms.instance.upl.parse.UplSpooledFile;
 import com.smartup24.cms.instance.upl.parse.UplXlsxParser;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
+import com.smartup24.cms.instance.warehouse.api.RawRow;
+import com.smartup24.cms.instance.warehouse.api.RawWriter;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoads;
 import com.smartup24.cms.spi.storage.FileDownloadStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -42,7 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * earlier attempt or by {@link UplApplyRecoveryJob} — is left alone.
  */
 @Component
-public class UplApplyJob implements FndJobHandler {
+public class UplApplyJob implements JobHandler {
 
     /** The argument that names the package; the recovery job looks for queued jobs by it. */
     static final String ARG_PACKAGE_ID = "packageId";
@@ -55,9 +55,9 @@ public class UplApplyJob implements FndJobHandler {
     private final UplSourceService sources;
     private final MfFileService files;
     private final UplXlsxParser parser;
-    private final FndLoads loads;
-    private final FndRawWriter raw;
-    private final FndActorContext actors;
+    private final WarehouseLoads loads;
+    private final RawWriter raw;
+    private final AuditActorContext actors;
     private final TransactionTemplate tx;
 
     public UplApplyJob(
@@ -65,9 +65,9 @@ public class UplApplyJob implements FndJobHandler {
             UplSourceService sources,
             MfFileService files,
             UplXlsxParser parser,
-            FndLoads loads,
-            FndRawWriter raw,
-            FndActorContext actors,
+            WarehouseLoads loads,
+            RawWriter raw,
+            AuditActorContext actors,
             TransactionTemplate tx) {
         this.repo = repo;
         this.sources = sources;
@@ -92,7 +92,7 @@ public class UplApplyJob implements FndJobHandler {
     /** Outside the queue (tests, tools): the only attempt, so a failed write closes the package at once. */
     @Override
     public void run(Map<String, Object> args) {
-        run(args, FndJobAttempt.only());
+        run(args, JobAttempt.only());
     }
 
     /**
@@ -101,7 +101,7 @@ public class UplApplyJob implements FndJobHandler {
      * would not fix, closes the package as "rejected".
      */
     @Override
-    public void run(Map<String, Object> args, FndJobAttempt attempt) {
+    public void run(Map<String, Object> args, JobAttempt attempt) {
         UUID publicId = packageId(args);
         long userId = userId(args);
         PackageRow row = repo.findByPublicId(publicId)
@@ -110,13 +110,13 @@ public class UplApplyJob implements FndJobHandler {
             return;
         }
         Long rawRows = writeRaw(row, attempt);
-        FndActor actor = actors.user(userId);
+        AuditActor actor = actors.user(userId);
         tx.executeWithoutResult(status -> finish(row.id(), rawRows, actor));
     }
 
     private boolean loadOpen(PackageRow row) {
         return loads.find(row.loadId())
-                .filter(load -> FndLoad.PENDING.equals(load.status()))
+                .filter(load -> WarehouseLoad.PENDING.equals(load.status()))
                 .isPresent();
     }
 
@@ -124,7 +124,7 @@ public class UplApplyJob implements FndJobHandler {
      * Writes the rows of the file into raw; {@code null} — the write failed for good and the reason goes to the
      * package. A transient failure while attempts remain is rethrown for the runner's retry.
      */
-    private Long writeRaw(PackageRow row, FndJobAttempt attempt) {
+    private Long writeRaw(PackageRow row, JobAttempt attempt) {
         try {
             long already = raw.count(row.loadId());
             if (already > 0) {
@@ -133,7 +133,7 @@ public class UplApplyJob implements FndJobHandler {
             }
             return copyRows(row);
         } catch (IOException | RuntimeException failure) {
-            if (!attempt.last() && FndJobFailures.isTransient(failure)) {
+            if (!attempt.last() && JobFailures.isTransient(failure)) {
                 log.warn(
                         "upl_apply_retry package={} attempt={} max_attempts={}",
                         row.publicId(),
@@ -161,8 +161,7 @@ public class UplApplyJob implements FndJobHandler {
                 UplParseResult result = parser.parse(
                         spooled.path(),
                         format,
-                        data -> sink.accept(
-                                new FndRawRow(++rowNo[0], data.sheet(), data.sourceRowNo(), data.fields())));
+                        data -> sink.accept(new RawRow(++rowNo[0], data.sheet(), data.sourceRowNo(), data.fields())));
                 if (result.outcome() != UplParseResult.Outcome.VERIFIED) {
                     throw new IllegalStateException(
                             "Повторный разбор файла пакета " + row.publicId() + " не дал «проверен»");
@@ -171,7 +170,7 @@ public class UplApplyJob implements FndJobHandler {
         }
     }
 
-    private void finish(long packageId, Long rawRows, FndActor actor) {
+    private void finish(long packageId, Long rawRows, AuditActor actor) {
         PackageRow row = repo.lockById(packageId)
                 .orElseThrow(() -> new IllegalStateException("Пакет " + packageId + " пропал во время применения"));
         if (!UplPackageModel.APPLYING.equals(row.status())) {

@@ -10,6 +10,7 @@ import com.smartup24.cms.instance.md.repository.MdUserRepository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +58,15 @@ public class MdSettingService {
         Map<String, String> result = new HashMap<>(DEFAULT_INSTANCE_SETTINGS);
         result.putAll(settingRepository.getAllInstanceSettings());
         return result;
+    }
+
+    /**
+     * One instance setting as stored, without defaults: a module reads its own switch through the settings' owner,
+     * not from the table (ADR-0026; the job queue's {@code jobs_enabled}, plan 10/10, item 4.2).
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> getInstanceSetting(String key) {
+        return settingRepository.getInstanceSetting(key);
     }
 
     @Transactional(readOnly = true)

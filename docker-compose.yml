@@ -124,12 +124,12 @@ services:
     # ADR-0001, two databases: MigrateMain applies db/dwh only (SMC_MIGRATE_SCOPE=warehouse, connecting with the
     # WAREHOUSE_* settings of server-environment), then the regular migrate profile
     # applies db/migration as before (SPRING_FLYWAY_TARGET and other Flyway settings keep working).
-    # DwhSchemaVersionGate checks pg-dwh on every Spring context start (the migrate profile included),
+    # WarehouseSchemaVersionGate checks pg-dwh on every Spring context start (the migrate profile included),
     # so db/dwh has to be applied before the first context start. All arguments are inline: nothing is lost in sh -c.
     entrypoint: ["sh", "-c"]
     command:
       - >-
-        java -cp app.jar com.smartup24.cms.instance.fnd.migration.MigrateMain
+        java -cp app.jar com.smartup24.cms.instance.warehouse.migration.MigrateMain
         && exec java -jar app.jar --spring.profiles.active=migrate
     environment:
       <<: *server-environment

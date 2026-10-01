@@ -20,7 +20,7 @@
 
 1. **Срок хранения объявляет модуль.** Бин `RetentionPolicy` (`common.retention`):
    имя, таблица, условие устаревшей строки с `:cutoff`, срок по умолчанию.
-   Двенадцать правил в модулях audit, kauth, kwh, ms.notify, fnd, search:
+   Двенадцать правил в модулях audit, kauth, kwh, ms.notify, fnd (с ADR-0030 — jobs), search:
    к десяти исходным добавлены `failed-jobs` (задания очереди `fnd_job_queue`,
    исчерпавшие попытки, по `failed_at`) и `search-jobs` (завершённые задания
    индекса `search_jobs`; задание, на которое ссылается повтор, и самое новое

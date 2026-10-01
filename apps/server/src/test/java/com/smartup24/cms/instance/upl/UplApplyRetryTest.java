@@ -2,15 +2,9 @@ package com.smartup24.cms.instance.upl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.api.DwhUnavailableException;
-import com.smartup24.cms.instance.fnd.api.FndLoad;
-import com.smartup24.cms.instance.fnd.api.FndRawRow;
-import com.smartup24.cms.instance.fnd.api.FndRawSource;
-import com.smartup24.cms.instance.fnd.api.FndRawWriter;
-import com.smartup24.cms.instance.fnd.jobs.FndJobProperties;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.jobs.config.JobProperties;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -25,6 +19,12 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageRepository;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
+import com.smartup24.cms.instance.warehouse.api.RawRow;
+import com.smartup24.cms.instance.warehouse.api.RawSource;
+import com.smartup24.cms.instance.warehouse.api.RawWriter;
+import com.smartup24.cms.instance.warehouse.api.WarehouseLoad;
+import com.smartup24.cms.instance.warehouse.api.WarehouseUnavailableException;
+import com.smartup24.cms.instance.warehouse.load.WarehouseLoadService;
 import java.io.ByteArrayInputStream;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -76,13 +76,13 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     private UplXlsxParser parser;
 
     @Autowired
-    private FndLoadService loads;
+    private WarehouseLoadService loads;
 
     @Autowired
-    private FndRawWriter raw;
+    private RawWriter raw;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
@@ -119,11 +119,11 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     void transientRawFailureIsRetried() {
         PackageRow row = verifiedPackage();
         AtomicInteger calls = new AtomicInteger();
-        FndJobRunner runner = runner(3, new DelegatingWriter() {
+        JobRunner runner = runner(3, new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
                 if (calls.incrementAndGet() == 1) {
-                    throw new DwhUnavailableException(new SQLException("TEST pg-dwh away"));
+                    throw new WarehouseUnavailableException(new SQLException("TEST pg-dwh away"));
                 }
                 return raw.copy(loadId, sourceFileId, rows);
             }
@@ -133,7 +133,7 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
         assertThat(runner.runNext()).contains(false);
         assertThat(packages.get(row.publicId().toString()).status()).isEqualTo(UplPackageModel.APPLYING);
         assertThat(loads.find(queued.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.PENDING));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.PENDING));
 
         assertThat(runner.runQueued()).isEqualTo(1);
 
@@ -147,10 +147,10 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     @DisplayName("3.8: pg-dwh away on every attempt — the last one closes the package with the write failure")
     void transientRawFailureOnTheLastAttemptRejects() {
         PackageRow row = verifiedPackage();
-        FndJobRunner runner = runner(2, new DelegatingWriter() {
+        JobRunner runner = runner(2, new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
-                throw new DwhUnavailableException(new SQLException("TEST pg-dwh away"));
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
+                throw new WarehouseUnavailableException(new SQLException("TEST pg-dwh away"));
             }
         });
         PackageRow queued = applies.request(row.publicId().toString(), userId);
@@ -165,7 +165,7 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
         assertThat(closed.status()).isEqualTo(UplPackageModel.REJECTED);
         assertThat(closed.rejectCode()).isEqualTo(UplApplyService.UPL_PKG_RAW_WRITE_FAILED);
         assertThat(loads.find(queued.loadId()))
-                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(FndLoad.FAILED));
+                .hasValueSatisfying(load -> assertThat(load.status()).isEqualTo(WarehouseLoad.FAILED));
         assertThat(runStatuses()).containsExactly("failed", "done");
     }
 
@@ -173,9 +173,9 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     @DisplayName("3.9: a failure a retry would not fix closes the package on the first attempt")
     void permanentRawFailureRejectsAtOnce() {
         PackageRow row = verifiedPackage();
-        FndJobRunner runner = runner(3, new DelegatingWriter() {
+        JobRunner runner = runner(3, new DelegatingWriter() {
             @Override
-            public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+            public long copy(long loadId, UUID sourceFileId, RawSource rows) {
                 throw new IllegalStateException("TEST bug");
             }
         });
@@ -224,14 +224,14 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
 
     // ---------- helpers ----------
 
-    private FndJobRunner runner(int maxAttempts, FndRawWriter writer) {
+    private JobRunner runner(int maxAttempts, RawWriter writer) {
         UplApplyJob job = new UplApplyJob(repo, sources, files, parser, loads, writer, actors, tx);
-        return new FndJobRunner(
+        return new JobRunner(
                 jdbc,
                 json,
                 transactions,
                 List.of(job),
-                new FndJobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
+                new JobProperties(maxAttempts, Duration.ZERO, Duration.ZERO, Duration.ofMinutes(1)));
     }
 
     private void queueRow(PackageRow row, String assignments) {
@@ -267,14 +267,14 @@ class UplApplyRetryTest extends EmbeddedPostgresTest {
     }
 
     /** The real writer, with one method replaced by a test. */
-    private abstract class DelegatingWriter implements FndRawWriter {
+    private abstract class DelegatingWriter implements RawWriter {
         @Override
         public long count(long loadId) {
             return raw.count(loadId);
         }
 
         @Override
-        public List<FndRawRow> read(long loadId) {
+        public List<RawRow> read(long loadId) {
             return raw.read(loadId);
         }
     }

@@ -2,12 +2,7 @@ package com.smartup24.cms.instance.upl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.FndPref;
-import com.smartup24.cms.instance.fnd.api.FndRawRow;
-import com.smartup24.cms.instance.fnd.api.FndRawSource;
-import com.smartup24.cms.instance.fnd.api.FndRawWriter;
-import com.smartup24.cms.instance.fnd.load.FndLoadService;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.mf.repository.MfFileRepository.FileRecord;
 import com.smartup24.cms.instance.mf.service.MfFileService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
@@ -21,6 +16,11 @@ import com.smartup24.cms.instance.upl.upload.UplPackageModel.NewPackage;
 import com.smartup24.cms.instance.upl.upload.UplPackageModel.PackageRow;
 import com.smartup24.cms.instance.upl.upload.UplPackageRepository;
 import com.smartup24.cms.instance.upl.upload.UplPackageService;
+import com.smartup24.cms.instance.warehouse.WarehousePref;
+import com.smartup24.cms.instance.warehouse.api.RawRow;
+import com.smartup24.cms.instance.warehouse.api.RawSource;
+import com.smartup24.cms.instance.warehouse.api.RawWriter;
+import com.smartup24.cms.instance.warehouse.load.WarehouseLoadService;
 import java.io.InputStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -75,19 +75,19 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
     private UplXlsxParser parser;
 
     @Autowired
-    private FndLoadService loads;
+    private WarehouseLoadService loads;
 
     @Autowired
-    private FndRawWriter raw;
+    private RawWriter raw;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private JdbcClient jdbc;
 
     @Autowired
-    @Qualifier(FndPref.DWH)
+    @Qualifier(WarehousePref.QUALIFIER)
     private JdbcClient warehouseJdbc;
 
     @Autowired
@@ -167,7 +167,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
     }
 
     /** The real writer with a probe on the rows between the parser and COPY. */
-    private final class Probe implements FndRawWriter {
+    private final class Probe implements RawWriter {
         private final MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
         private long handedOn;
         private long taken;
@@ -175,7 +175,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
         private long heapAtProbe;
 
         @Override
-        public long copy(long loadId, UUID sourceFileId, FndRawSource rows) {
+        public long copy(long loadId, UUID sourceFileId, RawSource rows) {
             return raw.copy(
                     loadId,
                     sourceFileId,
@@ -203,7 +203,7 @@ class UplApplyStreamingTest extends EmbeddedPostgresTest {
         }
 
         @Override
-        public List<FndRawRow> read(long loadId) {
+        public List<RawRow> read(long loadId) {
             return raw.read(loadId);
         }
     }

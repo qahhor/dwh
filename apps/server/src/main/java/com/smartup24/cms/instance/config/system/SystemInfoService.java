@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.info.BuildProperties;
-import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,7 +33,7 @@ public class SystemInfoService {
     private static final String UNKNOWN = "unknown";
     private static final Duration COMPONENT_TIMEOUT = Duration.ofSeconds(2);
 
-    private final JdbcClient jdbc;
+    private final SystemInfoRepository repository;
     private final ProviderRegistry providers;
     private final BackupStatusReader backupStatusReader;
     private final TypesenseProperties typesense;
@@ -46,7 +45,7 @@ public class SystemInfoService {
     private final ExecutorService healthExecutor;
 
     public SystemInfoService(
-            JdbcClient jdbc,
+            SystemInfoRepository repository,
             ProviderRegistry providers,
             BackupStatusReader backupStatusReader,
             TypesenseProperties typesense,
@@ -54,7 +53,7 @@ public class SystemInfoService {
             ObjectProvider<BuildProperties> buildProperties,
             @Value("${smc.system.health-timeout:2s}") Duration healthTimeout,
             @Value("${smc.backup.max-age:0s}") Duration backupMaxAge) {
-        this.jdbc = jdbc;
+        this.repository = repository;
         this.providers = providers;
         this.backupStatusReader = backupStatusReader;
         this.typesense = typesense;
@@ -125,7 +124,7 @@ public class SystemInfoService {
 
     private String databaseStatus() {
         try {
-            jdbc.sql("select 1").query().singleValue();
+            repository.ping();
             return "UP";
         } catch (Exception unavailable) {
             log.warn("system_info_database_down error={}", unavailable.toString());
@@ -135,17 +134,7 @@ public class SystemInfoService {
 
     private String schemaVersion() {
         try {
-            return jdbc.sql("""
-                            select version
-                            from flyway_schema_history
-                            where success
-                            order by installed_rank desc
-                            limit 1
-                            """)
-                    .query(String.class)
-                    .optional()
-                    .filter(SystemInfoService::hasText)
-                    .orElse(UNKNOWN);
+            return repository.schemaVersion().filter(SystemInfoService::hasText).orElse(UNKNOWN);
         } catch (Exception unavailable) {
             log.warn("system_info_schema_version_unavailable error={}", unavailable.toString());
             return UNKNOWN;
@@ -154,16 +143,7 @@ public class SystemInfoService {
 
     private SystemInfoResponse.Organization organization() {
         try {
-            return jdbc.sql("""
-                            select client_code as code,
-                                   client_name as name,
-                                   resource_profile
-                            from md_instance_info
-                            limit 1
-                            """)
-                    .query(SystemInfoResponse.Organization.class)
-                    .optional()
-                    .orElseGet(this::configuredOrganization);
+            return repository.organization().orElseGet(this::configuredOrganization);
         } catch (Exception unavailable) {
             log.warn("system_info_organization_unavailable error={}", unavailable.toString());
             return configuredOrganization();

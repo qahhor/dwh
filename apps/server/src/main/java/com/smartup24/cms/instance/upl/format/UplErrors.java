@@ -2,9 +2,10 @@ package com.smartup24.cms.instance.upl.format;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.StaleVersionException;
+import com.smartup24.cms.instance.common.error.ConstraintCode;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.common.versioning.StaleVersionException;
+import com.smartup24.cms.instance.common.versioning.VersionError;
 import org.springframework.dao.DataAccessException;
 
 /** Maps foundation and database errors to an API response per the "Errors" table of the file format contract. */
@@ -38,14 +39,14 @@ public final class UplErrors {
     }
 
     private static RuntimeException fromConstraint(ConstraintViolationException e) {
-        ConstraintErrorCode code = e.code();
-        if (code == ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS || code == ConstraintErrorCode.FND_VERSION_CONFLICT) {
+        ConstraintCode code = e.code();
+        if (code == VersionError.FND_VERSION_DRAFT_EXISTS || code == VersionError.FND_VERSION_CONFLICT) {
             return ApiException.conflict(ErrorCode.CONFLICT, "error.upl.fnd_version_draft_exists");
         }
-        if (code == ConstraintErrorCode.FND_VERSION_NOT_AFTER_PREVIOUS) {
+        if (code == VersionError.FND_VERSION_NOT_AFTER_PREVIOUS) {
             return ApiException.conflict(ErrorCode.CONFLICT, "error.upl.fnd_version_not_after_previous");
         }
-        if (code == ConstraintErrorCode.FND_VERSION_UNKNOWN) {
+        if (code == VersionError.FND_VERSION_UNKNOWN) {
             return ApiException.notFound(ErrorCode.NOT_FOUND, "error.upl.fnd_version_unknown");
         }
         return e;

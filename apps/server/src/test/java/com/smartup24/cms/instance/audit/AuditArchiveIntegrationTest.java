@@ -429,7 +429,7 @@ class AuditArchiveIntegrationTest {
                     delete,
                     new AuditArchiveProperties.S3(null, "auto", null, null, null, "audit/", true));
             return new AuditArchiveService(
-                    partitions, archives, store, properties, audit, jdbc, new DataSourceTransactionManager(ds));
+                    partitions, archives, store, properties, audit, new DataSourceTransactionManager(ds));
         }
 
         void insert(LocalDate day, String... rowPks) {

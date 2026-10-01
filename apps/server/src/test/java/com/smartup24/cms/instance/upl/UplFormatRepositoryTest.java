@@ -5,8 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.smartup24.cms.core.pagination.KeysetPage;
 import com.smartup24.cms.instance.common.query.QueryCompiler;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.versioning.FndVersioning;
+import com.smartup24.cms.instance.common.versioning.VersioningService;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.Column;
 import com.smartup24.cms.instance.upl.format.UplFormatModel.DataType;
@@ -40,10 +40,10 @@ class UplFormatRepositoryTest extends EmbeddedPostgresTest {
     private UplFormatRepository repo;
 
     @Autowired
-    private FndVersioning versioning;
+    private VersioningService versioning;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private TransactionTemplate tx;

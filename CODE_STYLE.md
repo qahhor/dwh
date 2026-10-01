@@ -15,7 +15,7 @@
    - **`mf` (Media & Files):** `com.smartup24.cms.instance.mf` — файловое хранилище (Garage S3).
    - **`audit` (Audit & Security):** `com.smartup24.cms.instance.audit` — журнал изменений (JSONB) и security-события.
    - **`common` (Platform):** `com.smartup24.cms.instance.common` — модель сущности (`entity`), реестр полей (`query`), массовые действия, история, провайдеры.
-   - **`fnd` (Foundation):** `com.smartup24.cms.instance.fnd` — очередь фоновых заданий, основа загрузок данных.
+   - **`jobs`, `warehouse`, `units`:** `com.smartup24.cms.instance.{jobs,warehouse,units}` — общая очередь фоновых заданий, вторая база (pg-dwh) с журналом загрузок, единицы измерения (бывший `fnd`, ADR-0030).
    - **`upl`, `report`, `search`, `kwh`:** загрузки данных, экспорт списков, поиск, вебхуки.
 2. **Именование классов с модульным префиксом:**
    - **Контроллеры:** `{Prefix}{Entity}Controller` (например, `MdUserController`, `KauthAuthController`, `MsTaskController`, `MfFileController`).

@@ -4,9 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.smartup24.cms.core.error.ErrorCode;
 import com.smartup24.cms.instance.common.error.ApiException;
-import com.smartup24.cms.instance.fnd.api.ConstraintErrorCode;
-import com.smartup24.cms.instance.fnd.api.ConstraintViolationException;
-import com.smartup24.cms.instance.fnd.api.StaleVersionException;
+import com.smartup24.cms.instance.common.error.ConstraintViolationException;
+import com.smartup24.cms.instance.common.versioning.StaleVersionException;
+import com.smartup24.cms.instance.common.versioning.VersionError;
+import com.smartup24.cms.instance.units.api.UnitError;
 import com.smartup24.cms.instance.upl.format.UplErrors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,11 +26,11 @@ class UplErrorsTest {
     @DisplayName("черновик уже есть и гонка версий — CONFLICT / FND_VERSION_DRAFT_EXISTS")
     void draftExistsAndVersionConflict() {
         assertApi(
-                new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_DRAFT_EXISTS),
+                new ConstraintViolationException(VersionError.FND_VERSION_DRAFT_EXISTS),
                 ErrorCode.CONFLICT,
                 "error.upl.fnd_version_draft_exists");
         assertApi(
-                new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_CONFLICT),
+                new ConstraintViolationException(VersionError.FND_VERSION_CONFLICT),
                 ErrorCode.CONFLICT,
                 "error.upl.fnd_version_draft_exists");
     }
@@ -38,7 +39,7 @@ class UplErrorsTest {
     @DisplayName("дата не позже прежней версии — CONFLICT / FND_VERSION_NOT_AFTER_PREVIOUS")
     void notAfterPrevious() {
         assertApi(
-                new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_NOT_AFTER_PREVIOUS),
+                new ConstraintViolationException(VersionError.FND_VERSION_NOT_AFTER_PREVIOUS),
                 ErrorCode.CONFLICT,
                 "error.upl.fnd_version_not_after_previous");
     }
@@ -47,7 +48,7 @@ class UplErrorsTest {
     @DisplayName("неизвестная версия — NOT_FOUND / FND_VERSION_UNKNOWN")
     void unknownVersion() {
         assertApi(
-                new ConstraintViolationException(ConstraintErrorCode.FND_VERSION_UNKNOWN),
+                new ConstraintViolationException(VersionError.FND_VERSION_UNKNOWN),
                 ErrorCode.NOT_FOUND,
                 "error.upl.fnd_version_unknown");
     }
@@ -64,7 +65,7 @@ class UplErrorsTest {
     @Test
     @DisplayName("незнакомая ошибка возвращается тем же объектом")
     void unknownErrorsPassThrough() {
-        RuntimeException constraint = new ConstraintViolationException(ConstraintErrorCode.FND_UNIT_UNKNOWN);
+        RuntimeException constraint = new ConstraintViolationException(UnitError.FND_UNIT_UNKNOWN);
         RuntimeException other = new IllegalStateException("x");
         assertThat(UplErrors.toApi(constraint)).isSameAs(constraint);
         assertThat(UplErrors.toApi(other)).isSameAs(other);

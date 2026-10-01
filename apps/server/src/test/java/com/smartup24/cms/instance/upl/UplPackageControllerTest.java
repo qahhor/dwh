@@ -8,9 +8,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.jayway.jsonpath.JsonPath;
 import com.smartup24.cms.instance.config.idempotency.IdempotencyFilter;
-import com.smartup24.cms.instance.fnd.FndActors;
-import com.smartup24.cms.instance.fnd.jobs.FndJobRunner;
+import com.smartup24.cms.instance.jobs.runner.JobRunner;
 import com.smartup24.cms.instance.kauth.pref.KauthPref;
+import com.smartup24.cms.instance.md.service.MdAuditActors;
 import com.smartup24.cms.instance.md.service.MdUserService;
 import com.smartup24.cms.instance.support.EmbeddedPostgresTest;
 import com.smartup24.cms.instance.upl.format.UplSourceService;
@@ -58,10 +58,10 @@ class UplPackageControllerTest extends EmbeddedPostgresTest {
     private UplSourceService sources;
 
     @Autowired
-    private FndJobRunner jobs;
+    private JobRunner jobs;
 
     @Autowired
-    private FndActors actors;
+    private MdAuditActors actors;
 
     @Autowired
     private TransactionTemplate tx;
